@@ -55,12 +55,12 @@ export async function geocodeAddress(params: {
     });
 
     const res = await fetch(`${BASE}?${query.toString()}`, {
-      signal: AbortSignal.timeout(6_000),
+      signal: AbortSignal.timeout(6_000) as any,
     });
 
     if (!res.ok) return null;
 
-    const json: GeoapifyResponse = await res.json();
+    const json = (await res.json()) as GeoapifyResponse;
     const feature = json.features?.[0];
     if (!feature) return null;
 

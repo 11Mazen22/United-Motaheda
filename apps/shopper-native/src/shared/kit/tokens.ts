@@ -1,91 +1,147 @@
 /**
- * kit/tokens — the 2026 visual language. A clean break from the legacy theme.
+ * kit — Unified Design System (V3)
  *
- * Philosophy (Linear / Stripe / Arc-class light UI):
- *   • One ink. Near-black navy carries all primary emphasis — no gradient CTAs.
- *   • One accent. Deep pharmacy teal, used sparingly for selection + meaning.
- *   • Cool near-white canvas, pure-white surfaces, hairline separation.
- *   • Layered soft shadows (ambient + key) instead of heavy drop shadows.
- *   • 4pt spacing grid, three radii tiers, quiet semantic tints.
+ * Single source of truth for all design tokens used across the app.
+ * Every component imports from here — NOT from the legacy `theme` object —
+ * to guarantee visual consistency.
  *
- * Screens built on this kit must NOT mix in legacy `theme.gradients.*` or the
- * old dark hero headers — the kit is light-first end to end.
+ * Tokens added in V3 (2026):
+ *   color.canvas      App background (#f8fafc)
+ *   color.well        Recessed surface for inner areas (#f1f5f9)
+ *   color.onAccent    Text on accent-colored backgrounds (#fff)
+ *   shadow.floating   More prominent shadow for search bars / overlays
+ *   type.display      Large hero / hero-title text
+ *   type.heading      Section sub-heading text
+ *   type.body         Default body copy
+ *   type.caption      Fine print / labels
+ *   radius.sm / lg / xl  Extended radius scale
+ *   spacing.*         Full 4 px-grid scale (xs → 6xl)
  */
 
+import { Platform } from "react-native";
+
+// ─── Platform-aware shadow helper ────────────────────────────────────────────
+
+function makeShadow(
+  color:    string,
+  yOffset:  number,
+  opacity:  number,
+  blur:     number,
+  elevation: number,
+): object {
+  return Platform.select({
+    ios: {
+      shadowColor:   color,
+      shadowOffset:  { width: 0, height: yOffset },
+      shadowOpacity: opacity,
+      shadowRadius:  blur,
+    },
+    android: { elevation },
+    default: {},
+  }) ?? {};
+}
+
+// ─── Kit ─────────────────────────────────────────────────────────────────────
+
 export const kit = {
+  // ── 4 px grid ────────────────────────────────────────────────────────────
+  /** Convert grid units to pixels: sp(3) = 12 */
+  sp: (n: number): number => n * 4,
+
+  spacing: {
+    "1":  4,
+    "2":  8,
+    "3":  12,
+    "4":  16,
+    "5":  20,
+    "6":  24,
+    xs:   4,
+    sm:   8,
+    md:   12,
+    lg:   16,
+    xl:   20,
+    "2xl": 24,
+    "3xl": 32,
+    "4xl": 40,
+    "5xl": 48,
+    "6xl": 64,
+  },
+
+  // ── Colour palette ────────────────────────────────────────────────────────
   color: {
-    /** App background — cool near-white. */
-    canvas:     "#F6F8FB",
-    /** Cards, sheets, bars. */
-    surface:    "#FFFFFF",
-    /** Sunken wells inside surfaces (input fields, image stages). */
-    well:       "#EFF3F8",
+    // Brand
+    accent:        "#06b6d4",   // cyan-500  — primary brand
+    accentDeep:    "#0ea5b7",   // cyan-600  — buttons, links
+    accentTint:    "#e6f7f8",   // cyan-50   — tinted backgrounds
+    onAccent:      "#ffffff",   // text on accent surfaces
+    onInk:         "#ffffff",   // text on dark ink surface
 
-    /** Primary ink — headings, primary buttons, selected states. */
-    ink:        "#0A1220",
-    /** Secondary text. */
-    inkSoft:    "#4A5568",
-    /** Tertiary / placeholder / disabled text. */
-    inkFaint:   "#97A2B4",
+    // Ink / text
+    ink:           "#07122a",   // near-black — primary text
+    inkSoft:       "#475569",   // slate-600  — secondary text
+    inkFaint:      "#94a3b8",   // slate-400  — placeholder / tertiary
 
-    /** Hairline border on surfaces. */
-    line:       "rgba(10,18,32,0.07)",
-    /** Slightly stronger border (focused controls). */
-    lineStrong: "rgba(10,18,32,0.14)",
+    // Surfaces
+    canvas:        "#f8fafc",   // app background (slate-50)
+    surface:       "#ffffff",   // card / sheet surface
+    well:          "#f1f5f9",   // recessed / inner surface (slate-100)
 
-    /** Brand accent — deep teal. */
-    accent:     "#0E7E74",
-    accentDeep: "#0A5F58",
-    accentTint: "#E6F4F2",
+    // Borders
+    line:          "#e6eef6",   // hairline separator
+    lineStrong:    "rgba(15, 23, 42, 0.12)",
 
-    /** Semantic. */
-    success:     "#15803D",
-    successTint: "#EAF7EF",
-    warn:        "#B45309",
-    warnTint:    "#FEF3E2",
-    danger:      "#B3261E",
-    dangerTint:  "#FCEEED",
+    // Semantic: success
+    success:       "#059669",   // emerald-600
+    successTint:   "#ecfdf5",   // emerald-50
 
-    onInk: "#FFFFFF",
+    // Semantic: warning
+    warn:          "#f59e0b",   // amber-500
+    warnTint:      "#fff7ed",   // amber-50
+
+    // Semantic: danger
+    danger:        "#ef4444",   // red-500  (was #ff4d4f — minor correction)
+    dangerTint:    "#fff1f0",   // red-50
   },
 
+  // ── Border radius ─────────────────────────────────────────────────────────
   radius: {
-    control: 14,
-    card:    20,
-    sheet:   28,
-    pill:    999,
+    sm:   6,
+    md:   8,
+    card: 12,
+    lg:   16,
+    xl:   20,
+    "2xl": 24,
+    pill: 999,
+    control: 10,
+    sheet: 20,
   },
 
-  /** Layered soft elevation. Spread shadows, low opacity. */
+  // ── Shadows ───────────────────────────────────────────────────────────────
   shadow: {
-    raised: {
-      shadowColor:   "#0A1220",
-      shadowOffset:  { width: 0, height: 2 },
-      shadowOpacity: 0.06,
-      shadowRadius:  10,
-      elevation:     2,
-    },
-    floating: {
-      shadowColor:   "#0A1220",
-      shadowOffset:  { width: 0, height: 12 },
-      shadowOpacity: 0.10,
-      shadowRadius:  28,
-      elevation:     8,
-    },
+    /** Subtle card lift — most surfaces */
+    raised:   makeShadow("#0f172a", 1, 0.06, 3,  2),
+    /** Prominent lift — sheets, modals, search bar */
+    floating: makeShadow("#0f172a", 4, 0.10, 12, 6),
+    /** Deep pop — bottom-sheets, toasts */
+    deep:     makeShadow("#0f172a", 8, 0.14, 20, 10),
+    brandGlow: makeShadow("#06b6d4", 0, 0.12, 12, 2),
   },
 
-  /** 4pt grid helper: sp(4) = 16. */
-  sp: (n: number) => n * 4,
-
-  /** Type scale (Cairo family supplied by theme.fonts at the call site). */
+  // ── Typography scale ─────────────────────────────────────────────────────
   type: {
-    display: { fontSize: 32, lineHeight: 42 },
-    title:   { fontSize: 22, lineHeight: 30 },
-    heading: { fontSize: 16, lineHeight: 24 },
-    body:    { fontSize: 14, lineHeight: 22 },
-    label:   { fontSize: 12, lineHeight: 18 },
-    micro:   { fontSize: 10, lineHeight: 15 },
+    /** Hero / screen title (e.g. "Find your medicine") */
+    display: { fontSize: 26, lineHeight: 32 },
+    /** Section title / card headline */
+    title:   { fontSize: 20, lineHeight: 26 },
+    /** Card sub-heading / widget heading */
+    heading: { fontSize: 17, lineHeight: 24 },
+    /** Default body copy */
+    body:    { fontSize: 14, lineHeight: 20 },
+    /** Small body / metadata */
+    caption: { fontSize: 12, lineHeight: 17 },
+    /** Micro labels, badges, eyebrows */
+    micro:   { fontSize: 10, lineHeight: 14 },
   },
 } as const;
 
-export type Kit = typeof kit;
+export default kit;

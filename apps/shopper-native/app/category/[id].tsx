@@ -1,47 +1,90 @@
 import React, { useCallback, useState } from "react";
-import { ActivityIndicator, FlatList, Platform, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import {
+  ActivityIndicator,
+  FlatList,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
+} from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import { useTranslation } from "react-i18next";
 import { ProductCardSkeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Text as UIText } from "@/shared/ui";
 import { theme } from "@/shared/theme";
+import { kit } from "@/shared/kit";
 import {
   ProductGrid,
   useInfiniteProducts,
   type NativeProduct,
   type ProductSortMode,
 } from "@/features/products";
-import { flexRow, isRtl } from "@/utils/layout";
+import { flexRow, isRtl, textAlignStart, BACK_CHEVRON } from "@/utils/layout";
+import { emojiFor } from "@/components/CategoryCard";
 
-const SORT_OPTIONS: { id: ProductSortMode; labelKey: string; icon: React.ComponentProps<typeof Ionicons>["name"] }[] = [
-  { id: "newest",     labelKey: "category.sortNewest",    icon: "time-outline" },
-  { id: "price_asc",  labelKey: "category.sortPriceAsc",  icon: "arrow-down-outline" },
-  { id: "price_desc", labelKey: "category.sortPriceDesc", icon: "arrow-up-outline" },
-  { id: "name_asc",   labelKey: "category.sortNameAsc",   icon: "text-outline" },
+const IS_RTL     = isRtl();
+const TEXT_START = textAlignStart(IS_RTL);
+
+// ─── Sort options ─────────────────────────────────────────────────────────────
+
+const SORT_OPTIONS: {
+  id:       ProductSortMode;
+  labelAr:  string;
+  labelEn:  string;
+  icon:     React.ComponentProps<typeof Ionicons>["name"];
+}[] = [
+  { id: "newest",     labelAr: "الأحدث",      labelEn: "Newest",      icon: "time-outline"        },
+  { id: "price_asc",  labelAr: "سعر ↑",        labelEn: "Price ↑",     icon: "arrow-up-outline"    },
+  { id: "price_desc", labelAr: "سعر ↓",        labelEn: "Price ↓",     icon: "arrow-down-outline"  },
+  { id: "name_asc",   labelAr: "أ–ي",          labelEn: "A–Z",         icon: "text-outline"        },
 ];
+
+// ─── Per-category accent palette ─────────────────────────────────────────────
+
+const PALETTE = [
+  { accent: kit.color.accentDeep, tint: kit.color.accentTint },
+  { accent: kit.color.warn,       tint: kit.color.warnTint    },
+  { accent: kit.color.success,    tint: kit.color.successTint },
+  { accent: "#7c3aed",            tint: "#f5f3ff"             },
+  { accent: "#0284c7",            tint: "#e0f2fe"             },
+];
+
+function idToPalette(str: string) {
+  const sum = str.split("").reduce((a, c) => a + c.charCodeAt(0), 0);
+  return PALETTE[sum % PALETTE.length];
+}
+
+// ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function CategoryScreen() {
   const { t, i18n } = useTranslation();
+
   const params    = useLocalSearchParams<{ id?: string | string[]; nameEn?: string | string[]; name?: string | string[] }>();
   const rawId     = Array.isArray(params.id)     ? params.id[0]     : params.id;
   const rawNameEn = Array.isArray(params.nameEn) ? params.nameEn[0] : params.nameEn;
   const rawName   = Array.isArray(params.name)   ? params.name[0]   : params.name;
-  const id        = typeof rawId     === "string" && rawId.length     > 0 ? decodeURIComponent(rawId)     : undefined;
-  const nameEn    = typeof rawNameEn === "string" && rawNameEn.length > 0 ? decodeURIComponent(rawNameEn) : undefined;
-  const catName   = typeof rawName   === "string" && rawName.length   > 0 ? decodeURIComponent(rawName)   : undefined;
-  // Respect language: prefer nameEn in English, Arabic name otherwise
+
+  const id       = typeof rawId     === "string" && rawId.length     > 0 ? decodeURIComponent(rawId)     : undefined;
+  const nameEn   = typeof rawNameEn === "string" && rawNameEn.length > 0 ? decodeURIComponent(rawNameEn) : undefined;
+  const catName  = typeof rawName   === "string" && rawName.length   > 0 ? decodeURIComponent(rawName)   : undefined;
+
   const displayTitle = i18n.language === "en" && nameEn
     ? nameEn
     : (catName ?? id ?? t("category.defaultName"));
+
   const router = useRouter();
   const insets = useSafeAreaInsets();
+
   const [sortBy, setSortBy]           = useState<ProductSortMode>("newest");
   const [inStockOnly, setInStockOnly] = useState(false);
+
+  const { accent, tint } = idToPalette(id ?? "");
+  const emoji             = emojiFor(catName ?? "");
 
   const {
     products,
@@ -61,118 +104,134 @@ export default function CategoryScreen() {
   });
 
   const handleProductPress = useCallback(
-    (p: NativeProduct) => {
-      router.push({ pathname: "/product/[id]", params: { id: p.id } });
-    },
+    (p: NativeProduct) => router.push({ pathname: "/product/[id]", params: { id: p.id } }),
     [router],
   );
 
-  const gradientIdx = (id?.length ?? 0) % theme.catGradients.length;
-  const [g1, g2] = theme.catGradients[gradientIdx];
+  const toggleInStock = useCallback(() => {
+    if (Platform.OS !== "web") Haptics.selectionAsync().catch(() => {});
+    setInStockOnly((v) => !v);
+  }, []);
+
+  const pickSort = useCallback((id: ProductSortMode) => {
+    if (Platform.OS !== "web") Haptics.selectionAsync().catch(() => {});
+    setSortBy(id);
+  }, []);
 
   return (
     <View style={s.root}>
-      {/* ── Gradient header ──────────────────────────────────── */}
-      <LinearGradient
-        colors={[g1, g2]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={[s.header, { paddingTop: insets.top + 8 }]}>
 
-        {/* Decorative orbs */}
-        <View style={s.orb1} />
-        <View style={s.orb2} />
-        <View style={s.orb3} />
-        <View style={s.orb4} />
+      {/* ══════════════════════════════════════════════════ */}
+      {/* HEADER                                           */}
+      {/* ══════════════════════════════════════════════════ */}
+      <View style={[s.header, { paddingTop: insets.top + 6 }]}>
 
-        {/* Top row */}
-        <View style={s.topRow}>
-          <Pressable
-            onPress={() => router.back()}
-            hitSlop={10}
-            style={s.iconBtn}>
-            <Ionicons name="arrow-forward" size={16} color="#fff" />
+        {/* Tinted identity wash — fills top portion of header */}
+        <View style={[s.wash, { backgroundColor: tint }]} pointerEvents="none" />
+
+        {/* Nav row — back + cart */}
+        <View style={[s.navRow, { flexDirection: flexRow(IS_RTL) }]}>
+          <Pressable onPress={() => router.back()} hitSlop={12} style={s.navBtn}>
+            <Ionicons name={BACK_CHEVRON} size={17} color={kit.color.inkSoft} />
           </Pressable>
 
-          <View style={s.titleBlock}>
-            <View style={s.eyebrowRow}>
-              <UIText variant="eyebrow" align="right" style={s.eyebrowText}>
-                {t("category.browse")}
-              </UIText>
-              {totalCount > 0 && (
-                <View style={s.countChip}>
-                  <UIText style={s.countChipText}>{totalCount} منتج</UIText>
-                </View>
-              )}
-            </View>
-            <UIText variant="sheet-title" color="inverse" align="right" numberOfLines={1} style={s.titleText}>
-              {displayTitle}
-            </UIText>
-          </View>
-
-          <Pressable
-            onPress={() => router.push("/(tabs)/cart")}
-            style={s.iconBtn}>
-            <Ionicons name="bag-outline" size={16} color="#fff" />
+          <Pressable onPress={() => router.push("/(tabs)/cart")} style={s.navBtn}>
+            <Ionicons name="bag-outline" size={17} color={kit.color.inkSoft} />
           </Pressable>
         </View>
 
-        {/* Sort & filter chips */}
+        {/* Identity block — emoji + title */}
+        <View style={s.identity}>
+          {/* Emoji well */}
+          <View style={[s.emojiWell, { backgroundColor: tint, borderColor: accent + "30" }]}>
+            <UIText style={s.emojiText}>{emoji}</UIText>
+          </View>
+
+          {/* Text */}
+          <View style={s.titleBlock}>
+            <UIText style={[s.eyebrow, { textAlign: TEXT_START }]}>
+              {IS_RTL ? "استعراض" : t("category.browse")}
+            </UIText>
+            <UIText numberOfLines={2} style={[s.title, { textAlign: TEXT_START }]}>
+              {displayTitle}
+            </UIText>
+            {totalCount > 0 && (
+              <View style={[s.countBadge, { backgroundColor: tint, flexDirection: flexRow(IS_RTL) }]}>
+                <View style={[s.countDot, { backgroundColor: accent }]} />
+                <UIText style={[s.countText, { color: accent }]}>
+                  {totalCount}{IS_RTL ? " منتج" : " products"}
+                </UIText>
+              </View>
+            )}
+          </View>
+        </View>
+
+        {/* Filter chips */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={s.chipsScrollContent}>
-          {/* In stock toggle */}
+          contentContainerStyle={[s.chipsRow, { flexDirection: flexRow(IS_RTL) }]}
+        >
+          {/* In-stock toggle */}
           <Pressable
-            onPress={() => {
-              if (Platform.OS !== "web") Haptics.selectionAsync().catch(() => {});
-              setInStockOnly((v) => !v);
-            }}
-            style={[s.chip, inStockOnly ? s.chipActive : s.chipInactive]}>
-            <Ionicons name={inStockOnly ? "checkmark-circle" : "cube-outline"} size={14} color="#fff" />
-            <UIText variant="caption" weight="bold" color="inverse">{t("category.inStockOnly")}</UIText>
+            onPress={toggleInStock}
+            style={[s.chip, inStockOnly
+              ? { backgroundColor: tint, borderColor: accent }
+              : s.chipOff]}
+          >
+            <Ionicons
+              name={inStockOnly ? "checkmark-circle" : "cube-outline"}
+              size={13}
+              color={inStockOnly ? accent : kit.color.inkFaint}
+            />
+            <UIText style={[s.chipText, { color: inStockOnly ? accent : kit.color.inkSoft }]}>
+              {IS_RTL ? "متوفر" : t("category.inStockOnly")}
+            </UIText>
           </Pressable>
 
-          {/* Sort options */}
+          {/* Sort chips */}
           {SORT_OPTIONS.map((opt) => {
             const active = sortBy === opt.id;
             return (
               <Pressable
                 key={opt.id}
-                onPress={() => {
-                  if (Platform.OS !== "web") Haptics.selectionAsync().catch(() => {});
-                  setSortBy(opt.id);
-                }}
-                style={[s.chip, active ? s.chipActive : s.chipInactive]}>
-                <Ionicons name={opt.icon} size={13} color="#fff" />
-                <UIText
-                  variant="caption"
-                  weight={active ? "black" : "semibold"}
-                  color="inverse">
-                  {t(opt.labelKey)}
+                onPress={() => pickSort(opt.id)}
+                style={[s.chip, active
+                  ? { backgroundColor: tint, borderColor: accent }
+                  : s.chipOff]}
+              >
+                <Ionicons name={opt.icon} size={13} color={active ? accent : kit.color.inkFaint} />
+                <UIText style={[s.chipText, { color: active ? accent : kit.color.inkSoft }]}>
+                  {IS_RTL ? opt.labelAr : opt.labelEn}
                 </UIText>
               </Pressable>
             );
           })}
         </ScrollView>
-      </LinearGradient>
+      </View>
 
-      {/* ── Results count bar ────────────────────────────────── */}
+      {/* ══════════════════════════════════════════════════ */}
+      {/* RESULTS BAR                                      */}
+      {/* ══════════════════════════════════════════════════ */}
       {products.length > 0 && !isLoading && (
-        <View style={s.resultsBar}>
+        <View style={[s.resultsBar, { flexDirection: flexRow(IS_RTL) }]}>
           <UIText style={s.resultsText}>
-            {products.length} منتج
+            {products.length}{IS_RTL ? " منتج" : " products"}
           </UIText>
           {inStockOnly && (
-            <View style={s.activeFilterChip}>
-              <Ionicons name="checkmark-circle" size={11} color={theme.colors.teal[600]} />
-              <UIText style={s.activeFilterText}>{t("category.inStockOnly")}</UIText>
+            <View style={[s.filterTag, { backgroundColor: tint, flexDirection: flexRow(IS_RTL) }]}>
+              <Ionicons name="checkmark-circle" size={11} color={accent} />
+              <UIText style={[s.filterTagText, { color: accent }]}>
+                {IS_RTL ? "متوفر فقط" : t("category.inStockOnly")}
+              </UIText>
             </View>
           )}
         </View>
       )}
 
-      {/* ── Content ──────────────────────────────────────────── */}
+      {/* ══════════════════════════════════════════════════ */}
+      {/* CONTENT                                          */}
+      {/* ══════════════════════════════════════════════════ */}
       {isLoading ? (
         <FlatList
           data={[1, 2, 3, 4, 5, 6]}
@@ -181,11 +240,7 @@ export default function CategoryScreen() {
           contentContainerStyle={{ padding: 12, gap: 10 }}
           columnWrapperStyle={{ gap: 10, flexDirection: flexRow(isRtl()) }}
           showsVerticalScrollIndicator={false}
-          renderItem={() => (
-            <View style={{ flex: 1 }}>
-              <ProductCardSkeleton />
-            </View>
-          )}
+          renderItem={() => <View style={{ flex: 1 }}><ProductCardSkeleton /></View>}
         />
       ) : isError ? (
         <EmptyState
@@ -214,7 +269,7 @@ export default function CategoryScreen() {
           ListFooterComponent={
             isFetchingNextPage ? (
               <View style={{ paddingVertical: 24, alignItems: "center" }}>
-                <ActivityIndicator color={theme.colors.brand[500]} />
+                <ActivityIndicator color={kit.color.accentDeep} />
               </View>
             ) : null
           }
@@ -224,151 +279,161 @@ export default function CategoryScreen() {
   );
 }
 
+// ─── Styles ──────────────────────────────────────────────────────────────────
+
 const s = StyleSheet.create({
   root: {
     flex:            1,
-    backgroundColor: theme.colors.bg,
+    backgroundColor: kit.color.canvas,
   },
+
+  // ── Header
   header: {
-    paddingBottom:     20,
+    backgroundColor:   kit.color.surface,
+    paddingBottom:     16,
     paddingHorizontal: 16,
+    gap:               16,
     overflow:          "hidden",
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: kit.color.line,
+    ...kit.shadow.raised,
   },
-  // ── Decorative orbs
-  orb1: {
-    position:        "absolute",
-    right:           -24,
-    top:             -24,
-    width:           100,
-    height:          100,
-    borderRadius:    50,
-    backgroundColor: "rgba(255,255,255,0.06)",
+  wash: {
+    position: "absolute",
+    top:      0,
+    left:     0,
+    right:    0,
+    bottom:   0,
+    opacity:  0.45,
   },
-  orb2: {
-    position:        "absolute",
-    right:           -30,
-    top:             -30,
-    width:           120,
-    height:          120,
-    borderRadius:    60,
-    backgroundColor: "rgba(255,255,255,0.06)",
+
+  // ── Nav row
+  navRow: {
+    justifyContent: "space-between",
+    alignItems:     "center",
+    marginTop:      4,
   },
-  orb3: {
-    position:        "absolute",
-    left:            -50,
-    bottom:          -30,
-    width:           160,
-    height:          160,
-    borderRadius:    80,
-    backgroundColor: "rgba(255,255,255,0.04)",
-  },
-  orb4: {
-    position:        "absolute",
-    right:           60,
-    bottom:          10,
-    width:           70,
-    height:          70,
-    borderRadius:    35,
-    backgroundColor: "rgba(255,255,255,0.04)",
-  },
-  // ── Top row
-  topRow: {
-    flexDirection: flexRow(isRtl()) as "row" | "row-reverse",
-    alignItems:    "center",
-    gap:           12,
-    marginBottom:  12,
-  },
-  iconBtn: {
+  navBtn: {
     width:           40,
     height:          40,
-    borderRadius:    14,
-    backgroundColor: "rgba(255,255,255,0.16)",
+    borderRadius:    13,
+    backgroundColor: kit.color.surface,
+    borderWidth:     1,
+    borderColor:     kit.color.line,
     alignItems:      "center",
     justifyContent:  "center",
-    borderWidth:     1,
-    borderColor:     "rgba(255,255,255,0.22)",
+    ...kit.shadow.raised,
+  },
+
+  // ── Identity block
+  identity: {
+    flexDirection:  IS_RTL ? "row-reverse" : "row",
+    alignItems:     "center",
+    gap:            16,
+  },
+  emojiWell: {
+    width:          72,
+    height:         72,
+    borderRadius:   22,
+    borderWidth:    1,
+    alignItems:     "center",
+    justifyContent: "center",
+    ...kit.shadow.raised,
+  },
+  emojiText: {
+    fontSize: 34,
   },
   titleBlock: {
     flex: 1,
+    gap:  6,
   },
-  eyebrowRow: {
-    flexDirection: flexRow(isRtl()) as "row" | "row-reverse",
-    alignItems:    "center",
-    justifyContent:"flex-end",
-    gap:           8,
+  eyebrow: {
+    fontFamily:         theme.fonts.bold,
+    fontSize:           10,
+    lineHeight:         14,
+    color:              kit.color.accentDeep,
+    letterSpacing:      0.7,
+    includeFontPadding: false,
   },
-  eyebrowText: {
-    color: "rgba(255,255,255,0.55)",
+  title: {
+    fontFamily:         theme.fonts.black,
+    fontSize:           22,
+    lineHeight:         28,
+    color:              kit.color.ink,
+    letterSpacing:      -0.4,
+    includeFontPadding: false,
   },
-  countChip: {
-    backgroundColor: "rgba(255,255,255,0.14)",
-    borderRadius:    999,
-    paddingHorizontal: 10,
-    paddingVertical:   3,
-    borderWidth:     1,
-    borderColor:     "rgba(255,255,255,0.18)",
-  },
-  countChipText: {
-    fontSize:    10,
-    fontFamily:  theme.fonts.bold,
-    color:       "rgba(255,255,255,0.85)",
-  },
-  titleText: {
-    letterSpacing: -0.3,
-    marginTop:     2,
-  },
-  // ── Chips
-  chipsScrollContent: {
-    gap:         8,
-    paddingRight: 2,
-  },
-  chip: {
-    flexDirection:     flexRow(isRtl()) as "row" | "row-reverse",
+  countBadge: {
+    alignSelf:         "flex-start",
     alignItems:        "center",
     gap:               5,
-    paddingHorizontal: 12,
-    paddingVertical:   8,
-    borderRadius:      14,
+    borderRadius:      kit.radius.pill,
+    paddingHorizontal: 10,
+    paddingVertical:   4,
+  },
+  countDot: {
+    width:        5,
+    height:       5,
+    borderRadius: 3,
+  },
+  countText: {
+    fontFamily:         theme.fonts.bold,
+    fontSize:           11,
+    lineHeight:         15,
+    includeFontPadding: false,
+  },
+
+  // ── Filter chips
+  chipsRow: {
+    gap:          8,
+    paddingRight: 4,
+  },
+  chip: {
+    flexDirection:     IS_RTL ? "row-reverse" : "row",
+    alignItems:        "center",
+    gap:               5,
+    paddingHorizontal: 13,
+    paddingVertical:   9,
+    borderRadius:      kit.radius.control,
     borderWidth:       1,
   },
-  chipActive: {
-    backgroundColor: "rgba(255,255,255,0.28)",
-    borderColor:     "rgba(255,255,255,0.45)",
+  chipOff: {
+    backgroundColor: kit.color.well,
+    borderColor:     kit.color.line,
   },
-  chipInactive: {
-    backgroundColor: "rgba(255,255,255,0.10)",
-    borderColor:     "rgba(255,255,255,0.12)",
+  chipText: {
+    fontFamily:         theme.fonts.semibold,
+    fontSize:           12,
+    lineHeight:         16,
+    includeFontPadding: false,
   },
+
   // ── Results bar
   resultsBar: {
-    flexDirection:     flexRow(isRtl()) as "row" | "row-reverse",
     alignItems:        "center",
     justifyContent:    "space-between",
     paddingHorizontal: 16,
     paddingVertical:   10,
-    backgroundColor:   theme.colors.surface,
+    backgroundColor:   kit.color.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border.hairline,
+    borderBottomColor: kit.color.line,
   },
   resultsText: {
-    fontSize:   12,
     fontFamily: theme.fonts.semibold,
-    color:      theme.colors.text.tertiary,
+    fontSize:   12,
+    lineHeight: 16,
+    color:      kit.color.inkFaint,
   },
-  activeFilterChip: {
-    flexDirection:     flexRow(isRtl()) as "row" | "row-reverse",
+  filterTag: {
     alignItems:        "center",
     gap:               4,
-    backgroundColor:   theme.colors.teal[50],
-    borderRadius:      999,
+    borderRadius:      kit.radius.pill,
     paddingHorizontal: 8,
     paddingVertical:   3,
-    borderWidth:       1,
-    borderColor:       theme.colors.teal[100],
   },
-  activeFilterText: {
-    fontSize:   10,
+  filterTagText: {
     fontFamily: theme.fonts.bold,
-    color:      theme.colors.teal[600],
+    fontSize:   10,
+    lineHeight: 14,
   },
 });

@@ -22,7 +22,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import Animated, {
   FadeInDown,
-  FadeInRight,
   FadeOutRight,
   Layout,
   useAnimatedStyle,
@@ -94,14 +93,12 @@ const StepBtn = memo(function StepBtn({
 
 interface CartItemCardProps {
   item:       CartItem;
-  index:      number;
   updateQty:  (productId: string, qty: number) => void;
   removeItem: (productId: string) => void;
 }
 
 const CartItemCard = memo(function CartItemCard({
   item,
-  index,
   updateQty,
   removeItem,
 }: CartItemCardProps) {
@@ -135,7 +132,6 @@ const CartItemCard = memo(function CartItemCard({
 
   return (
     <Animated.View
-      entering={FadeInRight.duration(300).delay(index * 50).springify().damping(18)}
       exiting={FadeOutRight.duration(220)}
       layout={Layout.springify().damping(18)}
       style={s.card}>
@@ -387,10 +383,9 @@ export default function CartScreen() {
 
   // Stable renderItem — no inline arrow function
   const renderItem = useCallback(
-    ({ item, index }: { item: CartItem; index: number }) => (
+    ({ item }: { item: CartItem }) => (
       <CartItemCard
         item={item}
-        index={index}
         updateQty={updateQty}
         removeItem={removeItem}
       />

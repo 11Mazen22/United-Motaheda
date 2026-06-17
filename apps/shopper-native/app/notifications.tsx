@@ -1,16 +1,17 @@
-﻿import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
   Platform,
   Pressable,
   RefreshControl,
+  ScrollView,
   StyleSheet,
   View,
 } from "react-native";
 import { Text as UIText } from "@/shared/ui";
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
+import { kit } from "@/shared/kit";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
@@ -24,27 +25,28 @@ import { flexRow, isRtl, textAlignStart, BACK_CHEVRON } from "@/utils/layout";
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>["name"];
 
-// ─── Type config ──────────────────────────────────────────────────────────
+const IS_RTL     = isRtl();
+const TEXT_START = textAlignStart(IS_RTL);
 
+// ─── Type config — all kit tokens ────────────────────────────────────────────
 const TYPE_CONFIG: Record<NotifType, { icon: IoniconsName; color: string; bg: string; labelKey: string }> = {
-  order:  { icon: "bag-handle",       color: theme.colors.brand[600],  bg: theme.colors.brand[50],  labelKey: "notifications.typeOrder"  },
-  offer:  { icon: "pricetag",         color: theme.colors.amber[600],  bg: theme.colors.amber[50],  labelKey: "notifications.typeOffer"  },
-  health: { icon: "heart",            color: theme.colors.rose[500],   bg: theme.colors.rose[50],   labelKey: "notifications.typeHealth" },
-  system: { icon: "settings-outline", color: theme.colors.slate[600],  bg: theme.colors.slate[100], labelKey: "notifications.typeSystem" },
+  order:  { icon: "bag-handle",       color: kit.color.accentDeep,  bg: kit.color.accentTint,        labelKey: "notifications.typeOrder"  },
+  offer:  { icon: "pricetag",         color: kit.color.warn,         bg: kit.color.warnTint,          labelKey: "notifications.typeOffer"  },
+  health: { icon: "heart",            color: "#E53E3E",              bg: "rgba(229,62,62,0.08)",      labelKey: "notifications.typeHealth" },
+  system: { icon: "settings-outline", color: kit.color.inkSoft,     bg: kit.color.well,               labelKey: "notifications.typeSystem" },
 };
 
 type Filter = "all" | NotifType;
 
 const FILTER_CONFIGS: { key: Filter; labelKey: string }[] = [
-  { key: "all",    labelKey: "notifications.filterAll"   },
-  { key: "order",  labelKey: "notifications.typeOrder"   },
-  { key: "offer",  labelKey: "notifications.typeOffer"   },
-  { key: "health", labelKey: "notifications.typeHealth"  },
-  { key: "system", labelKey: "notifications.typeSystem"  },
+  { key: "all",    labelKey: "notifications.filterAll"  },
+  { key: "order",  labelKey: "notifications.typeOrder"  },
+  { key: "offer",  labelKey: "notifications.typeOffer"  },
+  { key: "health", labelKey: "notifications.typeHealth" },
+  { key: "system", labelKey: "notifications.typeSystem" },
 ];
 
-// ─── Time ago ─────────────────────────────────────────────────────────────
-
+// ─── Time ago ─────────────────────────────────────────────────────────────────
 function timeAgo(dateStr: string, t: (k: string, opts?: Record<string, unknown>) => string): string {
   const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
   if (diff < 60)    return t("notifications.timeNow");
@@ -65,8 +67,7 @@ function timeAgo(dateStr: string, t: (k: string, opts?: Record<string, unknown>)
   return w === 1 ? t("notifications.timeWeekAgo") : t("notifications.timeWeeksAgo", { count: w });
 }
 
-// ─── Notification row ─────────────────────────────────────────────────────
-
+// ─── Notification row ─────────────────────────────────────────────────────────
 const NotificationRow = React.memo(function NotificationRow({
   item, onPress,
 }: { item: AppNotification; onPress: () => void }) {
@@ -79,49 +80,43 @@ const NotificationRow = React.memo(function NotificationRow({
       accessibilityLabel={`${item.title}. ${item.body}`}
       accessibilityState={{ selected: !item.isRead }}
       style={({ pressed }) => [
-        styles.notifRow,
-        !item.isRead && styles.notifRowUnread,
-        item.isRead && styles.notifRowRead,
-        pressed && { backgroundColor: theme.colors.slate[50] },
+        s.notifRow,
+        !item.isRead && s.notifRowUnread,
+        item.isRead && s.notifRowRead,
+        pressed && { backgroundColor: kit.color.well },
       ]}>
 
       {/* Type icon */}
-      <View style={[
-        styles.notifIcon,
-        { backgroundColor: cfg.bg, borderColor: cfg.bg === theme.colors.brand[50] ? theme.colors.border.brandSoft : "rgba(0,0,0,0.04)" }
-      ]}>
-        <Ionicons name={cfg.icon} size={17} color={cfg.color} />
+      <View style={[s.notifIcon, { backgroundColor: cfg.bg, borderColor: `${cfg.color}20` }]}>
+        <Ionicons name={cfg.icon} size={18} color={cfg.color} />
       </View>
 
       {/* Content */}
-      <View style={styles.notifContent}>
-        <View style={styles.notifTitleRow}>
-          <UIText
-            style={[styles.notifTitle, !item.isRead && styles.notifTitleUnread]}
-            numberOfLines={1}>
+      <View style={s.notifContent}>
+        <View style={[s.notifTitleRow, { flexDirection: flexRow(IS_RTL) }]}>
+          <UIText style={[s.notifTitle, !item.isRead && s.notifTitleUnread, { textAlign: TEXT_START }]} numberOfLines={1}>
             {item.title}
           </UIText>
-          <UIText style={styles.notifTime}>{timeAgo(item.createdAt, t)}</UIText>
+          <UIText style={s.notifTime}>{timeAgo(item.createdAt, t)}</UIText>
         </View>
-        <UIText style={styles.notifBody} numberOfLines={2}>
+        <UIText style={[s.notifBody, { textAlign: TEXT_START }]} numberOfLines={2}>
           {item.body}
         </UIText>
-        <View style={[styles.notifTypePill, { backgroundColor: cfg.bg }]}>
-          <View style={[styles.notifTypeDot, { backgroundColor: cfg.color }]} />
-          <UIText style={[styles.notifTypeText, { color: cfg.color }]}>{t(cfg.labelKey)}</UIText>
+        <View style={[s.notifTypePill, { backgroundColor: cfg.bg, flexDirection: flexRow(IS_RTL) }]}>
+          <View style={[s.notifTypeDot, { backgroundColor: cfg.color }]} />
+          <UIText style={[s.notifTypeText, { color: cfg.color }]}>{t(cfg.labelKey)}</UIText>
         </View>
       </View>
     </Pressable>
   );
 });
 
-// ─── Screen ───────────────────────────────────────────────────────────────
-
+// ─── Screen ───────────────────────────────────────────────────────────────────
 export default function NotificationsScreen() {
-  const router    = useRouter();
-  const insets    = useSafeAreaInsets();
-  const { t }     = useTranslation();
-  const { user }  = useAuth();
+  const router   = useRouter();
+  const insets   = useSafeAreaInsets();
+  const { t }    = useTranslation();
+  const { user } = useAuth();
 
   const {
     items: notifications,
@@ -151,9 +146,7 @@ export default function NotificationsScreen() {
   const handleNotifPress = useCallback((item: AppNotification) => {
     if (!item.isRead) markRead(item.id);
     if (Platform.OS !== "web") Haptics.selectionAsync().catch(() => {});
-    if (item.actionUrl) {
-      router.push(item.actionUrl as any);
-    }
+    if (item.actionUrl) router.push(item.actionUrl as never);
   }, [markRead, router]);
 
   const handleEndReached = useCallback(() => {
@@ -169,39 +162,45 @@ export default function NotificationsScreen() {
   const keyExtractor = useCallback((item: AppNotification) => item.id, []);
 
   return (
-    <View style={styles.screen}>
-      {/* ── Header ── */}
-      <LinearGradient
-        colors={theme.gradients.heroPrimary as [string, string, string]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0.7, y: 1 }}
-        style={[styles.header, { paddingTop: insets.top + 10 }]}>
+    <View style={s.screen}>
 
-        <View style={styles.headerTopRow}>
+      {/* ── VIP Header ── */}
+      <Animated.View entering={FadeIn.duration(240)} style={[s.header, { paddingTop: insets.top + 10 }]}>
+        <View style={[s.headerTopRow, { flexDirection: flexRow(IS_RTL) }]}>
           <Pressable
             onPress={() => router.back()}
-            style={styles.backBtn}
+            style={s.backBtn}
             accessibilityRole="button"
             accessibilityLabel={t("common.back")}>
-            <Ionicons name={BACK_CHEVRON} size={18} color="rgba(255,255,255,0.8)" />
+            <Ionicons name={BACK_CHEVRON} size={18} color={kit.color.inkSoft} />
           </Pressable>
-          <UIText style={styles.headerTitle}>{t("notifications.title")}</UIText>
-          {unreadCount > 0 && (
-            <Animated.View entering={FadeIn.duration(200)} style={styles.headerBadge}>
-              <UIText style={styles.headerBadgeText}>{t("notifications.newBadge", { count: unreadCount })}</UIText>
-            </Animated.View>
-          )}
+
+          <View style={s.iconTile}>
+            <Ionicons name="notifications-outline" size={22} color={kit.color.accentDeep} />
+          </View>
+
+          <View style={{ flex: 1 }}>
+            <UIText style={s.headerEyebrow}>{t("notifications.title")}</UIText>
+            {unreadCount > 0 && (
+              <Animated.View entering={FadeIn.duration(200)} style={[s.unreadBadge, { flexDirection: flexRow(IS_RTL) }]}>
+                <View style={s.unreadDot} />
+                <UIText style={s.unreadText}>{t("notifications.newBadge", { count: unreadCount })}</UIText>
+              </Animated.View>
+            )}
+          </View>
+
           <Pressable
             onPress={() => router.push("/notification-preferences")}
-            style={styles.backBtn}
-            hitSlop={6}>
-            <Ionicons name="settings-outline" size={17} color="rgba(255,255,255,0.85)" />
+            style={s.settingsBtn}
+            hitSlop={6}
+            accessibilityRole="button">
+            <Ionicons name="settings-outline" size={17} color={kit.color.inkSoft} />
           </Pressable>
         </View>
 
         {/* Filter chips + mark all */}
-        <View style={styles.headerActions}>
-          <View style={styles.filterRow}>
+        <View style={[s.filterBar, { flexDirection: flexRow(IS_RTL) }]}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[s.filterRow, { flexDirection: flexRow(IS_RTL) }]}>
             {FILTER_CONFIGS.map((f) => {
               const active = filter === f.key;
               return (
@@ -210,39 +209,36 @@ export default function NotificationsScreen() {
                   onPress={() => setFilter(f.key)}
                   accessibilityRole="button"
                   accessibilityState={{ selected: active }}
-                  style={[styles.filterChip, active && styles.filterChipActive]}>
-                  <UIText style={[styles.filterChipText, active && styles.filterChipTextActive]}>
+                  style={[s.filterChip, active && s.filterChipActive]}>
+                  <UIText style={[s.filterChipText, active && s.filterChipTextActive]}>
                     {t(f.labelKey)}
                   </UIText>
                 </Pressable>
               );
             })}
-          </View>
+          </ScrollView>
           {unreadCount > 0 && (
-            <Pressable
-              onPress={handleMarkAllRead}
-              hitSlop={8}
-              accessibilityRole="button">
-              <UIText style={styles.markAllText}>{t("notifications.markAll")}</UIText>
+            <Pressable onPress={handleMarkAllRead} hitSlop={8} accessibilityRole="button">
+              <UIText style={s.markAllText}>{t("notifications.markAll")}</UIText>
             </Pressable>
           )}
         </View>
-      </LinearGradient>
+      </Animated.View>
 
       {/* ── List ── */}
       {loading && notifications.length === 0 ? (
-        <View style={styles.loadingWrap}>
-          <ActivityIndicator size="large" color={theme.colors.brand[500]} />
-          <UIText style={styles.loadingText}>{t("common.loading")}</UIText>
+        <View style={s.loadingWrap}>
+          <ActivityIndicator size="large" color={kit.color.accent} />
+          <UIText style={s.loadingText}>{t("common.loading")}</UIText>
         </View>
       ) : (
         <FlatList
           data={filtered}
           keyExtractor={keyExtractor}
           renderItem={renderItem}
-          contentContainerStyle={{ paddingBottom: 40 }}
+          contentContainerStyle={{ paddingBottom: insets.bottom + 40 }}
           showsVerticalScrollIndicator={false}
-          ItemSeparatorComponent={() => <View style={styles.sep} />}
+          ItemSeparatorComponent={() => <View style={s.sep} />}
           onEndReached={handleEndReached}
           onEndReachedThreshold={0.5}
           removeClippedSubviews
@@ -253,13 +249,13 @@ export default function NotificationsScreen() {
             <RefreshControl
               refreshing={loading}
               onRefresh={() => refetch()}
-              tintColor={theme.colors.brand[500]}
+              tintColor={kit.color.accent}
             />
           }
           ListFooterComponent={
             isFetchingNextPage ? (
               <View style={{ paddingVertical: 16 }}>
-                <ActivityIndicator color={theme.colors.brand[500]} />
+                <ActivityIndicator color={kit.color.accent} />
               </View>
             ) : null
           }
@@ -278,86 +274,138 @@ export default function NotificationsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: theme.colors.bg },
+// ─── Styles ───────────────────────────────────────────────────────────────────
+const s = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: kit.color.canvas },
 
   // Header
-  header: { paddingHorizontal: 16, paddingBottom: 14, gap: 12 },
-  headerTopRow: {
-    flexDirection: flexRow(isRtl()),
-    alignItems: "center",
-    gap: 12,
+  header: {
+    paddingHorizontal: 16,
+    paddingBottom:     14,
+    gap:               12,
+    backgroundColor:   kit.color.surface,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: kit.color.line,
+    ...kit.shadow.raised,
   },
+  headerTopRow: { alignItems: "center", gap: 12 },
   backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 11,
-    backgroundColor: "rgba(255,255,255,0.10)",
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.12)",
+    width:           40,
+    height:          40,
+    borderRadius:    20,
+    backgroundColor: kit.color.surface,
+    alignItems:      "center",
+    justifyContent:  "center",
+    borderWidth:     1,
+    borderColor:     kit.color.line,
+    ...kit.shadow.raised,
+    flexShrink:      0,
   },
-  headerTitle: {
-    flex: 1,
-    fontSize: 20,
-    fontFamily: theme.fonts.black,
-    color: "#fff",
-    textAlign: textAlignStart(isRtl()),
+  iconTile: {
+    width:           52,
+    height:          52,
+    borderRadius:    16,
+    backgroundColor: kit.color.accentTint,
+    borderWidth:     1,
+    borderColor:     kit.color.line,
+    alignItems:      "center",
+    justifyContent:  "center",
+    flexShrink:      0,
   },
-  headerBadge: {
-    backgroundColor: "rgba(255,255,255,0.15)",
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.12)",
+  headerEyebrow: {
+    fontFamily:         theme.fonts.black,
+    fontSize:           18,
+    letterSpacing:      -0.4,
+    color:              kit.color.ink,
+    textAlign:          TEXT_START,
+    includeFontPadding: false,
   },
-  headerBadgeText: { fontSize: 10, fontFamily: theme.fonts.black, color: "#fff" },
-  headerActions: {
-    flexDirection: flexRow(isRtl()),
-    alignItems: "center",
-    justifyContent: "space-between",
+  unreadBadge: {
+    alignItems:  "center",
+    gap:         5,
+    marginTop:   2,
   },
-  filterRow: { flexDirection: flexRow(isRtl()), gap: 5 },
+  unreadDot: {
+    width:           6,
+    height:          6,
+    borderRadius:    3,
+    backgroundColor: kit.color.accent,
+    flexShrink:      0,
+  },
+  unreadText: {
+    fontSize:           10,
+    fontFamily:         theme.fonts.bold,
+    color:              kit.color.accentDeep,
+    includeFontPadding: false,
+  },
+  settingsBtn: {
+    width:           40,
+    height:          40,
+    borderRadius:    20,
+    backgroundColor: kit.color.well,
+    alignItems:      "center",
+    justifyContent:  "center",
+    borderWidth:     1,
+    borderColor:     kit.color.line,
+    flexShrink:      0,
+  },
+
+  // Filter bar
+  filterBar: { alignItems: "center", gap: 8 },
+  filterRow: { gap: 6, paddingRight: 4 },
   filterChip: {
     paddingHorizontal: 13,
-    paddingVertical: 7,
-    borderRadius: 12,
-    backgroundColor: "rgba(255,255,255,0.10)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.10)",
+    paddingVertical:   7,
+    borderRadius:      20,
+    backgroundColor:   kit.color.well,
+    borderWidth:       1,
+    borderColor:       kit.color.line,
   },
   filterChipActive: {
-    backgroundColor: "#fff",
-    borderColor: "#fff",
+    backgroundColor: kit.color.ink,
+    borderColor:     kit.color.ink,
   },
-  filterChipText: { fontSize: 10.5, fontFamily: theme.fonts.bold, color: "rgba(255,255,255,0.65)" },
-  filterChipTextActive: { color: theme.colors.heroMid, fontFamily: theme.fonts.black },
-  markAllText: { fontSize: 11, fontFamily: theme.fonts.bold, color: theme.colors.teal[200] },
+  filterChipText: {
+    fontSize:           10.5,
+    fontFamily:         theme.fonts.bold,
+    color:              kit.color.inkSoft,
+    includeFontPadding: false,
+  },
+  filterChipTextActive: {
+    color:      "#fff",
+    fontFamily: theme.fonts.black,
+  },
+  markAllText: {
+    fontSize:           11,
+    fontFamily:         theme.fonts.bold,
+    color:              kit.color.accentDeep,
+    includeFontPadding: false,
+    flexShrink:         0,
+  },
 
   // Loading
   loadingWrap: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12 },
-  loadingText: { fontSize: 13, fontFamily: theme.fonts.semibold, color: theme.colors.slate[400] },
+  loadingText: {
+    fontSize:   13,
+    fontFamily: theme.fonts.semibold,
+    color:      kit.color.inkFaint,
+  },
 
-  // Row
+  // Notification row
   notifRow: {
-    flexDirection:     flexRow(isRtl()),
+    flexDirection:     flexRow(IS_RTL),
     alignItems:        "flex-start",
     gap:               14,
     paddingHorizontal: 18,
     paddingVertical:   16,
-    backgroundColor:   "#fff",
-    position:          "relative",
+    backgroundColor:   kit.color.surface,
   },
-  // Unread: brand.lightest tint + brand left-border accent
   notifRowUnread: {
-    backgroundColor:  theme.colors.brand.lightest,
+    backgroundColor:  kit.color.accentTint,
     borderStartWidth: 3,
-    borderStartColor: theme.colors.brand[500],
+    borderStartColor: kit.color.accent,
   },
-  // Read: explicit pure white surface
-  notifRowRead: { backgroundColor: theme.colors.surface },
+  notifRowRead: { backgroundColor: kit.color.surface },
   notifIcon: {
     width:          46,
     height:         46,
@@ -370,30 +418,36 @@ const styles = StyleSheet.create({
   },
   notifContent: { flex: 1, gap: 5 },
   notifTitleRow: {
-    flexDirection: flexRow(isRtl()),
-    alignItems: "center",
+    alignItems:     "center",
     justifyContent: "space-between",
-    gap: 8,
+    gap:            8,
   },
   notifTitle: {
-    flex: 1,
-    fontSize: 13.5,
-    fontFamily: theme.fonts.bold,
-    color: theme.colors.slate[700],
-    textAlign: textAlignStart(isRtl()),
+    flex:               1,
+    fontSize:           13.5,
+    fontFamily:         theme.fonts.bold,
+    color:              kit.color.inkSoft,
+    includeFontPadding: false,
   },
-  notifTitleUnread: { fontFamily: theme.fonts.black, color: theme.colors.slate[900] },
-  notifTime: { fontSize: 10, fontFamily: theme.fonts.semibold, color: theme.colors.slate[400] },
+  notifTitleUnread: {
+    fontFamily: theme.fonts.black,
+    color:      kit.color.ink,
+  },
+  notifTime: {
+    fontSize:           10,
+    fontFamily:         theme.fonts.semibold,
+    color:              kit.color.inkFaint,
+    includeFontPadding: false,
+  },
   notifBody: {
-    fontSize: 12.5,
-    fontFamily: theme.fonts.regular,
-    color: theme.colors.slate[500],
-    textAlign: textAlignStart(isRtl()),
-    lineHeight: 19,
+    fontSize:           12.5,
+    fontFamily:         theme.fonts.regular,
+    color:              kit.color.inkSoft,
+    lineHeight:         19,
+    includeFontPadding: false,
   },
   notifTypePill: {
     alignSelf:         "flex-start",
-    flexDirection:     flexRow(isRtl()),
     alignItems:        "center",
     gap:               4,
     borderRadius:      8,
@@ -404,6 +458,13 @@ const styles = StyleSheet.create({
     borderColor:       "rgba(0,0,0,0.04)",
   },
   notifTypeDot: { width: 6, height: 6, borderRadius: 3, opacity: 0.8 },
-  notifTypeText: { fontSize: 9, fontFamily: theme.fonts.bold },
-  sep: { height: StyleSheet.hairlineWidth, backgroundColor: theme.colors.border.hairline, marginHorizontal: 0 },
+  notifTypeText: {
+    fontSize:           9,
+    fontFamily:         theme.fonts.bold,
+    includeFontPadding: false,
+  },
+  sep: {
+    height:          StyleSheet.hairlineWidth,
+    backgroundColor: kit.color.line,
+  },
 });

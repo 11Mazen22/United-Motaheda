@@ -17,7 +17,7 @@
  */
 import React, { memo, useCallback } from "react";
 import { Platform, Pressable, StyleSheet, View } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
+import { kit } from "@/shared/kit";
 import { Ionicons } from "@expo/vector-icons";
 import Animated, {
   useAnimatedStyle,
@@ -29,7 +29,7 @@ import { useTranslation } from "react-i18next";
 import * as Haptics from "expo-haptics";
 import { Text as UIText } from "@/shared/ui";
 import { theme } from "@/shared/theme";
-import { flexRow, isRtl, textAlignStart, FORWARD_CHEVRON } from "@/utils/layout";
+import { flexRow, isRtl, FORWARD_CHEVRON } from "@/utils/layout";
 import { styles, HERO_GLASS, PROFILE } from "./profile.styles";
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>["name"];
@@ -144,14 +144,10 @@ const QuickActionTile = memo(function QuickActionTile({
       accessibilityLabel={t(labelKey)}
       style={styles.quickGridItem}>
       <Animated.View style={[qt.iconWrap, anim]}>
-        <LinearGradient
-          colors={grad as [string, string]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.quickGridIconWrap}>
+        <View style={[styles.quickGridIconWrap, { backgroundColor: grad[0] }]}>
           <View style={styles.quickGridShine} />
           <Ionicons name={icon} size={22} color={HERO_GLASS.w95} />
-        </LinearGradient>
+        </View>
       </Animated.View>
       <UIText variant="caption" weight="bold" align="center" color="secondary">
         {t(labelKey)}
@@ -166,13 +162,13 @@ const QUICK_ACTIONS = [
   {
     icon:     "bag-handle-outline" as IoniconsName,
     labelKey: "profile.myOrders",
-    grad:     [theme.colors.brand[600], theme.colors.teal[500]] as const,
+    grad:     [kit.color.accentDeep, kit.color.accent] as const,
     route:    "/orders",
   },
   {
     icon:     "heart-outline" as IoniconsName,
     labelKey: "profile.wishlist",
-    grad:     [PROFILE.wishlistRed, theme.colors.rose[500]] as const,
+    grad:     [PROFILE.wishlistRed, kit.color.danger] as const,
     route:    "/favorites",
   },
   {
@@ -184,7 +180,7 @@ const QUICK_ACTIONS = [
   {
     icon:     "location-outline" as IoniconsName,
     labelKey: "profile.addresses",
-    grad:     [theme.colors.amber[600], theme.colors.amber[500]] as const,
+    grad:     [kit.color.warn, "#f59e0b"] as const,
     route:    "/addresses",
   },
 ] as const;
@@ -220,11 +216,7 @@ export const ProfileAuthHero = memo(function ProfileAuthHero({
 
   return (
     <View>
-      <LinearGradient
-        colors={theme.gradients.heroPrimary as [string, string, string]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0.7, y: 1 }}
-        style={[styles.hero, { paddingTop: insetsTop + 14 }]}>
+      <View style={[styles.hero, { backgroundColor: kit.color.ink, paddingTop: insetsTop + 14 }]}>
 
         {/* Four layered decorative orbs + stripe for depth */}
         <View style={styles.heroDecor1} />
@@ -273,19 +265,14 @@ export const ProfileAuthHero = memo(function ProfileAuthHero({
               Must be first child so it sits behind the gradient glow.
             */}
             <View style={styles.avatarRing} />
-            <LinearGradient
-              colors={tier.ring}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.avatarGlow}
-            />
+            <View style={[styles.avatarGlow, { backgroundColor: tier.ring[0] }]} />
             <View style={styles.avatar}>
               <UIText style={styles.avatarLetter}>
                 {(user.name ?? user.email)?.[0]?.toUpperCase() ?? "U"}
               </UIText>
             </View>
             <View style={[styles.tierBadge, { backgroundColor: tier.color }]}>
-              <Ionicons name={tier.icon} size={11} color={theme.colors.surface} />
+              <Ionicons name={tier.icon} size={11} color={kit.color.onInk} />
             </View>
           </View>
 
@@ -316,7 +303,7 @@ export const ProfileAuthHero = memo(function ProfileAuthHero({
             </Pressable>
           </View>
         </View>
-      </LinearGradient>
+      </View>
 
       {/* Stats card (overlaps hero) */}
       <View style={styles.statsCard}>
@@ -324,7 +311,7 @@ export const ProfileAuthHero = memo(function ProfileAuthHero({
           value={orderCount}
           label={t("profile.statOrders")}
           icon="bag-handle-outline"
-          accent={theme.colors.brand[600]}
+          accent={kit.color.accentDeep}
           onPress={goOrders}
         />
         <View style={styles.statDivider} />
@@ -332,7 +319,7 @@ export const ProfileAuthHero = memo(function ProfileAuthHero({
           value={wishlistCount}
           label={t("profile.statWishlist")}
           icon="heart-outline"
-          accent={theme.colors.rose[500]}
+          accent={kit.color.danger}
           onPress={goWishlist}
         />
         <View style={styles.statDivider} />
@@ -348,7 +335,7 @@ export const ProfileAuthHero = memo(function ProfileAuthHero({
           value={cartCount}
           label={t("profile.statCart")}
           icon="cart-outline"
-          accent={theme.colors.amber[600]}
+          accent={kit.color.warn}
           onPress={goCart}
         />
       </View>
@@ -363,13 +350,9 @@ export const ProfileAuthHero = memo(function ProfileAuthHero({
               quickCardIcon: LinearGradient background instead of flat brand.lighter
               — adds more visual depth and premium feel to the icon container.
             */}
-            <LinearGradient
-              colors={[theme.colors.teal[50], theme.colors.brand.lighter]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.quickCardIcon}>
-              <Ionicons name="bag-handle" size={17} color={theme.colors.brand[600]} />
-            </LinearGradient>
+            <View style={[styles.quickCardIcon, { backgroundColor: kit.color.accentTint }]}>
+              <Ionicons name="bag-handle" size={17} color={kit.color.accentDeep} />
+            </View>
             <View style={lo.info}>
               <View style={lo.nameRow}>
                 <UIText variant="body-sm" weight="bold" align="right">
@@ -383,7 +366,7 @@ export const ProfileAuthHero = memo(function ProfileAuthHero({
                 {lastOrder.total.toFixed(0)} {t("common.currency")}
               </UIText>
             </View>
-            <Ionicons name={FORWARD_CHEVRON} size={14} color={theme.colors.slate[300]} />
+            <Ionicons name={FORWARD_CHEVRON} size={14} color={kit.color.inkFaint} />
           </Pressable>
         </View>
       )}

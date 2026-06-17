@@ -17,9 +17,9 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { theme } from "@/shared/theme";
 import { Card, Text } from "@/shared/ui";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@/shared/kit";
 import { Badge } from "@/components/ui/Badge";
-import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
+import { flexRow, isRtl } from "@/utils/layout";
 
 export type InteractionSeverity = "mild" | "moderate" | "severe";
 
@@ -182,21 +182,21 @@ export function InteractionBanner({
             {onAskPharmacist && (
               <Button
                 variant="primary"
-                fullWidth
-                leftIcon={<Ionicons name="chatbox" size={16} color="#fff" />}
-                onPress={onAskPharmacist}>
-                {t("interaction.askPharmacist")}
-              </Button>
+                full
+                icon="chatbox"
+                label={t("interaction.askPharmacist")}
+                onPress={onAskPharmacist}
+              />
             )}
             <View style={{ flexDirection: flexRow(isRtl()), gap: theme.spacing[1] }}>
               {onCancel && (
                 <View style={{ flex: 1 }}>
-                  <Button variant="outline" fullWidth onPress={onCancel}>{t("interaction.cancel")}</Button>
+                  <Button variant="secondary" full label={t("interaction.cancel")} onPress={onCancel} />
                 </View>
               )}
               {onProceed && (
                 <View style={{ flex: 1 }}>
-                  <Button variant="dark" fullWidth onPress={onProceed}>{t("interaction.addAnyway")}</Button>
+                  <Button variant="ghost" full label={t("interaction.addAnyway")} onPress={onProceed} />
                 </View>
               )}
             </View>

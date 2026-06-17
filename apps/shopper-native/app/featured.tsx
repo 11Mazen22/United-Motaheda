@@ -9,6 +9,8 @@
  * Search: client-side (200-product cap) — fast, no extra round-trips.
  * Tabs:   All · New · Bestseller · Sale
  * Filter: category rail derived from the actual featured set.
+ *
+ * VIP Phase 2: LinearGradient hero → flat kit.color.surface header in ListHeader.
  */
 
 import React, {
@@ -25,7 +27,6 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import Animated, {
   useAnimatedStyle,
@@ -43,24 +44,17 @@ import type { NativeProduct } from "@/features/products";
 import { ProductCardSkeleton } from "@/components/ui/Skeleton";
 import { Text as UIText } from "@/shared/ui";
 import { theme } from "@/shared/theme";
-import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
+import { kit } from "@/shared/kit";
+import { flexRow, isRtl, textAlignStart, BACK_CHEVRON } from "@/utils/layout";
 
-// ─── Glass palette ─────────────────────────────────────────────────────────────
-const G = {
-  w06: "rgba(255,255,255,0.06)",
-  w10: "rgba(255,255,255,0.10)",
-  w13: "rgba(255,255,255,0.13)",
-  w15: "rgba(255,255,255,0.15)",
-  w20: "rgba(255,255,255,0.20)",
-  w45: "rgba(255,255,255,0.45)",
-  w60: "rgba(255,255,255,0.60)",
-  w80: "rgba(255,255,255,0.80)",
+// Amber brand palette — no kit token for raw amber hues
+const AMBER = {
+  base: "#D97706",
+  deep: "#B45309",
+  soft: "#FBBF24",
+  tint: "#FFFBEB",
+  line: "rgba(217,119,6,0.22)",
 } as const;
-
-// Dark amber editorial gradient (featured = gold / curated = warm tone)
-const HEADER_GRAD: [string, string, string] = [
-  "#2D1000", "#6B3000", theme.colors.amber[700],
-];
 
 type Tab = "all" | "new" | "bestseller" | "sale";
 
@@ -88,17 +82,10 @@ const TabPill = React.memo(function TabPill({
   return (
     <Animated.View style={anim}>
       <Pressable onPress={handlePress} style={[f.tab, active && f.tabActive]}>
-        {active && (
-          <LinearGradient
-            colors={[theme.colors.amber[600], theme.colors.amber[700]]}
-            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-            style={StyleSheet.absoluteFillObject}
-          />
-        )}
         <Ionicons
           name={icon}
           size={13}
-          color={active ? theme.colors.surface : theme.colors.text.secondary}
+          color={active ? "#fff" : kit.color.inkSoft}
         />
         <UIText style={[f.tabText, active && f.tabTextActive]} numberOfLines={1}>
           {label}
@@ -229,56 +216,48 @@ export default function FeaturedScreen(): React.ReactElement {
   // ── Header + search + tabs (memoised — heavy subview) ────────────────────
   const ListHeader = useMemo(() => (
     <>
-      {/* ── Gradient hero ── */}
-      <LinearGradient
-        colors={HEADER_GRAD}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0.9, y: 1 }}
-        style={[f.hero, { paddingTop: insets.top + 14 }]}>
-
-        <View style={f.glowOrb} />
-        <View style={f.glowOrb2} />
+      {/* ── VIP flat hero (replaces dark amber LinearGradient) ── */}
+      <View style={[f.hero, { paddingTop: insets.top + 14 }]}>
 
         {/* Top bar */}
-        <View style={f.topBar}>
+        <View style={[f.topBar, { flexDirection: flexRow(isRtl()) }]}>
           <Pressable onPress={() => router.back()} style={f.backBtn} accessibilityRole="button">
-            <Ionicons name="arrow-forward" size={16} color={G.w80} />
+            <Ionicons name={BACK_CHEVRON} size={17} color={kit.color.inkSoft} />
           </Pressable>
           <View style={{ flex: 1 }}>
-            <UIText style={f.eyebrow}>{t("home.featuredEyebrow")}</UIText>
-            <UIText style={f.heroTitle}>{t("home.featuredTitle")}</UIText>
+            <UIText style={[f.eyebrow, { textAlign: textAlignStart(isRtl()) }]}>{t("home.featuredEyebrow")}</UIText>
+            <UIText style={[f.heroTitle, { textAlign: textAlignStart(isRtl()) }]}>{t("home.featuredTitle")}</UIText>
           </View>
           <View style={f.starTile}>
-            <Ionicons name="star" size={22} color={theme.colors.amber[300]} />
+            <Ionicons name="star" size={22} color={AMBER.base} />
           </View>
         </View>
 
         {/* Stats row */}
-        <View style={f.statsRow}>
-          <StatBadge count={stats.newCount}        label={t("products.badgeNew")}        color={theme.colors.brand[400]} />
-          <StatBadge count={stats.bestsellerCount} label={t("products.badgeBestSeller")} color={theme.colors.amber[400]} />
-          <StatBadge count={stats.saleCount}       label={t("products.badgeSale", { n: "" }).replace("%", "").trim()} color={theme.colors.red[400]} />
+        <View style={[f.statsRow, { flexDirection: flexRow(isRtl()) }]}>
+          <StatBadge count={stats.newCount}        label={t("products.badgeNew")}        color={kit.color.accent}  />
+          <StatBadge count={stats.bestsellerCount} label={t("products.badgeBestSeller")} color={AMBER.base}        />
+          <StatBadge count={stats.saleCount}       label={t("products.badgeSale", { n: "" }).replace("%", "").trim()} color={kit.color.danger} />
         </View>
-      </LinearGradient>
+      </View>
 
       {/* ── Search bar ── */}
       <View style={f.searchWrap}>
-        <View style={f.searchBar}>
-          <Ionicons name="search" size={16} color={theme.colors.slate[400]} />
+        <View style={[f.searchBar, { flexDirection: flexRow(isRtl()) }]}>
+          <Ionicons name="search" size={16} color={kit.color.inkFaint} />
           <TextInput
-            style={f.searchInput}
+            style={[f.searchInput, { textAlign: textAlignStart(isRtl()) as "left" | "right" }]}
             placeholder={t("search.placeholder")}
-            placeholderTextColor={theme.colors.text.tertiary}
+            placeholderTextColor={kit.color.inkFaint}
             value={query}
             onChangeText={setQuery}
             returnKeyType="search"
             autoCorrect={false}
-            textAlign={textAlignStart(isRtl()) as "left" | "right"}
-            selectionColor={theme.colors.brand[600]}
+            selectionColor={AMBER.base}
           />
           {query.length > 0 && (
             <Pressable onPress={() => setQuery("")} hitSlop={8} style={f.searchClear}>
-              <Ionicons name="close-circle" size={16} color={theme.colors.slate[400]} />
+              <Ionicons name="close-circle" size={16} color={kit.color.inkFaint} />
             </Pressable>
           )}
         </View>
@@ -288,7 +267,7 @@ export default function FeaturedScreen(): React.ReactElement {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={f.tabsContent}>
+        contentContainerStyle={[f.tabsContent, { flexDirection: flexRow(isRtl()) }]}>
         {TABS.map((tab) => (
           <TabPill
             key={tab.key}
@@ -307,7 +286,7 @@ export default function FeaturedScreen(): React.ReactElement {
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={f.catsContent}>
+          contentContainerStyle={[f.catsContent, { flexDirection: flexRow(isRtl()) }]}>
           <CatChip
             label={t("products.allProducts")}
             active={selectedCat === null}
@@ -326,7 +305,7 @@ export default function FeaturedScreen(): React.ReactElement {
 
       {/* ── Result count ── */}
       <View style={f.countRow}>
-        <UIText variant="eyebrow" color="tertiary" align="right">
+        <UIText variant="eyebrow" color="tertiary" align={textAlignStart(isRtl()) as "left" | "right"}>
           {t("search.resultCount", { count: filtered.length })}
         </UIText>
       </View>
@@ -340,24 +319,21 @@ export default function FeaturedScreen(): React.ReactElement {
   if (isLoading) {
     return (
       <View style={f.screen}>
-        <LinearGradient
-          colors={HEADER_GRAD}
-          style={[f.hero, { paddingTop: insets.top + 14 }]}>
-          <View style={f.glowOrb} />
-          <View style={f.topBar}>
+        <View style={[f.hero, { paddingTop: insets.top + 14 }]}>
+          <View style={[f.topBar, { flexDirection: flexRow(isRtl()) }]}>
             <Pressable onPress={() => router.back()} style={f.backBtn}>
-              <Ionicons name="arrow-forward" size={16} color={G.w80} />
+              <Ionicons name={BACK_CHEVRON} size={17} color={kit.color.inkSoft} />
             </Pressable>
             <View style={{ flex: 1 }}>
-              <UIText style={f.eyebrow}>{t("home.featuredEyebrow")}</UIText>
-              <UIText style={f.heroTitle}>{t("home.featuredTitle")}</UIText>
+              <UIText style={[f.eyebrow, { textAlign: textAlignStart(isRtl()) }]}>{t("home.featuredEyebrow")}</UIText>
+              <UIText style={[f.heroTitle, { textAlign: textAlignStart(isRtl()) }]}>{t("home.featuredTitle")}</UIText>
             </View>
             <View style={f.starTile}>
-              <Ionicons name="star" size={22} color={theme.colors.amber[300]} />
+              <Ionicons name="star" size={22} color={AMBER.base} />
             </View>
           </View>
-        </LinearGradient>
-        <View style={f.skeletonGrid}>
+        </View>
+        <View style={[f.skeletonGrid, { flexDirection: flexRow(isRtl()) }]}>
           {Array.from({ length: 6 }).map((_, i) => (
             <View key={i} style={f.skeletonCell}><ProductCardSkeleton /></View>
           ))}
@@ -371,7 +347,7 @@ export default function FeaturedScreen(): React.ReactElement {
     return (
       <View style={f.screen}>
         <View style={f.center}>
-          <Ionicons name="wifi-outline" size={48} color={theme.colors.slate[300]} />
+          <Ionicons name="wifi-outline" size={48} color={kit.color.inkFaint} />
           <UIText style={f.emptyTitle}>{t("errors.network")}</UIText>
           <Pressable onPress={() => void refetch()} style={f.retryBtn}>
             <UIText style={f.retryText}>{t("common.retry")}</UIText>
@@ -397,7 +373,7 @@ export default function FeaturedScreen(): React.ReactElement {
               <Ionicons
                 name={allFeatured.length === 0 ? "star-outline" : "search-outline"}
                 size={48}
-                color={theme.colors.slate[300]}
+                color={kit.color.inkFaint}
               />
               <UIText style={f.emptyTitle}>
                 {allFeatured.length === 0
@@ -413,7 +389,7 @@ export default function FeaturedScreen(): React.ReactElement {
           }
           refreshing={false}
           onRefresh={() => void refetch()}
-          contentContainerStyle={{ padding: theme.spacing.md }}
+          contentContainerStyle={{ padding: 12 }}
         />
       </View>
     </View>
@@ -423,83 +399,69 @@ export default function FeaturedScreen(): React.ReactElement {
 // ─── Styles ────────────────────────────────────────────────────────────────────
 
 const f = StyleSheet.create({
-  screen:   { flex: 1, backgroundColor: theme.colors.bg },
+  screen:   { flex: 1, backgroundColor: kit.color.canvas },
   listWrap: { flex: 1 },  // explicit bridge so FlashList gets a measured height
 
-  // Hero
+  // VIP flat hero — replaces dark amber LinearGradient
   hero: {
-    paddingHorizontal: theme.layout.pagePaddingH,
+    paddingHorizontal: 20,
     paddingBottom:     20,
     gap:               14,
-    overflow:          "hidden",
-  },
-  glowOrb: {
-    position:        "absolute",
-    top:             -50,
-    right:           -50,
-    width:           180,
-    height:          180,
-    borderRadius:    90,
-    backgroundColor: G.w06,
-  },
-  glowOrb2: {
-    position:        "absolute",
-    bottom:          -30,
-    left:            -20,
-    width:           100,
-    height:          100,
-    borderRadius:    50,
-    backgroundColor: "rgba(251,191,36,0.08)",
+    backgroundColor:   kit.color.surface,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: kit.color.line,
+    ...kit.shadow.raised,
   },
   topBar: {
-    flexDirection: flexRow(isRtl()),
-    alignItems:    "center",
-    gap:           theme.spacing.md,
+    alignItems: "center",
+    gap:        12,
   },
   backBtn: {
-    width:           38,
-    height:          38,
-    borderRadius:    12,
-    backgroundColor: G.w13,
+    width:           40,
+    height:          40,
+    borderRadius:    20,
+    backgroundColor: kit.color.surface,
     alignItems:      "center",
     justifyContent:  "center",
     borderWidth:     1,
-    borderColor:     G.w20,
+    borderColor:     kit.color.line,
+    ...kit.shadow.raised,
+    flexShrink:      0,
   },
   eyebrow: {
-    fontFamily:    theme.fonts.bold,
-    fontSize:      10,
-    color:         G.w45,
-    letterSpacing: 0.6,
-    textAlign: textAlignStart(isRtl()),
-    marginBottom:  2,
+    fontFamily:         theme.fonts.bold,
+    fontSize:           10,
+    color:              kit.color.inkFaint,
+    letterSpacing:      0.6,
+    marginBottom:       2,
+    includeFontPadding: false,
   },
   heroTitle: {
-    fontFamily:    theme.fonts.black,
-    fontSize:      26,
-    color:         theme.colors.surface,
-    letterSpacing: -0.5,
-    textAlign: textAlignStart(isRtl()),
-    lineHeight:    32,
+    fontFamily:         theme.fonts.black,
+    fontSize:           24,
+    color:              kit.color.ink,
+    letterSpacing:      -0.5,
+    lineHeight:         30,
+    includeFontPadding: false,
   },
   starTile: {
     width:           44,
     height:          44,
     borderRadius:    14,
-    backgroundColor: G.w10,
+    backgroundColor: AMBER.tint,
+    borderWidth:     1,
+    borderColor:     AMBER.line,
     alignItems:      "center",
     justifyContent:  "center",
-    borderWidth:     1,
-    borderColor:     G.w15,
+    flexShrink:      0,
   },
 
   statsRow: {
-    flexDirection:  flexRow(isRtl()),
     gap:            10,
     justifyContent: isRtl() ? "flex-start" : "flex-end",
   },
   stat: {
-    flexDirection: flexRow(isRtl()),
+    flexDirection:     isRtl() ? "row-reverse" : "row",
     alignItems:        "center",
     gap:               6,
     paddingHorizontal: 10,
@@ -508,131 +470,119 @@ const f = StyleSheet.create({
     borderWidth:       1,
   },
   statNum: {
-    fontFamily:    theme.fonts.black,
-    fontSize:      13,
-    letterSpacing: -0.3,
+    fontFamily:         theme.fonts.black,
+    fontSize:           13,
+    letterSpacing:      -0.3,
+    includeFontPadding: false,
   },
   statLbl: {
-    fontFamily: theme.fonts.semibold,
-    fontSize:   10,
+    fontFamily:         theme.fonts.semibold,
+    fontSize:           10,
+    includeFontPadding: false,
   },
 
   // Search
   searchWrap: {
-    paddingHorizontal: theme.layout.pagePaddingH,
+    paddingHorizontal: 20,
     paddingVertical:   12,
-    backgroundColor:   theme.colors.surface,
+    backgroundColor:   kit.color.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border.hairline,
+    borderBottomColor: kit.color.line,
   },
   searchBar: {
-    flexDirection: flexRow(isRtl()),
     alignItems:        "center",
     gap:               10,
-    backgroundColor:   theme.colors.surfaceSunken,
+    backgroundColor:   kit.color.well,
     borderRadius:      14,
     paddingHorizontal: 14,
     paddingVertical:   11,
     borderWidth:       1,
-    borderColor:       theme.colors.border.hairline,
+    borderColor:       kit.color.line,
   },
   searchInput: {
-    flex:       1,
-    fontSize:   14,
-    fontFamily: theme.fonts.semibold,
-    color:      theme.colors.text.primary,
-    textAlign: textAlignStart(isRtl()),
-    paddingVertical: 0,
-  },
-  searchClear: {
-    padding: 2,
-  },
+    flex:               1,
+    fontSize:           14,
+    fontFamily:         theme.fonts.semibold,
+    color:              kit.color.ink,
+    paddingVertical:    0,
+    includeFontPadding: false,
+  } as any,
+  searchClear: { padding: 2 },
 
   // Tabs
   tabsContent: {
-    paddingHorizontal: theme.layout.pagePaddingH,
+    paddingHorizontal: 20,
     paddingVertical:   10,
     gap:               8,
-    flexDirection: flexRow(isRtl()),
-    backgroundColor:   theme.colors.surface,
+    backgroundColor:   kit.color.surface,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: kit.color.line,
   },
   tab: {
-    flexDirection: flexRow(isRtl()),
+    flexDirection:     isRtl() ? "row-reverse" : "row",
     alignItems:        "center",
     gap:               6,
     paddingHorizontal: 14,
     paddingVertical:   8,
     borderRadius:      20,
-    backgroundColor:   theme.colors.slate[100],
+    backgroundColor:   kit.color.well,
     borderWidth:       1,
-    borderColor:       theme.colors.border.hairline,
-    overflow:          "hidden",
+    borderColor:       kit.color.line,
   },
-  tabActive:        { borderColor: "transparent" },
-  tabText:          { fontFamily: theme.fonts.semibold, fontSize: 12.5, color: theme.colors.text.secondary },
-  tabTextActive:    { color: theme.colors.surface, fontFamily: theme.fonts.black },
+  tabActive:     { backgroundColor: AMBER.base, borderColor: AMBER.deep },
+  tabText:       { fontFamily: theme.fonts.semibold, fontSize: 12.5, color: kit.color.inkSoft,  includeFontPadding: false },
+  tabTextActive: { fontFamily: theme.fonts.black,    fontSize: 12.5, color: "#fff",             includeFontPadding: false },
 
   // Categories
   catsContent: {
-    paddingHorizontal: theme.layout.pagePaddingH,
+    paddingHorizontal: 20,
     paddingVertical:   10,
     gap:               8,
-    flexDirection: flexRow(isRtl()),
-    backgroundColor:   theme.colors.surface,
+    backgroundColor:   kit.color.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border.hairline,
+    borderBottomColor: kit.color.line,
   },
-  catChip: {
-    paddingHorizontal: 12,
-    paddingVertical:   6,
-    borderRadius:      16,
-    backgroundColor:   theme.colors.surfaceSunken,
-    borderWidth:       1,
-    borderColor:       theme.colors.border.hairline,
-  },
-  catChipActive: {
-    backgroundColor: theme.colors.amber[600],
-    borderColor:     theme.colors.amber[700],
-  },
-  catChipText:       { fontFamily: theme.fonts.semibold, fontSize: 12, color: theme.colors.text.secondary },
-  catChipTextActive: { color: theme.colors.surface, fontFamily: theme.fonts.black },
+  catChip:          { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, backgroundColor: kit.color.well,  borderWidth: 1, borderColor: kit.color.line   },
+  catChipActive:    { backgroundColor: AMBER.base, borderColor: AMBER.deep },
+  catChipText:      { fontFamily: theme.fonts.semibold, fontSize: 12, color: kit.color.inkSoft, includeFontPadding: false },
+  catChipTextActive:{ fontFamily: theme.fonts.black,    fontSize: 12, color: "#fff",            includeFontPadding: false },
 
   // Count
   countRow: {
-    paddingHorizontal: theme.layout.pagePaddingH,
+    paddingHorizontal: 20,
     paddingVertical:   8,
   },
 
   // Skeleton
   skeletonGrid: {
-    flexDirection: flexRow(isRtl()),
-    flexWrap:      "wrap",
-    padding:       theme.spacing.md,
-    gap:           theme.spacing.md,
+    flexWrap: "wrap",
+    padding:  12,
+    gap:      12,
   },
   skeletonCell: { width: "47%" as any },
 
   // Empty / error
   center: {
-    flex:            1,
-    alignItems:      "center",
-    justifyContent:  "center",
-    gap:             14,
-    padding:         theme.spacing[4],
-    paddingTop:      60,
+    flex:           1,
+    alignItems:     "center",
+    justifyContent: "center",
+    gap:            14,
+    padding:        16,
+    paddingTop:     60,
   },
   emptyTitle: {
-    fontFamily: theme.fonts.bold,
-    fontSize:   15,
-    color:      theme.colors.text.secondary,
-    textAlign:  "center",
+    fontFamily:         theme.fonts.bold,
+    fontSize:           15,
+    color:              kit.color.inkSoft,
+    textAlign:          "center",
+    includeFontPadding: false,
   },
   retryBtn: {
-    paddingHorizontal: theme.spacing[3],
+    paddingHorizontal: 12,
     paddingVertical:   11,
     borderRadius:      14,
-    backgroundColor:   theme.colors.amber[600],
-    marginTop:         theme.spacing.xs,
+    backgroundColor:   AMBER.base,
+    marginTop:         4,
   },
-  retryText: { fontFamily: theme.fonts.black, fontSize: 13, color: theme.colors.surface },
+  retryText: { fontFamily: theme.fonts.black, fontSize: 13, color: "#fff", includeFontPadding: false },
 });

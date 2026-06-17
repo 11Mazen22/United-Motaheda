@@ -83,7 +83,6 @@ const _RAW_AR_EN: Record<string, string> = {
   "بنادول":              "panadol",
   "بانادول":             "panadol",
   "بانادول اكسترا":      "panadol extra",
-  "بانادول اكسترا":      "panadol extra",
   "بانادول كولد":        "panadol cold",
   "بانادول نايت":        "panadol night",
   "بانادول اطفال":       "panadol baby",

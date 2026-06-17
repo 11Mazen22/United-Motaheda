@@ -1,10 +1,10 @@
 import React, { memo } from "react";
 import { Modal, Pressable, View } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
+import { kit } from "@/shared/kit";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { Text } from "@/shared/ui";
-import { tourStyles as s, TOUR_GRADIENT } from "./wallet.styles";
+import { tourStyles as s } from "./wallet.styles";
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>["name"];
 
@@ -46,9 +46,9 @@ export const WalletTourModal = memo(function WalletTourModal({
       <View style={s.overlay}>
         <View style={s.card}>
           <View style={s.iconWrap}>
-            <LinearGradient colors={TOUR_GRADIENT} style={s.iconGrad}>
+            <View style={[s.iconGrad, { backgroundColor: kit.color.accent }]}>
               <Ionicons name={current.icon} size={32} color="#fff" />
-            </LinearGradient>
+            </View>
           </View>
 
           <Text style={s.title}>{t(current.titleKey)}</Text>
@@ -75,12 +75,12 @@ export const WalletTourModal = memo(function WalletTourModal({
               accessibilityLabel={
                 isLast ? t("loyalty.tourFinishA11y") : t("loyalty.tourNextA11y")
               }>
-              <LinearGradient colors={TOUR_GRADIENT} style={s.nextGrad}>
+              <View style={[s.nextGrad, { backgroundColor: kit.color.ink }]}>
                 <Text style={s.nextText}>
                   {isLast ? t("loyalty.tourFinish") : t("loyalty.tourNext")}
                 </Text>
                 {!isLast && <Ionicons name="arrow-back" size={14} color="#fff" />}
-              </LinearGradient>
+              </View>
             </Pressable>
           </View>
         </View>

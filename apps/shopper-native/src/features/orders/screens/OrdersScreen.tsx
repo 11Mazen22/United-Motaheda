@@ -15,7 +15,6 @@ import {
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import Animated, { FadeIn } from "react-native-reanimated";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
@@ -48,44 +47,50 @@ function OrdersHeader({
 
   return (
     <View style={[h.header, { paddingTop: insetsTop + 14 }]}>
-      {/* Top row — back + title + icon */}
-      <View style={h.topRow}>
+      {/* Top row — back + icon tile + title block */}
+      <View style={[h.topRow, { flexDirection: flexRow(isRtl()) }]}>
         {showBack ? (
           <Pressable onPress={onBack} style={h.backBtn} accessibilityRole="button">
             <Ionicons name={BACK_CHEVRON} size={18} color={kit.color.inkSoft} />
           </Pressable>
-        ) : (
-          <View style={h.backBtnSpacer} />
-        )}
+        ) : null}
+
+        <View style={h.iconTile}>
+          <Ionicons name="bag-handle-outline" size={22} color={kit.color.accentDeep} />
+        </View>
+
         <View style={{ flex: 1 }}>
           <UIText style={h.eyebrow}>{t("orders.eyebrow")}</UIText>
           <UIText style={h.title}>{t("orders.title")}</UIText>
         </View>
-        <View style={h.iconTile}>
-          <Ionicons name="bag-handle-outline" size={18} color={kit.color.accentDeep} />
-        </View>
       </View>
 
-      {/* Inline stat band */}
-      <Animated.View entering={FadeIn.duration(300)} style={h.statsRow}>
-        <View style={[h.statPill, h.statPillBorder]}>
-          <View style={[h.statDot, { backgroundColor: kit.color.accent }]} />
+      {/* Inline stat band — 3 columns with tinted icon wells */}
+      <View style={h.statsRow}>
+        <View style={[h.statCell, h.statCellBorder]}>
+          <View style={[h.statIconWell, { backgroundColor: kit.color.accentTint }]}>
+            <Ionicons name="bag-handle-outline" size={13} color={kit.color.accentDeep} />
+          </View>
           <UIText style={h.statVal}>{total}</UIText>
           <UIText style={h.statLbl}>{t("orders.countOrders", { count: total })}</UIText>
         </View>
 
-        <View style={[h.statPill, h.statPillBorder]}>
-          <View style={[h.statDot, { backgroundColor: kit.color.warn }]} />
+        <View style={[h.statCell, h.statCellBorder]}>
+          <View style={[h.statIconWell, { backgroundColor: kit.color.warnTint }]}>
+            <Ionicons name="refresh-outline" size={13} color={kit.color.warn} />
+          </View>
           <UIText style={h.statVal}>{active}</UIText>
           <UIText style={h.statLbl}>{t("orders.processing")}</UIText>
         </View>
 
-        <View style={h.statPill}>
-          <View style={[h.statDot, { backgroundColor: kit.color.success }]} />
+        <View style={h.statCell}>
+          <View style={[h.statIconWell, { backgroundColor: kit.color.successTint }]}>
+            <Ionicons name="checkmark-circle-outline" size={13} color={kit.color.success} />
+          </View>
           <UIText style={h.statVal}>{delivered}</UIText>
           <UIText style={h.statLbl}>{t("orders.delivered")}</UIText>
         </View>
-      </Animated.View>
+      </View>
     </View>
   );
 }
@@ -106,8 +111,8 @@ function OrdersList({
   const { t }  = useTranslation();
 
   const renderItem = useCallback(
-    ({ item, index }: { item: Order; index: number }) => (
-      <OrderCard order={item} index={index} onPress={onOrderPress} />
+    ({ item }: { item: Order }) => (
+      <OrderCard order={item} onPress={onOrderPress} />
     ),
     [onOrderPress],
   );
@@ -210,91 +215,102 @@ export function OrdersScreen({ showBack = true }: OrdersScreenProps): React.Reac
 const h = StyleSheet.create({
   header: {
     paddingHorizontal: theme.layout.pagePaddingH,
-    paddingBottom:     16,
-    gap:               14,
-    backgroundColor:   kit.color.canvas,
+    paddingBottom:     18,
+    gap:               16,
+    backgroundColor:   kit.color.surface,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: kit.color.line,
+    ...kit.shadow.raised,
   },
 
   // Top row
   topRow: {
-    flexDirection: flexRow(isRtl()),
-    alignItems:    "center",
-    gap:           12,
+    alignItems: "center",
+    gap:        14,
   },
   backBtn: {
     width:           40,
     height:          40,
     borderRadius:    20,
-    backgroundColor: kit.color.surface,
+    backgroundColor: kit.color.well,
     alignItems:      "center",
     justifyContent:  "center",
     borderWidth:     1,
     borderColor:     kit.color.line,
+    flexShrink:      0,
   },
-  backBtnSpacer: { width: 40, height: 40 },
   eyebrow: {
-    fontSize: 10, lineHeight: 15,
-    fontFamily: theme.fonts.bold,
-    color: kit.color.inkFaint,
-    textAlign: textAlignStart(isRtl()),
+    fontFamily:         theme.fonts.bold,
+    fontSize:           10,
+    lineHeight:         14,
+    color:              kit.color.accentDeep,
+    letterSpacing:      0.5,
+    textAlign:          textAlignStart(isRtl()),
     includeFontPadding: false,
   },
   title: {
-    fontSize: 24, lineHeight: 32,
-    fontFamily: theme.fonts.black,
-    color: kit.color.ink,
-    textAlign: textAlignStart(isRtl()),
-    marginTop: 1,
+    fontFamily:         theme.fonts.black,
+    fontSize:           28,
+    lineHeight:         36,
+    color:              kit.color.ink,
+    letterSpacing:      -0.6,
+    textAlign:          textAlignStart(isRtl()),
     includeFontPadding: false,
   },
   iconTile: {
-    width:           40,
-    height:          40,
-    borderRadius:    14,
+    width:           52,
+    height:          52,
+    borderRadius:    16,
     backgroundColor: kit.color.accentTint,
     alignItems:      "center",
     justifyContent:  "center",
+    borderWidth:     1,
+    borderColor:     kit.color.line,
+    flexShrink:      0,
   },
 
-  // Stat band — white kit card
+  // Stat band — white kit card with tinted icon wells
   statsRow: {
     flexDirection:   flexRow(isRtl()),
     backgroundColor: kit.color.surface,
-    borderRadius:    kit.radius.card,
+    borderRadius:    kit.radius.lg,
     borderWidth:     1,
     borderColor:     kit.color.line,
     overflow:        "hidden",
     ...kit.shadow.raised,
   },
-  statPill: {
+  statCell: {
     flex:            1,
-    flexDirection:   flexRow(isRtl()),
     alignItems:      "center",
     justifyContent:  "center",
-    gap:             8,
-    paddingVertical: 13,
+    gap:             6,
+    paddingVertical: 16,
   },
-  statPillBorder: {
+  statCellBorder: {
     borderEndWidth: StyleSheet.hairlineWidth,
     borderEndColor: kit.color.lineStrong,
   },
-  statDot: {
-    width:        8,
-    height:       8,
-    borderRadius: 4,
-    flexShrink:   0,
+  statIconWell: {
+    width:          32,
+    height:         32,
+    borderRadius:   10,
+    alignItems:     "center",
+    justifyContent: "center",
   },
   statVal: {
-    fontFamily: theme.fonts.black,
-    fontSize: 17, lineHeight: 24,
-    color: kit.color.ink,
+    fontFamily:         theme.fonts.black,
+    fontSize:           20,
+    lineHeight:         26,
+    color:              kit.color.ink,
+    letterSpacing:      -0.4,
     includeFontPadding: false,
   },
   statLbl: {
-    fontFamily: theme.fonts.regular,
-    fontSize: 9, lineHeight: 13,
-    color: kit.color.inkFaint,
-    textAlign: "center",
+    fontFamily:         theme.fonts.regular,
+    fontSize:           9,
+    lineHeight:         13,
+    color:              kit.color.inkFaint,
+    textAlign:          "center",
     includeFontPadding: false,
   },
 });

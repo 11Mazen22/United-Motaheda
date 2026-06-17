@@ -30,10 +30,14 @@ import { supabase } from "@/lib/supabase";
 import { updateProfile, getAuthError, useAuth } from "@/features/auth";
 import { captureError } from "@/lib/crashReporter";
 import { Input } from "@/components/ui/Input";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@/shared/kit";
 import { Text as UIText } from "@/shared/ui";
+import { kit } from "@/shared/kit";
 import { theme } from "@/shared/theme";
-import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
+import { flexRow, isRtl, textAlignStart, BACK_CHEVRON } from "@/utils/layout";
+
+const IS_RTL     = isRtl();
+const TEXT_START = textAlignStart(IS_RTL);
 
 type Phase = "loading" | "form" | "success";
 
@@ -41,7 +45,7 @@ export default function EditProfileScreen() {
   const { t, i18n } = useTranslation();
   const router      = useRouter();
   const insets      = useSafeAreaInsets();
-  const { user }    = useAuth();
+  const { }    = useAuth();
 
   const [phase,   setPhase]   = useState<Phase>("loading");
   const [name,    setName]    = useState("");
@@ -55,9 +59,6 @@ export default function EditProfileScreen() {
 
   // Load current user values from auth metadata once on mount.
   // Intentionally empty deps — we only want to read the initial values.
-  // Keeping `user` in the dep array would cause this effect to re-run after
-  // updateProfile() fires USER_UPDATED, which would overwrite "success" with
-  // "form" and break the auto-back flow.
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user: u } }) => {
       if (!mountedRef.current) return;
@@ -103,55 +104,64 @@ export default function EditProfileScreen() {
       behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <View style={[s.screen, { paddingTop: insets.top }]}>
 
-        {/* ── Header ─────────────────────────────────────────────────────────── */}
-        <View style={s.header}>
-          <Pressable onPress={() => router.back()} style={s.backBtn} hitSlop={10}>
-            <Ionicons name="arrow-forward" size={18} color={theme.colors.text.primary} />
+        {/* ── VIP Header ── */}
+        <Animated.View entering={FadeIn.duration(240)} style={s.header}>
+          <Pressable onPress={() => router.back()} style={s.backBtn} hitSlop={10} accessibilityRole="button">
+            <Ionicons name={BACK_CHEVRON} size={18} color={kit.color.inkSoft} />
           </Pressable>
-          <UIText style={s.headerTitle}>{t("editProfile.title")}</UIText>
-          <View style={{ width: 38 }} />
-        </View>
+          <View style={s.iconTile}>
+            <Ionicons name="person-circle-outline" size={22} color={kit.color.accentDeep} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <UIText style={s.headerTitle}>{t("editProfile.title")}</UIText>
+            <UIText style={s.headerSubtitle}>{t("editProfile.subtitle")}</UIText>
+          </View>
+        </Animated.View>
 
         <ScrollView
           contentContainerStyle={[s.content, { paddingBottom: insets.bottom + 40 }]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}>
 
-          {/* ── Loading ──────────────────────────────────────────────────────── */}
+          {/* ── Loading ── */}
           {phase === "loading" && (
             <View style={s.centered}>
-              <ActivityIndicator size="large" color={theme.colors.brand.base} />
+              <ActivityIndicator size="large" color={kit.color.accent} />
             </View>
           )}
 
-          {/* ── Success ──────────────────────────────────────────────────────── */}
+          {/* ── Success ── */}
           {phase === "success" && (
             <Animated.View entering={FadeIn.duration(260)} style={s.successWrap}>
-              <View style={s.successIcon}>
-                <Ionicons name="checkmark-circle" size={52} color={theme.colors.success.base} />
+              <View style={s.successOuter}>
+                <View style={s.successInner}>
+                  <Ionicons name="checkmark" size={32} color={kit.color.success} />
+                </View>
               </View>
-              <UIText style={s.successTitle}>{t("editProfile.saved")}</UIText>
+              <UIText style={[s.successTitle, { textAlign: TEXT_START }]}>{t("editProfile.saved")}</UIText>
             </Animated.View>
           )}
 
-          {/* ── Form ─────────────────────────────────────────────────────────── */}
+          {/* ── Form ── */}
           {phase === "form" && (
             <Animated.View entering={FadeInUp.duration(300)} style={s.form}>
 
-              {/* Avatar placeholder */}
+              {/* Avatar layered ring */}
               <Animated.View entering={FadeInDown.duration(320).delay(40)} style={s.avatarWrap}>
-                <View style={s.avatarTile}>
-                  <Ionicons name="person" size={36} color={theme.colors.brand[600]} />
+                <View style={s.avatarOuter}>
+                  <View style={s.avatarInner}>
+                    <Ionicons name="person" size={36} color={kit.color.accentDeep} />
+                  </View>
                 </View>
               </Animated.View>
 
               {/* Error banner */}
               {error && (
-                <Animated.View entering={FadeInDown.duration(200)} style={s.errorBox}>
+                <Animated.View entering={FadeInDown.duration(200)} style={[s.errorBox, { flexDirection: flexRow(IS_RTL) }]}>
                   <View style={s.errorIcon}>
-                    <Ionicons name="alert-circle" size={16} color={theme.colors.error.base} />
+                    <Ionicons name="alert-circle" size={16} color={"#E53E3E"} />
                   </View>
-                  <UIText style={s.errorText}>{error}</UIText>
+                  <UIText style={[s.errorText, { textAlign: TEXT_START }]}>{error}</UIText>
                 </Animated.View>
               )}
 
@@ -161,7 +171,7 @@ export default function EditProfileScreen() {
                 placeholder={t("editProfile.namePlaceholder")}
                 value={name}
                 onChangeText={(v) => { setName(v); setError(null); }}
-                leftIcon={<Ionicons name="person-outline" size={18} color={theme.colors.text.tertiary} />}
+                leftIcon={<Ionicons name="person-outline" size={18} color={kit.color.inkFaint} />}
                 autoCapitalize="words"
                 returnKeyType="next"
               />
@@ -172,7 +182,7 @@ export default function EditProfileScreen() {
                 placeholder={t("editProfile.phonePlaceholder")}
                 value={phone}
                 onChangeText={(v) => setPhone(v)}
-                leftIcon={<Ionicons name="call-outline" size={18} color={theme.colors.text.tertiary} />}
+                leftIcon={<Ionicons name="call-outline" size={18} color={kit.color.inkFaint} />}
                 keyboardType="phone-pad"
                 returnKeyType="done"
                 onSubmitEditing={handleSave}
@@ -180,14 +190,16 @@ export default function EditProfileScreen() {
 
               {/* Email — read-only */}
               <View style={s.emailBlock}>
-                <UIText style={s.fieldLabel}>{t("editProfile.emailLabel")}</UIText>
-                <View style={s.emailRow}>
-                  <Ionicons name="mail-outline" size={16} color={theme.colors.text.tertiary} />
-                  <UIText style={s.emailValue} numberOfLines={1}>{email}</UIText>
+                <UIText style={[s.fieldLabel, { textAlign: TEXT_START }]}>{t("editProfile.emailLabel")}</UIText>
+                <View style={[s.emailRow, { flexDirection: flexRow(IS_RTL) }]}>
+                  <Ionicons name="mail-outline" size={16} color={kit.color.inkFaint} />
+                  <UIText style={[s.emailValue, { textAlign: TEXT_START }]} numberOfLines={1}>{email}</UIText>
+                  <View style={s.lockBadge}>
+                    <Ionicons name="lock-closed-outline" size={11} color={kit.color.inkFaint} />
+                  </View>
                 </View>
-                <View style={s.emailHintRow}>
-                  <Ionicons name="lock-closed-outline" size={11} color={theme.colors.text.disabled} />
-                  <UIText style={s.emailHint}>{t("editProfile.emailHint")}</UIText>
+                <View style={[s.emailHintRow, { flexDirection: flexRow(IS_RTL) }]}>
+                  <UIText style={[s.emailHint, { textAlign: TEXT_START }]}>{t("editProfile.emailHint")}</UIText>
                 </View>
               </View>
 
@@ -195,17 +207,14 @@ export default function EditProfileScreen() {
               <Button
                 variant="primary"
                 size="lg"
-                fullWidth
-                gradient
+                full
                 loading={saving}
                 onPress={handleSave}
-                style={{ marginTop: 8 }}>
-                {saving ? t("editProfile.saving") : t("editProfile.saveBtn")}
-              </Button>
-
+                style={{ marginTop: 8 }}
+                label={saving ? t("editProfile.saving") : t("editProfile.saveBtn")}
+              />
             </Animated.View>
           )}
-
         </ScrollView>
       </View>
     </KeyboardAvoidingView>
@@ -213,150 +222,201 @@ export default function EditProfileScreen() {
 }
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
-
 const s = StyleSheet.create({
-  screen: {
-    flex:            1,
-    backgroundColor: theme.colors.bg,
-  },
+  screen: { flex: 1, backgroundColor: kit.color.canvas },
+
+  // Header
   header: {
-    flexDirection:     flexRow(isRtl()),
+    flexDirection:     flexRow(IS_RTL),
     alignItems:        "center",
-    justifyContent:    "space-between",
-    paddingHorizontal: theme.layout.pagePaddingH,
+    gap:               14,
+    paddingHorizontal: 20,
     paddingVertical:   14,
-    backgroundColor:   theme.colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border.default,
-    ...theme.shadow.xs,
+    backgroundColor:   kit.color.surface,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: kit.color.line,
+    ...kit.shadow.raised,
   },
   backBtn: {
-    width:           38,
-    height:          38,
-    borderRadius:    12,
-    backgroundColor: theme.colors.subtle,
+    width:           40,
+    height:          40,
+    borderRadius:    20,
+    backgroundColor: kit.color.surface,
     alignItems:      "center",
     justifyContent:  "center",
     borderWidth:     1,
-    borderColor:     theme.colors.border.default,
+    borderColor:     kit.color.line,
+    ...kit.shadow.raised,
+    flexShrink:      0,
   },
-  headerTitle: {
-    fontSize:   theme.fontSize["2xl"],
-    fontFamily: theme.fonts.black,
-    color:      theme.colors.text.primary,
-  },
-  content: {
-    padding: theme.layout.pagePaddingH,
-    gap:     0,
-  },
-  centered: {
+  iconTile: {
+    width:           52,
+    height:          52,
+    borderRadius:    16,
+    backgroundColor: kit.color.accentTint,
+    borderWidth:     1,
+    borderColor:     kit.color.line,
     alignItems:      "center",
     justifyContent:  "center",
-    paddingVertical: 80,
+    flexShrink:      0,
   },
+  headerTitle: {
+    fontFamily:         theme.fonts.black,
+    fontSize:           18,
+    letterSpacing:      -0.4,
+    color:              kit.color.ink,
+    includeFontPadding: false,
+    textAlign:          TEXT_START,
+  },
+  headerSubtitle: {
+    fontFamily:         theme.fonts.semibold,
+    fontSize:           11,
+    color:              kit.color.inkFaint,
+    includeFontPadding: false,
+    textAlign:          TEXT_START,
+    marginTop:          1,
+  },
+
+  // Content
+  content: { padding: 20, gap: 0 },
+
+  centered: { alignItems: "center", justifyContent: "center", paddingVertical: 80 },
+
+  // Success state — layered rings
   successWrap: {
     alignItems:      "center",
     justifyContent:  "center",
     paddingVertical: 80,
-    gap:             16,
+    gap:             18,
   },
-  successIcon: {
-    width:           88,
-    height:          88,
-    borderRadius:    theme.radius["2xl"],
-    backgroundColor: theme.colors.success.bg,
+  successOuter: {
+    width:           100,
+    height:          100,
+    borderRadius:    50,
+    backgroundColor: kit.color.successTint,
     borderWidth:     1,
-    borderColor:     theme.colors.success.light,
+    borderColor:     kit.color.success + "30",
     alignItems:      "center",
     justifyContent:  "center",
+  },
+  successInner: {
+    width:           68,
+    height:          68,
+    borderRadius:    22,
+    backgroundColor: kit.color.surface,
+    borderWidth:     1,
+    borderColor:     kit.color.line,
+    alignItems:      "center",
+    justifyContent:  "center",
+    ...kit.shadow.brandGlow,
   },
   successTitle: {
-    fontSize:   20,
-    fontFamily: theme.fonts.black,
-    color:      theme.colors.success.strong,
+    fontSize:           22,
+    fontFamily:         theme.fonts.black,
+    color:              kit.color.success,
+    includeFontPadding: false,
   },
-  form: {
-    gap:       16,
-    marginTop: 8,
-  },
-  avatarWrap: {
-    alignItems:    "center",
-    marginBottom:  8,
-  },
-  avatarTile: {
-    width:           84,
-    height:          84,
-    borderRadius:    26,
-    backgroundColor: theme.colors.brand.lighter,
+
+  // Form
+  form: { gap: 16, marginTop: 8 },
+
+  // Avatar
+  avatarWrap: { alignItems: "center", marginBottom: 8 },
+  avatarOuter: {
+    width:           100,
+    height:          100,
+    borderRadius:    50,
+    backgroundColor: kit.color.accentTint,
     borderWidth:     1,
-    borderColor:     theme.colors.border.brandSoft,
+    borderColor:     kit.color.line,
     alignItems:      "center",
     justifyContent:  "center",
-    ...theme.shadow.brandGlow,
   },
+  avatarInner: {
+    width:           68,
+    height:          68,
+    borderRadius:    22,
+    backgroundColor: kit.color.surface,
+    borderWidth:     1,
+    borderColor:     kit.color.line,
+    alignItems:      "center",
+    justifyContent:  "center",
+    ...kit.shadow.brandGlow,
+  },
+
+  // Error box
   errorBox: {
-    flexDirection:   flexRow(isRtl()),
     alignItems:      "center",
     gap:             10,
-    backgroundColor: theme.colors.error.bg,
-    borderRadius:    theme.radius.lg,
+    backgroundColor: "rgba(229,62,62,0.06)",
+    borderRadius:    14,
     padding:         12,
     borderWidth:     1,
-    borderColor:     theme.colors.error.light,
+    borderColor:     "rgba(229,62,62,0.20)",
   },
   errorIcon: {
+    width:           28,
+    height:          28,
+    borderRadius:    9,
+    backgroundColor: "rgba(229,62,62,0.12)",
+    alignItems:      "center",
+    justifyContent:  "center",
+    flexShrink:      0,
+  },
+  errorText: {
+    flex:               1,
+    color:              "#E53E3E",
+    fontFamily:         theme.fonts.semibold,
+    fontSize:           12,
+    includeFontPadding: false,
+  },
+
+  // Email read-only block
+  emailBlock: { gap: 6 },
+  fieldLabel: {
+    fontSize:           12,
+    fontFamily:         theme.fonts.semibold,
+    color:              kit.color.inkSoft,
+    includeFontPadding: false,
+    marginBottom:       2,
+  },
+  emailRow: {
+    alignItems:        "center",
+    gap:               10,
+    backgroundColor:   kit.color.well,
+    borderRadius:      14,
+    paddingVertical:   13,
+    paddingHorizontal: 14,
+    borderWidth:       1,
+    borderColor:       kit.color.line,
+  },
+  emailValue: {
+    flex:               1,
+    fontSize:           13,
+    fontFamily:         theme.fonts.semibold,
+    color:              kit.color.inkSoft,
+    includeFontPadding: false,
+  },
+  lockBadge: {
     width:           24,
     height:          24,
     borderRadius:    8,
-    backgroundColor: "rgba(239,68,68,0.10)",
+    backgroundColor: kit.color.surface,
+    borderWidth:     1,
+    borderColor:     kit.color.line,
     alignItems:      "center",
     justifyContent:  "center",
-  },
-  errorText: {
-    flex:       1,
-    color:      theme.colors.error.text,
-    fontFamily: theme.fonts.semibold,
-    fontSize:   theme.fontSize.sm,
-    textAlign:  textAlignStart(isRtl()),
-  },
-  // Email read-only block
-  emailBlock: {
-    gap: 6,
-  },
-  fieldLabel: {
-    fontSize:   theme.fontSize.sm,
-    fontFamily: theme.fonts.semibold,
-    color:      theme.colors.text.secondary,
-    textAlign:  textAlignStart(isRtl()),
-    marginBottom: 2,
-  },
-  emailRow: {
-    flexDirection:   flexRow(isRtl()),
-    alignItems:      "center",
-    gap:             10,
-    backgroundColor: theme.colors.subtle,
-    borderRadius:    theme.radius.lg,
-    paddingVertical: 13,
-    paddingHorizontal: 14,
-    borderWidth:     1,
-    borderColor:     theme.colors.border.default,
-  },
-  emailValue: {
-    flex:       1,
-    fontSize:   theme.fontSize.base,
-    fontFamily: theme.fonts.semibold,
-    color:      theme.colors.text.secondary,
-    textAlign:  textAlignStart(isRtl()),
+    flexShrink:      0,
   },
   emailHintRow: {
-    flexDirection: flexRow(isRtl()),
-    alignItems:    "center",
-    gap:           5,
+    alignItems: "center",
+    gap:        5,
+    marginTop:  2,
   },
   emailHint: {
-    fontSize:   theme.fontSize.xs,
-    fontFamily: theme.fonts.regular,
-    color:      theme.colors.text.disabled,
-    textAlign:  textAlignStart(isRtl()),
+    fontSize:           11,
+    fontFamily:         theme.fonts.regular,
+    color:              kit.color.inkFaint,
+    includeFontPadding: false,
   },
 });

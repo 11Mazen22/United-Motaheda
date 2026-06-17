@@ -7,21 +7,23 @@
  * context has real coordinates from the first cart session.
  */
 
-import { useLocationState } from "@/features/delivery/locationStore";
+import { useLocationStore } from "@/features/delivery/locationStore";
 
 export function requestAndStoreLocation(): void {
-  if (typeof navigator === "undefined" || !navigator.geolocation) return;
+  // Geolocation API is only available on web and in some React Native environments
+  const nav = typeof navigator !== "undefined" ? navigator : null;
+  if (!nav || !(nav as any).geolocation) return;
 
-  navigator.geolocation.getCurrentPosition(
-    (position) => {
-      useLocationState.getState().setCoordinates({
+  (nav as any).geolocation.getCurrentPosition(
+    (position: any) => {
+      useLocationStore.getState().setCoordinates({
         lat: position.coords.latitude,
         lng: position.coords.longitude,
       });
-      useLocationState.getState().setPermission("granted");
+      useLocationStore.getState().setPermission("granted");
     },
     () => {
-      useLocationState.getState().setPermission("denied");
+      useLocationStore.getState().setPermission("denied");
     },
     {
       enableHighAccuracy: true,

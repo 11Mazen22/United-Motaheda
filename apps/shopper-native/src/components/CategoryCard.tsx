@@ -1,386 +1,330 @@
-/**
- * CategoryCard — supports three variants:
- *   "pill"   — tall vertical pill (legacy, used in strip rails)
- *   "tile"   — square gradient tile (categories screen, original)
- *   "pastel" — soft pastel background, dark text, isolated icon
- *              (elite 2-col grid, Apple / Noon aesthetic)
- *
- * All variants share Reanimated 0.97 spring press interaction.
- */
-import React, { memo } from "react";
-import { Platform, Pressable, StyleSheet, View } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import * as Haptics from "expo-haptics";
+import React, { memo, useCallback } from "react";
+import { Pressable, StyleSheet, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withSpring,
 } from "react-native-reanimated";
-import { useTranslation } from "react-i18next";
-import { Text as UIText } from "@/shared/ui";
-import { theme } from "@/shared/theme";
-import type { NativeCategory } from "@/services/productsApi";
 
-// ─── Icon catalogue ───────────────────────────────────────────────────────────
+import { Text as UIText }  from "../shared/ui/Text";
+import { theme }            from "../shared/theme";
+import { kit }              from "../shared/kit";
+import { isRtl, FORWARD_CHEVRON } from "../utils/layout";
+import type { NativeCategory } from "../features/products/types";
 
-type IconEntry =
-  | { lib: "Ionicons"; name: React.ComponentProps<typeof Ionicons>["name"] }
-  | { lib: "MCI";      name: React.ComponentProps<typeof MaterialCommunityIcons>["name"] };
+// ─── Palette ─────────────────────────────────────────────────────────────────
 
-const CAT_ICONS: Record<string, IconEntry> = {
-  default:              { lib: "MCI",      name: "pill"                  },
-  "أدوية":              { lib: "MCI",      name: "pill"                  },
-  "الأدوية":            { lib: "MCI",      name: "pill"                  },
-  "الصحة":             { lib: "Ionicons", name: "fitness-outline"        },
-  "الأجهزة":            { lib: "Ionicons", name: "pulse-outline"          },
-  "الأم":               { lib: "Ionicons", name: "heart-circle-outline"   },
-  "الفيتامينات":        { lib: "Ionicons", name: "leaf-outline"           },
-  "مكملات":             { lib: "Ionicons", name: "nutrition-outline"      },
-  "البشرة":             { lib: "Ionicons", name: "sparkles-outline"       },
-  "الإسعافات":          { lib: "Ionicons", name: "medkit-outline"         },
-  "الشخصية":            { lib: "Ionicons", name: "body-outline"           },
-  "الفم":               { lib: "Ionicons", name: "water-outline"          },
-  "مستلزمات":           { lib: "Ionicons", name: "thermometer-outline"    },
-};
+const IS_RTL = isRtl();
 
-function getIcon(name: string): IconEntry {
-  const key = Object.keys(CAT_ICONS).find((k) => k !== "default" && name.includes(k));
-  return key ? CAT_ICONS[key] : CAT_ICONS.default;
-}
-
-// ─── Pastel palette — 10 tones, stable from index ────────────────────────────
-
-const PASTEL: { bg: string; iconBg: string; iconColor: string }[] = [
-  { bg: "#EFF6FF", iconBg: "#BFDBFE", iconColor: "#1D4ED8" },  // blue
-  { bg: "#F5F3FF", iconBg: "#DDD6FE", iconColor: "#6D28D9" },  // violet
-  { bg: "#F0FDF4", iconBg: "#BBF7D0", iconColor: "#15803D" },  // green
-  { bg: "#FFFBEB", iconBg: "#FDE68A", iconColor: "#B45309" },  // amber
-  { bg: "#FFF1F2", iconBg: "#FECDD3", iconColor: "#BE123C" },  // rose
-  { bg: "#ECFEFF", iconBg: "#A5F3FC", iconColor: "#0E7490" },  // cyan
-  { bg: "#FEF3C7", iconBg: "#FDE68A", iconColor: "#92400E" },  // warm amber
-  { bg: "#F7FEE7", iconBg: "#D9F99D", iconColor: "#3F6212" },  // lime
-  { bg: "#F0F4FF", iconBg: "#C7D2FE", iconColor: "#3730A3" },  // indigo
-  { bg: "#FDF4FF", iconBg: "#F5D0FE", iconColor: "#86198F" },  // fuchsia
+const PALETTE: { accent: string; tint: string }[] = [
+  { accent: kit.color.accentDeep, tint: kit.color.accentTint  },
+  { accent: kit.color.warn,       tint: kit.color.warnTint     },
+  { accent: kit.color.success,    tint: kit.color.successTint  },
+  { accent: kit.color.danger,     tint: kit.color.dangerTint   },
+  { accent: "#7c3aed",            tint: "#f5f3ff"              },
+  { accent: "#0284c7",            tint: "#e0f2fe"              },
+  { accent: "#d97706",            tint: "#fffbeb"              },
+  { accent: "#16a34a",            tint: "#f0fdf4"              },
+  { accent: "#db2777",            tint: "#fdf2f8"              },
+  { accent: "#0ea5e9",            tint: "#f0f9ff"              },
 ];
 
-// ─── Component ────────────────────────────────────────────────────────────────
-
-interface CategoryCardProps {
-  category:    NativeCategory;
-  gradientIdx: number;
-  lang?:       "ar" | "en";
-  onPress?:    () => void;
-  variant?:    "pill" | "tile" | "pastel";
+function paletteFor(idx: number) {
+  return PALETTE[Math.abs(idx) % PALETTE.length];
 }
 
-const AnimPressable = Animated.createAnimatedComponent(Pressable);
+// ─── Emoji map ───────────────────────────────────────────────────────────────
+
+const EMOJI_MAP: Record<string, string> = {
+  "العناية بالشعر":                  "💆",
+  "العناية بالبشرة":                 "✨",
+  "مستحضرات التجميل والمكياج":       "💄",
+  "العناية بالفم والأسنان":           "🦷",
+  "العطور والروائح":                  "🌸",
+  "الإسعافات الأولية والمطهرات":      "🩹",
+  "الفيتامينات والمكملات الغذائية":   "💊",
+  "المستلزمات الطبية":                "🩺",
+  "الرعاية الصحية العامة":            "❤️",
+  "العناية بالجسم":                   "🧴",
+  "العناية بالعيون":                  "👁️",
+  "صحة المرأة":                       "🌷",
+  "الأطفال والرضع":                   "👶",
+  "أدوية":                            "💊",
+  "العناية بالرجل":                   "🪒",
+  "الأم والطفل":                      "🤱",
+  "التغذية الطبية":                   "🥗",
+};
+
+export function emojiFor(name: string): string {
+  return EMOJI_MAP[name] ?? "🏥";
+}
+
+function formatCount(n: number): string {
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
+  return String(n);
+}
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+export interface CategoryCardProps {
+  category:    NativeCategory;
+  gradientIdx: number;
+  lang:        "ar" | "en";
+  variant?:    "pill" | "grid" | "pastel";
+  onPress:     () => void;
+  active?:     boolean;
+}
+
+const SPRING_IN  = { damping: 10, stiffness: 380 } as const;
+const SPRING_OUT = { damping: 14, stiffness: 280 } as const;
+
+// ─── CategoryCard ─────────────────────────────────────────────────────────────
 
 export const CategoryCard = memo(function CategoryCard({
-  category, gradientIdx,
-  lang    = "ar",
-  onPress,
+  category,
+  gradientIdx,
+  lang,
   variant = "pill",
+  onPress,
+  active = false,
 }: CategoryCardProps) {
-  const { t: _t } = useTranslation();
-  const [c1, c2]  = theme.catGradients[gradientIdx % theme.catGradients.length];
-  const pastel    = PASTEL[gradientIdx % PASTEL.length];
-  const icon      = getIcon(category.name);
-  const label     = lang === "ar" ? category.name : category.nameEn;
+  const scale     = useSharedValue(1);
+  const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
 
-  const scale = useSharedValue(1);
-  const anim  = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+  const onPressIn  = useCallback(() => { scale.value = withSpring(0.95, SPRING_IN);  }, [scale]);
+  const onPressOut = useCallback(() => { scale.value = withSpring(1.0,  SPRING_OUT); }, [scale]);
 
-  const onPressIn  = () => { scale.value = withSpring(0.97, theme.animation.spring.press); };
-  const onPressOut = () => { scale.value = withSpring(1,    theme.animation.spring.press); };
+  const { accent, tint } = paletteFor(gradientIdx);
+  const displayName      = lang === "en" ? (category.nameEn || category.name) : category.name;
+  const emoji            = emojiFor(category.name);
+  const showCount        = category.count > 0;
 
-  const iconNode = icon.lib === "MCI"
-    ? <MaterialCommunityIcons name={icon.name} size={24} color={variant === "pastel" ? pastel.iconColor : "#fff"} />
-    : <Ionicons               name={icon.name} size={24} color={variant === "pastel" ? pastel.iconColor : "#fff"} />;
+  // ── Pill variant ────────────────────────────────────────────────────────
 
-  // ── Pastel variant — clean, Apple-store aesthetic ────────────────────────────
-  if (variant === "pastel") {
+  if (variant === "pill") {
     return (
-      <AnimPressable
-        onPress={() => {
-          if (Platform.OS !== "web") Haptics.selectionAsync().catch(() => {});
-          onPress?.();
-        }}
-        onPressIn={onPressIn}
-        onPressOut={onPressOut}
-        style={[anim, ps.card, { backgroundColor: pastel.bg }]}>
+      <Pressable
+        onPress={onPress} onPressIn={onPressIn} onPressOut={onPressOut}
+        accessibilityRole="button" accessibilityLabel={displayName} hitSlop={4}
+      >
+        <Animated.View
+          style={[
+            cs.pill,
+            active && { backgroundColor: tint, borderColor: accent, borderWidth: 1.5 },
+            animStyle,
+          ]}
+        >
+          <View style={[cs.pillDot, { backgroundColor: active ? accent : tint }]}>
+            <UIText style={cs.pillEmoji}>{emoji}</UIText>
+          </View>
 
-        {/* Isolated icon bubble */}
-        <View style={[ps.iconBubble, { backgroundColor: pastel.iconBg }]}>
-          {iconNode}
-        </View>
-
-        {/* Bold label */}
-        <UIText
-          variant="caption"
-          weight="black"
-          align="center"
-          numberOfLines={2}
-          style={[ps.label, { color: theme.colors.text.primary }]}>
-          {label}
-        </UIText>
-
-        {/* Subtle product count */}
-        {category.count > 0 && (
-          <UIText
-            variant="eyebrow"
-            align="center"
-            style={[ps.count, { color: pastel.iconColor }]}>
-            {category.count}
+          <UIText numberOfLines={1} style={[cs.pillLabel, active && { color: accent }]}>
+            {displayName}
           </UIText>
-        )}
-      </AnimPressable>
-    );
-  }
 
-  // ── Gradient tile / pill ──────────────────────────────────────────────────────
-  const isPill = variant === "pill";
-
-  if (isPill) {
-    return (
-      // Shadow host — no overflow:hidden so drop-shadow bleeds outside card edge.
-      <AnimPressable
-        onPress={() => {
-          if (Platform.OS !== "web") Haptics.selectionAsync().catch(() => {});
-          onPress?.();
-        }}
-        onPressIn={onPressIn}
-        onPressOut={onPressOut}
-        style={[anim, pill.shadow]}>
-        {/* Inner clip — clips gradient to border radius */}
-        <LinearGradient
-          colors={[c1, c2]}
-          start={{ x: 0.15, y: 0 }}
-          end={{ x: 0.85, y: 1 }}
-          style={pill.gradient}>
-          {/* Shine orb top-right */}
-          <View style={pill.shineOrb} />
-          {/* Subtle grid line for depth */}
-          <View style={pill.gridLine} />
-
-          {/* Icon container */}
-          <View style={pill.iconWrap}>
-            {iconNode}
-          </View>
-
-          {/* Label block */}
-          <View style={pill.labelWrap}>
-            <UIText
-              variant="caption"
-              weight="bold"
-              color="inverse"
-              align="center"
-              numberOfLines={2}
-              style={pill.label}>
-              {label}
-            </UIText>
-          </View>
-
-          {/* Count badge — only when meaningful */}
-          {category.count > 0 && (
-            <View style={pill.countBadge}>
-              <UIText
-                variant="eyebrow"
-                align="center"
-                style={pill.countText}>
-                {category.count}
+          {showCount && (
+            <View style={[cs.pillCount, { backgroundColor: active ? accent : tint }]}>
+              <UIText style={[cs.pillCountText, { color: active ? "#fff" : accent }]}>
+                {formatCount(category.count)}
               </UIText>
             </View>
           )}
-        </LinearGradient>
-      </AnimPressable>
+        </Animated.View>
+      </Pressable>
     );
   }
 
-  // ── Tile variant ──────────────────────────────────────────────────────────────
+  // ── Grid variant (also handles "pastel") ─────────────────────────────────
+
   return (
-    <AnimPressable
-      onPress={() => {
-        if (Platform.OS !== "web") Haptics.selectionAsync().catch(() => {});
-        onPress?.();
-      }}
-      onPressIn={onPressIn}
-      onPressOut={onPressOut}
-      style={[
-        anim,
-        {
-          width:        undefined,
-          height:       132,
-          borderRadius: theme.radius['2xl'],
-          overflow:     "hidden",
-          ...theme.shadow.card,
-        },
-      ]}>
-      <LinearGradient
-        colors={[c1, c2]}
-        start={{ x: 0.15, y: 0 }}
-        end={{ x: 0.85, y: 1 }}
-        style={{
-          flex:           1,
-          alignItems:     "center",
-          justifyContent: "center",
-          gap:            10,
-        }}>
-        <View style={{ position: "absolute", top: -30, right: -30, width: 100, height: 100, borderRadius: 50, backgroundColor: "rgba(255,255,255,0.10)" }} />
-        <View style={{
-          width:           56,
-          height:          56,
-          borderRadius:    17,
-          backgroundColor: "rgba(255,255,255,0.18)",
-          alignItems:      "center",
-          justifyContent:  "center",
-          borderWidth:     1,
-          borderColor:     "rgba(255,255,255,0.26)",
-        }}>
-          {iconNode}
-        </View>
-        <View style={{ alignItems: "center", paddingHorizontal: 8 }}>
+    <Pressable
+      onPress={onPress} onPressIn={onPressIn} onPressOut={onPressOut}
+      accessibilityRole="button" accessibilityLabel={displayName}
+      style={cs.gridOuter}
+    >
+      <Animated.View style={[cs.gridCard, animStyle]}>
+
+        {/* 5 px identity stripe — flat accent, per kit law */}
+        <View style={[cs.stripe, { backgroundColor: accent }]} />
+
+        <View style={cs.gridBody}>
+          {/* Tinted icon well */}
+          <View style={[cs.iconWell, { backgroundColor: tint }]}>
+            <UIText style={cs.gridEmoji}>{emoji}</UIText>
+          </View>
+
+          {/* Name */}
           <UIText
-            variant="caption"
-            weight="bold"
-            color="inverse"
-            align="center"
             numberOfLines={2}
-            style={{ lineHeight: 17 }}>
-            {label}
+            style={[cs.gridName, { textAlign: IS_RTL ? "right" : "left" }]}
+          >
+            {displayName}
           </UIText>
+
+          {/* Count + forward chevron */}
+          <View style={[cs.gridFoot, { flexDirection: IS_RTL ? "row-reverse" : "row" }]}>
+            {showCount && (
+              <UIText style={cs.gridCount}>
+                {formatCount(category.count)}{lang === "ar" ? " منتج" : " items"}
+              </UIText>
+            )}
+            <Ionicons name={FORWARD_CHEVRON} size={13} color={accent} />
+          </View>
         </View>
-      </LinearGradient>
-    </AnimPressable>
+
+      </Animated.View>
+    </Pressable>
   );
 });
 
-// ─── Pill-variant styles ──────────────────────────────────────────────────────
-// Separated shadow host from gradient clip so the drop-shadow bleeds cleanly.
-// The pill is 110 px wide × 164 px tall — wider than the old 104×168 to give
-// more breathing room to Arabic labels; slight height reduction for cleaner
-// proportions on the category strip.
+export default CategoryCard;
 
-const pill = StyleSheet.create({
-  shadow: {
-    width:         110,
-    height:        164,
-    borderRadius:  theme.radius["2xl"],  // 22
-    // Multi-layer shadow: primary drop + subtle ambient
-    shadowColor:   "#0C2240",
-    shadowOffset:  { width: 0, height: 4 },
-    shadowOpacity: 0.14,
-    shadowRadius:  12,
-    elevation:     5,
-  },
-  gradient: {
-    flex:           1,
-    borderRadius:   theme.radius["2xl"],
-    alignItems:     "center",
-    justifyContent: "space-between",
-    paddingTop:     22,
-    paddingBottom:  16,
-    paddingHorizontal: 8,
-    overflow:       "hidden",
-    // Crisp glass border visible on light backgrounds
-    borderWidth:    1,
-    borderColor:    "rgba(255,255,255,0.20)",
-  },
-  // Decorative shine orb — top-right hemisphere
-  shineOrb: {
-    position:        "absolute",
-    top:             -28,
-    right:           -28,
-    width:           80,
-    height:          80,
-    borderRadius:    40,
-    backgroundColor: "rgba(255,255,255,0.13)",
-  },
-  // Subtle vertical grid line for spatial depth
-  gridLine: {
-    position:        "absolute",
-    top:             0,
-    bottom:          0,
-    left:            "50%",
-    width:           1,
-    backgroundColor: "rgba(255,255,255,0.05)",
-  },
-  // Icon container — frosted glass bubble with clean border
-  iconWrap: {
-    width:           54,
-    height:          54,
-    borderRadius:    17,
-    backgroundColor: "rgba(255,255,255,0.18)",
-    alignItems:      "center",
-    justifyContent:  "center",
-    borderWidth:     1,
-    borderColor:     "rgba(255,255,255,0.28)",
-    // Inner shine overlay (via background gradient not available in RN —
-    // simulate with top-inset border on the icon container)
-  },
-  // Label block — centered below icon with adequate padding for Arabic text
-  labelWrap: {
-    alignItems:        "center",
-    paddingHorizontal: 6,
-    gap:               2,
-    minHeight:         32,  // guard against label collapse on 2-line Arabic
-    justifyContent:    "center",
-  },
-  label: {
-    fontSize:           12,
-    lineHeight:         17,  // generous for Arabic diacritics
-    letterSpacing:      0,
-    includeFontPadding: false,
-  },
-  // Small count pill — tinted glass at card bottom
-  countBadge: {
-    backgroundColor:   "rgba(255,255,255,0.16)",
-    borderRadius:      999,
-    paddingHorizontal: 8,
-    paddingVertical:   2,
-    borderWidth:       1,
-    borderColor:       "rgba(255,255,255,0.22)",
-  },
-  countText: {
-    fontSize:           9,
-    color:              "rgba(255,255,255,0.80)",
-    letterSpacing:      0.3,
-    includeFontPadding: false,
-  },
+// ─── Skeletons ───────────────────────────────────────────────────────────────
+
+export const CategoryCardSkeleton = memo(function CategoryCardSkeleton() {
+  return <View style={cs.pillSkeleton} />;
 });
 
-// ─── Pastel-variant styles ────────────────────────────────────────────────────
+export const CategoryGridSkeleton = memo(function CategoryGridSkeleton() {
+  return (
+    <View style={cs.gridOuter}>
+      <View style={[cs.gridCard, cs.skeletonCard]}>
+        <View style={cs.skeletonStripe} />
+        <View style={cs.gridBody}>
+          <View style={cs.skeletonIcon} />
+          <View style={cs.skeletonLine} />
+          <View style={[cs.skeletonLine, cs.skeletonShort]} />
+        </View>
+      </View>
+    </View>
+  );
+});
 
-const ps = StyleSheet.create({
-  card: {
-    borderRadius:   20,
+// ─── Styles ──────────────────────────────────────────────────────────────────
+
+const cs = StyleSheet.create({
+  // ── Pill
+  pill: {
+    flexDirection:     IS_RTL ? "row-reverse" : "row",
+    alignItems:        "center",
+    gap:               8,
+    height:            44,
+    paddingHorizontal: 12,
+    backgroundColor:   kit.color.surface,
+    borderRadius:      kit.radius.pill,
+    borderWidth:       1,
+    borderColor:       kit.color.line,
+  },
+  pillDot: {
+    width:          28,
+    height:         28,
+    borderRadius:   14,
     alignItems:     "center",
     justifyContent: "center",
-    paddingVertical: 20,
-    paddingHorizontal: 10,
-    gap:            10,
-    // Soft shadow — no heavy border
-    shadowColor:    "#0C2240",
-    shadowOffset:   { width: 0, height: 2 },
-    shadowOpacity:  0.05,
-    shadowRadius:   8,
-    elevation:      2,
   },
-  iconBubble: {
-    width:          56,
-    height:         56,
+  pillEmoji: {
+    fontSize:   14,
+    lineHeight: 18,
+  },
+  pillLabel: {
+    fontFamily:         theme.fonts.semibold,
+    fontSize:           13,
+    lineHeight:         18,
+    color:              kit.color.inkSoft,
+    textAlign:          IS_RTL ? "right" : "left",
+    includeFontPadding: false,
+    maxWidth:           120,
+  },
+  pillCount: {
+    paddingHorizontal: 7,
+    paddingVertical:   2,
+    borderRadius:      kit.radius.pill,
+  },
+  pillCountText: {
+    fontFamily:         theme.fonts.bold,
+    fontSize:           9,
+    lineHeight:         13,
+    includeFontPadding: false,
+  },
+  pillSkeleton: {
+    width:           120,
+    height:          44,
+    borderRadius:    kit.radius.pill,
+    backgroundColor: kit.color.well,
+  },
+
+  // ── Grid card
+  gridOuter: {
+    width: "100%",
+  },
+  gridCard: {
+    backgroundColor: kit.color.surface,
+    borderRadius:    kit.radius.lg,
+    borderWidth:     1,
+    borderColor:     kit.color.line,
+    overflow:        "hidden",
+    ...kit.shadow.raised,
+  },
+  stripe: {
+    height: 5,
+    width:  "100%",
+  },
+  gridBody: {
+    padding: 16,
+    gap:     10,
+  },
+  iconWell: {
+    width:          58,
+    height:         58,
     borderRadius:   18,
     alignItems:     "center",
     justifyContent: "center",
   },
-  label: {
-    fontSize:      13,
-    lineHeight:    18,
-    paddingHorizontal: 4,
+  gridEmoji: {
+    fontSize: 26,
   },
-  count: {
-    fontSize:      10,
-    letterSpacing: 0.3,
-    opacity:       0.7,
+  gridName: {
+    fontFamily:         theme.fonts.black,
+    fontSize:           15,
+    lineHeight:         21,
+    color:              kit.color.ink,
+    letterSpacing:      -0.2,
+    includeFontPadding: false,
+  },
+  gridFoot: {
+    alignItems:     "center",
+    justifyContent: "space-between",
+    marginTop:      2,
+  },
+  gridCount: {
+    fontFamily:         theme.fonts.regular,
+    fontSize:           11,
+    lineHeight:         16,
+    color:              kit.color.inkFaint,
+    includeFontPadding: false,
+  },
+
+  // ── Grid skeleton
+  skeletonCard: {
+    borderColor: "transparent",
+  },
+  skeletonStripe: {
+    height:          5,
+    backgroundColor: kit.color.well,
+  },
+  skeletonIcon: {
+    width:           58,
+    height:          58,
+    borderRadius:    18,
+    backgroundColor: kit.color.well,
+  },
+  skeletonLine: {
+    height:          11,
+    borderRadius:    6,
+    backgroundColor: kit.color.well,
+  },
+  skeletonShort: {
+    width: "55%",
   },
 });

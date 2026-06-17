@@ -26,7 +26,8 @@
 // React Native polyfills `global.window = global`, so `typeof window !== "undefined"`
 // is true on Android/iOS but `window.addEventListener` is not a function there.
 // We guard every browser-only branch with this stricter check.
-const IS_BROWSER = typeof window !== "undefined" && typeof window.addEventListener === "function";
+const WINDOW = typeof globalThis !== "undefined" ? (globalThis as any).window : undefined;
+const IS_BROWSER = typeof WINDOW !== "undefined" && typeof WINDOW.addEventListener === "function";
 
 // ─── 1. Dark-mode strategy — must run first, synchronously ───────────────────
 
@@ -53,7 +54,7 @@ if (IS_BROWSER) {
 // surfaces in the console for real debugging.
 
 if (IS_BROWSER) {
-  window.addEventListener("unhandledrejection", (event: PromiseRejectionEvent) => {
+  WINDOW.addEventListener("unhandledrejection", (event: any) => {
     const msg = String((event.reason as { message?: string } | null)?.message ?? event.reason ?? "");
     const SUPPRESS = [
       "timeout",            // expo-font / Supabase channel reconnect timeouts

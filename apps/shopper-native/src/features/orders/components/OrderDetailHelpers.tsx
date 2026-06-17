@@ -7,7 +7,7 @@ import { Pressable, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { Text as UIText } from "@/shared/ui";
-import { theme } from "@/shared/theme";
+
 import { kit } from "@/shared/kit";
 import { BACK_CHEVRON } from "@/utils/layout";
 import type { Order, OrderStatus } from "@/stores/orders";

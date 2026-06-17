@@ -1,14 +1,10 @@
 /**
- * ProfileScreen — Elite 2026 redesign on the @/shared/kit design language.
+ * ProfileScreen — VIP 2026 redesign on @/shared/kit.
  *
- * Performance wins:
- *   - MenuRow press: Reanimated withSpring(0.985) on UI thread
- *   - LoyaltySummaryCard: Reanimated scale, gradient progress bar from real data
- *   - All navigation handlers: useCallback with stable router refs
- *   - Zero inline style objects in the hot render path
- *   - SectionLabel, MenuRow, LoyaltySummaryCard: memo'd
- *
- * Kit migration: all theme.colors.* replaced with kit tokens.
+ * LoyaltySummaryCard: LinearGradient removed → flat tier-colour fill + identity stripe.
+ * SectionLabel: larger badge (32×32), bolder label.
+ * MenuRow: taller rows (56px), larger icon tiles (44×44).
+ * Cards: borderRadius raised to kit.radius.lg (16).
  */
 import React, { memo, useCallback, useMemo, useState } from "react";
 import {
@@ -19,7 +15,6 @@ import {
   StyleSheet,
   View,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import Animated, {
   useAnimatedStyle,
@@ -45,10 +40,11 @@ import { PROFILE } from "@/features/profile/components/profile.styles";
 import { flexRow, isRtl, textAlignStart, FORWARD_CHEVRON } from "@/utils/layout";
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>["name"];
-const startAlign = textAlignStart(isRtl());
 
-// Press spring config (replaces theme.animation.spring.press)
-const SPRING_PRESS = { damping: 22, stiffness: 420, mass: 0.7 };
+const IS_RTL     = isRtl();
+const TEXT_START = textAlignStart(IS_RTL);
+
+const SPRING_PRESS = { damping: 22, stiffness: 420, mass: 0.7 } as const;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -81,18 +77,16 @@ const SectionLabel = memo(function SectionLabel({
   accent?: string;
 }) {
   return (
-    <View style={sl.row}>
-      <View style={[sl.badge, { backgroundColor: `${accent}18`, borderColor: `${accent}30` }]}>
-        <Ionicons name={icon} size={13} color={accent} />
+    <View style={[sl.row, { flexDirection: flexRow(IS_RTL) }]}>
+      <View style={[sl.badge, { backgroundColor: `${accent}14`, borderColor: `${accent}28` }]}>
+        <Ionicons name={icon} size={15} color={accent} />
       </View>
-      <UIText variant="eyebrow" weight="bold" align="right" style={[sl.label, { color: accent }]}>
-        {label}
-      </UIText>
+      <UIText style={[sl.label, { color: accent, textAlign: TEXT_START }]}>{label}</UIText>
     </View>
   );
 });
 
-// ─── MenuRow — Reanimated UI-thread spring ────────────────────────────────────
+// ─── MenuRow ──────────────────────────────────────────────────────────────────
 
 interface MenuRowProps {
   icon:      IoniconsName;
@@ -126,26 +120,23 @@ const MenuRow = memo(function MenuRow({
       onPressOut={handleOut}
       accessibilityRole="button"
       accessibilityLabel={subtitle ? `${label}, ${subtitle}` : label}>
-      <Animated.View style={[mr.row, !last && mr.sep, anim]}>
+      <Animated.View style={[mr.row, { flexDirection: flexRow(IS_RTL) }, !last && mr.sep, anim]}>
 
-        <View style={[mr.icon, {
+        <View style={[mr.iconTile, {
           backgroundColor: danger ? kit.color.dangerTint  : `${ic}14`,
-          borderColor:     danger ? "rgba(179,38,30,0.3)" : `${ic}26`,
+          borderColor:     danger ? "rgba(179,38,30,0.28)" : `${ic}26`,
         }]}>
-          <Ionicons name={icon} size={18} color={ic} />
+          <Ionicons name={icon} size={19} color={ic} />
         </View>
 
         <View style={mr.textGroup}>
           <UIText
-            variant="body-sm"
-            weight="bold"
-            align={startAlign}
-            numberOfLines={1}
-            style={danger ? mr.dangerLabel : undefined}>
+            style={[mr.label, danger && { color: kit.color.danger }, { textAlign: TEXT_START }]}
+            numberOfLines={1}>
             {label}
           </UIText>
           {subtitle && (
-            <UIText variant="caption" color="tertiary" align={startAlign} numberOfLines={1}>
+            <UIText style={[mr.sub, { textAlign: TEXT_START }]} numberOfLines={1}>
               {subtitle}
             </UIText>
           )}
@@ -153,7 +144,7 @@ const MenuRow = memo(function MenuRow({
 
         {badge != null && (
           <View style={[mr.badgePill, danger && mr.badgeDanger]}>
-            <UIText variant="eyebrow" style={{ color: danger ? kit.color.danger : kit.color.accentDeep }}>
+            <UIText style={[mr.badgeText, { color: danger ? kit.color.danger : kit.color.accentDeep }]}>
               {badge}
             </UIText>
           </View>
@@ -182,10 +173,11 @@ const LoyaltySummaryCard = memo(function LoyaltySummaryCard({
   const progress  = nextTh === Infinity ? 1 : (points - prevTh) / (nextTh - prevTh);
   const isMaxTier = nextTh === Infinity;
 
-  const scale = useSharedValue(1);
-  const anim  = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+  const scale    = useSharedValue(1);
+  const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+
   const handleIn  = useCallback(() => { scale.value = withSpring(0.98, SPRING_PRESS); }, [scale]);
-  const handleOut = useCallback(() => { scale.value = withSpring(1,    SPRING_PRESS); }, [scale]);
+  const handleOut = useCallback(() => { scale.value = withSpring(1,   SPRING_PRESS); }, [scale]);
 
   return (
     <View style={lc.outer}>
@@ -195,56 +187,58 @@ const LoyaltySummaryCard = memo(function LoyaltySummaryCard({
         onPressOut={handleOut}
         accessibilityRole="button"
         accessibilityLabel={t("profile.loyaltyCard")}>
-        <Animated.View style={[lc.card, anim]}>
+        <Animated.View style={[lc.card, animStyle]}>
 
-          <View style={[lc.tierIcon, { backgroundColor: `${tier.color}18`, borderColor: `${tier.color}30` }]}>
-            <Ionicons name={tier.icon} size={20} color={tier.color} />
-          </View>
+          {/* Tier identity stripe at top — flat colour, no gradient */}
+          <View style={[lc.stripe, { backgroundColor: tier.color }]} />
 
-          <View style={lc.body}>
-            <View style={lc.topRow}>
-              <UIText variant="body-sm" weight="black" align="right" style={[lc.tierName, { color: tier.color }]}>
-                {t(tier.nameKey)}
-              </UIText>
-              <UIText variant="eyebrow" color="tertiary" align="right">
-                {t("profile.loyaltyCard")}
-              </UIText>
+          <View style={lc.content}>
+            {/* Main row: icon well · tier text · spacer · points · chevron */}
+            <View style={[lc.mainRow, { flexDirection: flexRow(IS_RTL) }]}>
+              <View style={[lc.iconWell, { backgroundColor: `${tier.color}18`, borderColor: `${tier.color}28` }]}>
+                <Ionicons name={tier.icon} size={26} color={tier.color} />
+              </View>
+
+              <View style={lc.tierBlock}>
+                <UIText style={[lc.loyaltyEyebrow, { textAlign: TEXT_START }]}>
+                  {t("profile.loyaltyCard")}
+                </UIText>
+                <UIText style={[lc.tierName, { color: tier.color, textAlign: TEXT_START }]}>
+                  {t(tier.nameKey)}
+                </UIText>
+              </View>
+
+              <View style={lc.pointsBlock}>
+                <UIText style={[lc.pointsNum, { color: tier.color }]}>
+                  {points.toLocaleString()}
+                </UIText>
+                <UIText style={lc.pointsUnit}>{t("profile.pointsUnit")}</UIText>
+              </View>
+
+              <Ionicons name={FORWARD_CHEVRON} size={15} color={kit.color.inkFaint} />
             </View>
 
-            {/* Gradient progress fill */}
+            {/* Progress track — flat fill, no gradient */}
             <View style={lc.track}>
-              <LinearGradient
-                colors={tier.ring}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={[lc.fill, {
-                  width: `${Math.min(Math.max(progress, 0.02) * 100, 100)}%` as any,
-                }]}
+              <View
+                style={[
+                  lc.fill,
+                  {
+                    width: `${Math.min(Math.max(progress, 0.02) * 100, 100)}%` as any,
+                    backgroundColor: tier.color,
+                  },
+                ]}
               />
             </View>
 
-            <UIText variant="eyebrow" color="tertiary" align="right">
+            {/* Progress label */}
+            <UIText style={[lc.sub, { textAlign: TEXT_START }]}>
               {isMaxTier
                 ? t("profile.tier.platinum")
-                : `${points.toLocaleString()} / ${nextTh.toLocaleString()} ${t("profile.pointsUnit")}`
-              }
+                : `${points.toLocaleString()} / ${nextTh.toLocaleString()} ${t("profile.pointsUnit")}`}
             </UIText>
           </View>
 
-          <View style={lc.badge}>
-            <UIText
-              variant="card-title"
-              weight="black"
-              align="center"
-              style={{ color: tier.color, letterSpacing: -0.4 }}>
-              {points.toLocaleString()}
-            </UIText>
-            <UIText variant="eyebrow" color="tertiary" align="center">
-              {t("profile.pointsUnit")}
-            </UIText>
-          </View>
-
-          <Ionicons name={FORWARD_CHEVRON} size={14} color={kit.color.inkFaint} />
         </Animated.View>
       </Pressable>
     </View>
@@ -277,7 +271,6 @@ export default function ProfileScreen() {
     };
   }, [orders, loyaltyBalanceQuery.data?.balance]);
 
-  // ── Stable navigation handlers ──────────────────────────────────────────────
   const goLoyalty       = useCallback(() => router.push("/loyalty"),              [router]);
   const goEditProfile   = useCallback(() => router.push("/edit-profile"),         [router]);
   const goSecurity      = useCallback(() => router.push("/change-password"),      [router]);
@@ -302,7 +295,6 @@ export default function ProfileScreen() {
     try { await signOut(); } finally { setSigningOut(false); }
   }, [signOut]);
 
-  // ── Render ───────────────────────────────────────────────────────────────────
   return (
     <View style={s.screen}>
       <ScrollView
@@ -325,67 +317,47 @@ export default function ProfileScreen() {
           <ProfileGuestHero insetsTop={insets.top} />
         )}
 
-        {/* ── Loyalty progress (auth only) ── */}
+        {/* ── Loyalty progress card ── */}
         {user && (
-          <LoyaltySummaryCard
-            points={loyaltyPoints}
-            tier={tier}
-            onPress={goLoyalty}
-          />
+          <LoyaltySummaryCard points={loyaltyPoints} tier={tier} onPress={goLoyalty} />
         )}
 
         {/* ── Settings ── */}
         <View style={s.section}>
-          <SectionLabel
-            icon="settings-outline"
-            label={t("profile.settingsSection")}
-            accent={kit.color.accentDeep}
-          />
+          <SectionLabel icon="settings-outline" label={t("profile.settingsSection")} accent={kit.color.accentDeep} />
           <View style={s.card}>
             {user && (
               <MenuRow
-                icon="create-outline"
-                color={kit.color.accent}
-                label={t("profile.menuEditProfile")}
-                subtitle={t("profile.menuEditProfileSubtitle")}
+                icon="create-outline" color={kit.color.accent}
+                label={t("profile.menuEditProfile")} subtitle={t("profile.menuEditProfileSubtitle")}
                 onPress={goEditProfile}
               />
             )}
             <MenuRow
-              icon="language-outline"
-              color="#2563EB"
-              label={t("language.label")}
-              subtitle={language === "ar" ? t("language.en") : t("language.ar")}
+              icon="language-outline" color="#2563EB"
+              label={t("language.label")} subtitle={language === "ar" ? t("language.en") : t("language.ar")}
               onPress={toggleLanguage}
             />
             <MenuRow
-              icon="notifications-outline"
-              color={kit.color.warn}
-              label={t("profile.notifications")}
-              subtitle={t("profile.notificationsSubtitle")}
+              icon="notifications-outline" color={kit.color.warn}
+              label={t("profile.notifications")} subtitle={t("profile.notificationsSubtitle")}
               onPress={goNotifications}
             />
             {user && (
               <MenuRow
-                icon="lock-closed-outline"
-                color={kit.color.inkSoft}
-                label={t("profile.menuSecurity")}
-                subtitle={t("profile.menuSecuritySubtitle")}
+                icon="lock-closed-outline" color={kit.color.inkSoft}
+                label={t("profile.menuSecurity")} subtitle={t("profile.menuSecuritySubtitle")}
                 onPress={goSecurity}
               />
             )}
             <MenuRow
-              icon="location-outline"
-              color={kit.color.success}
-              label={t("profile.menuAddresses")}
-              subtitle={t("profile.menuAddressesSubtitle")}
+              icon="location-outline" color={kit.color.success}
+              label={t("profile.menuAddresses")} subtitle={t("profile.menuAddressesSubtitle")}
               onPress={goAddresses}
             />
             <MenuRow
-              icon="card-outline"
-              color="#7C3AED"
-              label={t("profile.menuPayment")}
-              subtitle={t("profile.menuPaymentSubtitle")}
+              icon="card-outline" color="#7C3AED"
+              label={t("profile.menuPayment")} subtitle={t("profile.menuPaymentSubtitle")}
               onPress={goPayment}
               last
             />
@@ -394,63 +366,33 @@ export default function ProfileScreen() {
 
         {/* ── Support ── */}
         <View style={s.section}>
-          <SectionLabel
-            icon="headset-outline"
-            label={t("profile.sectionSupport")}
-            accent={PROFILE.whatsappGreen}
-          />
+          <SectionLabel icon="headset-outline" label={t("profile.sectionSupport")} accent={PROFILE.whatsappGreen} />
           <View style={s.card}>
             <MenuRow
-              icon="logo-whatsapp"
-              color={PROFILE.whatsappGreen}
-              label={t("profile.whatsapp")}
-              subtitle={t("profile.whatsappSubtitle")}
+              icon="logo-whatsapp" color={PROFILE.whatsappGreen}
+              label={t("profile.whatsapp")} subtitle={t("profile.whatsappSubtitle")}
               onPress={callWhatsApp}
             />
             <MenuRow
-              icon="call-outline"
-              color={kit.color.accent}
-              label={t("profile.callUs")}
-              subtitle="01112343212"
+              icon="call-outline" color={kit.color.accent}
+              label={t("profile.callUs")} subtitle="01112343212"
               onPress={callPhone}
             />
             <MenuRow
-              icon="help-circle-outline"
-              color="#6366F1"
+              icon="help-circle-outline" color="#6366F1"
               label={t("profile.faq")}
-              onPress={goFaq}
-              last
+              onPress={goFaq} last
             />
           </View>
         </View>
 
         {/* ── About ── */}
         <View style={s.section}>
-          <SectionLabel
-            icon="information-circle-outline"
-            label={t("profile.sectionAbout")}
-            accent={kit.color.inkSoft}
-          />
+          <SectionLabel icon="information-circle-outline" label={t("profile.sectionAbout")} accent={kit.color.inkSoft} />
           <View style={s.card}>
-            <MenuRow
-              icon="business-outline"
-              color={kit.color.accent}
-              label={t("profile.aboutPharmacy")}
-              onPress={goAbout}
-            />
-            <MenuRow
-              icon="document-text-outline"
-              color={kit.color.inkSoft}
-              label={t("profile.privacy")}
-              onPress={goPrivacy}
-            />
-            <MenuRow
-              icon="shield-checkmark-outline"
-              color={kit.color.success}
-              label={t("profile.terms")}
-              onPress={goTerms}
-              last
-            />
+            <MenuRow icon="business-outline"         color={kit.color.accent}   label={t("profile.aboutPharmacy")} onPress={goAbout}   />
+            <MenuRow icon="document-text-outline"    color={kit.color.inkSoft}  label={t("profile.privacy")}       onPress={goPrivacy} />
+            <MenuRow icon="shield-checkmark-outline" color={kit.color.success}  label={t("profile.terms")}         onPress={goTerms}   last />
           </View>
         </View>
 
@@ -462,14 +404,11 @@ export default function ProfileScreen() {
               disabled={signingOut}
               accessibilityRole="button"
               accessibilityLabel={t("profile.logout")}
-              style={({ pressed }) => [s.dangerCard, pressed && s.dangerCardPressed]}>
-              <View style={s.dangerIcon}>
+              style={({ pressed }) => [s.dangerCard, { flexDirection: flexRow(IS_RTL) }, pressed && s.dangerCardPressed]}>
+              <View style={s.dangerIconWell}>
                 <Ionicons name="log-out-outline" size={20} color={kit.color.danger} />
               </View>
-              <UIText
-                variant="body-sm"
-                weight="black"
-                style={s.dangerLabel}>
+              <UIText style={[s.dangerLabel, { textAlign: TEXT_START }]}>
                 {signingOut ? t("common.loading") : t("profile.logout")}
               </UIText>
               <Ionicons name={FORWARD_CHEVRON} size={15} color="rgba(179,38,30,0.5)" />
@@ -479,16 +418,12 @@ export default function ProfileScreen() {
 
         {/* ── Footer ── */}
         <View style={s.footer}>
-          <View style={s.footerPill}>
+          <View style={[s.footerPill, { flexDirection: flexRow(IS_RTL) }]}>
             <Ionicons name="medkit" size={12} color={kit.color.accentDeep} />
-            <UIText variant="caption" weight="bold" style={s.footerBrandText}>
-              {t("profile.footerName")}
-            </UIText>
+            <UIText style={s.footerBrand}>{t("profile.footerName")}</UIText>
           </View>
-          <UIText variant="eyebrow" color="tertiary">United Pharmacies</UIText>
-          <UIText variant="eyebrow" color="disabled" style={s.footerVersion}>
-            {t("profile.version", { ver: "1.0.0" })}
-          </UIText>
+          <UIText style={s.footerName}>United Pharmacies</UIText>
+          <UIText style={s.footerVersion}>{t("profile.version", { ver: "1.0.0" })}</UIText>
         </View>
 
       </ScrollView>
@@ -497,129 +432,191 @@ export default function ProfileScreen() {
 }
 
 // ─── SectionLabel styles ──────────────────────────────────────────────────────
+
 const sl = StyleSheet.create({
   row: {
-    flexDirection:     flexRow(isRtl()),
     alignItems:        "center",
-    gap:               8,
+    gap:               10,
     paddingHorizontal: theme.layout.pagePaddingH,
-    marginBottom:      10,
+    marginBottom:      12,
   },
   badge: {
-    width:          28,
-    height:         28,
-    borderRadius:   10,
+    width:          32,
+    height:         32,
+    borderRadius:   11,
     alignItems:     "center",
     justifyContent: "center",
     borderWidth:    1,
   },
   label: {
-    letterSpacing: 0.4,
+    fontFamily:         theme.fonts.black,
+    fontSize:           13,
+    lineHeight:         18,
+    letterSpacing:      0.3,
+    includeFontPadding: false,
   },
 });
 
 // ─── MenuRow styles ───────────────────────────────────────────────────────────
+
 const mr = StyleSheet.create({
   row: {
-    flexDirection:     flexRow(isRtl()),
     alignItems:        "center",
     justifyContent:    "space-between",
-    paddingVertical:   14,
+    paddingVertical:   16,
     paddingHorizontal: 16,
     backgroundColor:   kit.color.surface,
-    gap:               12,
+    gap:               14,
   },
   sep: {
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: kit.color.line,
   },
-  icon: {
-    width:          40,
-    height:         40,
-    borderRadius:   13,
+  iconTile: {
+    width:          44,
+    height:         44,
+    borderRadius:   14,
     alignItems:     "center",
     justifyContent: "center",
     borderWidth:    1,
     flexShrink:     0,
   },
   textGroup: {
-    flex:              1,
-    paddingHorizontal: 12,
-    gap:               2,
+    flex: 1,
+    gap:  3,
   },
-  dangerLabel: { color: kit.color.danger },
+  label: {
+    fontFamily:         theme.fonts.bold,
+    fontSize:           14,
+    lineHeight:         20,
+    color:              kit.color.ink,
+    includeFontPadding: false,
+  },
+  sub: {
+    fontFamily:         theme.fonts.regular,
+    fontSize:           12,
+    lineHeight:         17,
+    color:              kit.color.inkFaint,
+    includeFontPadding: false,
+  },
   badgePill: {
-    minWidth:          22,
-    height:            22,
-    borderRadius:      11,
+    minWidth:          24,
+    height:            24,
+    borderRadius:      12,
     alignItems:        "center",
     justifyContent:    "center",
-    paddingHorizontal: 6,
+    paddingHorizontal: 7,
     backgroundColor:   kit.color.accentTint,
     borderWidth:       1,
     borderColor:       kit.color.line,
-    marginEnd:         8,
   },
   badgeDanger: {
     backgroundColor: kit.color.dangerTint,
     borderColor:     "rgba(179,38,30,0.3)",
   },
+  badgeText: {
+    fontFamily:         theme.fonts.bold,
+    fontSize:           10,
+    lineHeight:         14,
+    includeFontPadding: false,
+  },
 });
 
 // ─── LoyaltySummaryCard styles ────────────────────────────────────────────────
+
 const lc = StyleSheet.create({
   outer: {
     paddingHorizontal: theme.layout.pagePaddingH,
-    marginTop:         20,
+    marginTop:         22,
   },
   card: {
-    flexDirection:   flexRow(isRtl()),
-    alignItems:      "center",
-    gap:             14,
     backgroundColor: kit.color.surface,
-    borderRadius:    kit.radius.card,
-    padding:         16,
+    borderRadius:    kit.radius.xl,
     borderWidth:     1,
     borderColor:     kit.color.line,
-    ...kit.shadow.raised,
+    overflow:        "hidden",
+    ...kit.shadow.floating,
   },
-  tierIcon: {
-    width:          48,
-    height:         48,
-    borderRadius:   15,
+  stripe: {
+    height: 4,
+    width:  "100%",
+  },
+  content: {
+    padding: 18,
+    gap:     14,
+  },
+  mainRow: {
+    alignItems: "center",
+    gap:        14,
+  },
+  iconWell: {
+    width:          56,
+    height:         56,
+    borderRadius:   18,
+    borderWidth:    1,
     alignItems:     "center",
     justifyContent: "center",
-    borderWidth:    1,
     flexShrink:     0,
   },
-  body: {
+  tierBlock: {
     flex: 1,
-    gap:  5,
+    gap:  3,
   },
-  topRow: {
-    flexDirection:  flexRow(isRtl()),
-    alignItems:     "center",
-    justifyContent: "space-between",
+  loyaltyEyebrow: {
+    fontFamily:         theme.fonts.bold,
+    fontSize:           10,
+    lineHeight:         14,
+    color:              kit.color.inkFaint,
+    letterSpacing:      0.5,
+    includeFontPadding: false,
   },
-  tierName: { letterSpacing: -0.2 },
+  tierName: {
+    fontFamily:         theme.fonts.black,
+    fontSize:           18,
+    lineHeight:         24,
+    letterSpacing:      -0.3,
+    includeFontPadding: false,
+  },
+  pointsBlock: {
+    alignItems: IS_RTL ? "flex-start" : "flex-end",
+    gap:        1,
+    flexShrink: 0,
+  },
+  pointsNum: {
+    fontFamily:         theme.fonts.black,
+    fontSize:           26,
+    lineHeight:         32,
+    letterSpacing:      -1,
+    includeFontPadding: false,
+  },
+  pointsUnit: {
+    fontFamily:         theme.fonts.regular,
+    fontSize:           10,
+    lineHeight:         14,
+    color:              kit.color.inkFaint,
+    includeFontPadding: false,
+  },
   track: {
-    height:          5,
-    borderRadius:    3,
+    height:          7,
+    borderRadius:    4,
     backgroundColor: kit.color.well,
     overflow:        "hidden",
   },
   fill: {
-    height:       5,
-    borderRadius: 3,
+    height:       7,
+    borderRadius: 4,
   },
-  badge: {
-    alignItems: "center",
-    flexShrink: 0,
-    minWidth:   48,
+  sub: {
+    fontFamily:         theme.fonts.regular,
+    fontSize:           11,
+    lineHeight:         16,
+    color:              kit.color.inkFaint,
+    includeFontPadding: false,
   },
 });
 
 // ─── Screen styles ────────────────────────────────────────────────────────────
+
 const s = StyleSheet.create({
   screen: {
     flex:            1,
@@ -628,13 +625,13 @@ const s = StyleSheet.create({
   scroll: {},
 
   section: {
-    marginTop: kit.sp(6),
+    marginTop: kit.sp(7),
   },
 
   card: {
     marginHorizontal: theme.layout.pagePaddingH,
     backgroundColor:  kit.color.surface,
-    borderRadius:     kit.radius.card,
+    borderRadius:     kit.radius.lg,
     overflow:         "hidden",
     borderWidth:      1,
     borderColor:      kit.color.line,
@@ -646,22 +643,21 @@ const s = StyleSheet.create({
     marginTop:         kit.sp(8),
   },
   dangerCard: {
-    flexDirection:     flexRow(isRtl()),
     alignItems:        "center",
     gap:               14,
     backgroundColor:   kit.color.dangerTint,
-    borderRadius:      kit.radius.card,
-    paddingVertical:   15,
+    borderRadius:      kit.radius.lg,
+    paddingVertical:   16,
     paddingHorizontal: 16,
     borderWidth:       1,
-    borderColor:       "rgba(179,38,30,0.25)",
+    borderColor:       "rgba(179,38,30,0.22)",
     ...kit.shadow.raised,
   },
   dangerCardPressed: { opacity: 0.88 },
-  dangerIcon: {
-    width:           40,
-    height:          40,
-    borderRadius:    13,
+  dangerIconWell: {
+    width:           44,
+    height:          44,
+    borderRadius:    14,
     backgroundColor: "rgba(179,38,30,0.08)",
     borderWidth:     1,
     borderColor:     "rgba(179,38,30,0.2)",
@@ -670,8 +666,12 @@ const s = StyleSheet.create({
     flexShrink:      0,
   },
   dangerLabel: {
-    flex:  1,
-    color: kit.color.danger,
+    flex:               1,
+    fontFamily:         theme.fonts.bold,
+    fontSize:           14,
+    lineHeight:         20,
+    color:              kit.color.danger,
+    includeFontPadding: false,
   },
 
   footer: {
@@ -681,16 +681,35 @@ const s = StyleSheet.create({
     gap:           6,
   },
   footerPill: {
-    flexDirection:     flexRow(isRtl()),
     alignItems:        "center",
     gap:               6,
     backgroundColor:   kit.color.accentTint,
-    borderRadius:      999,
+    borderRadius:      kit.radius.pill,
     paddingHorizontal: 14,
-    paddingVertical:   6,
+    paddingVertical:   7,
     borderWidth:       1,
     borderColor:       kit.color.line,
   },
-  footerBrandText: { color: kit.color.accentDeep },
-  footerVersion:   { marginTop: kit.sp(1) },
+  footerBrand: {
+    fontFamily:         theme.fonts.bold,
+    fontSize:           12,
+    lineHeight:         17,
+    color:              kit.color.accentDeep,
+    includeFontPadding: false,
+  },
+  footerName: {
+    fontFamily:         theme.fonts.regular,
+    fontSize:           11,
+    lineHeight:         16,
+    color:              kit.color.inkFaint,
+    includeFontPadding: false,
+  },
+  footerVersion: {
+    fontFamily:         theme.fonts.regular,
+    fontSize:           10,
+    lineHeight:         14,
+    color:              kit.color.inkFaint,
+    includeFontPadding: false,
+    marginTop:          kit.sp(1),
+  },
 });

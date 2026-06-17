@@ -9,7 +9,6 @@ import React, { useCallback } from "react";
 import { View } from "react-native";
 import { FlashList, type ListRenderItem } from "@shopify/flash-list";
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import { useTranslation } from "react-i18next";
 import { Text } from "@/shared/ui";
 import { theme } from "@/shared/theme";
@@ -91,7 +90,7 @@ const CampaignCard = React.memo(function CampaignCard({
     : ["#1A5276", "#2471A3"];
 
   return (
-    <LinearGradient colors={gradColors} style={cs.card}>
+    <View style={[cs.card, { backgroundColor: gradColors[0] }]}>
       <View style={cs.multiplierRow}>
         <Text style={cs.multiplierNum}>×{campaign.multiplier.toFixed(1)}</Text>
         <Text style={cs.multiplierUnit}>{t("loyalty.pointsUnit")}</Text>
@@ -126,6 +125,6 @@ const CampaignCard = React.memo(function CampaignCard({
           </Text>
         </View>
       )}
-    </LinearGradient>
+    </View>
   );
 });

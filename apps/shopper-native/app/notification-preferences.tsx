@@ -1,18 +1,8 @@
-﻿/**
- * Notification Preferences screen — Profile → الإشعارات → ⚙
- *
- * Edit:
- *  - Channels (push / email / sms)
- *  - Categories (order updates, promotions, etc.)
- *
- * Mutations are optimistic via useNotificationPreferences.
- */
-
 import React, { useCallback } from "react";
 import { Platform, Pressable, ScrollView, StyleSheet, Switch, View } from "react-native";
 import { Text as UIText } from "@/shared/ui";
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
+import { kit } from "@/shared/kit";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
@@ -29,95 +19,83 @@ import { flexRow, isRtl, textAlignStart, BACK_CHEVRON } from "@/utils/layout";
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>["name"];
 
+const IS_RTL     = isRtl();
+const TEXT_START = textAlignStart(IS_RTL);
+
 const CHANNELS: Array<{
-  key: keyof NotificationChannelPrefs;
+  key:      keyof NotificationChannelPrefs;
   labelKey: string;
-  descKey: string;
-  icon: IoniconsName;
-  color: string;
-  bg: string;
+  descKey:  string;
+  icon:     IoniconsName;
+  color:    string;
+  bg:       string;
 }> = [
-  {
-    key:      "push",
-    labelKey: "notifications.channelPushLabel",
-    descKey:  "notifications.channelPushDesc",
-    icon:     "notifications-outline",
-    color:    theme.colors.brand[600],
-    bg:       theme.colors.brand[50],
-  },
-  {
-    key:      "email",
-    labelKey: "notifications.channelEmailLabel",
-    descKey:  "notifications.channelEmailDesc",
-    icon:     "mail-outline",
-    color:    theme.colors.purple[600],
-    bg:       theme.colors.purple[50],
-  },
-  {
-    key:      "sms",
-    labelKey: "notifications.channelSmsLabel",
-    descKey:  "notifications.channelSmsDesc",
-    icon:     "chatbubble-outline",
-    color:    theme.colors.amber[600],
-    bg:       theme.colors.amber[50],
-  },
+  { key: "push",  labelKey: "notifications.channelPushLabel",  descKey: "notifications.channelPushDesc",  icon: "notifications-outline", color: kit.color.accentDeep,   bg: kit.color.accentTint          },
+  { key: "email", labelKey: "notifications.channelEmailLabel", descKey: "notifications.channelEmailDesc", icon: "mail-outline",           color: "#7C3AED",               bg: "rgba(124,58,237,0.08)"       },
+  { key: "sms",   labelKey: "notifications.channelSmsLabel",   descKey: "notifications.channelSmsDesc",   icon: "chatbubble-outline",     color: kit.color.warn,          bg: kit.color.warnTint            },
 ];
 
 const CATEGORIES: Array<{
-  key: keyof NotificationCategoryPrefs;
+  key:      keyof NotificationCategoryPrefs;
   labelKey: string;
-  descKey: string;
-  icon: IoniconsName;
-  color: string;
+  descKey:  string;
+  icon:     IoniconsName;
+  color:    string;
 }> = [
-  {
-    key:      "order_updates",
-    labelKey: "notifications.catOrderLabel",
-    descKey:  "notifications.catOrderDesc",
-    icon:     "bag-handle-outline",
-    color:    theme.colors.brand[600],
-  },
-  {
-    key:      "promotions",
-    labelKey: "notifications.catPromoLabel",
-    descKey:  "notifications.catPromoDesc",
-    icon:     "pricetag-outline",
-    color:    theme.colors.amber[600],
-  },
-  {
-    key:      "security_alerts",
-    labelKey: "notifications.catSecurityLabel",
-    descKey:  "notifications.catSecurityDesc",
-    icon:     "shield-checkmark-outline",
-    color:    theme.colors.green[600],
-  },
-  {
-    key:      "health_reminders",
-    labelKey: "notifications.catHealthLabel",
-    descKey:  "notifications.catHealthDesc",
-    icon:     "heart-outline",
-    color:    theme.colors.rose[500],
-  },
-  {
-    key:      "new_arrivals",
-    labelKey: "notifications.catNewArrivalsLabel",
-    descKey:  "notifications.catNewArrivalsDesc",
-    icon:     "sparkles-outline",
-    color:    theme.colors.purple[600],
-  },
-  {
-    key:      "account_updates",
-    labelKey: "notifications.catAccountLabel",
-    descKey:  "notifications.catAccountDesc",
-    icon:     "person-outline",
-    color:    theme.colors.slate[600],
-  },
+  { key: "order_updates",    labelKey: "notifications.catOrderLabel",       descKey: "notifications.catOrderDesc",       icon: "bag-handle-outline",      color: kit.color.accentDeep },
+  { key: "promotions",       labelKey: "notifications.catPromoLabel",       descKey: "notifications.catPromoDesc",       icon: "pricetag-outline",        color: kit.color.warn       },
+  { key: "security_alerts",  labelKey: "notifications.catSecurityLabel",    descKey: "notifications.catSecurityDesc",    icon: "shield-checkmark-outline", color: kit.color.success    },
+  { key: "health_reminders", labelKey: "notifications.catHealthLabel",      descKey: "notifications.catHealthDesc",      icon: "heart-outline",           color: "#E53E3E"             },
+  { key: "new_arrivals",     labelKey: "notifications.catNewArrivalsLabel", descKey: "notifications.catNewArrivalsDesc", icon: "sparkles-outline",        color: "#7C3AED"             },
+  { key: "account_updates",  labelKey: "notifications.catAccountLabel",     descKey: "notifications.catAccountDesc",     icon: "person-outline",          color: kit.color.inkSoft    },
 ];
 
+// ─── Section header ───────────────────────────────────────────────────────────
+function SectionLabel({ icon, title, accent = kit.color.accentDeep }: { icon: IoniconsName; title: string; accent?: string }) {
+  return (
+    <View style={[s.sectionLabel, { flexDirection: flexRow(IS_RTL) }]}>
+      <View style={[s.sectionBadge, { backgroundColor: `${accent}14`, borderColor: `${accent}28` }]}>
+        <Ionicons name={icon} size={15} color={accent} />
+      </View>
+      <UIText style={[s.sectionTitle, { color: accent, textAlign: TEXT_START }]}>{title}</UIText>
+    </View>
+  );
+}
+
+// ─── Toggle row ───────────────────────────────────────────────────────────────
+function ToggleRow({
+  icon, color, bg, label, desc, value, onChange, disabled, last,
+}: {
+  icon: IoniconsName; color: string; bg: string;
+  label: string; desc: string;
+  value: boolean; onChange: (v: boolean) => void;
+  disabled: boolean; last?: boolean;
+}) {
+  return (
+    <View style={[s.row, { flexDirection: flexRow(IS_RTL) }, !last && s.rowBorder]}>
+      <View style={[s.rowIcon, { backgroundColor: bg, borderColor: `${color}28` }]}>
+        <Ionicons name={icon} size={17} color={color} />
+      </View>
+      <View style={s.rowText}>
+        <UIText style={[s.rowLabel, { textAlign: TEXT_START }]}>{label}</UIText>
+        <UIText style={[s.rowDesc, { textAlign: TEXT_START }]}>{desc}</UIText>
+      </View>
+      <Switch
+        value={value}
+        onValueChange={onChange}
+        disabled={disabled}
+        trackColor={{ false: kit.color.lineStrong, true: kit.color.accent }}
+        thumbColor={value ? kit.color.accentDeep : "#fff"}
+      />
+    </View>
+  );
+}
+
+// ─── Screen ───────────────────────────────────────────────────────────────────
 export default function NotificationPreferencesScreen() {
-  const { t } = useTranslation();
-  const router = useRouter();
-  const insets = useSafeAreaInsets();
+  const { t }    = useTranslation();
+  const router   = useRouter();
+  const insets   = useSafeAreaInsets();
   const { user } = useAuth();
   const { preferences, isLoading, update } = useNotificationPreferences(user?.id);
 
@@ -125,214 +103,257 @@ export default function NotificationPreferencesScreen() {
     if (Platform.OS !== "web") Haptics.selectionAsync().catch(() => {});
   }, []);
 
-  const toggleChannel = useCallback(
-    (key: keyof NotificationChannelPrefs, value: boolean) => {
-      haptic();
-      update({ channels: { ...preferences.channels, [key]: value } });
-    },
-    [haptic, preferences.channels, update],
-  );
+  const toggleChannel  = useCallback((key: keyof NotificationChannelPrefs, v: boolean) => {
+    haptic();
+    update({ channels:   { ...preferences.channels,   [key]: v } });
+  }, [haptic, preferences.channels, update]);
 
-  const toggleCategory = useCallback(
-    (key: keyof NotificationCategoryPrefs, value: boolean) => {
-      haptic();
-      update({ categories: { ...preferences.categories, [key]: value } });
-    },
-    [haptic, preferences.categories, update],
-  );
+  const toggleCategory = useCallback((key: keyof NotificationCategoryPrefs, v: boolean) => {
+    haptic();
+    update({ categories: { ...preferences.categories, [key]: v } });
+  }, [haptic, preferences.categories, update]);
 
   return (
-    <View style={styles.screen}>
-      {/* Header */}
-      <LinearGradient
-        colors={theme.gradients.heroPrimary as [string, string, string]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0.7, y: 1 }}
-        style={[styles.header, { paddingTop: insets.top + 10 }]}>
-        <View style={styles.headerRow}>
-          <Pressable
-            onPress={() => router.back()}
-            style={styles.backBtn}
-            accessibilityRole="button"
-            accessibilityLabel={t("common.back")}>
-            <Ionicons name={BACK_CHEVRON} size={18} color="rgba(255,255,255,0.8)" />
-          </Pressable>
-          <View style={{ flex: 1 }}>
-            <UIText style={styles.headerTitle}>{t("notifications.prefTitle")}</UIText>
-            <UIText style={styles.headerSub}>{t("notifications.prefSubtitle")}</UIText>
-          </View>
-          <View style={styles.shieldIcon}>
-            <Ionicons name="options-outline" size={18} color="rgba(255,255,255,0.7)" />
-          </View>
+    <View style={s.screen}>
+
+      {/* ── VIP Header ── */}
+      <Animated.View entering={FadeIn.duration(240)} style={[s.header, { paddingTop: insets.top + 10 }]}>
+        <Pressable style={s.backBtn} onPress={() => router.back()} hitSlop={8} accessibilityRole="button">
+          <Ionicons name={BACK_CHEVRON} size={18} color={kit.color.inkSoft} />
+        </Pressable>
+        <View style={s.iconTile}>
+          <Ionicons name="options-outline" size={22} color={kit.color.accentDeep} />
         </View>
-      </LinearGradient>
+        <View style={{ flex: 1 }}>
+          <UIText style={s.headerEyebrow}>{t("notifications.prefTitle")}</UIText>
+          <UIText style={s.headerTitle}>{t("notifications.prefSubtitle")}</UIText>
+        </View>
+      </Animated.View>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 30 }}>
+        contentContainerStyle={[s.content, { paddingBottom: insets.bottom + 32 }]}>
+
+        {/* Signed-out banner */}
         {!user && (
-          <Animated.View entering={FadeIn.duration(200)} style={styles.signedOutBanner}>
-            <Ionicons name="lock-closed-outline" size={14} color={theme.colors.amber[700]} />
-            <UIText style={styles.signedOutText}>
-              {t("notifications.signInToSave")}
-            </UIText>
+          <Animated.View entering={FadeIn.duration(200)} style={[s.warnBanner, { flexDirection: flexRow(IS_RTL) }]}>
+            <Ionicons name="lock-closed-outline" size={14} color={kit.color.warn} />
+            <UIText style={[s.warnText, { textAlign: TEXT_START }]}>{t("notifications.signInToSave")}</UIText>
           </Animated.View>
         )}
 
         {/* ── Channels ── */}
         <Animated.View entering={FadeInDown.duration(280)}>
-          <SectionHeader icon="megaphone-outline" title={t("notifications.channelsTitle")} />
-          <View style={styles.card}>
+          <SectionLabel icon="megaphone-outline" title={t("notifications.channelsTitle")} />
+          <View style={s.card}>
             {CHANNELS.map((ch, i) => (
-              <View key={ch.key} style={[styles.row, i < CHANNELS.length - 1 && styles.rowBorder]}>
-                <View style={[styles.rowIcon, { backgroundColor: ch.bg }]}>
-                  <Ionicons name={ch.icon} size={17} color={ch.color} />
-                </View>
-                <View style={styles.rowText}>
-                  <UIText style={styles.rowLabel}>{t(ch.labelKey)}</UIText>
-                  <UIText style={styles.rowDesc}>{t(ch.descKey)}</UIText>
-                </View>
-                <Switch
-                  value={preferences.channels[ch.key]}
-                  onValueChange={(v) => toggleChannel(ch.key, v)}
-                  disabled={isLoading}
-                  trackColor={{ false: theme.colors.slate[200], true: theme.colors.brand[400] }}
-                  thumbColor={preferences.channels[ch.key] ? theme.colors.brand[600] : "#fff"}
-                />
-              </View>
+              <ToggleRow
+                key={ch.key}
+                icon={ch.icon}
+                color={ch.color}
+                bg={ch.bg}
+                label={t(ch.labelKey)}
+                desc={t(ch.descKey)}
+                value={preferences.channels[ch.key]}
+                onChange={(v) => toggleChannel(ch.key, v)}
+                disabled={isLoading}
+                last={i === CHANNELS.length - 1}
+              />
             ))}
           </View>
         </Animated.View>
 
         {/* ── Categories ── */}
-        <Animated.View entering={FadeInDown.delay(80).duration(280)} style={{ marginTop: 18 }}>
-          <SectionHeader icon="grid-outline" title={t("notifications.categoriesTitle")} />
-          <View style={styles.card}>
+        <Animated.View entering={FadeInDown.delay(80).duration(280)} style={{ marginTop: 24 }}>
+          <SectionLabel icon="grid-outline" title={t("notifications.categoriesTitle")} accent={kit.color.inkSoft} />
+          <View style={s.card}>
             {CATEGORIES.map((cat, i) => (
-              <View key={cat.key} style={[styles.row, i < CATEGORIES.length - 1 && styles.rowBorder]}>
-                <View style={[styles.rowIcon, { backgroundColor: cat.color + "18" }]}>
-                  <Ionicons name={cat.icon} size={16} color={cat.color} />
-                </View>
-                <View style={styles.rowText}>
-                  <UIText style={styles.rowLabel}>{t(cat.labelKey)}</UIText>
-                  <UIText style={styles.rowDesc}>{t(cat.descKey)}</UIText>
-                </View>
-                <Switch
-                  value={preferences.categories[cat.key]}
-                  onValueChange={(v) => toggleCategory(cat.key, v)}
-                  disabled={isLoading}
-                  trackColor={{ false: theme.colors.slate[200], true: theme.colors.brand[400] }}
-                  thumbColor={preferences.categories[cat.key] ? theme.colors.brand[600] : "#fff"}
-                />
-              </View>
+              <ToggleRow
+                key={cat.key}
+                icon={cat.icon}
+                color={cat.color}
+                bg={`${cat.color}14`}
+                label={t(cat.labelKey)}
+                desc={t(cat.descKey)}
+                value={preferences.categories[cat.key]}
+                onChange={(v) => toggleCategory(cat.key, v)}
+                disabled={isLoading}
+                last={i === CATEGORIES.length - 1}
+              />
             ))}
           </View>
         </Animated.View>
 
-        <Animated.View entering={FadeInDown.delay(160).duration(280)} style={styles.footerNote}>
-          <Ionicons name="information-circle-outline" size={14} color={theme.colors.brand[600]} />
-          <UIText style={styles.footerText}>
-            {t("notifications.securityNote")}
-          </UIText>
+        {/* Footer note */}
+        <Animated.View entering={FadeInDown.delay(160).duration(280)} style={[s.footerNote, { flexDirection: flexRow(IS_RTL) }]}>
+          <Ionicons name="information-circle-outline" size={14} color={kit.color.accentDeep} />
+          <UIText style={[s.footerText, { textAlign: TEXT_START }]}>{t("notifications.securityNote")}</UIText>
         </Animated.View>
       </ScrollView>
     </View>
   );
 }
 
-function SectionHeader({ icon, title }: { icon: IoniconsName; title: string }) {
-  return (
-    <View style={styles.sectionHead}>
-      <View style={styles.sectionIcon}>
-        <Ionicons name={icon} size={13} color={theme.colors.brand[600]} />
-      </View>
-      <UIText style={styles.sectionTitle}>{title}</UIText>
-    </View>
-  );
-}
-
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: theme.colors.bg },
+// ─── Styles ───────────────────────────────────────────────────────────────────
+const s = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: kit.color.canvas },
 
   // Header
-  header: { paddingHorizontal: 20, paddingBottom: 16, overflow: "hidden" },
-  headerRow: { flexDirection: flexRow(isRtl()), alignItems: "center", gap: 12 },
+  header: {
+    flexDirection:     flexRow(IS_RTL),
+    alignItems:        "center",
+    gap:               14,
+    paddingHorizontal: 20,
+    paddingBottom:     16,
+    backgroundColor:   kit.color.surface,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: kit.color.line,
+    ...kit.shadow.raised,
+  },
   backBtn: {
-    width: 38, height: 38, borderRadius: 12,
-    backgroundColor: "rgba(255,255,255,0.10)",
-    alignItems: "center", justifyContent: "center",
-    borderWidth: 1, borderColor: "rgba(255,255,255,0.12)",
-  },
-  headerTitle: { fontSize: 18, fontFamily: theme.fonts.black, color: "#fff", textAlign: textAlignStart(isRtl()) },
-  headerSub: { fontSize: 11, fontFamily: theme.fonts.semibold, color: "rgba(255,255,255,0.50)", textAlign: textAlignStart(isRtl()) },
-  shieldIcon: {
-    width: 38, height: 38, borderRadius: 12,
-    backgroundColor: "rgba(255,255,255,0.08)",
-    alignItems: "center", justifyContent: "center",
-    borderWidth: 1, borderColor: "rgba(255,255,255,0.10)",
-  },
-
-  // Signed-out banner
-  signedOutBanner: {
-    flexDirection: flexRow(isRtl()), alignItems: "center", gap: 8,
-    backgroundColor: theme.colors.amber[50],
-    borderRadius: 12, padding: 12, marginBottom: 16,
-    borderWidth: 1, borderColor: theme.colors.amber[100],
-  },
-  signedOutText: {
-    flex: 1, fontSize: 11, fontFamily: theme.fonts.bold,
-    color: theme.colors.amber[800], textAlign: textAlignStart(isRtl()),
-  },
-
-  // Sections
-  sectionHead: { flexDirection: flexRow(isRtl()), alignItems: "center", gap: 8, marginBottom: 10 },
-  sectionIcon: {
-    width: 26, height: 26, borderRadius: 8,
-    backgroundColor: theme.colors.brand[50],
-    alignItems: "center", justifyContent: "center",
-  },
-  sectionTitle: { fontSize: 14, fontFamily: theme.fonts.black, color: theme.colors.text.primary },
-
-  // Card — white surface, soft shadow, no heavy border
-  card: {
-    backgroundColor: theme.colors.surface,
-    borderRadius:    18,
-    overflow:        "hidden",
-    ...theme.shadow.sm,
-  },
-  row: {
-    flexDirection: flexRow(isRtl()),
+    width:           40,
+    height:          40,
+    borderRadius:    20,
+    backgroundColor: kit.color.surface,
     alignItems:      "center",
-    gap:             12,
+    justifyContent:  "center",
+    borderWidth:     1,
+    borderColor:     kit.color.line,
+    ...kit.shadow.raised,
+    flexShrink:      0,
+  },
+  iconTile: {
+    width:           52,
+    height:          52,
+    borderRadius:    16,
+    backgroundColor: kit.color.accentTint,
+    borderWidth:     1,
+    borderColor:     kit.color.line,
+    alignItems:      "center",
+    justifyContent:  "center",
+    flexShrink:      0,
+  },
+  headerEyebrow: {
+    fontFamily:         theme.fonts.black,
+    fontSize:           18,
+    letterSpacing:      -0.4,
+    color:              kit.color.ink,
+    includeFontPadding: false,
+    textAlign:          TEXT_START,
+  },
+  headerTitle: {
+    fontFamily:         theme.fonts.semibold,
+    fontSize:           11,
+    color:              kit.color.inkFaint,
+    includeFontPadding: false,
+    textAlign:          TEXT_START,
+  },
+
+  // Content
+  content: { padding: 20, gap: 0 },
+
+  // Warn banner
+  warnBanner: {
+    alignItems:        "center",
+    gap:               8,
+    backgroundColor:   kit.color.warnTint,
+    borderRadius:      14,
+    padding:           12,
+    marginBottom:      20,
+    borderWidth:       1,
+    borderColor:       kit.color.warn + "40",
+  },
+  warnText: {
+    flex:               1,
+    fontSize:           11,
+    fontFamily:         theme.fonts.bold,
+    color:              kit.color.warn,
+    includeFontPadding: false,
+  },
+
+  // Section label
+  sectionLabel: {
+    alignItems:    "center",
+    gap:           10,
+    marginBottom:  12,
+  },
+  sectionBadge: {
+    width:          32,
+    height:         32,
+    borderRadius:   11,
+    alignItems:     "center",
+    justifyContent: "center",
+    borderWidth:    1,
+  },
+  sectionTitle: {
+    fontFamily:         theme.fonts.black,
+    fontSize:           13,
+    letterSpacing:      0.3,
+    includeFontPadding: false,
+  },
+
+  // Card
+  card: {
+    backgroundColor: kit.color.surface,
+    borderRadius:    kit.radius.lg,
+    overflow:        "hidden",
+    borderWidth:     1,
+    borderColor:     kit.color.line,
+    ...kit.shadow.raised,
+  },
+
+  // Row
+  row: {
+    alignItems:        "center",
+    gap:               14,
     paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingVertical:   16,
   },
   rowBorder: {
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border.hairline,
+    borderBottomColor: kit.color.line,
   },
-  // Rounded-square icon tile — matches Profile MenuRow and app design language
   rowIcon: {
-    width:          38,
-    height:         38,
-    borderRadius:   12,
+    width:          44,
+    height:         44,
+    borderRadius:   14,
     alignItems:     "center",
     justifyContent: "center",
     flexShrink:     0,
+    borderWidth:    1,
   },
-  rowText: { flex: 1, gap: 2 },
-  rowLabel: { fontSize: 13, fontFamily: theme.fonts.bold, color: theme.colors.text.primary, textAlign: textAlignStart(isRtl()) },
-  rowDesc: { fontSize: 10, fontFamily: theme.fonts.regular, color: theme.colors.slate[400], textAlign: textAlignStart(isRtl()) },
+  rowText: { flex: 1, gap: 3 },
+  rowLabel: {
+    fontSize:           13,
+    fontFamily:         theme.fonts.bold,
+    color:              kit.color.ink,
+    includeFontPadding: false,
+  },
+  rowDesc: {
+    fontSize:           11,
+    fontFamily:         theme.fonts.regular,
+    color:              kit.color.inkFaint,
+    lineHeight:         16,
+    includeFontPadding: false,
+  },
 
   // Footer
   footerNote: {
-    flexDirection: flexRow(isRtl()), alignItems: "flex-start", gap: 8,
-    backgroundColor: theme.colors.brand[50],
-    borderRadius: 12, padding: 12, marginTop: 18,
-    borderWidth: 1, borderColor: theme.colors.brand[100],
+    alignItems:        "flex-start",
+    gap:               10,
+    backgroundColor:   kit.color.accentTint,
+    borderRadius:      14,
+    padding:           14,
+    marginTop:         24,
+    borderWidth:       1,
+    borderColor:       kit.color.line,
   },
   footerText: {
-    flex: 1, fontSize: 11, fontFamily: theme.fonts.regular,
-    color: theme.colors.brand[700], textAlign: textAlignStart(isRtl()), lineHeight: 18,
+    flex:               1,
+    fontSize:           11,
+    fontFamily:         theme.fonts.regular,
+    color:              kit.color.accentDeep,
+    lineHeight:         18,
+    includeFontPadding: false,
   },
 });

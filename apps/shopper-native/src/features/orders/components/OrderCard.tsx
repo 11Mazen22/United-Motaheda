@@ -17,7 +17,6 @@ import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import Animated, {
   FadeIn,
-  FadeInDown,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
@@ -180,8 +179,8 @@ export function SkeletonCard(): React.ReactElement {
 // ─── OrderCard ────────────────────────────────────────────────────────────────
 
 export const OrderCard = memo(function OrderCard({
-  order, index, onPress,
-}: { order: Order; index: number; onPress: (id: string) => void }): React.ReactElement {
+  order, onPress,
+}: { order: Order; onPress: (id: string) => void }): React.ReactElement {
   const { t }        = useTranslation();
   const { language } = useAppLanguage();
   const meta         = STATUS_META[order.status] ?? STATUS_META.pending;
@@ -204,14 +203,12 @@ export const OrderCard = memo(function OrderCard({
   }, [scale]);
 
   return (
-    <Animated.View
-      style={cardAnim}
-      entering={FadeInDown.duration(340).delay(index * 55).springify().damping(22)}>
+    <Animated.View style={cardAnim}>
       <Pressable
         onPress={handlePress}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
-        style={listS.card}>
+        style={[listS.card, { borderStartWidth: 3, borderStartColor: meta.dot }]}>
 
         {/* ── TOP: Order reference + date + status badge ─── */}
         <View style={oc.headerRow}>

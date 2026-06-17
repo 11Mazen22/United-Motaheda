@@ -22,11 +22,12 @@ const RecRowSchema = SearchProductRowSchema
     price: true, stock: true,
     category_name: true, category_name_en: true,
     image_url: true,
+    is_new: true, is_bestseller: true, is_sale: true,
   });
 type RecRow = z.infer<typeof RecRowSchema>;
 
 function toNative(r: RecRow): NativeProduct {
-  return normalizeSearchRow({ ...r, rank: null, total_count: 0 });
+  return normalizeSearchRow({ ...r, rank: null, total_count: 0 } as any);
 }
 
 export async function fetchRelatedProducts(productId: string, limit = 12, signal?: AbortSignal): Promise<NativeProduct[]> {

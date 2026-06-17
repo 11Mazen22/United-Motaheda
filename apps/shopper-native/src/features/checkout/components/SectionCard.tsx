@@ -1,12 +1,14 @@
 import React from "react";
 import { View, Pressable } from "react-native";
-import Animated, { FadeInDown } from "react-native-reanimated";
+import Animated, { FadeIn } from "react-native-reanimated";
 import { Ionicons } from "@expo/vector-icons";
 import { Text as UIText } from "@/shared/ui";
 import { kit } from "@/shared/kit";
 import { sectionStyles as s } from "./checkout.styles";
-import { FORWARD_CHEVRON } from "@/utils/layout";
+import { FORWARD_CHEVRON, textAlignStart, isRtl } from "@/utils/layout";
 import type { IoniconsName } from "../constants";
+
+const TEXT_START = textAlignStart(isRtl());
 
 interface SectionCardProps {
   title:    string;
@@ -19,27 +21,27 @@ interface SectionCardProps {
 export const SectionCard = React.memo(function SectionCard({
   title,
   icon,
-  delay,
+  delay: _delay,
   action,
   children,
 }: SectionCardProps) {
   return (
-    <Animated.View entering={FadeInDown.delay(delay).duration(360)} style={s.card}>
+    <Animated.View entering={FadeIn.duration(260)} style={s.card}>
       <View style={s.head}>
         <View style={s.titleWrap}>
           <View style={s.icon}>
-            <Ionicons name={icon} size={14} color={kit.color.accentDeep} />
+            <Ionicons name={icon} size={15} color={kit.color.accentDeep} />
           </View>
-          <UIText variant="card-title" align="right">
+          <UIText variant="card-title" align={TEXT_START}>
             {title}
           </UIText>
         </View>
         {action && (
           <Pressable onPress={action.onPress} hitSlop={6} style={s.actionWrap}>
-            <UIText variant="caption" color="brand" weight="bold">
+            <UIText variant="eyebrow" weight="bold" style={{ color: kit.color.accentDeep }}>
               {action.label}
             </UIText>
-            <Ionicons name={FORWARD_CHEVRON} size={12} color={kit.color.accentDeep} />
+            <Ionicons name={FORWARD_CHEVRON} size={11} color={kit.color.accentDeep} />
           </Pressable>
         )}
       </View>

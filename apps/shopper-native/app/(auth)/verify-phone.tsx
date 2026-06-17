@@ -1,20 +1,7 @@
-﻿/**
+/**
  * /(auth)/verify-phone — full-screen phone-OTP step after email confirmation.
  *
- * When email-confirmation is enabled in Supabase, signUp doesn't return a
- * session, so we can't send the phone OTP at that moment (updateUser needs
- * a session). After the user taps the email link, /auth-callback exchanges
- * the code, and if the new user's metadata contains a `phone` that isn't yet
- * `phone_confirmed_at`, it routes them here. This screen:
- *
- *   1. Sends the OTP to that phone via `sendPhoneOtp`.
- *   2. Mounts PhoneVerifyModal in its already-open state.
- *   3. On verified → /(tabs). On cancel → /(tabs) too (the user can verify
- *      later from checkout or profile).
- *
- * Visual recipe: clinical "in-flight" surface — icon tile + heading +
- * subdued copy + spinner. No noise, no excessive motion. Reads as a
- * carefully-handled secure step, not a placeholder.
+ * Logic unchanged. Migrated from theme.* to kit.* tokens (Phase 2).
  */
 
 import React, { useEffect, useState } from "react";
@@ -25,9 +12,10 @@ import Animated, { FadeIn, FadeInUp } from "react-native-reanimated";
 import { useTranslation } from "react-i18next";
 import { PhoneVerifyModal, sendPhoneOtp } from "@/features/auth";
 import { Text } from "@/shared/ui";
-import { theme } from "@/shared/theme";
-import { authStyles } from "@/features/auth/styles/auth.styles";
-import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
+import { kit } from "@/shared/kit";
+import { flexRow, isRtl } from "@/utils/layout";
+
+const IS_RTL = isRtl();
 
 export default function VerifyPhoneScreen() {
   const { t } = useTranslation();
@@ -62,43 +50,40 @@ export default function VerifyPhoneScreen() {
   if (stage === "sending" || stage === "error") {
     const isError = stage === "error";
     return (
-      <View style={authStyles.screen}>
-        <Animated.View
-          entering={FadeIn.duration(360)}
-          style={styles.centerStack}>
+      <View style={s.screen}>
+        <Animated.View entering={FadeIn.duration(360)} style={s.centerStack}>
+
+          {/* Layered ring icon */}
           <Animated.View
             entering={FadeInUp.duration(420).delay(80).springify().damping(18)}
-            style={[
-              styles.iconTile,
-              isError && { backgroundColor: theme.colors.error.bg, borderColor: theme.colors.error.light },
-            ]}>
-            <Ionicons
-              name={isError ? "alert-circle-outline" : "chatbubble-ellipses-outline"}
-              size={30}
-              color={isError ? theme.colors.error.base : theme.colors.brand.base}
-            />
+            style={s.outerRing}>
+            <View style={[s.innerTile, isError && s.innerTileError]}>
+              <Ionicons
+                name={isError ? "alert-circle-outline" : "chatbubble-ellipses-outline"}
+                size={30}
+                color={isError ? "#E53E3E" : kit.color.accentDeep}
+              />
+            </View>
           </Animated.View>
 
-          <Animated.View
-            entering={FadeInUp.duration(420).delay(160)}
-            style={styles.textStack}>
-            <Text variant="sheet-title" align="center" style={styles.title}>
+          <Animated.View entering={FadeInUp.duration(420).delay(160)} style={s.textStack}>
+            <Text variant="sheet-title" align="center" style={s.title}>
               {isError ? t("verifyPhone.errorTitle") : t("verifyPhone.sendingTitle")}
             </Text>
-            <Text variant="body" color="secondary" align="center" style={styles.subtitle}>
+            <Text variant="body" color="secondary" align="center" style={s.subtitle}>
               {isError ? errorMsg : t("verifyPhone.sendingSubtitle")}
             </Text>
           </Animated.View>
 
           {!isError && (
             <Animated.View entering={FadeIn.duration(300).delay(280)} style={{ marginTop: 28 }}>
-              <ActivityIndicator size="large" color={theme.colors.brand.base} />
+              <ActivityIndicator size="large" color={kit.color.accent} />
             </Animated.View>
           )}
 
-          {/* Trust footnote — quiet, but reinforces "secure" framing */}
-          <View style={styles.trustFootnote}>
-            <Ionicons name="shield-checkmark" size={12} color={theme.colors.text.tertiary} />
+          {/* Trust footnote */}
+          <View style={[s.trustFootnote, { flexDirection: flexRow(IS_RTL) }]}>
+            <Ionicons name="shield-checkmark" size={12} color={kit.color.inkFaint} />
             <Text variant="eyebrow" color="tertiary">
               {t("verifyPhone.trustNote")}
             </Text>
@@ -109,7 +94,7 @@ export default function VerifyPhoneScreen() {
   }
 
   return (
-    <View style={authStyles.screen}>
+    <View style={s.screen}>
       <PhoneVerifyModal
         visible
         initialPhone={phoneStr}
@@ -120,44 +105,59 @@ export default function VerifyPhoneScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const s = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: kit.color.canvas },
+
   centerStack: {
     flex:              1,
     alignItems:        "center",
     justifyContent:    "center",
-    paddingHorizontal: theme.spacing['3xl'],  // 32
+    paddingHorizontal: 32,
   },
-  iconTile: {
-    width:           76,
-    height:          76,
-    borderRadius:    theme.radius["2xl"],
-    backgroundColor: theme.colors.brand.lighter,
+
+  // Layered ring icon
+  outerRing: {
+    width:           100,
+    height:          100,
+    borderRadius:    50,
+    backgroundColor: kit.color.accentTint,
+    borderWidth:     1,
+    borderColor:     kit.color.line,
     alignItems:      "center",
     justifyContent:  "center",
-    marginBottom:    24,
-    borderWidth:     1,
-    borderColor:     theme.colors.brand.light,
-    ...theme.shadow.brandGlow,
+    marginBottom:    28,
   },
+  innerTile: {
+    width:           68,
+    height:          68,
+    borderRadius:    22,
+    backgroundColor: kit.color.surface,
+    borderWidth:     1,
+    borderColor:     kit.color.line,
+    alignItems:      "center",
+    justifyContent:  "center",
+    ...kit.shadow.brandGlow,
+  },
+  innerTileError: {
+    backgroundColor: "rgba(229,62,62,0.06)",
+    borderColor:     "rgba(229,62,62,0.20)",
+  },
+
   textStack: {
     alignItems: "center",
     gap:        8,
     maxWidth:   340,
   },
-  title: {
-    letterSpacing: -0.4,
-  },
-  subtitle: {
-    lineHeight: 22,
-  },
+  title:    { letterSpacing: -0.4 },
+  subtitle: { lineHeight: 22 },
+
   trustFootnote: {
-    position:      "absolute",
-    bottom:        56,
-    left:          0,
-    right:         0,
-    flexDirection: flexRow(isRtl()),
-    alignItems:    "center",
-    justifyContent:"center",
-    gap:           6,
+    position:       "absolute",
+    bottom:         56,
+    left:           0,
+    right:          0,
+    alignItems:     "center",
+    justifyContent: "center",
+    gap:            6,
   },
 });

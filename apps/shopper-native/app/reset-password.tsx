@@ -1,4 +1,4 @@
-﻿/**
+/**
  * /reset-password — handles the PKCE recovery link from Supabase.
  *
  * Flow:
@@ -13,6 +13,8 @@
  *   - No code / expired code → show "link expired" panel + "request again" CTA.
  *   - Weak password / mismatch → inline validation.
  *   - Network error → surface Arabic error message.
+ *
+ * VIP Phase 2: LinearGradient hero → VIP light surface header (Phase 2).
  */
 
 import React, { useEffect, useRef, useState } from "react";
@@ -28,7 +30,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { LinearGradient } from "expo-linear-gradient";
+import { kit } from "@/shared/kit";
 import Animated, { FadeIn, FadeInDown, FadeInUp } from "react-native-reanimated";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/lib/supabase";
@@ -36,14 +38,30 @@ import { updatePassword, getAuthError } from "@/features/auth";
 import { track } from "@/lib/analytics";
 import { captureError } from "@/lib/crashReporter";
 import { Input } from "@/components/ui/Input";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@/shared/kit";
 import { Text } from "@/shared/ui";
 import { theme } from "@/shared/theme";
-import { flexRow, isRtl } from "@/utils/layout";
+import { flexRow, isRtl, textAlignStart, BACK_CHEVRON } from "@/utils/layout";
+
+const IS_RTL     = isRtl();
+const TEXT_START = textAlignStart(IS_RTL);
 
 type Phase = "exchanging" | "form" | "success" | "expired";
-
 const MIN_PASSWORD_LENGTH = 8;
+
+// ─── Password strength ────────────────────────────────────────────────────────
+function getPasswordStrength(pw: string): { score: number; labelKey: string; color: string } {
+  let score = 0;
+  if (pw.length >= 8)  score += 1;
+  if (pw.length >= 12) score += 1;
+  if (/[A-Z]/.test(pw) && /[a-z]/.test(pw)) score += 1;
+  if (/\d/.test(pw) || /[^A-Za-z0-9]/.test(pw)) score += 1;
+
+  if (score <= 1) return { score: 1, labelKey: "resetPassword.strengthWeak",   color: kit.color.danger  };
+  if (score === 2) return { score: 2, labelKey: "resetPassword.strengthFair",   color: kit.color.warn    };
+  if (score === 3) return { score: 3, labelKey: "resetPassword.strengthGood",   color: kit.color.accent  };
+  return              { score: 4, labelKey: "resetPassword.strengthStrong",  color: kit.color.success };
+}
 
 export default function ResetPasswordScreen() {
   const { t, i18n } = useTranslation();
@@ -102,10 +120,8 @@ export default function ResetPasswordScreen() {
     // that case getSession() catches it first (see Strategy C below).
     if (!startedRef.current) {
       startedRef.current = true;
-
       const rawCode = Array.isArray(params.code) ? params.code[0] : params.code;
       const code    = typeof rawCode === "string" ? rawCode.trim() : "";
-
       if (code) {
         supabase.auth
           .exchangeCodeForSession(code)
@@ -126,7 +142,7 @@ export default function ResetPasswordScreen() {
     // detectSessionInUrl is false on this client — Supabase never auto-processes
     // the URL, so there is no race to catch here. Do NOT call getSession() and
     // treat any existing session as a recovery; that would be a security hole
-    // (any previously-signed-in user could open the password form).;
+    // (any previously-signed-in user could open the password form).
 
     return () => {
       cancelled = true;
@@ -135,26 +151,17 @@ export default function ResetPasswordScreen() {
     };
   }, []); // intentionally runs once — params.code is read directly inside
 
-  // ── Validate locally before hitting the server ─────────────────────────────
-
   const validate = (): string | null => {
-    if (password.length < MIN_PASSWORD_LENGTH)
-      return t("resetPassword.minLengthError", { min: MIN_PASSWORD_LENGTH });
-    if (!/[A-Za-z]/.test(password))
-      return t("resetPassword.noLetterError");
-    if (password !== confirm)
-      return t("resetPassword.passwordsNoMatch");
+    if (password.length < MIN_PASSWORD_LENGTH) return t("resetPassword.minLengthError", { min: MIN_PASSWORD_LENGTH });
+    if (!/[A-Za-z]/.test(password)) return t("resetPassword.noLetterError");
+    if (password !== confirm)        return t("resetPassword.passwordsNoMatch");
     return null;
   };
 
   const handleSubmit = async () => {
     setError(null);
     const validationError = validate();
-    if (validationError) {
-      setError(validationError);
-      return;
-    }
-
+    if (validationError) { setError(validationError); return; }
     setLoading(true);
     track("reset_password_submitted");
     try {
@@ -170,112 +177,90 @@ export default function ResetPasswordScreen() {
     }
   };
 
-  // ── Password strength indicator ────────────────────────────────────────────
-
   const strength = getPasswordStrength(password);
 
-  // ── Render helpers ─────────────────────────────────────────────────────────
-
-  const heroTitle = (() => {
-    if (phase === "success") return t("resetPassword.titleSuccess");
-    if (phase === "expired") return t("resetPassword.titleExpired");
-    return t("resetPassword.titleDefault");
-  })();
-
-  const heroSubtitle = (() => {
-    if (phase === "success") return t("resetPassword.subtitleSuccess");
-    if (phase === "expired") return t("resetPassword.subtitleExpired");
-    if (phase === "exchanging") return t("resetPassword.subtitleVerifying");
-    return t("resetPassword.subtitleDefault");
-  })();
+  const phaseIcon = phase === "success" ? "checkmark-circle-outline"
+                  : phase === "expired" ? "alert-circle-outline"
+                  : "lock-open-outline";
+  const phaseIconColor = phase === "success" ? kit.color.success
+                       : phase === "expired"  ? kit.color.danger
+                       : kit.color.accentDeep;
+  const phaseIconBg   = phase === "success" ? kit.color.successTint
+                       : phase === "expired"  ? kit.color.dangerTint
+                       : kit.color.accentTint;
 
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-      <ScrollView
-        style={styles.screen}
-        contentContainerStyle={{ flexGrow: 1 }}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}>
+      <View style={[s.screen, { paddingTop: insets.top }]}>
 
-        {/* ── Hero ───────────────────────────────────────────────────────── */}
-        <LinearGradient
-          colors={theme.gradients.heroPrimary as [string, string, string]}
-          style={[styles.hero, { paddingTop: insets.top + 20 }]}>
-
-          <Animated.View
-            entering={FadeInDown.duration(420).delay(60).springify().damping(18)}
-            style={styles.iconWrap}>
-            <View style={[
-              styles.iconTile,
-              phase === "success" && styles.iconTileSuccess,
-              phase === "expired" && styles.iconTileError,
-            ]}>
-              <Ionicons
-                name={phase === "success" ? "checkmark-circle-outline" : phase === "expired" ? "alert-circle-outline" : "lock-open-outline"}
-                size={40}
-                color={phase === "success" ? theme.colors.brand.base : phase === "expired" ? theme.colors.error.base : theme.colors.brand.base}
-              />
-            </View>
-          </Animated.View>
-
-          <Animated.View entering={FadeInDown.duration(420).delay(140)} style={styles.heroTextWrap}>
-            <Text variant="screen-title" color="inverse" align="center" style={styles.heroTitle}>
-              {heroTitle}
+        {/* ── VIP Header ── */}
+        <Animated.View entering={FadeIn.duration(240)} style={s.header}>
+          <Pressable onPress={() => router.back()} style={s.backBtn} hitSlop={10} accessibilityRole="button">
+            <Ionicons name={BACK_CHEVRON} size={18} color={kit.color.inkSoft} />
+          </Pressable>
+          <View style={[s.iconTile, { backgroundColor: phaseIconBg }]}>
+            <Ionicons name={phaseIcon} size={22} color={phaseIconColor} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text variant="card-title" align={TEXT_START} style={{ color: kit.color.ink }}>
+              {phase === "success" ? t("resetPassword.titleSuccess")
+               : phase === "expired" ? t("resetPassword.titleExpired")
+               : t("resetPassword.titleDefault")}
             </Text>
-            <Text variant="body" color="inverse-muted" align="center" style={{ marginTop: 6 }}>
-              {heroSubtitle}
+            <Text variant="eyebrow" color="tertiary" align={TEXT_START}>
+              {phase === "success" ? t("resetPassword.subtitleSuccess")
+               : phase === "expired" ? t("resetPassword.subtitleExpired")
+               : phase === "exchanging" ? t("resetPassword.subtitleVerifying")
+               : t("resetPassword.subtitleDefault")}
             </Text>
-          </Animated.View>
-        </LinearGradient>
+          </View>
+        </Animated.View>
 
-        {/* ── Content card ────────────────────────────────────────────────── */}
-        <Animated.View entering={FadeInUp.duration(460).delay(180)} style={styles.card}>
+        <ScrollView
+          contentContainerStyle={[s.content, { paddingBottom: insets.bottom + 40 }]}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}>
 
-          {/* Exchanging — spinner while we call exchangeCodeForSession */}
+          {/* Exchanging */}
           {phase === "exchanging" && (
-            <Animated.View entering={FadeIn.duration(300)} style={styles.centered}>
-              <ActivityIndicator size="large" color={theme.colors.brand.base} />
-              <Text variant="body" color="secondary" align="center" style={{ marginTop: 16 }}>
+            <Animated.View entering={FadeIn.duration(300)} style={s.centered}>
+              <View style={s.spinnerRing}>
+                <ActivityIndicator size="large" color={kit.color.accent} />
+              </View>
+              <Text variant="body" color="secondary" align="center" style={{ marginTop: 20 }}>
                 {t("resetPassword.verifyingBody")}
               </Text>
             </Animated.View>
           )}
 
-          {/* Expired / invalid link */}
+          {/* Expired */}
           {phase === "expired" && (
-            <Animated.View entering={FadeInUp.duration(380)} style={styles.stateContent}>
-              <View style={styles.expiredIcon}>
-                <Ionicons name="time-outline" size={36} color={theme.colors.error.base} />
+            <Animated.View entering={FadeInUp.duration(380)} style={s.stateBlock}>
+              <View style={s.stateOuter}>
+                <View style={[s.stateInner, { backgroundColor: kit.color.dangerTint, borderColor: `${kit.color.danger}25` }]}>
+                  <Ionicons name="time-outline" size={34} color={kit.color.danger} />
+                </View>
               </View>
               <Text variant="sheet-title" align="center">{t("resetPassword.expiredTitle")}</Text>
-              <Text variant="body" color="secondary" align="center" style={styles.stateBody}>
+              <Text variant="body" color="secondary" align="center" style={s.stateBody}>
                 {t("resetPassword.expiredBody")}
               </Text>
-              <Button
-                variant="primary"
-                fullWidth
-                gradient
-                onPress={() => router.replace("/(auth)/forgot-password")}>
-                {t("resetPassword.requestNew")}
-              </Button>
-              <Button
-                variant="ghost"
-                fullWidth
-                onPress={() => router.replace("/(auth)/login")}>
-                {t("resetPassword.backToLogin")}
-              </Button>
+              <Button variant="primary" full onPress={() => router.replace("/(auth)/forgot-password")} label={t("resetPassword.requestNew")} />
+              <Button variant="ghost"   full onPress={() => router.replace("/(auth)/login")}           label={t("resetPassword.backToLogin")} />
             </Animated.View>
           )}
 
-          {/* New password form */}
+          {/* Form */}
           {phase === "form" && (
-            <Animated.View entering={FadeInUp.duration(380)} style={styles.formContent}>
+            <Animated.View entering={FadeInUp.duration(380)} style={s.formBlock}>
               {error && (
-                <Animated.View entering={FadeInDown.duration(200)} style={styles.errorBox}>
-                  <View style={styles.errorIcon}>
-                    <Ionicons name="alert-circle" size={16} color={theme.colors.error.base} />
+                <Animated.View entering={FadeInDown.duration(200)} style={[s.errorBox, { flexDirection: flexRow(IS_RTL) }]}>
+                  <View style={s.errorIcon}>
+                    <Ionicons name="alert-circle" size={15} color={kit.color.danger} />
                   </View>
-                  <Text variant="body-sm" align="right" style={styles.errorText}>{error}</Text>
+                  <Text variant="body-sm" align={TEXT_START} style={{ flex: 1, color: kit.color.danger, fontFamily: theme.fonts.bold }}>
+                    {error}
+                  </Text>
                 </Animated.View>
               )}
 
@@ -285,26 +270,19 @@ export default function ResetPasswordScreen() {
                 value={password}
                 onChangeText={(v) => { setPassword(v); setError(null); }}
                 secureTextEntry={!showPass}
-                leftIcon={<Ionicons name="lock-closed-outline" size={18} color={theme.colors.text.tertiary} />}
+                leftIcon={<Ionicons name="lock-closed-outline" size={18} color={kit.color.inkFaint} />}
                 rightIcon={
                   <Pressable onPress={() => setShowPass(!showPass)} hitSlop={8}>
-                    <Ionicons name={showPass ? "eye-off-outline" : "eye-outline"} size={18} color={theme.colors.text.tertiary} />
+                    <Ionicons name={showPass ? "eye-off-outline" : "eye-outline"} size={18} color={kit.color.inkFaint} />
                   </Pressable>
                 }
               />
 
-              {/* Strength meter */}
               {password.length > 0 && (
-                <Animated.View entering={FadeInDown.duration(200)} style={styles.strengthWrap}>
-                  <View style={styles.strengthBarRow}>
+                <Animated.View entering={FadeInDown.duration(200)} style={[s.strengthWrap, { flexDirection: flexRow(IS_RTL) }]}>
+                  <View style={[s.strengthBarRow, { flexDirection: flexRow(IS_RTL) }]}>
                     {[0, 1, 2, 3].map((i) => (
-                      <View
-                        key={i}
-                        style={[
-                          styles.strengthSegment,
-                          i < strength.score && { backgroundColor: strength.color },
-                        ]}
-                      />
+                      <View key={i} style={[s.strengthSegment, i < strength.score && { backgroundColor: strength.color }]} />
                     ))}
                   </View>
                   <Text variant="eyebrow" style={{ color: strength.color }}>{t(strength.labelKey)}</Text>
@@ -317,213 +295,154 @@ export default function ResetPasswordScreen() {
                 value={confirm}
                 onChangeText={(v) => { setConfirm(v); setError(null); }}
                 secureTextEntry={!showConfirm}
-                leftIcon={<Ionicons name="lock-closed-outline" size={18} color={theme.colors.text.tertiary} />}
+                leftIcon={<Ionicons name="lock-closed-outline" size={18} color={kit.color.inkFaint} />}
                 rightIcon={
                   <Pressable onPress={() => setShowConfirm(!showConfirm)} hitSlop={8}>
-                    <Ionicons name={showConfirm ? "eye-off-outline" : "eye-outline"} size={18} color={theme.colors.text.tertiary} />
+                    <Ionicons name={showConfirm ? "eye-off-outline" : "eye-outline"} size={18} color={kit.color.inkFaint} />
                   </Pressable>
                 }
               />
 
-              {/* Match indicator */}
               {confirm.length > 0 && (
-                <Animated.View entering={FadeIn.duration(180)} style={styles.matchRow}>
+                <Animated.View entering={FadeIn.duration(180)} style={[s.matchRow, { flexDirection: flexRow(IS_RTL) }]}>
                   <Ionicons
                     name={password === confirm ? "checkmark-circle" : "close-circle"}
                     size={14}
-                    color={password === confirm ? theme.colors.success.base : theme.colors.error.base}
+                    color={password === confirm ? kit.color.success : kit.color.danger}
                   />
-                  <Text
-                    variant="eyebrow"
-                    style={{ color: password === confirm ? theme.colors.success.base : theme.colors.error.base }}>
+                  <Text variant="eyebrow" style={{ color: password === confirm ? kit.color.success : kit.color.danger }}>
                     {password === confirm ? t("resetPassword.passwordsMatch") : t("resetPassword.passwordsNoMatch")}
                   </Text>
                 </Animated.View>
               )}
 
-              <Button
-                variant="primary"
-                size="lg"
-                fullWidth
-                gradient
-                loading={loading}
-                onPress={handleSubmit}
-                style={{ marginTop: 8 }}>
-                {t("resetPassword.saveBtn")}
-              </Button>
+              <Button variant="primary" size="lg" full loading={loading} onPress={handleSubmit} style={{ marginTop: 8 }} label={t("resetPassword.saveBtn")} />
             </Animated.View>
           )}
 
           {/* Success */}
           {phase === "success" && (
-            <Animated.View entering={FadeInUp.duration(380)} style={styles.stateContent}>
-              <View style={styles.successIcon}>
-                <Ionicons name="checkmark-circle-outline" size={40} color={theme.colors.brand.base} />
+            <Animated.View entering={FadeInUp.duration(380)} style={s.stateBlock}>
+              <View style={s.stateOuter}>
+                <View style={[s.stateInner, { backgroundColor: kit.color.successTint, borderColor: `${kit.color.success}30` }]}>
+                  <Ionicons name="checkmark-circle-outline" size={34} color={kit.color.success} />
+                </View>
               </View>
               <Text variant="sheet-title" align="center">{t("resetPassword.successTitle")}</Text>
-              <Text variant="body" color="secondary" align="center" style={styles.stateBody}>
-                {t("resetPassword.successBody")}
-              </Text>
-              <Button
-                variant="primary"
-                fullWidth
-                gradient
-                onPress={() => router.replace("/(tabs)")}>
-                {t("resetPassword.goToApp")}
-              </Button>
+              <Text variant="body" color="secondary" align="center" style={s.stateBody}>{t("resetPassword.successBody")}</Text>
+              <Button variant="primary" full onPress={() => router.replace("/(tabs)")} label={t("resetPassword.goToApp")} />
             </Animated.View>
           )}
-
-        </Animated.View>
-      </ScrollView>
+        </ScrollView>
+      </View>
     </KeyboardAvoidingView>
   );
 }
 
-// ─── Password strength ────────────────────────────────────────────────────────
+const s = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: kit.color.canvas },
 
-function getPasswordStrength(pw: string): { score: number; labelKey: string; color: string } {
-  let score = 0;
-  if (pw.length >= 8)  score += 1;
-  if (pw.length >= 12) score += 1;
-  if (/[A-Z]/.test(pw) && /[a-z]/.test(pw)) score += 1;
-  if (/\d/.test(pw) || /[^A-Za-z0-9]/.test(pw)) score += 1;
-
-  if (score <= 1) return { score: 1, labelKey: "resetPassword.strengthWeak",   color: theme.colors.error.base   };
-  if (score === 2) return { score: 2, labelKey: "resetPassword.strengthFair",   color: theme.colors.warning.base  };
-  if (score === 3) return { score: 3, labelKey: "resetPassword.strengthGood",   color: theme.colors.brand.base    };
-  return              { score: 4, labelKey: "resetPassword.strengthStrong",  color: theme.colors.success.base  };
-}
-
-// ─── Styles ───────────────────────────────────────────────────────────────────
-
-const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: theme.colors.bg,
+  header: {
+    flexDirection:     flexRow(IS_RTL),
+    alignItems:        "center",
+    gap:               14,
+    paddingHorizontal: 20,
+    paddingVertical:   14,
+    backgroundColor:   kit.color.surface,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: kit.color.line,
+    ...kit.shadow.raised,
   },
-  hero: {
-    paddingHorizontal: theme.layout.pagePaddingH,
-    paddingBottom:     40,
-    overflow:          "hidden",
-  },
-  iconWrap: {
-    alignItems: "center",
-    marginTop:  20,
+  backBtn: {
+    width:           40,
+    height:          40,
+    borderRadius:    20,
+    backgroundColor: kit.color.surface,
+    alignItems:      "center",
+    justifyContent:  "center",
+    borderWidth:     1,
+    borderColor:     kit.color.line,
+    ...kit.shadow.raised,
+    flexShrink:      0,
   },
   iconTile: {
-    width:           96,
-    height:          96,
-    borderRadius:    24,
-    backgroundColor: "#fff",
+    width:           52,
+    height:          52,
+    borderRadius:    16,
+    borderWidth:     1,
+    borderColor:     kit.color.line,
     alignItems:      "center",
     justifyContent:  "center",
-    ...theme.shadow.lg,
+    flexShrink:      0,
   },
-  iconTileSuccess: {
-    backgroundColor: theme.colors.brand.lighter,
-  },
-  iconTileError: {
-    backgroundColor: theme.colors.error.bg,
-  },
-  heroTextWrap: {
-    alignItems: "center",
-    marginTop:  22,
-  },
-  heroTitle: {
-    letterSpacing: -0.5,
-  },
-  card: {
-    backgroundColor:      theme.colors.surface,
-    borderTopLeftRadius:  28,
-    borderTopRightRadius: 28,
-    marginTop:            -22,
-    flex:                 1,
-    padding:              theme.layout.pagePaddingH,
-    paddingTop:           28,
-    ...theme.shadow.lg,
-  },
-  centered: {
-    alignItems:     "center",
-    justifyContent: "center",
-    paddingVertical: 48,
-  },
-  stateContent: {
-    alignItems: "center",
-    gap:        14,
-    paddingTop: 8,
-  },
-  formContent: {
-    gap: 12,
-  },
-  stateBody: {
-    lineHeight: 24,
-    maxWidth:   300,
-  },
-  expiredIcon: {
+
+  content: { padding: 20, gap: 16 },
+
+  centered: { alignItems: "center", justifyContent: "center", paddingVertical: 60 },
+  spinnerRing: {
     width:           80,
     height:          80,
-    borderRadius:    theme.radius["2xl"],
-    backgroundColor: theme.colors.error.bg,
+    borderRadius:    40,
+    backgroundColor: kit.color.accentTint,
     borderWidth:     1,
-    borderColor:     theme.colors.error.light,
+    borderColor:     kit.color.line,
+    alignItems:      "center",
+    justifyContent:  "center",
+  },
+
+  // State blocks (success / expired)
+  stateBlock: { alignItems: "center", gap: 16, paddingTop: 8 },
+  stateOuter: {
+    width:           100,
+    height:          100,
+    borderRadius:    50,
+    backgroundColor: kit.color.well,
+    borderWidth:     1,
+    borderColor:     kit.color.line,
     alignItems:      "center",
     justifyContent:  "center",
     marginBottom:    4,
   },
-  successIcon: {
-    width:           80,
-    height:          80,
-    borderRadius:    theme.radius["2xl"],
-    backgroundColor: theme.colors.brand.lighter,
+  stateInner: {
+    width:           68,
+    height:          68,
+    borderRadius:    22,
     borderWidth:     1,
-    borderColor:     theme.colors.brand.light,
     alignItems:      "center",
     justifyContent:  "center",
-    marginBottom:    4,
-    ...theme.shadow.brandGlow,
+    ...kit.shadow.brandGlow,
   },
+  stateBody: { lineHeight: 24, maxWidth: 300, textAlign: "center" },
+
+  // Form
+  formBlock: { gap: 14 },
   errorBox: {
-    flexDirection: flexRow(isRtl()),
     alignItems:      "center",
-    gap:             10,
-    backgroundColor: theme.colors.error.bg,
-    borderRadius:    theme.radius.lg,
+    gap:             8,
     padding:         12,
+    backgroundColor: kit.color.dangerTint,
+    borderRadius:    12,
     borderWidth:     1,
-    borderColor:     theme.colors.error.light,
+    borderColor:     `${kit.color.danger}25`,
   },
   errorIcon: {
-    width: 24, height: 24, borderRadius: 12,
-    backgroundColor: "rgba(239,68,68,0.10)",
-    alignItems: "center", justifyContent: "center",
+    width:           28,
+    height:          28,
+    borderRadius:    9,
+    backgroundColor: `${kit.color.danger}10`,
+    alignItems:      "center",
+    justifyContent:  "center",
+    flexShrink:      0,
   },
-  errorText: {
-    flex: 1,
-    color: theme.colors.error.text,
-    fontFamily: theme.fonts.semibold,
-  },
-  strengthWrap: {
-    flexDirection: flexRow(isRtl()),
-    alignItems:     "center",
-    gap:            8,
-    paddingHorizontal: 4,
-  },
-  strengthBarRow: {
-    flex:          1,
-    flexDirection: flexRow(isRtl()),
-    gap:           4,
-  },
+
+  strengthWrap:   { alignItems: "center", gap: 8, paddingHorizontal: 4 },
+  strengthBarRow: { flex: 1, gap: 4 },
   strengthSegment: {
-    flex:         1,
-    height:       4,
-    borderRadius: 2,
-    backgroundColor: theme.colors.border.default,
+    flex:             1,
+    height:           4,
+    borderRadius:     2,
+    backgroundColor:  kit.color.lineStrong,
   },
-  matchRow: {
-    flexDirection: flexRow(isRtl()),
-    alignItems:    "center",
-    gap:           6,
-    paddingHorizontal: 4,
-  },
+
+  matchRow: { alignItems: "center", gap: 6, paddingHorizontal: 4 },
 });

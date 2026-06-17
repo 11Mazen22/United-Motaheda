@@ -17,6 +17,7 @@ import Animated, {
   interpolateColor,
 } from "react-native-reanimated";
 import { theme } from "@/shared/theme";
+import { kit } from "@/shared/kit";
 
 interface InputProps extends TextInputProps {
   label?:       string;
@@ -63,8 +64,8 @@ export function Input({
       progress.value,
       [0, 1],
       [
-        error ? theme.colors.error.base : theme.colors.border.default,
-        error ? theme.colors.error.base : theme.colors.brand[600],
+        error ? kit.color.danger : kit.color.line,
+        error ? kit.color.danger : kit.color.accent,
       ],
     ),
     borderWidth: withTiming(focused ? 1.5 : 1, { duration: 150 }),
@@ -90,13 +91,13 @@ export function Input({
           <UIText style={{
             fontSize:   theme.fontSize.sm,
             fontFamily: theme.fonts.semibold,
-            color:      error ? theme.colors.error.text : theme.colors.text.primary,
+            color:      error ? kit.color.danger : kit.color.ink,
             textAlign:  textAlignStart(_isRtl),
           }}>
             {label}
           </UIText>
           {optional && (
-            <UIText style={{ fontSize: theme.fontSize.xs, color: theme.colors.text.tertiary }}>اختياري</UIText>
+            <UIText style={{ fontSize: theme.fontSize.xs, color: kit.color.inkFaint }}>اختياري</UIText>
           )}
         </View>
       )}
@@ -109,8 +110,8 @@ export function Input({
             flexDirection:     flexRow(_isRtl),
             alignItems:        multiline ? "flex-start" : "center",
             minHeight,
-            borderRadius:      theme.radius.lg,
-            backgroundColor:   focused ? theme.colors.surface : theme.colors.muted,
+            borderRadius:      kit.radius.control,
+            backgroundColor:   focused ? kit.color.surface : kit.color.well,
             paddingHorizontal: 14,
             paddingVertical:   multiline ? verticalPad : 0,
             gap:               10,
@@ -130,7 +131,7 @@ export function Input({
             flex:           1,
             fontSize:       theme.fontSize.md,
             fontFamily:     theme.fonts.regular,
-            color:          theme.colors.text.primary,
+            color:          kit.color.ink,
             textAlign:      textAlignStart(_isRtl),
             // Android: pin cursor + text to the top of the textarea.
             // iOS ignores this prop (already top-aligns by default).
@@ -143,7 +144,7 @@ export function Input({
           }}
           multiline={multiline}
           numberOfLines={numberOfLines}
-          placeholderTextColor={theme.colors.text.tertiary}
+          placeholderTextColor={kit.color.inkFaint}
           onFocus={handleFocus}
           onBlur={handleBlur}
           {...rest}
@@ -162,7 +163,7 @@ export function Input({
         <UIText style={{
           fontSize:  theme.fontSize.xs,
           fontFamily: theme.fonts.regular,
-          color:     error ? theme.colors.error.base : theme.colors.text.tertiary,
+          color:     error ? kit.color.danger : kit.color.inkFaint,
           textAlign: textAlignStart(_isRtl),
           marginTop: 2,
         }}>

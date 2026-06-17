@@ -208,7 +208,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     async (
       authUser: SupabaseUser | null,
       _session: Session | null,
-      options?: { blockUntilProfile?: boolean },
+      _options?: { blockUntilProfile?: boolean },
     ) => {
       if (!authUser) {
         authUserRef.current = null;

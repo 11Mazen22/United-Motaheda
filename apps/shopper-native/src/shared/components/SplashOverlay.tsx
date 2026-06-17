@@ -1,36 +1,37 @@
 /**
  * SplashOverlay — premium, deterministic branded launch.
  *
- * Pipeline (see useSplashSequence for the gated state machine):
- *
+ * Pipeline:
  *   native splash  ─▶  BRAND reveal  ─▶  VIDEO (brand story)  ─▶  exit  ─▶  app
  *
  *   • Native → JS handoff is seamless: the JS layer paints the SAME white field
- *     with the brand mark already centred and fully opaque, so there is no
- *     opacity flash and no size pop at the moment expo-splash-screen hides.
- *   • BRAND reveal: the mark holds (matching native), then the concentric rings
- *     and wordmark choreograph in with spring physics — a deliberate, premium
- *     "wake up" rather than a static spinner.
- *   • VIDEO plays from frame 0 (declarative shouldPlay + positionMillis 0), so
- *     the user always sees the clip from the start regardless of decode speed.
- *   • Exit cross-fades the whole overlay to reveal the app/onboarding beneath.
+ *     with the brand mark already centred and fully opaque — no opacity flash.
+ *   • BRAND reveal: four concentric rings + logo tile + wordmark choreograph in
+ *     with spring physics — a premium "wake up", not a static spinner.
+ *   • VIDEO plays from frame 0, so the user always sees the clip from the start.
+ *   • Exit cross-fades the overlay to reveal the app beneath.
  *
- * z-order (required): the <Video> is rendered FIRST and covered by an opaque
- * white "hold". On Android the video's SurfaceView composites independently of
- * the React tree, so a parent opacity cannot hide it — instead we fade the hold
- * OUT to reveal the already-running clip, never a black/white flicker.
+ * z-order: the <Video> is rendered FIRST and covered by an opaque white "hold".
+ * On Android the video's SurfaceView composites independently of the React tree,
+ * so a parent opacity cannot hide it — we fade the hold OUT to reveal the
+ * already-running clip, never a black/white flicker.
  *
- * Accessibility: decorative brand visuals are hidden from screen readers; only
- * the Skip control is exposed. All entrance motion respects OS Reduce Motion —
- * with it on, elements fade in place with no spring, scale, or travel.
+ * Accessibility: decorative visuals hidden from screen readers; only Skip
+ * is exposed. All entrance motion respects OS Reduce Motion.
+ *
+ * LinearGradient note: this component is the ONLY permitted LinearGradient user
+ * in the codebase (see design-system policy). Gradients are used only on the
+ * video scrim overlay — not on the white brand hold.
  */
 
 import React, { useEffect, useRef } from "react";
 import { I18nManager, StyleSheet, View, type LayoutChangeEvent } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { LinearGradient } from "expo-linear-gradient";
 import { setStatusBarHidden } from "expo-status-bar";
 import * as SplashScreen from "expo-splash-screen";
 import { Video, ResizeMode, type AVPlaybackStatus } from "expo-av";
+import { Ionicons } from "@expo/vector-icons";
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -45,11 +46,9 @@ import { AppLogo } from "@/shared/components/AppLogo";
 import { PressableScale } from "@/shared/motion";
 import { theme } from "@/shared/theme";
 import { useSplashSequence } from "./useSplashSequence";
+import { notifySplashExited } from "@/shared/splashBridge";
 
-// ─── Timeline (ms) — injected into the state machine ─────────────────────────
-// MIN_BRAND_MS is measured from the moment the native splash hands off (first
-// layout), so the brand motion is seen in full instead of finishing underneath
-// the native splash.
+// ─── Timeline (ms) ─────────────────────────────────────────────────────────────
 const MIN_BRAND_MS      = 1_500;
 const LOAD_TIMEOUT_MS   = 3_000;
 const VIDEO_DURATION_MS = 3_300;
@@ -58,15 +57,13 @@ const EXIT_MS           = 380;
 const HOLD_FADE_MS      = 300;
 const SKIP_FADE_IN_MS   = 280;
 
-// ─── Session guard — overlay shows once per cold launch ──────────────────────
+// ─── Session guard ─────────────────────────────────────────────────────────────
 let alreadyShown = false;
 
 const IS_RTL = I18nManager.isRTL;
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Public wrapper: owns the once-per-session guard; mounts the sequence view
-// only on the first launch and unmounts it when the sequence completes.
-// ─────────────────────────────────────────────────────────────────────────────
+
 export function SplashOverlay(): React.ReactElement | null {
   const [visible, setVisible] = React.useState(!alreadyShown);
 
@@ -75,12 +72,11 @@ export function SplashOverlay(): React.ReactElement | null {
   }, [visible]);
 
   if (!visible) return null;
-  return <SplashSequenceView onExited={() => setVisible(false)} />;
+  return <SplashSequenceView onExited={() => { notifySplashExited(); setVisible(false); }} />;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Sequence view: pure presentation driven by the phase machine.
-// ─────────────────────────────────────────────────────────────────────────────
+
 function SplashSequenceView({ onExited }: { onExited: () => void }): React.ReactElement {
   const reduced = useReducedMotion();
 
@@ -93,19 +89,17 @@ function SplashSequenceView({ onExited }: { onExited: () => void }): React.React
     onExited,
   });
 
-  // ── Animated values ──
-  const overlayOpacity = useSharedValue(1);
-  const holdOpacity    = useSharedValue(1);
-  const skipOpacity    = useSharedValue(0);
+  // ── Animated values ──────────────────────────────────────────────────────────
+  const overlayOpacity  = useSharedValue(1);
+  const holdOpacity     = useSharedValue(1);
+  const skipOpacity     = useSharedValue(0);
 
-  // Brand layers — start hidden; choreograph in only once the native splash has
-  // handed off (first layout), so the motion is seen in full.
-  const logoScale   = useSharedValue(reduced ? 1 : 0.94);
-  const logoOpacity = useSharedValue(0);
-  const ringsScale  = useSharedValue(reduced ? 1 : 0.86);
+  const logoScale    = useSharedValue(reduced ? 1 : 0.94);
+  const logoOpacity  = useSharedValue(0);
+  const ringsScale   = useSharedValue(reduced ? 1 : 0.86);
   const ringsOpacity = useSharedValue(0);
-  const wordOpacity = useSharedValue(0);
-  const wordShift   = useSharedValue(reduced ? 0 : 10);
+  const wordOpacity  = useSharedValue(0);
+  const wordShift    = useSharedValue(reduced ? 0 : 10);
 
   const overlayAnim = useAnimatedStyle(() => ({ opacity: overlayOpacity.value }));
   const holdAnim    = useAnimatedStyle(() => ({ opacity: holdOpacity.value }));
@@ -114,19 +108,16 @@ function SplashSequenceView({ onExited }: { onExited: () => void }): React.React
     opacity:   logoOpacity.value,
     transform: [{ scale: logoScale.value }],
   }));
-  const ringsAnim   = useAnimatedStyle(() => ({
+  const ringsAnim = useAnimatedStyle(() => ({
     opacity:   ringsOpacity.value,
     transform: [{ scale: ringsScale.value }],
   }));
-  const wordAnim    = useAnimatedStyle(() => ({
+  const wordAnim = useAnimatedStyle(() => ({
     opacity:   wordOpacity.value,
     transform: [{ translateY: wordShift.value }],
   }));
 
-  // ── Native-splash handoff + brand entrance ──
-  // Runs exactly once, the moment our brand layer is laid out (or a short
-  // fallback): hide the native splash, play the entrance, and arm the sequence
-  // so MIN_BRAND_MS is measured from real on-screen time.
+  // ── Native-splash handoff + brand entrance ───────────────────────────────────
   const startedRef = useRef(false);
   const start = () => {
     if (startedRef.current) return;
@@ -140,10 +131,10 @@ function SplashSequenceView({ onExited }: { onExited: () => void }): React.React
     } else {
       logoOpacity.value  = withTiming(1, { duration: 320, easing: Easing.out(Easing.cubic) });
       logoScale.value    = withSpring(1, { damping: 18, stiffness: 140, mass: 1 });
-      ringsOpacity.value = withDelay(80,  withTiming(1, { duration: 440, easing: Easing.out(Easing.cubic) }));
+      ringsOpacity.value = withDelay(80,  withTiming(1, { duration: 460, easing: Easing.out(Easing.cubic) }));
       ringsScale.value   = withDelay(80,  withSpring(1, { damping: 20, stiffness: 110, mass: 1.4 }));
-      wordOpacity.value  = withDelay(300, withTiming(1, { duration: 380, easing: Easing.out(Easing.cubic) }));
-      wordShift.value    = withDelay(300, withSpring(0, theme.animation.spring.gentle));
+      wordOpacity.value  = withDelay(320, withTiming(1, { duration: 400, easing: Easing.out(Easing.cubic) }));
+      wordShift.value    = withDelay(320, withSpring(0, theme.animation.spring.gentle));
     }
 
     seq.begin();
@@ -151,7 +142,7 @@ function SplashSequenceView({ onExited }: { onExited: () => void }): React.React
 
   const handleLayout = (_e: LayoutChangeEvent) => start();
 
-  // ── Status bar + a fallback start in case onLayout is ever missed ──
+  // ── Status bar + fallback start ──────────────────────────────────────────────
   useEffect(() => {
     setStatusBarHidden(true, "fade");
     const fallback = setTimeout(start, 250);
@@ -162,7 +153,7 @@ function SplashSequenceView({ onExited }: { onExited: () => void }): React.React
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ── React to phase transitions ──
+  // ── Phase transitions ────────────────────────────────────────────────────────
   useEffect(() => {
     if (seq.phase === "video") {
       holdOpacity.value = withTiming(0, { duration: HOLD_FADE_MS, easing: Easing.in(Easing.ease) });
@@ -174,7 +165,7 @@ function SplashSequenceView({ onExited }: { onExited: () => void }): React.React
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [seq.phase]);
 
-  // ── Video status bridge ──
+  // ── Video status bridge ──────────────────────────────────────────────────────
   const handleStatus = (status: AVPlaybackStatus) => {
     if (status.isLoaded) {
       seq.notifyVideoLoaded();
@@ -186,6 +177,7 @@ function SplashSequenceView({ onExited }: { onExited: () => void }): React.React
 
   return (
     <Animated.View style={[styles.root, overlayAnim]} onLayout={handleLayout} accessibilityViewIsModal>
+
       {/* Video — under the hold; plays from frame 0 once the machine allows. */}
       <Video
         source={require("../../../assets/splash-video.mp4")}
@@ -203,6 +195,16 @@ function SplashSequenceView({ onExited }: { onExited: () => void }): React.React
         onError={seq.notifyVideoError}
       />
 
+      {/* Top gradient scrim — over the video, ensures the skip pill is always legible.
+          LinearGradient is allowed here (SplashOverlay is the sole permitted user). */}
+      {seq.phase === "video" && (
+        <LinearGradient
+          colors={["rgba(0,0,0,0.38)", "transparent"]}
+          style={styles.scrimTop}
+          pointerEvents="none"
+        />
+      )}
+
       {/* White brand hold — covers the video until the video phase. Decorative. */}
       <Animated.View
         style={[styles.hold, holdAnim]}
@@ -210,44 +212,57 @@ function SplashSequenceView({ onExited }: { onExited: () => void }): React.React
         importantForAccessibility="no-hide-descendants"
         accessibilityElementsHidden>
         <View style={styles.holdBrand}>
+
+          {/* Four concentric rings — outermost first so inner rings render on top */}
+          <Animated.View style={[styles.ring4,     ringsAnim]} />
           <Animated.View style={[styles.ringOuter, ringsAnim]} />
           <Animated.View style={[styles.ringInner, ringsAnim]} />
           <Animated.View style={[styles.ringCore,  ringsAnim]} />
 
-          {/* Mark — fades + settles in the instant the native splash hands off. */}
+          {/* Mark */}
           <Animated.View style={[styles.logoTile, logoAnim]}>
             <AppLogo size="lg" />
           </Animated.View>
 
+          {/* Wordmark */}
           <Animated.View style={[styles.wordmark, wordAnim]}>
             <UIText weight="black" style={styles.brandName}>United Pharmacy</UIText>
-            <View style={styles.brandDot} />
+            <View style={styles.brandSep}>
+              <View style={styles.brandLine} />
+              <View style={styles.brandDot} />
+              <View style={styles.brandLine} />
+            </View>
             <UIText variant="caption" style={styles.brandSub}>
               {IS_RTL ? "متجر أدويتك الموثوق" : "Your trusted pharmacy"}
             </UIText>
           </Animated.View>
+
         </View>
       </Animated.View>
 
-      {/* Skip — appears with the video; trailing edge per direction. */}
+      {/* Skip — appears with the video; positioned at the trailing reading edge. */}
       <Animated.View style={[styles.skipSafe, skipAnim]}>
         <SafeAreaView edges={["top"]}>
           <View style={[styles.skipRow, IS_RTL ? styles.skipStart : styles.skipEnd]}>
             <PressableScale
               onPress={seq.skip}
-              scaleTo={0.94}
+              scaleTo={0.93}
               hitSlop={12}
-              style={styles.skipBtn}
               accessibilityRole="button"
               accessibilityLabel={IS_RTL ? "تخطّي المقدمة" : "Skip intro"}
-              accessibilityHint={IS_RTL ? "ينهي فيديو البداية ويفتح التطبيق" : "Ends the intro video and opens the app"}>
-              <UIText weight="bold" color="inverse" style={styles.skipText}>
-                {IS_RTL ? "تخطّي" : "Skip"}
-              </UIText>
+              accessibilityHint={IS_RTL ? "ينهي فيديو البداية ويفتح التطبيق" : "Ends the intro video and opens the app"}
+              style={styles.skipBtn}>
+              <View style={styles.skipInner}>
+                <UIText weight="bold" style={styles.skipText} numberOfLines={1}>
+                  {IS_RTL ? "تخطّي" : "Skip"}
+                </UIText>
+                <Ionicons name="close" size={13} color="rgba(255,255,255,0.58)" />
+              </View>
             </PressableScale>
           </View>
         </SafeAreaView>
       </Animated.View>
+
     </Animated.View>
   );
 }
@@ -261,33 +276,53 @@ const styles = StyleSheet.create({
     backgroundColor: "#ffffff",
   },
   video: { ...StyleSheet.absoluteFillObject },
+
+  // Top scrim — cinematic gradient to ensure skip legibility over video
+  scrimTop: {
+    position: "absolute",
+    top:      0,
+    left:     0,
+    right:    0,
+    height:   140,
+    zIndex:   40,
+  },
+
+  // ── Brand hold ───────────────────────────────────────────────────────────────
   hold: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "#ffffff",
   },
-
   holdBrand: {
     flex:           1,
     alignItems:     "center",
     justifyContent: "center",
-    gap:            22,
+    gap:            24,
   },
 
+  // ── Rings — four concentric, outermost to innermost ───────────────────────────
+  ring4: {
+    position:     "absolute",
+    width:        296,
+    height:       296,
+    borderRadius: 148,
+    borderWidth:  1,
+    borderColor:  "rgba(14,126,116,0.06)",
+  },
   ringOuter: {
     position:     "absolute",
-    width:        224,
-    height:       224,
-    borderRadius: 112,
+    width:        228,
+    height:       228,
+    borderRadius: 114,
     borderWidth:  1.5,
-    borderColor:  "rgba(13,184,168,0.12)",
+    borderColor:  "rgba(14,126,116,0.11)",
   },
   ringInner: {
     position:     "absolute",
-    width:        164,
-    height:       164,
-    borderRadius: 82,
+    width:        166,
+    height:       166,
+    borderRadius: 83,
     borderWidth:  1.5,
-    borderColor:  "rgba(13,184,168,0.20)",
+    borderColor:  "rgba(14,126,116,0.20)",
   },
   ringCore: {
     position:     "absolute",
@@ -295,50 +330,67 @@ const styles = StyleSheet.create({
     height:       120,
     borderRadius: 60,
     borderWidth:  1,
-    borderColor:  "rgba(13,184,168,0.28)",
+    borderColor:  "rgba(14,126,116,0.30)",
   },
 
+  // ── Logo tile — brand-tinted glow ─────────────────────────────────────────────
   logoTile: {
-    width:           108,
-    height:          108,
-    borderRadius:    36,
+    width:           112,
+    height:          112,
+    borderRadius:    38,
     overflow:        "hidden",
     alignItems:      "center",
     justifyContent:  "center",
     backgroundColor: "#FFFFFF",
-    borderWidth:     1,
-    borderColor:     "rgba(13,184,168,0.14)",
-    shadowColor:     "#021D2E",
-    shadowOffset:    { width: 0, height: 12 },
-    shadowOpacity:   0.16,
-    shadowRadius:    28,
-    elevation:       14,
+    borderWidth:     1.5,
+    borderColor:     "rgba(14,126,116,0.16)",
+    // Brand-tinted soft glow (iOS)
+    shadowColor:     "#0E7E74",
+    shadowOffset:    { width: 0, height: 10 },
+    shadowOpacity:   0.30,
+    shadowRadius:    24,
+    elevation:       16,
   },
+
+  // ── Wordmark ──────────────────────────────────────────────────────────────────
   wordmark: {
     alignItems: "center",
-    gap:        4,
+    gap:        6,
   },
   brandName: {
-    fontSize:           22,
-    color:              "#021D2E",
-    letterSpacing:      -0.6,
+    fontSize:           23,
+    color:              "#07122a",
+    letterSpacing:      -0.8,
     includeFontPadding: false,
-    lineHeight:         28,
+    lineHeight:         29,
+  },
+  // Refined separator: two short lines flanking the dot
+  brandSep: {
+    flexDirection: "row",
+    alignItems:    "center",
+    gap:           6,
+  },
+  brandLine: {
+    width:           18,
+    height:          1,
+    backgroundColor: "rgba(14,126,116,0.24)",
+    borderRadius:    1,
   },
   brandDot: {
     width:           5,
     height:          5,
     borderRadius:    2.5,
-    backgroundColor: "rgba(13,184,168,0.50)",
-    marginVertical:  2,
+    backgroundColor: "rgba(14,126,116,0.65)",
   },
   brandSub: {
-    color:              "rgba(2,29,46,0.44)",
+    color:              "rgba(14,126,116,0.78)",
     includeFontPadding: false,
     lineHeight:         16,
     textAlign:          "center",
+    letterSpacing:      0.4,
   },
 
+  // ── Skip pill ─────────────────────────────────────────────────────────────────
   skipSafe: {
     position: "absolute",
     top:      0,
@@ -351,34 +403,33 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop:        10,
   },
-  skipStart: { justifyContent: "flex-start" },  // Arabic leading edge (left)
-  skipEnd:   { justifyContent: "flex-end"   },  // English trailing edge (right)
+  skipStart: { justifyContent: "flex-start" },
+  skipEnd:   { justifyContent: "flex-end"   },
 
   skipBtn: {
-    minHeight:         44,
-    minWidth:          84,
-    alignItems:        "center",
-    justifyContent:    "center",
-    backgroundColor:   "rgba(8, 22, 25, 0.46)",
-    borderRadius:      22,
-    paddingHorizontal: 20,
-    paddingVertical:   9,
-    borderWidth:       1,
-    borderColor:       "rgba(255, 255, 255, 0.24)",
-    shadowColor:       "#000",
-    shadowOffset:      { width: 0, height: 5 },
-    shadowOpacity:     0.18,
-    shadowRadius:      12,
-    elevation:         3,
+    backgroundColor: "rgba(6, 10, 18, 0.58)",
+    borderRadius:    26,
+    borderWidth:     1,
+    borderColor:     "rgba(255, 255, 255, 0.20)",
+    // Deep shadow for legibility over video
+    shadowColor:     "#000",
+    shadowOffset:    { width: 0, height: 6 },
+    shadowOpacity:   0.24,
+    shadowRadius:    16,
+    elevation:       5,
   },
-  // No letterSpacing + horizontal padding → Android never clips the trailing
-  // Arabic glyph of "تخطّي"; lineHeight gives descenders headroom.
+  skipInner: {
+    flexDirection:     "row",
+    alignItems:        "center",
+    gap:               7,
+    paddingHorizontal: 18,
+    paddingVertical:   10,
+    minHeight:         44,
+  },
   skipText: {
-    fontSize:           13,
-    lineHeight:         20,
-    paddingHorizontal:  3,
-    includeFontPadding: false,
-    textAlign:          "center",
-    textAlignVertical:  "center",
+    fontSize:   13,
+    lineHeight: 22,
+    color:      "#ffffff",
+    flexShrink: 0,
   },
 });

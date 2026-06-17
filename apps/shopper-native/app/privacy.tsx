@@ -12,7 +12,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { useTranslation } from "react-i18next";
 import { theme } from "@/shared/theme";
-import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
+import { kit } from "@/shared/kit";
+import { flexRow, isRtl, textAlignStart, BACK_CHEVRON } from "@/utils/layout";
 
 interface SectionProps {
   title:    string;
@@ -25,7 +26,7 @@ function Section({ title, children, delay = 0 }: SectionProps) {
     <Animated.View entering={FadeInDown.duration(350).delay(delay)} style={styles.section}>
       <View style={styles.sectionHeader}>
         <View style={styles.sectionDot}>
-          <Ionicons name="shield-checkmark-outline" size={12} color={theme.colors.brand[700]} />
+          <Ionicons name="shield-checkmark-outline" size={12} color={kit.color.accentDeep} />
         </View>
         <UIText style={styles.sectionTitle}>{title}</UIText>
       </View>
@@ -44,7 +45,7 @@ export default function PrivacyScreen() {
       {/* Header */}
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={10}>
-          <Ionicons name="arrow-forward" size={18} color={theme.colors.text.primary} />
+          <Ionicons name={BACK_CHEVRON} size={18} color={kit.color.inkSoft} />
         </Pressable>
         <UIText style={styles.title}>{t("privacy.title")}</UIText>
         <View style={{ width: 38 }} />
@@ -56,13 +57,13 @@ export default function PrivacyScreen() {
 
         {/* Last updated */}
         <Animated.View entering={FadeInDown.duration(300)} style={styles.updatedBanner}>
-          <Ionicons name="calendar-outline" size={15} color={theme.colors.brand[700]} />
+          <Ionicons name="calendar-outline" size={15} color={kit.color.accentDeep} />
           <UIText style={styles.updatedText}>{t("privacy.lastUpdated")}</UIText>
         </Animated.View>
 
         {/* Intro */}
         <Animated.View entering={FadeInDown.duration(350).delay(40)} style={styles.introBanner}>
-          <Ionicons name="shield-checkmark" size={20} color={theme.colors.brand[600]} />
+          <Ionicons name="shield-checkmark" size={20} color={kit.color.accent} />
           <UIText style={styles.introText}>
             {t("privacy.introBanner")}
           </UIText>
@@ -144,49 +145,51 @@ export default function PrivacyScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen:        { flex: 1, backgroundColor: theme.colors.bg },
-  header:        { flexDirection: flexRow(isRtl()), alignItems: "center", justifyContent: "space-between", paddingHorizontal: theme.layout.pagePaddingH, paddingVertical: 14, backgroundColor: theme.colors.surface, borderBottomWidth: 1, borderBottomColor: theme.colors.border.default, ...theme.shadow.xs },
-  backBtn:       { width: 38, height: 38, borderRadius: 12, backgroundColor: theme.colors.subtle, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: theme.colors.border.default },
-  title:         { fontSize: theme.fontSize["2xl"], fontFamily: theme.fonts.black, color: theme.colors.text.primary },
-  content:       { padding: theme.layout.pagePaddingH, gap: 0 },
+  screen:        { flex: 1, backgroundColor: kit.color.canvas },
+  header:        { flexDirection: flexRow(isRtl()), alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingVertical: 14, backgroundColor: kit.color.surface, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: kit.color.line, ...kit.shadow.raised },
+  backBtn:       { width: 40, height: 40, borderRadius: 20, backgroundColor: kit.color.surface, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: kit.color.line, ...kit.shadow.raised },
+  title:         { fontSize: 22, fontFamily: theme.fonts.black, color: kit.color.ink },
+  content:       { padding: 20, gap: 0 },
   updatedBanner: { flexDirection: flexRow(isRtl()), alignItems: "center", justifyContent: isRtl() ? "flex-start" : "flex-end", gap: 6, marginBottom: 14 },
-  updatedText:   { fontSize: theme.fontSize.sm, fontFamily: theme.fonts.semibold, color: theme.colors.brand[700] },
-  introBanner:   { flexDirection: flexRow(isRtl()), alignItems: "flex-start", gap: 10, backgroundColor: theme.colors.brand[50], borderRadius: theme.radius.xl, padding: 16, borderWidth: 1, borderColor: theme.colors.brand[100], marginBottom: 20 },
-  introText:     { flex: 1, fontSize: theme.fontSize.base, fontFamily: theme.fonts.semibold, color: theme.colors.text.primary, textAlign: textAlignStart(isRtl()), lineHeight: 22 },
+  updatedText:   { fontSize: 13, fontFamily: theme.fonts.semibold, color: kit.color.accentDeep },
+  introBanner:   { flexDirection: flexRow(isRtl()), alignItems: "flex-start", gap: 10, backgroundColor: kit.color.accentTint, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: "rgba(14,126,116,0.20)", marginBottom: 20 },
+  introText:     { flex: 1, fontSize: 15, fontFamily: theme.fonts.semibold, color: kit.color.ink, textAlign: textAlignStart(isRtl()), lineHeight: 22 },
   section:       { marginBottom: 28 },
   sectionHeader: {
-    flexDirection: flexRow(isRtl()),
+    flexDirection:     flexRow(isRtl()),
     alignItems:        "center",
     gap:               10,
     marginBottom:      12,
     paddingBottom:     10,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border.hairline,
+    borderBottomColor: kit.color.line,
   },
   sectionDot: {
     width:           26,
     height:          26,
     borderRadius:    8,
-    backgroundColor: theme.colors.brand.lighter,
+    backgroundColor: kit.color.accentTint,
     borderWidth:     1,
-    borderColor:     theme.colors.border.brandSoft,
+    borderColor:     "rgba(14,126,116,0.20)",
     alignItems:      "center",
     justifyContent:  "center",
   },
   sectionTitle: {
-    fontSize:      17,
-    fontFamily:    theme.fonts.black,
-    color:         theme.colors.text.primary,
-    flex:          1,
-    textAlign: textAlignStart(isRtl()),
-    letterSpacing: -0.3,
+    fontSize:           17,
+    fontFamily:         theme.fonts.black,
+    color:              kit.color.ink,
+    flex:               1,
+    textAlign:          textAlignStart(isRtl()),
+    letterSpacing:      -0.3,
+    includeFontPadding: false,
   },
   sectionBody: {
-    fontSize:   theme.fontSize.base,
-    fontFamily: theme.fonts.regular,
-    color:      theme.colors.text.secondary,
-    textAlign: textAlignStart(isRtl()),
-    lineHeight: 28,
+    fontSize:           15,
+    fontFamily:         theme.fonts.regular,
+    color:              kit.color.inkSoft,
+    textAlign:          textAlignStart(isRtl()),
+    lineHeight:         28,
+    includeFontPadding: false,
   },
-  footer: { fontSize: 11, color: theme.colors.text.disabled, textAlign: "center", paddingTop: 16 },
+  footer: { fontSize: 11, color: kit.color.inkFaint, textAlign: "center", paddingTop: 16 },
 });

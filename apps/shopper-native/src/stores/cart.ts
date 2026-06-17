@@ -259,7 +259,7 @@ export const useCartStore = create<CartState>((set, get) => ({
     void (async () => {
       try {
         const validation = await validateInventory(product.id, nextQuantity);
-        if (!validation || validation.available < nextQuantity) {
+        if (!validation || (validation.available ?? 0) < nextQuantity) {
           // Not enough stock — revert immediately and surface error.
           set((s) => {
             const item = s.items.find((i) => i.productId === product.id);
@@ -394,7 +394,6 @@ export const useCartStore = create<CartState>((set, get) => ({
 
   updateQty: (productId, qty) => {
     let prevReservationId: string | undefined;
-    let prevQuantity      = 0;
     let nextQuantity      = 0;
     let removedEntirely   = false;
     let product: NativeProduct | undefined;
@@ -404,7 +403,6 @@ export const useCartStore = create<CartState>((set, get) => ({
       const clamped = clampQuantity(item?.product, qty);
 
       prevReservationId = item?.reservationId;
-      prevQuantity      = item?.quantity ?? 0;
       product           = item?.product;
 
       if (clamped <= 0) {
@@ -452,7 +450,7 @@ export const useCartStore = create<CartState>((set, get) => ({
     void (async () => {
       try {
         const validation = await validateInventory(productId, nextQuantity);
-        if (!validation || validation.available < nextQuantity) {
+        if (!validation || (validation.available ?? 0) < nextQuantity) {
           // clamp or remove immediately
           set((s) => {
             const item = s.items.find((i) => i.productId === productId);
@@ -574,7 +572,7 @@ export const useCartStore = create<CartState>((set, get) => ({
       try {
         // Pre-validate to avoid reserve_inventory 400s (insufficient_stock).
         const validation = await validateInventory(item.productId, item.quantity);
-        if (!validation || validation.available < item.quantity) {
+        if (!validation || (validation.available ?? 0) < item.quantity) {
           const parsedAvailable = validation?.available ?? 0;
           failures.push({
             productId: item.productId,

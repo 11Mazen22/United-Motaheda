@@ -39,7 +39,7 @@ import { kit } from "@/shared/kit";
 import { formatPrice } from "@/utils/format";
 import { FORWARD_CHEVRON } from "@/utils/layout";
 import { useAppLanguage } from "@/i18n/LanguageProvider";
-import type { Order } from "@/stores/orders";
+
 import {
   ORDER_STATUS_META,
   getPaymentMeta,

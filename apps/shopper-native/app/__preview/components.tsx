@@ -22,7 +22,7 @@ import {
   type Reminder,
 } from "@/shared/components";
 import { Text } from "@/shared/ui";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@/shared/kit";
 import { EmptyState } from "@/components/ui/EmptyState";
 import {
   OcrReviewForm,
@@ -158,10 +158,10 @@ export default function ComponentPreview(): React.ReactElement | null {
           <Section title="PrescriptionsList · live (dev seed)">
             <Button
               variant="primary"
-              fullWidth
-              onPress={() => router.push("/prescriptions" as never)}>
-              فتح /prescriptions
-            </Button>
+              full
+              onPress={() => router.push("/prescriptions" as never)}
+              label="فتح /prescriptions"
+            />
             <Text variant="caption" color="tertiary" align="right" style={{ marginTop: theme.spacing[1] }}>
               يعرض الوصفات المزروعة في وضع التطوير
             </Text>
@@ -170,10 +170,10 @@ export default function ComponentPreview(): React.ReactElement | null {
           <Section title="AddRxEntry · live">
             <Button
               variant="secondary"
-              fullWidth
-              onPress={() => router.push("/prescriptions/add" as never)}>
-              فتح /prescriptions/add
-            </Button>
+              full
+              onPress={() => router.push("/prescriptions/add" as never)}
+              label="فتح /prescriptions/add"
+            />
             <Text variant="caption" color="tertiary" align="right" style={{ marginTop: theme.spacing[1] }}>
               4 بطاقات إدخال + ملاحظة المواد الخاضعة للرقابة
             </Text>
@@ -182,10 +182,10 @@ export default function ComponentPreview(): React.ReactElement | null {
           <Section title="AddRxManual · live">
             <Button
               variant="secondary"
-              fullWidth
-              onPress={() => router.push("/prescriptions/manual" as never)}>
-              فتح /prescriptions/manual
-            </Button>
+              full
+              onPress={() => router.push("/prescriptions/manual" as never)}
+              label="فتح /prescriptions/manual"
+            />
             <Text variant="caption" color="tertiary" align="right" style={{ marginTop: theme.spacing[1] }}>
               جرّب 47820094 للبحث الناجح، أو أي 8 أرقام أخرى للحالة غير الموجودة
             </Text>
@@ -194,7 +194,7 @@ export default function ComponentPreview(): React.ReactElement | null {
           <Section title="parseRxText · tests">
             <Button
               variant="primary"
-              fullWidth
+              full
               onPress={() => {
                 const s = runParserTests();
                 const failList = s.failures
@@ -206,9 +206,9 @@ export default function ComponentPreview(): React.ReactElement | null {
                     ? "كل الحالات نجحت."
                     : failList,
                 );
-              }}>
-              تشغيل اختبارات المحلل
-            </Button>
+              }}
+              label="تشغيل اختبارات المحلل"
+            />
             <Text variant="caption" color="tertiary" align="right" style={{ marginTop: theme.spacing[1] }}>
               5 حالات: إنجليزي، عربي، إدخال غير صالح، اسم بلا جرعة، رقم مدمج
             </Text>

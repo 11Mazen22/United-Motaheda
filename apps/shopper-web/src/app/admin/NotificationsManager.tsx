@@ -17,7 +17,6 @@ import {
   TagIcon,
   TrashIcon,
   UserIcon,
-  XMarkIcon,
 } from "@heroicons/react/24/outline";
 import {
   BoltIcon,
@@ -74,11 +73,7 @@ const QUICK_TEMPLATES: { type: NotifType; title: string; body: string }[] = [
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleString("ar-EG", {
-    month: "short", day: "numeric", hour: "2-digit", minute: "2-digit",
-  });
-}
+
 
 function relativeTime(iso: string) {
   const diff = Date.now() - new Date(iso).getTime();
@@ -625,8 +620,7 @@ export default function NotificationsManager() {
       .then(({ data }) => {
         setSent((data ?? []) as SentNotification[]);
         setLoading(false);
-      })
-      .catch(() => setLoading(false));
+      }, () => setLoading(false));
   }, []);
 
   // Realtime subscription — admin watches all new notifications
@@ -635,8 +629,8 @@ export default function NotificationsManager() {
     const channel = sb
       .channel("admin-notifs-live-feed")
       .on(
-        "postgres_changes" as Parameters<typeof sb.channel>[0],
-        { event: "INSERT", schema: "public", table: "notifications" } as never,
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "notifications" },
         (payload: { new: SentNotification }) => {
           setSent((prev) => {
             if (prev.some((n) => n.id === payload.new.id)) return prev;

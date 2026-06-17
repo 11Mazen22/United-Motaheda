@@ -1,14 +1,16 @@
-﻿/**
+/**
  * GiftAddressSheet — full address capture for gift redemption.
+ * VIP 2026: all legacy theme.colors.* → kit tokens. Premium modal design.
  *
  * Two modes:
- *   1. Saved address picker — shows the user's saved addresses and lets
- *      them select one as the delivery target.
- *   2. New address form     — React Hook Form + zod with Arabic validation
- *      messages, phone + governorate/city support, and delivery notes.
+ *   1. Saved address picker — select from user's saved addresses.
+ *   2. New address form     — React Hook Form + zod, Arabic validation messages.
  *
- * Once an address is confirmed, onConfirm is called with a RedemptionAddress.
- * The caller (GiftCatalogScreen) owns the redeem mutation.
+ * Functional core preserved:
+ *   • Zod schema unchanged (same validation rules).
+ *   • GOVERNORATES list unchanged.
+ *   • onConfirm shape unchanged (RedemptionAddress).
+ *   • saveToProfile logic preserved.
  */
 
 import React, { useCallback, useEffect, useState } from "react";
@@ -29,9 +31,9 @@ import { useForm, Controller, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import * as Haptics from "expo-haptics";
-import Animated, { FadeInDown } from "react-native-reanimated";
 import { useTranslation } from "react-i18next";
 import { theme } from "@/shared/theme";
+import { kit } from "@/shared/kit";
 import { useAuth } from "@/features/auth/context";
 import { useAddressStore } from "@/features/addresses";
 import type { Address, AddressFormData } from "@/features/addresses";
@@ -40,6 +42,9 @@ import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>["name"];
 type TFunc = ReturnType<typeof useTranslation>["t"];
+
+const IS_RTL     = isRtl();
+const TEXT_START = textAlignStart(IS_RTL);
 
 // ─── Egyptian governorates ────────────────────────────────────────────────────
 
@@ -52,7 +57,7 @@ const GOVERNORATES = [
   "سوهاج", "البحر الأحمر",
 ];
 
-// ─── Zod schema with Arabic messages ─────────────────────────────────────────
+// ─── Zod schema (unchanged) ───────────────────────────────────────────────────
 
 const addressSchema = z.object({
   recipientName: z
@@ -121,9 +126,9 @@ export function GiftAddressSheet({
   onConfirm,
   onClose,
 }: GiftAddressSheetProps) {
-  const insets      = useSafeAreaInsets();
-  const { user }    = useAuth();
-  const { t }       = useTranslation();
+  const insets       = useSafeAreaInsets();
+  const { user }     = useAuth();
+  const { t }        = useTranslation();
   const addressesRaw = useAddressStore((s) => s.addresses);
   const addresses    = Array.isArray(addressesRaw) ? addressesRaw : [];
   const loading      = useAddressStore((s) => s.loading);
@@ -133,15 +138,9 @@ export function GiftAddressSheet({
   const [mode, setMode]               = useState<SheetMode>("picker");
   const [govDropdown, setGovDropdown] = useState(false);
 
-  // Load saved addresses when sheet opens
   useEffect(() => {
-    if (visible && user?.id) {
-      fetch(user.id).catch(() => {});
-    }
-    if (visible) {
-      setMode("picker");
-      setGovDropdown(false);
-    }
+    if (visible && user?.id) fetch(user.id).catch(() => {});
+    if (visible) { setMode("picker"); setGovDropdown(false); }
   }, [visible, user?.id, fetch]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const hasSaved = addresses.length > 0;
@@ -152,30 +151,28 @@ export function GiftAddressSheet({
       animationType="slide"
       presentationStyle="pageSheet"
       onRequestClose={onClose}
-      accessibilityViewIsModal
-    >
+      accessibilityViewIsModal>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
-      >
-        <View style={[styles.sheet, { paddingTop: insets.top + 8 }]}>
-          {/* Header */}
-          <View style={styles.header}>
+        behavior={Platform.OS === "ios" ? "padding" : "height"}>
+        <View style={[sh.sheet, { paddingTop: insets.top + 8 }]}>
+
+          {/* ── Handle bar + header ── */}
+          <View style={sh.handle} />
+          <View style={[sh.header, { flexDirection: flexRow(IS_RTL) }]}>
             <Pressable
               onPress={onClose}
               hitSlop={12}
-              style={styles.closeBtn}
+              style={sh.closeBtn}
               accessibilityRole="button"
-              accessibilityLabel={t("common.close")}
-            >
-              <Ionicons name="close" size={18} color={theme.colors.slate[600]} />
+              accessibilityLabel={t("common.close")}>
+              <Ionicons name="close" size={18} color={kit.color.inkSoft} />
             </Pressable>
             <View style={{ flex: 1 }}>
-              <UIText style={styles.headerTitle} numberOfLines={1} maxFontSizeMultiplier={1.3}>
+              <UIText style={[sh.headerTitle, { textAlign: TEXT_START }]} numberOfLines={1} maxFontSizeMultiplier={1.3}>
                 {t("loyalty.addressSheetTitle")}
               </UIText>
-              <UIText style={styles.headerSub} numberOfLines={1} maxFontSizeMultiplier={1.4}>
+              <UIText style={[sh.headerSub, { textAlign: TEXT_START }]} numberOfLines={2} maxFontSizeMultiplier={1.4}>
                 {t("loyalty.addressSheetSub", {
                   gift:   giftName,
                   points: pointsCost.toLocaleString("ar-EG"),
@@ -184,9 +181,21 @@ export function GiftAddressSheet({
             </View>
           </View>
 
-          {/* Mode selector — only shown when there are saved addresses */}
+          {/* ── Gift summary pill ── */}
+          <View style={[sh.giftPill, { flexDirection: flexRow(IS_RTL) }]}>
+            <View style={sh.giftPillIcon}>
+              <Ionicons name="gift-outline" size={14} color={kit.color.accentDeep} />
+            </View>
+            <UIText style={sh.giftPillText} numberOfLines={1}>{giftName}</UIText>
+            <View style={[sh.costBadge, { flexDirection: flexRow(IS_RTL) }]}>
+              <Ionicons name="star" size={10} color={kit.color.accentDeep} />
+              <UIText style={sh.costBadgeText}>{pointsCost.toLocaleString("ar-EG")}</UIText>
+            </View>
+          </View>
+
+          {/* ── Mode selector ── */}
           {hasSaved && (
-            <View style={styles.modeRow}>
+            <View style={[sh.modeRow, { flexDirection: flexRow(IS_RTL) }]}>
               <ModeTab
                 label={t("loyalty.savedAddresses")}
                 active={mode === "picker"}
@@ -200,7 +209,7 @@ export function GiftAddressSheet({
             </View>
           )}
 
-          {/* Content */}
+          {/* ── Content ── */}
           {(!hasSaved || mode === "form") ? (
             <AddressForm
               onConfirm={onConfirm}
@@ -222,13 +231,14 @@ export function GiftAddressSheet({
               insets={insets}
             />
           )}
+
         </View>
       </KeyboardAvoidingView>
     </Modal>
   );
 }
 
-// ─── Mode tab ────────────────────────────────────────────────────────────────
+// ─── ModeTab ──────────────────────────────────────────────────────────────────
 
 function ModeTab({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
   return (
@@ -236,16 +246,15 @@ function ModeTab({ label, active, onPress }: { label: string; active: boolean; o
       onPress={onPress}
       accessibilityRole="tab"
       accessibilityState={{ selected: active }}
-      style={[styles.modeTab, active && styles.modeTabActive]}
-    >
-      <UIText style={[styles.modeTabText, active && styles.modeTabTextActive]} maxFontSizeMultiplier={1.3}>
+      style={[sh.modeTab, active && sh.modeTabActive]}>
+      <UIText style={[sh.modeTabText, active && sh.modeTabTextActive]} maxFontSizeMultiplier={1.3}>
         {label}
       </UIText>
     </Pressable>
   );
 }
 
-// ─── Saved address picker ─────────────────────────────────────────────────────
+// ─── SavedAddressPicker ───────────────────────────────────────────────────────
 
 interface SavedAddressPickerProps {
   addresses:  Address[];
@@ -289,8 +298,8 @@ function SavedAddressPicker({
 
   if (loading) {
     return (
-      <View style={styles.centered}>
-        <UIText style={styles.loadingText}>{t("loyalty.loadingAddresses")}</UIText>
+      <View style={sh.centered}>
+        <UIText style={sh.loadingText}>{t("loyalty.loadingAddresses")}</UIText>
       </View>
     );
   }
@@ -298,64 +307,70 @@ function SavedAddressPicker({
   return (
     <View style={{ flex: 1 }}>
       <ScrollView
-        contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 16, gap: 8 }}
-        showsVerticalScrollIndicator={false}
-      >
-        {addresses.map((addr) => (
-          <Pressable
-            key={addr.id}
-            onPress={() => setSelectedId(addr.id)}
-            accessibilityRole="radio"
-            accessibilityState={{ selected: selectedId === addr.id }}
-            accessibilityLabel={t("loyalty.addrA11y", {
-              label: getAddrLabel(addr.label, t),
-              name:  addr.recipient_name,
-              city:  addr.city,
-            })}
-            style={({ pressed }) => [
-              styles.addrCard,
-              selectedId === addr.id && styles.addrCardSelected,
-              pressed && { opacity: 0.88 },
-            ]}
-          >
-            <View style={styles.addrCardLeft}>
-              <Ionicons
-                name={selectedId === addr.id ? "checkmark-circle" : "ellipse-outline"}
-                size={20}
-                color={selectedId === addr.id ? theme.colors.brand[600] : theme.colors.slate[300]}
-              />
-            </View>
-            <View style={{ flex: 1 }}>
-              <View style={styles.addrCardHead}>
-                <UIText style={styles.addrName} maxFontSizeMultiplier={1.3}>{addr.recipient_name}</UIText>
-                <View style={styles.addrLabelPill}>
-                  <UIText style={styles.addrLabelText} maxFontSizeMultiplier={1.2}>
-                    {getAddrLabel(addr.label, t)}
-                  </UIText>
-                </View>
+        contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 16, gap: 10 }}
+        showsVerticalScrollIndicator={false}>
+
+        {addresses.map((addr) => {
+          const selected = selectedId === addr.id;
+          return (
+            <Pressable
+              key={addr.id}
+              onPress={() => setSelectedId(addr.id)}
+              accessibilityRole="radio"
+              accessibilityState={{ selected }}
+              accessibilityLabel={t("loyalty.addrA11y", {
+                label: getAddrLabel(addr.label, t),
+                name:  addr.recipient_name,
+                city:  addr.city,
+              })}
+              style={({ pressed }) => [
+                sh.addrCard,
+                { flexDirection: flexRow(IS_RTL) },
+                selected && sh.addrCardSelected,
+                pressed && { opacity: 0.88 },
+              ]}>
+              <View style={sh.addrCardLeft}>
+                <Ionicons
+                  name={selected ? "checkmark-circle" : "ellipse-outline"}
+                  size={22}
+                  color={selected ? kit.color.accentDeep : kit.color.inkFaint}
+                />
               </View>
-              <UIText style={styles.addrLine} maxFontSizeMultiplier={1.4} numberOfLines={2}>
-                {addr.city}، {addr.district}، {addr.street}
-                {addr.building ? `، مبنى ${addr.building}` : ""}
-                {addr.floor ? `، طابق ${addr.floor}` : ""}
-              </UIText>
-              <UIText style={styles.addrPhone} maxFontSizeMultiplier={1.3}>{addr.phone}</UIText>
-            </View>
-          </Pressable>
-        ))}
+              <View style={{ flex: 1 }}>
+                <View style={[sh.addrCardHead, { flexDirection: flexRow(IS_RTL) }]}>
+                  <UIText style={[sh.addrName, { textAlign: TEXT_START }]} maxFontSizeMultiplier={1.3}>
+                    {addr.recipient_name}
+                  </UIText>
+                  <View style={sh.addrLabelPill}>
+                    <UIText style={sh.addrLabelText} maxFontSizeMultiplier={1.2}>
+                      {getAddrLabel(addr.label, t)}
+                    </UIText>
+                  </View>
+                </View>
+                <UIText style={[sh.addrLine, { textAlign: TEXT_START }]} maxFontSizeMultiplier={1.4} numberOfLines={2}>
+                  {addr.city}،{"  "}{addr.district}،{"  "}{addr.street}
+                  {addr.building ? `، مبنى ${addr.building}` : ""}
+                  {addr.floor ? `، طابق ${addr.floor}` : ""}
+                </UIText>
+                <UIText style={[sh.addrPhone, { textAlign: TEXT_START }]} maxFontSizeMultiplier={1.3}>
+                  {addr.phone}
+                </UIText>
+              </View>
+            </Pressable>
+          );
+        })}
 
         <Pressable
           onPress={onAddNew}
           accessibilityRole="button"
           accessibilityLabel={t("loyalty.addNewAddress")}
-          style={({ pressed }) => [styles.addNewBtn, pressed && { opacity: 0.85 }]}
-        >
-          <Ionicons name="add-circle-outline" size={16} color={theme.colors.brand[700]} />
-          <UIText style={styles.addNewText}>{t("loyalty.addNewAddress")}</UIText>
+          style={({ pressed }) => [sh.addNewBtn, { flexDirection: flexRow(IS_RTL) }, pressed && { opacity: 0.85 }]}>
+          <Ionicons name="add-circle-outline" size={16} color={kit.color.accentDeep} />
+          <UIText style={sh.addNewText}>{t("loyalty.addNewAddress")}</UIText>
         </Pressable>
       </ScrollView>
 
-      <View style={[styles.confirmFooter, { paddingBottom: insets.bottom + 16 }]}>
+      <View style={[sh.confirmFooter, { paddingBottom: insets.bottom + 16 }]}>
         <Pressable
           onPress={handleConfirm}
           disabled={!selectedId || submitting}
@@ -363,13 +378,13 @@ function SavedAddressPicker({
           accessibilityLabel={t("loyalty.confirmAddressA11y")}
           accessibilityState={{ disabled: !selectedId || submitting, busy: submitting }}
           style={({ pressed }) => [
-            styles.confirmBtn,
-            (!selectedId || submitting) && styles.confirmBtnDisabled,
+            sh.confirmBtn,
+            { flexDirection: flexRow(IS_RTL) },
+            (!selectedId || submitting) && sh.confirmBtnDisabled,
             pressed && selectedId && !submitting && { opacity: 0.9 },
-          ]}
-        >
-          <Ionicons name="gift-outline" size={16} color="#fff" />
-          <UIText style={styles.confirmBtnText} maxFontSizeMultiplier={1.2}>
+          ]}>
+          <Ionicons name="gift-outline" size={16} color={kit.color.onInk} />
+          <UIText style={sh.confirmBtnText} maxFontSizeMultiplier={1.2}>
             {submitting ? t("loyalty.confirmAddressSending") : t("loyalty.confirmOrderLabel")}
           </UIText>
         </Pressable>
@@ -378,17 +393,17 @@ function SavedAddressPicker({
   );
 }
 
-// ─── Address form ─────────────────────────────────────────────────────────────
+// ─── AddressForm ──────────────────────────────────────────────────────────────
 
 interface AddressFormProps {
-  onConfirm:      (addr: RedemptionAddress) => void;
-  submitting:     boolean;
-  insets:         { bottom: number };
-  govDropdown:    boolean;
-  setGovDropdown: (v: boolean) => void;
-  userId?:        string;
+  onConfirm:         (addr: RedemptionAddress) => void;
+  submitting:        boolean;
+  insets:            { bottom: number };
+  govDropdown:       boolean;
+  setGovDropdown:    (v: boolean) => void;
+  userId?:           string;
   hasSavedAddresses: boolean;
-  addAddress:     (userId: string, form: AddressFormData) => Promise<Address>;
+  addAddress:        (userId: string, form: AddressFormData) => Promise<Address>;
 }
 
 function AddressForm({
@@ -409,7 +424,7 @@ function AddressForm({
     watch,
     formState: { errors },
   } = useForm<AddressFormValues>({
-    resolver: zodResolver(addressSchema),
+    resolver:      zodResolver(addressSchema),
     defaultValues: {
       recipientName: "",
       phone:         "",
@@ -423,14 +438,12 @@ function AddressForm({
   });
 
   const watchedGov = watch("governorate");
-
   const [saveToProfile, setSaveToProfile] = useState(true);
-  const [saveError, setSaveError] = useState<string | null>(null);
+  const [saveError, setSaveError]         = useState<string | null>(null);
 
   const onSubmit: SubmitHandler<AddressFormValues> = useCallback(
     async (values) => {
       setSaveError(null);
-
       if (Platform.OS !== "web")
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
 
@@ -450,11 +463,8 @@ function AddressForm({
           lng:            undefined,
           is_default:     !hasSavedAddresses,
         };
-        try {
-          await addAddress(userId, payload);
-        } catch {
-          setSaveError(t("loyalty.addressSaveError"));
-        }
+        try { await addAddress(userId, payload); }
+        catch { setSaveError(t("loyalty.addressSaveError")); }
       }
 
       onConfirm({
@@ -481,96 +491,79 @@ function AddressForm({
       <ScrollView
         contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 16, gap: 14 }}
         showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-      >
+        keyboardShouldPersistTaps="handled">
+
         {/* Recipient name */}
-        <Animated.View entering={FadeInDown.delay(40).duration(200)}>
-          <Controller
-            control={control}
-            name="recipientName"
-            render={({ field }) => (
-              <FormField
-                label={t("loyalty.recipientName")}
-                placeholder="الاسم كامل"
-                icon="person-outline"
-                value={field.value}
-                onChangeText={field.onChange}
-                onBlur={field.onBlur}
-                error={errors.recipientName?.message}
-              />
-            )}
-          />
-        </Animated.View>
+        <Controller
+          control={control}
+          name="recipientName"
+          render={({ field }) => (
+            <FormField
+              label={t("loyalty.recipientName")}
+              placeholder="الاسم كامل"
+              icon="person-outline"
+              value={field.value}
+              onChangeText={field.onChange}
+              onBlur={field.onBlur}
+              error={errors.recipientName?.message}
+            />
+          )}
+        />
 
         {/* Phone */}
-        <Animated.View entering={FadeInDown.delay(70).duration(200)}>
-          <Controller
-            control={control}
-            name="phone"
-            render={({ field }) => (
-              <FormField
-                label={t("loyalty.phoneField")}
-                placeholder="01xxxxxxxxx"
-                icon="call-outline"
-                keyboardType="phone-pad"
-                value={field.value}
-                onChangeText={field.onChange}
-                onBlur={field.onBlur}
-                error={errors.phone?.message}
-              />
-            )}
-          />
-        </Animated.View>
+        <Controller
+          control={control}
+          name="phone"
+          render={({ field }) => (
+            <FormField
+              label={t("loyalty.phoneField")}
+              placeholder="01xxxxxxxxx"
+              icon="call-outline"
+              keyboardType="phone-pad"
+              value={field.value}
+              onChangeText={field.onChange}
+              onBlur={field.onBlur}
+              error={errors.phone?.message}
+            />
+          )}
+        />
 
         {/* Governorate picker */}
-        <Animated.View entering={FadeInDown.delay(100).duration(200)}>
-          <UIText style={styles.fieldLabel}>{t("loyalty.governorateField")}</UIText>
+        <View style={sh.fieldWrap}>
+          <UIText style={[sh.fieldLabel, { textAlign: TEXT_START }]}>{t("loyalty.governorateField")}</UIText>
           <Pressable
             onPress={() => setGovDropdown(!govDropdown)}
             accessibilityRole="combobox"
             accessibilityLabel={t("loyalty.chooseGovernorateA11y")}
             accessibilityState={{ expanded: govDropdown }}
-            style={[
-              styles.fieldBox,
-              errors.governorate && styles.fieldBoxError,
-            ]}
-          >
+            style={[sh.fieldBox, { flexDirection: flexRow(IS_RTL) }, errors.governorate && sh.fieldBoxError]}>
             <Ionicons
               name={govDropdown ? "chevron-up" : "chevron-down"}
               size={14}
-              color={theme.colors.slate[400]}
+              color={kit.color.inkFaint}
             />
             <UIText
-              style={[
-                styles.fieldInput,
-                !watchedGov && { color: theme.colors.slate[300] },
-              ]}
-              maxFontSizeMultiplier={1.3}
-            >
+              style={[sh.fieldInput, !watchedGov && { color: kit.color.inkFaint }]}
+              maxFontSizeMultiplier={1.3}>
               {watchedGov || t("loyalty.selectGovernorate")}
             </UIText>
           </Pressable>
           {errors.governorate && (
-            <UIText style={styles.fieldError}>{errors.governorate.message}</UIText>
+            <UIText style={[sh.fieldError, { textAlign: TEXT_START }]}>{errors.governorate.message}</UIText>
           )}
           {govDropdown && (
-            <View style={styles.dropdown}>
+            <View style={sh.dropdown}>
               <ScrollView style={{ maxHeight: 220 }} nestedScrollEnabled>
                 {GOVERNORATES.map((gov) => (
                   <Pressable
                     key={gov}
-                    onPress={() => {
-                      setValue("governorate", gov, { shouldValidate: true });
-                      setGovDropdown(false);
-                    }}
+                    onPress={() => { setValue("governorate", gov, { shouldValidate: true }); setGovDropdown(false); }}
                     accessibilityRole="button"
                     accessibilityState={{ selected: watchedGov === gov }}
-                    style={[styles.dropdownItem, watchedGov === gov && styles.dropdownItemActive]}
-                  >
+                    style={[sh.dropdownItem, watchedGov === gov && sh.dropdownItemActive]}>
                     <UIText
-                      style={[styles.dropdownItemText, watchedGov === gov && styles.dropdownItemTextActive]}
-                      maxFontSizeMultiplier={1.3}
-                    >
+                      style={[sh.dropdownItemText, { textAlign: TEXT_START }, watchedGov === gov && sh.dropdownItemTextActive]}
+                      maxFontSizeMultiplier={1.3}>
                       {gov}
                     </UIText>
                   </Pressable>
@@ -578,47 +571,43 @@ function AddressForm({
               </ScrollView>
             </View>
           )}
-        </Animated.View>
+        </View>
 
         {/* City */}
-        <Animated.View entering={FadeInDown.delay(130).duration(200)}>
-          <Controller
-            control={control}
-            name="city"
-            render={({ field }) => (
-              <FormField
-                label={t("loyalty.cityField")}
-                placeholder="مثال: مدينة نصر"
-                icon="location-outline"
-                value={field.value}
-                onChangeText={field.onChange}
-                onBlur={field.onBlur}
-                error={errors.city?.message}
-              />
-            )}
-          />
-        </Animated.View>
+        <Controller
+          control={control}
+          name="city"
+          render={({ field }) => (
+            <FormField
+              label={t("loyalty.cityField")}
+              placeholder="مثال: مدينة نصر"
+              icon="location-outline"
+              value={field.value}
+              onChangeText={field.onChange}
+              onBlur={field.onBlur}
+              error={errors.city?.message}
+            />
+          )}
+        />
 
         {/* Street */}
-        <Animated.View entering={FadeInDown.delay(160).duration(200)}>
-          <Controller
-            control={control}
-            name="street"
-            render={({ field }) => (
-              <FormField
-                label={t("loyalty.streetField")}
-                placeholder="اسم أو رقم الشارع"
-                value={field.value}
-                onChangeText={field.onChange}
-                onBlur={field.onBlur}
-                error={errors.street?.message}
-              />
-            )}
-          />
-        </Animated.View>
+        <Controller
+          control={control}
+          name="street"
+          render={({ field }) => (
+            <FormField
+              label={t("loyalty.streetField")}
+              placeholder="اسم أو رقم الشارع"
+              value={field.value}
+              onChangeText={field.onChange}
+              onBlur={field.onBlur}
+              error={errors.street?.message}
+            />
+          )}
+        />
 
         {/* Building + Floor row */}
-        <Animated.View entering={FadeInDown.delay(190).duration(200)} style={styles.fieldRow}>
+        <View style={[sh.fieldRow, { flexDirection: flexRow(IS_RTL) }]}>
           <View style={{ flex: 1 }}>
             <Controller
               control={control}
@@ -650,57 +639,50 @@ function AddressForm({
               )}
             />
           </View>
-        </Animated.View>
+        </View>
 
-        {/* Delivery notes */}
-        <Animated.View entering={FadeInDown.delay(220).duration(200)}>
-          <Controller
-            control={control}
-            name="notes"
-            render={({ field }) => (
-              <FormField
-                label={t("loyalty.notesField")}
-                placeholder="بجوار مسجد، أمام حديقة…"
-                icon="chatbubble-outline"
-                value={field.value ?? ""}
-                onChangeText={field.onChange}
-                onBlur={field.onBlur}
-                error={errors.notes?.message}
-                multiline
-              />
-            )}
-          />
-        </Animated.View>
-
-        {/* Save toggle */}
-        <Animated.View entering={FadeInDown.delay(250).duration(200)}>
-          <Pressable
-            onPress={() => setSaveToProfile((v) => !v)}
-            accessibilityRole="checkbox"
-            accessibilityState={{ checked: saveToProfile }}
-            style={({ pressed }) => [
-              styles.saveRow,
-              pressed && { opacity: 0.9 },
-            ]}
-          >
-            <Ionicons
-              name={saveToProfile ? "checkbox" : "square-outline"}
-              size={18}
-              color={saveToProfile ? theme.colors.brand[600] : theme.colors.slate[400]}
+        {/* Notes */}
+        <Controller
+          control={control}
+          name="notes"
+          render={({ field }) => (
+            <FormField
+              label={t("loyalty.notesField")}
+              placeholder="بجوار مسجد، أمام حديقة…"
+              icon="chatbubble-outline"
+              value={field.value ?? ""}
+              onChangeText={field.onChange}
+              onBlur={field.onBlur}
+              error={errors.notes?.message}
+              multiline
             />
-            <UIText style={styles.saveRowText} maxFontSizeMultiplier={1.3}>
-              {t("loyalty.saveToProfile")}
-            </UIText>
-          </Pressable>
-          {saveError && (
-            <UIText style={styles.saveWarn} accessibilityRole="alert" maxFontSizeMultiplier={1.4}>
-              {saveError}
-            </UIText>
           )}
-        </Animated.View>
+        />
+
+        {/* Save-to-profile toggle */}
+        <Pressable
+          onPress={() => setSaveToProfile((v) => !v)}
+          accessibilityRole="checkbox"
+          accessibilityState={{ checked: saveToProfile }}
+          style={({ pressed }) => [sh.saveRow, { flexDirection: flexRow(IS_RTL) }, pressed && { opacity: 0.9 }]}>
+          <Ionicons
+            name={saveToProfile ? "checkbox" : "square-outline"}
+            size={18}
+            color={saveToProfile ? kit.color.accentDeep : kit.color.inkFaint}
+          />
+          <UIText style={[sh.saveRowText, { textAlign: TEXT_START }]} maxFontSizeMultiplier={1.3}>
+            {t("loyalty.saveToProfile")}
+          </UIText>
+        </Pressable>
+        {saveError && (
+          <UIText style={[sh.saveWarn, { textAlign: TEXT_START }]} accessibilityRole="alert" maxFontSizeMultiplier={1.4}>
+            {saveError}
+          </UIText>
+        )}
+
       </ScrollView>
 
-      <View style={[styles.confirmFooter, { paddingBottom: insets.bottom + 16 }]}>
+      <View style={[sh.confirmFooter, { paddingBottom: insets.bottom + 16 }]}>
         <Pressable
           onPress={handleSubmit(onSubmit, onError)}
           disabled={submitting}
@@ -708,13 +690,13 @@ function AddressForm({
           accessibilityLabel={t("loyalty.confirmAddressA11y")}
           accessibilityState={{ disabled: submitting, busy: submitting }}
           style={({ pressed }) => [
-            styles.confirmBtn,
-            submitting && styles.confirmBtnDisabled,
+            sh.confirmBtn,
+            { flexDirection: flexRow(IS_RTL) },
+            submitting && sh.confirmBtnDisabled,
             pressed && !submitting && { opacity: 0.9 },
-          ]}
-        >
-          <Ionicons name="gift-outline" size={16} color="#fff" />
-          <UIText style={styles.confirmBtnText} maxFontSizeMultiplier={1.2}>
+          ]}>
+          <Ionicons name="gift-outline" size={16} color={kit.color.onInk} />
+          <UIText style={sh.confirmBtnText} maxFontSizeMultiplier={1.2}>
             {submitting ? t("loyalty.confirmAddressSending") : t("loyalty.confirmOrderLabel")}
           </UIText>
         </Pressable>
@@ -726,29 +708,34 @@ function AddressForm({
 // ─── FormField atom ───────────────────────────────────────────────────────────
 
 interface FormFieldProps {
-  label:          string;
-  placeholder?:   string;
-  icon?:          IoniconsName;
-  value:          string;
-  onChangeText:   (v: string) => void;
-  onBlur?:        () => void;
-  error?:         string;
-  keyboardType?:  "default" | "phone-pad" | "numeric";
-  multiline?:     boolean;
+  label:         string;
+  placeholder?:  string;
+  icon?:         IoniconsName;
+  value:         string;
+  onChangeText:  (v: string) => void;
+  onBlur?:       () => void;
+  error?:        string;
+  keyboardType?: "default" | "phone-pad" | "numeric";
+  multiline?:    boolean;
 }
 
 function FormField({
   label, placeholder, icon, value, onChangeText, onBlur, error, keyboardType, multiline,
 }: FormFieldProps) {
   return (
-    <View style={styles.fieldWrap}>
-      <UIText style={styles.fieldLabel}>{label}</UIText>
-      <View style={[styles.fieldBox, error && styles.fieldBoxError, multiline && { minHeight: 72, alignItems: "flex-start" }]}>
+    <View style={sh.fieldWrap}>
+      <UIText style={[sh.fieldLabel, { textAlign: TEXT_START }]}>{label}</UIText>
+      <View style={[
+        sh.fieldBox,
+        { flexDirection: flexRow(IS_RTL) },
+        error     && sh.fieldBoxError,
+        multiline && { minHeight: 76, alignItems: "flex-start" },
+      ]}>
         {icon && (
           <Ionicons
             name={icon}
             size={14}
-            color={theme.colors.slate[400]}
+            color={kit.color.inkFaint}
             style={{ marginStart: 4, marginTop: multiline ? 14 : 0 }}
           />
         )}
@@ -757,303 +744,382 @@ function FormField({
           onChangeText={onChangeText}
           onBlur={onBlur}
           placeholder={placeholder}
-          placeholderTextColor={theme.colors.slate[300]}
+          placeholderTextColor={kit.color.inkFaint}
           keyboardType={keyboardType ?? "default"}
-          textAlign={textAlignStart(isRtl()) as "left" | "right"}
+          textAlign={TEXT_START as "left" | "right"}
           multiline={multiline}
-          style={[styles.fieldInput, multiline && { paddingTop: 12, textAlignVertical: "top" }]}
+          style={[sh.fieldInput, multiline && { paddingTop: 12, textAlignVertical: "top" }]}
           maxFontSizeMultiplier={1.3}
           accessibilityLabel={label}
         />
       </View>
-      {error && <UIText style={styles.fieldError} accessibilityRole="alert">{error}</UIText>}
+      {error && (
+        <UIText style={[sh.fieldError, { textAlign: TEXT_START }]} accessibilityRole="alert">
+          {error}
+        </UIText>
+      )}
     </View>
   );
 }
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
-const styles = StyleSheet.create({
+const sh = StyleSheet.create({
+  // ── Sheet shell ─────────────────────────────────────────────────────────────
   sheet: {
     flex:            1,
-    backgroundColor: theme.colors.bg,
+    backgroundColor: kit.color.canvas,
+  },
+  handle: {
+    width:           36,
+    height:          4,
+    borderRadius:    2,
+    backgroundColor: kit.color.lineStrong,
+    alignSelf:       "center",
+    marginBottom:    12,
   },
   header: {
-    flexDirection:     flexRow(isRtl()),
-    alignItems:        "center",
+    alignItems:        "flex-start",
     gap:               12,
     paddingHorizontal: 16,
-    paddingBottom:     12,
+    paddingBottom:     14,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border.hairline,
+    borderBottomColor: kit.color.line,
   },
   closeBtn: {
-    width:          36,
-    height:         36,
-    borderRadius:   12,
-    backgroundColor: theme.colors.subtle,
-    alignItems:     "center",
-    justifyContent: "center",
+    width:           36,
+    height:          36,
+    borderRadius:    12,
+    backgroundColor: kit.color.well,
+    borderWidth:     1,
+    borderColor:     kit.color.line,
+    alignItems:      "center",
+    justifyContent:  "center",
+    flexShrink:      0,
   },
   headerTitle: {
-    fontFamily: theme.fonts.black,
-    fontSize:   16,
-    color:      theme.colors.text.primary,
-    textAlign:  textAlignStart(isRtl()),
+    fontFamily:         theme.fonts.black,
+    fontSize:           17,
+    lineHeight:         24,
+    color:              kit.color.ink,
+    includeFontPadding: false,
   },
   headerSub: {
-    fontFamily: theme.fonts.regular,
-    fontSize:   11,
-    color:      theme.colors.text.tertiary,
-    textAlign:  textAlignStart(isRtl()),
-    marginTop:  2,
+    fontFamily:         theme.fonts.regular,
+    fontSize:           12,
+    lineHeight:         18,
+    color:              kit.color.inkSoft,
+    marginTop:          3,
+    includeFontPadding: false,
   },
 
+  // ── Gift summary pill ────────────────────────────────────────────────────────
+  giftPill: {
+    alignItems:        "center",
+    gap:               10,
+    marginHorizontal:  16,
+    marginTop:         12,
+    paddingHorizontal: 14,
+    paddingVertical:   10,
+    backgroundColor:   kit.color.accentTint,
+    borderRadius:      kit.radius.lg,
+    borderWidth:       1,
+    borderColor:       kit.color.line,
+  },
+  giftPillIcon: {
+    width:           32,
+    height:          32,
+    borderRadius:    10,
+    backgroundColor: kit.color.surface,
+    borderWidth:     1,
+    borderColor:     kit.color.line,
+    alignItems:      "center",
+    justifyContent:  "center",
+    flexShrink:      0,
+  },
+  giftPillText: {
+    flex:               1,
+    fontFamily:         theme.fonts.bold,
+    fontSize:           13,
+    lineHeight:         18,
+    color:              kit.color.ink,
+    textAlign:          TEXT_START,
+    includeFontPadding: false,
+  },
+  costBadge: {
+    alignItems:        "center",
+    gap:               4,
+    backgroundColor:   kit.color.surface,
+    borderRadius:      kit.radius.pill,
+    paddingHorizontal: 10,
+    paddingVertical:   5,
+    borderWidth:       1,
+    borderColor:       kit.color.line,
+    flexShrink:        0,
+  },
+  costBadgeText: {
+    fontFamily:         theme.fonts.black,
+    fontSize:           11,
+    lineHeight:         16,
+    color:              kit.color.accentDeep,
+    includeFontPadding: false,
+  },
+
+  // ── Mode tabs ─────────────────────────────────────────────────────────────────
   modeRow: {
-    flexDirection:     flexRow(isRtl()),
     paddingHorizontal: 16,
-    paddingTop:        10,
-    paddingBottom:     2,
-    gap:               6,
+    paddingTop:        12,
+    paddingBottom:     4,
+    gap:               8,
   },
   modeTab: {
-    flex:              1,
-    paddingVertical:   9,
-    borderRadius:      10,
-    alignItems:        "center",
-    backgroundColor:   theme.colors.subtle,
-    borderWidth:       1,
-    borderColor:       theme.colors.border.default,
+    flex:            1,
+    paddingVertical: 10,
+    borderRadius:    kit.radius.control,
+    alignItems:      "center",
+    backgroundColor: kit.color.well,
+    borderWidth:     1,
+    borderColor:     kit.color.line,
   },
   modeTabActive: {
-    backgroundColor: theme.colors.brand.lighter,
-    borderColor:     theme.colors.brand[200],
+    backgroundColor: kit.color.accentTint,
+    borderColor:     kit.color.accent,
   },
   modeTabText: {
-    fontFamily: theme.fonts.bold,
-    fontSize:   12,
-    color:      theme.colors.text.secondary,
+    fontFamily:         theme.fonts.bold,
+    fontSize:           12,
+    lineHeight:         17,
+    color:              kit.color.inkSoft,
+    includeFontPadding: false,
   },
   modeTabTextActive: {
-    color: theme.colors.brand[700],
+    color: kit.color.accentDeep,
   },
 
+  // ── Utils ─────────────────────────────────────────────────────────────────────
   centered: {
     flex:           1,
     alignItems:     "center",
     justifyContent: "center",
   },
   loadingText: {
-    fontFamily: theme.fonts.regular,
-    fontSize:   13,
-    color:      theme.colors.text.tertiary,
+    fontFamily:         theme.fonts.regular,
+    fontSize:           13,
+    lineHeight:         18,
+    color:              kit.color.inkFaint,
+    includeFontPadding: false,
   },
 
-  // Saved address picker
+  // ── Saved address picker ──────────────────────────────────────────────────────
   addrCard: {
-    flexDirection:   flexRow(isRtl()),
-    gap:             10,
-    backgroundColor: theme.colors.surface,
-    borderRadius:    14,
+    gap:             12,
+    backgroundColor: kit.color.surface,
+    borderRadius:    kit.radius.lg,
     padding:         14,
     borderWidth:     1,
-    borderColor:     theme.colors.border.default,
-    ...theme.shadow.hairline,
+    borderColor:     kit.color.line,
+    ...kit.shadow.raised,
   },
   addrCardSelected: {
-    borderColor:     theme.colors.brand[300],
-    backgroundColor: theme.colors.brand[50],
+    borderColor:     kit.color.accent,
+    backgroundColor: kit.color.accentTint,
   },
   addrCardLeft: {
-    paddingTop: 2,
+    paddingTop: 1,
   },
   addrCardHead: {
-    flexDirection:  flexRow(isRtl()),
-    alignItems:     "center",
-    gap:            6,
-    marginBottom:   4,
+    alignItems:   "center",
+    gap:          6,
+    marginBottom: 5,
   },
   addrName: {
-    fontFamily: theme.fonts.bold,
-    fontSize:   13,
-    color:      theme.colors.text.primary,
-    flex:       1,
-    textAlign:  textAlignStart(isRtl()),
+    fontFamily:         theme.fonts.bold,
+    fontSize:           13,
+    lineHeight:         18,
+    color:              kit.color.ink,
+    flex:               1,
+    includeFontPadding: false,
   },
   addrLabelPill: {
     paddingHorizontal: 7,
-    paddingVertical:   2,
-    borderRadius:      6,
-    backgroundColor:   theme.colors.surfaceSunken,
+    paddingVertical:   3,
+    borderRadius:      kit.radius.pill,
+    backgroundColor:   kit.color.well,
+    borderWidth:       1,
+    borderColor:       kit.color.line,
   },
   addrLabelText: {
-    fontFamily: theme.fonts.bold,
-    fontSize:   9,
-    color:      theme.colors.text.secondary,
+    fontFamily:         theme.fonts.bold,
+    fontSize:           9,
+    lineHeight:         13,
+    color:              kit.color.inkSoft,
+    includeFontPadding: false,
   },
   addrLine: {
-    fontFamily: theme.fonts.regular,
-    fontSize:   12,
-    color:      theme.colors.text.secondary,
-    textAlign:  textAlignStart(isRtl()),
-    lineHeight: 17,
+    fontFamily:         theme.fonts.regular,
+    fontSize:           12,
+    lineHeight:         18,
+    color:              kit.color.inkSoft,
+    includeFontPadding: false,
   },
   addrPhone: {
-    fontFamily: theme.fonts.bold,
-    fontSize:   11,
-    color:      theme.colors.text.tertiary,
-    textAlign:  textAlignStart(isRtl()),
-    marginTop:  4,
+    fontFamily:    theme.fonts.bold,
+    fontSize:      11,
+    lineHeight:    17,
+    color:         kit.color.inkFaint,
+    marginTop:     4,
     letterSpacing: 0.5,
+    includeFontPadding: false,
   },
-
   addNewBtn: {
-    flexDirection:     flexRow(isRtl()),
     alignItems:        "center",
-    gap:               6,
-    paddingVertical:   12,
+    gap:               7,
+    paddingVertical:   13,
     paddingHorizontal: 14,
-    borderRadius:      14,
+    borderRadius:      kit.radius.lg,
     borderWidth:       1.5,
-    borderColor:       theme.colors.brand[200],
+    borderColor:       kit.color.line,
     borderStyle:       "dashed",
-    backgroundColor:   theme.colors.brand[50],
+    backgroundColor:   kit.color.accentTint,
     justifyContent:    "center",
     marginTop:         4,
   },
   addNewText: {
-    fontFamily: theme.fonts.bold,
-    fontSize:   13,
-    color:      theme.colors.brand[700],
+    fontFamily:         theme.fonts.bold,
+    fontSize:           13,
+    lineHeight:         18,
+    color:              kit.color.accentDeep,
+    includeFontPadding: false,
   },
 
-  // Form fields
-  fieldWrap: {
-    gap: 4,
-  },
-  fieldRow: {
-    flexDirection: flexRow(isRtl()),
-    gap:           10,
-  },
+  // ── Form fields ───────────────────────────────────────────────────────────────
+  fieldWrap: { gap: 5 },
+  fieldRow:  { gap: 10 },
   fieldLabel: {
-    fontFamily: theme.fonts.bold,
-    fontSize:   11,
-    color:      theme.colors.text.secondary,
-    textAlign:  textAlignStart(isRtl()),
-    paddingEnd: 2,
+    fontFamily:         theme.fonts.bold,
+    fontSize:           11,
+    lineHeight:         16,
+    color:              kit.color.inkSoft,
+    paddingEnd:         2,
+    includeFontPadding: false,
   },
   fieldBox: {
-    flexDirection:     flexRow(isRtl()),
     alignItems:        "center",
-    backgroundColor:   theme.colors.surface,
-    borderRadius:      14,
+    backgroundColor:   kit.color.surface,
+    borderRadius:      kit.radius.lg,
     borderWidth:       1.5,
-    borderColor:       theme.colors.border.default,
+    borderColor:       kit.color.line,
     paddingHorizontal: 12,
-    minHeight:         46,
+    minHeight:         48,
   },
   fieldBoxError: {
-    borderColor:     theme.colors.red[400],
-    backgroundColor: theme.colors.red[50],
+    borderColor:     kit.color.danger,
+    backgroundColor: kit.color.dangerTint,
   },
   fieldInput: {
-    flex:       1,
-    fontFamily: theme.fonts.semibold,
-    fontSize:   13,
-    color:      theme.colors.text.primary,
-    paddingVertical: 10,
+    flex:               1,
+    fontFamily:         theme.fonts.semibold,
+    fontSize:           13,
+    lineHeight:         20,
+    color:              kit.color.ink,
+    paddingVertical:    10,
+    includeFontPadding: false,
   },
   fieldError: {
-    fontFamily: theme.fonts.bold,
-    fontSize:   10,
-    color:      theme.colors.red[500],
-    textAlign:  textAlignStart(isRtl()),
-    paddingEnd: 4,
+    fontFamily:         theme.fonts.bold,
+    fontSize:           10,
+    lineHeight:         15,
+    color:              kit.color.danger,
+    paddingEnd:         4,
+    includeFontPadding: false,
   },
 
+  // ── Save toggle ───────────────────────────────────────────────────────────────
   saveRow: {
-    flexDirection:     flexRow(isRtl()),
     alignItems:        "center",
     gap:               8,
-    paddingVertical:   10,
+    paddingVertical:   11,
     paddingHorizontal: 12,
-    borderRadius:      14,
-    backgroundColor:   theme.colors.surfaceSunken,
+    borderRadius:      kit.radius.lg,
+    backgroundColor:   kit.color.well,
     borderWidth:       1,
-    borderColor:       theme.colors.border.default,
+    borderColor:       kit.color.line,
   },
   saveRowText: {
-    flex:       1,
-    fontFamily: theme.fonts.semibold,
-    fontSize:   12,
-    color:      theme.colors.text.primary,
-    textAlign:  textAlignStart(isRtl()),
+    flex:               1,
+    fontFamily:         theme.fonts.semibold,
+    fontSize:           12,
+    lineHeight:         18,
+    color:              kit.color.ink,
+    includeFontPadding: false,
   },
   saveWarn: {
-    marginTop:  6,
-    fontFamily: theme.fonts.bold,
-    fontSize:   11,
-    color:      theme.colors.warning.strong,
-    textAlign:  textAlignStart(isRtl()),
-    paddingEnd: 4,
-    lineHeight: 16,
+    marginTop:          6,
+    fontFamily:         theme.fonts.bold,
+    fontSize:           11,
+    lineHeight:         16,
+    color:              kit.color.warn,
+    paddingEnd:         4,
+    includeFontPadding: false,
   },
 
-  // Governorate dropdown
+  // ── Governorate dropdown ──────────────────────────────────────────────────────
   dropdown: {
-    borderRadius:    12,
+    borderRadius:    kit.radius.lg,
     borderWidth:     1,
-    borderColor:     theme.colors.border.default,
-    backgroundColor: theme.colors.surface,
+    borderColor:     kit.color.line,
+    backgroundColor: kit.color.surface,
     marginTop:       4,
     overflow:        "hidden",
-    ...theme.shadow.card,
+    ...kit.shadow.raised,
   },
   dropdownItem: {
     paddingHorizontal: 14,
-    paddingVertical:   11,
+    paddingVertical:   12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border.hairline,
+    borderBottomColor: kit.color.line,
   },
   dropdownItemActive: {
-    backgroundColor: theme.colors.brand[50],
+    backgroundColor: kit.color.accentTint,
   },
   dropdownItemText: {
-    fontFamily: theme.fonts.semibold,
-    fontSize:   13,
-    color:      theme.colors.text.primary,
-    textAlign:  textAlignStart(isRtl()),
+    fontFamily:         theme.fonts.semibold,
+    fontSize:           13,
+    lineHeight:         18,
+    color:              kit.color.ink,
+    includeFontPadding: false,
   },
   dropdownItemTextActive: {
-    color:      theme.colors.brand[700],
+    color:      kit.color.accentDeep,
     fontFamily: theme.fonts.black,
   },
 
-  // Footer confirm
+  // ── Confirm footer ────────────────────────────────────────────────────────────
   confirmFooter: {
     paddingHorizontal: 16,
-    paddingTop:        10,
+    paddingTop:        12,
     borderTopWidth:    StyleSheet.hairlineWidth,
-    borderTopColor:    theme.colors.border.hairline,
-    backgroundColor:   theme.colors.bg,
+    borderTopColor:    kit.color.line,
+    backgroundColor:   kit.color.canvas,
   },
   confirmBtn: {
-    flexDirection:     flexRow(isRtl()),
-    alignItems:        "center",
-    justifyContent:    "center",
-    gap:               8,
-    backgroundColor:   theme.colors.brand[600],
-    borderRadius:      16,
-    paddingVertical:   15,
-    ...theme.shadow.brand,
+    alignItems:      "center",
+    justifyContent:  "center",
+    gap:             8,
+    backgroundColor: kit.color.ink,
+    borderRadius:    kit.radius.lg,
+    paddingVertical: 16,
+    ...kit.shadow.raised,
   },
   confirmBtnDisabled: {
-    backgroundColor: theme.colors.subtle,
+    backgroundColor: kit.color.inkFaint,
   },
   confirmBtnText: {
-    fontFamily: theme.fonts.black,
-    fontSize:   14,
-    color:      "#fff",
+    fontFamily:         theme.fonts.black,
+    fontSize:           14,
+    lineHeight:         20,
+    color:              kit.color.onInk,
+    includeFontPadding: false,
   },
 });
 

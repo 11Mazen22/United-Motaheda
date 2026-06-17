@@ -21,6 +21,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { theme } from "@/shared/theme";
+import { kit } from "@/shared/kit";
 import { flexRow, isRtl, textAlignStart, BACK_CHEVRON } from "@/utils/layout";
 
 interface SubScreenHeaderProps {
@@ -69,7 +70,7 @@ export function SubScreenHeader({
           pressed && styles.backBtnPressed,
         ]}
       >
-        <Ionicons name={BACK_CHEVRON} size={22} color={theme.colors.text.primary} />
+        <Ionicons name={BACK_CHEVRON} size={22} color={kit.color.ink} />
       </Pressable>
     </View>
   );
@@ -92,14 +93,14 @@ const styles = StyleSheet.create({
   title: {
     fontFamily:    theme.fonts.black,
     fontSize:      20,
-    color:         theme.colors.text.primary,
+    color:         kit.color.ink,
     textAlign:     textAlignStart(isRtl()),
     letterSpacing: -0.4,
   },
   subtitle: {
     fontFamily: theme.fonts.regular,
     fontSize:   11,
-    color:      theme.colors.text.tertiary,
+    color:      kit.color.inkFaint,
     textAlign:  textAlignStart(isRtl()),
   },
 
@@ -116,12 +117,12 @@ const styles = StyleSheet.create({
     width:           40,
     height:          40,
     borderRadius:    12,
-    backgroundColor: theme.colors.subtle,
+    backgroundColor: kit.color.well,
     alignItems:      "center",
     justifyContent:  "center",
   },
   backBtnPressed: {
-    backgroundColor: theme.colors.border.default,
+    backgroundColor: kit.color.line,
   },
 });
 

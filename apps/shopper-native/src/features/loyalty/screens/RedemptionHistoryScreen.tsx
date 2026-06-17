@@ -1,26 +1,26 @@
-﻿/**
- * RedemptionHistoryScreen — full history of all gift redemptions (all states).
+/**
+ * RedemptionHistoryScreen — V2 redemption-history journey (PRODUCT_BLUEPRINT §4.15).
  *
- * Groups by state: active (reserved/fulfilled) at top, then cancelled/expired.
- * Shows tracking number when available. Cancel action for reserved items.
+ * The tail of the redemption flow: discover → redeem → confirm → HISTORY.
+ * Organised by status (Active: reserved/fulfilled → Past: cancelled/expired);
+ * each card surfaces status, dates, the reservation deadline, and the tracking
+ * number (retrieval confidence). Reserved items can be cancelled; a "browse the
+ * catalog" card closes the loop (redeem again). Cancel logic, grouping, and all
+ * GiftRedemption business rules preserved verbatim.
  */
 
 import React, { useCallback, useMemo } from "react";
-import {
-  Platform,
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  View,
-} from "react-native";
+import { Platform, RefreshControl, ScrollView, StyleSheet, View } from "react-native";
 import { Text as UIText } from "@/shared/ui";
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { useTranslation } from "react-i18next";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
+import { kit, Button } from "@/shared/kit";
 import { theme } from "@/shared/theme";
+import { PressableScale } from "@/shared/motion";
 import { useScreenTrace } from "@/features/observability";
 import { SubScreenHeader } from "../components/SubScreenHeader";
 import { useRedemptions } from "../hooks/useRedemptions";
@@ -29,19 +29,26 @@ import type { GiftRedemption, GiftRedemptionState } from "../types";
 import { showConfirmSheet } from "@/shared/store/appSheetStore";
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>["name"];
-
 type TFunc = ReturnType<typeof useTranslation>["t"];
+
+const IS_RTL     = isRtl();
+const TEXT_START = textAlignStart(IS_RTL);
+const FWD        = IS_RTL ? "chevron-back" : "chevron-forward";
+
+const TXT = IS_RTL
+  ? { browse: "تصفّح كتالوج الهدايا", browseSub: "استبدل نقاطك من جديد" }
+  : { browse: "Browse the gift catalog", browseSub: "Redeem your points again" };
 
 export function RedemptionHistoryScreen() {
   useScreenTrace("loyalty-redemption-history");
   const insets = useSafeAreaInsets();
-  const { t } = useTranslation();
+  const router = useRouter();
+  const { t }  = useTranslation();
 
   const redemptions = useRedemptions();
   const cancel      = useCancelGiftRedemption();
 
   const refreshing = redemptions.isFetching && !redemptions.isLoading;
-
   const onRefresh = useCallback(() => {
     if (Platform.OS !== "web") Haptics.selectionAsync().catch(() => {});
     void redemptions.refetch();
@@ -55,29 +62,32 @@ export function RedemptionHistoryScreen() {
     };
   }, [redemptions.data]);
 
-  const handleCancel = useCallback(
-    (r: GiftRedemption) => {
-      showConfirmSheet(
-        t("loyalty.cancelOrderTitle"),
-        t("loyalty.cancelOrderBody"),
-        () => {
-          if (Platform.OS !== "web")
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
-          cancel.cancel({ redemptionId: r.id, reason: "user_cancelled" });
-        },
-        { confirmLabel: t("loyalty.cancelConfirmLabel"), danger: true },
-      );
-    },
-    [cancel, t],
+  // ── Cancel — unchanged business logic ──
+  const handleCancel = useCallback((r: GiftRedemption) => {
+    showConfirmSheet(
+      t("loyalty.cancelOrderTitle"),
+      t("loyalty.cancelOrderBody"),
+      () => {
+        if (Platform.OS !== "web")
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
+        cancel.cancel({ redemptionId: r.id, reason: "user_cancelled" });
+      },
+      { confirmLabel: t("loyalty.cancelConfirmLabel"), danger: true },
+    );
+  }, [cancel, t]);
+
+  const browseGifts = useCallback(
+    () => router.push("/gifts" as Parameters<typeof router.push>[0]),
+    [router],
   );
 
   if (redemptions.isLoading) {
     return (
-      <View style={[styles.screen, { paddingTop: insets.top + 8 }]}>
+      <View style={[s.screen, { paddingTop: insets.top + 8 }]}>
         <SubScreenHeader title={t("loyalty.redemptionsTitle")} subtitle={t("loyalty.redemptionsSubtitle")} />
-        <ScrollView contentContainerStyle={{ padding: 16, gap: 10 }}>
+        <ScrollView contentContainerStyle={s.scroll}>
           {Array.from({ length: 3 }).map((_, i) => (
-            <View key={i} style={[styles.card, styles.skeletonCard]} accessibilityLabel={t("common.loading")} />
+            <View key={i} style={s.skeletonCard} accessibilityLabel={t("common.loading")} />
           ))}
         </ScrollView>
       </View>
@@ -86,20 +96,12 @@ export function RedemptionHistoryScreen() {
 
   if (redemptions.isError) {
     return (
-      <View style={[styles.screen, { paddingTop: insets.top + 8 }]}>
+      <View style={[s.screen, { paddingTop: insets.top + 8 }]}>
         <SubScreenHeader title={t("loyalty.redemptionsTitle")} subtitle={t("loyalty.redemptionsSubtitle")} />
-        <View style={styles.centerPanel}>
-          <Ionicons name="cloud-offline-outline" size={36} color={theme.colors.slate[400]} />
-          <UIText style={styles.errorTitle} maxFontSizeMultiplier={1.4}>{t("loyalty.redemptionsErrorTitle")}</UIText>
-          <Pressable
-            onPress={() => void redemptions.refetch()}
-            accessibilityRole="button"
-            accessibilityLabel={t("common.retry")}
-            style={({ pressed }) => [styles.primaryBtn, pressed && { opacity: 0.9 }]}
-          >
-            <Ionicons name="refresh" size={14} color="#fff" />
-            <UIText style={styles.primaryBtnText}>{t("common.retry")}</UIText>
-          </Pressable>
+        <View style={s.centerPanel}>
+          <View style={s.centerIcon}><Ionicons name="cloud-offline-outline" size={32} color={kit.color.inkFaint} /></View>
+          <UIText style={s.centerTitle} maxFontSizeMultiplier={1.4}>{t("loyalty.redemptionsErrorTitle")}</UIText>
+          <Button label={t("common.retry")} icon="refresh" variant="primary" size="md" onPress={() => void redemptions.refetch()} style={{ marginTop: kit.sp(2) }} />
         </View>
       </View>
     );
@@ -108,152 +110,138 @@ export function RedemptionHistoryScreen() {
   const isEmpty = active.length === 0 && inactive.length === 0;
 
   return (
-    <View style={[styles.screen, { paddingTop: insets.top + 8 }]}>
+    <View style={[s.screen, { paddingTop: insets.top + 8 }]}>
       <SubScreenHeader title={t("loyalty.redemptionsTitle")} subtitle={t("loyalty.redemptionsSubtitle")} />
       <ScrollView
-        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: insets.bottom + 32 }}
+        contentContainerStyle={s.scroll}
         refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={theme.colors.brand[600]}
-            accessibilityLabel={t("loyalty.redemptionsRefreshA11y")}
-          />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={kit.color.accent}
+            accessibilityLabel={t("loyalty.redemptionsRefreshA11y")} />
         }
-        showsVerticalScrollIndicator={false}
-      >
+        showsVerticalScrollIndicator={false}>
+
         {isEmpty ? (
-          <View style={styles.centerPanel}>
-            <Ionicons name="gift-outline" size={36} color={theme.colors.slate[300]} />
-            <UIText style={styles.emptyTitle} maxFontSizeMultiplier={1.4}>{t("loyalty.redemptionsEmpty")}</UIText>
-            <UIText style={styles.emptyBody} maxFontSizeMultiplier={1.5}>
-              {t("loyalty.redemptionsEmptyBody")}
-            </UIText>
+          <View style={s.centerPanel}>
+            <View style={s.centerIcon}><Ionicons name="gift-outline" size={32} color={kit.color.accentDeep} /></View>
+            <UIText style={s.centerTitle} maxFontSizeMultiplier={1.4}>{t("loyalty.redemptionsEmpty")}</UIText>
+            <UIText style={s.centerBody} maxFontSizeMultiplier={1.5}>{t("loyalty.redemptionsEmptyBody")}</UIText>
           </View>
         ) : (
           <>
             {active.length > 0 && (
               <>
-                <SectionHeader title={t("loyalty.activeOrders")} />
+                <GroupHeader title={t("loyalty.activeOrders")} />
                 {active.map((r) => (
-                  <RedemptionCard
-                    key={r.id}
-                    redemption={r}
+                  <RedemptionCard key={r.id} redemption={r}
                     onCancel={r.state === "reserved" ? () => handleCancel(r) : undefined}
-                    cancelling={cancel.isPending}
-                  />
+                    cancelling={cancel.isPending} />
                 ))}
               </>
             )}
             {inactive.length > 0 && (
               <>
-                <SectionHeader title={t("loyalty.pastOrders")} />
-                {inactive.map((r) => (
-                  <RedemptionCard key={r.id} redemption={r} />
-                ))}
+                <GroupHeader title={t("loyalty.pastOrders")} />
+                {inactive.map((r) => <RedemptionCard key={r.id} redemption={r} />)}
               </>
             )}
           </>
         )}
+
+        {/* ── Redeem-again loop ── */}
+        <PressableScale onPress={browseGifts} scaleTo={0.98} accessibilityRole="button" accessibilityLabel={TXT.browse} style={s.browseCard}>
+          <View style={s.browseIcon}><Ionicons name="gift-outline" size={22} color={kit.color.accentDeep} /></View>
+          <View style={s.browseBody}>
+            <UIText numberOfLines={1} style={s.browseTitle}>{TXT.browse}</UIText>
+            <UIText numberOfLines={1} style={s.browseSub}>{TXT.browseSub}</UIText>
+          </View>
+          <Ionicons name={FWD} size={18} color={kit.color.inkFaint} />
+        </PressableScale>
       </ScrollView>
     </View>
   );
 }
 
-// ─── Redemption card ─────────────────────────────────────────────────────────
+// ─── GroupHeader ───────────────────────────────────────────────────────────────
+
+function GroupHeader({ title }: { title: string }) {
+  return (
+    <UIText style={s.groupTitle} accessibilityRole="header" maxFontSizeMultiplier={1.4}>{title}</UIText>
+  );
+}
+
+// ─── RedemptionCard ─────────────────────────────────────────────────────────────
 
 interface RedemptionCardProps {
-  redemption: GiftRedemption;
-  onCancel?:  () => void;
+  redemption:  GiftRedemption;
+  onCancel?:   () => void;
   cancelling?: boolean;
 }
 
 function RedemptionCard({ redemption: r, onCancel, cancelling }: RedemptionCardProps) {
   const { t } = useTranslation();
   const reservedDate  = new Date(r.reserved_at).toLocaleDateString("ar-EG", { day: "numeric", month: "short", year: "numeric" });
-  const fulfilledDate = r.fulfilled_at
-    ? new Date(r.fulfilled_at).toLocaleDateString("ar-EG", { day: "numeric", month: "short", year: "numeric" })
-    : null;
-  const expiryDate = new Date(r.expires_at).toLocaleDateString("ar-EG", { day: "numeric", month: "short" });
+  const fulfilledDate = r.fulfilled_at ? new Date(r.fulfilled_at).toLocaleDateString("ar-EG", { day: "numeric", month: "short", year: "numeric" }) : null;
+  const expiryDate    = new Date(r.expires_at).toLocaleDateString("ar-EG", { day: "numeric", month: "short" });
+  const muted = r.state === "cancelled" || r.state === "expired";
+  const color = stateColor(r.state);
+  const tint  = stateTint(r.state);
 
   return (
     <View
-      style={[styles.card, r.state === "cancelled" || r.state === "expired" ? styles.cardMuted : null]}
+      style={[s.card, muted && s.cardMuted]}
       accessibilityRole="text"
       accessibilityLabel={t("loyalty.redemptionA11y", {
         points: r.points_spent.toLocaleString("ar-EG"),
         state:  getStateLabel(r.state, t),
         date:   reservedDate,
-      })}
-    >
-      <View style={styles.cardTop}>
-        <View style={[styles.stateIcon, { backgroundColor: stateColor(r.state) + "18" }]}>
-          <Ionicons name={stateIcon(r.state)} size={18} color={stateColor(r.state)} />
+      })}>
+      <View style={s.cardTop}>
+        <View style={[s.stateIcon, { backgroundColor: tint }]}>
+          <Ionicons name={stateIcon(r.state)} size={18} color={color} />
         </View>
 
-        <View style={{ flex: 1, gap: 3 }}>
-          <View style={styles.cardTitleRow}>
-            <UIText style={styles.pointsText} maxFontSizeMultiplier={1.3}>
+        <View style={s.cardBody}>
+          <View style={s.cardTitleRow}>
+            <UIText style={s.pointsText} maxFontSizeMultiplier={1.3}>
               {r.points_spent.toLocaleString("ar-EG")} {t("loyalty.pointsUnit")}
             </UIText>
-            <View style={[styles.statePill, { backgroundColor: stateColor(r.state) + "18" }]}>
-              <UIText style={[styles.statePillText, { color: stateColor(r.state) }]}>
-                {getStateLabel(r.state, t)}
-              </UIText>
+            <View style={[s.statePill, { backgroundColor: tint }]}>
+              <UIText style={[s.statePillText, { color }]}>{getStateLabel(r.state, t)}</UIText>
             </View>
           </View>
 
-          <UIText style={styles.metaText} maxFontSizeMultiplier={1.4}>
-            {t("loyalty.orderedOn", { date: reservedDate })}
-          </UIText>
-          {fulfilledDate && (
-            <UIText style={styles.metaText} maxFontSizeMultiplier={1.4}>
-              {t("loyalty.deliveredOn", { date: fulfilledDate })}
-            </UIText>
-          )}
-          {r.state === "reserved" && (
-            <UIText style={styles.expiryText} maxFontSizeMultiplier={1.4}>
-              {t("loyalty.reservationEnds", { date: expiryDate })}
-            </UIText>
-          )}
+          <UIText style={s.metaText} maxFontSizeMultiplier={1.4}>{t("loyalty.orderedOn", { date: reservedDate })}</UIText>
+          {fulfilledDate && <UIText style={s.metaText} maxFontSizeMultiplier={1.4}>{t("loyalty.deliveredOn", { date: fulfilledDate })}</UIText>}
+          {r.state === "reserved" && <UIText style={[s.metaText, { color: kit.color.warn }]} maxFontSizeMultiplier={1.4}>{t("loyalty.reservationEnds", { date: expiryDate })}</UIText>}
+
           {r.tracking_number && (
-            <View style={styles.trackingRow}>
-              <Ionicons name="cube-outline" size={12} color={theme.colors.brand[700]} />
-              <UIText style={styles.trackingText} maxFontSizeMultiplier={1.3} selectable>
-                {r.tracking_number}
-              </UIText>
+            <View style={s.trackingRow}>
+              <Ionicons name="cube-outline" size={13} color={kit.color.accentDeep} />
+              <UIText style={s.trackingText} maxFontSizeMultiplier={1.3} selectable>{r.tracking_number}</UIText>
             </View>
           )}
-          {r.cancellation_reason && (
-            <UIText style={styles.cancelReason} maxFontSizeMultiplier={1.4}>
-              {r.cancellation_reason}
-            </UIText>
-          )}
+          {r.cancellation_reason && <UIText style={s.cancelReason} maxFontSizeMultiplier={1.4}>{r.cancellation_reason}</UIText>}
         </View>
       </View>
 
       {onCancel && (
-        <Pressable
-          onPress={onCancel}
-          disabled={cancelling}
-          accessibilityRole="button"
-          accessibilityLabel={t("loyalty.cancelOrderA11y")}
-          accessibilityState={{ disabled: !!cancelling, busy: !!cancelling }}
-          style={({ pressed }) => [
-            styles.cancelBtn,
-            pressed && { opacity: 0.85 },
-            cancelling && { opacity: 0.5 },
-          ]}
-        >
-          <Ionicons name="close-circle-outline" size={14} color={theme.colors.rose[600]} />
-          <UIText style={styles.cancelBtnText}>{t("loyalty.cancelOrder")}</UIText>
-        </Pressable>
+        <View style={s.cardFoot}>
+          <Button
+            label={t("loyalty.cancelOrder")}
+            icon="close-circle-outline"
+            variant="danger"
+            size="sm"
+            loading={cancelling}
+            onPress={onCancel}
+            accessibilityLabel={t("loyalty.cancelOrderA11y")}
+          />
+        </View>
       )}
     </View>
   );
 }
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+// ─── Status helpers ──────────────────────────────────────────────────────────────
 
 function getStateLabel(state: GiftRedemptionState, t: TFunc): string {
   switch (state) {
@@ -267,11 +255,20 @@ function getStateLabel(state: GiftRedemptionState, t: TFunc): string {
 
 function stateColor(state: GiftRedemptionState): string {
   switch (state) {
-    case "reserved":  return theme.colors.amber[600];
-    case "fulfilled": return theme.colors.brand[700];
-    case "cancelled": return theme.colors.rose[600];
-    case "expired":   return theme.colors.slate[500];
-    default:          return theme.colors.slate[500];
+    case "reserved":  return kit.color.warn;
+    case "fulfilled": return kit.color.success;
+    case "cancelled": return kit.color.danger;
+    case "expired":   return kit.color.inkFaint;
+    default:          return kit.color.inkFaint;
+  }
+}
+
+function stateTint(state: GiftRedemptionState): string {
+  switch (state) {
+    case "reserved":  return kit.color.warnTint;
+    case "fulfilled": return kit.color.successTint;
+    case "cancelled": return kit.color.dangerTint;
+    default:          return kit.color.well;
   }
 }
 
@@ -280,182 +277,57 @@ function stateIcon(state: GiftRedemptionState): IoniconsName {
     case "reserved":  return "time-outline";
     case "fulfilled": return "checkmark-circle";
     case "cancelled": return "close-circle-outline";
-    case "expired":   return "timer-outline";
+    case "expired":   return "alert-circle-outline";
     default:          return "ellipse-outline";
   }
 }
 
-// ─── Section header ───────────────────────────────────────────────────────────
+// ─── Styles (kit) ────────────────────────────────────────────────────────────────
 
-function SectionHeader({ title }: { title: string }) {
-  return (
-    <View style={styles.sectionHeader}>
-      <UIText style={styles.sectionTitle} accessibilityRole="header" maxFontSizeMultiplier={1.4}>
-        {title}
-      </UIText>
-    </View>
-  );
-}
+const s = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: kit.color.canvas },
+  scroll: { paddingHorizontal: theme.layout.pagePaddingH, paddingBottom: 32, gap: kit.sp(2) },
 
-// ─── Styles ──────────────────────────────────────────────────────────────────
-
-const styles = StyleSheet.create({
-  screen: {
-    flex:            1,
-    backgroundColor: theme.colors.bg,
-  },
-
-  sectionHeader: {
-    marginTop:    18,
-    marginBottom: 10,
-  },
-  sectionTitle: {
-    fontFamily:    theme.fonts.black,
-    fontSize:      14,
-    color:         theme.colors.text.primary,
-    textAlign: textAlignStart(isRtl()),
-    letterSpacing: -0.2,
+  groupTitle: {
+    fontFamily: theme.fonts.black, fontSize: kit.type.heading.fontSize, lineHeight: kit.type.heading.lineHeight,
+    color: kit.color.ink, textAlign: TEXT_START, includeFontPadding: false, marginTop: kit.sp(4), marginBottom: kit.sp(1),
   },
 
   card: {
-    backgroundColor: theme.colors.surface,
-    borderRadius:    16,
-    padding:         14,
-    marginBottom:    10,
-    gap:             12,
-    ...theme.shadow.card,
+    padding: kit.sp(3), backgroundColor: kit.color.surface, borderRadius: kit.radius.card,
+    borderWidth: 1, borderColor: kit.color.line, ...kit.shadow.raised, gap: kit.sp(3),
   },
-  cardMuted: {
-    opacity: 0.75,
-  },
-  skeletonCard: {
-    backgroundColor: theme.colors.surfaceSunken,
-    minHeight:       110,
-  },
-  cardTop: {
-    flexDirection: flexRow(isRtl()),
-    gap:           12,
-    alignItems:    "flex-start",
-  },
-  stateIcon: {
-    width:          40,
-    height:         40,
-    borderRadius:   12,
-    alignItems:     "center",
-    justifyContent: "center",
-  },
-  cardTitleRow: {
-    flexDirection:  flexRow(isRtl()),
-    alignItems:     "center",
-    justifyContent: "space-between",
-    gap:            8,
-  },
-  pointsText: {
-    fontFamily: theme.fonts.black,
-    fontSize:   15,
-    color:      theme.colors.text.primary,
-  },
-  statePill: {
-    borderRadius:      8,
-    paddingHorizontal: 8,
-    paddingVertical:   3,
-  },
-  statePillText: {
-    fontFamily: theme.fonts.black,
-    fontSize:   10,
-  },
-  metaText: {
-    fontFamily: theme.fonts.regular,
-    fontSize:   11,
-    color:      theme.colors.text.tertiary,
-    textAlign:  textAlignStart(isRtl()),
-  },
-  expiryText: {
-    fontFamily: theme.fonts.bold,
-    fontSize:   11,
-    color:      theme.colors.amber[700],
-    textAlign:  textAlignStart(isRtl()),
-  },
-  trackingRow: {
-    flexDirection: flexRow(isRtl()),
-    alignItems:    "center",
-    gap:           4,
-  },
-  trackingText: {
-    fontFamily: theme.fonts.bold,
-    fontSize:   11,
-    color:      theme.colors.brand[700],
-    letterSpacing: 0.5,
-  },
-  cancelReason: {
-    fontFamily: theme.fonts.regular,
-    fontSize:   11,
-    color:      theme.colors.text.tertiary,
-    textAlign:  textAlignStart(isRtl()),
-    fontStyle:  "italic",
-  },
+  cardMuted: { opacity: 0.7 },
+  cardTop: { flexDirection: flexRow(IS_RTL), alignItems: "flex-start", gap: 12 },
+  stateIcon: { width: 40, height: 40, borderRadius: 13, alignItems: "center", justifyContent: "center" },
+  cardBody: { flex: 1, minWidth: 0, gap: 3 },
+  cardTitleRow: { flexDirection: flexRow(IS_RTL), alignItems: "center", justifyContent: "space-between", gap: 8 },
+  pointsText: { fontFamily: theme.fonts.black, fontSize: 15, color: kit.color.ink, includeFontPadding: false },
+  statePill: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: kit.radius.pill },
+  statePillText: { fontFamily: theme.fonts.bold, fontSize: 10, includeFontPadding: false },
+  metaText: { fontFamily: theme.fonts.regular, fontSize: 12, color: kit.color.inkFaint, textAlign: TEXT_START, includeFontPadding: false },
 
-  cancelBtn: {
-    flexDirection: flexRow(isRtl()),
-    alignItems:        "center",
-    gap:               6,
-    paddingHorizontal: 12,
-    paddingVertical:   8,
-    borderRadius:      10,
-    backgroundColor:   theme.colors.rose[50],
-    borderWidth:       1,
-    borderColor:       theme.colors.rose[100],
-    alignSelf:         "flex-end",
-  },
-  cancelBtnText: {
-    fontFamily: theme.fonts.bold,
-    fontSize:   12,
-    color:      theme.colors.rose[600],
-  },
+  trackingRow: { flexDirection: flexRow(IS_RTL), alignItems: "center", gap: 6, marginTop: 4, paddingVertical: 6, paddingHorizontal: 10, backgroundColor: kit.color.accentTint, borderRadius: kit.radius.control, alignSelf: "flex-start" },
+  trackingText: { fontFamily: theme.fonts.bold, fontSize: 12, color: kit.color.accentDeep, letterSpacing: 0.5, includeFontPadding: false },
+  cancelReason: { fontFamily: theme.fonts.regular, fontSize: 11, color: kit.color.danger, textAlign: TEXT_START, includeFontPadding: false },
+  cardFoot: { flexDirection: flexRow(IS_RTL), justifyContent: "flex-end", borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: kit.color.line, paddingTop: kit.sp(3) },
 
-  centerPanel: {
-    flex:              1,
-    alignItems:        "center",
-    justifyContent:    "center",
-    paddingHorizontal: 32,
-    gap:               10,
-    paddingTop:        60,
+  centerPanel: { alignItems: "center", justifyContent: "center", paddingHorizontal: 32, paddingTop: kit.sp(10), gap: 10 },
+  centerIcon: { width: 72, height: 72, borderRadius: 22, backgroundColor: kit.color.accentTint, alignItems: "center", justifyContent: "center", marginBottom: 4 },
+  centerTitle: { fontFamily: theme.fonts.black, fontSize: 17, color: kit.color.ink, textAlign: "center" },
+  centerBody: { fontFamily: theme.fonts.regular, fontSize: 14, color: kit.color.inkSoft, textAlign: "center", lineHeight: 22, maxWidth: 280 },
+
+  skeletonCard: { height: 110, borderRadius: kit.radius.card, backgroundColor: kit.color.well },
+
+  browseCard: {
+    flexDirection: flexRow(IS_RTL), alignItems: "center", gap: 12, marginTop: kit.sp(5),
+    padding: kit.sp(3), backgroundColor: kit.color.surface, borderRadius: kit.radius.card,
+    borderWidth: 1, borderColor: kit.color.line, ...kit.shadow.raised,
   },
-  errorTitle: {
-    fontFamily: theme.fonts.black,
-    fontSize:   16,
-    color:      theme.colors.text.primary,
-    marginTop:  8,
-  },
-  emptyTitle: {
-    fontFamily: theme.fonts.black,
-    fontSize:   15,
-    color:      theme.colors.text.primary,
-    marginTop:  8,
-  },
-  emptyBody: {
-    fontFamily: theme.fonts.regular,
-    fontSize:   13,
-    color:      theme.colors.text.secondary,
-    textAlign:  "center",
-    lineHeight: 20,
-  },
-  primaryBtn: {
-    flexDirection: flexRow(isRtl()),
-    alignItems:        "center",
-    gap:               8,
-    backgroundColor:   theme.colors.brand[600],
-    borderRadius:      12,
-    paddingHorizontal: 18,
-    paddingVertical:   11,
-    marginTop:         8,
-    ...theme.shadow.brand,
-  },
-  primaryBtnText: {
-    fontFamily: theme.fonts.black,
-    fontSize:   13,
-    color:      "#fff",
-  },
+  browseIcon: { width: 44, height: 44, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: kit.color.accentTint },
+  browseBody: { flex: 1, minWidth: 0, gap: 2 },
+  browseTitle: { fontFamily: theme.fonts.bold, fontSize: 14, color: kit.color.ink, textAlign: TEXT_START, includeFontPadding: false },
+  browseSub:   { fontFamily: theme.fonts.regular, fontSize: 12, color: kit.color.inkFaint, textAlign: TEXT_START, includeFontPadding: false },
 });
 
 export default RedemptionHistoryScreen;

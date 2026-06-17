@@ -29,6 +29,11 @@ export type AnalyticsEvent =
   | "login_completed"
   | "login_failed"
   | "logout"
+  | "forgot_password_submitted"
+  | "forgot_password_email_sent"
+  | "reset_password_link_opened"
+  | "reset_password_submitted"
+  | "reset_password_completed"
   // Shopping funnel
   | "product_viewed"
   | "category_opened"

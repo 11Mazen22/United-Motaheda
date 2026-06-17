@@ -121,7 +121,6 @@ function ActionBtn({ action, cfg }: { action: AppSheetAction; cfg: TypeCfg }) {
   const isP = action.variant === "primary" || !action.variant;
   const isD = action.variant === "danger";
   const isG = action.variant === "ghost";
-  const isS = action.variant === "secondary";
 
   return (
     <Pressable

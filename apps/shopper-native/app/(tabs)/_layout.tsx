@@ -1,11 +1,11 @@
 ﻿/**
- * Tab Layout — Dark Bar with Top Indicator
+ * Tab Layout — White Bar with Top Indicator (single-accent)
  *
- * Pattern used by Linear, Stripe, Revolut, and other premium apps:
- *   • Dark background so the bar reads as distinct from content
- *   • Active tab: gradient top-indicator line + filled brand-color icon + bold label
- *   • Inactive tab: outline icon + muted label — no shapes, no backgrounds
- *   • Zero floating elements — everything contained within the bar bounds
+ * Quiet monochrome navigation (Linear / Things / Stripe):
+ *   • White bar, hairline top separator, flush to the bottom edge
+ *   • Active tab: teal top-indicator line + filled teal icon + black label
+ *   • Inactive tab: outline icon + muted slate label — no shapes, no backgrounds
+ *   • ONE accent (kit teal) across all tabs; wayfinding via icon + weight, not hue
  */
 
 import React, { useCallback, useEffect } from "react";
@@ -13,13 +13,11 @@ import { Platform, Pressable, StyleSheet, View } from "react-native";
 import { Tabs } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withSpring,
-  withTiming,
   interpolate,
   Extrapolation,
 } from "react-native-reanimated";
@@ -28,6 +26,7 @@ import { useTranslation } from "react-i18next";
 import { useUnreadCount } from "@/features/notifications";
 import { useAuth } from "@/features/auth";
 import { theme } from "@/shared/theme";
+import { kit } from "@/shared/kit";
 import { Text as UIText } from "@/shared/ui";
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>["name"];
@@ -41,36 +40,45 @@ interface TabConfig {
   grad:     [string, string];   // gradient for the indicator line
 }
 
+// One accent across all tabs — wayfinding comes from icon + weight, not hue.
+const ACCENT_GRAD: [string, string] = [kit.color.accent, kit.color.accentDeep];
 const TAB_CONFIG: Record<string, TabConfig> = {
   index: {
     active:   "home",
     inactive: "home-outline",
-    color:    theme.colors.teal[500],
-    grad:     [theme.colors.teal[500], theme.colors.brand[600]],
+    color:    kit.color.accent,
+    grad:     ACCENT_GRAD,
+  },
+  meds: {
+    active:   "medkit",
+    inactive: "medkit-outline",
+    color:    kit.color.accent,
+    grad:     ACCENT_GRAD,
   },
   products: {
     active:   "grid",
     inactive: "grid-outline",
-    color:    "#818CF8",
-    grad:     ["#818CF8", "#6366F1"],
+    color:    kit.color.accent,
+    grad:     ACCENT_GRAD,
   },
   orders: {
     active:   "cube",
     inactive: "cube-outline",
-    color:    theme.colors.amber[300],
-    grad:     [theme.colors.amber[300], theme.colors.amber[500]],
+    color:    kit.color.accent,
+    grad:     ACCENT_GRAD,
   },
   profile: {
     active:   "person-circle",
     inactive: "person-circle-outline",
-    color:    "#F472B6",
-    grad:     ["#F472B6", "#EC4899"],
+    color:    kit.color.accent,
+    grad:     ACCENT_GRAD,
   },
 };
 
 const TAB_LABEL_KEY: Record<string, string> = {
   index:    "tabs.home",
-  products: "tabs.products",
+  meds:     "tabs.meds",
+  products: "tabs.shop",
   orders:   "tabs.orders",
   profile:  "tabs.profile",
 };
@@ -142,14 +150,9 @@ function TabItem({ name, focused, badge, onPress }: TabItemProps) {
       accessibilityState={{ selected: focused }}
       style={styles.tabItem}>
 
-      {/* ── Top indicator — gradient line, stays inside bounds ── */}
+      {/* ── Top indicator — flat teal line, stays inside bounds ── */}
       <Animated.View style={[styles.indicatorWrap, indicatorStyle]}>
-        <LinearGradient
-          colors={cfg.grad}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={styles.indicatorLine}
-        />
+        <View style={[styles.indicatorLine, { backgroundColor: kit.color.accent }]} />
       </Animated.View>
 
       {/* ── Icon ── */}
@@ -230,6 +233,7 @@ export default function TabLayout() {
       tabBar={(props) => <BottomTabBar {...props} />}
       screenOptions={{ headerShown: false }}>
       <Tabs.Screen name="index"    />
+      <Tabs.Screen name="meds"     />
       <Tabs.Screen name="products" />
       <Tabs.Screen name="orders"   />
       <Tabs.Screen name="profile"  />
@@ -312,13 +316,13 @@ const styles = StyleSheet.create({
     minWidth:          16,
     height:            16,
     borderRadius:      8,
-    backgroundColor:   theme.colors.error.base,
+    backgroundColor:   kit.color.danger,
     alignItems:        "center",
     justifyContent:    "center",
     paddingHorizontal: 3,
     borderWidth:       2,
     borderColor:       "#FFFFFF",
-    shadowColor:       theme.colors.error.base,
+    shadowColor:       kit.color.danger,
     shadowOffset:      { width: 0, height: 2 },
     shadowOpacity:     0.55,
     shadowRadius:      4,

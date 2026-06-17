@@ -23,7 +23,7 @@
  */
 import React, { memo } from "react";
 import { StyleSheet, View } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
+import { kit } from "@/shared/kit";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -60,11 +60,7 @@ export const ProfileGuestHero = memo(function ProfileGuestHero({ insetsTop }: Pr
   const { t }  = useTranslation();
 
   return (
-    <LinearGradient
-      colors={theme.gradients.heroPrimary as [string, string, string]}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 0.7, y: 1 }}
-      style={[s.hero, { paddingTop: insetsTop + 28 }]}>
+    <View style={[s.hero, { backgroundColor: kit.color.ink, paddingTop: insetsTop + 28 }]}>
 
       {/* Ambient decor */}
       <View style={s.decorA} pointerEvents="none" />
@@ -97,16 +93,12 @@ export const ProfileGuestHero = memo(function ProfileGuestHero({ insetsTop }: Pr
           style={s.primary}
           accessibilityRole="button"
           accessibilityLabel={t("auth.createAccount")}>
-          <LinearGradient
-            colors={[theme.colors.teal[400], theme.colors.brand[600]]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={s.primaryGrad}>
-            <Ionicons name="person-add-outline" size={18} color={theme.colors.surface} />
+          <View style={[s.primaryGrad, { backgroundColor: kit.color.accent }]}>
+            <Ionicons name="person-add-outline" size={18} color={kit.color.onInk} />
             <UIText weight="black" style={s.primaryText}>
               {t("auth.createAccount")}
             </UIText>
-          </LinearGradient>
+          </View>
         </PressableScale>
 
         {/* Secondary — Sign in */}
@@ -141,7 +133,7 @@ export const ProfileGuestHero = memo(function ProfileGuestHero({ insetsTop }: Pr
           ))}
         </View>
       </Animated.View>
-    </LinearGradient>
+    </View>
   );
 });
 

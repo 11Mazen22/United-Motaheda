@@ -935,6 +935,8 @@
     },
     "tabs": {
         "home": "Home",
+        "meds": "My Meds",
+        "shop": "Shop",
         "products": "Categories",
         "search": "Search",
         "cart": "Cart",

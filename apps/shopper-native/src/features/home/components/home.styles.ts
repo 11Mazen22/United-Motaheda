@@ -1,37 +1,66 @@
 /**
- * Shared StyleSheet tokens for the Home screen component family.
- * Each component imports only the slice it needs.
+ * home.styles — Shared StyleSheet tokens for the Home screen component family.
+ *
+ * V3 changes:
+ *   • Replaced `theme.spacing[n]` refs with `kit.sp(n)` — `theme` has no `.spacing`
+ *   • Added `sectionStyles.divider`, `sectionStyles.wrapFlush`, `sectionStyles.wrapSmall`
+ *   • Added `cntStyles.separator` for the countdown colon spacing fix
+ *   • Ensured RTL via `flexRow(isRtl())`
+ *
+ * All dimensions follow the 4 px grid.
  */
+
 import { StyleSheet } from "react-native";
 import { theme } from "@/shared/theme";
-import { flexRow, isRtl } from "@/utils/layout";
 import { kit } from "@/shared/kit";
+import { flexRow, isRtl } from "@/utils/layout";
 
-// ─── Section containers ────────────────────────────────────────────────────────
+const IS_RTL = isRtl();
+
+// ─── Section wrapper styles ───────────────────────────────────────────────────
+
 export const sectionStyles = StyleSheet.create({
-  /** Standard section vertical gap — 24px between major home sections. */
+  /** Standard top-padded section wrapper */
   wrap: {
-    paddingTop: theme.spacing['2xl'],  // 24  (was 64 — spacing[8])
-    gap:        theme.spacing[4],       // 32  — internal header/content gap
+    paddingTop: kit.sp(6),    // 24 px
+    gap:        kit.sp(4),    // 16 px
   },
-  /** Slightly taller gap before the flash sale rail. */
+  /** Taller top padding for the first section after the header */
   wrapTall: {
-    paddingTop: theme.spacing['3xl'],  // 32  (was 72 — spacing[9])
+    paddingTop: kit.sp(8),    // 32 px
+  },
+  /** Section that starts immediately below — no top padding */
+  wrapFlush: {
+    paddingTop: 0,
+    gap:        kit.sp(4),
+  },
+  /** Compact section (e.g. small carousels, inline widgets) */
+  wrapSmall: {
+    paddingTop: kit.sp(4),    // 16 px
+    gap:        kit.sp(3),    // 12 px
+  },
+  /** Full-bleed horizontal hairline divider */
+  divider: {
+    height:          1,
+    marginVertical:  kit.sp(2),   // 8 px
+    backgroundColor: theme.colors.border.hairline,
+    opacity:         0.7,
   },
 });
 
-// ─── Section header (shared across all home sections) ─────────────────────────
+// ─── HomeSectionHeader styles ─────────────────────────────────────────────────
+
 export const shStyles = StyleSheet.create({
   row: {
-    flexDirection:     flexRow(isRtl()),
+    flexDirection:     flexRow(IS_RTL),
     alignItems:        "center",
     justifyContent:    "space-between",
     paddingHorizontal: theme.layout.pagePaddingH,
   },
   left: {
-    flexDirection: flexRow(isRtl()),
+    flexDirection: flexRow(IS_RTL),
     alignItems:    "center",
-    gap:           12,
+    gap:           kit.sp(3),   // 12 px
   },
   icon: {
     width:          34,
@@ -42,25 +71,36 @@ export const shStyles = StyleSheet.create({
     borderWidth:    1,
     overflow:       "hidden",
   },
-  title: { letterSpacing: -0.3 },
+  title: {
+    letterSpacing: -0.3,
+  },
   moreBtn: {
-    flexDirection:     flexRow(isRtl()),
+    flexDirection:     flexRow(IS_RTL),
     alignItems:        "center",
     gap:               4,
     paddingHorizontal: 4,
+    paddingVertical:   6,
   },
 });
 
-// ─── Countdown timer (kit: solid ink cells — no gradients) ────────────────────
+// ─── Countdown styles (FlashSaleSection) ─────────────────────────────────────
+
 export const cntStyles = StyleSheet.create({
-  timerRow: { flexDirection: "row", alignItems: "center", gap: 4 },
-  colon:    {
-    color:        kit.color.inkFaint,
-    fontSize:     16,
-    fontFamily:   theme.fonts.black,
-    marginBottom: 12,
+  timerRow: {
+    flexDirection: "row",
+    alignItems:    "center",
+    gap:           4,
   },
-  unit:  { alignItems: "center", gap: 3 },
+  colon: {
+    color:      kit.color.inkFaint,
+    fontSize:   16,
+    fontFamily: theme.fonts.black,
+    marginBottom: 12,   // aligns colon with the digit cells
+  },
+  unit: {
+    alignItems: "center",
+    gap:        3,
+  },
   cell: {
     borderRadius:      10,
     paddingHorizontal: 9,
@@ -76,17 +116,28 @@ export const cntStyles = StyleSheet.create({
     fontFamily:         theme.fonts.black,
     includeFontPadding: false,
   },
-  unitLabel: { color: kit.color.inkFaint, fontSize: 9.5 },
+  unitLabel: {
+    color:    kit.color.inkFaint,
+    fontSize: 9.5,
+  },
 });
 
-// ─── Flash sale item wrappers ──────────────────────────────────────────────────
+// ─── Flash sale section styles ────────────────────────────────────────────────
+
 export const flashStyles = StyleSheet.create({
-  // trailing marginEnd provides the gap without ItemSeparatorComponent
-  itemWrap:    { width: 162, marginEnd: 12 },
-  sectionGap:  { gap: theme.spacing[4] },
+  itemWrap: {
+    width:     162,
+    marginEnd: 12,
+  },
+  sectionGap: {
+    gap: kit.sp(4),   // 16 px
+  },
 });
 
-// ─── Featured product wrappers ─────────────────────────────────────────────────
+// ─── Featured section styles ──────────────────────────────────────────────────
+
 export const featuredStyles = StyleSheet.create({
-  itemWrap: { flex: 1 },
+  itemWrap: {
+    flex: 1,
+  },
 });

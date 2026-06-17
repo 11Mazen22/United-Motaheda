@@ -14,7 +14,9 @@ import React, { useCallback, useEffect, useRef } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
+  Pressable,
   ScrollView,
+  StatusBar,
   View,
 } from "react-native";
 import { useRouter } from "expo-router";
@@ -24,11 +26,13 @@ import { useTranslation } from "react-i18next";
 
 import { ErrorBoundary } from "@/shared/components";
 import { Text as UIText } from "@/shared/ui";
-import { theme } from "@/shared/theme";
+
 import { kit, Button as KitButton } from "@/shared/kit";
 import { isManualWalletPayment } from "@/features/checkout";
-import { BACK_CHEVRON } from "@/utils/layout";
+import { BACK_CHEVRON, FORWARD_CHEVRON, textAlignStart, isRtl } from "@/utils/layout";
 import { PhoneVerifyModal } from "@/features/auth";
+
+const TEXT_START = textAlignStart(isRtl());
 
 import { useCheckoutFlow } from "@/features/checkout/hooks/useCheckoutFlow";
 import { AuthGateModal }    from "@/features/checkout/components/AuthGateModal";
@@ -52,6 +56,12 @@ import Animated, { FadeInDown } from "react-native-reanimated";
 // ─── Public export — wrapped in an error boundary so render failures in any
 //     sub-component recover at the screen level.
 export default function CheckoutScreenBoundary() {
+  useEffect(() => {
+    if (__DEV__) {
+      console.log("[CheckoutScreenBoundary] Mounted");
+    }
+  }, []);
+
   return (
     <ErrorBoundary surface="checkout">
       <CheckoutScreen />
@@ -67,6 +77,13 @@ function CheckoutScreen() {
 
   const flow = useCheckoutFlow();
 
+  useEffect(() => {
+    if (__DEV__) {
+      console.log("[CheckoutScreen] Mounted, step:", flow.step, "itemCount:", flow.items.length);
+    }
+  }, [flow.step, flow.items.length]);
+
+
   // ── Scroll to top whenever the step changes ───────────────────────────
   useEffect(() => {
     scrollRef.current?.scrollTo({ y: 0, animated: true });
@@ -81,23 +98,27 @@ function CheckoutScreen() {
   // ── Empty cart guard ──────────────────────────────────────────────────
   if (flow.items.length === 0 && flow.step !== "success") {
     return (
-      <EmptyCartScreen
-        onBrowse={() => router.replace("/(tabs)/products")}
-        insets={insets}
-      />
+      <View style={{ flex: 1, backgroundColor: kit.color.canvas }}>
+        <EmptyCartScreen
+          onBrowse={() => router.replace("/(tabs)/products")}
+          insets={insets}
+        />
+      </View>
     );
   }
 
   // ── Success screen ────────────────────────────────────────────────────
   if (flow.step === "success") {
     return (
-      <SuccessScreen
-        orderId={flow.placedOrderId ?? ""}
-        total={flow.pricing.total}
-        insets={insets}
-        onContinue={() => router.replace("/(tabs)")}
-        onViewOrders={() => router.push("/orders")}
-      />
+      <View style={{ flex: 1, backgroundColor: kit.color.canvas }}>
+        <SuccessScreen
+          orderId={flow.placedOrderId ?? ""}
+          total={flow.pricing.total}
+          insets={insets}
+          onContinue={() => router.replace("/(tabs)")}
+          onViewOrders={() => router.push("/orders")}
+        />
+      </View>
     );
   }
 
@@ -106,6 +127,7 @@ function CheckoutScreen() {
     <KeyboardAvoidingView
       style={{ flex: 1, backgroundColor: kit.color.canvas }}
       behavior={Platform.OS === "ios" ? "padding" : undefined}>
+      <StatusBar barStyle="dark-content" backgroundColor={kit.color.canvas} />
 
       {/* Auth gate — intercepts unauthenticated order attempts */}
       <AuthGateModal
@@ -119,19 +141,14 @@ function CheckoutScreen() {
 
       {/* Header */}
       <View style={[hs.root, { paddingTop: insets.top + 10 }]}>
-        <View style={hs.backBtn}>
-          <Ionicons
-            name={BACK_CHEVRON}
-            size={18}
-            color={kit.color.inkSoft}
-            onPress={() => router.back()}
-          />
-        </View>
+        <Pressable style={hs.backBtn} onPress={() => router.back()} hitSlop={8}>
+          <Ionicons name={BACK_CHEVRON} size={18} color={kit.color.inkSoft} />
+        </Pressable>
         <View style={{ flex: 1 }}>
-          <UIText variant="card-title" align="right">
+          <UIText variant="card-title" align={TEXT_START}>
             {t("checkout.title")}
           </UIText>
-          <UIText variant="eyebrow" color="tertiary" align="right">
+          <UIText variant="eyebrow" color="tertiary" align={TEXT_START}>
             {flow.step === "details"
               ? t("checkout.titleStep1")
               : t("checkout.titleStep2")}
@@ -180,7 +197,7 @@ function CheckoutScreen() {
                 <UIText variant="eyebrow" style={{ color: kit.color.warn }}>
                   {t("cart.freeDelivery")}
                 </UIText>
-                <UIText variant="body-sm" align="right" style={fb.title}>
+                <UIText variant="body-sm" align={TEXT_START} style={fb.title}>
                   {t("checkout.freeBannerTitle", {
                     amount: formatPrice(flow.deliveryQuote.amountToFreeDelivery),
                   })}
@@ -253,10 +270,10 @@ function CheckoutScreen() {
       <View style={[cs.root, { paddingBottom: insets.bottom + 12 }]}>
         <View style={cs.totals}>
           <View>
-            <UIText variant="eyebrow" color="tertiary" align="right">
+            <UIText variant="eyebrow" color="tertiary" align={TEXT_START}>
               {t("checkout.dueTotal")}
             </UIText>
-            <UIText variant="sheet-title" align="right" style={cs.totalValue}>
+            <UIText variant="sheet-title" align={TEXT_START} style={cs.totalValue}>
               {formatPrice(flow.pricing.total)}
             </UIText>
           </View>
@@ -270,7 +287,7 @@ function CheckoutScreen() {
 
         <KitButton
           label={flow.step === "details" ? t("checkout.continueBtn") : t("checkout.confirmBtn")}
-          icon={flow.step === "details" ? "arrow-back" : "checkmark"}
+          icon={flow.step === "details" ? FORWARD_CHEVRON : "checkmark"}
           iconEnd
           size="lg"
           full

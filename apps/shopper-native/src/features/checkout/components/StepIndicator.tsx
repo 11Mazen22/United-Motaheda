@@ -2,7 +2,6 @@ import React from "react";
 import { View } from "react-native";
 import { Text as UIText } from "@/shared/ui";
 import { Ionicons } from "@expo/vector-icons";
-import { theme } from "@/shared/theme";
 import { kit } from "@/shared/kit";
 import { stepBarStyles as s } from "./checkout.styles";
 
@@ -19,35 +18,32 @@ export const StepPill = React.memo(function StepPill({
   active,
   done,
 }: StepPillProps) {
-  const bg = done
-    ? kit.color.successTint
-    : active
-    ? kit.color.accentTint
-    : kit.color.well;
-  const fg = done
-    ? kit.color.success
-    : active
-    ? kit.color.accentDeep
-    : kit.color.inkFaint;
+  const numBg       = done ? kit.color.accent : active ? kit.color.ink : kit.color.lineStrong;
+  const pillBg      = done ? kit.color.successTint : "transparent";
+  const pillBorder  = done ? kit.color.success : active ? kit.color.ink : kit.color.line;
+  const labelColor  = done ? kit.color.success : active ? kit.color.ink : kit.color.inkFaint;
 
   return (
-    <View style={[s.pill, { backgroundColor: bg }, active && s.pillActive]}>
-      <View style={[s.num, { backgroundColor: fg }]}>
+    <View
+      style={[
+        s.pill,
+        { backgroundColor: pillBg, borderColor: pillBorder },
+        (active || done) && s.pillActive,
+      ]}>
+      <View style={[s.num, { backgroundColor: numBg }]}>
         {done ? (
-          <Ionicons name="checkmark" size={11} color="#fff" />
+          <Ionicons name="checkmark" size={12} color="#fff" />
         ) : (
           <UIText style={s.numText}>{index}</UIText>
         )}
       </View>
-      <UIText style={[s.label, { color: fg }]}>{label}</UIText>
+      <UIText style={[s.label, { color: labelColor }]}>{label}</UIText>
     </View>
   );
 });
 
 export const StepLine = React.memo(function StepLine({ done }: { done: boolean }) {
   return (
-    <View
-      style={[s.line, done && { backgroundColor: kit.color.success }]}
-    />
+    <View style={[s.line, done && { backgroundColor: kit.color.accent }]} />
   );
 });

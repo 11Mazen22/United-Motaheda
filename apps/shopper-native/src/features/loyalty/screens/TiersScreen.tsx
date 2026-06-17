@@ -13,7 +13,6 @@ import {
   View,
 } from "react-native";
 import { Text as UIText } from "@/shared/ui";
-import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
@@ -194,16 +193,15 @@ function TierCard({ tier, isCurrent, isUnlocked, gradient, icon }: TierCardProps
         mult:   tier.earn_multiplier,
       })}
     >
-      <LinearGradient
-        colors={isUnlocked ? gradient : [theme.colors.slate[100], theme.colors.slate[200]]}
-        style={styles.tierIcon}
+      <View
+        style={[styles.tierIcon, { backgroundColor: isUnlocked ? gradient[0] : theme.colors.slate[100] }]}
       >
         <Ionicons
           name={icon}
           size={22}
           color={isUnlocked ? "#fff" : theme.colors.slate[400]}
         />
-      </LinearGradient>
+      </View>
 
       <View style={{ flex: 1 }}>
         <View style={styles.tierHead}>

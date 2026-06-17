@@ -42,18 +42,20 @@ if (bootLang === "ar") {
 // react.useSuspense: false — belt-and-suspenders: even if init somehow ends up
 // async (e.g. a future i18next change), useTranslation() will degrade gracefully
 // by returning the key instead of throwing, rather than crashing the tree.
-void i18n.use(initReactI18next).init({
+const initOptions = {
   resources,
-  lng:            bootLang,
-  fallbackLng:    "ar",
-  supportedLngs:  ["ar", "en"],
-  interpolation:  { escapeValue: false },
+  lng:               bootLang,
+  fallbackLng:       "ar",
+  supportedLngs:     ["ar", "en"],
+  interpolation:     { escapeValue: false },
   compatibilityJSON: "v4",
-  initImmediate:  false,
+  initImmediate:     false,
   react: {
     useSuspense: false,
   },
-});
+} as const;
+
+void i18n.use(initReactI18next).init(initOptions);
 
 export function initI18n(): void {
   // Side-effect init runs at import; kept for explicit boot calls.

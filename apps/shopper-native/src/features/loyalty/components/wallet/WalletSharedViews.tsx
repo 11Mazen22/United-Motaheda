@@ -1,6 +1,6 @@
 import React, { memo } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
+import { kit } from "@/shared/kit";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -9,7 +9,6 @@ import { theme } from "@/shared/theme";
 import {
   fullPanelStyles as fp,
   skeletonStyles as sk,
-  TOUR_GRADIENT,
 } from "./wallet.styles";
 import { flexRow, isRtl, textAlignStart, BACK_CHEVRON } from "@/utils/layout";
 
@@ -126,10 +125,10 @@ export const ErrorPanel = memo(function ErrorPanel({
         style={fp.btn}
         accessibilityRole="button"
         accessibilityLabel={t("common.retry")}>
-        <LinearGradient colors={TOUR_GRADIENT} style={fp.btnGrad}>
-          <Ionicons name="refresh" size={14} color="#fff" />
+        <View style={[fp.btnGrad, { backgroundColor: kit.color.accent }]}>
+          <Ionicons name="refresh" size={14} color={kit.color.onInk} />
           <Text style={fp.btnText}>{t("common.retry")}</Text>
-        </LinearGradient>
+        </View>
       </Pressable>
     </View>
   );

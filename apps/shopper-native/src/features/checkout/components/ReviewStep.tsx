@@ -379,7 +379,7 @@ const s = StyleSheet.create({
   },
   posToggleActive: {
     backgroundColor: kit.color.accentTint,
-    borderColor:     kit.color.accentTint,
+    borderColor:     kit.color.accent,
   },
   posCheck: {
     width:          18,

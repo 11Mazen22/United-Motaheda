@@ -1,24 +1,21 @@
 /**
- * RxCard — prescription summary card.
- *
- * Spec: HANDOFF.md §3.1 + SPEC §9.2.
+ * RxCard — prescription summary card. VIP 2026.
  *
  * Two variants:
- *   - "active" (hero card on home above-the-fold) — large, with NEXT REFILL
- *     row and full-width refill CTA.
- *   - "list" (compact row inside Prescriptions list / Profile) — single row,
- *     small "Refill" button on the trailing edge.
+ *   "active" — hero card (Home above-the-fold): 4px top identity stripe,
+ *              52×52 icon tile, drug name + dose, status pill, divider,
+ *              next-refill row + full-width refill CTA.
+ *   "list"   — compact row (Prescriptions list): 3px start status border,
+ *              44×44 icon tile, drug name + dose/doctor + date, refill btn.
  *
- * All copy is Arabic (per project override on HANDOFF §8.4).
+ * Status → colour mapping (Clinical Calm, no gradient):
+ *   ready    → success (green)
+ *   active   → accentDeep (teal)
+ *   expiring → warn (amber)
+ *   expired  → inkFaint (grey)
  *
  * Performance:
- *   - Wrapped in React.memo with a custom props-equality comparator that ignores
- *     onPress / onRefill reference churn (parent should still useCallback-wrap
- *     these, but the card is protected either way).
- *   - All inline style objects hoisted into StyleSheet.create — zero per-render
- *     object allocations.
- *   - Internal handlers stabilised with useCallback to avoid propagating new
- *     function references into child Pressable / Button components.
+ *   React.memo with custom comparator — ignores onPress/onRefill churn.
  */
 
 import React, { memo, useCallback } from "react";
@@ -26,14 +23,11 @@ import { Pressable, StyleSheet, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
+import { kit } from "@/shared/kit";
 import { theme } from "@/shared/theme";
-import { Card, Text } from "@/shared/ui";
-import { Button } from "@/components/ui/Button";
-import { Badge } from "@/components/ui/Badge";
-import type {
-  Prescription,
-  RxStatus,
-} from "@/stores/prescriptionsStore";
+import { Button } from "@/shared/kit";
+import { Text } from "@/shared/ui";
+import type { Prescription, RxStatus } from "@/stores/prescriptionsStore";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
 
 export type { Prescription, RxStatus };
@@ -45,11 +39,19 @@ export interface RxCardProps {
   onPress?:     (rx: Prescription) => void;
 }
 
-const STATUS_TONE: Record<RxStatus, "success" | "neutral" | "warning" | "error"> = {
-  ready:    "success",
-  active:   "neutral",
-  expiring: "warning",
-  expired:  "error",
+// ─── Status tokens ────────────────────────────────────────────────────────────
+
+const STATUS_COLOR: Record<RxStatus, string> = {
+  ready:    kit.color.success,
+  active:   kit.color.accentDeep,
+  expiring: kit.color.warn,
+  expired:  kit.color.inkFaint,
+};
+const STATUS_TINT: Record<RxStatus, string> = {
+  ready:    kit.color.successTint,
+  active:   kit.color.accentTint,
+  expiring: kit.color.warnTint,
+  expired:  kit.color.well,
 };
 
 function statusLabel(rx: Prescription, t: TFunction): string {
@@ -63,6 +65,9 @@ function statusLabel(rx: Prescription, t: TFunction): string {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
+const IS_RTL     = isRtl();
+const TEXT_START = textAlignStart(IS_RTL);
+
 export const RxCard = memo(
   function RxCard({
     prescription: rx,
@@ -71,53 +76,88 @@ export const RxCard = memo(
     onPress,
   }: RxCardProps): React.ReactElement {
     const { t }       = useTranslation();
-    const tone        = STATUS_TONE[rx.status];
-    const isExpiring  = rx.status === "expiring";
     const isExpired   = rx.status === "expired";
+    const color       = STATUS_COLOR[rx.status];
+    const tint        = STATUS_TINT[rx.status];
+    const label       = statusLabel(rx, t);
     const refillLabel = t("rx.refillLabel");
 
-    // Stable handlers — no inline arrows so Button / Pressable memo is effective
-    const handlePress  = useCallback(() => onPress?.(rx),  [onPress,  rx]);
+    const handlePress  = useCallback(() => onPress?.(rx),  [onPress, rx]);
     const handleRefill = useCallback(() => onRefill?.(rx), [onRefill, rx]);
+
+    // Refill urgency — "ready" and "expiring" get primary (ink) button
+    const refillVariant = (rx.status === "ready" || rx.status === "expiring") && !isExpired
+      ? "primary"
+      : "secondary";
 
     if (variant === "active") {
       return (
         <Pressable
           onPress={handlePress}
           accessibilityRole="button"
-          accessibilityLabel={`${rx.name} — ${statusLabel(rx, t)}`}>
-          <Card radius={theme.layout.cardRadius}>
-            <View style={s.activeTopRow}>
-              <View style={s.activeIconWrap}>
-                <Ionicons name="medkit" size={22} color={theme.colors.brand.base} />
+          accessibilityLabel={`${rx.name} — ${label}`}
+          style={({ pressed }) => [s.activeCard, pressed && { opacity: 0.95 }]}>
+
+          {/* 4px identity stripe */}
+          <View style={[s.stripe, { backgroundColor: color }]} />
+
+          <View style={s.activeBody}>
+            {/* Top: icon tile + name + status pill */}
+            <View style={[s.activeTopRow, { flexDirection: flexRow(IS_RTL) }]}>
+              <View style={[s.activeTile, { backgroundColor: tint }]}>
+                <Ionicons name="medkit" size={22} color={color} />
               </View>
               <View style={s.flex1}>
-                <Text variant="card-title" numberOfLines={1}>{rx.name}</Text>
-                <Text variant="caption" color="secondary" style={s.doseText} numberOfLines={1}>
+                <Text
+                  variant="body"
+                  weight="bold"
+                  numberOfLines={1}
+                  style={[s.activeName, { textAlign: TEXT_START }]}>
+                  {rx.name}
+                </Text>
+                <Text
+                  variant="caption"
+                  numberOfLines={1}
+                  style={[s.doseText, { textAlign: TEXT_START }]}>
                   {rx.dose}
                 </Text>
               </View>
-              <Badge variant={tone} size="md">{statusLabel(rx, t)}</Badge>
+              {/* Inline status pill */}
+              <View style={[s.statusPill, { backgroundColor: tint }]}>
+                <View style={[s.statusDot, { backgroundColor: color }]} />
+                <Text style={[s.statusPillText, { color }]} numberOfLines={1} maxFontSizeMultiplier={1.2}>
+                  {label}
+                </Text>
+              </View>
             </View>
 
+            {/* Divider */}
             <View style={s.activeDivider} />
 
-            <View style={s.activeMetaRow}>
+            {/* Bottom: next refill date + CTA */}
+            <View style={[s.activeMetaRow, { flexDirection: flexRow(IS_RTL) }]}>
               <View>
-                <Text variant="eyebrow" color="tertiary" style={s.textRight}>{t("rx.nextRefill")}</Text>
-                <Text variant="body-sm" weight="bold" style={s.nextRefillValue}>
+                <Text
+                  variant="eyebrow"
+                  style={[s.nextRefillEyebrow, { textAlign: TEXT_START }]}>
+                  {t("rx.nextRefill")}
+                </Text>
+                <Text
+                  variant="body-sm"
+                  weight="bold"
+                  style={[s.nextRefillValue, { textAlign: TEXT_START }]}>
                   {rx.nextRefill}
                 </Text>
               </View>
               <Button
-                variant={isExpiring ? "dark" : "primary"}
+                variant={refillVariant}
                 size="sm"
                 disabled={isExpired}
-                onPress={handleRefill}>
-                {refillLabel}
-              </Button>
+                label={refillLabel}
+                onPress={handleRefill}
+              />
             </View>
-          </Card>
+          </View>
         </Pressable>
       );
     }
@@ -127,34 +167,52 @@ export const RxCard = memo(
       <Pressable
         onPress={handlePress}
         accessibilityRole="button"
-        accessibilityLabel={`${rx.name} — ${statusLabel(rx, t)}`}
-        style={s.listCard}>
-        <View style={s.listIconWrap}>
-          <Ionicons name="medkit-outline" size={20} color={theme.colors.brand.base} />
+        accessibilityLabel={`${rx.name} — ${label}`}
+        style={({ pressed }) => [
+          s.listCard,
+          { flexDirection: flexRow(IS_RTL), borderStartColor: color },
+          pressed && { opacity: 0.92 },
+        ]}>
+
+        {/* Status icon tile */}
+        <View style={[s.listTile, { backgroundColor: tint }]}>
+          <Ionicons name="medkit-outline" size={18} color={color} />
         </View>
+
+        {/* Text block */}
         <View style={s.listContent}>
-          <Text variant="body" weight="bold" numberOfLines={1} align="right">{rx.name}</Text>
-          <Text variant="caption" color="secondary" numberOfLines={1} align="right">
+          <Text
+            variant="body"
+            weight="bold"
+            numberOfLines={1}
+            style={{ textAlign: TEXT_START, color: isExpired ? kit.color.inkFaint : kit.color.ink }}>
+            {rx.name}
+          </Text>
+          <Text
+            variant="caption"
+            numberOfLines={1}
+            style={{ textAlign: TEXT_START, color: kit.color.inkSoft, marginTop: 2 }}>
             {rx.dose} · {rx.doctor}
           </Text>
-          <Text variant="eyebrow" color="tertiary" align="right" style={s.listNextRefill}>
+          <Text
+            style={[s.listDate, { textAlign: TEXT_START }]}
+            numberOfLines={1}
+            maxFontSizeMultiplier={1.2}>
             {rx.nextRefill}
           </Text>
         </View>
+
+        {/* Trailing refill button */}
         <Button
           size="sm"
-          variant={isExpiring ? "dark" : "secondary"}
+          variant={refillVariant}
           disabled={isExpired}
-          onPress={handleRefill}>
-          {refillLabel}
-        </Button>
+          label={refillLabel}
+          onPress={handleRefill}
+        />
       </Pressable>
     );
   },
-  // Custom comparator — ignore onPress/onRefill reference churn.
-  // The prescription reference and variant are the meaningful change signals.
-  // Parents should still useCallback-wrap handlers for correctness, but this
-  // protects against accidental re-renders if they don't.
   (prev, next) =>
     prev.prescription === next.prescription &&
     prev.variant      === next.variant,
@@ -163,67 +221,131 @@ export const RxCard = memo(
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const s = StyleSheet.create({
-  flex1:    { flex: 1 },
-  textRight:{ textAlign: textAlignStart(isRtl()) },
+  flex1: { flex: 1 },
 
   // ── Active variant ─────────────────────────────────────────────────────────
-  activeTopRow: {
-    flexDirection: flexRow(isRtl()),
-    alignItems:    "center",
-    gap:           theme.spacing[1.5],
+  activeCard: {
+    backgroundColor: kit.color.surface,
+    borderRadius:    kit.radius.lg,
+    borderWidth:     1,
+    borderColor:     kit.color.line,
+    overflow:        "hidden",
+    ...kit.shadow.raised,
   },
-  activeIconWrap: {
-    width:           48,
-    height:          48,
-    borderRadius:    theme.radius.lg,
-    backgroundColor: theme.colors.brand.lighter,
-    alignItems:      "center",
-    justifyContent:  "center",
+  stripe: {
+    height: 4,
+    width:  "100%",
+  },
+  activeBody: {
+    padding: 16,
+    gap:     0,
+  },
+  activeTopRow: {
+    alignItems: "center",
+    gap:        12,
+  },
+  activeTile: {
+    width:          52,
+    height:         52,
+    borderRadius:   kit.radius.control,
+    alignItems:     "center",
+    justifyContent: "center",
+    flexShrink:     0,
+  },
+  activeName: {
+    fontFamily:         theme.fonts.black,
+    fontSize:           16,
+    lineHeight:         22,
+    color:              kit.color.ink,
+    includeFontPadding: false,
   },
   doseText: {
-    marginTop: 2,
-    textAlign: textAlignStart(isRtl()),
+    color:              kit.color.inkSoft,
+    marginTop:          2,
+    includeFontPadding: false,
+  },
+  statusPill: {
+    flexDirection:     "row",
+    alignItems:        "center",
+    gap:               5,
+    paddingHorizontal: 10,
+    paddingVertical:   5,
+    borderRadius:      kit.radius.pill,
+    flexShrink:        0,
+    borderWidth:       1,
+    borderColor:       kit.color.line,
+  },
+  statusDot: {
+    width:        6,
+    height:       6,
+    borderRadius: 3,
+  },
+  statusPillText: {
+    fontFamily:         theme.fonts.black,
+    fontSize:           10,
+    lineHeight:         14,
+    includeFontPadding: false,
   },
   activeDivider: {
-    height:          1,
-    backgroundColor: theme.colors.border.default,
-    marginVertical:  theme.spacing[1.5],
+    height:          StyleSheet.hairlineWidth,
+    backgroundColor: kit.color.line,
+    marginVertical:  14,
   },
   activeMetaRow: {
-    flexDirection: flexRow(isRtl()),
     alignItems:     "center",
     justifyContent: "space-between",
   },
+  nextRefillEyebrow: {
+    fontFamily:         theme.fonts.bold,
+    fontSize:           10,
+    lineHeight:         14,
+    color:              kit.color.inkFaint,
+    letterSpacing:      0.5,
+    includeFontPadding: false,
+  },
   nextRefillValue: {
-    marginTop: 2,
-    textAlign: textAlignStart(isRtl()),
+    fontFamily:         theme.fonts.black,
+    fontSize:           13,
+    lineHeight:         19,
+    color:              kit.color.ink,
+    marginTop:          2,
+    includeFontPadding: false,
   },
 
   // ── List variant ───────────────────────────────────────────────────────────
   listCard: {
-    flexDirection: flexRow(isRtl()),
     alignItems:        "center",
-    gap:               theme.spacing[1.5],
+    gap:               12,
     paddingVertical:   14,
-    paddingHorizontal: theme.spacing[2],
-    backgroundColor:   theme.colors.surface,
-    borderRadius:      theme.layout.cardRadius,
+    paddingHorizontal: 16,
+    paddingEnd:        12,
+    backgroundColor:   kit.color.surface,
+    borderRadius:      kit.radius.lg,
     borderWidth:       1,
-    borderColor:       theme.colors.border.default,
+    borderColor:       kit.color.line,
+    borderStartWidth:  3,
+    // borderStartColor set dynamically above
+    overflow:          "hidden",
+    ...kit.shadow.raised,
   },
-  listIconWrap: {
-    width:           40,
-    height:          40,
-    borderRadius:    theme.radius.md,
-    backgroundColor: theme.colors.brand.lighter,
-    alignItems:      "center",
-    justifyContent:  "center",
+  listTile: {
+    width:          44,
+    height:         44,
+    borderRadius:   kit.radius.control,
+    alignItems:     "center",
+    justifyContent: "center",
+    flexShrink:     0,
   },
   listContent: {
     flex:     1,
     minWidth: 0,
   },
-  listNextRefill: {
-    marginTop: 2,
+  listDate: {
+    fontFamily:         theme.fonts.bold,
+    fontSize:           10,
+    lineHeight:         15,
+    color:              kit.color.inkFaint,
+    marginTop:          3,
+    includeFontPadding: false,
   },
 });

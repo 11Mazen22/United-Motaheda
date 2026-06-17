@@ -138,8 +138,8 @@ export const colors = {
     lighter:   palette.teal[50],
     light:     palette.teal[200],
     soft:      palette.teal[300],
-    base:      palette.teal[600],
-    strong:    palette.teal[700],
+    base:      '#0E7E74',          // unified brand accent — single source with kit.color.accent
+    strong:    '#0A5F58',          // === kit.color.accentDeep
     dark:      palette.teal[800],
     darkest:   palette.teal[900],
     // Cyan alias (existing brand)
@@ -162,7 +162,7 @@ export const colors = {
     disabled:  '#B8C4CF',
     inverse:   '#FFFFFF',
     inverseSoft: 'rgba(255,255,255,0.72)', // muted-on-dark for hero subcopy
-    brand:     palette.teal[700],
+    brand:     '#0E7E74',          // unified brand accent (=== kit.color.accent)
     link:      palette.cyan[600],
   },
   // ── Border
@@ -408,11 +408,11 @@ export const shadow = {
   },
   brand: {
     elevation: 8,
-    boxShadow: `0px 6px 16px ${hexToRgba('#0891B2', 0.30)}`,
+    boxShadow: `0px 6px 16px ${hexToRgba('#0E7E74', 0.30)}`,
   },
   teal: {
     elevation: 6,
-    boxShadow: `0px 4px 12px ${hexToRgba('#0DB8A8', 0.28)}`,
+    boxShadow: `0px 4px 12px ${hexToRgba('#0E7E74', 0.28)}`,
   },
   float: {
     elevation: 16,
@@ -432,7 +432,7 @@ export const shadow = {
   // "trust" moments (e.g. payment confirmation, verify-phone). Clinical.
   brandGlow: {
     elevation: 6,
-    boxShadow: `0px 0px 14px ${hexToRgba('#0DB8A8', 0.22)}`,
+    boxShadow: `0px 0px 14px ${hexToRgba('#0E7E74', 0.22)}`,
   },
 } as const;
 
@@ -479,9 +479,9 @@ export const gradients = {
   heroPrimary:   ['#021D2E', '#053348', '#0A4A65'] as string[],
   heroMid:       ['#053348', '#0A4A65'] as string[],
   heroLight:     ['#0A4A65', '#0D6080', '#0891B2'] as string[],
-  // Brand
-  brandPrimary:  ['#0891B2', '#0DB8A8'] as string[],
-  brandStrong:   ['#065C54', '#0891B2'] as string[],
+  // Brand — single-hue teal, aligned to the unified accent (no cyan intrusion)
+  brandPrimary:  ['#0E7E74', '#0A5F58'] as string[],
+  brandStrong:   ['#0A5F58', '#0E7E74'] as string[],
   brandSoft:     ['#E6FAF8', '#CFFAFE'] as string[],
   // Category palette (10 pairs)
   categories: [

@@ -1,26 +1,12 @@
 /**
  * Payment methods — settings screen where the user picks their default payment
  * method. Not the checkout flow's payment step (which lives in app/checkout).
- *
- * Layout decisions (2026 rebuild):
- *   • Single dark gradient header — back button, eyebrow, title, subtitle.
- *     No floating shield, no overlapping pill. Visual hierarchy reads top-down
- *     without competing focal points.
- *   • A "current method" callout sits cleanly below the header — one ring of
- *     teal accent so users know what's saved without ambiguity.
- *   • The PaymentMethodSelector renders each method as its own card. Selection
- *     state is owned by the card; we don't duplicate the indicator.
- *   • Trust badges live in ONE inline strip at the bottom (lock + 4 attributes)
- *     instead of a full-width white card that previously visually overlapped
- *     the gradient header.
- *   • An info note explains the per-order override; final CTA is implicit
- *     (saving is automatic via the store) so no footer button is needed.
  */
 
 import React, { useEffect } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
+import { kit } from "@/shared/kit";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
@@ -31,6 +17,9 @@ import { theme } from "@/shared/theme";
 import { flexRow, isRtl, textAlignStart, BACK_CHEVRON } from "@/utils/layout";
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>["name"];
+
+const IS_RTL     = isRtl();
+const TEXT_START = textAlignStart(IS_RTL);
 
 const TRUST_ITEMS: { icon: IoniconsName; labelKey: string }[] = [
   { icon: "lock-closed-outline",      labelKey: "payment.trustEncrypted" },
@@ -54,232 +43,260 @@ export default function PaymentScreen() {
   const selectedLabel = selectedLabelKey ? t(selectedLabelKey) : "";
 
   return (
-    <View style={styles.screen}>
-      {/* ─── Header ─────────────────────────────────────────────────────── */}
-      <LinearGradient
-        colors={theme.gradients.heroPrimary as [string, string, string]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0.85, y: 1 }}
-        style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        <View style={styles.headerOrb} pointerEvents="none" />
+    <View style={s.screen}>
 
-        <View style={styles.headerRow}>
-          <Pressable
-            onPress={() => router.back()}
-            hitSlop={10}
-            accessibilityRole="button"
-            accessibilityLabel={t("common.back")}
-            style={({ pressed }) => [styles.backBtn, pressed && { opacity: 0.7 }]}>
-            <Ionicons name={BACK_CHEVRON} size={20} color="#FFFFFF" />
-          </Pressable>
+      {/* ── VIP Header ── */}
+      <Animated.View entering={FadeIn.duration(240)} style={[s.header, { paddingTop: insets.top + 10 }]}>
+        <Pressable
+          onPress={() => router.back()}
+          hitSlop={10}
+          accessibilityRole="button"
+          accessibilityLabel={t("common.back")}
+          style={s.backBtn}>
+          <Ionicons name={BACK_CHEVRON} size={18} color={kit.color.inkSoft} />
+        </Pressable>
 
-          <View style={styles.titleStack}>
-            <UIText style={styles.eyebrow}>{t("payment.eyebrow")}</UIText>
-            <UIText style={styles.title} accessibilityRole="header">
-              {t("payment.title")}
-            </UIText>
-            <UIText style={styles.subtitle}>{t("payment.subtitle")}</UIText>
-          </View>
+        <View style={s.iconTile}>
+          <Ionicons name="card-outline" size={22} color={kit.color.accentDeep} />
         </View>
-      </LinearGradient>
+
+        <View style={{ flex: 1 }}>
+          <UIText style={s.headerTitle}>{t("payment.title")}</UIText>
+          <UIText style={s.headerSubtitle}>{t("payment.subtitle")}</UIText>
+        </View>
+      </Animated.View>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 32 }]}>
+        contentContainerStyle={[s.content, { paddingBottom: insets.bottom + 32 }]}>
 
-        {/* ─── Current method callout ─────────────────────────────────── */}
-        <Animated.View entering={FadeIn.duration(220)} style={styles.currentCard}>
-          <View style={styles.currentBadge}>
-            <Ionicons name="checkmark" size={14} color="#FFFFFF" />
+        {/* ── Current method callout ── */}
+        <Animated.View entering={FadeIn.duration(220)} style={[s.currentCard, { flexDirection: flexRow(IS_RTL) }]}>
+          <View style={s.currentBadge}>
+            <Ionicons name="checkmark" size={14} color="#fff" />
           </View>
-          <View style={{ flex: 1 }}>
-            <UIText style={styles.currentLabel}>{t("payment.savedTitle")}</UIText>
-            <UIText style={styles.currentValue} numberOfLines={2}>
+          <View style={{ flex: 1, gap: 3 }}>
+            <UIText style={[s.currentLabel, { textAlign: TEXT_START }]}>{t("payment.savedTitle")}</UIText>
+            <UIText style={[s.currentValue, { textAlign: TEXT_START }]} numberOfLines={2}>
               {selectedLabel || "—"}
             </UIText>
           </View>
+          <View style={s.currentAccentBar} />
         </Animated.View>
 
-        {/* ─── Method cards ───────────────────────────────────────────── */}
+        {/* ── Method cards ── */}
         <Animated.View entering={FadeInDown.delay(80).duration(280)}>
+          <View style={s.sectionLabel}>
+            <View style={[s.sectionBadge, { flexDirection: flexRow(IS_RTL) }]}>
+              <Ionicons name="list-outline" size={14} color={kit.color.accentDeep} />
+            </View>
+            <UIText style={[s.sectionTitle, { textAlign: TEXT_START }]}>{t("payment.methodsTitle")}</UIText>
+          </View>
           <PaymentMethodSelector />
         </Animated.View>
 
-        {/* ─── Trust strip — single inline row, no overlap ───────────── */}
-        <Animated.View entering={FadeInDown.delay(180).duration(280)} style={styles.trustStrip}>
+        {/* ── Trust strip ── */}
+        <Animated.View entering={FadeInDown.delay(180).duration(280)} style={s.trustStrip}>
           {TRUST_ITEMS.map((item) => (
-            <View key={item.labelKey} style={styles.trustItem}>
-              <Ionicons name={item.icon} size={14} color={theme.colors.brand[600]} />
-              <UIText style={styles.trustText} numberOfLines={1}>
-                {t(item.labelKey)}
-              </UIText>
+            <View key={item.labelKey} style={s.trustItem}>
+              <View style={s.trustIcon}>
+                <Ionicons name={item.icon} size={14} color={kit.color.accentDeep} />
+              </View>
+              <UIText style={s.trustText} numberOfLines={1}>{t(item.labelKey)}</UIText>
             </View>
           ))}
         </Animated.View>
 
-        {/* ─── Info note ──────────────────────────────────────────────── */}
-        <Animated.View entering={FadeInDown.delay(240).duration(280)} style={styles.infoNote}>
-          <Ionicons
-            name="information-circle-outline"
-            size={16}
-            color={theme.colors.brand[700]}
-            style={styles.infoIcon}
-          />
-          <UIText style={styles.infoText}>{t("payment.infoNote")}</UIText>
+        {/* ── Info note ── */}
+        <Animated.View entering={FadeInDown.delay(240).duration(280)} style={[s.infoNote, { flexDirection: flexRow(IS_RTL) }]}>
+          <Ionicons name="information-circle-outline" size={16} color={kit.color.accentDeep} />
+          <UIText style={[s.infoText, { textAlign: TEXT_START }]}>{t("payment.infoNote")}</UIText>
         </Animated.View>
       </ScrollView>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: theme.colors.bg },
+// ─── Styles ───────────────────────────────────────────────────────────────────
+const s = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: kit.color.canvas },
 
-  // ── Header ──
+  // Header
   header: {
+    flexDirection:     flexRow(IS_RTL),
+    alignItems:        "center",
+    gap:               14,
     paddingHorizontal: 20,
-    paddingBottom:     22,
-    overflow:          "hidden",
-  },
-  headerOrb: {
-    position:        "absolute",
-    end:             -50,
-    top:             -50,
-    width:           170,
-    height:          170,
-    borderRadius:    85,
-    backgroundColor: "rgba(13,184,168,0.10)",
-  },
-  headerRow: {
-    flexDirection: flexRow(isRtl()),
-    alignItems:    "flex-start",
-    gap:           14,
+    paddingBottom:     16,
+    backgroundColor:   kit.color.surface,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: kit.color.line,
+    ...kit.shadow.raised,
   },
   backBtn: {
     width:           40,
     height:          40,
-    borderRadius:    13,
+    borderRadius:    20,
+    backgroundColor: kit.color.surface,
     alignItems:      "center",
     justifyContent:  "center",
-    backgroundColor: "rgba(255,255,255,0.10)",
     borderWidth:     1,
-    borderColor:     "rgba(255,255,255,0.14)",
-    marginTop:       2,
+    borderColor:     kit.color.line,
+    ...kit.shadow.raised,
+    flexShrink:      0,
   },
-  titleStack: {
-    flex: 1,
-    gap:  3,
+  iconTile: {
+    width:           52,
+    height:          52,
+    borderRadius:    16,
+    backgroundColor: kit.color.accentTint,
+    borderWidth:     1,
+    borderColor:     kit.color.line,
+    alignItems:      "center",
+    justifyContent:  "center",
+    flexShrink:      0,
   },
-  eyebrow: {
-    fontFamily:    theme.fonts.bold,
-    fontSize:      11,
-    color:         "rgba(255,255,255,0.55)",
-    textAlign:     textAlignStart(isRtl()),
-    letterSpacing: 0.5,
+  headerTitle: {
+    fontFamily:         theme.fonts.black,
+    fontSize:           18,
+    letterSpacing:      -0.4,
+    color:              kit.color.ink,
+    includeFontPadding: false,
+    textAlign:          TEXT_START,
   },
-  title: {
-    fontFamily:    theme.fonts.black,
-    fontSize:      26,
-    lineHeight:    34,
-    color:         "#FFFFFF",
-    textAlign:     textAlignStart(isRtl()),
-    letterSpacing: -0.6,
-    marginTop:     2,
-  },
-  subtitle: {
-    fontFamily: theme.fonts.regular,
-    fontSize:   13,
-    lineHeight: 19,
-    color:      "rgba(255,255,255,0.72)",
-    textAlign:  textAlignStart(isRtl()),
-    marginTop:  2,
-  },
-
-  // ── Content ──
-  content: {
-    padding: 20,
-    gap:     18,
+  headerSubtitle: {
+    fontFamily:         theme.fonts.semibold,
+    fontSize:           11,
+    color:              kit.color.inkFaint,
+    includeFontPadding: false,
+    textAlign:          TEXT_START,
+    marginTop:          1,
   },
 
-  // ── Current method callout ──
+  // Content
+  content: { padding: 20, gap: 20 },
+
+  // Current method callout
   currentCard: {
-    flexDirection:    flexRow(isRtl()),
-    alignItems:       "center",
-    gap:              12,
-    padding:          14,
-    borderRadius:     16,
-    backgroundColor:  theme.colors.brand.lighter,
-    borderWidth:      1,
-    borderColor:      theme.colors.border.brandSoft,
+    alignItems:      "center",
+    gap:             14,
+    padding:         16,
+    borderRadius:    16,
+    backgroundColor: kit.color.accentTint,
+    borderWidth:     1,
+    borderColor:     kit.color.line,
+    overflow:        "hidden",
+    ...kit.shadow.raised,
   },
   currentBadge: {
-    width:           28,
-    height:          28,
-    borderRadius:    9,
-    backgroundColor: theme.colors.brand[600],
+    width:           34,
+    height:          34,
+    borderRadius:    11,
+    backgroundColor: kit.color.accentDeep,
+    alignItems:      "center",
+    justifyContent:  "center",
+    flexShrink:      0,
+  },
+  currentLabel: {
+    fontFamily:         theme.fonts.bold,
+    fontSize:           10,
+    letterSpacing:      0.5,
+    color:              kit.color.accentDeep,
+    includeFontPadding: false,
+  },
+  currentValue: {
+    fontFamily:         theme.fonts.black,
+    fontSize:           14,
+    color:              kit.color.ink,
+    lineHeight:         19,
+    includeFontPadding: false,
+  },
+  currentAccentBar: {
+    position:        "absolute",
+    top:             0,
+    bottom:          0,
+    start:           0,
+    width:           3,
+    backgroundColor: kit.color.accentDeep,
+  },
+
+  // Section label
+  sectionLabel: {
+    flexDirection:  flexRow(IS_RTL),
+    alignItems:     "center",
+    gap:            10,
+    marginBottom:   12,
+  },
+  sectionBadge: {
+    width:           32,
+    height:          32,
+    borderRadius:    11,
+    backgroundColor: kit.color.accentTint,
+    borderWidth:     1,
+    borderColor:     kit.color.line,
     alignItems:      "center",
     justifyContent:  "center",
   },
-  currentLabel: {
-    fontFamily:    theme.fonts.bold,
-    fontSize:      10,
-    color:         theme.colors.brand[700],
-    textAlign:     textAlignStart(isRtl()),
-    letterSpacing: 0.5,
-  },
-  currentValue: {
-    fontFamily:  theme.fonts.black,
-    fontSize:    14,
-    color:       theme.colors.text.primary,
-    textAlign:   textAlignStart(isRtl()),
-    marginTop:   1,
-    lineHeight:  19,
+  sectionTitle: {
+    fontFamily:         theme.fonts.black,
+    fontSize:           13,
+    letterSpacing:      0.3,
+    color:              kit.color.inkSoft,
+    includeFontPadding: false,
   },
 
-  // ── Trust strip ──
+  // Trust strip
   trustStrip: {
-    flexDirection:    flexRow(isRtl()),
-    alignItems:       "center",
-    justifyContent:   "space-between",
-    paddingVertical:  12,
+    flexDirection:     flexRow(IS_RTL),
+    alignItems:        "center",
+    justifyContent:    "space-between",
+    paddingVertical:   14,
     paddingHorizontal: 8,
-    borderRadius:     14,
-    backgroundColor:  theme.colors.surface,
-    borderWidth:      1,
-    borderColor:      theme.colors.border.hairline,
+    borderRadius:      16,
+    backgroundColor:   kit.color.surface,
+    borderWidth:       1,
+    borderColor:       kit.color.line,
+    ...kit.shadow.raised,
   },
   trustItem: {
-    flex:          1,
-    alignItems:    "center",
-    gap:           5,
+    flex:        1,
+    alignItems:  "center",
+    gap:         6,
+  },
+  trustIcon: {
+    width:           34,
+    height:          34,
+    borderRadius:    11,
+    backgroundColor: kit.color.accentTint,
+    borderWidth:     1,
+    borderColor:     kit.color.line,
+    alignItems:      "center",
+    justifyContent:  "center",
   },
   trustText: {
-    fontFamily: theme.fonts.bold,
-    fontSize:   10,
-    color:      theme.colors.text.secondary,
-    textAlign:  "center",
+    fontFamily:         theme.fonts.bold,
+    fontSize:           9,
+    color:              kit.color.inkSoft,
+    textAlign:          "center",
+    includeFontPadding: false,
   },
 
-  // ── Info note ──
+  // Info note
   infoNote: {
-    flexDirection:   flexRow(isRtl()),
     alignItems:      "flex-start",
     gap:             10,
-    padding:         12,
-    borderRadius:    12,
-    backgroundColor: theme.colors.brand.lighter,
+    padding:         14,
+    borderRadius:    14,
+    backgroundColor: kit.color.accentTint,
     borderWidth:     1,
-    borderColor:     theme.colors.border.brandSoft,
-  },
-  infoIcon: {
-    marginTop: 1,
+    borderColor:     kit.color.line,
   },
   infoText: {
-    flex:       1,
-    fontFamily: theme.fonts.regular,
-    fontSize:   12,
-    lineHeight: 18,
-    color:      theme.colors.brand[800],
-    textAlign:  textAlignStart(isRtl()),
+    flex:               1,
+    fontFamily:         theme.fonts.regular,
+    fontSize:           12,
+    lineHeight:         18,
+    color:              kit.color.accentDeep,
+    includeFontPadding: false,
   },
 });

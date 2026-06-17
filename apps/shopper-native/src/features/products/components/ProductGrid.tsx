@@ -146,8 +146,7 @@ export const ProductGrid = React.memo(function ProductGrid({
       numColumns={2}
       // Card: 172px image + 14+14 padding + ~9.5 category label + ~40 name
       // (2 lines × 20px) + ~14 stars row + ~34 price/button + 20 gap = ~317px.
-      // Tight estimate → fewer scroll-position miscalculations on first render.
-      estimatedItemSize={317}
+      // Note: FlashList v2 does not require estimatedItemSize (only optimal, not mandatory).
       overrideItemLayout={overrideItemLayout}
       // drawDistance: pre-render 1.5 screen-heights ahead so the user never
       // sees blank cells during normal scrolling.  Larger values increase
@@ -172,6 +171,7 @@ const cellStyle = {
   padding: 5,
 } as const;
 
+const FLEX_DIR = flexRow(isRtl());
 const columnWrapperStyle = {
-  flexDirection: flexRow(isRtl()) as const,
+  flexDirection: FLEX_DIR,
 };

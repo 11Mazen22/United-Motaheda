@@ -20,10 +20,10 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import { useTranslation } from "react-i18next";
 import { Text } from "@/shared/ui";
 import { theme } from "@/shared/theme";
+import { kit } from "@/shared/kit";
 
 import type { LoyaltyBalance, RewardTier } from "../../types";
 import { getTierColor, getTierIcon, type IoniconsName } from "./HubHelpers";
@@ -101,11 +101,7 @@ export const LoyaltyPointsCard = React.memo(function LoyaltyPointsCard({
     : null;
 
   return (
-    <LinearGradient
-      colors={["#071E3D", "#0D3460", "#1A5276"]}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={s.gradient}>
+    <View style={[s.gradient, { backgroundColor: kit.color.ink }]}>
 
       {/* Greeting + avatar */}
       <View style={s.topRow}>
@@ -183,7 +179,7 @@ export const LoyaltyPointsCard = React.memo(function LoyaltyPointsCard({
           </View>
         </View>
       )}
-    </LinearGradient>
+    </View>
   );
 });
 

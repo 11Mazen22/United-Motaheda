@@ -1,15 +1,19 @@
 /**
- * DeliveryHeader — Elite 2026 redesign.
+ * DeliveryHeader — cinematic living header (2026 Ultra).
  *
- * Soft teal→canvas gradient hero: gives the home screen depth without
- * going back to the dark navy era. Highlights strip below the greeting
- * (three semantic metric pills) creates a "smart dashboard" impression.
- * Notification bell slot added (optional prop — skipped when unset).
+ * Ambient system:
+ *   • Depth orb — translucent tinted circle in the trailing corner; drifts
+ *     ±12 px vertically on a 4 s sine wave. Clipped by overflow:hidden.
+ *   • Logo ring — hairline ring around the logo tile that breathes in opacity
+ *     (0.12 → 0.35 → 0.12) on a 2.5 s cycle. Very subtle.
+ *   • Search glow — accentTint layer behind the search bar pulses to opacity 1
+ *     for ~1.2 s every 5.4 s, giving the sense the bar is alive.
  *
- * Performance contract kept: memo'd, no entrance animations, stable callbacks.
+ * All ambient motion is gated on useReducedMotion and cancelled on unmount.
+ * Props / behaviour contract: unchanged from V3.
  */
 
-import React, { memo, useMemo } from "react";
+import React, { memo, useEffect, useMemo } from "react";
 import {
   Platform,
   Pressable,
@@ -17,11 +21,20 @@ import {
   StyleSheet,
   View,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
+import Animated, {
+  cancelAnimation,
+  Easing,
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from "react-native-reanimated";
 import { Text as UIText } from "@/shared/ui";
 import { theme } from "@/shared/theme";
 import { AppLogo } from "@/shared/components/AppLogo";
@@ -31,7 +44,9 @@ import { kit } from "@/shared/kit";
 const IS_RTL     = isRtl();
 const TEXT_START = textAlignStart(IS_RTL);
 
-// Time-of-day icon
+// Orb anchors: trailing corner per text direction
+const ORB_POSITION = IS_RTL ? { left: -70 } : { right: -70 };
+
 function getTimeIcon(): React.ComponentProps<typeof Ionicons>["name"] {
   const h = new Date().getHours();
   if (h >= 5  && h < 12) return "sunny-outline";
@@ -39,20 +54,19 @@ function getTimeIcon(): React.ComponentProps<typeof Ionicons>["name"] {
   return "moon-outline";
 }
 
-// Module-level metric pills — no re-allocation per render
 const METRIC_PILLS = [
-  { icon: "shield-checkmark" as const, labelKey: "home.metricOriginal", tint: kit.color.accentTint, color: kit.color.accentDeep },
-  { icon: "flash"            as const, labelKey: "home.metricFast",     tint: kit.color.warnTint,   color: kit.color.warn       },
-  { icon: "medical"          as const, labelKey: "home.metricSupport",  tint: kit.color.successTint, color: kit.color.success   },
+  { icon: "shield-checkmark" as const, labelKey: "home.metricOriginal", tint: kit.color.accentTint,  color: kit.color.accentDeep },
+  { icon: "flash"            as const, labelKey: "home.metricFast",     tint: kit.color.warnTint,    color: kit.color.warn       },
+  { icon: "medical"          as const, labelKey: "home.metricSupport",  tint: kit.color.successTint, color: kit.color.success    },
 ] as const;
 
 interface DeliveryHeaderProps {
-  insets:          { top: number };
-  user:            { name?: string | null } | null;
-  cartCount:       number;
-  onCartPress:     () => void;
-  onSearchPress:   () => void;
-  onNotifPress?:   () => void;
+  insets:        { top: number };
+  user:          { name?: string | null } | null;
+  cartCount:     number;
+  onCartPress:   () => void;
+  onSearchPress: () => void;
+  onNotifPress?: () => void;
 }
 
 export const DeliveryHeader = memo(function DeliveryHeader({
@@ -65,25 +79,84 @@ export const DeliveryHeader = memo(function DeliveryHeader({
 }: DeliveryHeaderProps) {
   const { t }  = useTranslation();
   const router = useRouter();
-
+  const reduced = useReducedMotion() ?? false;
   const timeIcon = useMemo(() => getTimeIcon(), []);
+
+  // ── Ambient shared values ─────────────────────────────────────────────────
+  const orbY              = useSharedValue(0);
+  const logoRingOpacity   = useSharedValue(0.12);
+  const searchGlowOpacity = useSharedValue(0);
+
+  useEffect(() => {
+    if (reduced) return;
+
+    // Depth orb: gentle vertical float
+    orbY.value = withRepeat(
+      withTiming(12, { duration: 4000, easing: Easing.inOut(Easing.sin) }),
+      -1,
+      true,
+    );
+
+    // Logo ring: slow breath
+    logoRingOpacity.value = withRepeat(
+      withTiming(0.35, { duration: 2500, easing: Easing.inOut(Easing.sin) }),
+      -1,
+      true,
+    );
+
+    // Search glow: brief pulse every ~5.4 s
+    searchGlowOpacity.value = withRepeat(
+      withSequence(
+        withTiming(0, { duration: 4200 }),   // hold quiet
+        withTiming(1, { duration: 500  }),   // glow in
+        withTiming(0, { duration: 700  }),   // glow out
+      ),
+      -1,
+    );
+
+    return () => {
+      cancelAnimation(orbY);
+      cancelAnimation(logoRingOpacity);
+      cancelAnimation(searchGlowOpacity);
+    };
+  }, [reduced]);
+
+  const orbAnim = useAnimatedStyle(() => ({
+    transform: [{ translateY: orbY.value }],
+  }));
+  const logoRingAnim = useAnimatedStyle(() => ({
+    opacity: logoRingOpacity.value,
+  }));
+  const searchGlowAnim = useAnimatedStyle(() => ({
+    opacity: searchGlowOpacity.value,
+  }));
 
   const greeting = user?.name
     ? t("home.greeting",      { name: user.name.split(" ")[0] })
     : t("home.greetingGuest");
 
   return (
-    <LinearGradient
-      colors={["#DCF2EF", "#EBF7F5", "#F4FBF9", kit.color.canvas]}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 0.1, y: 1 }}
-      style={[s.header, { paddingTop: insets.top + 14 }]}>
+    <View style={[s.header, { paddingTop: insets.top + 14 }]}>
 
-      {/* ── Top bar: brand ←→ (notifications + cart) ── */}
+      {/* ── Ambient depth orb (clipped by overflow:hidden on header) ── */}
+      <Animated.View
+        style={[s.ambientOrb, ORB_POSITION, orbAnim]}
+        pointerEvents="none"
+        importantForAccessibility="no-hide-descendants"
+        accessibilityElementsHidden
+      />
+
+      {/* ── Top bar ─────────────────────────────────────────────────────────── */}
       <View style={s.topBar}>
-        <View style={s.logoWrap}>
-          <AppLogo size={40} />
+
+        {/* Logo with pulse ring */}
+        <View style={s.logoOuter}>
+          <Animated.View style={[s.logoRing, logoRingAnim]} />
+          <View style={s.logoWrap}>
+            <AppLogo size={40} />
+          </View>
         </View>
+
         <View style={s.topActions}>
           {onNotifPress && (
             <Pressable
@@ -115,7 +188,7 @@ export const DeliveryHeader = memo(function DeliveryHeader({
         </View>
       </View>
 
-      {/* ── Headline + highlights strip ── */}
+      {/* ── Heading + metric strip ───────────────────────────────────────────── */}
       <View style={s.headingStack}>
         <View style={s.greetingRow}>
           <View style={s.greetingIconWrap}>
@@ -127,7 +200,6 @@ export const DeliveryHeader = memo(function DeliveryHeader({
         <UIText style={s.heroTitle}>{t("home.heroTaglineTitle")}</UIText>
         <UIText style={s.heroSub}>{t("home.heroTaglineSub")}</UIText>
 
-        {/* Smart-dashboard metric strip */}
         <View style={s.metricRow}>
           {METRIC_PILLS.map((pill) => (
             <View key={pill.labelKey} style={[s.metricPill, { backgroundColor: pill.tint }]}>
@@ -140,28 +212,31 @@ export const DeliveryHeader = memo(function DeliveryHeader({
         </View>
       </View>
 
-      {/* ── Search pill — floating, routes to search tab ── */}
-      <Pressable
-        onPress={onSearchPress}
-        accessibilityRole="button"
-        accessibilityLabel={t("search.placeholder")}
-        style={s.searchBar}>
-        <View style={s.searchIconWrap}>
-          <Ionicons name="search" size={17} color={kit.color.inkFaint} />
-        </View>
-        <UIText style={s.searchPlaceholder} numberOfLines={1}>
-          {t("search.placeholder")}
-        </UIText>
-        <LinearGradient
-          colors={[kit.color.accent, kit.color.accentDeep]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={s.searchBadge}>
-          <Ionicons name="sparkles" size={13} color={kit.color.onInk} />
-        </LinearGradient>
-      </Pressable>
+      {/* ── Search bar with living glow ──────────────────────────────────────── */}
+      <View style={s.searchOuter}>
+        <Animated.View
+          style={[s.searchGlowLayer, searchGlowAnim]}
+          pointerEvents="none"
+          accessibilityElementsHidden
+        />
+        <Pressable
+          onPress={onSearchPress}
+          accessibilityRole="button"
+          accessibilityLabel={t("search.placeholder")}
+          style={s.searchBar}>
+          <View style={s.searchIconWrap}>
+            <Ionicons name="search" size={17} color={kit.color.inkFaint} />
+          </View>
+          <UIText style={s.searchPlaceholder} numberOfLines={1}>
+            {t("search.placeholder")}
+          </UIText>
+          <View style={[s.searchBadge, { backgroundColor: kit.color.accent }]}>
+            <Ionicons name="sparkles" size={13} color={kit.color.onInk} />
+          </View>
+        </Pressable>
+      </View>
 
-      {/* ── Quick-access chips ── */}
+      {/* ── Quick-access chips ──────────────────────────────────────────────── */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -189,7 +264,7 @@ export const DeliveryHeader = memo(function DeliveryHeader({
         </Pressable>
 
         <Pressable
-          onPress={() => router.push("/prescriptions")}
+          onPress={() => router.push("/(tabs)/meds" as Parameters<typeof router.push>[0])}
           style={[s.chip, { backgroundColor: kit.color.accentTint }]}
           accessibilityRole="button">
           <Ionicons name="medical-outline" size={13} color={kit.color.accentDeep} />
@@ -208,22 +283,53 @@ export const DeliveryHeader = memo(function DeliveryHeader({
           </UIText>
         </Pressable>
       </ScrollView>
-    </LinearGradient>
+    </View>
   );
 });
 
+// ─── Styles ───────────────────────────────────────────────────────────────────
+
 const s = StyleSheet.create({
   header: {
+    backgroundColor:   kit.color.canvas,
     paddingBottom:     kit.sp(5),
     paddingHorizontal: theme.layout.pagePaddingH,
+    overflow:          "hidden",   // clips the ambient orb
   },
 
-  // ── Top bar ──
+  // Ambient orb — receives ORB_POSITION spread in JSX
+  ambientOrb: {
+    position:      "absolute",
+    top:           -90,
+    width:         250,
+    height:        250,
+    borderRadius:  125,
+    backgroundColor: kit.color.accentTint,
+    opacity:       0.55,
+  },
+
+  // ── Top bar ──────────────────────────────────────────────────────────────
   topBar: {
     flexDirection:  flexRow(IS_RTL),
     alignItems:     "center",
     justifyContent: "space-between",
     marginBottom:   kit.sp(5),
+  },
+
+  // Logo: outer hosts the ring + inner tile
+  logoOuter: {
+    width:           60,
+    height:          60,
+    alignItems:      "center",
+    justifyContent:  "center",
+  },
+  logoRing: {
+    position:     "absolute",
+    width:        60,
+    height:       60,
+    borderRadius: 20,
+    borderWidth:  1.5,
+    borderColor:  kit.color.accent,
   },
   logoWrap: {
     width:           48,
@@ -237,6 +343,7 @@ const s = StyleSheet.create({
     overflow:        "hidden",
     ...kit.shadow.raised,
   },
+
   topActions: {
     flexDirection: flexRow(IS_RTL),
     alignItems:    "center",
@@ -285,7 +392,7 @@ const s = StyleSheet.create({
     textAlign:          "center",
   },
 
-  // ── Heading + highlights strip ──
+  // ── Heading stack ────────────────────────────────────────────────────────
   headingStack: {
     gap:          kit.sp(2),
     marginBottom: kit.sp(5),
@@ -348,7 +455,19 @@ const s = StyleSheet.create({
     includeFontPadding: false,
   },
 
-  // ── Search pill ──
+  // ── Search bar ────────────────────────────────────────────────────────────
+  searchOuter: {
+    position: "relative",
+  },
+  searchGlowLayer: {
+    position:     "absolute",
+    top:          -3,
+    left:         -3,
+    right:        -3,
+    bottom:       -3,
+    borderRadius: kit.radius.pill + 3,
+    backgroundColor: kit.color.accentTint,
+  },
   searchBar: {
     flexDirection:     flexRow(IS_RTL),
     alignItems:        "center",
@@ -362,8 +481,8 @@ const s = StyleSheet.create({
     ...kit.shadow.floating,
   },
   searchIconWrap: {
-    width:  40,
-    height: 40,
+    width:           40,
+    height:          40,
     alignItems:      "center",
     justifyContent:  "center",
   },
@@ -384,7 +503,7 @@ const s = StyleSheet.create({
     justifyContent: "center",
   },
 
-  // ── Quick-access chips ──
+  // ── Quick-access chips ────────────────────────────────────────────────────
   chipScroll: { marginTop: kit.sp(3) },
   chipRow: {
     flexDirection: flexRow(IS_RTL),

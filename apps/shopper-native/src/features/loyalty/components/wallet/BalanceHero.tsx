@@ -8,9 +8,8 @@
  *           AnimatedTextInput → 100 % UI-thread, zero JS-thread involvement
  */
 
-import React, { memo, useEffect, useMemo } from "react";
+import React, { memo, useEffect } from "react";
 import { View } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import {
   Easing,
@@ -21,10 +20,10 @@ import {
 import { useTranslation } from "react-i18next";
 import { Text } from "@/shared/ui";
 import { theme } from "@/shared/theme";
+import { kit } from "@/shared/kit";
 import type { LoyaltyBalance, RewardTier } from "../../types";
 import {
   heroStyles as s,
-  HERO_GRADIENT,
   AnimatedTextInput,
 } from "./wallet.styles";
 
@@ -91,11 +90,7 @@ export const BalanceHero = memo(function BalanceHero({
 
   return (
     <View style={s.wrap}>
-      <LinearGradient
-        colors={HERO_GRADIENT}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={s.card}>
+      <View style={[s.card, { backgroundColor: kit.color.ink }]}>
 
         {/* Tier badge + multiplier */}
         <View style={s.topRow}>
@@ -156,7 +151,7 @@ export const BalanceHero = memo(function BalanceHero({
             </View>
           </View>
         )}
-      </LinearGradient>
+      </View>
     </View>
   );
 });

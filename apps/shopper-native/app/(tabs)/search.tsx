@@ -35,7 +35,6 @@ import {
   type StyleProp,
   type TextStyle,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import { useTranslation } from "react-i18next";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
@@ -394,12 +393,8 @@ export default function SearchScreen() {
   return (
     <View style={s.screen}>
 
-      {/* ─── Editorial header — gradient bg ── */}
-      <LinearGradient
-        colors={["#DCF2EF", "#EBF7F5", "#F4FBF9", kit.color.canvas]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0.1, y: 1 }}
-        style={[s.header, { paddingTop: insets.top + 12 }]}>
+      {/* ─── Editorial header ── */}
+      <View style={[s.header, { paddingTop: insets.top + 12 }]}>
         <View style={s.headerRow}>
           <View style={{ flex: 1 }}>
             <UIText style={s.eyebrow}>{t("search.eyebrow")}</UIText>
@@ -499,7 +494,7 @@ export default function SearchScreen() {
             <UIText style={s.hintText}>{translationHintText}</UIText>
           </Animated.View>
         )}
-      </LinearGradient>
+      </View>
 
       {/* ─── Body ── */}
       <View style={s.body}>

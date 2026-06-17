@@ -34,7 +34,7 @@ import Animated, { FadeIn, SlideInDown, SlideOutDown } from "react-native-reanim
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import { Text } from "@/shared/ui";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@/shared/kit";
 import { theme } from "@/shared/theme";
 import {
   OTP_RESEND_COOLDOWN_SECONDS,
@@ -299,7 +299,7 @@ interface CodeStepProps {
   code:               string;
   onChangeCode:       (v: string) => void;
   onPressBoxes:       () => void;
-  inputRef:           React.RefObject<TextInput | null>;
+  inputRef:           React.RefObject<TextInput>;
   onChangeNumber:     () => void;
   onResend:           () => void;
   onVerify:           () => void;
@@ -427,15 +427,13 @@ function CodeStep(props: CodeStepProps): React.ReactElement {
       <View style={{ gap: theme.spacing[1], marginTop: theme.spacing[2] }}>
         <Button
           variant="primary"
-          fullWidth
+          full
           loading={submitting}
           disabled={!canSubmit || expired}
-          onPress={onVerify}>
-          {t("phoneVerify.verify")}
-        </Button>
-        <Button variant="ghost" fullWidth onPress={onCancel}>
-          {t("phoneVerify.cancel")}
-        </Button>
+          onPress={onVerify}
+          label={t("phoneVerify.verify")}
+        />
+        <Button variant="ghost" full label={t("phoneVerify.cancel")} onPress={onCancel} />
       </View>
     </>
   );
@@ -446,7 +444,7 @@ function CodeStep(props: CodeStepProps): React.ReactElement {
 interface EditStepProps {
   value:      string;
   onChange:   (v: string) => void;
-  inputRef:   React.RefObject<TextInput | null>;
+  inputRef:   React.RefObject<TextInput>;
   onSend:     () => void;
   onBack:     () => void;
   sending:    boolean;
@@ -504,12 +502,8 @@ function EditStep({
       )}
 
       <View style={{ gap: theme.spacing[1], marginTop: theme.spacing[2] }}>
-        <Button variant="primary" fullWidth loading={sending} onPress={onSend}>
-          {t("phoneVerify.send")}
-        </Button>
-        <Button variant="ghost" fullWidth onPress={onBack}>
-          {canGoBack ? t("phoneVerify.backToVerify") : t("phoneVerify.cancel")}
-        </Button>
+        <Button variant="primary" full loading={sending} label={t("phoneVerify.send")} onPress={onSend} />
+        <Button variant="ghost" full label={canGoBack ? t("phoneVerify.backToVerify") : t("phoneVerify.cancel")} onPress={onBack} />
       </View>
     </>
   );

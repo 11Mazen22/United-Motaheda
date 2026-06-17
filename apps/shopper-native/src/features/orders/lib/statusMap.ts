@@ -1,43 +1,175 @@
 /**
- * mapOrderStatus — translate the project's existing OrderStatus enum into the
- * HANDOFF §10.2 presentational tone map.
+ * statusMap — Order Status → Display Token Mapper (V3)
  *
- * The store enum (pending/processing/shipped/delivered/cancelled) stays the
- * source of truth. HANDOFF tones are presentational only — use this helper
- * any time a component needs a SPEC-aligned color/icon/label triple for an
- * order.
+ * Resolves an order status string into a display-ready object containing:
+ *   label  — localised human-readable string (via i18n TFunction)
+ *   tone   — semantic colour role consumed by TodayCare and order screens
+ *   icon   — Ionicons icon name reflecting the order lifecycle stage
+ *
+ * Why a separate mapper (not inline in the component)?
+ * ─────────────────────────────────────────────────────
+ * Keeps the component layer free of status logic.  New statuses only need
+ * a single entry here; the UI automatically inherits the right colour + icon.
+ *
+ * TFunction overload:
+ *   mapOrderStatus(status, t)   — localised label (primary usage)
+ *   mapOrderStatus(status)      — English fallback label (legacy / tests)
  */
 
 import type { TFunction } from "i18next";
-import type { OrderStatus } from "@/stores/orders";
 
-/** SPEC §10.2 tone set used by Badge / OrderStatusPill. */
-export type OrderTone = "success" | "info" | "warning" | "error" | "brand" | "neutral";
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+export type OrderTone =
+  | "neutral"
+  | "info"
+  | "brand"
+  | "success"
+  | "warning"
+  | "error";
+
+type IoniconsName =
+  | "checkmark-circle"
+  | "checkmark-circle-outline"
+  | "bicycle"
+  | "cube-outline"
+  | "hourglass-outline"
+  | "time-outline"
+  | "close-circle"
+  | "alert-circle"
+  | "refresh-circle"
+  | "bag-check-outline"
+  | "receipt-outline";
 
 export interface OrderStatusView {
-  tone:     OrderTone;
-  icon:     "checkmark-circle" | "car" | "cube" | "medkit" | "close-circle" | "time" | "refresh";
-  /** Localised label — pass `t` to `mapOrderStatus` to compute. */
-  label:    string;
+  label: string;
+  tone:  OrderTone;
+  icon:  IoniconsName;
 }
 
-type StatusBase = { tone: OrderTone; icon: OrderStatusView["icon"]; labelKey: string };
+// ─── Status definitions ───────────────────────────────────────────────────────
 
-const MAP: Record<OrderStatus, StatusBase> = {
-  // store: 'pending'    → HANDOFF: awaiting   → warn
-  pending:         { tone: "warning", icon: "time",             labelKey: "orderStatus.pending"        },
-  pending_payment: { tone: "warning", icon: "time",             labelKey: "orderStatus.pendingPayment" },
-  // store: 'processing' → HANDOFF: preparing  → warn
-  processing:      { tone: "warning", icon: "refresh",          labelKey: "orderStatus.processing"     },
-  // store: 'shipped'    → HANDOFF: in_transit → info
-  shipped:         { tone: "info",    icon: "car",              labelKey: "orderStatus.shipped"        },
-  // store: 'delivered'  → HANDOFF: delivered  → success
-  delivered:       { tone: "success", icon: "checkmark-circle", labelKey: "orderStatus.delivered"      },
-  // store: 'cancelled'  → HANDOFF: cancelled  → danger
-  cancelled:       { tone: "error",   icon: "close-circle",     labelKey: "orderStatus.cancelled"      },
+const STATUS_MAP: Record<
+  string,
+  { fallback: string; tone: OrderTone; icon: IoniconsName }
+> = {
+  delivered: {
+    fallback: "Delivered",
+    tone:     "success",
+    icon:     "checkmark-circle",
+  },
+  completed: {
+    fallback: "Completed",
+    tone:     "success",
+    icon:     "bag-check-outline",
+  },
+  out_for_delivery: {
+    fallback: "Out for Delivery",
+    tone:     "brand",
+    icon:     "bicycle",
+  },
+  on_the_way: {
+    fallback: "On the Way",
+    tone:     "brand",
+    icon:     "bicycle",
+  },
+  shipped: {
+    fallback: "Shipped",
+    tone:     "info",
+    icon:     "bicycle",
+  },
+  processing: {
+    fallback: "Processing",
+    tone:     "info",
+    icon:     "hourglass-outline",
+  },
+  confirmed: {
+    fallback: "Confirmed",
+    tone:     "info",
+    icon:     "cube-outline",
+  },
+  packed: {
+    fallback: "Packed",
+    tone:     "info",
+    icon:     "cube-outline",
+  },
+  ready_for_pickup: {
+    fallback: "Ready for Pickup",
+    tone:     "brand",
+    icon:     "bag-check-outline",
+  },
+  pending: {
+    fallback: "Pending",
+    tone:     "warning",
+    icon:     "time-outline",
+  },
+  payment_pending: {
+    fallback: "Payment Pending",
+    tone:     "warning",
+    icon:     "time-outline",
+  },
+  cancelled: {
+    fallback: "Cancelled",
+    tone:     "error",
+    icon:     "close-circle",
+  },
+  failed: {
+    fallback: "Failed",
+    tone:     "error",
+    icon:     "alert-circle",
+  },
+  refunded: {
+    fallback: "Refunded",
+    tone:     "neutral",
+    icon:     "refresh-circle",
+  },
 };
 
-export function mapOrderStatus(status: OrderStatus, t: TFunction): OrderStatusView {
-  const base = MAP[status];
-  return { tone: base.tone, icon: base.icon, label: t(base.labelKey) };
+const UNKNOWN_VIEW = {
+  tone: "neutral" as OrderTone,
+  icon: "receipt-outline" as IoniconsName,
+};
+
+const STATUS_I18N_KEY: Record<string, string> = {
+  delivered:         "orders.statusDelivered",
+  completed:         "orders.statusCompleted",
+  out_for_delivery:  "orders.statusOutForDelivery",
+  on_the_way:        "orders.statusOnTheWay",
+  shipped:           "orders.statusShipped",
+  processing:        "orders.statusProcessing",
+  confirmed:         "orders.statusConfirmed",
+  packed:            "orders.statusPacked",
+  ready_for_pickup:  "orders.statusReadyForPickup",
+  pending:           "orders.statusPending",
+  payment_pending:   "orders.statusPaymentPending",
+  cancelled:         "orders.statusCancelled",
+  failed:            "orders.statusFailed",
+  refunded:          "orders.statusRefunded",
+};
+
+export function mapOrderStatus(
+  status: string,
+  t?: TFunction,
+): OrderStatusView {
+  const norm = (status ?? "").toLowerCase().replace(/\s+/g, "_");
+  const def  = STATUS_MAP[norm];
+
+  if (!def) {
+    return {
+      label: t ? t("orders.statusUnknown", { defaultValue: status }) : status,
+      ...UNKNOWN_VIEW,
+    };
+  }
+
+  const i18nKey = STATUS_I18N_KEY[norm];
+  const label =
+    t && i18nKey
+      ? t(i18nKey, { defaultValue: def.fallback })
+      : def.fallback;
+
+  return {
+    label,
+    tone: def.tone,
+    icon: def.icon,
+  };
 }

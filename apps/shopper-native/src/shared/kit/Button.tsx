@@ -17,7 +17,7 @@
  */
 
 import React from "react";
-import { StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
+import { ActivityIndicator, StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Text as UIText } from "@/shared/ui";
 import { theme } from "@/shared/theme";
@@ -58,6 +58,8 @@ export interface ButtonProps {
   /** Render the icon on the reading-end side instead of the start. */
   iconEnd?:  boolean;
   disabled?: boolean;
+  /** Show a spinner and block presses while an async action runs. */
+  loading?:  boolean;
   /** Stretch to the parent width. */
   full?:     boolean;
   style?:    StyleProp<ViewStyle>;
@@ -72,11 +74,13 @@ export function Button({
   icon,
   iconEnd,
   disabled,
+  loading,
   full,
   style,
   accessibilityLabel,
 }: ButtonProps) {
-  const c = colorsFor(variant, !!disabled);
+  const off = !!disabled || !!loading;
+  const c = colorsFor(variant, off);
   const iconEl = icon ? (
     <Ionicons name={icon} size={ICON[size]} color={c.fg} />
   ) : null;
@@ -84,12 +88,12 @@ export function Button({
   return (
     <PressableScale
       onPress={onPress}
-      disabled={disabled}
+      disabled={off}
       scaleTo={0.97}
       hitSlop={size === "sm" ? 6 : undefined}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? label}
-      accessibilityState={{ disabled: !!disabled }}
+      accessibilityState={{ disabled: off, busy: !!loading }}
       style={[
         styles.base,
         {
@@ -97,20 +101,26 @@ export function Button({
           paddingHorizontal: variant === "ghost" ? 10 : PAD[size],
           backgroundColor:   c.bg,
         },
-        variant === "primary" && !disabled && kit.shadow.raised,
+        variant === "primary" && !off && kit.shadow.raised,
         full && styles.full,
         style,
       ]}>
-      {!iconEnd && iconEl}
-      <UIText
-        style={[
-          styles.label,
-          { fontSize: FONT[size], color: c.fg, fontFamily: theme.fonts.black },
-        ]}
-        maxFontSizeMultiplier={1.2}>
-        {label}
-      </UIText>
-      {iconEnd && iconEl}
+      {loading ? (
+        <ActivityIndicator size="small" color={c.fg} />
+      ) : (
+        <>
+          {!iconEnd && iconEl}
+          <UIText
+            style={[
+              styles.label,
+              { fontSize: FONT[size], color: c.fg, fontFamily: theme.fonts.black },
+            ]}
+            maxFontSizeMultiplier={1.2}>
+            {label}
+          </UIText>
+          {iconEnd && iconEl}
+        </>
+      )}
     </PressableScale>
   );
 }

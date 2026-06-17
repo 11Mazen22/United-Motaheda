@@ -98,7 +98,7 @@ async function railwayFetch<T>(
   try {
     const response = await fetch(`${RAILWAY_BASE_URL}${path}`, {
       ...options,
-      signal: controller.signal,
+      signal: controller.signal as any,
       headers: {
         "Content-Type": "application/json",
         Accept:         "application/json",
@@ -111,13 +111,13 @@ async function railwayFetch<T>(
     if (!response.ok) {
       let message = `خطأ في الخادم: ${response.status}`;
       try {
-        const body = await response.json();
+        const body = (await response.json()) as any;
         message = body?.message ?? body?.error ?? message;
       } catch { /* non-JSON body */ }
       throw new RailwayApiError(message, response.status, "SERVER");
     }
 
-    const json = await response.json();
+    const json = (await response.json()) as any;
     return (json?.data ?? json) as T;
   } catch (err) {
     clearTimeout(timer);

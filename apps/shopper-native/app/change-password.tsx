@@ -5,11 +5,7 @@
  * this screen is accessible from the Security settings row for any signed-in
  * user. It calls the same underlying `updatePassword()` API function.
  *
- * Validation:
- *   - Minimum 8 characters
- *   - New password and confirm must match
- *
- * On success: shows a confirmation state then navigates back after 1.5 s.
+ * Logic: unchanged. VIP kit migration + light header + layered ring (Phase 2).
  */
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
@@ -29,14 +25,31 @@ import { useTranslation } from "react-i18next";
 import { updatePassword, getAuthError } from "@/features/auth";
 import { captureError } from "@/lib/crashReporter";
 import { Input } from "@/components/ui/Input";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@/shared/kit";
 import { Text as UIText } from "@/shared/ui";
+import { kit } from "@/shared/kit";
 import { theme } from "@/shared/theme";
-import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
+import { flexRow, isRtl, textAlignStart, BACK_CHEVRON } from "@/utils/layout";
+
+const IS_RTL     = isRtl();
+const TEXT_START = textAlignStart(IS_RTL);
 
 const MIN_PASSWORD_LENGTH = 8;
-
 type Phase = "form" | "success";
+
+// ─── Password strength ────────────────────────────────────────────────────────
+function getPasswordStrength(pw: string): { score: number; labelKey: string; color: string } {
+  let score = 0;
+  if (pw.length >= 8)  score += 1;
+  if (pw.length >= 12) score += 1;
+  if (/[A-Z]/.test(pw) && /[a-z]/.test(pw)) score += 1;
+  if (/\d/.test(pw) || /[^A-Za-z0-9]/.test(pw)) score += 1;
+
+  if (score <= 1) return { score: 1, labelKey: "resetPassword.strengthWeak",   color: kit.color.danger  };
+  if (score === 2) return { score: 2, labelKey: "resetPassword.strengthFair",   color: kit.color.warn    };
+  if (score === 3) return { score: 3, labelKey: "resetPassword.strengthGood",   color: kit.color.accent  };
+  return              { score: 4, labelKey: "resetPassword.strengthStrong",  color: kit.color.success };
+}
 
 export default function ChangePasswordScreen() {
   const { t, i18n } = useTranslation();
@@ -56,8 +69,6 @@ export default function ChangePasswordScreen() {
 
   const handleSave = useCallback(async () => {
     setError(null);
-    // Inline validation — avoids stale-closure lint warning from a separate
-    // `validate` helper that would need its own dep array.
     if (newPass.length < MIN_PASSWORD_LENGTH) { setError(t("changePassword.errorShort"));   return; }
     if (newPass !== confirm)                  { setError(t("changePassword.errorMismatch")); return; }
 
@@ -68,330 +79,315 @@ export default function ChangePasswordScreen() {
     } catch (e) {
       if (__DEV__) console.warn("[change-password] updatePassword failed:", e);
       captureError(e, { surface: "change-password" });
-      // getAuthError always returns a string; no nullish fallback needed.
       if (mountedRef.current) setError(getAuthError(e, i18n.language));
     } finally {
       if (mountedRef.current) setSaving(false);
     }
   }, [newPass, confirm, t, i18n.language]);
 
-  // Auto-dismiss success state
   useEffect(() => {
     if (phase !== "success") return;
     const id = setTimeout(() => { if (mountedRef.current) router.back(); }, 1500);
     return () => clearTimeout(id);
   }, [phase, router]);
 
-  // ── Password strength (reused from reset-password) ─────────────────────────
   const strength = getPasswordStrength(newPass);
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}>
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <View style={[s.screen, { paddingTop: insets.top }]}>
 
-        {/* ── Header ─────────────────────────────────────────────────────────── */}
-        <View style={s.header}>
-          <Pressable onPress={() => router.back()} style={s.backBtn} hitSlop={10}>
-            <Ionicons name="arrow-forward" size={18} color={theme.colors.text.primary} />
+        {/* ── VIP Header ── */}
+        <Animated.View entering={FadeIn.duration(240)} style={s.header}>
+          <Pressable onPress={() => router.back()} style={s.backBtn} hitSlop={10} accessibilityRole="button">
+            <Ionicons name={BACK_CHEVRON} size={18} color={kit.color.inkSoft} />
           </Pressable>
-          <UIText style={s.headerTitle}>{t("changePassword.title")}</UIText>
-          <View style={{ width: 38 }} />
-        </View>
+          <View style={[s.iconTile, { backgroundColor: phase === "success" ? kit.color.successTint : kit.color.accentTint }]}>
+            <Ionicons
+              name={phase === "success" ? "checkmark-circle-outline" : "lock-closed-outline"}
+              size={22}
+              color={phase === "success" ? kit.color.success : kit.color.accentDeep}
+            />
+          </View>
+          <View style={{ flex: 1 }}>
+            <UIText style={[s.headerTitle, { textAlign: TEXT_START }]}>{t("changePassword.title")}</UIText>
+            <UIText style={[s.headerSub, { textAlign: TEXT_START }]}>{t("changePassword.subtitle")}</UIText>
+          </View>
+        </Animated.View>
 
         <ScrollView
           contentContainerStyle={[s.content, { paddingBottom: insets.bottom + 40 }]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}>
 
-          {/* ── Success ──────────────────────────────────────────────────────── */}
+          {/* ── Success ── */}
           {phase === "success" && (
-            <Animated.View entering={FadeIn.duration(260)} style={s.successWrap}>
-              <View style={s.successIcon}>
-                <Ionicons name="checkmark-circle" size={52} color={theme.colors.success.base} />
+            <Animated.View entering={FadeIn.duration(320)} style={s.stateBlock}>
+              <View style={s.stateOuter}>
+                <View style={[s.stateInner, { backgroundColor: kit.color.successTint, borderColor: `${kit.color.success}30` }]}>
+                  <Ionicons name="checkmark-circle-outline" size={34} color={kit.color.success} />
+                </View>
               </View>
-              <UIText style={s.successTitle}>{t("changePassword.successTitle")}</UIText>
-              <UIText style={s.successBody}>{t("changePassword.successBody")}</UIText>
+              <UIText style={s.stateTitle}>{t("changePassword.successTitle")}</UIText>
+              <UIText style={s.stateBody}>{t("changePassword.successBody")}</UIText>
             </Animated.View>
           )}
 
-          {/* ── Form ─────────────────────────────────────────────────────────── */}
+          {/* ── Form ── */}
           {phase === "form" && (
-            <Animated.View entering={FadeInUp.duration(300)} style={s.form}>
+            <Animated.View entering={FadeInUp.duration(320)} style={s.form}>
 
-              {/* Icon header */}
-              <Animated.View entering={FadeInDown.duration(320).delay(40)} style={s.iconWrap}>
-                <View style={s.iconTile}>
-                  <Ionicons name="lock-closed-outline" size={36} color={theme.colors.brand[600]} />
+              {/* Layered ring icon */}
+              <Animated.View entering={FadeInDown.duration(340).delay(40)} style={s.ringWrap}>
+                <View style={s.ringOuter}>
+                  <View style={s.ringInner}>
+                    <Ionicons name="lock-closed-outline" size={30} color={kit.color.accentDeep} />
+                  </View>
                 </View>
               </Animated.View>
 
               {/* Error banner */}
               {error && (
-                <Animated.View entering={FadeInDown.duration(200)} style={s.errorBox}>
+                <Animated.View entering={FadeInDown.duration(200)} style={[s.errorBox, { flexDirection: flexRow(IS_RTL) }]}>
                   <View style={s.errorIcon}>
-                    <Ionicons name="alert-circle" size={16} color={theme.colors.error.base} />
+                    <Ionicons name="alert-circle" size={15} color={kit.color.danger} />
                   </View>
-                  <UIText style={s.errorText}>{error}</UIText>
+                  <UIText style={[s.errorText, { textAlign: TEXT_START }]}>{error}</UIText>
                 </Animated.View>
               )}
 
-              {/* New password */}
               <Input
                 label={t("changePassword.newLabel")}
                 placeholder={t("changePassword.newPlaceholder")}
                 value={newPass}
                 onChangeText={(v) => { setNewPass(v); setError(null); }}
                 secureTextEntry={!showNew}
-                leftIcon={<Ionicons name="lock-closed-outline" size={18} color={theme.colors.text.tertiary} />}
+                leftIcon={<Ionicons name="lock-closed-outline" size={18} color={kit.color.inkFaint} />}
                 rightIcon={
                   <Pressable onPress={() => setShowNew((p) => !p)} hitSlop={8}>
-                    <Ionicons
-                      name={showNew ? "eye-off-outline" : "eye-outline"}
-                      size={18}
-                      color={theme.colors.text.tertiary}
-                    />
+                    <Ionicons name={showNew ? "eye-off-outline" : "eye-outline"} size={18} color={kit.color.inkFaint} />
                   </Pressable>
                 }
               />
 
-              {/* Strength meter */}
               {newPass.length > 0 && (
-                <Animated.View entering={FadeInDown.duration(200)} style={s.strengthWrap}>
-                  <View style={s.strengthBarRow}>
+                <Animated.View entering={FadeInDown.duration(200)} style={[s.strengthWrap, { flexDirection: flexRow(IS_RTL) }]}>
+                  <View style={[s.strengthBarRow, { flexDirection: flexRow(IS_RTL) }]}>
                     {[0, 1, 2, 3].map((i) => (
-                      <View
-                        key={i}
-                        style={[
-                          s.strengthSegment,
-                          i < strength.score && { backgroundColor: strength.color },
-                        ]}
-                      />
+                      <View key={i} style={[s.strengthSegment, i < strength.score && { backgroundColor: strength.color }]} />
                     ))}
                   </View>
-                  <UIText style={[s.strengthLabel, { color: strength.color }]}>
-                    {t(strength.labelKey)}
-                  </UIText>
+                  <UIText style={[s.strengthLabel, { color: strength.color }]}>{t(strength.labelKey)}</UIText>
                 </Animated.View>
               )}
 
-              {/* Confirm password */}
               <Input
                 label={t("changePassword.confirmLabel")}
                 placeholder={t("changePassword.confirmPlaceholder")}
                 value={confirm}
                 onChangeText={(v) => { setConfirm(v); setError(null); }}
                 secureTextEntry={!showConfirm}
-                leftIcon={<Ionicons name="lock-closed-outline" size={18} color={theme.colors.text.tertiary} />}
+                leftIcon={<Ionicons name="lock-closed-outline" size={18} color={kit.color.inkFaint} />}
                 rightIcon={
                   <Pressable onPress={() => setShowConfirm((p) => !p)} hitSlop={8}>
-                    <Ionicons
-                      name={showConfirm ? "eye-off-outline" : "eye-outline"}
-                      size={18}
-                      color={theme.colors.text.tertiary}
-                    />
+                    <Ionicons name={showConfirm ? "eye-off-outline" : "eye-outline"} size={18} color={kit.color.inkFaint} />
                   </Pressable>
                 }
                 onSubmitEditing={handleSave}
                 returnKeyType="done"
               />
 
-              {/* Match indicator */}
               {confirm.length > 0 && (
-                <Animated.View entering={FadeIn.duration(180)} style={s.matchRow}>
+                <Animated.View entering={FadeIn.duration(180)} style={[s.matchRow, { flexDirection: flexRow(IS_RTL) }]}>
                   <Ionicons
                     name={newPass === confirm ? "checkmark-circle" : "close-circle"}
                     size={14}
-                    color={newPass === confirm ? theme.colors.success.base : theme.colors.error.base}
+                    color={newPass === confirm ? kit.color.success : kit.color.danger}
                   />
-                  <UIText
-                    style={[
-                      s.matchText,
-                      { color: newPass === confirm ? theme.colors.success.base : theme.colors.error.base },
-                    ]}>
-                    {newPass === confirm
-                      ? t("resetPassword.passwordsMatch")
-                      : t("changePassword.errorMismatch")}
+                  <UIText style={[s.matchText, { color: newPass === confirm ? kit.color.success : kit.color.danger }]}>
+                    {newPass === confirm ? t("resetPassword.passwordsMatch") : t("changePassword.errorMismatch")}
                   </UIText>
                 </Animated.View>
               )}
 
-              {/* Save button */}
               <Button
                 variant="primary"
                 size="lg"
-                fullWidth
-                gradient
+                full
                 loading={saving}
                 onPress={handleSave}
-                style={{ marginTop: 8 }}>
-                {saving ? t("changePassword.saving") : t("changePassword.saveBtn")}
-              </Button>
-
+                style={{ marginTop: 8 }}
+                label={saving ? t("changePassword.saving") : t("changePassword.saveBtn")}
+              />
             </Animated.View>
           )}
-
         </ScrollView>
       </View>
     </KeyboardAvoidingView>
   );
 }
 
-// ─── Password strength (shared logic with reset-password.tsx) ─────────────────
-
-function getPasswordStrength(pw: string): { score: number; labelKey: string; color: string } {
-  let score = 0;
-  if (pw.length >= 8)  score += 1;
-  if (pw.length >= 12) score += 1;
-  if (/[A-Z]/.test(pw) && /[a-z]/.test(pw)) score += 1;
-  if (/\d/.test(pw) || /[^A-Za-z0-9]/.test(pw)) score += 1;
-
-  if (score <= 1) return { score: 1, labelKey: "resetPassword.strengthWeak",   color: theme.colors.error.base   };
-  if (score === 2) return { score: 2, labelKey: "resetPassword.strengthFair",   color: theme.colors.warning.base  };
-  if (score === 3) return { score: 3, labelKey: "resetPassword.strengthGood",   color: theme.colors.brand.base    };
-  return              { score: 4, labelKey: "resetPassword.strengthStrong",  color: theme.colors.success.base  };
-}
-
-// ─── Styles ───────────────────────────────────────────────────────────────────
-
 const s = StyleSheet.create({
-  screen: {
-    flex:            1,
-    backgroundColor: theme.colors.bg,
-  },
+  screen: { flex: 1, backgroundColor: kit.color.canvas },
+
   header: {
-    flexDirection:     flexRow(isRtl()),
+    flexDirection:     flexRow(IS_RTL),
     alignItems:        "center",
-    justifyContent:    "space-between",
-    paddingHorizontal: theme.layout.pagePaddingH,
+    gap:               14,
+    paddingHorizontal: 20,
     paddingVertical:   14,
-    backgroundColor:   theme.colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border.default,
-    ...theme.shadow.xs,
+    backgroundColor:   kit.color.surface,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: kit.color.line,
+    ...kit.shadow.raised,
   },
   backBtn: {
-    width:           38,
-    height:          38,
-    borderRadius:    12,
-    backgroundColor: theme.colors.subtle,
+    width:           40,
+    height:          40,
+    borderRadius:    20,
+    backgroundColor: kit.color.surface,
     alignItems:      "center",
     justifyContent:  "center",
     borderWidth:     1,
-    borderColor:     theme.colors.border.default,
-  },
-  headerTitle: {
-    fontSize:   theme.fontSize["2xl"],
-    fontFamily: theme.fonts.black,
-    color:      theme.colors.text.primary,
-  },
-  content: {
-    padding: theme.layout.pagePaddingH,
-    gap:     0,
-  },
-  successWrap: {
-    alignItems:      "center",
-    justifyContent:  "center",
-    paddingVertical: 80,
-    gap:             14,
-  },
-  successIcon: {
-    width:           88,
-    height:          88,
-    borderRadius:    theme.radius["2xl"],
-    backgroundColor: theme.colors.success.bg,
-    borderWidth:     1,
-    borderColor:     theme.colors.success.light,
-    alignItems:      "center",
-    justifyContent:  "center",
-  },
-  successTitle: {
-    fontSize:   20,
-    fontFamily: theme.fonts.black,
-    color:      theme.colors.success.strong,
-  },
-  successBody: {
-    fontSize:   theme.fontSize.base,
-    fontFamily: theme.fonts.regular,
-    color:      theme.colors.text.secondary,
-    textAlign:  "center",
-    lineHeight: 22,
-    maxWidth:   280,
-  },
-  form: {
-    gap:       16,
-    marginTop: 8,
-  },
-  iconWrap: {
-    alignItems:   "center",
-    marginBottom: 8,
+    borderColor:     kit.color.line,
+    ...kit.shadow.raised,
+    flexShrink:      0,
   },
   iconTile: {
-    width:           84,
-    height:          84,
-    borderRadius:    26,
-    backgroundColor: theme.colors.brand.lighter,
+    width:           52,
+    height:          52,
+    borderRadius:    16,
     borderWidth:     1,
-    borderColor:     theme.colors.border.brandSoft,
+    borderColor:     kit.color.line,
     alignItems:      "center",
     justifyContent:  "center",
-    ...theme.shadow.brandGlow,
+    flexShrink:      0,
   },
-  errorBox: {
-    flexDirection:   flexRow(isRtl()),
-    alignItems:      "center",
-    gap:             10,
-    backgroundColor: theme.colors.error.bg,
-    borderRadius:    theme.radius.lg,
-    padding:         12,
+  headerTitle: {
+    fontFamily:         theme.fonts.black,
+    fontSize:           18,
+    letterSpacing:      -0.3,
+    color:              kit.color.ink,
+    includeFontPadding: false,
+  },
+  headerSub: {
+    fontFamily:         theme.fonts.semibold,
+    fontSize:           11,
+    color:              kit.color.inkFaint,
+    includeFontPadding: false,
+  },
+
+  content: { padding: 20, gap: 0 },
+
+  // State block (success)
+  stateBlock: { alignItems: "center", gap: 16, paddingTop: 32 },
+  stateOuter: {
+    width:           100,
+    height:          100,
+    borderRadius:    50,
+    backgroundColor: kit.color.well,
     borderWidth:     1,
-    borderColor:     theme.colors.error.light,
+    borderColor:     kit.color.line,
+    alignItems:      "center",
+    justifyContent:  "center",
+    marginBottom:    4,
+  },
+  stateInner: {
+    width:           68,
+    height:          68,
+    borderRadius:    22,
+    borderWidth:     1,
+    alignItems:      "center",
+    justifyContent:  "center",
+    ...kit.shadow.brandGlow,
+  },
+  stateTitle: {
+    fontFamily:         theme.fonts.black,
+    fontSize:           20,
+    letterSpacing:      -0.3,
+    color:              kit.color.success,
+    includeFontPadding: false,
+  },
+  stateBody: {
+    fontFamily:         theme.fonts.regular,
+    fontSize:           14,
+    lineHeight:         22,
+    color:              kit.color.inkSoft,
+    textAlign:          "center",
+    maxWidth:           280,
+    includeFontPadding: false,
+  },
+
+  // Form
+  form: { gap: 14, marginTop: 8 },
+  ringWrap: { alignItems: "center", marginBottom: 4 },
+  ringOuter: {
+    width:           100,
+    height:          100,
+    borderRadius:    50,
+    backgroundColor: kit.color.accentTint,
+    borderWidth:     1,
+    borderColor:     kit.color.line,
+    alignItems:      "center",
+    justifyContent:  "center",
+  },
+  ringInner: {
+    width:           68,
+    height:          68,
+    borderRadius:    22,
+    backgroundColor: kit.color.surface,
+    borderWidth:     1,
+    borderColor:     kit.color.line,
+    alignItems:      "center",
+    justifyContent:  "center",
+    ...kit.shadow.brandGlow,
+  },
+
+  errorBox: {
+    alignItems:      "center",
+    gap:             8,
+    padding:         12,
+    backgroundColor: kit.color.dangerTint,
+    borderRadius:    12,
+    borderWidth:     1,
+    borderColor:     `${kit.color.danger}25`,
   },
   errorIcon: {
-    width:           24,
-    height:          24,
-    borderRadius:    8,
-    backgroundColor: "rgba(239,68,68,0.10)",
+    width:           28,
+    height:          28,
+    borderRadius:    9,
+    backgroundColor: `${kit.color.danger}10`,
     alignItems:      "center",
     justifyContent:  "center",
+    flexShrink:      0,
   },
   errorText: {
-    flex:       1,
-    color:      theme.colors.error.text,
-    fontFamily: theme.fonts.semibold,
-    fontSize:   theme.fontSize.sm,
-    textAlign:  textAlignStart(isRtl()),
+    flex:               1,
+    fontFamily:         theme.fonts.bold,
+    fontSize:           12,
+    lineHeight:         17,
+    color:              kit.color.danger,
+    includeFontPadding: false,
   },
-  strengthWrap: {
-    flexDirection:     flexRow(isRtl()),
-    alignItems:        "center",
-    gap:               8,
-    paddingHorizontal: 4,
-  },
-  strengthBarRow: {
-    flex:          1,
-    flexDirection: flexRow(isRtl()),
-    gap:           4,
-  },
+
+  strengthWrap:   { alignItems: "center", gap: 8, paddingHorizontal: 4 },
+  strengthBarRow: { flex: 1, gap: 4 },
   strengthSegment: {
-    flex:             1,
-    height:           4,
-    borderRadius:     2,
-    backgroundColor:  theme.colors.border.default,
+    flex:            1,
+    height:          4,
+    borderRadius:    2,
+    backgroundColor: kit.color.lineStrong,
   },
   strengthLabel: {
-    fontSize:   theme.fontSize.xs,
-    fontFamily: theme.fonts.semibold,
+    fontFamily:         theme.fonts.semibold,
+    fontSize:           11,
+    includeFontPadding: false,
   },
-  matchRow: {
-    flexDirection:     flexRow(isRtl()),
-    alignItems:        "center",
-    gap:               6,
-    paddingHorizontal: 4,
-  },
+
+  matchRow:  { alignItems: "center", gap: 6, paddingHorizontal: 4 },
   matchText: {
-    fontSize:   theme.fontSize.xs,
-    fontFamily: theme.fonts.semibold,
+    fontFamily:         theme.fonts.semibold,
+    fontSize:           11,
+    includeFontPadding: false,
   },
 });

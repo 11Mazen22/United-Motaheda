@@ -1,4 +1,8 @@
-﻿import React from "react";
+/**
+ * About — VIP light surface rebuild (Phase 2).
+ * Removes dark ink hero. Brand identity via layered ring on canvas.
+ */
+import React from "react";
 import {
   Linking,
   Platform,
@@ -12,14 +16,17 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
-import Animated, { FadeInDown } from "react-native-reanimated";
-import { LinearGradient } from "expo-linear-gradient";
+import Animated, { FadeIn, FadeInDown, FadeInUp } from "react-native-reanimated";
+import { kit } from "@/shared/kit";
 import { useTranslation } from "react-i18next";
 import { theme } from "@/shared/theme";
 import { AppLogo } from "@/shared/components/AppLogo";
 import { BranchAddressList } from "@/components/BranchAddressCard";
 import { useAppLanguage } from "@/i18n/LanguageProvider";
-import { flexRow, isRtl, textAlignStart, FORWARD_CHEVRON } from "@/utils/layout";
+import { flexRow, isRtl, textAlignStart, BACK_CHEVRON, FORWARD_CHEVRON } from "@/utils/layout";
+
+const IS_RTL     = isRtl();
+const TEXT_START = textAlignStart(IS_RTL);
 
 const APP_VERSION = "1.0.0";
 const APP_BUILD   = "100";
@@ -43,116 +50,130 @@ function ContactRow({ icon, label, value, color, onPress }: ContactRowProps) {
     if (Platform.OS !== "web") Haptics.selectionAsync().catch(() => {});
     onPress();
   };
-
   return (
     <Pressable
       onPress={handlePress}
       accessibilityRole="button"
       accessibilityLabel={`${label}: ${value}`}
-      style={({ pressed }) => [styles.contactRow, pressed && { opacity: 0.75 }]}>
-      <View style={{ flexDirection: flexRow(isRtl()), alignItems: "center", gap: 12, flex: 1 }}>
-        <View style={[styles.contactIcon, { backgroundColor: `${color}14` }]}>
+      style={({ pressed }) => [s.contactRow, { flexDirection: flexRow(IS_RTL) }, pressed && { opacity: 0.75 }]}>
+      <View style={{ flexDirection: flexRow(IS_RTL), alignItems: "center", gap: 12, flex: 1 }}>
+        <View style={[s.contactIcon, { backgroundColor: `${color}14` }]}>
           <Ionicons name={icon} size={20} color={color} />
         </View>
         <View style={{ gap: 2 }}>
-          <UIText style={styles.contactLabel}>{label}</UIText>
-          <UIText style={styles.contactValue}>{value}</UIText>
+          <UIText style={[s.contactLabel, { textAlign: TEXT_START }]}>{label}</UIText>
+          <UIText style={[s.contactValue, { textAlign: TEXT_START }]}>{value}</UIText>
         </View>
       </View>
-      <Ionicons name={FORWARD_CHEVRON} size={16} color={theme.colors.text.tertiary} />
+      <Ionicons name={FORWARD_CHEVRON} size={16} color={kit.color.inkFaint} />
     </Pressable>
   );
 }
 
-interface InfoRowProps {
-  label: string;
-  value: string;
-}
+interface InfoRowProps { label: string; value: string }
 function InfoRow({ label, value }: InfoRowProps) {
   return (
-    <View style={styles.infoRow}>
-      <UIText style={styles.infoValue}>{value}</UIText>
-      <UIText style={styles.infoLabel}>{label}</UIText>
+    <View style={[s.infoRow, { flexDirection: flexRow(IS_RTL) }]}>
+      <UIText style={[s.infoLabel, { textAlign: TEXT_START }]}>{label}</UIText>
+      <UIText style={s.infoValue}>{value}</UIText>
     </View>
   );
 }
 
 export default function AboutScreen() {
-  const router   = useRouter();
-  const insets   = useSafeAreaInsets();
-  const { t }    = useTranslation();
+  const router       = useRouter();
+  const insets       = useSafeAreaInsets();
+  const { t }        = useTranslation();
   const { language } = useAppLanguage();
 
   return (
-    <View style={[styles.screen, { paddingTop: insets.top }]}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Pressable
-          onPress={() => router.back()}
-          style={styles.backBtn}
-          hitSlop={10}
-          accessibilityRole="button"
-          accessibilityLabel={t("common.back")}>
-          <Ionicons name="arrow-forward" size={18} color={theme.colors.text.primary} />
+    <View style={[s.screen, { paddingTop: insets.top }]}>
+
+      {/* ── VIP Header ── */}
+      <Animated.View entering={FadeIn.duration(220)} style={[s.header, { flexDirection: flexRow(IS_RTL) }]}>
+        <Pressable onPress={() => router.back()} style={s.backBtn} hitSlop={10} accessibilityRole="button" accessibilityLabel={t("common.back")}>
+          <Ionicons name={BACK_CHEVRON} size={18} color={kit.color.inkSoft} />
         </Pressable>
-        <UIText style={styles.title}>{t("about.title")}</UIText>
-        <View style={{ width: 38 }} />
-      </View>
+        <View style={s.iconTile}>
+          <Ionicons name="information-circle-outline" size={22} color={kit.color.accentDeep} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <UIText style={[s.headerTitle, { textAlign: TEXT_START }]}>{t("about.title")}</UIText>
+          <UIText style={[s.headerSub,   { textAlign: TEXT_START }]}>{t("about.subtitle")}</UIText>
+        </View>
+      </Animated.View>
 
       <ScrollView
-        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 40 }]}
+        contentContainerStyle={[s.content, { paddingBottom: insets.bottom + 40 }]}
         showsVerticalScrollIndicator={false}>
 
-        {/* Brand hero */}
-        <Animated.View entering={FadeInDown.duration(400)}>
-          <LinearGradient
-            colors={theme.gradients.heroPrimary as [string, string, string]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.brandHero}>
-            <View style={styles.logoTile}>
+        {/* Brand identity — layered ring on white */}
+        <Animated.View entering={FadeInUp.delay(60).duration(380)} style={s.brandBlock}>
+          <View style={s.ringOuter}>
+            <View style={s.ringInner}>
               <AppLogo size="lg" />
             </View>
-            <UIText style={styles.heroTagline}>{t("about.tagline")}</UIText>
-            <View style={styles.versionBadge}>
-              <UIText style={styles.versionText}>{t("profile.version", { ver: APP_VERSION })}</UIText>
-            </View>
-          </LinearGradient>
+          </View>
+          <UIText style={[s.heroTagline, { textAlign: "center" }]}>{t("about.tagline")}</UIText>
+          <View style={[s.versionBadge, { flexDirection: flexRow(IS_RTL) }]}>
+            <Ionicons name="git-branch-outline" size={11} color={kit.color.accentDeep} />
+            <UIText style={s.versionText}>{t("profile.version", { ver: APP_VERSION })}</UIText>
+          </View>
         </Animated.View>
 
-        {/* Description */}
-        <Animated.View entering={FadeInDown.duration(350).delay(80)} style={styles.section}>
-          <UIText style={styles.sectionTitle}>{t("about.whoWeAreTitle")}</UIText>
-          <View style={styles.card}>
-            <UIText style={styles.description}>
+        {/* Who we are */}
+        <Animated.View entering={FadeInDown.duration(320).delay(100)} style={s.section}>
+          <View style={[s.sectionHeader, { flexDirection: flexRow(IS_RTL) }]}>
+            <View style={s.sectionBadge}>
+              <Ionicons name="heart-outline" size={14} color={kit.color.accentDeep} />
+            </View>
+            <UIText style={[s.sectionTitle, { textAlign: TEXT_START }]}>{t("about.whoWeAreTitle")}</UIText>
+          </View>
+          <View style={s.card}>
+            <UIText style={[s.description, { textAlign: TEXT_START }]}>
               {t("about.whoWeArePara1")}{"\n\n"}{t("about.whoWeArePara2")}
             </UIText>
           </View>
         </Animated.View>
 
-        {/* App stats */}
-        <Animated.View entering={FadeInDown.duration(350).delay(140)} style={styles.section}>
-          <UIText style={styles.sectionTitle}>{t("about.statsTitle")}</UIText>
-          <View style={styles.statsRow}>
+        {/* Stats */}
+        <Animated.View entering={FadeInDown.duration(320).delay(140)} style={s.section}>
+          <View style={[s.sectionHeader, { flexDirection: flexRow(IS_RTL) }]}>
+            <View style={s.sectionBadge}>
+              <Ionicons name="stats-chart-outline" size={14} color={kit.color.accentDeep} />
+            </View>
+            <UIText style={[s.sectionTitle, { textAlign: TEXT_START }]}>{t("about.statsTitle")}</UIText>
+          </View>
+          <View style={[s.statsRow, { flexDirection: flexRow(IS_RTL) }]}>
             {STATS.map((stat) => (
-              <View key={stat.labelKey} style={styles.statCard}>
-                <UIText style={styles.statValue}>{t(stat.valueKey)}</UIText>
-                <UIText style={styles.statLabel}>{t(stat.labelKey)}</UIText>
+              <View key={stat.labelKey} style={s.statCard}>
+                <UIText style={s.statValue}>{t(stat.valueKey)}</UIText>
+                <UIText style={[s.statLabel, { textAlign: "center" }]}>{t(stat.labelKey)}</UIText>
               </View>
             ))}
           </View>
         </Animated.View>
 
-        {/* Branch locations */}
-        <Animated.View entering={FadeInDown.duration(350).delay(170)} style={styles.section}>
-          <UIText style={styles.sectionTitle}>{t("about.branchesTitle")}</UIText>
+        {/* Branches */}
+        <Animated.View entering={FadeInDown.duration(320).delay(170)} style={s.section}>
+          <View style={[s.sectionHeader, { flexDirection: flexRow(IS_RTL) }]}>
+            <View style={s.sectionBadge}>
+              <Ionicons name="location-outline" size={14} color={kit.color.accentDeep} />
+            </View>
+            <UIText style={[s.sectionTitle, { textAlign: TEXT_START }]}>{t("about.branchesTitle")}</UIText>
+          </View>
           <BranchAddressList />
         </Animated.View>
 
         {/* Contact */}
-        <Animated.View entering={FadeInDown.duration(350).delay(200)} style={styles.section}>
-          <UIText style={styles.sectionTitle}>{t("about.contact")}</UIText>
-          <View style={styles.card}>
+        <Animated.View entering={FadeInDown.duration(320).delay(200)} style={s.section}>
+          <View style={[s.sectionHeader, { flexDirection: flexRow(IS_RTL) }]}>
+            <View style={s.sectionBadge}>
+              <Ionicons name="call-outline" size={14} color={kit.color.accentDeep} />
+            </View>
+            <UIText style={[s.sectionTitle, { textAlign: TEXT_START }]}>{t("about.contact")}</UIText>
+          </View>
+          <View style={s.card}>
             <ContactRow
               icon="logo-whatsapp"
               label={t("about.whatsappLabel")}
@@ -160,38 +181,43 @@ export default function AboutScreen() {
               color="#25D366"
               onPress={() => Linking.openURL("https://wa.me/201112343212?text=مرحباً").catch(() => {})}
             />
-            <View style={styles.rowDivider} />
+            <View style={s.rowDivider} />
             <ContactRow
               icon="call-outline"
               label={t("about.phoneLabel")}
               value="+20 111 234 3212"
-              color={theme.colors.brand[600]}
+              color={kit.color.accentDeep}
               onPress={() => Linking.openURL("tel:+201112343212").catch(() => {})}
             />
-            <View style={styles.rowDivider} />
+            <View style={s.rowDivider} />
             <ContactRow
               icon="mail-outline"
               label={t("about.emailLabel")}
               value="info@unitedpharmacy.com"
-              color={theme.colors.info.strong}
+              color={kit.color.accent}
               onPress={() => Linking.openURL("mailto:info@unitedpharmacy.com").catch(() => {})}
             />
           </View>
         </Animated.View>
 
         {/* App info */}
-        <Animated.View entering={FadeInDown.duration(350).delay(260)} style={styles.section}>
-          <UIText style={styles.sectionTitle}>{t("about.appInfoTitle")}</UIText>
-          <View style={styles.card}>
+        <Animated.View entering={FadeInDown.duration(320).delay(240)} style={s.section}>
+          <View style={[s.sectionHeader, { flexDirection: flexRow(IS_RTL) }]}>
+            <View style={s.sectionBadge}>
+              <Ionicons name="phone-portrait-outline" size={14} color={kit.color.accentDeep} />
+            </View>
+            <UIText style={[s.sectionTitle, { textAlign: TEXT_START }]}>{t("about.appInfoTitle")}</UIText>
+          </View>
+          <View style={s.card}>
             <InfoRow label={t("about.versionLabel")} value={APP_VERSION} />
-            <View style={styles.rowDivider} />
+            <View style={s.rowDivider} />
             <InfoRow label={t("about.buildLabel")} value={APP_BUILD} />
-            <View style={styles.rowDivider} />
+            <View style={s.rowDivider} />
             <InfoRow
               label={t("about.osLabel")}
               value={Platform.OS === "ios" ? "iOS" : Platform.OS === "android" ? "Android" : "Web"}
             />
-            <View style={styles.rowDivider} />
+            <View style={s.rowDivider} />
             <InfoRow
               label={t("language.label")}
               value={language === "en" ? t("language.en") : t("language.ar")}
@@ -199,38 +225,221 @@ export default function AboutScreen() {
           </View>
         </Animated.View>
 
-        <UIText style={styles.copyright}>{t("about.copyright")}</UIText>
+        <UIText style={s.copyright}>{t("about.copyright")}</UIText>
       </ScrollView>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  screen:       { flex: 1, backgroundColor: theme.colors.bg },
-  header:       { flexDirection: flexRow(isRtl()), alignItems: "center", justifyContent: "space-between", paddingHorizontal: theme.layout.pagePaddingH, paddingVertical: 14, backgroundColor: theme.colors.surface, borderBottomWidth: 1, borderBottomColor: theme.colors.border.default, ...theme.shadow.xs },
-  backBtn:      { width: 38, height: 38, borderRadius: 12, backgroundColor: theme.colors.subtle, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: theme.colors.border.default },
-  title:        { fontSize: theme.fontSize["2xl"], fontFamily: theme.fonts.black, color: theme.colors.text.primary },
-  content:      { gap: 0 },
-  brandHero:    { alignItems: "center", gap: 14, paddingVertical: 36, paddingHorizontal: theme.layout.pagePaddingH },
-  logoTile:     { width: 116, height: 116, borderRadius: 26, backgroundColor: "#fff", alignItems: "center", justifyContent: "center", ...theme.shadow.lg },
-  heroTagline:  { fontSize: theme.fontSize.base, fontFamily: theme.fonts.semibold, color: "rgba(255,255,255,0.65)", textAlign: "center" },
-  versionBadge: { backgroundColor: "rgba(255,255,255,0.12)", borderRadius: 99, paddingHorizontal: 16, paddingVertical: 5, borderWidth: 1, borderColor: "rgba(255,255,255,0.22)" },
-  versionText:  { fontSize: theme.fontSize.sm, fontFamily: theme.fonts.bold, color: "rgba(255,255,255,0.85)" },
-  section:      { paddingHorizontal: theme.layout.pagePaddingH, paddingTop: 20, gap: 8 },
-  sectionTitle: { fontSize: theme.fontSize.xs, fontFamily: theme.fonts.extrabold, color: theme.colors.text.tertiary, letterSpacing: 0.8, textAlign: textAlignStart(isRtl()) },
-  card:         { backgroundColor: theme.colors.surface, borderRadius: theme.layout.cardRadius, overflow: "hidden", ...theme.shadow.xs, borderWidth: 1, borderColor: theme.colors.border.default },
-  description:  { fontSize: theme.fontSize.base, fontFamily: theme.fonts.regular, color: theme.colors.text.secondary, textAlign: textAlignStart(isRtl()), lineHeight: 24, padding: 16 },
-  statsRow:     { flexDirection: flexRow(isRtl()), gap: 10 },
-  statCard:     { flex: 1, backgroundColor: theme.colors.surface, borderRadius: theme.radius.xl, padding: 16, alignItems: "center", gap: 4, ...theme.shadow.xs, borderWidth: 1, borderColor: theme.colors.border.default },
-  statValue:    { fontSize: theme.fontSize["2xl"], fontFamily: theme.fonts.black, color: theme.colors.brand[700] },
-  statLabel:    { fontSize: theme.fontSize.xs, fontFamily: theme.fonts.semibold, color: theme.colors.text.tertiary, textAlign: "center" },
-  contactRow:   { flexDirection: flexRow(isRtl()), alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 14 },
+const s = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: kit.color.canvas },
+
+  header: {
+    alignItems:        "center",
+    gap:               14,
+    paddingHorizontal: 20,
+    paddingVertical:   14,
+    backgroundColor:   kit.color.surface,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: kit.color.line,
+    ...kit.shadow.raised,
+  },
+  backBtn: {
+    width:           40,
+    height:          40,
+    borderRadius:    20,
+    backgroundColor: kit.color.surface,
+    alignItems:      "center",
+    justifyContent:  "center",
+    borderWidth:     1,
+    borderColor:     kit.color.line,
+    ...kit.shadow.raised,
+    flexShrink:      0,
+  },
+  iconTile: {
+    width:           52,
+    height:          52,
+    borderRadius:    16,
+    backgroundColor: kit.color.accentTint,
+    borderWidth:     1,
+    borderColor:     kit.color.line,
+    alignItems:      "center",
+    justifyContent:  "center",
+    flexShrink:      0,
+  },
+  headerTitle: {
+    fontFamily:         theme.fonts.black,
+    fontSize:           18,
+    letterSpacing:      -0.3,
+    color:              kit.color.ink,
+    includeFontPadding: false,
+  },
+  headerSub: {
+    fontFamily:         theme.fonts.semibold,
+    fontSize:           11,
+    color:              kit.color.inkFaint,
+    includeFontPadding: false,
+  },
+
+  content: { gap: 0 },
+
+  // Brand block
+  brandBlock: {
+    alignItems:      "center",
+    gap:             16,
+    paddingVertical: 32,
+    paddingHorizontal: 20,
+    backgroundColor: kit.color.surface,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: kit.color.line,
+  },
+  ringOuter: {
+    width:           112,
+    height:          112,
+    borderRadius:    56,
+    backgroundColor: kit.color.accentTint,
+    borderWidth:     1,
+    borderColor:     kit.color.line,
+    alignItems:      "center",
+    justifyContent:  "center",
+  },
+  ringInner: {
+    width:           76,
+    height:          76,
+    borderRadius:    22,
+    backgroundColor: kit.color.surface,
+    borderWidth:     1,
+    borderColor:     kit.color.line,
+    alignItems:      "center",
+    justifyContent:  "center",
+    ...kit.shadow.brandGlow,
+  },
+  heroTagline: {
+    fontFamily:         theme.fonts.semibold,
+    fontSize:           14,
+    lineHeight:         22,
+    color:              kit.color.inkSoft,
+    maxWidth:           280,
+    includeFontPadding: false,
+  },
+  versionBadge: {
+    alignItems:        "center",
+    gap:               5,
+    backgroundColor:   kit.color.accentTint,
+    borderRadius:      999,
+    paddingHorizontal: 12,
+    paddingVertical:   5,
+    borderWidth:       1,
+    borderColor:       kit.color.line,
+  },
+  versionText: {
+    fontFamily:         theme.fonts.bold,
+    fontSize:           11,
+    color:              kit.color.accentDeep,
+    includeFontPadding: false,
+  },
+
+  // Sections
+  section:       { paddingHorizontal: 20, paddingTop: 20, gap: 10 },
+  sectionHeader: { alignItems: "center", gap: 10 },
+  sectionBadge: {
+    width:           32,
+    height:          32,
+    borderRadius:    10,
+    backgroundColor: kit.color.accentTint,
+    borderWidth:     1,
+    borderColor:     kit.color.line,
+    alignItems:      "center",
+    justifyContent:  "center",
+    flexShrink:      0,
+  },
+  sectionTitle: {
+    flex:               1,
+    fontFamily:         theme.fonts.extrabold,
+    fontSize:           13,
+    color:              kit.color.ink,
+    letterSpacing:      -0.1,
+    includeFontPadding: false,
+  },
+
+  card: {
+    backgroundColor: kit.color.surface,
+    borderRadius:    16,
+    overflow:        "hidden",
+    borderWidth:     1,
+    borderColor:     kit.color.line,
+    ...kit.shadow.raised,
+  },
+  description: {
+    fontFamily:         theme.fonts.regular,
+    fontSize:           14,
+    color:              kit.color.inkSoft,
+    lineHeight:         24,
+    padding:            16,
+    includeFontPadding: false,
+  },
+
+  statsRow: { gap: 10 },
+  statCard: {
+    flex:            1,
+    backgroundColor: kit.color.surface,
+    borderRadius:    16,
+    padding:         16,
+    alignItems:      "center",
+    gap:             4,
+    borderWidth:     1,
+    borderColor:     kit.color.line,
+    ...kit.shadow.raised,
+  },
+  statValue: {
+    fontFamily:         theme.fonts.black,
+    fontSize:           22,
+    color:              kit.color.accentDeep,
+    letterSpacing:      -0.4,
+    includeFontPadding: false,
+  },
+  statLabel: {
+    fontFamily:         theme.fonts.semibold,
+    fontSize:           10,
+    color:              kit.color.inkFaint,
+    includeFontPadding: false,
+  },
+
+  contactRow:   { alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 14 },
   contactIcon:  { width: 42, height: 42, borderRadius: 13, alignItems: "center", justifyContent: "center" },
-  contactLabel: { fontSize: theme.fontSize.xs, fontFamily: theme.fonts.semibold, color: theme.colors.text.tertiary, textAlign: textAlignStart(isRtl()) },
-  contactValue: { fontSize: theme.fontSize.base, fontFamily: theme.fonts.bold, color: theme.colors.text.primary, textAlign: textAlignStart(isRtl()) },
-  infoRow:      { flexDirection: flexRow(isRtl()), alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 13 },
-  infoLabel:    { fontSize: theme.fontSize.base, fontFamily: theme.fonts.semibold, color: theme.colors.text.secondary, textAlign: textAlignStart(isRtl()) },
-  infoValue:    { fontSize: theme.fontSize.base, fontFamily: theme.fonts.bold, color: theme.colors.text.primary },
-  rowDivider:   { height: StyleSheet.hairlineWidth, backgroundColor: theme.colors.border.default, marginHorizontal: 16 },
-  copyright:    { fontSize: 11, color: theme.colors.text.disabled, textAlign: "center", paddingTop: 28, paddingBottom: 8 },
+  contactLabel: {
+    fontFamily:         theme.fonts.semibold,
+    fontSize:           10,
+    color:              kit.color.inkFaint,
+    includeFontPadding: false,
+  },
+  contactValue: {
+    fontFamily:         theme.fonts.bold,
+    fontSize:           13,
+    color:              kit.color.ink,
+    includeFontPadding: false,
+  },
+  infoRow:  { alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 13 },
+  infoLabel: {
+    fontFamily:         theme.fonts.semibold,
+    fontSize:           13,
+    color:              kit.color.inkSoft,
+    includeFontPadding: false,
+  },
+  infoValue: {
+    fontFamily:         theme.fonts.bold,
+    fontSize:           13,
+    color:              kit.color.ink,
+    includeFontPadding: false,
+  },
+  rowDivider:  { height: StyleSheet.hairlineWidth, backgroundColor: kit.color.line, marginHorizontal: 16 },
+  copyright: {
+    fontFamily:         theme.fonts.regular,
+    fontSize:           11,
+    color:              kit.color.inkFaint,
+    textAlign:          "center",
+    paddingTop:         28,
+    paddingBottom:      8,
+    includeFontPadding: false,
+  },
 });

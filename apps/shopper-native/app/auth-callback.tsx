@@ -36,8 +36,8 @@ import { useTranslation } from "react-i18next";
 import { supabase } from "@/lib/supabase";
 import { PHONE_VERIFICATION_ENABLED } from "@/features/auth";
 import { Text } from "@/shared/ui";
-import { Button } from "@/components/ui/Button";
-import { theme } from "@/shared/theme";
+import { Button } from "@/shared/kit";
+import { kit } from "@/shared/kit";
 import { flexRow, isRtl } from "@/utils/layout";
 
 export default function AuthCallbackScreen() {
@@ -93,7 +93,7 @@ export default function AuthCallbackScreen() {
         <Animated.View
           entering={FadeInUp.duration(420).springify().damping(18)}
           style={styles.errorTile}>
-          <Ionicons name="alert-circle-outline" size={30} color={theme.colors.error.base} />
+          <Ionicons name="alert-circle-outline" size={30} color={kit.color.danger} />
         </Animated.View>
         <Animated.View entering={FadeInUp.duration(420).delay(80)} style={styles.textStack}>
           <Text variant="sheet-title" align="center" style={styles.title}>{t("authCallback.errorTitle")}</Text>
@@ -104,9 +104,7 @@ export default function AuthCallbackScreen() {
         <Animated.View
           entering={FadeIn.duration(360).delay(220)}
           style={styles.ctaWrap}>
-          <Button variant="primary" fullWidth onPress={() => router.replace("/(auth)/login")}>
-            {t("authCallback.backToLogin")}
-          </Button>
+          <Button variant="primary" full label={t("authCallback.backToLogin")} onPress={() => router.replace("/(auth)/login")} />
         </Animated.View>
       </View>
     );
@@ -117,7 +115,7 @@ export default function AuthCallbackScreen() {
       <Animated.View
         entering={FadeInUp.duration(420).springify().damping(18)}
         style={styles.successTile}>
-        <Ionicons name="mail-open-outline" size={30} color={theme.colors.brand.base} />
+        <Ionicons name="mail-open-outline" size={30} color={kit.color.accent} />
       </Animated.View>
       <Animated.View entering={FadeInUp.duration(420).delay(80)} style={styles.textStack}>
         <Text variant="sheet-title" align="center" style={styles.title}>
@@ -128,12 +126,12 @@ export default function AuthCallbackScreen() {
         </Text>
       </Animated.View>
       <Animated.View entering={FadeIn.duration(300).delay(220)} style={{ marginTop: 28 }}>
-        <ActivityIndicator size="large" color={theme.colors.brand.base} />
+        <ActivityIndicator size="large" color={kit.color.accent} />
       </Animated.View>
 
       {/* Trust footnote — quiet reassurance during a security-sensitive step */}
       <View style={styles.trustFootnote}>
-        <Ionicons name="shield-checkmark" size={12} color={theme.colors.text.tertiary} />
+        <Ionicons name="shield-checkmark" size={12} color={kit.color.inkFaint} />
         <Text variant="eyebrow" color="tertiary">{t("authCallback.trustNote")}</Text>
       </View>
     </View>
@@ -145,28 +143,28 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems:     "center",
     justifyContent: "center",
-    backgroundColor: theme.colors.bg,
+    backgroundColor: kit.color.canvas,
     paddingHorizontal: 32,
   },
   successTile: {
     width:           76,
     height:          76,
-    borderRadius:    theme.radius["2xl"],
-    backgroundColor: theme.colors.brand.lighter,
+    borderRadius:    22,
+    backgroundColor: kit.color.accentTint,
     borderWidth:     1,
-    borderColor:     theme.colors.brand.light,
+    borderColor:     "rgba(14,126,116,0.25)",
     alignItems:      "center",
     justifyContent:  "center",
     marginBottom:    24,
-    ...theme.shadow.brandGlow,
+    ...kit.shadow.brandGlow,
   },
   errorTile: {
     width:           76,
     height:          76,
-    borderRadius:    theme.radius["2xl"],
-    backgroundColor: theme.colors.error.bg,
+    borderRadius:    22,
+    backgroundColor: kit.color.dangerTint,
     borderWidth:     1,
-    borderColor:     theme.colors.error.light,
+    borderColor:     "rgba(239,68,68,0.25)",
     alignItems:      "center",
     justifyContent:  "center",
     marginBottom:    24,

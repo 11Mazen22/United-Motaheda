@@ -22,6 +22,9 @@ import { SectionCard } from "./SectionCard";
 import { PaymentMethodCards } from "./PaymentMethodCards";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
 
+const IS_RTL     = isRtl();
+const TEXT_START = textAlignStart(IS_RTL);
+
 interface DetailsStepProps {
   control:               Control<CheckoutFormSchema>;
   errors:                FieldErrors<CheckoutFormSchema>;
@@ -96,10 +99,10 @@ export const DetailsStep = React.memo(function DetailsStep({
             <Ionicons name="person-circle-outline" size={22} color={kit.color.accentDeep} />
           </View>
           <View style={{ flex: 1, gap: 2 }}>
-            <UIText variant="body-sm" weight="extrabold" align="right" style={{ color: kit.color.ink }}>
+            <UIText variant="body-sm" weight="extrabold" align={TEXT_START} style={{ color: kit.color.ink }}>
               {t("checkout.signInRequired")}
             </UIText>
-            <UIText variant="caption" color="secondary" align="right">
+            <UIText variant="caption" color="secondary" align={TEXT_START}>
               {t("checkout.signInDesc")}
             </UIText>
           </View>
@@ -397,7 +400,7 @@ const s = StyleSheet.create({
     borderRadius:      12,
     backgroundColor:   kit.color.warnTint,
     borderWidth:       1,
-    borderColor:       kit.color.warnTint,
+    borderColor:       kit.color.warn,
     marginTop:         6,
   },
   warningText: {
@@ -485,7 +488,7 @@ const s = StyleSheet.create({
     borderRadius:    12,
     padding:         12,
     borderWidth:     1,
-    borderColor:     kit.color.accentTint,
+    borderColor:     kit.color.line,
   },
   cityHead:   { flexDirection: flexRow(isRtl()), alignItems: "center", gap: 10 },
   cityIcon: {

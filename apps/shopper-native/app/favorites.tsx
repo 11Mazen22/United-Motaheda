@@ -9,11 +9,11 @@ import { showConfirmSheet } from "@/shared/store/appSheetStore";
 import { FlashList } from "@shopify/flash-list";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
+import { kit } from "@/shared/kit";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
-import Animated, { FadeInDown, FadeOutRight, Layout } from "react-native-reanimated";
+import Animated, { FadeIn, FadeInDown, FadeOutRight, Layout } from "react-native-reanimated";
 import { useTranslation } from "react-i18next";
 import { useWishlistStore, clearUserWishlist } from "@/stores/wishlist";
 import { useCartStore } from "@/stores/cart";
@@ -23,8 +23,12 @@ import { Badge } from "@/components/ui/Badge";
 import { Text as UIText } from "@/shared/ui";
 import { theme } from "@/shared/theme";
 import { formatPrice } from "@/utils/format";
-import { flexRow, isRtl } from "@/utils/layout";
+import { flexRow, isRtl, textAlignStart, BACK_CHEVRON } from "@/utils/layout";
 
+const IS_RTL     = isRtl();
+const TEXT_START = textAlignStart(IS_RTL);
+
+// ─── FavoriteCard ─────────────────────────────────────────────────────────────
 const FavoriteCard = memo(function FavoriteCard({ product, index }: { product: NativeProduct; index: number }) {
   const router  = useRouter();
   const { t }   = useTranslation();
@@ -48,24 +52,21 @@ const FavoriteCard = memo(function FavoriteCard({ product, index }: { product: N
       entering={FadeInDown.duration(280).delay(index * 50)}
       exiting={FadeOutRight.duration(220)}
       layout={Layout.springify()}
-      style={styles.card}>
+      style={[s.card, { flexDirection: flexRow(IS_RTL) }]}>
 
       {/* Image */}
       <Pressable onPress={() => router.push({ pathname: "/product/[id]", params: { id: product.id } })}>
-        <View style={styles.imgBox}>
+        <View style={s.imgBox}>
           {product.imageUrl ? (
             <Image source={{ uri: product.imageUrl }} style={{ width: "100%", height: "100%" }} contentFit="contain" transition={180} />
           ) : (
             <>
-              <LinearGradient
-                colors={["rgba(2,29,46,0.06)", "rgba(13,184,168,0.10)"]}
-                style={StyleSheet.absoluteFill}
-              />
-              <Ionicons name="medkit-outline" size={28} color={theme.colors.slate[300]} />
+              <View style={[StyleSheet.absoluteFill, { backgroundColor: kit.color.accentTint }]} />
+              <Ionicons name="medkit-outline" size={28} color={kit.color.lineStrong} />
             </>
           )}
           {!product.inStock && (
-            <View style={styles.outOfStockOverlay}>
+            <View style={s.outOfStockOverlay}>
               <UIText variant="eyebrow" color="inverse">{t("common.outOfStock")}</UIText>
             </View>
           )}
@@ -74,28 +75,28 @@ const FavoriteCard = memo(function FavoriteCard({ product, index }: { product: N
 
       {/* Info */}
       <View style={{ flex: 1, gap: 4 }}>
-        <UIText variant="eyebrow" color="tertiary" align="right" numberOfLines={1}>
+        <UIText variant="eyebrow" color="tertiary" align={TEXT_START} numberOfLines={1}>
           {product.categoryName}
         </UIText>
         <Pressable onPress={() => router.push({ pathname: "/product/[id]", params: { id: product.id } })}>
-          <UIText variant="body-sm" weight="bold" align="right" numberOfLines={2} style={styles.nameLabelNew}>
+          <UIText variant="body-sm" weight="bold" align={TEXT_START} numberOfLines={2} style={s.nameLabel}>
             {name}
           </UIText>
         </Pressable>
-        <UIText variant="card-title" weight="black" align="right" style={styles.priceLabelNew}>
+        <UIText style={[s.priceLabel, { textAlign: TEXT_START }]}>
           {formatPrice(product.price)}
         </UIText>
       </View>
 
       {/* Actions */}
-      <View style={styles.actions}>
+      <View style={s.actions}>
         <Pressable
           onPress={handleRemove}
           hitSlop={8}
-          style={styles.removeBtn}
+          style={s.removeBtn}
           accessibilityRole="button"
           accessibilityLabel={t("wishlist.removeFrom", { name })}>
-          <Ionicons name="heart" size={18} color={theme.colors.rose[500]} />
+          <Ionicons name="heart" size={18} color={"#E53E3E"} />
         </Pressable>
         <Pressable
           onPress={handleAddToCart}
@@ -109,11 +110,11 @@ const FavoriteCard = memo(function FavoriteCard({ product, index }: { product: N
               : t("wishlist.addToCartLabel", { name })
           }
           accessibilityState={{ disabled: !product.inStock }}
-          style={[styles.cartBtn, inCart && styles.cartBtnActive, !product.inStock && styles.cartBtnDisabled]}>
+          style={[s.cartBtn, inCart && s.cartBtnActive, !product.inStock && s.cartBtnDisabled]}>
           <Ionicons
             name={inCart ? "checkmark" : "cart-outline"}
             size={16}
-            color={inCart ? "#fff" : product.inStock ? theme.colors.brand[600] : theme.colors.text.disabled}
+            color={inCart ? "#fff" : product.inStock ? kit.color.accentDeep : kit.color.inkFaint}
           />
         </Pressable>
       </View>
@@ -121,24 +122,19 @@ const FavoriteCard = memo(function FavoriteCard({ product, index }: { product: N
   );
 });
 
+// ─── Screen ───────────────────────────────────────────────────────────────────
 export default function FavoritesScreen() {
   const router     = useRouter();
   const insets     = useSafeAreaInsets();
   const { t }      = useTranslation();
-  // Per-field selectors — avoids whole-store subscription.
   const items      = useWishlistStore((s) => s.items);
   const isHydrated = useWishlistStore((s) => s.isHydrated);
   const userId     = useWishlistStore((s) => s.userId);
   const clear      = useWishlistStore((s) => s.clear);
 
-  // Initial hydrate is owned by PharmacyBootstrap (auth-aware). No call here.
-
   const handleClearAll = useCallback(() => {
     const doClear = () => {
-      // Clear local immediately for snappy UI.
       clear();
-      // If authed, also wipe server-side so the empty wishlist syncs across
-      // devices and survives sign-out/sign-in. Fire-and-forget.
       if (userId) {
         void clearUserWishlist(userId).catch((e) => {
           if (__DEV__) console.warn("[favorites] clearUserWishlist failed:", e);
@@ -160,55 +156,50 @@ export default function FavoritesScreen() {
   }, [clear, userId, t]);
 
   return (
-    <View style={[styles.screen, { paddingTop: 0 }]}>
-      {/* ── Hero header ──────────────────────────────────────── */}
-      <LinearGradient
-        colors={theme.gradients.heroPrimary as [string, string, string]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0.7, y: 1 }}
-        style={[styles.hero, { paddingTop: insets.top + 14 }]}>
+    <View style={s.screen}>
 
-        {/* Decorative orbs */}
-        <View style={styles.heroOrb1} />
-        <View style={styles.heroOrb2} />
+      {/* ── VIP Header ── */}
+      <Animated.View entering={FadeIn.duration(240)} style={[s.header, { paddingTop: insets.top + 10 }]}>
+        <Pressable
+          onPress={() => router.back()}
+          style={s.backBtn}
+          hitSlop={10}
+          accessibilityRole="button">
+          <Ionicons name={BACK_CHEVRON} size={18} color={kit.color.inkSoft} />
+        </Pressable>
 
-        {/* Top row */}
-        <View style={styles.heroTopRow}>
-          <Pressable
-            onPress={() => router.back()}
-            style={styles.heroBtn}
-            hitSlop={10}
-            accessibilityRole="button">
-            <Ionicons name="arrow-forward" size={18} color="rgba(255,255,255,0.85)" />
-          </Pressable>
-          <View style={{ flex: 1, alignItems: "center" }}>
-            <UIText style={styles.heroEyebrow}>{t("wishlist.yourWishlist")}</UIText>
-            <UIText style={styles.heroTitle}>{t("wishlist.title")}</UIText>
-          </View>
-          {items.length > 0 ? (
-            <Pressable
-              onPress={handleClearAll}
-              hitSlop={8}
-              style={styles.heroClearBtn}
-              accessibilityRole="button"
-              accessibilityLabel={t("wishlist.clearAllLabel")}>
-              <Ionicons name="trash-outline" size={15} color="rgba(255,89,89,0.90)" />
-            </Pressable>
-          ) : (
-            <View style={{ width: 40 }} />
-          )}
+        <View style={s.iconTile}>
+          <Ionicons name="heart-outline" size={22} color={"#E53E3E"} />
         </View>
 
-        {/* Stats pill row */}
-        {items.length > 0 && (
-          <View style={styles.heroStats}>
-            <View style={styles.heroStatPill}>
-              <Ionicons name="heart" size={11} color={theme.colors.rose[400]} />
-              <UIText style={styles.heroStatText}>{t("products.items", { count: items.length })}</UIText>
-            </View>
-          </View>
+        <View style={{ flex: 1 }}>
+          <UIText style={s.headerTitle}>{t("wishlist.title")}</UIText>
+          <UIText style={s.headerSubtitle}>{t("wishlist.yourWishlist")}</UIText>
+        </View>
+
+        {items.length > 0 ? (
+          <Pressable
+            onPress={handleClearAll}
+            hitSlop={8}
+            style={s.clearBtn}
+            accessibilityRole="button"
+            accessibilityLabel={t("wishlist.clearAllLabel")}>
+            <Ionicons name="trash-outline" size={15} color={"#E53E3E"} />
+          </Pressable>
+        ) : (
+          <View style={{ width: 40 }} />
         )}
-      </LinearGradient>
+      </Animated.View>
+
+      {/* Count chip */}
+      {items.length > 0 && (
+        <View style={[s.statsRow, { flexDirection: flexRow(IS_RTL) }]}>
+          <View style={[s.statChip, { flexDirection: flexRow(IS_RTL) }]}>
+            <Ionicons name="heart" size={11} color={"#E53E3E"} />
+            <UIText style={s.statText}>{t("products.items", { count: items.length })}</UIText>
+          </View>
+        </View>
+      )}
 
       {!isHydrated ? null : items.length === 0 ? (
         <EmptyState
@@ -224,17 +215,17 @@ export default function FavoritesScreen() {
           keyExtractor={favoriteKeyExtractor}
           getItemType={favoriteItemType}
           contentContainerStyle={{
-            padding:       theme.layout.pagePaddingH,
+            padding:       20,
             paddingBottom: insets.bottom + 24,
           }}
           showsVerticalScrollIndicator={false}
           ListHeaderComponent={
-            <View style={styles.listHeader}>
+            <View style={[s.listHeader, { flexDirection: flexRow(IS_RTL) }]}>
               <Badge variant="brand" size="sm">{t("products.items", { count: items.length })}</Badge>
             </View>
           }
           renderItem={({ item, index }) => (
-            <View style={styles.cardWrap}>
+            <View style={s.cardWrap}>
               <FavoriteCard product={item} index={index} />
             </View>
           )}
@@ -244,128 +235,127 @@ export default function FavoritesScreen() {
   );
 }
 
-// Stable refs so React doesn't reallocate them on every render — FlashList
-// pools cells by getItemType so a stable identifier keeps the recycler happy.
+// Stable refs so FlashList recycler stays happy.
 const favoriteKeyExtractor = (p: NativeProduct) => p.id;
 const favoriteItemType     = () => "favorite-card";
 
-const styles = StyleSheet.create({
-  screen: {
-    flex:            1,
-    backgroundColor: theme.colors.bg,
-  },
-  cardWrap: {
-    paddingBottom: 12,
-  },
-  // ── Hero header
-  hero: {
+// ─── Styles ───────────────────────────────────────────────────────────────────
+const s = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: kit.color.canvas },
+  cardWrap: { paddingBottom: 12 },
+
+  // Header
+  header: {
+    flexDirection:     flexRow(IS_RTL),
+    alignItems:        "center",
+    gap:               14,
     paddingHorizontal: 20,
-    paddingBottom:     18,
-    overflow:          "hidden",
+    paddingBottom:     16,
+    backgroundColor:   kit.color.surface,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: kit.color.line,
+    ...kit.shadow.raised,
   },
-  heroOrb1: {
-    position:        "absolute",
-    right:           -40,
-    top:             -40,
-    width:           150,
-    height:          150,
-    borderRadius:    75,
-    backgroundColor: "rgba(255,255,255,0.05)",
-  },
-  heroOrb2: {
-    position:        "absolute",
-    left:            -30,
-    bottom:          -30,
-    width:           100,
-    height:          100,
-    borderRadius:    50,
-    backgroundColor: "rgba(13,184,168,0.08)",
-  },
-  heroTopRow: {
-    flexDirection: flexRow(isRtl()) as "row" | "row-reverse",
-    alignItems:    "center",
-    gap:           12,
-  },
-  heroBtn: {
+  backBtn: {
     width:           40,
     height:          40,
-    borderRadius:    13,
-    backgroundColor: "rgba(255,255,255,0.12)",
+    borderRadius:    20,
+    backgroundColor: kit.color.surface,
     alignItems:      "center",
     justifyContent:  "center",
     borderWidth:     1,
-    borderColor:     "rgba(255,255,255,0.16)",
+    borderColor:     kit.color.line,
+    ...kit.shadow.raised,
+    flexShrink:      0,
   },
-  heroEyebrow: {
-    fontSize:      10.5,
-    fontFamily:    theme.fonts.bold,
-    color:         "rgba(255,255,255,0.55)",
-    letterSpacing: 0.6,
-    textTransform: "uppercase",
+  iconTile: {
+    width:           52,
+    height:          52,
+    borderRadius:    16,
+    backgroundColor: "rgba(229,62,62,0.08)",
+    borderWidth:     1,
+    borderColor:     "rgba(229,62,62,0.16)",
+    alignItems:      "center",
+    justifyContent:  "center",
+    flexShrink:      0,
   },
-  heroTitle: {
-    fontSize:      22,
-    fontFamily:    theme.fonts.black,
-    color:         "#fff",
-    letterSpacing: -0.3,
-    marginTop:     1,
+  headerTitle: {
+    fontFamily:         theme.fonts.black,
+    fontSize:           18,
+    letterSpacing:      -0.4,
+    color:              kit.color.ink,
+    includeFontPadding: false,
+    textAlign:          TEXT_START,
   },
-  heroClearBtn: {
+  headerSubtitle: {
+    fontFamily:         theme.fonts.semibold,
+    fontSize:           11,
+    color:              kit.color.inkFaint,
+    includeFontPadding: false,
+    textAlign:          TEXT_START,
+    marginTop:          1,
+  },
+  clearBtn: {
     width:           40,
     height:          40,
     borderRadius:    13,
-    backgroundColor: "rgba(255,50,50,0.14)",
+    backgroundColor: "rgba(229,62,62,0.08)",
+    borderWidth:     1,
+    borderColor:     "rgba(229,62,62,0.16)",
     alignItems:      "center",
     justifyContent:  "center",
-    borderWidth:     1,
-    borderColor:     "rgba(255,50,50,0.18)",
+    flexShrink:      0,
   },
-  heroStats: {
-    flexDirection: flexRow(isRtl()) as "row" | "row-reverse",
-    gap:           8,
-    marginTop:     14,
+
+  // Stats
+  statsRow: {
+    gap:               8,
+    paddingHorizontal: 20,
+    paddingVertical:   10,
+    backgroundColor:   kit.color.surface,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: kit.color.line,
   },
-  heroStatPill: {
-    flexDirection:     flexRow(isRtl()) as "row" | "row-reverse",
+  statChip: {
     alignItems:        "center",
     gap:               5,
-    backgroundColor:   "rgba(255,255,255,0.12)",
-    borderRadius:      999,
-    paddingHorizontal: 12,
+    backgroundColor:   "rgba(229,62,62,0.08)",
+    paddingHorizontal: 10,
     paddingVertical:   5,
+    borderRadius:      999,
     borderWidth:       1,
-    borderColor:       "rgba(255,255,255,0.14)",
+    borderColor:       "rgba(229,62,62,0.16)",
   },
-  heroStatText: {
-    fontSize:   11,
-    fontFamily: theme.fonts.bold,
-    color:      "rgba(255,255,255,0.85)",
+  statText: {
+    fontSize:           10,
+    fontFamily:         theme.fonts.bold,
+    color:              "#E53E3E",
+    includeFontPadding: false,
   },
-  // ── List
-  listHeader: {
-    flexDirection: flexRow(isRtl()) as "row" | "row-reverse",
-    marginBottom:  12,
-  },
-  // ── Card
+
+  // List
+  listHeader: { marginBottom: 12 },
+
+  // Card
   card: {
-    flexDirection:   flexRow(isRtl()) as "row" | "row-reverse",
     alignItems:      "center",
     gap:             14,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: kit.color.surface,
     borderRadius:    16,
     padding:         14,
     borderWidth:     1,
-    borderColor:     theme.colors.border.hairline,
-    ...theme.shadow.card,
+    borderColor:     kit.color.line,
+    ...kit.shadow.raised,
   },
   imgBox: {
     width:           82,
     height:          82,
     borderRadius:    14,
-    backgroundColor: theme.colors.surfaceSunken,
+    backgroundColor: kit.color.well,
     alignItems:      "center",
     justifyContent:  "center",
     overflow:        "hidden",
+    flexShrink:      0,
   },
   outOfStockOverlay: {
     ...StyleSheet.absoluteFillObject,
@@ -373,25 +363,25 @@ const styles = StyleSheet.create({
     alignItems:      "center",
     justifyContent:  "center",
   },
-  nameLabelNew: {
-    lineHeight: 20,
+  nameLabel:  { lineHeight: 20 },
+  priceLabel: {
+    fontSize:           15,
+    fontFamily:         theme.fonts.black,
+    color:              kit.color.accentDeep,
+    letterSpacing:      -0.3,
+    marginTop:          2,
+    includeFontPadding: false,
   },
-  priceLabelNew: {
-    color:         theme.colors.brand[700],
-    letterSpacing: -0.3,
-    marginTop:     2,
-  },
-  actions: {
-    alignItems: "center",
-    gap:        10,
-  },
+
+  // Actions
+  actions: { alignItems: "center", gap: 10 },
   removeBtn: {
     width:           40,
     height:          40,
     borderRadius:    13,
-    backgroundColor: theme.colors.rose[50],
+    backgroundColor: "rgba(229,62,62,0.08)",
     borderWidth:     1,
-    borderColor:     theme.colors.rose[100],
+    borderColor:     "rgba(229,62,62,0.16)",
     alignItems:      "center",
     justifyContent:  "center",
   },
@@ -399,23 +389,19 @@ const styles = StyleSheet.create({
     width:           40,
     height:          40,
     borderRadius:    13,
-    backgroundColor: theme.colors.brand.lighter,
+    backgroundColor: kit.color.accentTint,
     borderWidth:     1,
-    borderColor:     theme.colors.border.brandSoft,
+    borderColor:     kit.color.line,
     alignItems:      "center",
     justifyContent:  "center",
-    elevation:       3,
-    shadowColor:     theme.colors.hero,
-    shadowOffset:    { width: 0, height: 2 },
-    shadowOpacity:   0.08,
-    shadowRadius:    6,
+    ...kit.shadow.raised,
   },
   cartBtnActive: {
-    backgroundColor: theme.colors.brand[700],
-    borderColor:     theme.colors.brand[700],
+    backgroundColor: kit.color.accentDeep,
+    borderColor:     kit.color.accentDeep,
   },
   cartBtnDisabled: {
-    backgroundColor: theme.colors.subtle,
-    borderColor:     theme.colors.border.default,
+    backgroundColor: kit.color.well,
+    borderColor:     kit.color.line,
   },
 });

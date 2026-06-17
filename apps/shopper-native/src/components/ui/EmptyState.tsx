@@ -4,7 +4,7 @@ import { Text as UIText } from "@/shared/ui";
 import { Ionicons } from "@expo/vector-icons";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { theme } from "@/shared/theme";
-import { Button } from "./Button";
+import { Button } from "@/shared/kit";
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>["name"];
 
@@ -80,9 +80,7 @@ export function EmptyState({
 
       {/* Action */}
       {actionLabel && onAction && (
-        <Button variant="primary" size="sm" onPress={onAction} gradient>
-          {actionLabel}
-        </Button>
+        <Button variant="primary" size="sm" onPress={onAction} label={actionLabel} />
       )}
     </Animated.View>
   );

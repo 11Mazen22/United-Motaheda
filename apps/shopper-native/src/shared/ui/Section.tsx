@@ -20,7 +20,7 @@ import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from "rea
 import { Text as UIText } from "@/shared/ui";
 import { Ionicons } from "@expo/vector-icons";
 import { theme } from "@/shared/theme";
-import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
+import { flexRow, isRtl } from "@/utils/layout";
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>["name"];
 
