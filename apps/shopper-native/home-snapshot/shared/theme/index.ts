@@ -1,0 +1,22 @@
+export const theme = {
+  colors: {
+    brand: { 50: "#f0f9ff", 100: "#e0f2fe", 400: "#0ea5b7", 500: "#06b6d4" },
+    slate: { 900: "#0f172a", 800: "#0b1220", 600: "#475569", 400: "#94a3b8", 100: "#f1f5f9" },
+    text: { primary: "#07122a", secondary: "#475569", tertiary: "#94a3b8", inverse: "#fff", inverseSoft: "#f3f4f6" },
+    surface: "#ffffff",
+    surfaceSunken: "#f8fafc",
+    border: { hairline: "#e6eef6" },
+    amber: { 500: "#f59e0b", 900: "#92400e" },
+    rose: { 500: "#fb7185" },
+    success: { base: "#059669" },
+    warning: { base: "#f59e0b" },
+    info: { base: "#0ea5b7" },
+  },
+  fonts: { regular: "System", medium: "System", semibold: "System", bold: "System", extrabold: "System", black: "System" },
+  typography: { size: { xl: { fontSize: 16, lineHeight: 20 }, lg: { fontSize: 15, lineHeight: 20 }, md: { fontSize: 14, lineHeight: 18 }, sm: { fontSize: 12, lineHeight: 16 }, xs: { fontSize: 11, lineHeight: 14 }, "7xl": { fontSize: 36, lineHeight: 40 }, "6xl": { fontSize: 32, lineHeight: 36 }, "5xl": { fontSize: 28, lineHeight: 34 }, "4xl": { fontSize: 24, lineHeight: 30 }, "3xl": { fontSize: 20, lineHeight: 26 }, "2xl": { fontSize: 18, lineHeight: 24 } }, letterSpacing: { tight: -0.5, normal: 0, wide: 0.2, widest: 0.4 } },
+  animation: { spring: { press: { damping: 18, stiffness: 360 } } },
+  fontSize: { lg: 15, sm: 12, "2xl": 18 },
+  layout: { pagePaddingH: 16 },
+  radius: { md: 8, lg: 12, '2xl': 22 },
+  shadow: { card: {} },
+};

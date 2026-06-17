@@ -16,3 +16,6 @@ apps/shopper-web/dist/
 # Claude internal
 .claude/
 
+# Temp diagnostic output files
+temp-tsc-output.txt
+

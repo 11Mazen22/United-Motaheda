@@ -4,3 +4,12 @@
 expo-env.d.ts
 # @end expo-cli
 android/
+
+# Diagnostic / temp output files
+tsc-output.txt
+tsc-output-utf8.txt
+tsc-diagnostics.txt
+tsc-listfiles.txt
+listfiles.err
+showconfig.txt
+*.zip
