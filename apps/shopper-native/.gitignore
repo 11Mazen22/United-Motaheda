@@ -13,3 +13,9 @@ tsc-listfiles.txt
 listfiles.err
 showconfig.txt
 *.zip
+
+# Signing credentials — never commit
+credentials/
+credentials.json
+*.jks
+*.keystore

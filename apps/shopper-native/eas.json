@@ -44,6 +44,7 @@
     },
     "production": {
       "autoIncrement": true,
+      "credentialsSource": "local",
       "channel": "production",
       "env": {
         "CMAKE_VERSION": "3.22.1"
