@@ -84,6 +84,9 @@ const ActionCard = memo(function ActionCard({
       accessibilityLabel={def.label}
       style={cs.card}>
 
+      {/* VIP accent stripe */}
+      <View style={[cs.accentStripe, { backgroundColor: def.accent }]} />
+
       {/* Icon well */}
       <View style={[cs.iconWell, { backgroundColor: def.tint }]}>
         <Ionicons name={def.icon} size={24} color={def.accent} />
@@ -121,7 +124,15 @@ const cs = StyleSheet.create({
     borderColor:     kit.color.line,
     padding:         kit.sp(4),
     justifyContent:  "space-between",
+    overflow:        "hidden",
     ...kit.shadow.raised,
+  },
+  accentStripe: {
+    position:     "absolute",
+    top:          0,
+    left:         0,
+    right:        0,
+    height:       3,
   },
   iconWell: {
     width:           52,

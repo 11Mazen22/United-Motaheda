@@ -109,19 +109,16 @@ const PROMO_CONTENT = IS_RTL
       badgeSub: "OFF",
     };
 
-// ─── Hairline divider ────────────────────────────────────────────────────────
-
-const Divider = memo(function Divider() {
-  return <View style={s.divider} />;
-});
-
 // ─── Trust strip ─────────────────────────────────────────────────────────────
 
 const TrustStrip = memo(function TrustStrip() {
   return (
     <View style={s.trustRow}>
       {TRUST_ITEMS.map((item, i) => (
-        <View key={i} style={s.trustItem}>
+        <View
+          key={i}
+          style={[s.trustItem, i < TRUST_ITEMS.length - 1 && s.trustItemBorder]}
+        >
           <View style={[s.trustIcon, { backgroundColor: item.tint }]}>
             <Ionicons name={item.icon} size={14} color={item.color} />
           </View>
@@ -146,6 +143,9 @@ const PromoBanner = memo(function PromoBanner({ onBannerPress }: PromoBannerProp
       onPress={() => onBannerPress("/deals")}
       accessibilityRole="button"
       style={({ pressed }) => [s.promoCard, pressed && s.promoCardPressed]}>
+
+      {/* VIP accent stripe */}
+      <View style={s.promoStripe} />
 
       {/* Leading: text stack + CTA */}
       <View style={s.promoBody}>
@@ -286,6 +286,11 @@ export default function HomeScreen() {
           />
         }
       >
+        {/* Hero promotional banner — first, most visible */}
+        <View style={s.bannerWrap}>
+          <PromoBanner onBannerPress={goBanner} />
+        </View>
+
         {/* Trust strip */}
         <TrustStrip />
 
@@ -295,14 +300,7 @@ export default function HomeScreen() {
         {/* Quick actions */}
         <QuickActions onNavigate={goNavigate} />
 
-        <Divider />
-
-        {/* Promotional banner */}
-        <View style={s.bannerWrap}>
-          <PromoBanner onBannerPress={goBanner} />
-        </View>
-
-        <Divider />
+        <View style={s.sectionSep} />
 
         {/* Category strip */}
         <CategoryStrip
@@ -313,25 +311,23 @@ export default function HomeScreen() {
           onViewAll={goAllCats}
         />
 
-        <Divider />
-
         {/* Flash sale */}
         {(saleProducts.length > 0 || saleLoading) && (
-          <FlashSaleSection
-            products={saleProducts}
-            onProductPress={goProduct}
-            onViewAll={goDeals}
-          />
+          <>
+            <View style={s.sectionSep} />
+            <FlashSaleSection
+              products={saleProducts}
+              onProductPress={goProduct}
+              onViewAll={goDeals}
+            />
+          </>
         )}
 
         {/* Below-fold: lazy after first scroll */}
         {belowFold && (
           <>
-            <Divider />
             <RecentlyViewedCarousel lang={lang} onProductPress={goProduct} />
-            <Divider />
             <FeaturedSection lang={lang} onProductPress={goProduct} onViewAll={goFeatured} />
-            <Divider />
             <PharmacistCard />
           </>
         )}
@@ -366,17 +362,25 @@ const s = StyleSheet.create({
 
   // ── Trust strip ───────────────────────────────────────────────────────────
   trustRow: {
-    flexDirection:     flexRow(IS_RTL),
-    paddingHorizontal: theme.layout.pagePaddingH,
-    paddingVertical:   kit.sp(3),
-    backgroundColor:   kit.color.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: kit.color.line,
+    flexDirection:    flexRow(IS_RTL),
+    marginHorizontal: theme.layout.pagePaddingH,
+    marginBottom:     12,
+    paddingVertical:  kit.sp(3),
+    backgroundColor:  kit.color.surface,
+    borderRadius:     kit.radius.lg,
+    borderWidth:      1,
+    borderColor:      kit.color.line,
+    overflow:         "hidden",
+    ...kit.shadow.raised,
   },
   trustItem: {
     flex:           1,
     alignItems:     "center",
     gap:            3,
+  },
+  trustItemBorder: {
+    borderEndWidth: StyleSheet.hairlineWidth,
+    borderEndColor: kit.color.lineStrong,
   },
   trustIcon: {
     width:          30,
@@ -403,18 +407,29 @@ const s = StyleSheet.create({
   // ── Promo banner ─────────────────────────────────────────────────────────
   bannerWrap: {
     paddingHorizontal: theme.layout.pagePaddingH,
-    paddingVertical:   kit.sp(1),
+    paddingTop:        14,
+    paddingBottom:     6,
   },
   promoCard: {
     flexDirection:   flexRow(IS_RTL),
     alignItems:      "center",
     gap:             16,
     padding:         20,
+    paddingTop:      24,
     backgroundColor: kit.color.surface,
     borderRadius:    kit.radius.xl,
     borderWidth:     1,
     borderColor:     kit.color.line,
+    overflow:        "hidden",
     ...kit.shadow.raised,
+  },
+  promoStripe: {
+    position:         "absolute",
+    top:              0,
+    left:             0,
+    right:            0,
+    height:           3,
+    backgroundColor:  kit.color.accentDeep,
   },
   promoCardPressed: {
     opacity: 0.88,
@@ -434,10 +449,10 @@ const s = StyleSheet.create({
   },
   promoHeadline: {
     fontFamily:         theme.fonts.black,
-    fontSize:           18,
-    lineHeight:         24,
+    fontSize:           21,
+    lineHeight:         27,
     color:              kit.color.ink,
-    letterSpacing:      -0.3,
+    letterSpacing:      -0.4,
     textAlign:          TEXT_START,
     includeFontPadding: false,
   },
@@ -469,10 +484,12 @@ const s = StyleSheet.create({
     includeFontPadding: false,
   },
   promoBadge: {
-    width:           70,
-    height:          70,
-    borderRadius:    35,
-    backgroundColor: kit.color.ink,
+    width:           78,
+    height:          78,
+    borderRadius:    39,
+    backgroundColor: kit.color.accentTint,
+    borderWidth:     2,
+    borderColor:     kit.color.accentDeep + "40",
     alignItems:      "center",
     justifyContent:  "center",
     flexShrink:      0,
@@ -480,25 +497,22 @@ const s = StyleSheet.create({
   },
   promoBadgePct: {
     fontFamily:         theme.fonts.black,
-    fontSize:           20,
-    lineHeight:         24,
-    color:              kit.color.onInk,
+    fontSize:           22,
+    lineHeight:         26,
+    color:              kit.color.accentDeep,
     includeFontPadding: false,
   },
   promoBadgeSub: {
     fontFamily:         theme.fonts.bold,
     fontSize:           10,
     lineHeight:         14,
-    color:              "rgba(255,255,255,0.65)",
+    color:              kit.color.accentDeep,
+    opacity:            0.65,
     includeFontPadding: false,
   },
 
-  // ── Hairline divider ─────────────────────────────────────────────────────
-  divider: {
-    height:           1,
-    marginHorizontal: theme.layout.pagePaddingH,
-    backgroundColor:  kit.color.line,
-    marginVertical:   kit.sp(2),
-    opacity:          0.6,
+  // ── Section separator (invisible spacer — no hairline) ───────────────────
+  sectionSep: {
+    height: 20,
   },
 });
