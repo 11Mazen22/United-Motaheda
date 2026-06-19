@@ -1,24 +1,29 @@
 /**
- * HomeScreen — V2 arrival architecture.
+ * HomeScreen — 2026 V3 redesign (full reimagining).
  *
- * The app renders fully and immediately on every mount.
- * On cold launch an ArrivalOverlay sits on top and plays the cinematic
- * 5-phase sequence (freeze → spatial expansion → brand anchor →
- * construction → dissolve). When it completes, it unmounts and the
- * fully-assembled HomeScreen is visible beneath. No content "appears" —
- * it was always there, waiting to be revealed.
+ * New IA, top to bottom:
+ *   1. DeliveryHeader   — slim cinematic header (ambient orb, logo breath, search)
+ *   2. HomeHero         — tier-1 personalised hero (greeting, status, 3 chips)
+ *   3. TodayCare        — anticipatory care (only when active orders / Rx)
+ *   4. CategoryStrip    — horizontal browse rail
+ *   5. FlashSaleSection — countdown + sale rail (only when sale products exist)
+ *   6. DailyEdit        — editorial 1+2 product layout (NEW)
+ *   7. RecentlyViewed   — personal trail (only when content)
+ *   8. SavingsStrip     — closing trust band (replaces TrustStrip + bottom CTA)
+ *   9. PharmacistCard   — 24/7 contact CTA
  *
- * On re-entry (back nav, tab switch): arrivalComplete=true → showArrival
- * starts false → overlay never mounts. Feels instant.
+ * Removed: PromoBanner, QuickActions, TrustStrip — absorbed into HomeHero
+ * and SavingsStrip. Single source of identity, no duplicated trust messaging.
+ *
+ * Arrival overlay architecture unchanged: the page renders fully on first
+ * mount and the cinematic ArrivalOverlay sits above until it dissolves.
  */
 
 import React, {
-  memo,
   useCallback,
   useState,
 } from "react";
 import {
-  Pressable,
   RefreshControl,
   ScrollView,
   StatusBar,
@@ -29,9 +34,6 @@ import { useSafeAreaInsets }              from "react-native-safe-area-context";
 import { useRouter }                      from "expo-router";
 import { useTranslation }                 from "react-i18next";
 import { useQuery, useQueryClient }       from "@tanstack/react-query";
-import { Ionicons }                       from "@expo/vector-icons";
-import { Text as UIText }                 from "@/shared/ui";
-import { flexRow, isRtl, textAlignStart } from "../../src/utils/layout";
 
 // ─── Stores ──────────────────────────────────────────────────────────────────
 import { useCartStore, selectItemCount }  from "../../src/stores/cart";
@@ -47,129 +49,24 @@ import {
 
 // ─── Section components ───────────────────────────────────────────────────────
 import { DeliveryHeader }         from "../../src/features/home/components/DeliveryHeader";
-import { QuickActions }           from "../../src/features/home/components/QuickActions";
+import { HomeHero }               from "../../src/features/home/components/HomeHero";
 import { CategoryStrip }          from "../../src/features/home/components/CategoryStrip";
 import { TodayCare }              from "../../src/features/home/components/TodayCare";
 import { FlashSaleSection }       from "../../src/features/home/components/FlashSaleSection";
 import { RecentlyViewedCarousel } from "../../src/features/home/components/RecentlyViewedCarousel";
 import { PharmacistCard }         from "../../src/features/home/components/PharmacistCard";
-import { FeaturedSection }        from "../../src/features/home/components/FeaturedSection";
+import { DailyEdit }              from "../../src/features/home/components/DailyEdit";
+import { SavingsStrip }           from "../../src/features/home/components/SavingsStrip";
 import { ArrivalOverlay }         from "../../src/features/home/components/ArrivalOverlay";
 
 // ─── Theme ───────────────────────────────────────────────────────────────────
-import { theme } from "../../src/shared/theme";
-import { kit }   from "../../src/shared/kit";
+import { kit } from "../../src/shared/kit";
 
 // ─── Module-level arrival guard ───────────────────────────────────────────────
 // Resets on each cold launch (JS reload); persists across in-app navigations.
 let arrivalComplete = false;
 
-const CANVAS     = kit.color.canvas;
-const IS_RTL     = isRtl();
-const TEXT_START = textAlignStart(IS_RTL);
-
-// ─── Trust strip data (inline bilingual — same pattern as TodayCare) ─────────
-
-type IoniconsName = React.ComponentProps<typeof Ionicons>["name"];
-
-const TRUST_ITEMS: Array<{
-  icon: IoniconsName; value: string; label: string;
-  color: string; tint: string;
-}> = IS_RTL
-  ? [
-      { icon: "star",                    value: "4.9",   label: "تقييم",   color: kit.color.warn,      tint: kit.color.warnTint    },
-      { icon: "cube-outline",            value: "5000+", label: "منتج",    color: kit.color.accentDeep, tint: kit.color.accentTint  },
-      { icon: "flash-outline",           value: "30د",   label: "توصيل",   color: kit.color.success,   tint: kit.color.successTint },
-      { icon: "shield-checkmark-outline",value: "100%",  label: "أصالة",   color: kit.color.ink,       tint: kit.color.well        },
-    ]
-  : [
-      { icon: "star",                    value: "4.9",   label: "Rating",   color: kit.color.warn,      tint: kit.color.warnTint    },
-      { icon: "cube-outline",            value: "5,000+",label: "Products", color: kit.color.accentDeep, tint: kit.color.accentTint  },
-      { icon: "flash-outline",           value: "30 min",label: "Delivery", color: kit.color.success,   tint: kit.color.successTint },
-      { icon: "shield-checkmark-outline",value: "100%",  label: "Genuine",  color: kit.color.ink,       tint: kit.color.well        },
-    ];
-
-// ─── Promo banner content (inline bilingual) ──────────────────────────────────
-
-const PROMO_CONTENT = IS_RTL
-  ? {
-      eyebrow:  "عرض اليوم",
-      headline: "خصم ٣٠٪ على\nالأدوية المزمنة",
-      sub:      "لطلبات فوق ٢٠٠ ج.م · توصيل مجاني",
-      cta:      "تسوق الآن",
-      badge:    "٣٠٪",
-      badgeSub: "خصم",
-    }
-  : {
-      eyebrow:  "Today's Deal",
-      headline: "30% Off\nChronic Medications",
-      sub:      "Orders above EGP 200 · Free delivery",
-      cta:      "Shop Now",
-      badge:    "30%",
-      badgeSub: "OFF",
-    };
-
-// ─── Trust strip ─────────────────────────────────────────────────────────────
-
-const TrustStrip = memo(function TrustStrip() {
-  return (
-    <View style={s.trustRow}>
-      {TRUST_ITEMS.map((item, i) => (
-        <View
-          key={i}
-          style={[s.trustItem, i < TRUST_ITEMS.length - 1 && s.trustItemBorder]}
-        >
-          <View style={[s.trustIcon, { backgroundColor: item.tint }]}>
-            <Ionicons name={item.icon} size={14} color={item.color} />
-          </View>
-          <UIText style={s.trustValue}>{item.value}</UIText>
-          <UIText style={s.trustLabel}>{item.label}</UIText>
-        </View>
-      ))}
-    </View>
-  );
-});
-
-// ─── Promo banner ────────────────────────────────────────────────────────────
-
-interface PromoBannerProps {
-  onBannerPress: (route: string) => void;
-}
-
-const PromoBanner = memo(function PromoBanner({ onBannerPress }: PromoBannerProps) {
-  const p = PROMO_CONTENT;
-  return (
-    <Pressable
-      onPress={() => onBannerPress("/deals")}
-      accessibilityRole="button"
-      style={({ pressed }) => [s.promoCard, pressed && s.promoCardPressed]}>
-
-      {/* VIP accent stripe */}
-      <View style={s.promoStripe} />
-
-      {/* Leading: text stack + CTA */}
-      <View style={s.promoBody}>
-        <UIText style={s.promoEyebrow}>{p.eyebrow}</UIText>
-        <UIText style={s.promoHeadline}>{p.headline}</UIText>
-        <UIText style={s.promoSub}>{p.sub}</UIText>
-        <View style={s.promoCta}>
-          <UIText style={s.promoCtaText}>{p.cta}</UIText>
-          <Ionicons
-            name={IS_RTL ? "chevron-back" : "chevron-forward"}
-            size={14}
-            color={kit.color.onInk}
-          />
-        </View>
-      </View>
-
-      {/* Trailing: discount badge */}
-      <View style={s.promoBadge}>
-        <UIText style={s.promoBadgePct}>{p.badge}</UIText>
-        <UIText style={s.promoBadgeSub}>{p.badgeSub}</UIText>
-      </View>
-    </Pressable>
-  );
-});
+const CANVAS = kit.color.canvas;
 
 // ─── HomeScreen ──────────────────────────────────────────────────────────────
 
@@ -220,12 +117,15 @@ export default function HomeScreen() {
 
   // ── Navigation callbacks ──────────────────────────────────────────────────
 
-  const goCart     = useCallback(() => router.push("/(tabs)/cart"    as any), [router]);
-  const goSearch   = useCallback(() => router.push("/search"         as any), [router]);
-  const goNotifs   = useCallback(() => router.push("/notifications"  as any), [router]);
-  const goDeals    = useCallback(() => router.push("/deals"          as any), [router]);
-  const goFeatured = useCallback(() => router.push("/featured"       as any), [router]);
-  const goAllCats  = useCallback(() => router.push("/(tabs)/products"     ), [router]);
+  const goCart       = useCallback(() => router.push("/(tabs)/cart"    as any), [router]);
+  const goSearch     = useCallback(() => router.push("/search"         as any), [router]);
+  const goNotifs     = useCallback(() => router.push("/notifications"  as any), [router]);
+  const goDeals      = useCallback(() => router.push("/deals"          as any), [router]);
+  const goFeatured   = useCallback(() => router.push("/featured"       as any), [router]);
+  const goAllCats    = useCallback(() => router.push("/(tabs)/products"     ), [router]);
+  const goScanRx     = useCallback(() => router.push("/prescriptions/scan" as any), [router]);
+  const goPharmacist = useCallback(() => router.push("/help/pharmacist" as any), [router]);
+  const goLoyalty    = useCallback(() => router.push("/loyalty"        as any), [router]);
 
   const goCategory = useCallback(
     (id: string) =>
@@ -239,9 +139,6 @@ export default function HomeScreen() {
     [router],
   );
 
-  const goBanner   = useCallback((route: string) => router.push(route as any), [router]);
-  const goNavigate = useCallback((route: string) => router.push(route as any), [router]);
-
   // ── Pull-to-refresh ───────────────────────────────────────────────────────
 
   const onRefresh = useCallback(async () => {
@@ -249,6 +146,7 @@ export default function HomeScreen() {
     await Promise.allSettled([
       qc.invalidateQueries({ queryKey: categoryKeys.list() }),
       qc.invalidateQueries({ queryKey: productKeys.featured(12) }),
+      qc.invalidateQueries({ queryKey: productKeys.featured(6) }),
       qc.invalidateQueries({ queryKey: ["products"] }),
     ]);
     setRefreshing(false);
@@ -286,23 +184,18 @@ export default function HomeScreen() {
           />
         }
       >
-        {/* Hero promotional banner — first, most visible */}
-        <View style={s.bannerWrap}>
-          <PromoBanner onBannerPress={goBanner} />
-        </View>
+        {/* 1. Tier-1 hero — personalised greeting, status, 3 primary actions */}
+        <HomeHero
+          onScanRx={goScanRx}
+          onDeals={goDeals}
+          onPharmacist={goPharmacist}
+          onLoyalty={goLoyalty}
+        />
 
-        {/* Trust strip */}
-        <TrustStrip />
-
-        {/* Today's care (authed only) */}
+        {/* 2. Anticipatory care (authed only — renders null otherwise) */}
         {Boolean(user) && <TodayCare />}
 
-        {/* Quick actions */}
-        <QuickActions onNavigate={goNavigate} />
-
-        <View style={s.sectionSep} />
-
-        {/* Category strip */}
+        {/* 3. Categories — horizontal browse rail */}
         <CategoryStrip
           categories={categoriesQ.data ?? []}
           isLoading={categoriesQ.isLoading}
@@ -311,23 +204,27 @@ export default function HomeScreen() {
           onViewAll={goAllCats}
         />
 
-        {/* Flash sale */}
+        {/* 4. Flash sale — only when products exist */}
         {(saleProducts.length > 0 || saleLoading) && (
-          <>
-            <View style={s.sectionSep} />
-            <FlashSaleSection
-              products={saleProducts}
-              onProductPress={goProduct}
-              onViewAll={goDeals}
-            />
-          </>
+          <FlashSaleSection
+            products={saleProducts}
+            onProductPress={goProduct}
+            onViewAll={goDeals}
+          />
         )}
+
+        {/* 5. Daily edit — editorial product trio (NEW) */}
+        <DailyEdit
+          lang={lang}
+          onProductPress={goProduct}
+          onViewAll={goFeatured}
+        />
 
         {/* Below-fold: lazy after first scroll */}
         {belowFold && (
           <>
             <RecentlyViewedCarousel lang={lang} onProductPress={goProduct} />
-            <FeaturedSection lang={lang} onProductPress={goProduct} onViewAll={goFeatured} />
+            <SavingsStrip />
             <PharmacistCard />
           </>
         )}
@@ -358,161 +255,5 @@ const s = StyleSheet.create({
   },
   scrollContent: {
     paddingBottom: 8,
-  },
-
-  // ── Trust strip ───────────────────────────────────────────────────────────
-  trustRow: {
-    flexDirection:    flexRow(IS_RTL),
-    marginHorizontal: theme.layout.pagePaddingH,
-    marginBottom:     12,
-    paddingVertical:  kit.sp(3),
-    backgroundColor:  kit.color.surface,
-    borderRadius:     kit.radius.lg,
-    borderWidth:      1,
-    borderColor:      kit.color.line,
-    overflow:         "hidden",
-    ...kit.shadow.raised,
-  },
-  trustItem: {
-    flex:           1,
-    alignItems:     "center",
-    gap:            3,
-  },
-  trustItemBorder: {
-    borderEndWidth: StyleSheet.hairlineWidth,
-    borderEndColor: kit.color.lineStrong,
-  },
-  trustIcon: {
-    width:          30,
-    height:         30,
-    borderRadius:   15,
-    alignItems:     "center",
-    justifyContent: "center",
-  },
-  trustValue: {
-    fontFamily:         theme.fonts.black,
-    fontSize:           12,
-    lineHeight:         16,
-    color:              kit.color.ink,
-    includeFontPadding: false,
-  },
-  trustLabel: {
-    fontFamily:         theme.fonts.regular,
-    fontSize:           10,
-    lineHeight:         14,
-    color:              kit.color.inkFaint,
-    includeFontPadding: false,
-  },
-
-  // ── Promo banner ─────────────────────────────────────────────────────────
-  bannerWrap: {
-    paddingHorizontal: theme.layout.pagePaddingH,
-    paddingTop:        14,
-    paddingBottom:     6,
-  },
-  promoCard: {
-    flexDirection:   flexRow(IS_RTL),
-    alignItems:      "center",
-    gap:             16,
-    padding:         20,
-    paddingTop:      24,
-    backgroundColor: kit.color.surface,
-    borderRadius:    kit.radius.xl,
-    borderWidth:     1,
-    borderColor:     kit.color.line,
-    overflow:        "hidden",
-    ...kit.shadow.raised,
-  },
-  promoStripe: {
-    position:         "absolute",
-    top:              0,
-    left:             0,
-    right:            0,
-    height:           3,
-    backgroundColor:  kit.color.accentDeep,
-  },
-  promoCardPressed: {
-    opacity: 0.88,
-  },
-  promoBody: {
-    flex: 1,
-    gap:  6,
-  },
-  promoEyebrow: {
-    fontFamily:         theme.fonts.bold,
-    fontSize:           10,
-    lineHeight:         15,
-    color:              kit.color.accentDeep,
-    letterSpacing:      0.5,
-    textAlign:          TEXT_START,
-    includeFontPadding: false,
-  },
-  promoHeadline: {
-    fontFamily:         theme.fonts.black,
-    fontSize:           21,
-    lineHeight:         27,
-    color:              kit.color.ink,
-    letterSpacing:      -0.4,
-    textAlign:          TEXT_START,
-    includeFontPadding: false,
-  },
-  promoSub: {
-    fontFamily:         theme.fonts.regular,
-    fontSize:           12,
-    lineHeight:         18,
-    color:              kit.color.inkSoft,
-    textAlign:          TEXT_START,
-    includeFontPadding: false,
-  },
-  promoCta: {
-    flexDirection:     flexRow(IS_RTL),
-    alignItems:        "center",
-    justifyContent:    "center",
-    gap:               6,
-    marginTop:         4,
-    height:            38,
-    borderRadius:      kit.radius.pill,
-    backgroundColor:   kit.color.accentDeep,
-    paddingHorizontal: 16,
-    alignSelf:         "stretch",
-  },
-  promoCtaText: {
-    fontFamily:         theme.fonts.black,
-    fontSize:           13,
-    lineHeight:         19,
-    color:              kit.color.onInk,
-    includeFontPadding: false,
-  },
-  promoBadge: {
-    width:           78,
-    height:          78,
-    borderRadius:    39,
-    backgroundColor: kit.color.accentTint,
-    borderWidth:     2,
-    borderColor:     kit.color.accentDeep + "40",
-    alignItems:      "center",
-    justifyContent:  "center",
-    flexShrink:      0,
-    gap:             1,
-  },
-  promoBadgePct: {
-    fontFamily:         theme.fonts.black,
-    fontSize:           22,
-    lineHeight:         26,
-    color:              kit.color.accentDeep,
-    includeFontPadding: false,
-  },
-  promoBadgeSub: {
-    fontFamily:         theme.fonts.bold,
-    fontSize:           10,
-    lineHeight:         14,
-    color:              kit.color.accentDeep,
-    opacity:            0.65,
-    includeFontPadding: false,
-  },
-
-  // ── Section separator (invisible spacer — no hairline) ───────────────────
-  sectionSep: {
-    height: 20,
   },
 });

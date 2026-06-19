@@ -17,13 +17,11 @@ import React, { memo, useEffect, useMemo } from "react";
 import {
   Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import Animated, {
   cancelAnimation,
@@ -54,12 +52,6 @@ function getTimeIcon(): React.ComponentProps<typeof Ionicons>["name"] {
   return "moon-outline";
 }
 
-const METRIC_PILLS = [
-  { icon: "shield-checkmark" as const, labelKey: "home.metricOriginal", tint: kit.color.accentTint,  color: kit.color.accentDeep },
-  { icon: "flash"            as const, labelKey: "home.metricFast",     tint: kit.color.warnTint,    color: kit.color.warn       },
-  { icon: "medical"          as const, labelKey: "home.metricSupport",  tint: kit.color.successTint, color: kit.color.success    },
-] as const;
-
 interface DeliveryHeaderProps {
   insets:        { top: number };
   user:          { name?: string | null } | null;
@@ -77,8 +69,7 @@ export const DeliveryHeader = memo(function DeliveryHeader({
   onSearchPress,
   onNotifPress,
 }: DeliveryHeaderProps) {
-  const { t }  = useTranslation();
-  const router = useRouter();
+  const { t }   = useTranslation();
   const reduced = useReducedMotion() ?? false;
   const timeIcon = useMemo(() => getTimeIcon(), []);
 
@@ -188,28 +179,12 @@ export const DeliveryHeader = memo(function DeliveryHeader({
         </View>
       </View>
 
-      {/* ── Heading + metric strip ───────────────────────────────────────────── */}
-      <View style={s.headingStack}>
-        <View style={s.greetingRow}>
-          <View style={s.greetingIconWrap}>
-            <Ionicons name={timeIcon} size={12} color={kit.color.accentDeep} />
-          </View>
-          <UIText style={s.greetingText}>{greeting}</UIText>
+      {/* ── Compact greeting row (metric pills moved to HomeHero) ───────────── */}
+      <View style={s.greetingRow}>
+        <View style={s.greetingIconWrap}>
+          <Ionicons name={timeIcon} size={12} color={kit.color.accentDeep} />
         </View>
-
-        <UIText style={s.heroTitle}>{t("home.heroTaglineTitle")}</UIText>
-        <UIText style={s.heroSub}>{t("home.heroTaglineSub")}</UIText>
-
-        <View style={s.metricRow}>
-          {METRIC_PILLS.map((pill) => (
-            <View key={pill.labelKey} style={[s.metricPill, { backgroundColor: pill.tint }]}>
-              <Ionicons name={pill.icon} size={11} color={pill.color} />
-              <UIText style={[s.metricText, { color: pill.color }]}>
-                {t(pill.labelKey)}
-              </UIText>
-            </View>
-          ))}
-        </View>
+        <UIText style={s.greetingText}>{greeting}</UIText>
       </View>
 
       {/* ── Search bar with living glow ──────────────────────────────────────── */}
@@ -236,53 +211,6 @@ export const DeliveryHeader = memo(function DeliveryHeader({
         </Pressable>
       </View>
 
-      {/* ── Quick-access chips ──────────────────────────────────────────────── */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={s.chipScroll}
-        contentContainerStyle={s.chipRow}>
-
-        <Pressable
-          onPress={() => router.push("/deals")}
-          style={[s.chip, { backgroundColor: kit.color.dangerTint }]}
-          accessibilityRole="button">
-          <Ionicons name="flame" size={13} color={kit.color.danger} />
-          <UIText numberOfLines={1} style={[s.chipText, { color: kit.color.danger }]}>
-            {t("home.flashTitle")}
-          </UIText>
-        </Pressable>
-
-        <Pressable
-          onPress={() => router.push("/featured")}
-          style={[s.chip, { backgroundColor: kit.color.warnTint }]}
-          accessibilityRole="button">
-          <Ionicons name="star" size={13} color={kit.color.warn} />
-          <UIText numberOfLines={1} style={[s.chipText, { color: kit.color.warn }]}>
-            {t("home.featuredTitle")}
-          </UIText>
-        </Pressable>
-
-        <Pressable
-          onPress={() => router.push("/(tabs)/meds" as Parameters<typeof router.push>[0])}
-          style={[s.chip, { backgroundColor: kit.color.accentTint }]}
-          accessibilityRole="button">
-          <Ionicons name="medical-outline" size={13} color={kit.color.accentDeep} />
-          <UIText numberOfLines={1} style={[s.chipText, { color: kit.color.accentDeep }]}>
-            {t("home.qaRx")}
-          </UIText>
-        </Pressable>
-
-        <Pressable
-          onPress={() => router.push("/(tabs)/products")}
-          style={[s.chip, s.chipNeutral]}
-          accessibilityRole="button">
-          <Ionicons name="grid-outline" size={13} color={kit.color.inkSoft} />
-          <UIText numberOfLines={1} style={[s.chipText, { color: kit.color.inkSoft }]}>
-            {t("products.allProducts")}
-          </UIText>
-        </Pressable>
-      </ScrollView>
     </View>
   );
 });
@@ -292,7 +220,7 @@ export const DeliveryHeader = memo(function DeliveryHeader({
 const s = StyleSheet.create({
   header: {
     backgroundColor:   kit.color.canvas,
-    paddingBottom:     kit.sp(5),
+    paddingBottom:     kit.sp(3),
     paddingHorizontal: theme.layout.pagePaddingH,
     overflow:          "hidden",   // clips the ambient orb
   },
@@ -313,7 +241,7 @@ const s = StyleSheet.create({
     flexDirection:  flexRow(IS_RTL),
     alignItems:     "center",
     justifyContent: "space-between",
-    marginBottom:   kit.sp(5),
+    marginBottom:   kit.sp(3),
   },
 
   // Logo: outer hosts the ring + inner tile
@@ -392,15 +320,12 @@ const s = StyleSheet.create({
     textAlign:          "center",
   },
 
-  // ── Heading stack ────────────────────────────────────────────────────────
-  headingStack: {
-    gap:          kit.sp(2),
-    marginBottom: kit.sp(5),
-  },
+  // ── Greeting row ─────────────────────────────────────────────────────────
   greetingRow: {
     flexDirection: flexRow(IS_RTL),
     alignItems:    "center",
     gap:           8,
+    marginBottom:  kit.sp(3),
   },
   greetingIconWrap: {
     width:           26,
@@ -418,43 +343,6 @@ const s = StyleSheet.create({
     textAlign:          TEXT_START,
     includeFontPadding: false,
   },
-  heroTitle: {
-    fontFamily:         theme.fonts.black,
-    fontSize:           kit.type.display.fontSize,
-    lineHeight:         kit.type.display.lineHeight,
-    color:              kit.color.ink,
-    textAlign:          TEXT_START,
-    includeFontPadding: false,
-  },
-  heroSub: {
-    fontFamily:         theme.fonts.regular,
-    fontSize:           13,
-    lineHeight:         20,
-    color:              kit.color.inkSoft,
-    textAlign:          TEXT_START,
-    includeFontPadding: false,
-  },
-  metricRow: {
-    flexDirection: flexRow(IS_RTL),
-    flexWrap:      "wrap",
-    gap:           8,
-    marginTop:     kit.sp(1),
-  },
-  metricPill: {
-    flexDirection:     flexRow(IS_RTL),
-    alignItems:        "center",
-    gap:               5,
-    paddingHorizontal: 10,
-    paddingVertical:   5,
-    borderRadius:      kit.radius.pill,
-  },
-  metricText: {
-    fontFamily:         theme.fonts.bold,
-    fontSize:           10,
-    lineHeight:         15,
-    includeFontPadding: false,
-  },
-
   // ── Search bar ────────────────────────────────────────────────────────────
   searchOuter: {
     position: "relative",
@@ -503,30 +391,4 @@ const s = StyleSheet.create({
     justifyContent: "center",
   },
 
-  // ── Quick-access chips ────────────────────────────────────────────────────
-  chipScroll: { marginTop: kit.sp(3) },
-  chipRow: {
-    flexDirection: flexRow(IS_RTL),
-    alignItems:    "center",
-    gap:           8,
-  },
-  chip: {
-    flexDirection:     flexRow(IS_RTL),
-    alignItems:        "center",
-    gap:               6,
-    height:            40,
-    borderRadius:      kit.radius.pill,
-    paddingHorizontal: 14,
-  },
-  chipNeutral: {
-    backgroundColor: kit.color.surface,
-    borderWidth:     1,
-    borderColor:     kit.color.line,
-  },
-  chipText: {
-    fontFamily:         theme.fonts.bold,
-    fontSize:           12,
-    lineHeight:         18,
-    includeFontPadding: false,
-  },
 });
