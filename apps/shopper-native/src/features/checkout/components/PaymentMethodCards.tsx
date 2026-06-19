@@ -1,7 +1,6 @@
 import React from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { Text as UIText } from "@/shared/ui";
-import Animated, { FadeIn } from "react-native-reanimated";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { theme } from "@/shared/theme";
@@ -33,8 +32,8 @@ export const PaymentMethodCards = React.memo(function PaymentMethodCards({
   }));
 
   return (
-    <Animated.View entering={FadeIn.duration(220)} style={s.wrapper}>
-      {methods.map((m) => {
+    <View style={s.wrapper}>
+      {methods.filter((m) => m.id && m.title && m.icon).map((m) => {
         const active = selected === m.id;
         const isRec  = m.id === recommended && !active;
 
@@ -81,18 +80,11 @@ export const PaymentMethodCards = React.memo(function PaymentMethodCards({
                 <UIText style={[s.title, active && { color: m.color }]}>{m.title}</UIText>
                 <UIText style={s.sub}>{m.description}</UIText>
               </View>
-
-              {/* Active check pill */}
-              {active && (
-                <View style={[s.activePill, { backgroundColor: m.bg, borderColor: m.color + "50" }]}>
-                  <Ionicons name="checkmark-circle" size={14} color={m.color} />
-                </View>
-              )}
             </View>
           </Pressable>
         );
       })}
-    </Animated.View>
+    </View>
   );
 });
 
@@ -163,16 +155,6 @@ const s = StyleSheet.create({
     borderRadius:   12,
     borderWidth:    2,
     borderColor:    kit.color.lineStrong,
-    alignItems:     "center",
-    justifyContent: "center",
-    flexShrink:     0,
-  },
-
-  activePill: {
-    width:          28,
-    height:         28,
-    borderRadius:   14,
-    borderWidth:    1,
     alignItems:     "center",
     justifyContent: "center",
     flexShrink:     0,

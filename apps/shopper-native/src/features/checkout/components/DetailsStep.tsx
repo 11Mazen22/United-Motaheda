@@ -8,7 +8,7 @@ import { Controller, type Control, type FieldErrors } from "react-hook-form";
 import { Input } from "@/components/ui/Input";
 import { Text as UIText } from "@/shared/ui";
 import { theme } from "@/shared/theme";
-import { kit, Button } from "@/shared/kit";
+import { kit, SegmentedToggle } from "@/shared/kit";
 import {
   BranchSelector,
   SUPPORTED_GOVERNORATE,
@@ -137,25 +137,16 @@ export const DetailsStep = React.memo(function DetailsStep({
           icon="person-circle-outline"
           delay={50}>
           <UIText style={s.hint}>{t("checkout.profileHint")}</UIText>
-          <View style={s.toggleRow}>
-            <View style={{ flex: 1 }}>
-              <Button
-                label={t("checkout.useAccountData")}
-                variant={useAccountProfile ? "secondary" : "ghost"}
-                size="sm"
-                full
-                onPress={() => onToggleAccountProfile(true)}
-              />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Button
-                label={t("checkout.enterNewData")}
-                variant={!useAccountProfile ? "secondary" : "ghost"}
-                size="sm"
-                full
-                onPress={() => onToggleAccountProfile(false)}
-              />
-            </View>
+          <View style={s.toggleWrap}>
+            <SegmentedToggle<"saved" | "new">
+              value={useAccountProfile ? "saved" : "new"}
+              onChange={(v) => onToggleAccountProfile(v === "saved")}
+              options={[
+                { value: "saved", label: t("checkout.useAccountData") },
+                { value: "new",   label: t("checkout.enterNewData")   },
+              ]}
+              size="md"
+            />
           </View>
           <View style={s.metaRow}>
             <UIText style={s.metaLabel}>{t("auth.name")}</UIText>
@@ -216,25 +207,16 @@ export const DetailsStep = React.memo(function DetailsStep({
             <UIText style={s.savedAddressTitle}>{t("checkout.defaultAddrTitle")}</UIText>
             <UIText style={s.savedAddressHint}>{t("checkout.defaultAddrHint")}</UIText>
             <UIText style={s.savedAddressSummary}>{addressSummary}</UIText>
-            <View style={s.toggleRow}>
-              <View style={{ flex: 1 }}>
-                <Button
-                  label={t("checkout.useSavedAddress")}
-                  variant={useSavedAddress ? "secondary" : "ghost"}
-                  size="sm"
-                  full
-                  onPress={() => onToggleSavedAddress(true)}
-                />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Button
-                  label={t("checkout.enterNewAddress")}
-                  variant={!useSavedAddress ? "secondary" : "ghost"}
-                  size="sm"
-                  full
-                  onPress={() => onToggleSavedAddress(false)}
-                />
-              </View>
+            <View style={s.toggleWrap}>
+              <SegmentedToggle<"saved" | "new">
+                value={useSavedAddress ? "saved" : "new"}
+                onChange={(v) => onToggleSavedAddress(v === "saved")}
+                options={[
+                  { value: "saved", label: t("checkout.useSavedAddress")   },
+                  { value: "new",   label: t("checkout.enterNewAddress")   },
+                ]}
+                size="md"
+              />
             </View>
           </View>
         ) : (
@@ -412,11 +394,9 @@ const s = StyleSheet.create({
     lineHeight: 16,
   },
 
-  // Profile/address toggle row
-  toggleRow: {
-    flexDirection: flexRow(isRtl()),
-    gap:           10,
-    marginBottom:  14,
+  // Profile/address toggle wrapper
+  toggleWrap: {
+    marginBottom: 14,
   },
 
   // Profile meta rows

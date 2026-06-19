@@ -1,11 +1,25 @@
 /**
- * Login — VIP welcome experience (Phase 2 reinvention).
+ * Login — complete reimagining (2026 V3).
  *
- * Visual: layered brand ring → trust chips → elevated form card → CTA.
- * Logic: unchanged (functional parity with previous V2 build).
+ * Returning users see ONE thing first: a cinematic welcome. Trust chips
+ * removed (they belong on signup, not signin). Single elevated form, big
+ * primary CTA, quiet footer to register.
+ *
+ * Layout (top → bottom):
+ *   • Close button (top-end)
+ *   • Brand mark + breathing halo
+ *   • "Welcome back" — 32px black, -0.8 tracking
+ *   • Supporting line
+ *   • Elevated form card — email + password
+ *   • Inline forgot-password link
+ *   • Primary CTA — full width, 56h
+ *   • Quiet footer: "New here? · Create account"
+ *
+ * Motion: brand halo breathes (3 s sine, reduced-motion aware).
+ * Form card has a soft entrance via FadeInUp.
  */
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -18,7 +32,18 @@ import { Ionicons } from "@expo/vector-icons";
 import { Link, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
-import Animated, { FadeIn, FadeInDown, FadeInUp } from "react-native-reanimated";
+import Animated, {
+  cancelAnimation,
+  Easing,
+  FadeIn,
+  FadeInDown,
+  FadeInUp,
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+} from "react-native-reanimated";
 import { signIn, getAuthError } from "@/features/auth";
 import { AppLogo } from "@/shared/components/AppLogo";
 import { track } from "@/lib/analytics";
@@ -31,27 +56,36 @@ import { kit } from "@/shared/kit";
 import { theme } from "@/shared/theme";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
 
-type IoniconsName = React.ComponentProps<typeof Ionicons>["name"];
-
 const IS_RTL     = isRtl();
 const TEXT_START = textAlignStart(IS_RTL);
-
-const TRUST_ITEMS: { icon: IoniconsName; labelKey: string }[] = [
-  { icon: "shield-checkmark-outline", labelKey: "auth.trustSecure"  },
-  { icon: "lock-closed-outline",      labelKey: "auth.trustPrivate" },
-  { icon: "heart-outline",            labelKey: "auth.trustCare"    },
-];
 
 export default function LoginScreen() {
   const { t, i18n } = useTranslation();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const reduced = useReducedMotion() ?? false;
 
   const [email,    setEmail]    = useState("");
   const [password, setPassword] = useState("");
   const [showPass, setShowPass] = useState(false);
   const [loading,  setLoading]  = useState(false);
   const [error,    setError]    = useState<string | null>(null);
+
+  // Breathing brand halo
+  const halo = useSharedValue(0.35);
+  useEffect(() => {
+    if (reduced) {
+      halo.value = 0.5;
+      return;
+    }
+    halo.value = withRepeat(
+      withTiming(0.75, { duration: 3000, easing: Easing.inOut(Easing.sin) }),
+      -1,
+      true,
+    );
+    return () => cancelAnimation(halo);
+  }, [reduced, halo]);
+  const haloStyle = useAnimatedStyle(() => ({ opacity: halo.value }));
 
   const handleLogin = async () => {
     setError(null);
@@ -84,8 +118,8 @@ export default function LoginScreen() {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}>
 
-        {/* Close */}
-        <View style={[s.topBar, { flexDirection: flexRow(IS_RTL) }]}>
+        {/* Top bar: close */}
+        <View style={s.topBar}>
           <Pressable
             onPress={() => router.back()}
             hitSlop={10}
@@ -96,37 +130,31 @@ export default function LoginScreen() {
           </Pressable>
         </View>
 
-        {/* Brand ring — layered icon treatment */}
+        {/* Brand mark with breathing halo */}
         <Animated.View entering={FadeIn.duration(400)} style={s.brandBlock}>
-          <View style={s.logoOuter}>
+          <View style={s.logoWrap}>
+            <Animated.View style={[s.logoHalo, haloStyle]} pointerEvents="none" />
             <View style={s.logoInner}>
               <AppLogo size="lg" />
             </View>
           </View>
-          <Animated.View entering={FadeInDown.delay(120).duration(320)} style={s.headlineWrap}>
-            <UIText style={s.headline}>{t("auth.loginWelcome")}</UIText>
-            <UIText style={s.subhead}>{t("auth.loginSubtitle")}</UIText>
-          </Animated.View>
         </Animated.View>
 
-        {/* Trust chips */}
-        <Animated.View entering={FadeInUp.delay(200).duration(320)} style={[s.trustRow, { flexDirection: flexRow(IS_RTL) }]}>
-          {TRUST_ITEMS.map((item) => (
-            <View key={item.icon} style={[s.trustChip, { flexDirection: flexRow(IS_RTL) }]}>
-              <Ionicons name={item.icon} size={11} color={kit.color.accentDeep} />
-              <UIText style={s.trustText}>{t(item.labelKey)}</UIText>
-            </View>
-          ))}
+        {/* Cinematic welcome */}
+        <Animated.View entering={FadeInDown.delay(120).duration(360)} style={s.headlineWrap}>
+          <UIText style={s.eyebrow}>{t("auth.eyebrowSignIn") || (IS_RTL ? "تسجيل الدخول" : "Sign in")}</UIText>
+          <UIText style={s.headline}>{t("auth.loginWelcome")}</UIText>
+          <UIText style={s.subhead}>{t("auth.loginSubtitle")}</UIText>
         </Animated.View>
 
         {/* Form card */}
-        <Animated.View entering={FadeInUp.delay(280).duration(380)} style={s.formCard}>
+        <Animated.View entering={FadeInUp.delay(220).duration(380)} style={s.formCard}>
           {error && (
-            <Animated.View entering={FadeInDown.duration(200)} style={[s.errorBox, { flexDirection: flexRow(IS_RTL) }]}>
+            <Animated.View entering={FadeInDown.duration(200)} style={s.errorBox}>
               <View style={s.errorIcon}>
                 <Ionicons name="alert-circle" size={15} color={kit.color.danger} />
               </View>
-              <UIText style={[s.errorText, { textAlign: TEXT_START }]}>{error}</UIText>
+              <UIText style={s.errorText}>{error}</UIText>
             </Animated.View>
           )}
 
@@ -155,15 +183,15 @@ export default function LoginScreen() {
             }
           />
 
-          <View style={[s.forgotRow, { flexDirection: flexRow(IS_RTL) }]}>
+          <View style={s.forgotRow}>
             <Pressable hitSlop={8} onPress={() => router.push("/(auth)/forgot-password")}>
               <UIText style={s.forgotLink}>{t("auth.forgotPassword")}</UIText>
             </Pressable>
           </View>
         </Animated.View>
 
-        {/* CTA */}
-        <Animated.View entering={FadeInUp.delay(360).duration(360)}>
+        {/* Primary CTA */}
+        <Animated.View entering={FadeInUp.delay(300).duration(380)} style={{ marginTop: 18 }}>
           <Button
             label={t("auth.login")}
             variant="primary"
@@ -171,26 +199,17 @@ export default function LoginScreen() {
             full
             loading={loading}
             onPress={handleLogin}
-            style={{ marginTop: 16 }}
           />
         </Animated.View>
 
-        {/* Divider + footer */}
-        <Animated.View entering={FadeIn.delay(460).duration(300)} style={s.footerSection}>
-          <View style={[s.dividerRow, { flexDirection: flexRow(IS_RTL) }]}>
-            <View style={s.divider} />
-            <UIText style={s.orText}>{t("auth.or")}</UIText>
-            <View style={s.divider} />
-          </View>
-
-          <View style={[s.footer, { flexDirection: flexRow(IS_RTL) }]}>
-            <UIText style={s.footerText}>{t("auth.noAccount")}</UIText>
-            <Link href="/(auth)/register" asChild>
-              <Pressable hitSlop={6}>
-                <UIText style={s.footerLink}>{t("auth.createAccount")}</UIText>
-              </Pressable>
-            </Link>
-          </View>
+        {/* Footer */}
+        <Animated.View entering={FadeIn.delay(420).duration(300)} style={s.footer}>
+          <UIText style={s.footerText}>{t("auth.noAccount")}</UIText>
+          <Link href="/(auth)/register" asChild>
+            <Pressable hitSlop={6}>
+              <UIText style={s.footerLink}>{t("auth.createAccount")}</UIText>
+            </Pressable>
+          </Link>
         </Animated.View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -201,7 +220,12 @@ const s = StyleSheet.create({
   root:    { flex: 1, backgroundColor: kit.color.canvas },
   content: { flexGrow: 1, paddingHorizontal: 22 },
 
-  topBar:   { justifyContent: "flex-end", marginBottom: 4 },
+  // ── Top bar ──
+  topBar: {
+    flexDirection:  flexRow(IS_RTL),
+    justifyContent: "flex-end",
+    marginBottom:   8,
+  },
   closeBtn: {
     width:           40,
     height:          40,
@@ -212,25 +236,31 @@ const s = StyleSheet.create({
     borderWidth:     1,
     borderColor:     kit.color.line,
     ...kit.shadow.raised,
-    alignSelf:       "flex-end",
   },
 
-  // Brand block — layered rings
-  brandBlock: { alignItems: "center", gap: 20, marginTop: 8, marginBottom: 24 },
-  logoOuter: {
-    width:           112,
-    height:          112,
-    borderRadius:    56,
-    backgroundColor: kit.color.accentTint,
-    borderWidth:     1,
-    borderColor:     kit.color.line,
+  // ── Brand block ──
+  brandBlock: {
+    alignItems: "center",
+    marginTop:  12,
+    marginBottom: 24,
+  },
+  logoWrap: {
+    width:           104,
+    height:          104,
     alignItems:      "center",
     justifyContent:  "center",
   },
+  logoHalo: {
+    position:        "absolute",
+    width:           104,
+    height:          104,
+    borderRadius:    52,
+    backgroundColor: kit.color.accentTint,
+  },
   logoInner: {
-    width:           76,
-    height:          76,
-    borderRadius:    22,
+    width:           80,
+    height:          80,
+    borderRadius:    24,
     backgroundColor: kit.color.surface,
     alignItems:      "center",
     justifyContent:  "center",
@@ -238,12 +268,27 @@ const s = StyleSheet.create({
     borderColor:     kit.color.line,
     ...kit.shadow.brandGlow,
   },
-  headlineWrap: { alignItems: "center", gap: 8 },
+
+  // ── Headline ──
+  headlineWrap: {
+    alignItems:   "center",
+    gap:          6,
+    marginBottom: 24,
+  },
+  eyebrow: {
+    fontFamily:         theme.fonts.black,
+    fontSize:           11,
+    lineHeight:         16,
+    letterSpacing:      1.4,
+    color:              kit.color.accentDeep,
+    textTransform:      "uppercase",
+    includeFontPadding: false,
+  },
   headline: {
     fontFamily:         theme.fonts.black,
-    fontSize:           26,
-    lineHeight:         34,
-    letterSpacing:      -0.6,
+    fontSize:           32,
+    lineHeight:         38,
+    letterSpacing:      -0.8,
     color:              kit.color.ink,
     textAlign:          "center",
     includeFontPadding: false,
@@ -256,36 +301,13 @@ const s = StyleSheet.create({
     textAlign:          "center",
     includeFontPadding: false,
     maxWidth:           280,
+    marginTop:          4,
   },
 
-  // Trust chips
-  trustRow: {
-    justifyContent: "center",
-    gap:            8,
-    marginBottom:   24,
-    flexWrap:       "wrap",
-  },
-  trustChip: {
-    alignItems:        "center",
-    gap:               5,
-    backgroundColor:   kit.color.accentTint,
-    borderRadius:      999,
-    paddingHorizontal: 10,
-    paddingVertical:   5,
-    borderWidth:       1,
-    borderColor:       kit.color.line,
-  },
-  trustText: {
-    fontSize:           9.5,
-    fontFamily:         theme.fonts.bold,
-    color:              kit.color.accentDeep,
-    includeFontPadding: false,
-  },
-
-  // Form card
+  // ── Form card ──
   formCard: {
     backgroundColor: kit.color.surface,
-    borderRadius:    20,
+    borderRadius:    kit.radius.xl,
     borderWidth:     1,
     borderColor:     kit.color.line,
     padding:         20,
@@ -293,6 +315,7 @@ const s = StyleSheet.create({
     ...kit.shadow.raised,
   },
   errorBox: {
+    flexDirection:   flexRow(IS_RTL),
     alignItems:      "center",
     gap:             8,
     padding:         12,
@@ -316,27 +339,29 @@ const s = StyleSheet.create({
     fontSize:           12,
     lineHeight:         17,
     color:              kit.color.danger,
+    textAlign:          TEXT_START,
     includeFontPadding: false,
   },
-  forgotRow: { justifyContent: "flex-start" },
+  forgotRow: {
+    flexDirection:  flexRow(IS_RTL),
+    justifyContent: "flex-start",
+    marginTop:      2,
+  },
   forgotLink: {
-    fontFamily:         theme.fonts.bold,
+    fontFamily:         theme.fonts.black,
     fontSize:           12,
     color:              kit.color.accentDeep,
     includeFontPadding: false,
   },
 
-  // Footer
-  footerSection: { marginTop: 20, gap: 16 },
-  dividerRow:    { alignItems: "center", gap: 10 },
-  divider:       { flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: kit.color.line },
-  orText: {
-    fontFamily:         theme.fonts.regular,
-    fontSize:           12,
-    color:              kit.color.inkFaint,
-    includeFontPadding: false,
+  // ── Footer ──
+  footer: {
+    flexDirection:  flexRow(IS_RTL),
+    alignItems:     "center",
+    justifyContent: "center",
+    gap:            6,
+    marginTop:      28,
   },
-  footer: { alignItems: "center", justifyContent: "center", gap: 6 },
   footerText: {
     fontFamily:         theme.fonts.regular,
     fontSize:           13,

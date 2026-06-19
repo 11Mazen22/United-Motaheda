@@ -1,14 +1,24 @@
 /**
- * Register — 3-step premium account creation journey (Phase 2 reinvention).
+ * Register — complete reimagining (2026 V3).
  *
- * Step 1: Identity   — Name + Email
- * Step 2: Security   — Password
- * Step 3: Contact    — Phone (optional) + submit
+ * Premium 3-step onboarding journey:
+ *   Step 1 — Identity   (name + email)
+ *   Step 2 — Security   (password with strength meter)
+ *   Step 3 — Contact    (phone, optional)
  *
- * Logic: unchanged (functional parity). Only step-gating added to validation.
+ * What changed vs V2:
+ *   • New ProgressBar component — linear track + step labels (not 3 invisible
+ *     pills). Communicates "where you are" at a glance.
+ *   • Cinematic step header — large ink-tile icon + title + supporting copy
+ *     re-mounts on step change for a clean staggered entrance.
+ *   • Password strength meter (4 levels) on step 2.
+ *   • Identical brand language to the new login screen — breathing halo on
+ *     step 1 only (anchors the journey start).
+ *
+ * Logic: signUp / sendPhoneOtp / PhoneVerifyModal flow unchanged.
  */
 
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -21,7 +31,18 @@ import { Ionicons } from "@expo/vector-icons";
 import { Link, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
-import Animated, { FadeIn, FadeInDown, FadeInUp } from "react-native-reanimated";
+import Animated, {
+  cancelAnimation,
+  Easing,
+  FadeIn,
+  FadeInDown,
+  FadeInUp,
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+} from "react-native-reanimated";
 import {
   signUp,
   getAuthError,
@@ -40,38 +61,217 @@ import { kit } from "@/shared/kit";
 import { theme } from "@/shared/theme";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
 
+type IoniconsName = React.ComponentProps<typeof Ionicons>["name"];
+
 const IS_RTL     = isRtl();
 const TEXT_START = textAlignStart(IS_RTL);
 
-// ─── Step indicator ───────────────────────────────────────────────────────────
-function StepIndicator({ current, total }: { current: number; total: number }) {
+// ═══════════════════════════════════════════════════════════════════════════════
+// PROGRESS BAR — Linear track + step labels
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const STEP_LABELS = IS_RTL
+  ? ["الهوية", "كلمة المرور", "التواصل"]
+  : ["Identity", "Security", "Contact"];
+
+function ProgressBar({ current, total }: { current: number; total: number }) {
+  const reduced = useReducedMotion() ?? false;
+  const progress = useSharedValue(current / total);
+
+  useEffect(() => {
+    const target = current / total;
+    progress.value = reduced
+      ? target
+      : withTiming(target, { duration: 360, easing: Easing.out(Easing.cubic) });
+  }, [current, total, reduced, progress]);
+
+  const fillStyle = useAnimatedStyle(() => ({
+    width: `${progress.value * 100}%` as `${number}%`,
+  }));
+
   return (
-    <View style={[si.root, { flexDirection: flexRow(IS_RTL) }]}>
-      {Array.from({ length: total }, (_, i) => i + 1).map((n) => (
-        <View
-          key={n}
-          style={[
-            si.pill,
-            n < current  && si.pillDone,
-            n === current && si.pillActive,
-          ]}
-        />
-      ))}
+    <View style={pb.wrap}>
+      {/* Labels */}
+      <View style={pb.labelRow}>
+        {STEP_LABELS.map((label, i) => {
+          const stepNum = i + 1;
+          const isActive = stepNum === current;
+          const isDone   = stepNum < current;
+          return (
+            <View key={label} style={pb.labelCell}>
+              <View style={[pb.dot, isDone && pb.dotDone, isActive && pb.dotActive]}>
+                {isDone ? (
+                  <Ionicons name="checkmark" size={10} color={kit.color.onAccent} />
+                ) : (
+                  <UIText style={[pb.dotNum, isActive && pb.dotNumActive]}>
+                    {stepNum}
+                  </UIText>
+                )}
+              </View>
+              <UIText
+                style={[pb.label, (isActive || isDone) && pb.labelActive]}
+                numberOfLines={1}>
+                {label}
+              </UIText>
+            </View>
+          );
+        })}
+      </View>
+
+      {/* Track */}
+      <View style={pb.track}>
+        <Animated.View style={[pb.fill, fillStyle]} />
+      </View>
     </View>
   );
 }
-const si = StyleSheet.create({
-  root:        { justifyContent: "center", gap: 6 },
-  pill:        { width: 8, height: 8, borderRadius: 4, backgroundColor: kit.color.lineStrong },
-  pillDone:    { backgroundColor: kit.color.accent },
-  pillActive:  { width: 24, backgroundColor: kit.color.ink },
+
+const pb = StyleSheet.create({
+  wrap: { gap: 10 },
+  labelRow: {
+    flexDirection:  flexRow(IS_RTL),
+    justifyContent: "space-between",
+    alignItems:     "center",
+  },
+  labelCell: {
+    flexDirection: flexRow(IS_RTL),
+    alignItems:    "center",
+    gap:           6,
+  },
+  dot: {
+    width:           20,
+    height:          20,
+    borderRadius:    10,
+    backgroundColor: kit.color.well,
+    alignItems:      "center",
+    justifyContent:  "center",
+    borderWidth:     1,
+    borderColor:     kit.color.line,
+  },
+  dotActive: {
+    backgroundColor: kit.color.ink,
+    borderColor:     kit.color.ink,
+  },
+  dotDone: {
+    backgroundColor: kit.color.accentDeep,
+    borderColor:     kit.color.accentDeep,
+  },
+  dotNum: {
+    fontFamily:         theme.fonts.black,
+    fontSize:           10,
+    lineHeight:         14,
+    color:              kit.color.inkFaint,
+    includeFontPadding: false,
+  },
+  dotNumActive: { color: kit.color.onInk },
+  label: {
+    fontFamily:         theme.fonts.bold,
+    fontSize:           10,
+    lineHeight:         14,
+    color:              kit.color.inkFaint,
+    includeFontPadding: false,
+  },
+  labelActive: { color: kit.color.ink },
+  track: {
+    height:          4,
+    borderRadius:    2,
+    backgroundColor: kit.color.well,
+    overflow:        "hidden",
+  },
+  fill: {
+    height:          "100%",
+    backgroundColor: kit.color.accentDeep,
+    borderRadius:    2,
+  },
 });
 
-// ─── Screen ───────────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+// PASSWORD STRENGTH METER
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function scorePassword(p: string): { score: 0 | 1 | 2 | 3 | 4; label: string; color: string } {
+  let score = 0;
+  if (p.length >= 6) score++;
+  if (p.length >= 10) score++;
+  if (/[A-Z]/.test(p) && /[a-z]/.test(p)) score++;
+  if (/\d/.test(p) && /[^a-zA-Z0-9]/.test(p)) score++;
+  const labels = IS_RTL
+    ? ["—", "ضعيفة", "متوسطة", "قوية", "ممتازة"]
+    : ["—", "Weak", "Fair", "Strong", "Excellent"];
+  const colors = [
+    kit.color.lineStrong,
+    kit.color.danger,
+    kit.color.warn,
+    kit.color.accentDeep,
+    kit.color.success,
+  ];
+  const clamped = Math.min(score, 4) as 0 | 1 | 2 | 3 | 4;
+  return { score: clamped, label: labels[clamped], color: colors[clamped] };
+}
+
+function StrengthMeter({ password }: { password: string }) {
+  const { score, label, color } = useMemo(() => scorePassword(password), [password]);
+  if (password.length === 0) return null;
+  return (
+    <View style={sm.wrap}>
+      <View style={sm.bars}>
+        {[1, 2, 3, 4].map((i) => (
+          <View
+            key={i}
+            style={[
+              sm.bar,
+              { backgroundColor: i <= score ? color : kit.color.well },
+            ]}
+          />
+        ))}
+      </View>
+      <UIText style={[sm.label, { color }]}>{label}</UIText>
+    </View>
+  );
+}
+
+const sm = StyleSheet.create({
+  wrap: {
+    flexDirection: flexRow(IS_RTL),
+    alignItems:    "center",
+    gap:           10,
+    marginTop:     -4,
+  },
+  bars: {
+    flexDirection: "row",
+    gap:           4,
+    flex:          1,
+  },
+  bar: {
+    flex:         1,
+    height:       4,
+    borderRadius: 2,
+  },
+  label: {
+    fontFamily:         theme.fonts.black,
+    fontSize:           10,
+    lineHeight:         14,
+    minWidth:           48,
+    textAlign:          IS_RTL ? "left" : "right",
+    includeFontPadding: false,
+  },
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SCREEN
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const STEP_META: { icon: IoniconsName; titleKey: string; subKey: string }[] = [
+  { icon: "person-outline",      titleKey: "auth.step1Title", subKey: "auth.step1Sub" },
+  { icon: "lock-closed-outline", titleKey: "auth.step2Title", subKey: "auth.step2Sub" },
+  { icon: "call-outline",        titleKey: "auth.step3Title", subKey: "auth.step3Sub" },
+];
+
 export default function RegisterScreen() {
   const { t, i18n } = useTranslation();
   const router  = useRouter();
   const insets  = useSafeAreaInsets();
+  const reduced = useReducedMotion() ?? false;
 
   const [step,      setStep]      = useState<1 | 2 | 3>(1);
   const [name,      setName]      = useState("");
@@ -83,6 +283,22 @@ export default function RegisterScreen() {
   const [loading,   setLoading]   = useState(false);
   const [error,     setError]     = useState<string | null>(null);
   const [otpPhone,  setOtpPhone]  = useState<string | null>(null);
+
+  // Breathing halo (step 1 only)
+  const halo = useSharedValue(0.4);
+  useEffect(() => {
+    if (reduced || step !== 1) {
+      halo.value = 0.5;
+      return;
+    }
+    halo.value = withRepeat(
+      withTiming(0.8, { duration: 2800, easing: Easing.inOut(Easing.sin) }),
+      -1,
+      true,
+    );
+    return () => cancelAnimation(halo);
+  }, [reduced, step, halo]);
+  const haloStyle = useAnimatedStyle(() => ({ opacity: halo.value }));
 
   const clearError = () => setError(null);
 
@@ -159,12 +375,6 @@ export default function RegisterScreen() {
     router.replace("/(tabs)");
   };
 
-  // Step metadata
-  const STEP_META = [
-    { icon: "person-outline",      titleKey: "auth.step1Title",    subKey: "auth.step1Sub"    },
-    { icon: "lock-closed-outline", titleKey: "auth.step2Title",    subKey: "auth.step2Sub"    },
-    { icon: "call-outline",        titleKey: "auth.step3Title",    subKey: "auth.step3Sub"    },
-  ] as const;
   const meta = STEP_META[step - 1];
 
   return (
@@ -175,8 +385,8 @@ export default function RegisterScreen() {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}>
 
-        {/* Top bar */}
-        <View style={[s.topBar, { flexDirection: flexRow(IS_RTL) }]}>
+        {/* Top bar — back + progress */}
+        <View style={s.topBar}>
           <Pressable
             onPress={step === 1 ? () => router.back() : () => { setStep((step - 1) as 1 | 2 | 3); setError(null); }}
             hitSlop={10}
@@ -185,14 +395,16 @@ export default function RegisterScreen() {
             accessibilityLabel={t("common.back")}>
             <Ionicons name={IS_RTL ? "chevron-forward" : "chevron-back"} size={20} color={kit.color.inkSoft} />
           </Pressable>
-          <StepIndicator current={step} total={3} />
-          <View style={{ width: 40 }} />
+          <View style={{ flex: 1 }}>
+            <ProgressBar current={step} total={3} />
+          </View>
         </View>
 
-        {/* Brand mark (only on step 1) */}
+        {/* Brand mark — step 1 only */}
         {step === 1 && (
           <Animated.View entering={FadeIn.duration(360)} style={s.brandBlock}>
-            <View style={s.logoOuter}>
+            <View style={s.logoWrap}>
+              <Animated.View style={[s.logoHalo, haloStyle]} pointerEvents="none" />
               <View style={s.logoInner}>
                 <AppLogo size="lg" />
               </View>
@@ -200,25 +412,32 @@ export default function RegisterScreen() {
           </Animated.View>
         )}
 
-        {/* Step header — re-mounts on step change to trigger entrance */}
+        {/* Cinematic step header — re-mounts on step change */}
         <Animated.View key={`hdr-${step}`} entering={FadeInDown.duration(320)} style={s.stepHeader}>
-          <View style={[s.stepIcon, { flexDirection: flexRow(IS_RTL) }]}>
-            <Ionicons name={meta.icon} size={20} color={kit.color.accentDeep} />
+          <View style={s.stepIconTile}>
+            <Ionicons name={meta.icon} size={22} color={kit.color.accentDeep} />
           </View>
-          <View style={{ flex: 1 }}>
-            <UIText style={[s.stepTitle, { textAlign: TEXT_START }]}>{t(meta.titleKey)}</UIText>
-            <UIText style={[s.stepSub, { textAlign: TEXT_START }]}>{t(meta.subKey)}</UIText>
+          <View style={{ flex: 1, gap: 2 }}>
+            <UIText style={s.stepEyebrow}>
+              {IS_RTL ? `الخطوة ${step} من 3` : `Step ${step} of 3`}
+            </UIText>
+            <UIText style={s.stepTitle}>{t(meta.titleKey)}</UIText>
+            <UIText style={s.stepSub}>{t(meta.subKey)}</UIText>
           </View>
         </Animated.View>
 
-        {/* Form content — re-mounts on step change */}
-        <Animated.View key={`form-${step}`} entering={FadeInUp.delay(80).duration(360).springify().damping(18)} style={s.formCard}>
+        {/* Form card — re-mounts on step change */}
+        <Animated.View
+          key={`form-${step}`}
+          entering={FadeInUp.delay(80).duration(360).springify().damping(18)}
+          style={s.formCard}>
+
           {error && (
-            <Animated.View entering={FadeInDown.duration(200)} style={[s.errorBox, { flexDirection: flexRow(IS_RTL) }]}>
+            <Animated.View entering={FadeInDown.duration(200)} style={s.errorBox}>
               <View style={s.errorIcon}>
                 <Ionicons name="alert-circle" size={15} color={kit.color.danger} />
               </View>
-              <UIText style={[s.errorText, { textAlign: TEXT_START }]}>{error}</UIText>
+              <UIText style={s.errorText}>{error}</UIText>
             </Animated.View>
           )}
 
@@ -247,19 +466,22 @@ export default function RegisterScreen() {
           )}
 
           {step === 2 && (
-            <Input
-              label={t("auth.password")}
-              placeholder={t("auth.passwordPlaceholderHint")}
-              value={password}
-              onChangeText={(v) => { setPassword(v); clearError(); }}
-              secureTextEntry={!showPass}
-              leftIcon={<Ionicons name="lock-closed-outline" size={18} color={kit.color.inkFaint} />}
-              rightIcon={
-                <Pressable onPress={() => setShowPass(!showPass)} hitSlop={8}>
-                  <Ionicons name={showPass ? "eye-off-outline" : "eye-outline"} size={18} color={kit.color.inkFaint} />
-                </Pressable>
-              }
-            />
+            <>
+              <Input
+                label={t("auth.password")}
+                placeholder={t("auth.passwordPlaceholderHint")}
+                value={password}
+                onChangeText={(v) => { setPassword(v); clearError(); }}
+                secureTextEntry={!showPass}
+                leftIcon={<Ionicons name="lock-closed-outline" size={18} color={kit.color.inkFaint} />}
+                rightIcon={
+                  <Pressable onPress={() => setShowPass(!showPass)} hitSlop={8}>
+                    <Ionicons name={showPass ? "eye-off-outline" : "eye-outline"} size={18} color={kit.color.inkFaint} />
+                  </Pressable>
+                }
+              />
+              <StrengthMeter password={password} />
+            </>
           )}
 
           {step === 3 && (
@@ -280,9 +502,9 @@ export default function RegisterScreen() {
                 hitSlop={6}
                 accessibilityRole="checkbox"
                 accessibilityState={{ checked: skipPhone }}
-                style={[s.skipRow, { flexDirection: flexRow(IS_RTL) }]}>
+                style={s.skipRow}>
                 <View style={[s.skipCheck, skipPhone && s.skipCheckActive]}>
-                  {skipPhone && <Ionicons name="checkmark" size={12} color={kit.color.onInk} />}
+                  {skipPhone && <Ionicons name="checkmark" size={12} color={kit.color.onAccent} />}
                 </View>
                 <UIText style={[s.skipText, { color: skipPhone ? kit.color.accentDeep : kit.color.inkSoft }]}>
                   {t("auth.skipPhone")}
@@ -292,8 +514,8 @@ export default function RegisterScreen() {
           )}
         </Animated.View>
 
-        {/* CTA */}
-        <Animated.View entering={FadeInUp.delay(200).duration(360)}>
+        {/* Primary CTA */}
+        <Animated.View entering={FadeInUp.delay(200).duration(360)} style={{ marginTop: 18 }}>
           <Button
             label={step < 3 ? t("auth.nextStep") : t("auth.registerBtn")}
             variant="primary"
@@ -301,15 +523,14 @@ export default function RegisterScreen() {
             full
             loading={loading}
             onPress={step < 3 ? goNext : handleRegister}
-            style={{ marginTop: 16 }}
             icon={step < 3 ? (IS_RTL ? "chevron-back" : "chevron-forward") : "checkmark"}
             iconEnd
           />
         </Animated.View>
 
-        {/* Footer */}
+        {/* Step-1 footer */}
         {step === 1 && (
-          <Animated.View entering={FadeIn.delay(400).duration(300)} style={[s.footer, { flexDirection: flexRow(IS_RTL) }]}>
+          <Animated.View entering={FadeIn.delay(400).duration(300)} style={s.footer}>
             <UIText style={s.footerText}>{t("auth.alreadyAccount")}</UIText>
             <Link href="/(auth)/login" asChild>
               <Pressable hitSlop={6}>
@@ -338,9 +559,14 @@ export default function RegisterScreen() {
 
 const s = StyleSheet.create({
   root:    { flex: 1, backgroundColor: kit.color.canvas },
-  content: { flexGrow: 1, paddingHorizontal: 22, gap: 16 },
+  content: { flexGrow: 1, paddingHorizontal: 22, gap: 18 },
 
-  topBar: { alignItems: "center", justifyContent: "space-between" },
+  // Top bar with progress
+  topBar: {
+    flexDirection: flexRow(IS_RTL),
+    alignItems:    "center",
+    gap:           12,
+  },
   backBtn: {
     width:           40,
     height:          40,
@@ -353,22 +579,25 @@ const s = StyleSheet.create({
     ...kit.shadow.raised,
   },
 
-  // Brand
+  // Brand (step 1)
   brandBlock: { alignItems: "center" },
-  logoOuter: {
+  logoWrap: {
+    width:           96,
+    height:          96,
+    alignItems:      "center",
+    justifyContent:  "center",
+  },
+  logoHalo: {
+    position:        "absolute",
     width:           96,
     height:          96,
     borderRadius:    48,
     backgroundColor: kit.color.accentTint,
-    borderWidth:     1,
-    borderColor:     kit.color.line,
-    alignItems:      "center",
-    justifyContent:  "center",
   },
   logoInner: {
-    width:           64,
-    height:          64,
-    borderRadius:    18,
+    width:           72,
+    height:          72,
+    borderRadius:    22,
     backgroundColor: kit.color.surface,
     alignItems:      "center",
     justifyContent:  "center",
@@ -378,37 +607,54 @@ const s = StyleSheet.create({
   },
 
   // Step header
-  stepHeader: { flexDirection: flexRow(IS_RTL), alignItems: "center", gap: 14, marginBottom: 4 },
-  stepIcon: {
-    width:           48,
-    height:          48,
-    borderRadius:    15,
+  stepHeader: {
+    flexDirection: flexRow(IS_RTL),
+    alignItems:    "center",
+    gap:           14,
+  },
+  stepIconTile: {
+    width:           56,
+    height:          56,
+    borderRadius:    18,
     backgroundColor: kit.color.accentTint,
     borderWidth:     1,
-    borderColor:     kit.color.line,
+    borderColor:     kit.color.accentDeep + "22",
     alignItems:      "center",
     justifyContent:  "center",
     flexShrink:      0,
   },
+  stepEyebrow: {
+    fontFamily:         theme.fonts.black,
+    fontSize:           10,
+    lineHeight:         14,
+    letterSpacing:      1.2,
+    color:              kit.color.accentDeep,
+    textTransform:      "uppercase",
+    textAlign:          TEXT_START,
+    includeFontPadding: false,
+  },
   stepTitle: {
     fontFamily:         theme.fonts.black,
-    fontSize:           20,
-    letterSpacing:      -0.4,
+    fontSize:           22,
+    lineHeight:         28,
+    letterSpacing:      -0.5,
     color:              kit.color.ink,
+    textAlign:          TEXT_START,
     includeFontPadding: false,
   },
   stepSub: {
     fontFamily:         theme.fonts.regular,
     fontSize:           12,
+    lineHeight:         17,
     color:              kit.color.inkFaint,
-    marginTop:          2,
+    textAlign:          TEXT_START,
     includeFontPadding: false,
   },
 
   // Form card
   formCard: {
     backgroundColor: kit.color.surface,
-    borderRadius:    20,
+    borderRadius:    kit.radius.xl,
     borderWidth:     1,
     borderColor:     kit.color.line,
     padding:         20,
@@ -416,6 +662,7 @@ const s = StyleSheet.create({
     ...kit.shadow.raised,
   },
   errorBox: {
+    flexDirection:   flexRow(IS_RTL),
     alignItems:      "center",
     gap:             8,
     padding:         12,
@@ -439,15 +686,20 @@ const s = StyleSheet.create({
     fontSize:           12,
     lineHeight:         17,
     color:              kit.color.danger,
+    textAlign:          TEXT_START,
     includeFontPadding: false,
   },
 
   // Phone skip
-  skipRow: { alignItems: "center", gap: 8 },
+  skipRow: {
+    flexDirection: flexRow(IS_RTL),
+    alignItems:    "center",
+    gap:           8,
+  },
   skipCheck: {
-    width:           18,
-    height:          18,
-    borderRadius:    6,
+    width:           20,
+    height:          20,
+    borderRadius:    7,
     borderWidth:     1.5,
     borderColor:     kit.color.lineStrong,
     alignItems:      "center",
@@ -455,15 +707,24 @@ const s = StyleSheet.create({
     backgroundColor: kit.color.surface,
     flexShrink:      0,
   },
-  skipCheckActive: { backgroundColor: kit.color.accent, borderColor: kit.color.accent },
+  skipCheckActive: {
+    backgroundColor: kit.color.accentDeep,
+    borderColor:     kit.color.accentDeep,
+  },
   skipText: {
-    fontFamily:         theme.fonts.semibold,
+    fontFamily:         theme.fonts.bold,
     fontSize:           12,
     includeFontPadding: false,
   },
 
   // Footer
-  footer: { alignItems: "center", justifyContent: "center", gap: 6, marginTop: 4 },
+  footer: {
+    flexDirection:  flexRow(IS_RTL),
+    alignItems:     "center",
+    justifyContent: "center",
+    gap:            6,
+    marginTop:      8,
+  },
   footerText: {
     fontFamily:         theme.fonts.regular,
     fontSize:           13,
