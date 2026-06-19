@@ -44,6 +44,7 @@ import { theme } from "@/shared/theme";
 import { formatPrice } from "@/utils/format";
 import { flexRow, isRtl, textAlignStart, FORWARD_CHEVRON } from "@/utils/layout";
 import { kit } from "@/shared/kit";
+import { SearchIntents } from "@/features/search/components/SearchIntents";
 import type { NativeProduct, NativeCategory } from "@/services/productsApi";
 
 // ─── Layout constants ────────────────────────────────────────────────────────
@@ -77,6 +78,16 @@ const SORT_KEYS: Record<SortKey, string> = {
   price_desc: "search.sortPriceDesc",
   name_asc:   "search.sortNameAsc",
 };
+
+// Bilingual labels for the SearchIntents chip row (module-level — stable refs)
+const INTENT_LABELS = IS_RTL
+  ? { scan: "مسح وصفة",   browse: "تصفّح الكل", pharma: "صيدلي" }
+  : { scan: "Scan Rx",     browse: "Browse all", pharma: "Pharmacist" };
+
+// Discovery title-zone subtitle
+const SUBTITLE = IS_RTL
+  ? "أكثر من ٥٠٠٠ دواء ومكمل وعلامة تجارية"
+  : "5,000+ medicines, vitamins & brands";
 
 const TRENDING_META: { termKey: string; icon: IoniconsName; color: string }[] = [
   { termKey: "search.trending0", icon: "medkit",        color: kit.color.accentDeep },
@@ -357,6 +368,9 @@ export default function SearchScreen() {
   const goProduct   = useCallback((id: string) => {
     router.push({ pathname: "/product/[id]", params: { id } });
   }, [router]);
+  const goScanRx     = useCallback(() => router.push("/prescriptions/scan" as any), [router]);
+  const goBrowseAll  = useCallback(() => router.push("/(tabs)/products"), [router]);
+  const goPharmacist = useCallback(() => router.push("/help/pharmacist" as any), [router]);
   const resetFilters = useCallback(() => {
     setSortBy("newest"); setInStockOnly(false); setCatFilter(null);
     if (Platform.OS !== "web") Haptics.selectionAsync().catch(() => {});
@@ -408,6 +422,9 @@ export default function SearchScreen() {
               <UIText style={s.eyebrow}>{t("search.eyebrow")}</UIText>
               <UIText style={s.displayTitle} accessibilityRole="header">
                 {t("search.title")}
+              </UIText>
+              <UIText style={s.displaySub} numberOfLines={1}>
+                {SUBTITLE}
               </UIText>
             </View>
           )}
@@ -486,6 +503,18 @@ export default function SearchScreen() {
             )}
           </Pressable>
         </View>
+
+        {/* Alternative-path intents — chip row beneath the command bar */}
+        {!hasResults && (
+          <SearchIntents
+            onScanRx={goScanRx}
+            onBrowseAll={goBrowseAll}
+            onPharmacist={goPharmacist}
+            scanLabel={INTENT_LABELS.scan}
+            browseLabel={INTENT_LABELS.browse}
+            pharmaLabel={INTENT_LABELS.pharma}
+          />
+        )}
 
         {/* Bilingual translation hint */}
         {translationHintText && debouncedQ.length >= 2 && (
@@ -863,7 +892,7 @@ const s = StyleSheet.create({
     borderBottomColor: kit.color.line,
   },
   titleZone: {
-    minHeight: 46,
+    minHeight:      66,
     justifyContent: "flex-end",
   },
   eyebrow: {
@@ -877,10 +906,20 @@ const s = StyleSheet.create({
   },
   displayTitle: {
     fontFamily:         theme.fonts.black,
-    fontSize:           28,
-    lineHeight:         34,
+    fontSize:           30,
+    lineHeight:         36,
     color:              kit.color.ink,
+    letterSpacing:      -0.6,
     textAlign:          TEXT_START,
+    includeFontPadding: false,
+  },
+  displaySub: {
+    fontFamily:         theme.fonts.regular,
+    fontSize:           12,
+    lineHeight:         17,
+    color:              kit.color.inkFaint,
+    textAlign:          TEXT_START,
+    marginTop:          4,
     includeFontPadding: false,
   },
 
@@ -920,10 +959,10 @@ const s = StyleSheet.create({
     flexDirection:     flexRow(IS_RTL),
     alignItems:        "center",
     gap:               4,
-    height:            58,
+    height:            64,
     paddingHorizontal: 8,
     backgroundColor:   kit.color.surface,
-    borderRadius:      20,
+    borderRadius:      22,
     borderWidth:       1,
     borderColor:       kit.color.line,
     ...kit.shadow.floating,
