@@ -1,5 +1,5 @@
 /**
- * Search — 2026 Elite Redesign
+ * Search — Complete redesign from zero (2026 V4).
  *
  * Search-fix invariant (DO NOT TOUCH):
  *   - resolvedDebouncedQ → useProductSearch({ query: resolvedDebouncedQ })
@@ -7,6 +7,33 @@
  *   - <Hl qAlt={resolvedDebouncedQ} />
  *   - <SuggRow queryResolved={resolvedDebouncedQ} />
  *   Recents, popular-search RPC, and log_search_event analytics unchanged.
+ *
+ * New architecture:
+ *
+ *   ┌────────────────────────────────────────────┐
+ *   │  Sticky header                             │
+ *   │   • Conversational greeting                │
+ *   │   • Display title (30px, -0.6 tracking)    │
+ *   │   • Command bar (64h, floating shadow)     │
+ *   │   • Translation hint (when active)         │
+ *   ├────────────────────────────────────────────┤
+ *   │  Discovery state                           │
+ *   │   • SearchModes — 3 mode cards (NEW)       │
+ *   │   • Recents (when populated)               │
+ *   │   • Browse by concern — 6 tiles (NEW)      │
+ *   │   • Trending — ranked list                 │
+ *   │   • Categories — 3-col premium grid        │
+ *   ├────────────────────────────────────────────┤
+ *   │  Results state                             │
+ *   │   • Count meta + group chips               │
+ *   │   • ProductGrid (infinite)                 │
+ *   │   • Suggestion overlay (sticky)            │
+ *   └────────────────────────────────────────────┘
+ *
+ * Tier hierarchy:
+ *   Tier 1 — Command bar          (floating shadow)
+ *   Tier 2 — SearchModes / Concerns (raised shadow)
+ *   Tier 3 — Recents / Trending / Categories (line-bordered, flat)
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -44,20 +71,25 @@ import { theme } from "@/shared/theme";
 import { formatPrice } from "@/utils/format";
 import { flexRow, isRtl, textAlignStart, FORWARD_CHEVRON } from "@/utils/layout";
 import { kit } from "@/shared/kit";
-import { SearchIntents } from "@/features/search/components/SearchIntents";
+import { useAuth } from "@/features/auth";
 import type { NativeProduct, NativeCategory } from "@/services/productsApi";
 
-// ─── Layout constants ────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+// LAYOUT CONSTANTS
+// ═══════════════════════════════════════════════════════════════════════════════
 
 const IS_RTL      = isRtl();
 const TEXT_START  = textAlignStart(IS_RTL);
 const INPUT_ALIGN = TEXT_START as "left" | "right" | "center";
 const SCREEN_W    = Dimensions.get("window").width;
 const H_PAD       = 20;
-// 3-column category cell: full width minus 2×padding minus 2 gaps
-const CAT_W   = Math.floor((SCREEN_W - H_PAD * 2 - 10 * 2) / 3);
 
-// Top-3 rank accent colors: gold / silver / brand teal
+// 3-col category cell
+const CAT_W = Math.floor((SCREEN_W - H_PAD * 2 - 10 * 2) / 3);
+// 2-col concern tile
+const CONCERN_W = Math.floor((SCREEN_W - H_PAD * 2 - 10) / 2);
+
+// Top-3 rank accents: gold / silver / brand teal
 const RANK_COLORS: Record<number, string> = {
   0: "#D97706",
   1: "#6B7280",
@@ -79,15 +111,60 @@ const SORT_KEYS: Record<SortKey, string> = {
   name_asc:   "search.sortNameAsc",
 };
 
-// Bilingual labels for the SearchIntents chip row (module-level — stable refs)
-const INTENT_LABELS = IS_RTL
-  ? { scan: "مسح وصفة",   browse: "تصفّح الكل", pharma: "صيدلي" }
-  : { scan: "Scan Rx",     browse: "Browse all", pharma: "Pharmacist" };
+// ═══════════════════════════════════════════════════════════════════════════════
+// BILINGUAL CONTENT (module-level — stable refs)
+// ═══════════════════════════════════════════════════════════════════════════════
 
-// Discovery title-zone subtitle
-const SUBTITLE = IS_RTL
-  ? "أكثر من ٥٠٠٠ دواء ومكمل وعلامة تجارية"
-  : "5,000+ medicines, vitamins & brands";
+const COPY = IS_RTL
+  ? {
+      greetGuest:    "هل تبحث عن شيء؟",
+      greetUser:     (name: string) => `أهلاً، ${name}`,
+      displayTitle:  "ابحث عن أي شيء",
+      placeholder:   "ابحث عن دواء أو منتج",
+      subtitleLine:  "أكثر من ٥٠٠٠ دواء، فيتامين، علامة تجارية",
+      modeScanLabel:    "مسح وصفة",
+      modeScanSub:      "ارفع صورة الوصفة",
+      modeBrowseLabel:  "تصفّح الكل",
+      modeBrowseSub:    "كل المنتجات",
+      modePharmaLabel:  "صيدلي",
+      modePharmaSub:    "استشارة مجانية",
+      concernsTitle: "تصفّح حسب الاحتياج",
+      modesEyebrow:  "ابدأ من هنا",
+    }
+  : {
+      greetGuest:    "Looking for something?",
+      greetUser:     (name: string) => `Hey, ${name}`,
+      displayTitle:  "Search anything",
+      placeholder:   "Search medicines, brands, vitamins",
+      subtitleLine:  "5,000+ medicines, vitamins & brands",
+      modeScanLabel:    "Scan Rx",
+      modeScanSub:      "Upload prescription",
+      modeBrowseLabel:  "Browse all",
+      modeBrowseSub:    "All products",
+      modePharmaLabel:  "Pharmacist",
+      modePharmaSub:    "Free consultation",
+      concernsTitle: "Browse by concern",
+      modesEyebrow:  "Start here",
+    };
+
+// 6 thematic browse concerns — tap submits the search term
+const CONCERNS: Array<{ icon: IoniconsName; term: string; label: string; tint: string; tone: string }> = IS_RTL
+  ? [
+      { icon: "bandage-outline",     term: "مسكن",     label: "ألم وحرارة",     tint: kit.color.dangerTint,  tone: kit.color.danger     },
+      { icon: "thermometer-outline", term: "برد",      label: "برد وزكام",      tint: kit.color.accentTint,  tone: kit.color.accentDeep },
+      { icon: "leaf-outline",        term: "حساسية",   label: "حساسية",         tint: kit.color.successTint, tone: kit.color.success    },
+      { icon: "sparkles-outline",    term: "بشرة",     label: "العناية بالبشرة", tint: kit.color.warnTint,    tone: kit.color.warn       },
+      { icon: "nutrition-outline",   term: "فيتامين",  label: "فيتامينات",      tint: kit.color.accentTint,  tone: kit.color.accentDeep },
+      { icon: "happy-outline",       term: "طفل",      label: "صحة الطفل",      tint: kit.color.warnTint,    tone: kit.color.warn       },
+    ]
+  : [
+      { icon: "bandage-outline",     term: "pain",     label: "Pain & fever",  tint: kit.color.dangerTint,  tone: kit.color.danger     },
+      { icon: "thermometer-outline", term: "cold",     label: "Cold & flu",    tint: kit.color.accentTint,  tone: kit.color.accentDeep },
+      { icon: "leaf-outline",        term: "allergy",  label: "Allergies",     tint: kit.color.successTint, tone: kit.color.success    },
+      { icon: "sparkles-outline",    term: "skin",     label: "Skincare",      tint: kit.color.warnTint,    tone: kit.color.warn       },
+      { icon: "nutrition-outline",   term: "vitamin",  label: "Vitamins",      tint: kit.color.accentTint,  tone: kit.color.accentDeep },
+      { icon: "happy-outline",       term: "baby",     label: "Baby care",     tint: kit.color.warnTint,    tone: kit.color.warn       },
+    ];
 
 const TRENDING_META: { termKey: string; icon: IoniconsName; color: string }[] = [
   { termKey: "search.trending0", icon: "medkit",        color: kit.color.accentDeep },
@@ -98,7 +175,9 @@ const TRENDING_META: { termKey: string; icon: IoniconsName; color: string }[] = 
   { termKey: "search.trending5", icon: "water-outline", color: kit.color.accentDeep },
 ];
 
-// ─── Category icon resolver (unchanged) ─────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+// CATEGORY ICON RESOLVER (unchanged)
+// ═══════════════════════════════════════════════════════════════════════════════
 
 function getCategoryIcon(name: string): IoniconsName {
   const n = (name ?? "").toLowerCase();
@@ -123,7 +202,9 @@ function getCategoryIcon(name: string): IoniconsName {
   return "grid-outline";
 }
 
-// ─── Highlight match (functional core — unchanged) ───────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+// MATCH HIGHLIGHT (unchanged)
+// ═══════════════════════════════════════════════════════════════════════════════
 
 function Hl({
   text, q, qAlt, style, lines,
@@ -153,7 +234,9 @@ function Hl({
   );
 }
 
-// ─── Suggestion row (functional core — unchanged) ────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+// SUGGESTION ROW (unchanged)
+// ═══════════════════════════════════════════════════════════════════════════════
 
 const SuggRow = React.memo(function SuggRow({
   product, query, queryResolved, onPress, index, selected,
@@ -205,7 +288,89 @@ const SuggRow = React.memo(function SuggRow({
 });
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// ═══  SCREEN
+// NEW INLINE COMPONENTS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/** SearchModeCard — large tappable surface for an alternative-path input mode. */
+const SearchModeCard = React.memo(function SearchModeCard({
+  icon, label, sub, primary, onPress,
+}: {
+  icon:     IoniconsName;
+  label:    string;
+  sub:      string;
+  primary?: boolean;
+  onPress:  () => void;
+}) {
+  const handlePress = useCallback(() => {
+    if (Platform.OS !== "web") Haptics.selectionAsync().catch(() => {});
+    onPress();
+  }, [onPress]);
+
+  return (
+    <Pressable
+      onPress={handlePress}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      style={({ pressed }) => [
+        s.modeCard,
+        primary && s.modeCardPrimary,
+        pressed && (primary ? s.modeCardPrimaryPressed : s.modeCardPressed),
+      ]}>
+      <View style={[s.modeIconWrap, primary && s.modeIconWrapPrimary]}>
+        <Ionicons
+          name={icon}
+          size={22}
+          color={primary ? kit.color.onAccent : kit.color.accentDeep}
+        />
+      </View>
+      <UIText
+        numberOfLines={1}
+        style={[s.modeLabel, primary && s.modeLabelPrimary]}>
+        {label}
+      </UIText>
+      <UIText
+        numberOfLines={1}
+        style={[s.modeSub, primary && s.modeSubPrimary]}>
+        {sub}
+      </UIText>
+    </Pressable>
+  );
+});
+
+/** ConcernTile — thematic 2-col tile that quick-searches for the concern term. */
+const ConcernTile = React.memo(function ConcernTile({
+  icon, label, tint, tone, onPress,
+}: {
+  icon:    IoniconsName;
+  label:   string;
+  tint:    string;
+  tone:    string;
+  onPress: () => void;
+}) {
+  const handlePress = useCallback(() => {
+    if (Platform.OS !== "web") Haptics.selectionAsync().catch(() => {});
+    onPress();
+  }, [onPress]);
+
+  return (
+    <Pressable
+      onPress={handlePress}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      style={({ pressed }) => [s.concernTile, pressed && { opacity: 0.85 }]}>
+      <View style={[s.concernIconWrap, { backgroundColor: tint }]}>
+        <Ionicons name={icon} size={20} color={tone} />
+      </View>
+      <View style={s.concernBody}>
+        <UIText style={s.concernLabel} numberOfLines={1}>{label}</UIText>
+      </View>
+      <Ionicons name={FORWARD_CHEVRON} size={14} color={kit.color.lineStrong} />
+    </Pressable>
+  );
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SCREEN
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export default function SearchScreen() {
@@ -214,8 +379,9 @@ export default function SearchScreen() {
   const router   = useRouter();
   const insets   = useSafeAreaInsets();
   const inputRef = useRef<TextInput>(null);
+  const { user } = useAuth();
 
-  // ── State (unchanged) ──
+  // ── State ──
   const [query, setQuery]             = useState("");
   const [submitted, setSubmitted]     = useState("");
   const [focused, setFocused]         = useState(false);
@@ -229,7 +395,7 @@ export default function SearchScreen() {
   const debouncedQ  = useDebounce(query.trim(), 200);
   const RECENTS_KEY = "um_search_recents_v1";
 
-  // ── Smart bilingual resolution (unchanged) ──
+  // ── Smart bilingual resolution (PROTECTED — DO NOT TOUCH) ──
   const searchResolution = useMemo(
     () => (debouncedQ.length >= 2 ? resolveSmartQuery(debouncedQ) : null),
     [debouncedQ],
@@ -258,7 +424,7 @@ export default function SearchScreen() {
 
   useEffect(() => { setSelectedIdx(-1); }, [debouncedQ]);
 
-  // ── Data (unchanged) ──
+  // ── Data (PROTECTED) ──
   const { data: categories } = useQuery({
     queryKey: ["searchCategories"],
     queryFn:  fetchCategories,
@@ -275,12 +441,13 @@ export default function SearchScreen() {
     staleTime: 10 * 60_000,
     gcTime:    30 * 60_000,
   });
+
   // Quality filter: reject random/test strings — must contain Arabic chars,
   // or be a recognizable medical English term (letters only, 3+ chars, no digits).
   const isQualityQuery = (q: string) => {
     if (!q || q.length < 2) return false;
-    if (/[؀-ۿ]/.test(q)) return true;           // contains Arabic
-    if (/^[a-zA-Z\s\-]{3,}$/.test(q) && q.length >= 3) return true; // clean English
+    if (/[؀-ۿ]/.test(q)) return true;
+    if (/^[a-zA-Z\s\-]{3,}$/.test(q) && q.length >= 3) return true;
     return false;
   };
   const popularSearches: string[] = Array.isArray(popularData)
@@ -325,7 +492,7 @@ export default function SearchScreen() {
 
   const isSearching = hasResults && (resultsLoading || (resultsFetching && !results.length));
 
-  // ── Persist recents + analytics (unchanged) ──
+  // ── Persist recents + analytics (PROTECTED) ──
   useEffect(() => {
     if (submitted.length > 1 && results.length > 0) {
       setRecents((prev) => {
@@ -348,7 +515,7 @@ export default function SearchScreen() {
     }
   }, [submitted, results.length, totalCount]);
 
-  // ── Handlers (unchanged) ──
+  // ── Handlers ──
   const submit = useCallback((text?: string) => {
     const q = (text ?? query).trim();
     if (!q) return;
@@ -397,6 +564,12 @@ export default function SearchScreen() {
     ? popularSearches
     : TRENDING_META.map((m) => t(m.termKey));
 
+  // Conversational greeting
+  const greeting = useMemo(() => {
+    const firstName = user?.name?.split(" ")?.[0];
+    return firstName ? COPY.greetUser(firstName) : COPY.greetGuest;
+  }, [user?.name]);
+
   // ═══════════════════════════════════════════════════════════════════════════
   // Render
   // ═══════════════════════════════════════════════════════════════════════════
@@ -405,30 +578,26 @@ export default function SearchScreen() {
     <View style={s.screen}>
 
       {/* ╔══════════════════════════════════════════════════════════════╗
-          ║  HEADER — sticky identity zone                               ║
+          ║  STICKY HEADER                                                ║
           ╚══════════════════════════════════════════════════════════════╝ */}
-      <View style={[s.header, { paddingTop: insets.top + 10 }]}>
+      <View style={[s.header, { paddingTop: insets.top + 12 }]}>
 
-        {/* Title row: discovery title ↔ results count */}
-        <View style={s.titleZone}>
-          {hasResults && !isSearching && totalCount > 0 ? (
-            <Animated.View entering={FadeIn.duration(220)} style={s.resultsMeta}>
-              <UIText style={s.resultsCount}>{totalCount.toLocaleString()}</UIText>
-              <UIText style={s.resultsDot}>{" · "}</UIText>
-              <UIText style={s.resultsQuery} numberOfLines={1}>{`"${submitted}"`}</UIText>
-            </Animated.View>
-          ) : (
-            <View>
-              <UIText style={s.eyebrow}>{t("search.eyebrow")}</UIText>
-              <UIText style={s.displayTitle} accessibilityRole="header">
-                {t("search.title")}
-              </UIText>
-              <UIText style={s.displaySub} numberOfLines={1}>
-                {SUBTITLE}
-              </UIText>
-            </View>
-          )}
-        </View>
+        {/* Greeting + display title — or results meta in results mode */}
+        {hasResults && !isSearching && totalCount > 0 ? (
+          <Animated.View entering={FadeIn.duration(220)} style={s.resultsMeta}>
+            <UIText style={s.resultsCount}>{totalCount.toLocaleString()}</UIText>
+            <UIText style={s.resultsDot}>{" · "}</UIText>
+            <UIText style={s.resultsQuery} numberOfLines={1}>{`"${submitted}"`}</UIText>
+          </Animated.View>
+        ) : (
+          <View style={s.titleStack}>
+            <UIText style={s.greet} numberOfLines={1}>{greeting}</UIText>
+            <UIText style={s.displayTitle} accessibilityRole="header" numberOfLines={1}>
+              {COPY.displayTitle}
+            </UIText>
+            <UIText style={s.displaySub} numberOfLines={1}>{COPY.subtitleLine}</UIText>
+          </View>
+        )}
 
         {/* Command bar */}
         <View style={[s.bar, focused && s.barFocused]}>
@@ -438,7 +607,7 @@ export default function SearchScreen() {
             ) : (
               <Ionicons
                 name="search"
-                size={18}
+                size={20}
                 color={focused ? kit.color.accentDeep : kit.color.inkFaint}
               />
             )}
@@ -447,7 +616,7 @@ export default function SearchScreen() {
           <TextInput
             ref={inputRef}
             style={s.barInput}
-            placeholder={t("search.placeholder")}
+            placeholder={COPY.placeholder}
             placeholderTextColor={kit.color.inkFaint}
             value={query}
             onChangeText={(v) => { setQuery(v); setSelectedIdx(-1); }}
@@ -471,13 +640,13 @@ export default function SearchScreen() {
             autoCorrect={false}
             textAlign={INPUT_ALIGN}
             selectionColor={kit.color.accentDeep}
-            accessibilityLabel={t("search.placeholder")}
+            accessibilityLabel={COPY.placeholder}
           />
 
           {query.length > 0 && (
             <Pressable onPress={clear} hitSlop={10} style={s.barClear}
               accessibilityRole="button" accessibilityLabel={t("common.clear")}>
-              <Ionicons name="close" size={12} color={kit.color.inkSoft} />
+              <Ionicons name="close" size={13} color={kit.color.inkSoft} />
             </Pressable>
           )}
 
@@ -493,7 +662,7 @@ export default function SearchScreen() {
             style={[s.barFilterBtn, (showFilters || filterCount > 0) && s.barFilterBtnOn]}>
             <Ionicons
               name="options-outline"
-              size={16}
+              size={18}
               color={(showFilters || filterCount > 0) ? kit.color.onInk : kit.color.inkSoft}
             />
             {filterCount > 0 && !showFilters && (
@@ -504,19 +673,7 @@ export default function SearchScreen() {
           </Pressable>
         </View>
 
-        {/* Alternative-path intents — chip row beneath the command bar */}
-        {!hasResults && (
-          <SearchIntents
-            onScanRx={goScanRx}
-            onBrowseAll={goBrowseAll}
-            onPharmacist={goPharmacist}
-            scanLabel={INTENT_LABELS.scan}
-            browseLabel={INTENT_LABELS.browse}
-            pharmaLabel={INTENT_LABELS.pharma}
-          />
-        )}
-
-        {/* Bilingual translation hint */}
+        {/* Translation hint */}
         {translationHintText && debouncedQ.length >= 2 && (
           <Animated.View
             entering={FadeInDown.duration(180)}
@@ -607,7 +764,7 @@ export default function SearchScreen() {
         )}
 
         {/* ╔══════════════════════════════════════════════════════════════╗
-            ║  DISCOVERY — shown when no search submitted                  ║
+            ║  DISCOVERY                                                    ║
             ╚══════════════════════════════════════════════════════════════╝ */}
         {!hasResults ? (
           <ScrollView
@@ -615,9 +772,43 @@ export default function SearchScreen() {
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled">
 
-            {/* ── Recent searches ── */}
+            {/* ── 1. SearchModes — alternative input paths ── */}
+            <Animated.View entering={FadeInDown.delay(20).duration(240)} style={s.section}>
+              <View style={s.sectionHead}>
+                <View style={s.sectionHeadLeft}>
+                  <View style={s.sectionIconDot}>
+                    <Ionicons name="apps-outline" size={11} color={kit.color.accentDeep} />
+                  </View>
+                  <UIText style={s.sectionLabel}>{COPY.modesEyebrow}</UIText>
+                </View>
+              </View>
+
+              <View style={s.modeRow}>
+                <SearchModeCard
+                  icon="scan-outline"
+                  label={COPY.modeScanLabel}
+                  sub={COPY.modeScanSub}
+                  onPress={goScanRx}
+                />
+                <SearchModeCard
+                  icon="grid-outline"
+                  label={COPY.modeBrowseLabel}
+                  sub={COPY.modeBrowseSub}
+                  primary
+                  onPress={goBrowseAll}
+                />
+                <SearchModeCard
+                  icon="chatbubbles-outline"
+                  label={COPY.modePharmaLabel}
+                  sub={COPY.modePharmaSub}
+                  onPress={goPharmacist}
+                />
+              </View>
+            </Animated.View>
+
+            {/* ── 2. Recents (when populated) ── */}
             {recents.length > 0 && (
-              <Animated.View entering={FadeInDown.delay(20).duration(240)} style={s.section}>
+              <Animated.View entering={FadeInDown.delay(40).duration(240)} style={s.section}>
                 <View style={s.sectionHead}>
                   <View style={s.sectionHeadLeft}>
                     <View style={s.sectionIconDot}>
@@ -647,8 +838,33 @@ export default function SearchScreen() {
               </Animated.View>
             )}
 
-            {/* ── Trending — 2-column editorial pill grid ── */}
-            <Animated.View entering={FadeInDown.delay(50).duration(240)} style={s.section}>
+            {/* ── 3. Browse by concern — 2-col thematic tiles ── */}
+            <Animated.View entering={FadeInDown.delay(60).duration(240)} style={s.section}>
+              <View style={s.sectionHead}>
+                <View style={s.sectionHeadLeft}>
+                  <View style={[s.sectionIconDot, { backgroundColor: kit.color.dangerTint }]}>
+                    <Ionicons name="medical-outline" size={11} color={kit.color.danger} />
+                  </View>
+                  <UIText style={s.sectionLabel}>{COPY.concernsTitle}</UIText>
+                </View>
+              </View>
+
+              <View style={s.concernGrid}>
+                {CONCERNS.map((c) => (
+                  <ConcernTile
+                    key={c.term}
+                    icon={c.icon}
+                    label={c.label}
+                    tint={c.tint}
+                    tone={c.tone}
+                    onPress={() => quickSearch(c.term)}
+                  />
+                ))}
+              </View>
+            </Animated.View>
+
+            {/* ── 4. Trending — ranked full-width list ── */}
+            <Animated.View entering={FadeInDown.delay(80).duration(240)} style={s.section}>
               <View style={s.sectionHead}>
                 <View style={s.sectionHeadLeft}>
                   <View style={[s.sectionIconDot, { backgroundColor: kit.color.accentTint }]}>
@@ -658,7 +874,7 @@ export default function SearchScreen() {
                 </View>
               </View>
 
-              <View style={s.trendGrid}>
+              <View style={s.trendList}>
                 {trendingTerms.map((term, i) => {
                   const rankColor = RANK_COLORS[i] ?? kit.color.inkFaint;
                   const rankBg    = RANK_TINTS[i]  ?? kit.color.well;
@@ -681,9 +897,9 @@ export default function SearchScreen() {
               </View>
             </Animated.View>
 
-            {/* ── Categories — 4-column compact icon grid ── */}
+            {/* ── 5. Categories — 3-col premium icon grid ── */}
             {categories && categories.length > 0 && (
-              <Animated.View entering={FadeInDown.delay(80).duration(240)} style={s.section}>
+              <Animated.View entering={FadeInDown.delay(100).duration(240)} style={s.section}>
                 <View style={s.sectionHead}>
                   <View style={s.sectionHeadLeft}>
                     <View style={s.sectionIconDot}>
@@ -694,7 +910,7 @@ export default function SearchScreen() {
                 </View>
 
                 <View style={s.catGrid}>
-                  {categories.slice(0, 8).map((cat) => (
+                  {categories.slice(0, 9).map((cat) => (
                     <Pressable
                       key={cat.id}
                       onPress={() => router.push({ pathname: "/category/[id]", params: { id: cat.id } })}
@@ -719,7 +935,7 @@ export default function SearchScreen() {
         ) : (
 
           /* ╔══════════════════════════════════════════════════════════════╗
-             ║  RESULTS — infinite product grid                             ║
+             ║  RESULTS                                                      ║
              ╚══════════════════════════════════════════════════════════════╝ */
           <View style={{ flex: 1 }}>
             <ProductGrid
@@ -813,7 +1029,7 @@ export default function SearchScreen() {
         )}
 
         {/* ╔══════════════════════════════════════════════════════════════╗
-            ║  SUGGESTIONS OVERLAY — floats above body                     ║
+            ║  SUGGESTIONS OVERLAY                                          ║
             ╚══════════════════════════════════════════════════════════════╝ */}
         {showSugg && (
           <Animated.View
@@ -871,36 +1087,37 @@ export default function SearchScreen() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// ═══  STYLES
+// STYLES
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const s = StyleSheet.create({
 
   // ── Screen shell ────────────────────────────────────────────────────────────
   screen: {
-    flex: 1,
+    flex:            1,
     backgroundColor: kit.color.canvas,
   },
 
-  // ── Header ──────────────────────────────────────────────────────────────────
+  // ── Sticky header ───────────────────────────────────────────────────────────
   header: {
     paddingHorizontal: H_PAD,
     paddingBottom:     14,
-    gap:               12,
+    gap:               14,
     backgroundColor:   kit.color.canvas,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: kit.color.line,
   },
-  titleZone: {
-    minHeight:      66,
-    justifyContent: "flex-end",
+
+  // Title stack (greeting + display + sub)
+  titleStack: {
+    gap: 2,
   },
-  eyebrow: {
+  greet: {
     fontFamily:         theme.fonts.bold,
-    fontSize:           10,
-    lineHeight:         14,
-    letterSpacing:      1.4,
-    color:              kit.color.inkFaint,
+    fontSize:           12,
+    lineHeight:         17,
+    color:              kit.color.accentDeep,
+    letterSpacing:      0.2,
     textAlign:          TEXT_START,
     includeFontPadding: false,
   },
@@ -919,35 +1136,37 @@ const s = StyleSheet.create({
     lineHeight:         17,
     color:              kit.color.inkFaint,
     textAlign:          TEXT_START,
-    marginTop:          4,
+    marginTop:          2,
     includeFontPadding: false,
   },
 
-  // Results meta (big teal count + query)
+  // Results meta (replaces titleStack in results mode)
   resultsMeta: {
     flexDirection: flexRow(IS_RTL),
     alignItems:    "baseline",
     flexWrap:      "wrap",
+    minHeight:     55,
   },
   resultsCount: {
     fontFamily:         theme.fonts.black,
-    fontSize:           28,
-    lineHeight:         34,
+    fontSize:           30,
+    lineHeight:         36,
     color:              kit.color.accentDeep,
+    letterSpacing:      -0.6,
     includeFontPadding: false,
   },
   resultsDot: {
     fontFamily:         theme.fonts.regular,
-    fontSize:           16,
+    fontSize:           18,
     lineHeight:         24,
     color:              kit.color.inkFaint,
-    paddingHorizontal:  3,
+    paddingHorizontal:  4,
     includeFontPadding: false,
   },
   resultsQuery: {
     flex:               1,
     fontFamily:         theme.fonts.black,
-    fontSize:           17,
+    fontSize:           18,
     lineHeight:         24,
     color:              kit.color.ink,
     textAlign:          TEXT_START,
@@ -971,7 +1190,7 @@ const s = StyleSheet.create({
     borderColor: kit.color.accentDeep,
   },
   barIconWrap: {
-    width: 40, height: 40,
+    width: 44, height: 44,
     alignItems: "center", justifyContent: "center",
   },
   barInput: {
@@ -984,18 +1203,18 @@ const s = StyleSheet.create({
     paddingVertical: 0,
   },
   barClear: {
-    width: 26, height: 26, borderRadius: 13,
+    width: 28, height: 28, borderRadius: 14,
     backgroundColor: kit.color.well,
     alignItems: "center", justifyContent: "center",
   },
   barDivider: {
     width:            StyleSheet.hairlineWidth,
-    height:           22,
+    height:           24,
     backgroundColor:  kit.color.lineStrong,
     marginHorizontal: 4,
   },
   barFilterBtn: {
-    width: 40, height: 40, borderRadius: 20,
+    width: 44, height: 44, borderRadius: 22,
     alignItems: "center", justifyContent: "center",
     backgroundColor: kit.color.well,
   },
@@ -1011,9 +1230,10 @@ const s = StyleSheet.create({
     borderWidth: 1.5, borderColor: kit.color.surface,
   },
   filterDotText: {
-    fontFamily: theme.fonts.black,
-    fontSize: 9, lineHeight: 12,
-    color: kit.color.onInk,
+    fontFamily:         theme.fonts.black,
+    fontSize:           9,
+    lineHeight:         12,
+    color:              kit.color.onInk,
     includeFontPadding: false,
   },
 
@@ -1049,7 +1269,8 @@ const s = StyleSheet.create({
   filterPanel: {
     backgroundColor:   kit.color.surface,
     marginHorizontal:  H_PAD,
-    marginBottom:      8,
+    marginTop:         8,
+    marginBottom:      4,
     borderRadius:      20,
     borderWidth:       1,
     borderColor:       kit.color.line,
@@ -1126,7 +1347,7 @@ const s = StyleSheet.create({
     ...kit.shadow.raised,
   },
 
-  // ── Filter chips (shared) ────────────────────────────────────────────────────
+  // ── Filter chips (shared) ────────────────────────────────────────────────
   chip: {
     flexDirection:     flexRow(IS_RTL),
     alignItems:        "center",
@@ -1136,7 +1357,7 @@ const s = StyleSheet.create({
     borderRadius:      kit.radius.pill,
     backgroundColor:   kit.color.well,
   },
-  chipOn:      { backgroundColor: kit.color.ink },
+  chipOn: { backgroundColor: kit.color.ink },
   chipText: {
     fontFamily:         theme.fonts.bold,
     fontSize:           12,
@@ -1144,7 +1365,7 @@ const s = StyleSheet.create({
     color:              kit.color.inkSoft,
     includeFontPadding: false,
   },
-  chipTextOn:   { color: kit.color.onInk },
+  chipTextOn: { color: kit.color.onInk },
   chipCount: {
     minWidth:          20,
     borderRadius:      kit.radius.pill,
@@ -1153,7 +1374,7 @@ const s = StyleSheet.create({
     paddingVertical:   1,
     alignItems:        "center",
   },
-  chipCountOn:  { backgroundColor: "rgba(255,255,255,0.18)" },
+  chipCountOn: { backgroundColor: "rgba(255,255,255,0.18)" },
   chipCountText: {
     fontFamily:         theme.fonts.bold,
     fontSize:           10,
@@ -1185,7 +1406,7 @@ const s = StyleSheet.create({
     width:           22,
     height:          22,
     borderRadius:    7,
-    backgroundColor: kit.color.well,
+    backgroundColor: kit.color.accentTint,
     alignItems:      "center",
     justifyContent:  "center",
   },
@@ -1194,6 +1415,8 @@ const s = StyleSheet.create({
     fontSize:           11,
     lineHeight:         16,
     color:              kit.color.ink,
+    letterSpacing:      0.4,
+    textTransform:      "uppercase",
     textAlign:          TEXT_START,
     includeFontPadding: false,
   },
@@ -1205,7 +1428,65 @@ const s = StyleSheet.create({
     includeFontPadding: false,
   },
 
-  // Recent chips wrap
+  // ── SearchModes (3 large cards) ────────────────────────────────────────────
+  modeRow: {
+    flexDirection: flexRow(IS_RTL),
+    gap:           10,
+  },
+  modeCard: {
+    flex:              1,
+    alignItems:        "center",
+    justifyContent:    "center",
+    gap:               6,
+    paddingVertical:   16,
+    paddingHorizontal: 8,
+    borderRadius:      kit.radius.lg,
+    backgroundColor:   kit.color.surface,
+    borderWidth:       1,
+    borderColor:       kit.color.line,
+    minHeight:         110,
+    ...kit.shadow.raised,
+  },
+  modeCardPressed: {
+    backgroundColor: kit.color.well,
+  },
+  modeCardPrimary: {
+    backgroundColor: kit.color.accentDeep,
+    borderColor:     kit.color.accentDeep,
+  },
+  modeCardPrimaryPressed: { opacity: 0.88 },
+  modeIconWrap: {
+    width:           44,
+    height:          44,
+    borderRadius:    14,
+    backgroundColor: kit.color.accentTint,
+    alignItems:      "center",
+    justifyContent:  "center",
+  },
+  modeIconWrapPrimary: {
+    backgroundColor: "rgba(255,255,255,0.16)",
+  },
+  modeLabel: {
+    fontFamily:         theme.fonts.black,
+    fontSize:           12,
+    lineHeight:         16,
+    color:              kit.color.ink,
+    textAlign:          "center",
+    includeFontPadding: false,
+    marginTop:          2,
+  },
+  modeLabelPrimary: { color: kit.color.onAccent },
+  modeSub: {
+    fontFamily:         theme.fonts.regular,
+    fontSize:           10,
+    lineHeight:         14,
+    color:              kit.color.inkFaint,
+    textAlign:          "center",
+    includeFontPadding: false,
+  },
+  modeSubPrimary: { color: "rgba(255,255,255,0.75)" },
+
+  // ── Recents ────────────────────────────────────────────────────────────────
   chipWrap: {
     flexDirection: flexRow(IS_RTL),
     flexWrap:      "wrap",
@@ -1222,7 +1503,7 @@ const s = StyleSheet.create({
     borderWidth:       1,
     borderColor:       kit.color.line,
   },
-  chipPressed:     { backgroundColor: kit.color.well },
+  chipPressed: { backgroundColor: kit.color.well },
   recentChipText: {
     fontFamily:         theme.fonts.bold,
     fontSize:           12,
@@ -1231,10 +1512,46 @@ const s = StyleSheet.create({
     includeFontPadding: false,
   },
 
-  // Trending full-width ranked list
-  trendGrid: {
-    gap: 8,
+  // ── Concerns (2-col thematic tiles) ────────────────────────────────────────
+  concernGrid: {
+    flexDirection: flexRow(IS_RTL),
+    flexWrap:      "wrap",
+    gap:           10,
   },
+  concernTile: {
+    width:             CONCERN_W,
+    flexDirection:     flexRow(IS_RTL),
+    alignItems:        "center",
+    gap:               12,
+    paddingHorizontal: 14,
+    paddingVertical:   12,
+    backgroundColor:   kit.color.surface,
+    borderRadius:      kit.radius.lg,
+    borderWidth:       1,
+    borderColor:       kit.color.line,
+    ...kit.shadow.raised,
+  },
+  concernIconWrap: {
+    width:          40,
+    height:         40,
+    borderRadius:   12,
+    alignItems:     "center",
+    justifyContent: "center",
+  },
+  concernBody: {
+    flex: 1,
+  },
+  concernLabel: {
+    fontFamily:         theme.fonts.black,
+    fontSize:           13,
+    lineHeight:         18,
+    color:              kit.color.ink,
+    textAlign:          TEXT_START,
+    includeFontPadding: false,
+  },
+
+  // ── Trending ranked list ───────────────────────────────────────────────────
+  trendList: { gap: 8 },
   trendPill: {
     flexDirection:     flexRow(IS_RTL),
     alignItems:        "center",
@@ -1273,7 +1590,7 @@ const s = StyleSheet.create({
     includeFontPadding: false,
   },
 
-  // Category 3-col premium icon grid
+  // ── Categories 3-col grid ──────────────────────────────────────────────────
   catGrid: {
     flexDirection: flexRow(IS_RTL),
     flexWrap:      "wrap",
@@ -1292,12 +1609,12 @@ const s = StyleSheet.create({
     ...kit.shadow.raised,
   },
   catCellIcon: {
-    width:            56,
-    height:           56,
-    borderRadius:     18,
-    backgroundColor:  kit.color.accentTint,
-    alignItems:       "center",
-    justifyContent:   "center",
+    width:           56,
+    height:          56,
+    borderRadius:    18,
+    backgroundColor: kit.color.accentTint,
+    alignItems:      "center",
+    justifyContent:  "center",
   },
   catCellName: {
     fontFamily:         theme.fonts.bold,
@@ -1322,12 +1639,10 @@ const s = StyleSheet.create({
   },
 
   // ── Results ─────────────────────────────────────────────────────────────────
-  groupHeader: {
-    marginBottom: 12,
-  },
+  groupHeader: { marginBottom: 12 },
   groupChipsScroll: {
-    flexDirection: flexRow(IS_RTL),
-    gap:           8,
+    flexDirection:     flexRow(IS_RTL),
+    gap:               8,
     paddingHorizontal: 2,
   },
   footerLoader: {
@@ -1381,7 +1696,7 @@ const s = StyleSheet.create({
     includeFontPadding: false,
   },
 
-  // ── Suggestions overlay ──────────────────────────────────────────────────────
+  // ── Suggestions overlay ─────────────────────────────────────────────────────
   suggOverlay: {
     position: "absolute",
     top:      4,
