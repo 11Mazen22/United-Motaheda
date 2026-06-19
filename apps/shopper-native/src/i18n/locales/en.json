@@ -1281,6 +1281,7 @@
         "filterTitle": "Filter Options",
         "reset": "Reset",
         "all": "All",
+        "sortRelevance": "Best Match",
         "sortNewest": "Newest",
         "sortPriceAsc": "Lowest Price",
         "sortPriceDesc": "Highest Price",

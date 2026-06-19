@@ -118,6 +118,7 @@
                      "defaultName":  "القسم",
                      "productCount":  "{{count}} منتج",
                      "inStockOnly":  "متوفر فقط",
+                     "sortRelevance":  "الأكثر صلة",
                      "sortNewest":  "الأحدث",
                      "sortPriceAsc":  "الأقل سعراً",
                      "sortPriceDesc":  "الأعلى سعراً",

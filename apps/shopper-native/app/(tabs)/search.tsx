@@ -102,9 +102,10 @@ const RANK_TINTS: Record<number, string> = {
 };
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>["name"];
-type SortKey = "newest" | "price_asc" | "price_desc" | "name_asc";
+type SortKey = "relevance" | "newest" | "price_asc" | "price_desc" | "name_asc";
 
 const SORT_KEYS: Record<SortKey, string> = {
+  relevance:  "search.sortRelevance",
   newest:     "search.sortNewest",
   price_asc:  "search.sortPriceAsc",
   price_desc: "search.sortPriceDesc",
@@ -385,7 +386,7 @@ export default function SearchScreen() {
   const [query, setQuery]             = useState("");
   const [submitted, setSubmitted]     = useState("");
   const [focused, setFocused]         = useState(false);
-  const [sortBy, setSortBy]           = useState<SortKey>("newest");
+  const [sortBy, setSortBy]           = useState<SortKey>("relevance");
   const [inStockOnly, setInStockOnly] = useState(false);
   const [catFilter, setCatFilter]     = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
@@ -521,6 +522,7 @@ export default function SearchScreen() {
     if (!q) return;
     setSubmitted(q);
     setQuery(q);
+    setSortBy("relevance");
     setSelectedIdx(-1);
     Keyboard.dismiss();
     if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
@@ -539,14 +541,14 @@ export default function SearchScreen() {
   const goBrowseAll  = useCallback(() => router.push("/(tabs)/products"), [router]);
   const goPharmacist = useCallback(() => router.push("/help/pharmacist" as any), [router]);
   const resetFilters = useCallback(() => {
-    setSortBy("newest"); setInStockOnly(false); setCatFilter(null);
+    setSortBy("relevance"); setInStockOnly(false); setCatFilter(null);
     if (Platform.OS !== "web") Haptics.selectionAsync().catch(() => {});
   }, []);
   const loadMore = useCallback(() => {
     if (hasNextPage && !isFetchingNextPage) fetchNextPage();
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  const filterCount = [inStockOnly, catFilter !== null, sortBy !== "newest"].filter(Boolean).length;
+  const filterCount = [inStockOnly, catFilter !== null, sortBy !== "relevance"].filter(Boolean).length;
 
   const grouped = useMemo(() => {
     if (!results.length) return [];
