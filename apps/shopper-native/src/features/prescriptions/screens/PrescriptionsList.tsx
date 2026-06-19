@@ -22,7 +22,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { kit, Button } from "@/shared/kit";
+import { kit, Button, SegmentedToggle, type SegmentOption } from "@/shared/kit";
 import { theme } from "@/shared/theme";
 import { Text } from "@/shared/ui";
 // Direct imports (not the barrel) to break the require cycle:
@@ -48,6 +48,23 @@ interface DisclosureRow {
 }
 type ListItem = RxRow | DisclosureRow;
 
+// ── Filter ───────────────────────────────────────────────────────────────────
+type RxFilter = "all" | "ready" | "refill" | "expired";
+
+const FILTER_OPTIONS: ReadonlyArray<SegmentOption<RxFilter>> = IS_RTL
+  ? [
+      { value: "all",     label: "الكل" },
+      { value: "ready",   label: "جاهزة" },
+      { value: "refill",  label: "تجديد" },
+      { value: "expired", label: "منتهية" },
+    ]
+  : [
+      { value: "all",     label: "All" },
+      { value: "ready",   label: "Ready" },
+      { value: "refill",  label: "Refill" },
+      { value: "expired", label: "Expired" },
+    ];
+
 export function PrescriptionsList(): React.ReactElement {
   const router        = useRouter();
   const insets        = useSafeAreaInsets();
@@ -56,6 +73,7 @@ export function PrescriptionsList(): React.ReactElement {
   const { refetch, isRefetching, isLoading, isError } = usePrescriptionsQuery(user?.id);
 
   const [showExpired, setShowExpired] = useState(false);
+  const [filter, setFilter]           = useState<RxFilter>("all");
 
   const { active, expired } = useMemo(() => {
     const expired = all.filter((p) => p.status === "expired");
@@ -63,21 +81,36 @@ export function PrescriptionsList(): React.ReactElement {
     return { active, expired };
   }, [all]);
 
-  // Stats
+  // Stats — always reflect the full roster, not the current filter
   const expiringCount = useMemo(() => active.filter((rx) => rx.status === "expiring").length, [active]);
   const readyCount    = useMemo(() => active.filter((rx) => rx.status === "ready").length,    [active]);
   const totalActive   = active.length;
 
   const data = useMemo<ListItem[]>(() => {
-    const out: ListItem[] = active.map((rx) => ({ kind: "rx", rx }));
-    if (expired.length > 0) {
+    // Expired-only view: show the expired roster directly, no disclosure.
+    if (filter === "expired") {
+      return expired.map((rx) => ({ kind: "rx", rx }));
+    }
+
+    // Active views — optionally narrowed by status.
+    const shown =
+      filter === "ready"  ? active.filter((rx) => rx.status === "ready") :
+      filter === "refill" ? active.filter((rx) => rx.status === "expiring") :
+      active;
+
+    const out: ListItem[] = shown.map((rx) => ({ kind: "rx", rx }));
+
+    // Expired disclosure only appears in the unfiltered "All" view.
+    if (filter === "all" && expired.length > 0) {
       out.push({ kind: "disclosure", count: expired.length, open: showExpired });
       if (showExpired) {
         for (const rx of expired) out.push({ kind: "rx", rx });
       }
     }
     return out;
-  }, [active, expired, showExpired]);
+  }, [active, expired, showExpired, filter]);
+
+  const hasExpired = expired.length > 0;
 
   const goToAdd    = useCallback(() => router.push("/prescriptions/add" as never), [router]);
   const goToDetail = useCallback((rx: Prescription) => router.push(`/prescriptions/${rx.id}` as never), [router]);
@@ -262,11 +295,33 @@ export function PrescriptionsList(): React.ReactElement {
         </View>
       </View>
 
+      {/* Filter bar — only when an expired roster exists to filter against */}
+      {hasExpired && (
+        <View style={s.filterBar}>
+          <SegmentedToggle
+            value={filter}
+            onChange={setFilter}
+            options={FILTER_OPTIONS}
+            size="md"
+          />
+        </View>
+      )}
+
       <FlatList
         data={data}
         keyExtractor={keyExtractor}
         renderItem={renderItem}
         ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
+        ListEmptyComponent={
+          <View style={s.filterEmpty}>
+            <View style={s.filterEmptyIcon}>
+              <Ionicons name="funnel-outline" size={22} color={kit.color.inkFaint} />
+            </View>
+            <Text style={s.filterEmptyText}>
+              {IS_RTL ? "لا توجد وصفات في هذا التصنيف" : "No prescriptions in this filter"}
+            </Text>
+          </View>
+        }
         contentContainerStyle={{
           paddingHorizontal: 20,
           paddingTop:        16,
@@ -404,6 +459,35 @@ const s = StyleSheet.create({
     fontFamily:         theme.fonts.bold,
     fontSize:           9,
     lineHeight:         13,
+    color:              kit.color.inkFaint,
+    textAlign:          "center",
+    includeFontPadding: false,
+  },
+
+  // ── Filter bar ────────────────────────────────────────────────────────────────
+  filterBar: {
+    paddingHorizontal: 20,
+    paddingTop:        14,
+    paddingBottom:     2,
+    backgroundColor:   kit.color.canvas,
+  },
+  filterEmpty: {
+    alignItems:      "center",
+    paddingTop:      48,
+    gap:             12,
+  },
+  filterEmptyIcon: {
+    width:           56,
+    height:          56,
+    borderRadius:    18,
+    backgroundColor: kit.color.well,
+    alignItems:      "center",
+    justifyContent:  "center",
+  },
+  filterEmptyText: {
+    fontFamily:         theme.fonts.bold,
+    fontSize:           13,
+    lineHeight:         19,
     color:              kit.color.inkFaint,
     textAlign:          "center",
     includeFontPadding: false,

@@ -32,6 +32,7 @@ export type {
 } from "./hooks/useDrugInteractionCheck";
 
 export { PrescriptionsList }            from "./screens/PrescriptionsList";
+export { PrescriptionDetail }           from "./screens/PrescriptionDetail";
 export { AddRxEntry }                   from "./screens/AddRxEntry";
 export { AddRxManual }                  from "./screens/AddRxManual";
 export { sortActiveByStatus }           from "./lib/statusSort";
