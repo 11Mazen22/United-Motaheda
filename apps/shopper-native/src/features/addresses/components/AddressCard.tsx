@@ -30,8 +30,18 @@ export function AddressCard({ address, onEdit, onDelete, onSetDefault }: Props) 
 
   return (
     <Animated.View entering={FadeIn.duration(250)} style={[styles.card, address.is_default && styles.cardDefault]}>
-      {/* Map preview */}
-      <AddressMapPlaceholder lat={address.lat} lng={address.lng} compact />
+      {/* Map preview — passes coords when available; falls back to geocoding from address fields */}
+      <AddressMapPlaceholder
+        lat={address.lat}
+        lng={address.lng}
+        addressHint={address.lat == null ? {
+          street:   address.street   ?? "",
+          building: address.building ?? "",
+          district: address.district ?? "",
+          city:     address.city,
+        } : undefined}
+        compact
+      />
 
       {/* Content */}
       <View style={styles.body}>

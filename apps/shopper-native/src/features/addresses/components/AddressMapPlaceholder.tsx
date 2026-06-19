@@ -35,8 +35,7 @@ import { flexRow, isRtl } from "@/utils/layout";
 
 const GEOAPIFY_KEY = "c6beba954a794cb49263d1679e4bc8bf";
 
-// Brand-teal pin encoded as %23 (# → %23) for URL safety
-const PIN_COLOR = "%230db8a8";
+const PIN_COLOR = "#0db8a8";
 
 interface AddressHint {
   street:   string;
@@ -58,17 +57,22 @@ function buildMapUrl(lat: number, lng: number, compact: boolean): string {
   const h    = compact ? 200 : 400;
   const zoom = compact ? 14   : 15;
 
-  const params = new URLSearchParams({
-    style:  "osm-bright-smooth",
-    width:  String(w),
-    height: String(h),
-    zoom:   String(zoom),
-    center: `lonlat:${lng},${lat}`,
-    marker: `lonlat:${lng},${lat};color:${PIN_COLOR};size:large;icontype:awesome;icon:map-marker-alt`,
-    apiKey: GEOAPIFY_KEY,
-  });
+  // Geoapify marker format uses `;` as separator — URLSearchParams would encode
+  // it to %3B which breaks the marker parser. Build the URL as a template string
+  // so semicolons and the `lonlat:` prefix stay as literal characters.
+  const markerColor = encodeURIComponent(PIN_COLOR); // "#0db8a8" → "%230db8a8"
+  const marker = `lonlat:${lng},${lat};color:${markerColor};size:large;icontype:awesome;icon:map-marker-alt`;
 
-  return `https://maps.geoapify.com/v1/staticmap?${params.toString()}`;
+  return (
+    `https://maps.geoapify.com/v1/staticmap` +
+    `?style=osm-bright-smooth` +
+    `&width=${w}` +
+    `&height=${h}` +
+    `&zoom=${zoom}` +
+    `&center=lonlat:${lng},${lat}` +
+    `&marker=${marker}` +
+    `&apiKey=${GEOAPIFY_KEY}`
+  );
 }
 
 function openInMaps(lat: number, lng: number) {
@@ -135,41 +139,64 @@ export function AddressMapPlaceholder({
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(
     lat != null && lng != null ? { lat, lng } : null,
   );
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading]   = useState(false);
   const [imgError, setImgError] = useState(false);
+  const [geoFailed, setGeoFailed] = useState(false);
+  const [retryKey, setRetryKey]   = useState(0);
 
   // Auto-geocode from hint when no coords are supplied
   useEffect(() => {
     if (coords) return;
-    if (!addressHint?.street || !addressHint?.district || !addressHint?.city) return;
+    if (!addressHint?.city) return;
 
     let cancelled = false;
     setLoading(true);
     setImgError(false);
+    setGeoFailed(false);
 
     geocodeAddress({
-      street:   addressHint.street,
-      building: addressHint.building,
-      district: addressHint.district,
+      street:   addressHint.street   ?? "",
+      building: addressHint.building ?? "",
+      district: addressHint.district ?? "",
       city:     addressHint.city,
     }).then((result) => {
-      if (!cancelled && result) setCoords({ lat: result.lat, lng: result.lng });
+      if (!cancelled) {
+        if (result) setCoords({ lat: result.lat, lng: result.lng });
+        else setGeoFailed(true);
+      }
     }).finally(() => {
       if (!cancelled) setLoading(false);
     });
 
     return () => { cancelled = true; };
-  }, [addressHint?.street, addressHint?.district, addressHint?.city]);
+  // retryKey triggers a fresh attempt when the user taps retry
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [addressHint?.street, addressHint?.district, addressHint?.city, retryKey]);
 
   if (!coords) {
-    return loading ? (
-      <View style={[styles.loadingBox, { height }]}>
-        <ActivityIndicator color={theme.colors.brand[600]} />
-        <UIText style={styles.loadingText}>{t("addressForm.locating")}</UIText>
-      </View>
-    ) : (
-      <MapPlaceholder height={height} />
-    );
+    if (loading) {
+      return (
+        <View style={[styles.loadingBox, { height }]}>
+          <ActivityIndicator color={theme.colors.brand[600]} />
+          <UIText style={styles.loadingText}>{t("addressForm.locating")}</UIText>
+        </View>
+      );
+    }
+    if (geoFailed) {
+      return (
+        <View style={[styles.loadingBox, { height }]}>
+          <Ionicons name="location-outline" size={22} color={theme.colors.brand[300]} />
+          <UIText style={styles.loadingText}>{t("addressForm.mapPlaceholderHint")}</UIText>
+          <Pressable
+            onPress={() => setRetryKey((k) => k + 1)}
+            style={styles.retryBtn}>
+            <Ionicons name="refresh-outline" size={13} color={theme.colors.brand[700]} />
+            <UIText style={styles.retryText}>{t("common.retry")}</UIText>
+          </Pressable>
+        </View>
+      );
+    }
+    return <MapPlaceholder height={height} />;
   }
 
   const mapUrl = buildMapUrl(coords.lat, coords.lng, compact);
@@ -241,6 +268,23 @@ const styles = StyleSheet.create({
     fontSize:   12,
     fontFamily: theme.fonts.semibold,
     color:      theme.colors.text.tertiary,
+  },
+  retryBtn: {
+    flexDirection:     "row",
+    alignItems:        "center",
+    gap:               5,
+    marginTop:         4,
+    paddingHorizontal: 14,
+    paddingVertical:   7,
+    borderRadius:      20,
+    backgroundColor:   theme.colors.brand[50],
+    borderWidth:       1,
+    borderColor:       theme.colors.brand[200],
+  },
+  retryText: {
+    fontSize:   11,
+    fontFamily: theme.fonts.bold,
+    color:      theme.colors.brand[700],
   },
 
   // ── Placeholder ──

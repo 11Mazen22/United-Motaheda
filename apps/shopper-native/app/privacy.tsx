@@ -125,7 +125,7 @@ export default function PrivacyScreen() {
 • إلغاء الاشتراك في الرسائل التسويقية
 • الاعتراض على معالجة بياناتك لأغراض معينة
 
-للتواصل حول هذه الحقوق: info@unitedpharmacy.com`}
+للتواصل حول هذه الحقوق: united.pharmacy.eg@gmail.com`}
         </Section>
 
         <Section title="٧. الاحتفاظ بالبيانات" delay={320}>
@@ -137,7 +137,7 @@ export default function PrivacyScreen() {
         </Section>
 
         <UIText style={styles.footer}>
-          الصيدلية المتحدة • مصر • info@unitedpharmacy.com
+          الصيدلية المتحدة • مصر • united.pharmacy.eg@gmail.com
         </UIText>
       </ScrollView>
     </View>

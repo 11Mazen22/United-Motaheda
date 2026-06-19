@@ -33,7 +33,16 @@ interface GeoapifyResponse {
 
 /**
  * Geocode a structured delivery address.
- * Returns null if no reliable result is found.
+ *
+ * Two-stage strategy for Egyptian addresses:
+ *   Stage 1 — full text search (street + building + district + city).
+ *             Most precise; works when Geoapify has the street indexed.
+ *   Stage 2 — district + city fallback. Less precise but returns a valid
+ *             map centre so the card shows a real map tile instead of the
+ *             animated placeholder. Confidence is flagged low so callers
+ *             can choose to display a different pin style if needed.
+ *
+ * Returns null only when both stages fail (network error, unknown city, etc.)
  */
 export async function geocodeAddress(params: {
   street:   string;
@@ -42,20 +51,37 @@ export async function geocodeAddress(params: {
   city:     string;
   country?: string;
 }): Promise<GeocodedCoords | null> {
+  const country = params.country ?? "Egypt";
+
+  // Stage 1 — full address free-text (no type restriction)
+  const stage1 = await _geocodeText(
+    [params.street, params.building, params.district, params.city]
+      .filter(Boolean)
+      .join(" "),
+    country,
+  );
+  if (stage1) return stage1;
+
+  // Stage 2 — district + city only (coarser but almost always succeeds)
+  const stage2 = await _geocodeText(
+    [params.district, params.city].filter(Boolean).join(" "),
+    country,
+  );
+  return stage2 ? { ...stage2, confidence: Math.min(stage2.confidence, 0.4) } : null;
+}
+
+async function _geocodeText(text: string, country: string): Promise<GeocodedCoords | null> {
   try {
     const query = new URLSearchParams({
-      street:   `${params.street} ${params.building}`.trim(),
-      district: params.district,
-      city:     params.city,
-      country:  params.country ?? "Egypt",
-      lang:     "ar",
-      limit:    "1",
-      type:     "street",
-      apiKey:   GEOAPIFY_KEY,
+      text,
+      country,
+      lang:   "ar",
+      limit:  "1",
+      apiKey: GEOAPIFY_KEY,
     });
 
     const res = await fetch(`${BASE}?${query.toString()}`, {
-      signal: AbortSignal.timeout(6_000) as any,
+      signal: AbortSignal.timeout(8_000) as any,
     });
 
     if (!res.ok) return null;
@@ -65,7 +91,6 @@ export async function geocodeAddress(params: {
     if (!feature) return null;
 
     const { lat, lon, confidence = 0 } = feature.properties;
-
     if (!lat || !lon) return null;
 
     return { lat, lng: lon, confidence };

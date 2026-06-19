@@ -348,6 +348,7 @@ export default function OnboardingScreen() {
         decelerationRate="fast"
         onViewableItemsChanged={onViewRef}
         viewabilityConfig={viewConfig}
+        initialScrollIndex={RTL_ANDROID ? LAST_INDEX : 0}
         windowSize={SLIDE_COUNT}
         initialNumToRender={SLIDE_COUNT}
         maxToRenderPerBatch={SLIDE_COUNT}

@@ -48,11 +48,13 @@ export interface WithTimeoutOptions {
 }
 
 /**
- * Race a Supabase builder against an AbortController-driven timeout.
+ * Race a Supabase builder against a hard deadline.
  *
- * The builder receives the signal so it can wire it into `.abortSignal()`.
- * Returns the data on success; throws a typed error on timeout / abort /
- * postgrest failure so React Query sees a real Error (not a `{error}` object).
+ * Uses Promise.race() rather than relying solely on AbortSignal because
+ * React Native's Hermes fetch implementation does not reliably cancel an
+ * in-flight request when the signal fires — leaving `await build()` pending
+ * indefinitely and React Query stuck on `isLoading: true` forever.
+ * Promise.race() guarantees the timeout rejects regardless of fetch behaviour.
  */
 export async function withTimeout<T>(
   build: (signal: AbortSignal) => ThenableLike<T>,
@@ -60,36 +62,37 @@ export async function withTimeout<T>(
 ): Promise<T> {
   const controller = new AbortController();
 
-  const onExternalAbort = () => controller.abort();
-  if (signal) {
-    if (signal.aborted) {
-      throw new RequestAbortedError();
-    }
-    signal.addEventListener("abort", onExternalAbort, { once: true });
-  }
+  if (signal?.aborted) throw new RequestAbortedError();
 
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  const abortListener = () => controller.abort();
+  if (signal) signal.addEventListener("abort", abortListener, { once: true });
+
+  let timer!: ReturnType<typeof setTimeout>;
+
+  const request = new Promise<T>((resolve, reject) => {
+    Promise.resolve(build(controller.signal)).then(
+      (result) => {
+        if (result.error) { reject(result.error); return; }
+        // PostgREST returns `data: null` only when .single() finds nothing.
+        if (result.data === null) { reject(new Error("No data returned from Supabase")); return; }
+        resolve(result.data);
+      },
+      reject,
+    );
+  });
+
+  const deadline = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => {
+      controller.abort();
+      reject(signal?.aborted ? new RequestAbortedError() : new RequestTimeoutError(timeoutMs));
+    }, timeoutMs);
+  });
 
   try {
-    const result = await build(controller.signal);
-
-    if (controller.signal.aborted) {
-      // Determine whether it was a timeout or an external abort.
-      throw signal?.aborted ? new RequestAbortedError() : new RequestTimeoutError(timeoutMs);
-    }
-
-    if (result.error) {
-      throw result.error;
-    }
-    // PostgREST returns `data: null` only when the row was not found AND
-    // .single() was used; callers usually want that to be an error.
-    if (result.data === null) {
-      throw new Error("No data returned from Supabase");
-    }
-    return result.data;
+    return await Promise.race([request, deadline]);
   } finally {
     clearTimeout(timer);
-    if (signal) signal.removeEventListener("abort", onExternalAbort);
+    if (signal) signal.removeEventListener("abort", abortListener);
   }
 }
 

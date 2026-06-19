@@ -7,9 +7,9 @@ export function useLoyaltyBalance(enabled = true) {
     queryKey: loyaltyKeys.balance(),
     queryFn:  ({ signal }) => getLoyaltyBalance(signal),
     enabled,
-    // Balance changes only via RPCs; staleTime is intentionally short so
-    // a successful mutation that calls invalidate(balance()) refreshes
-    // promptly even if the user just hit this screen seconds ago.
     staleTime: 30 * 1000,
+    // One retry max — each attempt already has a 12s hard deadline via
+    // withTimeout(). Default retry:3 would hold isLoading:true for ~55s.
+    retry: 1,
   });
 }

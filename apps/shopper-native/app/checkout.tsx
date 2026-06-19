@@ -10,7 +10,7 @@
  *   - Scroll-to-top side-effect on step change
  */
 
-import React, { useCallback, useEffect, useRef } from "react";
+import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -94,6 +94,30 @@ function CheckoutScreen() {
     const valid = await flow.goToReview();
     if (!valid) scrollRef.current?.scrollTo({ y: 0, animated: true });
   }, [flow.goToReview]);
+
+  // ── Reason the confirm button is disabled on Review step ─────────────
+  const blockingReason = useMemo(() => {
+    if (flow.step !== "review") return null;
+    if (!flow.deliveryQuote.isDeliverable) {
+      return flow.deliveryQuote.outOfServiceMessage ?? t("checkout.notDeliverable");
+    }
+    if (isManualWalletPayment(flow.paymentMethod)) {
+      const noRef     = !flow.transferNumber.trim();
+      const noReceipt = !flow.receiptUri;
+      if (noRef && noReceipt) return t("checkout.missingManualPayment");
+      if (noRef)              return t("checkout.missingTransferNumber");
+      if (noReceipt)          return t("checkout.missingReceipt");
+    }
+    return null;
+  }, [
+    flow.step,
+    flow.deliveryQuote.isDeliverable,
+    flow.deliveryQuote.outOfServiceMessage,
+    flow.paymentMethod,
+    flow.transferNumber,
+    flow.receiptUri,
+    t,
+  ]);
 
   // ── Empty cart guard ──────────────────────────────────────────────────
   if (flow.items.length === 0 && flow.step !== "success") {
@@ -284,6 +308,13 @@ function CheckoutScreen() {
             </UIText>
           </View>
         </View>
+
+        {blockingReason && (
+          <Animated.View entering={FadeInDown.duration(200)} style={cs.blockBanner}>
+            <Ionicons name="warning-outline" size={14} color="#D97706" />
+            <UIText style={cs.blockBannerText}>{blockingReason}</UIText>
+          </Animated.View>
+        )}
 
         <KitButton
           label={flow.step === "details" ? t("checkout.continueBtn") : t("checkout.confirmBtn")}

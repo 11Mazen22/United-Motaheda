@@ -36,7 +36,6 @@ import { ADDRESS_LABELS } from "../types";
 import type { Address, AddressFormData } from "../types";
 import { SUPPORTED_GOVERNORATE } from "@/features/delivery/constants";
 import { theme } from "@/shared/theme";
-import { showConfirmSheet } from "@/shared/store/appSheetStore";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
 
 const _isRtl = isRtl();
@@ -161,6 +160,7 @@ export function AddressFormDrawer({
 
   const [currentStepIdx, setCurrentStepIdx] = useState(0);
   const currentStepKey = STEPS[currentStepIdx].key;
+  const [showDiscard, setShowDiscard] = useState(false);
 
   // ── Reset form when drawer opens ──
   useEffect(() => {
@@ -332,12 +332,7 @@ export function AddressFormDrawer({
         return;
       }
 
-      showConfirmSheet(
-        t("addressForm.confirmDiscardTitle"),
-        t("addressForm.confirmDiscardMsg"),
-        onClose,
-        { confirmLabel: t("addressForm.confirmDiscardAction"), danger: true, cancelLabel: t("addressForm.stayAction") },
-      );
+      setShowDiscard(true);
     } else {
       onClose();
     }
@@ -366,7 +361,7 @@ export function AddressFormDrawer({
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
-        keyboardVerticalOffset={Platform.OS === "ios" ? -insets.bottom : 0}
+        keyboardVerticalOffset={0}
       >
         <View style={[styles.container, { paddingTop: insets.top + 8 }]}>
           {/* ── Header with dynamic title ── */}
@@ -538,6 +533,52 @@ export function AddressFormDrawer({
           </View>
         </View>
       </KeyboardAvoidingView>
+
+      {/* ── Local discard confirmation — rendered inside Modal tree for correct z-order ── */}
+      <Modal
+        visible={showDiscard}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowDiscard(false)}
+        statusBarTranslucent
+      >
+        <Pressable
+          style={styles.discardOverlay}
+          onPress={() => setShowDiscard(false)}
+        >
+          <Pressable style={styles.discardCard} onPress={() => {}}>
+            {/* Icon */}
+            <View style={styles.discardIconWrap}>
+              <Ionicons name="alert-circle" size={36} color="#F59E0B" />
+            </View>
+            {/* Title */}
+            <UIText style={styles.discardTitle}>
+              {t("addressForm.confirmDiscardTitle")}
+            </UIText>
+            {/* Message */}
+            <UIText style={styles.discardMsg}>
+              {t("addressForm.confirmDiscardMsg")}
+            </UIText>
+            {/* Actions */}
+            <Pressable
+              style={styles.discardDangerBtn}
+              onPress={() => { setShowDiscard(false); onClose(); }}
+            >
+              <UIText style={styles.discardDangerText}>
+                {t("addressForm.confirmDiscardAction")}
+              </UIText>
+            </Pressable>
+            <Pressable
+              style={styles.discardCancelBtn}
+              onPress={() => setShowDiscard(false)}
+            >
+              <UIText style={styles.discardCancelText}>
+                {t("addressForm.stayAction")}
+              </UIText>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </Modal>
   );
 }
@@ -1263,6 +1304,73 @@ const styles = StyleSheet.create({
   },
   readonlyText: {
     color: theme.colors.slate[600],
+  },
+
+  // ── Discard confirmation (in-tree Modal, sits above parent Modal z-order) ──
+  discardOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(7,18,42,0.55)",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 24,
+  },
+  discardCard: {
+    width: "100%",
+    backgroundColor: "#fff",
+    borderRadius: 20,
+    padding: 24,
+    alignItems: "center",
+    gap: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.18,
+    shadowRadius: 24,
+    elevation: 12,
+  },
+  discardIconWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: "rgba(245,158,11,0.12)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 4,
+  },
+  discardTitle: {
+    fontSize: 18,
+    fontFamily: theme.fonts.bold,
+    color: theme.colors.text.primary,
+    textAlign: "center" as const,
+  },
+  discardMsg: {
+    fontSize: 14,
+    fontFamily: theme.fonts.regular,
+    color: theme.colors.text.secondary,
+    textAlign: "center" as const,
+    lineHeight: 22,
+  },
+  discardDangerBtn: {
+    width: "100%",
+    backgroundColor: "#EF4444",
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: "center",
+    marginTop: 8,
+  },
+  discardDangerText: {
+    fontSize: 15,
+    fontFamily: theme.fonts.bold,
+    color: "#fff",
+  },
+  discardCancelBtn: {
+    width: "100%",
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+  discardCancelText: {
+    fontSize: 14,
+    fontFamily: theme.fonts.medium,
+    color: theme.colors.text.secondary,
   },
 });
 

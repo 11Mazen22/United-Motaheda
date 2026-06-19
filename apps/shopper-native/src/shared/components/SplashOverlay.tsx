@@ -411,6 +411,8 @@ const styles = StyleSheet.create({
     borderRadius:    26,
     borderWidth:     1,
     borderColor:     "rgba(255, 255, 255, 0.20)",
+    alignSelf:       "flex-start",
+    flexShrink:      0,
     // Deep shadow for legibility over video
     shadowColor:     "#000",
     shadowOffset:    { width: 0, height: 6 },

@@ -114,11 +114,11 @@ export const PharmacistCard = memo(function PharmacistCard() {
         <View style={s.infoRail}>
           <View style={s.infoPill}>
             <Ionicons name="time-outline" size={13} color={kit.color.inkSoft} />
-            <UIText style={s.infoLabel}>رد سريع</UIText>
+            <UIText style={s.infoLabel}>{t("home.quickReply")}</UIText>
           </View>
           <View style={s.infoPill}>
             <Ionicons name="shield-checkmark-outline" size={13} color={kit.color.inkSoft} />
-            <UIText style={s.infoLabel}>دعم موثوق</UIText>
+            <UIText style={s.infoLabel}>{t("home.trustedSupport")}</UIText>
           </View>
         </View>
 
@@ -134,7 +134,7 @@ export const PharmacistCard = memo(function PharmacistCard() {
           </View>
           <View style={s.ctaCopy}>
             <UIText style={s.ctaLabel}>{t("home.chatWhatsapp")}</UIText>
-            <UIText style={s.ctaSubLabel}>ابدأ المحادثة الآن</UIText>
+            <UIText style={s.ctaSubLabel}>{t("home.startConversation")}</UIText>
           </View>
           <Ionicons name={FORWARD_CHEVRON} size={17} color="rgba(255,255,255,0.7)" />
         </PressableScale>

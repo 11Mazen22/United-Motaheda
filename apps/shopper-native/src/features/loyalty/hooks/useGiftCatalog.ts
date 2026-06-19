@@ -8,5 +8,6 @@ export function useGiftCatalog(enabled = true) {
     queryFn:  ({ signal }) => listGiftCatalog(signal),
     enabled,
     staleTime: 60 * 1000,
+    retry: 1,
   });
 }

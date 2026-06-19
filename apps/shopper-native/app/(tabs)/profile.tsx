@@ -640,7 +640,7 @@ const s = StyleSheet.create({
 
   dangerWrap: {
     paddingHorizontal: theme.layout.pagePaddingH,
-    marginTop:         kit.sp(8),
+    marginTop:         kit.sp(5),
   },
   dangerCard: {
     alignItems:        "center",
@@ -649,25 +649,25 @@ const s = StyleSheet.create({
     borderRadius:      kit.radius.lg,
     paddingVertical:   16,
     paddingHorizontal: 16,
-    borderWidth:       1,
-    borderColor:       "rgba(179,38,30,0.22)",
+    borderWidth:       1.5,
+    borderColor:       "rgba(179,38,30,0.38)",
     ...kit.shadow.raised,
   },
-  dangerCardPressed: { opacity: 0.88 },
+  dangerCardPressed: { opacity: 0.85 },
   dangerIconWell: {
-    width:           44,
-    height:          44,
+    width:           46,
+    height:          46,
     borderRadius:    14,
-    backgroundColor: "rgba(179,38,30,0.08)",
+    backgroundColor: "rgba(179,38,30,0.13)",
     borderWidth:     1,
-    borderColor:     "rgba(179,38,30,0.2)",
+    borderColor:     "rgba(179,38,30,0.3)",
     alignItems:      "center",
     justifyContent:  "center",
     flexShrink:      0,
   },
   dangerLabel: {
     flex:               1,
-    fontFamily:         theme.fonts.bold,
+    fontFamily:         theme.fonts.extrabold,
     fontSize:           14,
     lineHeight:         20,
     color:              kit.color.danger,
@@ -676,7 +676,7 @@ const s = StyleSheet.create({
 
   footer: {
     alignItems:    "center",
-    marginTop:     kit.sp(8),
+    marginTop:     kit.sp(5),
     paddingBottom: kit.sp(4),
     gap:           6,
   },

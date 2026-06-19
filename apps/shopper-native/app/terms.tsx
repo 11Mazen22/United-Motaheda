@@ -1,5 +1,7 @@
 ﻿import React from "react";
 import {
+  Alert,
+  Linking,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -14,6 +16,23 @@ import { useTranslation } from "react-i18next";
 import { theme } from "@/shared/theme";
 import { kit } from "@/shared/kit";
 import { flexRow, isRtl, textAlignStart, BACK_CHEVRON } from "@/utils/layout";
+
+const SUPPORT_WA_URL = `https://wa.me/201112343212?text=${encodeURIComponent(
+  "السلام عليكم، أحتاج إلى مساعدة بخصوص تطبيق صيدليات المتحدة. يرجى التواصل معي عند أقرب فرصة. شكراً لكم."
+)}`;
+
+function openWhatsApp() {
+  Linking.canOpenURL(SUPPORT_WA_URL).then((ok) => {
+    if (ok) return Linking.openURL(SUPPORT_WA_URL);
+    Alert.alert(
+      "واتساب غير متاح",
+      "تواصل معنا على البريد الإلكتروني:\nunited.pharmacy.eg@gmail.com",
+      [{ text: "حسناً" }],
+    );
+  }).catch(() => {
+    Alert.alert("خطأ", "تعذّر فتح واتساب. يرجى المحاولة لاحقاً.");
+  });
+}
 
 interface SectionProps {
   title:    string;
@@ -104,7 +123,7 @@ export default function TermsScreen() {
 • لا يُقبل إرجاع الأدوية والمستحضرات الصيدلانية المفتوحة لأسباب صحية وسلامة
 • يُستثنى من الإرجاع المنتجات المبرّدة والعروض الخاصة ما لم تكن معيبة
 • يتم رد المبلغ خلال ٥-٧ أيام عمل بنفس وسيلة الدفع الأصلية
-• للتواصل بشأن الإرجاع: info@unitedpharmacy.com`}
+• للتواصل بشأن الإرجاع: united.pharmacy.eg@gmail.com`}
         </Section>
 
         <Section title="٦. الملكية الفكرية" delay={280}>
@@ -127,8 +146,24 @@ export default function TermsScreen() {
           {`تخضع هذه الشروط وتُفسَّر وفقاً لأحكام القانون المصري. أي نزاع ينشأ عن هذه الشروط يُحال للمحاكم المختصة في جمهورية مصر العربية.`}
         </Section>
 
+        {/* Contact via WhatsApp */}
+        <Animated.View entering={FadeInDown.duration(350).delay(440)} style={styles.waSection}>
+          <View style={[styles.waInner, { flexDirection: flexRow(isRtl()) }]}>
+            <View style={styles.waIconWell}>
+              <Ionicons name="logo-whatsapp" size={22} color="#25D366" />
+            </View>
+            <View style={{ flex: 1, gap: 2 }}>
+              <UIText style={styles.waTitle}>للتواصل مع الدعم</UIText>
+              <UIText style={styles.waSub}>ردود فورية عبر واتساب</UIText>
+            </View>
+            <Pressable style={styles.waBtn} onPress={openWhatsApp}>
+              <UIText style={styles.waBtnText}>ابدأ</UIText>
+            </Pressable>
+          </View>
+        </Animated.View>
+
         <UIText style={styles.footer}>
-          الصيدلية المتحدة • مصر • info@unitedpharmacy.com
+          الصيدلية المتحدة • مصر • united.pharmacy.eg@gmail.com
         </UIText>
       </ScrollView>
     </View>
@@ -183,4 +218,47 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
   },
   footer: { fontSize: 11, color: kit.color.inkFaint, textAlign: "center", paddingTop: 16 },
+
+  waSection: {
+    backgroundColor: "#F0FFF7",
+    borderRadius:    16,
+    padding:         16,
+    borderWidth:     1,
+    borderColor:     "rgba(37,211,102,0.25)",
+    marginBottom:    24,
+  },
+  waInner: {
+    alignItems: "center",
+    gap:        12,
+  },
+  waIconWell: {
+    width:           46,
+    height:          46,
+    borderRadius:    14,
+    backgroundColor: "rgba(37,211,102,0.12)",
+    alignItems:      "center",
+    justifyContent:  "center",
+    flexShrink:      0,
+  },
+  waTitle: {
+    fontSize:   15,
+    fontFamily: theme.fonts.bold,
+    color:      kit.color.ink,
+  },
+  waSub: {
+    fontSize:   12,
+    fontFamily: theme.fonts.regular,
+    color:      kit.color.inkSoft,
+  },
+  waBtn: {
+    backgroundColor:   "#25D366",
+    borderRadius:      10,
+    paddingVertical:   10,
+    paddingHorizontal: 18,
+  },
+  waBtnText: {
+    fontSize:   13,
+    fontFamily: theme.fonts.bold,
+    color:      "#fff",
+  },
 });

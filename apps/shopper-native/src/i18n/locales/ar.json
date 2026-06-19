@@ -174,6 +174,9 @@
                  "catalogCount":  "{{count}}+ منتج",
                  "featuredEyebrow":  "مختارة لك",
                  "featuredTitle":  "منتجات مميزة",
+                 "featuredEmptyTitle":  "لا توجد منتجات مميزة حالياً",
+                 "featuredEmptyBody":  "تابعنا قريباً — نضيف اختيارات جديدة باستمرار.",
+                 "featuredEmptyCta":  "تصفح جميع المنتجات",
                  "viewAll":  "عرض الكل",
                  "quickSearch":  "بحث سريع",
                  "pharmacistTitle":  "صيدلاني على مدار الساعة",
@@ -204,8 +207,11 @@
                  "chatWhatsapp":          "تواصل عبر واتساب",
                  "recentlyViewed":  "شوهد مؤخراً",
                  "metricOriginal":  "أدوية أصلية",
-                 "metricFast":      "توصيل سريع",
-                 "metricSupport":   "دعم ٢٤/٧"
+                 "metricFast":        "توصيل سريع",
+                 "metricSupport":     "دعم ٢٤/٧",
+                 "quickReply":        "رد سريع",
+                 "trustedSupport":    "دعم موثوق",
+                 "startConversation": "ابدأ المحادثة الآن"
              },
     "products":  {
                      "title":  "الأقسام",
@@ -392,6 +398,10 @@
                      "stepReview":  "المراجعة",
                      "continueBtn":  "متابعة للمراجعة",
                      "confirmBtn":  "تأكيد الطلب",
+                     "notDeliverable":  "العنوان خارج نطاق التوصيل",
+                     "missingTransferNumber":  "أدخل رقم مرجع التحويل لإتمام الطلب",
+                     "missingReceipt":  "أرفق صورة الإيصال لإتمام الطلب",
+                     "missingManualPayment":  "أدخل رقم المرجع وأرفق صورة الإيصال لإتمام الطلب",
                      "dueTotal":  "الإجمالي المستحق",
                      "itemsCount":  "{{count}} منتج",
                      "signInRequired":  "سجّل الدخول لإتمام طلبك",
@@ -524,7 +534,8 @@
                     "copyFailed":  "تعذّر النسخ",
                     "copyFailedMsg":  "لم نتمكن من نسخ الرقم. انسخه يدوياً.",
                     "walletHint":  "أرسل المبلغ إلى رقم المحفظة ثم أدخل رقم المرسل وارفق صورة الإيصال.",
-                    "copyWalletA11y":  "نسخ رقم المحفظة"
+                    "copyWalletA11y":  "نسخ رقم المحفظة",
+                    "methodsTitle":  "طرق الدفع المتاحة"
                 },
     "branches":  {
                      "title":  "فروعنا",
@@ -602,7 +613,17 @@
                  "registerSubtitleFull":  "أنشئ حسابك في ثوانٍ — كل ما تحتاجه هو بريدك الإلكتروني",
                  "emailConfirmationWithPhone":  "تم إنشاء حسابك! يرجى فتح بريدك الإلكتروني وتأكيد الحساب، ثم سجّل دخولك لإكمال التحقق برقم هاتفك.",
                  "emailConfirmationNoPhone":  "تم إنشاء حسابك! يرجى فتح بريدك الإلكتروني وتأكيد الحساب، ثم سجّل دخولك.",
-                 "otpSendFailedContinue":  "تم إنشاء الحساب، لكن تعذّر إرسال رمز التحقق إلى هاتفك. يمكنك المتابعة وإكمال التحقق لاحقاً."
+                 "otpSendFailedContinue":  "تم إنشاء الحساب، لكن تعذّر إرسال رمز التحقق إلى هاتفك. يمكنك المتابعة وإكمال التحقق لاحقاً.",
+                 "nextStep":       "التالي",
+                 "step1Title":     "معلومات الحساب",
+                 "step1Sub":       "أدخل اسمك وبريدك الإلكتروني",
+                 "step2Title":     "كلمة المرور",
+                 "step2Sub":       "اختر كلمة مرور آمنة",
+                 "step3Title":     "رقم الهاتف",
+                 "step3Sub":       "للتأكيد وتنبيهات الطلبات",
+                 "trustSecure":    "آمن",
+                 "trustPrivate":   "خاص",
+                 "trustCare":      "نهتم بك"
              },
     "onboarding":  {
                        "slide1Eyebrow":  "صيدلية المتحدة",
@@ -1122,6 +1143,8 @@
                     "redeemErrorBatchExhausted":  "نفذت الكمية المتاحة من هذه القسيمة.",
                     "redeemErrorBatchExpired":  "انتهت صلاحية هذه القسيمة.",
                     "freeShipping":  "توصيل مجاني",
+                    "errorTitle":  "تعذر تحميل المكافآت",
+                    "errorBody":  "تحقق من اتصالك وحاول مرة أخرى.",
                     "giftCatalogTitle":  "كتالوج الهدايا",
                     "giftCatalogSubtitle":  "استبدل نقاطك بهدايا مميزة",
                     "giftCatalogErrorTitle":  "تعذر تحميل الكتالوج",

@@ -179,6 +179,25 @@ export const ctaStyles = StyleSheet.create({
     marginTop:          2,
     includeFontPadding: false,
   },
+  blockBanner: {
+    flexDirection:     flexRow(isRtl()),
+    alignItems:        "center",
+    gap:               8,
+    backgroundColor:   "#FEF3C7",
+    borderWidth:       1,
+    borderColor:       "#F59E0B40",
+    borderRadius:      10,
+    paddingHorizontal: 12,
+    paddingVertical:   10,
+  },
+  blockBannerText: {
+    flex:       1,
+    fontSize:   12,
+    fontFamily: theme.fonts.medium,
+    color:      "#92400E",
+    textAlign:  textAlignStart(isRtl()),
+    lineHeight: 18,
+  },
 });
 
 // ─── Summary row ─────────────────────────────────────────────────────────────

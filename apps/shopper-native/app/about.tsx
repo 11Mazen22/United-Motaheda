@@ -193,9 +193,9 @@ export default function AboutScreen() {
             <ContactRow
               icon="mail-outline"
               label={t("about.emailLabel")}
-              value="info@unitedpharmacy.com"
+              value="united.pharmacy.eg@gmail.com"
               color={kit.color.accent}
-              onPress={() => Linking.openURL("mailto:info@unitedpharmacy.com").catch(() => {})}
+              onPress={() => Linking.openURL("mailto:united.pharmacy.eg@gmail.com").catch(() => {})}
             />
           </View>
         </Animated.View>

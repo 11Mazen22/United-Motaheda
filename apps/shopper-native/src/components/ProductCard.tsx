@@ -233,15 +233,21 @@ export const ProductCard = memo(function ProductCard({
     >
       {/* ── Image block ───────────────────────────────── */}
       <View style={cs.imgWrap}>
-        <Image
-          source={product.imageUrl ? { uri: product.imageUrl } : undefined}
-          style={cs.img}
-          placeholder={DEFAULT_BLURHASH}
-          contentFit="cover"
-          transition={180}
-          cachePolicy="memory-disk"
-          accessibilityLabel={displayName}
-        />
+        {product.imageUrl ? (
+          <Image
+            source={{ uri: product.imageUrl }}
+            style={cs.img}
+            placeholder={DEFAULT_BLURHASH}
+            contentFit="cover"
+            transition={180}
+            cachePolicy="memory-disk"
+            accessibilityLabel={displayName}
+          />
+        ) : (
+          <View style={cs.imgPlaceholder}>
+            <Ionicons name="medkit-outline" size={36} color={kit.color.inkFaint} />
+          </View>
+        )}
 
         {/* Badge — top-start corner */}
         {effectiveBadge && (
@@ -342,6 +348,13 @@ const cs = StyleSheet.create({
   img: {
     width:  "100%",
     height: "100%",
+  },
+  imgPlaceholder: {
+    width:           "100%",
+    height:          "100%",
+    alignItems:      "center",
+    justifyContent:  "center",
+    backgroundColor: kit.color.well,
   },
 
   // ── Badge (top-start) ──────────────────────────────────────────────────
