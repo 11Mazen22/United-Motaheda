@@ -34,14 +34,13 @@ const TEXT_START = textAlignStart(IS_RTL);
 
 const SORT_OPTIONS: {
   id:       ProductSortMode;
-  labelAr:  string;
-  labelEn:  string;
+  labelKey: string;
   icon:     React.ComponentProps<typeof Ionicons>["name"];
 }[] = [
-  { id: "newest",     labelAr: "الأحدث",      labelEn: "Newest",      icon: "time-outline"        },
-  { id: "price_asc",  labelAr: "سعر ↑",        labelEn: "Price ↑",     icon: "arrow-up-outline"    },
-  { id: "price_desc", labelAr: "سعر ↓",        labelEn: "Price ↓",     icon: "arrow-down-outline"  },
-  { id: "name_asc",   labelAr: "أ–ي",          labelEn: "A–Z",         icon: "text-outline"        },
+  { id: "newest",     labelKey: "category.sortNewest",   icon: "time-outline"       },
+  { id: "price_asc",  labelKey: "category.sortPriceAsc", icon: "arrow-up-outline"   },
+  { id: "price_desc", labelKey: "category.sortPriceDesc", icon: "arrow-down-outline" },
+  { id: "name_asc",   labelKey: "category.sortNameAsc",  icon: "text-outline"       },
 ];
 
 // ─── Per-category accent palette ─────────────────────────────────────────────
@@ -150,7 +149,7 @@ export default function CategoryScreen() {
           {/* Text */}
           <View style={s.titleBlock}>
             <UIText style={[s.eyebrow, { textAlign: TEXT_START }]}>
-              {IS_RTL ? "استعراض" : t("category.browse")}
+              {t("category.browse")}
             </UIText>
             <UIText numberOfLines={2} style={[s.title, { textAlign: TEXT_START }]}>
               {displayTitle}
@@ -159,7 +158,7 @@ export default function CategoryScreen() {
               <View style={[s.countBadge, { backgroundColor: tint, flexDirection: flexRow(IS_RTL) }]}>
                 <View style={[s.countDot, { backgroundColor: accent }]} />
                 <UIText style={[s.countText, { color: accent }]}>
-                  {totalCount}{IS_RTL ? " منتج" : " products"}
+                  {t("category.productCount", { count: totalCount })}
                 </UIText>
               </View>
             )}
@@ -185,7 +184,7 @@ export default function CategoryScreen() {
               color={inStockOnly ? accent : kit.color.inkFaint}
             />
             <UIText style={[s.chipText, { color: inStockOnly ? accent : kit.color.inkSoft }]}>
-              {IS_RTL ? "متوفر" : t("category.inStockOnly")}
+              {t("category.inStockOnly")}
             </UIText>
           </Pressable>
 
@@ -202,7 +201,7 @@ export default function CategoryScreen() {
               >
                 <Ionicons name={opt.icon} size={13} color={active ? accent : kit.color.inkFaint} />
                 <UIText style={[s.chipText, { color: active ? accent : kit.color.inkSoft }]}>
-                  {IS_RTL ? opt.labelAr : opt.labelEn}
+                  {t(opt.labelKey)}
                 </UIText>
               </Pressable>
             );
@@ -216,13 +215,13 @@ export default function CategoryScreen() {
       {products.length > 0 && !isLoading && (
         <View style={[s.resultsBar, { flexDirection: flexRow(IS_RTL) }]}>
           <UIText style={s.resultsText}>
-            {products.length}{IS_RTL ? " منتج" : " products"}
+            {t("category.productCount", { count: products.length })}
           </UIText>
           {inStockOnly && (
             <View style={[s.filterTag, { backgroundColor: tint, flexDirection: flexRow(IS_RTL) }]}>
               <Ionicons name="checkmark-circle" size={11} color={accent} />
               <UIText style={[s.filterTagText, { color: accent }]}>
-                {IS_RTL ? "متوفر فقط" : t("category.inStockOnly")}
+                {t("category.inStockOnly")}
               </UIText>
             </View>
           )}

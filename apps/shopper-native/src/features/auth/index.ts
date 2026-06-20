@@ -17,3 +17,8 @@ export {
 export type { OtpError, SendOtpOptions, VerifyOtpOptions } from "./phoneOtp";
 export { PhoneVerifyModal } from "./components/PhoneVerifyModal";
 export type { PhoneVerifyModalProps } from "./components/PhoneVerifyModal";
+export { LangSwitcher }  from "./components/LangSwitcher";
+export { SocialButtons } from "./components/SocialButtons";
+export type { SocialProvider } from "./components/SocialButtons";
+export { AuthDivider }   from "./components/AuthDivider";
+export { TrustBadges }   from "./components/TrustBadges";

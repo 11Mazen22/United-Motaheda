@@ -17,7 +17,7 @@
 
 import React from "react";
 import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
-import { Text as UIText } from "@/shared/ui";
+import { Text as UIText } from "./Text";
 import { Ionicons } from "@expo/vector-icons";
 import { theme } from "@/shared/theme";
 import { flexRow, isRtl } from "@/utils/layout";

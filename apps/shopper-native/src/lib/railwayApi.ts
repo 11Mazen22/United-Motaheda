@@ -158,13 +158,4 @@ export const railwayApi = {
       body:   JSON.stringify(body),
     }),
 
-  /** AI pharmacist consultation — API key lives on the Railway server only. */
-  pharmacistChat: (
-    message:             string,
-    conversationHistory: Array<{ role: "user" | "assistant"; content: string }> = [],
-  ) =>
-    railwayFetch<{ reply: string }>("/pharmacist/chat", {
-      method: "POST",
-      body:   JSON.stringify({ message, conversationHistory }),
-    }, 35_000),
 };

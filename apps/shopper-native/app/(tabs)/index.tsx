@@ -10,7 +10,6 @@
  *   6. DailyEdit        — editorial 1+2 product layout (NEW)
  *   7. RecentlyViewed   — personal trail (only when content)
  *   8. SavingsStrip     — closing trust band (replaces TrustStrip + bottom CTA)
- *   9. PharmacistCard   — 24/7 contact CTA
  *
  * Removed: PromoBanner, QuickActions, TrustStrip — absorbed into HomeHero
  * and SavingsStrip. Single source of identity, no duplicated trust messaging.
@@ -54,7 +53,6 @@ import { CategoryStrip }          from "../../src/features/home/components/Categ
 import { TodayCare }              from "../../src/features/home/components/TodayCare";
 import { FlashSaleSection }       from "../../src/features/home/components/FlashSaleSection";
 import { RecentlyViewedCarousel } from "../../src/features/home/components/RecentlyViewedCarousel";
-import { PharmacistCard }         from "../../src/features/home/components/PharmacistCard";
 import { DailyEdit }              from "../../src/features/home/components/DailyEdit";
 import { SavingsStrip }           from "../../src/features/home/components/SavingsStrip";
 import { ArrivalOverlay }         from "../../src/features/home/components/ArrivalOverlay";
@@ -120,11 +118,8 @@ export default function HomeScreen() {
   const goCart       = useCallback(() => router.push("/(tabs)/cart"    as any), [router]);
   const goSearch     = useCallback(() => router.push("/search"         as any), [router]);
   const goNotifs     = useCallback(() => router.push("/notifications"  as any), [router]);
-  const goDeals      = useCallback(() => router.push("/deals"          as any), [router]);
-  const goFeatured   = useCallback(() => router.push("/featured"       as any), [router]);
   const goAllCats    = useCallback(() => router.push("/(tabs)/products"     ), [router]);
   const goScanRx     = useCallback(() => router.push("/prescriptions/scan" as any), [router]);
-  const goPharmacist = useCallback(() => router.push("/help/pharmacist" as any), [router]);
   const goLoyalty    = useCallback(() => router.push("/loyalty"        as any), [router]);
 
   const goCategory = useCallback(
@@ -187,8 +182,7 @@ export default function HomeScreen() {
         {/* 1. Tier-1 hero — personalised greeting, status, 3 primary actions */}
         <HomeHero
           onScanRx={goScanRx}
-          onDeals={goDeals}
-          onPharmacist={goPharmacist}
+          onDeals={goSearch}
           onLoyalty={goLoyalty}
         />
 
@@ -209,15 +203,13 @@ export default function HomeScreen() {
           <FlashSaleSection
             products={saleProducts}
             onProductPress={goProduct}
-            onViewAll={goDeals}
           />
         )}
 
-        {/* 5. Daily edit — editorial product trio (NEW) */}
+        {/* 5. Daily edit — editorial product trio */}
         <DailyEdit
           lang={lang}
           onProductPress={goProduct}
-          onViewAll={goFeatured}
         />
 
         {/* Below-fold: lazy after first scroll */}
@@ -225,7 +217,6 @@ export default function HomeScreen() {
           <>
             <RecentlyViewedCarousel lang={lang} onProductPress={goProduct} />
             <SavingsStrip />
-            <PharmacistCard />
           </>
         )}
 

@@ -1,22 +1,22 @@
 /**
- * Login — complete reimagining (2026 V3).
+ * Login — premium redesign (2026 V4).
  *
- * Returning users see ONE thing first: a cinematic welcome. Trust chips
- * removed (they belong on signup, not signin). Single elevated form, big
- * primary CTA, quiet footer to register.
+ * What's new vs V3:
+ *  • Language switcher in top bar (AR ↔ EN, one tap, triggers reload)
+ *  • Social sign-in buttons (Google / Apple / Facebook) above the email form
+ *  • "Or" divider between social and email/password
+ *  • Trust badges strip at the bottom (Secure · Private · We Care)
  *
  * Layout (top → bottom):
- *   • Close button (top-end)
+ *   • Top bar: [Close]  [LangSwitcher]
  *   • Brand mark + breathing halo
- *   • "Welcome back" — 32px black, -0.8 tracking
- *   • Supporting line
- *   • Elevated form card — email + password
- *   • Inline forgot-password link
- *   • Primary CTA — full width, 56h
- *   • Quiet footer: "New here? · Create account"
- *
- * Motion: brand halo breathes (3 s sine, reduced-motion aware).
- * Form card has a soft entrance via FadeInUp.
+ *   • "Welcome Back" headline + subtitle
+ *   • SocialButtons
+ *   • AuthDivider "or"
+ *   • Elevated form card: email + password + forgot link
+ *   • Primary CTA
+ *   • TrustBadges
+ *   • Footer: "New here? Create account"
  */
 
 import React, { useEffect, useState } from "react";
@@ -45,15 +45,20 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { signIn, getAuthError } from "@/features/auth";
-import { AppLogo } from "@/shared/components/AppLogo";
-import { track } from "@/lib/analytics";
-import { captureError } from "@/lib/crashReporter";
+import { signInWithProvider } from "@/features/auth/socialAuth";
+import { LangSwitcher }    from "@/features/auth/components/LangSwitcher";
+import { SocialButtons, type SocialProvider } from "@/features/auth/components/SocialButtons";
+import { AuthDivider }     from "@/features/auth/components/AuthDivider";
+import { TrustBadges }     from "@/features/auth/components/TrustBadges";
+import { AppLogo }         from "@/shared/components/AppLogo";
+import { track }           from "@/lib/analytics";
+import { captureError }    from "@/lib/crashReporter";
 import { requestAndStoreLocation } from "@/lib/requestLocation";
-import { Input } from "@/components/ui/Input";
-import { Button } from "@/shared/kit";
-import { Text as UIText } from "@/shared/ui";
-import { kit } from "@/shared/kit";
-import { theme } from "@/shared/theme";
+import { Input }           from "@/components/ui/Input";
+import { Button }          from "@/shared/kit";
+import { Text as UIText }  from "@/shared/ui";
+import { kit }             from "@/shared/kit";
+import { theme }           from "@/shared/theme";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
 
 const IS_RTL     = isRtl();
@@ -61,23 +66,21 @@ const TEXT_START = textAlignStart(IS_RTL);
 
 export default function LoginScreen() {
   const { t, i18n } = useTranslation();
-  const router = useRouter();
-  const insets = useSafeAreaInsets();
+  const router  = useRouter();
+  const insets  = useSafeAreaInsets();
   const reduced = useReducedMotion() ?? false;
 
-  const [email,    setEmail]    = useState("");
-  const [password, setPassword] = useState("");
-  const [showPass, setShowPass] = useState(false);
-  const [loading,  setLoading]  = useState(false);
-  const [error,    setError]    = useState<string | null>(null);
+  const [email,         setEmail]         = useState("");
+  const [password,      setPassword]      = useState("");
+  const [showPass,      setShowPass]      = useState(false);
+  const [loading,       setLoading]       = useState(false);
+  const [socialLoading, setSocialLoading] = useState(false);
+  const [error,         setError]         = useState<string | null>(null);
 
-  // Breathing brand halo
+  // ── Breathing brand halo ────────────────────────────────────────────────────
   const halo = useSharedValue(0.35);
   useEffect(() => {
-    if (reduced) {
-      halo.value = 0.5;
-      return;
-    }
+    if (reduced) { halo.value = 0.5; return; }
     halo.value = withRepeat(
       withTiming(0.75, { duration: 3000, easing: Easing.inOut(Easing.sin) }),
       -1,
@@ -87,6 +90,7 @@ export default function LoginScreen() {
   }, [reduced, halo]);
   const haloStyle = useAnimatedStyle(() => ({ opacity: halo.value }));
 
+  // ── Handlers ────────────────────────────────────────────────────────────────
   const handleLogin = async () => {
     setError(null);
     if (!email.trim() || !password.trim()) {
@@ -110,27 +114,49 @@ export default function LoginScreen() {
     }
   };
 
+  const handleSocial = async (provider: SocialProvider) => {
+    track("social_login_tapped", { provider });
+    setSocialLoading(true);
+    try {
+      const result = await signInWithProvider(provider);
+      if (result === "error") {
+        setError(t("auth.socialComingSoon"));
+      }
+      // "success" and "cancelled" need no action — auth-callback.tsx handles success,
+      // cancelled just closes the browser and returns here.
+    } finally {
+      setSocialLoading(false);
+    }
+  };
+
+  // ── Render ──────────────────────────────────────────────────────────────────
   return (
-    <KeyboardAvoidingView style={s.root} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+    <KeyboardAvoidingView
+      style={s.root}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <ScrollView
         style={s.root}
-        contentContainerStyle={[s.content, { paddingTop: insets.top + 8, paddingBottom: insets.bottom + 32 }]}
+        contentContainerStyle={[
+          s.content,
+          { paddingTop: insets.top + 8, paddingBottom: insets.bottom + 32 },
+        ]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}>
 
-        {/* Top bar: close */}
+        {/* ── Top bar ─────────────────────────────────────────────────────── */}
         <View style={s.topBar}>
           <Pressable
             onPress={() => router.back()}
             hitSlop={10}
-            style={s.closeBtn}
+            style={s.iconBtn}
             accessibilityRole="button"
             accessibilityLabel={t("common.close")}>
             <Ionicons name="close" size={20} color={kit.color.inkSoft} />
           </Pressable>
+          <LangSwitcher />
         </View>
 
-        {/* Brand mark with breathing halo */}
+        {/* ── Brand mark ──────────────────────────────────────────────────── */}
         <Animated.View entering={FadeIn.duration(400)} style={s.brandBlock}>
           <View style={s.logoWrap}>
             <Animated.View style={[s.logoHalo, haloStyle]} pointerEvents="none" />
@@ -140,17 +166,36 @@ export default function LoginScreen() {
           </View>
         </Animated.View>
 
-        {/* Cinematic welcome */}
-        <Animated.View entering={FadeInDown.delay(120).duration(360)} style={s.headlineWrap}>
-          <UIText style={s.eyebrow}>{t("auth.eyebrowSignIn") || (IS_RTL ? "تسجيل الدخول" : "Sign in")}</UIText>
+        {/* ── Headline ────────────────────────────────────────────────────── */}
+        <Animated.View
+          entering={FadeInDown.delay(120).duration(360)}
+          style={s.headlineWrap}>
+          <UIText style={s.eyebrow}>
+            {t("auth.eyebrowSignIn")}
+          </UIText>
           <UIText style={s.headline}>{t("auth.loginWelcome")}</UIText>
           <UIText style={s.subhead}>{t("auth.loginSubtitle")}</UIText>
         </Animated.View>
 
-        {/* Form card */}
-        <Animated.View entering={FadeInUp.delay(220).duration(380)} style={s.formCard}>
+        {/* ── Social login ────────────────────────────────────────────────── */}
+        <Animated.View entering={FadeInUp.delay(180).duration(340)}>
+          <SocialButtons onSocialPress={handleSocial} loading={socialLoading} />
+        </Animated.View>
+
+        {/* ── Or divider ──────────────────────────────────────────────────── */}
+        <Animated.View entering={FadeInUp.delay(240).duration(300)} style={s.dividerWrap}>
+          <AuthDivider />
+        </Animated.View>
+
+        {/* ── Form card ───────────────────────────────────────────────────── */}
+        <Animated.View
+          entering={FadeInUp.delay(280).duration(380)}
+          style={s.formCard}>
+
           {error && (
-            <Animated.View entering={FadeInDown.duration(200)} style={s.errorBox}>
+            <Animated.View
+              entering={FadeInDown.duration(200)}
+              style={s.errorBox}>
               <View style={s.errorIcon}>
                 <Ionicons name="alert-circle" size={15} color={kit.color.danger} />
               </View>
@@ -162,7 +207,7 @@ export default function LoginScreen() {
             label={t("auth.email")}
             placeholder="example@email.com"
             value={email}
-            onChangeText={setEmail}
+            onChangeText={(v) => { setEmail(v); setError(null); }}
             keyboardType="email-address"
             autoCapitalize="none"
             autoComplete="email"
@@ -173,25 +218,35 @@ export default function LoginScreen() {
             label={t("auth.password")}
             placeholder="••••••••"
             value={password}
-            onChangeText={setPassword}
+            onChangeText={(v) => { setPassword(v); setError(null); }}
             secureTextEntry={!showPass}
-            leftIcon={<Ionicons name="lock-closed-outline" size={18} color={kit.color.inkFaint} />}
+            leftIcon={
+              <Ionicons name="lock-closed-outline" size={18} color={kit.color.inkFaint} />
+            }
             rightIcon={
               <Pressable onPress={() => setShowPass(!showPass)} hitSlop={8}>
-                <Ionicons name={showPass ? "eye-off-outline" : "eye-outline"} size={18} color={kit.color.inkFaint} />
+                <Ionicons
+                  name={showPass ? "eye-off-outline" : "eye-outline"}
+                  size={18}
+                  color={kit.color.inkFaint}
+                />
               </Pressable>
             }
           />
 
           <View style={s.forgotRow}>
-            <Pressable hitSlop={8} onPress={() => router.push("/(auth)/forgot-password")}>
+            <Pressable
+              hitSlop={8}
+              onPress={() => router.push("/(auth)/forgot-password")}>
               <UIText style={s.forgotLink}>{t("auth.forgotPassword")}</UIText>
             </Pressable>
           </View>
         </Animated.View>
 
-        {/* Primary CTA */}
-        <Animated.View entering={FadeInUp.delay(300).duration(380)} style={{ marginTop: 18 }}>
+        {/* ── Primary CTA ─────────────────────────────────────────────────── */}
+        <Animated.View
+          entering={FadeInUp.delay(360).duration(360)}
+          style={{ marginTop: 18 }}>
           <Button
             label={t("auth.login")}
             variant="primary"
@@ -202,8 +257,17 @@ export default function LoginScreen() {
           />
         </Animated.View>
 
-        {/* Footer */}
-        <Animated.View entering={FadeIn.delay(420).duration(300)} style={s.footer}>
+        {/* ── Trust strip ─────────────────────────────────────────────────── */}
+        <Animated.View
+          entering={FadeIn.delay(440).duration(300)}
+          style={s.trustWrap}>
+          <TrustBadges />
+        </Animated.View>
+
+        {/* ── Footer ──────────────────────────────────────────────────────── */}
+        <Animated.View
+          entering={FadeIn.delay(480).duration(300)}
+          style={s.footer}>
           <UIText style={s.footerText}>{t("auth.noAccount")}</UIText>
           <Link href="/(auth)/register" asChild>
             <Pressable hitSlop={6}>
@@ -211,22 +275,24 @@ export default function LoginScreen() {
             </Pressable>
           </Link>
         </Animated.View>
+
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
 
+// ── Styles ────────────────────────────────────────────────────────────────────
 const s = StyleSheet.create({
   root:    { flex: 1, backgroundColor: kit.color.canvas },
-  content: { flexGrow: 1, paddingHorizontal: 22 },
+  content: { flexGrow: 1, paddingHorizontal: 22, gap: 16 },
 
-  // ── Top bar ──
+  // Top bar
   topBar: {
     flexDirection:  flexRow(IS_RTL),
-    justifyContent: "flex-end",
-    marginBottom:   8,
+    justifyContent: "space-between",
+    alignItems:     "center",
   },
-  closeBtn: {
+  iconBtn: {
     width:           40,
     height:          40,
     borderRadius:    20,
@@ -238,17 +304,13 @@ const s = StyleSheet.create({
     ...kit.shadow.raised,
   },
 
-  // ── Brand block ──
-  brandBlock: {
-    alignItems: "center",
-    marginTop:  12,
-    marginBottom: 24,
-  },
+  // Brand
+  brandBlock: { alignItems: "center", marginTop: 4 },
   logoWrap: {
-    width:           104,
-    height:          104,
-    alignItems:      "center",
-    justifyContent:  "center",
+    width:  104,
+    height: 104,
+    alignItems:     "center",
+    justifyContent: "center",
   },
   logoHalo: {
     position:        "absolute",
@@ -269,12 +331,8 @@ const s = StyleSheet.create({
     ...kit.shadow.brandGlow,
   },
 
-  // ── Headline ──
-  headlineWrap: {
-    alignItems:   "center",
-    gap:          6,
-    marginBottom: 24,
-  },
+  // Headline
+  headlineWrap: { alignItems: "center", gap: 5 },
   eyebrow: {
     fontFamily:         theme.fonts.black,
     fontSize:           11,
@@ -286,8 +344,8 @@ const s = StyleSheet.create({
   },
   headline: {
     fontFamily:         theme.fonts.black,
-    fontSize:           32,
-    lineHeight:         38,
+    fontSize:           30,
+    lineHeight:         37,
     letterSpacing:      -0.8,
     color:              kit.color.ink,
     textAlign:          "center",
@@ -301,10 +359,12 @@ const s = StyleSheet.create({
     textAlign:          "center",
     includeFontPadding: false,
     maxWidth:           280,
-    marginTop:          4,
   },
 
-  // ── Form card ──
+  // Divider spacing
+  dividerWrap: { marginVertical: 2 },
+
+  // Form card
   formCard: {
     backgroundColor: kit.color.surface,
     borderRadius:    kit.radius.xl,
@@ -354,13 +414,15 @@ const s = StyleSheet.create({
     includeFontPadding: false,
   },
 
-  // ── Footer ──
+  // Trust & footer
+  trustWrap: { marginTop: 6 },
   footer: {
     flexDirection:  flexRow(IS_RTL),
     alignItems:     "center",
     justifyContent: "center",
     gap:            6,
-    marginTop:      28,
+    marginTop:      4,
+    paddingBottom:  8,
   },
   footerText: {
     fontFamily:         theme.fonts.regular,

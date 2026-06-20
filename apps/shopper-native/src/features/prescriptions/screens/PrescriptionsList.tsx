@@ -22,6 +22,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTranslation } from "react-i18next";
 import { kit, Button, SegmentedToggle, type SegmentOption } from "@/shared/kit";
 import { theme } from "@/shared/theme";
 import { Text } from "@/shared/ui";
@@ -66,6 +67,7 @@ const FILTER_OPTIONS: ReadonlyArray<SegmentOption<RxFilter>> = IS_RTL
     ];
 
 export function PrescriptionsList(): React.ReactElement {
+  const { t }         = useTranslation();
   const router        = useRouter();
   const insets        = useSafeAreaInsets();
   const { user }      = useAuth();
@@ -318,7 +320,7 @@ export function PrescriptionsList(): React.ReactElement {
               <Ionicons name="funnel-outline" size={22} color={kit.color.inkFaint} />
             </View>
             <Text style={s.filterEmptyText}>
-              {IS_RTL ? "لا توجد وصفات في هذا التصنيف" : "No prescriptions in this filter"}
+              {t("prescriptions.filterEmpty")}
             </Text>
           </View>
         }

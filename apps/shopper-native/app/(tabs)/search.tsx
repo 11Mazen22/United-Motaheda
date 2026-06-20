@@ -112,60 +112,21 @@ const SORT_KEYS: Record<SortKey, string> = {
   name_asc:   "search.sortNameAsc",
 };
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// BILINGUAL CONTENT (module-level — stable refs)
-// ═══════════════════════════════════════════════════════════════════════════════
-
-const COPY = IS_RTL
-  ? {
-      greetGuest:    "هل تبحث عن شيء؟",
-      greetUser:     (name: string) => `أهلاً، ${name}`,
-      displayTitle:  "ابحث عن أي شيء",
-      placeholder:   "ابحث عن دواء أو منتج",
-      subtitleLine:  "أكثر من ٥٠٠٠ دواء، فيتامين، علامة تجارية",
-      modeScanLabel:    "مسح وصفة",
-      modeScanSub:      "ارفع صورة الوصفة",
-      modeBrowseLabel:  "تصفّح الكل",
-      modeBrowseSub:    "كل المنتجات",
-      modePharmaLabel:  "صيدلي",
-      modePharmaSub:    "استشارة مجانية",
-      concernsTitle: "تصفّح حسب الاحتياج",
-      modesEyebrow:  "ابدأ من هنا",
-    }
-  : {
-      greetGuest:    "Looking for something?",
-      greetUser:     (name: string) => `Hey, ${name}`,
-      displayTitle:  "Search anything",
-      placeholder:   "Search medicines, brands, vitamins",
-      subtitleLine:  "5,000+ medicines, vitamins & brands",
-      modeScanLabel:    "Scan Rx",
-      modeScanSub:      "Upload prescription",
-      modeBrowseLabel:  "Browse all",
-      modeBrowseSub:    "All products",
-      modePharmaLabel:  "Pharmacist",
-      modePharmaSub:    "Free consultation",
-      concernsTitle: "Browse by concern",
-      modesEyebrow:  "Start here",
-    };
-
-// 6 thematic browse concerns — tap submits the search term
-const CONCERNS: Array<{ icon: IoniconsName; term: string; label: string; tint: string; tone: string }> = IS_RTL
-  ? [
-      { icon: "bandage-outline",     term: "مسكن",     label: "ألم وحرارة",     tint: kit.color.dangerTint,  tone: kit.color.danger     },
-      { icon: "thermometer-outline", term: "برد",      label: "برد وزكام",      tint: kit.color.accentTint,  tone: kit.color.accentDeep },
-      { icon: "leaf-outline",        term: "حساسية",   label: "حساسية",         tint: kit.color.successTint, tone: kit.color.success    },
-      { icon: "sparkles-outline",    term: "بشرة",     label: "العناية بالبشرة", tint: kit.color.warnTint,    tone: kit.color.warn       },
-      { icon: "nutrition-outline",   term: "فيتامين",  label: "فيتامينات",      tint: kit.color.accentTint,  tone: kit.color.accentDeep },
-      { icon: "happy-outline",       term: "طفل",      label: "صحة الطفل",      tint: kit.color.warnTint,    tone: kit.color.warn       },
-    ]
-  : [
-      { icon: "bandage-outline",     term: "pain",     label: "Pain & fever",  tint: kit.color.dangerTint,  tone: kit.color.danger     },
-      { icon: "thermometer-outline", term: "cold",     label: "Cold & flu",    tint: kit.color.accentTint,  tone: kit.color.accentDeep },
-      { icon: "leaf-outline",        term: "allergy",  label: "Allergies",     tint: kit.color.successTint, tone: kit.color.success    },
-      { icon: "sparkles-outline",    term: "skin",     label: "Skincare",      tint: kit.color.warnTint,    tone: kit.color.warn       },
-      { icon: "nutrition-outline",   term: "vitamin",  label: "Vitamins",      tint: kit.color.accentTint,  tone: kit.color.accentDeep },
-      { icon: "happy-outline",       term: "baby",     label: "Baby care",     tint: kit.color.warnTint,    tone: kit.color.warn       },
-    ];
+// CONCERNS meta — label and term keys resolved via t() inside the component
+const CONCERN_META: Array<{
+  icon:      IoniconsName;
+  labelKey:  string;
+  termKey:   string;
+  tint:      string;
+  tone:      string;
+}> = [
+  { icon: "bandage-outline",     labelKey: "search.concernPain",    termKey: "search.concernTermPain",    tint: kit.color.dangerTint,  tone: kit.color.danger     },
+  { icon: "thermometer-outline", labelKey: "search.concernCold",    termKey: "search.concernTermCold",    tint: kit.color.accentTint,  tone: kit.color.accentDeep },
+  { icon: "leaf-outline",        labelKey: "search.concernAllergy", termKey: "search.concernTermAllergy", tint: kit.color.successTint, tone: kit.color.success    },
+  { icon: "sparkles-outline",    labelKey: "search.concernSkin",    termKey: "search.concernTermSkin",    tint: kit.color.warnTint,    tone: kit.color.warn       },
+  { icon: "nutrition-outline",   labelKey: "search.concernVitamin", termKey: "search.concernTermVitamin", tint: kit.color.accentTint,  tone: kit.color.accentDeep },
+  { icon: "happy-outline",       labelKey: "search.concernBaby",    termKey: "search.concernTermBaby",    tint: kit.color.warnTint,    tone: kit.color.warn       },
+];
 
 const TRENDING_META: { termKey: string; icon: IoniconsName; color: string }[] = [
   { termKey: "search.trending0", icon: "medkit",        color: kit.color.accentDeep },
@@ -539,7 +500,6 @@ export default function SearchScreen() {
   }, [router]);
   const goScanRx     = useCallback(() => router.push("/prescriptions/scan" as any), [router]);
   const goBrowseAll  = useCallback(() => router.push("/(tabs)/products"), [router]);
-  const goPharmacist = useCallback(() => router.push("/help/pharmacist" as any), [router]);
   const resetFilters = useCallback(() => {
     setSortBy("relevance"); setInStockOnly(false); setCatFilter(null);
     if (Platform.OS !== "web") Haptics.selectionAsync().catch(() => {});
@@ -569,8 +529,8 @@ export default function SearchScreen() {
   // Conversational greeting
   const greeting = useMemo(() => {
     const firstName = user?.name?.split(" ")?.[0];
-    return firstName ? COPY.greetUser(firstName) : COPY.greetGuest;
-  }, [user?.name]);
+    return firstName ? t("search.greetUser", { name: firstName }) : t("search.greetGuest");
+  }, [user?.name, t]);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // Render
@@ -595,9 +555,9 @@ export default function SearchScreen() {
           <View style={s.titleStack}>
             <UIText style={s.greet} numberOfLines={1}>{greeting}</UIText>
             <UIText style={s.displayTitle} accessibilityRole="header" numberOfLines={1}>
-              {COPY.displayTitle}
+              {t("search.displayTitle")}
             </UIText>
-            <UIText style={s.displaySub} numberOfLines={1}>{COPY.subtitleLine}</UIText>
+            <UIText style={s.displaySub} numberOfLines={1}>{t("search.subtitleLine")}</UIText>
           </View>
         )}
 
@@ -618,7 +578,7 @@ export default function SearchScreen() {
           <TextInput
             ref={inputRef}
             style={s.barInput}
-            placeholder={COPY.placeholder}
+            placeholder={t("search.placeholder")}
             placeholderTextColor={kit.color.inkFaint}
             value={query}
             onChangeText={(v) => { setQuery(v); setSelectedIdx(-1); }}
@@ -642,7 +602,7 @@ export default function SearchScreen() {
             autoCorrect={false}
             textAlign={INPUT_ALIGN}
             selectionColor={kit.color.accentDeep}
-            accessibilityLabel={COPY.placeholder}
+            accessibilityLabel={t("search.placeholder")}
           />
 
           {query.length > 0 && (
@@ -781,29 +741,23 @@ export default function SearchScreen() {
                   <View style={s.sectionIconDot}>
                     <Ionicons name="apps-outline" size={11} color={kit.color.accentDeep} />
                   </View>
-                  <UIText style={s.sectionLabel}>{COPY.modesEyebrow}</UIText>
+                  <UIText style={s.sectionLabel}>{t("search.modesEyebrow")}</UIText>
                 </View>
               </View>
 
               <View style={s.modeRow}>
                 <SearchModeCard
                   icon="scan-outline"
-                  label={COPY.modeScanLabel}
-                  sub={COPY.modeScanSub}
+                  label={t("search.modeScanLabel")}
+                  sub={t("search.modeScanSub")}
                   onPress={goScanRx}
                 />
                 <SearchModeCard
                   icon="grid-outline"
-                  label={COPY.modeBrowseLabel}
-                  sub={COPY.modeBrowseSub}
+                  label={t("search.modeBrowseLabel")}
+                  sub={t("search.modeBrowseSub")}
                   primary
                   onPress={goBrowseAll}
-                />
-                <SearchModeCard
-                  icon="chatbubbles-outline"
-                  label={COPY.modePharmaLabel}
-                  sub={COPY.modePharmaSub}
-                  onPress={goPharmacist}
                 />
               </View>
             </Animated.View>
@@ -847,19 +801,19 @@ export default function SearchScreen() {
                   <View style={[s.sectionIconDot, { backgroundColor: kit.color.dangerTint }]}>
                     <Ionicons name="medical-outline" size={11} color={kit.color.danger} />
                   </View>
-                  <UIText style={s.sectionLabel}>{COPY.concernsTitle}</UIText>
+                  <UIText style={s.sectionLabel}>{t("search.concernsTitle")}</UIText>
                 </View>
               </View>
 
               <View style={s.concernGrid}>
-                {CONCERNS.map((c) => (
+                {CONCERN_META.map((c) => (
                   <ConcernTile
-                    key={c.term}
+                    key={c.labelKey}
                     icon={c.icon}
-                    label={c.label}
+                    label={t(c.labelKey)}
                     tint={c.tint}
                     tone={c.tone}
-                    onPress={() => quickSearch(c.term)}
+                    onPress={() => quickSearch(t(c.termKey))}
                   />
                 ))}
               </View>

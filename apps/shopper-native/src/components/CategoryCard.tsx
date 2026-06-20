@@ -6,6 +6,7 @@ import Animated, {
   useSharedValue,
   withSpring,
 } from "react-native-reanimated";
+import { LinearGradient } from "expo-linear-gradient";
 
 import { Text as UIText }  from "../shared/ui/Text";
 import { theme }            from "../shared/theme";
@@ -17,17 +18,17 @@ import type { NativeCategory } from "../features/products/types";
 
 const IS_RTL = isRtl();
 
-const PALETTE: { accent: string; tint: string }[] = [
-  { accent: kit.color.accentDeep, tint: kit.color.accentTint  },
-  { accent: kit.color.warn,       tint: kit.color.warnTint     },
-  { accent: kit.color.success,    tint: kit.color.successTint  },
-  { accent: kit.color.danger,     tint: kit.color.dangerTint   },
-  { accent: "#7c3aed",            tint: "#f5f3ff"              },
-  { accent: "#0284c7",            tint: "#e0f2fe"              },
-  { accent: "#d97706",            tint: "#fffbeb"              },
-  { accent: "#16a34a",            tint: "#f0fdf4"              },
-  { accent: "#db2777",            tint: "#fdf2f8"              },
-  { accent: "#0ea5e9",            tint: "#f0f9ff"              },
+const PALETTE: { accent: string; tint: string; gradStart?: string; gradEnd?: string }[] = [
+  { accent: kit.color.accentDeep, tint: kit.color.accentTint, gradStart: "#667eea", gradEnd: "#764ba2" },
+  { accent: kit.color.warn,       tint: kit.color.warnTint, gradStart: "#f093fb", gradEnd: "#f5576c" },
+  { accent: kit.color.success,    tint: kit.color.successTint, gradStart: "#4facfe", gradEnd: "#00f2fe" },
+  { accent: kit.color.danger,     tint: kit.color.dangerTint, gradStart: "#fa709a", gradEnd: "#fee140" },
+  { accent: "#7c3aed",            tint: "#f5f3ff", gradStart: "#9b59b6", gradEnd: "#8e44ad" },
+  { accent: "#0284c7",            tint: "#e0f2fe", gradStart: "#2196F3", gradEnd: "#00BCD4" },
+  { accent: "#d97706",            tint: "#fffbeb", gradStart: "#FF6B6B", gradEnd: "#FFA500" },
+  { accent: "#16a34a",            tint: "#f0fdf4", gradStart: "#34A853", gradEnd: "#1abc9c" },
+  { accent: "#db2777",            tint: "#fdf2f8", gradStart: "#ec4899", gradEnd: "#f97316" },
+  { accent: "#0ea5e9",            tint: "#f0f9ff", gradStart: "#00d4ff", gradEnd: "#0099ff" },
 ];
 
 function paletteFor(idx: number) {
@@ -90,12 +91,19 @@ export const CategoryCard = memo(function CategoryCard({
   active = false,
 }: CategoryCardProps) {
   const scale     = useSharedValue(1);
-  const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+  const animStyle = useAnimatedStyle(() => ({ 
+    transform: [{ scale: scale.value }],
+  }));
 
-  const onPressIn  = useCallback(() => { scale.value = withSpring(0.95, SPRING_IN);  }, [scale]);
-  const onPressOut = useCallback(() => { scale.value = withSpring(1.0,  SPRING_OUT); }, [scale]);
+  const onPressIn  = useCallback(() => { 
+    scale.value = withSpring(0.95, SPRING_IN);
+  }, [scale]);
+  
+  const onPressOut = useCallback(() => { 
+    scale.value = withSpring(1.0, SPRING_OUT);
+  }, [scale]);
 
-  const { accent, tint } = paletteFor(gradientIdx);
+  const { accent, tint, gradStart, gradEnd } = paletteFor(gradientIdx);
   const displayName      = lang === "en" ? (category.nameEn || category.name) : category.name;
   const emoji            = emojiFor(category.name);
   const showCount        = category.count > 0;
@@ -108,28 +116,41 @@ export const CategoryCard = memo(function CategoryCard({
         onPress={onPress} onPressIn={onPressIn} onPressOut={onPressOut}
         accessibilityRole="button" accessibilityLabel={displayName} hitSlop={4}
       >
-        <Animated.View
-          style={[
-            cs.pill,
-            active && { backgroundColor: tint, borderColor: accent, borderWidth: 1.5 },
-            animStyle,
-          ]}
-        >
-          <View style={[cs.pillDot, { backgroundColor: active ? accent : tint }]}>
-            <UIText style={cs.pillEmoji}>{emoji}</UIText>
-          </View>
-
-          <UIText numberOfLines={1} style={[cs.pillLabel, active && { color: accent }]}>
-            {displayName}
-          </UIText>
-
-          {showCount && (
-            <View style={[cs.pillCount, { backgroundColor: active ? accent : tint }]}>
-              <UIText style={[cs.pillCountText, { color: active ? "#fff" : accent }]}>
-                {formatCount(category.count)}
-              </UIText>
+        <Animated.View style={[animStyle]}>
+          <LinearGradient
+            colors={active ? [accent, tint] : [gradStart || tint, tint]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={[
+              cs.pill,
+              active && { borderColor: accent, borderWidth: 1.5 },
+            ]}
+          >
+            <View style={[cs.pillDot, { 
+              backgroundColor: active ? accent : gradStart || accent,
+              borderColor: active ? tint : "rgba(255,255,255,0.2)"
+            }]}>
+              <UIText style={cs.pillEmoji}>{emoji}</UIText>
             </View>
-          )}
+
+            <UIText numberOfLines={1} style={[cs.pillLabel, active && { color: "#fff", fontWeight: "700" }]}>
+              {displayName}
+            </UIText>
+
+            {showCount && (
+              <View style={[cs.pillCount, { 
+                backgroundColor: active ? tint : gradEnd,
+                borderColor: "rgba(255,255,255,0.3)"
+              }]}>
+                <UIText style={[cs.pillCountText, { 
+                  color: active ? accent : "#fff",
+                  fontWeight: "700"
+                }]}>
+                  {formatCount(category.count)}
+                </UIText>
+              </View>
+            )}
+          </LinearGradient>
         </Animated.View>
       </Pressable>
     );
@@ -204,54 +225,62 @@ export const CategoryGridSkeleton = memo(function CategoryGridSkeleton() {
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
 const cs = StyleSheet.create({
-  // ── Pill
+  // ── Pill (Creative gradient category rail)
   pill: {
     flexDirection:     IS_RTL ? "row-reverse" : "row",
     alignItems:        "center",
-    gap:               8,
-    height:            44,
-    paddingHorizontal: 12,
-    backgroundColor:   kit.color.surface,
+    gap:               10,
+    height:            48,
+    paddingHorizontal: 14,
     borderRadius:      kit.radius.pill,
     borderWidth:       1,
-    borderColor:       kit.color.line,
+    borderColor:       "rgba(255,255,255,0.2)",
+    ...kit.shadow.soft,
   },
   pillDot: {
-    width:          28,
-    height:         28,
-    borderRadius:   14,
+    width:          32,
+    height:         32,
+    borderRadius:   16,
     alignItems:     "center",
     justifyContent: "center",
+    borderWidth:    1,
   },
   pillEmoji: {
-    fontSize:   14,
-    lineHeight: 18,
+    fontSize:   16,
+    lineHeight: 20,
   },
   pillLabel: {
     fontFamily:         theme.fonts.semibold,
     fontSize:           13,
-    lineHeight:         18,
-    color:              kit.color.inkSoft,
+    lineHeight:         19,
+    color:              kit.color.ink,
     textAlign:          IS_RTL ? "right" : "left",
     includeFontPadding: false,
-    maxWidth:           120,
+    maxWidth:           110,
+    fontWeight:         "600",
   },
   pillCount: {
-    paddingHorizontal: 7,
-    paddingVertical:   2,
+    paddingHorizontal: 8,
+    paddingVertical:   3,
     borderRadius:      kit.radius.pill,
+    minWidth:          26,
+    alignItems:        "center",
+    justifyContent:    "center",
+    borderWidth:       1,
   },
   pillCountText: {
     fontFamily:         theme.fonts.bold,
-    fontSize:           9,
-    lineHeight:         13,
+    fontSize:           10,
+    lineHeight:         14,
     includeFontPadding: false,
+    fontWeight:         "700",
   },
   pillSkeleton: {
-    width:           120,
-    height:          44,
+    width:           140,
+    height:          48,
     borderRadius:    kit.radius.pill,
     backgroundColor: kit.color.well,
+    ...kit.shadow.soft,
   },
 
   // ── Grid card

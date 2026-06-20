@@ -53,9 +53,6 @@ interface CatalogEntry extends GiftCatalogItem {
   inventory?: GiftInventory;
 }
 
-const FTXT = IS_RTL
-  ? { all: "الكل", affordable: "ضمن رصيدي", none: "لا توجد هدايا ضمن رصيدك الحالي" }
-  : { all: "All", affordable: "Within my points", none: "No gifts within your current balance" };
 
 function giftRemaining(gift: CatalogEntry): number | null {
   const inv = gift.inventory;
@@ -193,7 +190,7 @@ export function GiftCatalogScreen() {
         </View>
         <View style={{ flex: 1 }}>
           <UIText style={[s.eyebrow, { textAlign: TEXT_START }]}>
-            {IS_RTL ? "برنامج الولاء" : "Loyalty Program"}
+            {t("loyalty.giftLoyaltyProgram")}
           </UIText>
           <UIText style={[s.title, { textAlign: TEXT_START }]} accessibilityRole="header">
             {t("loyalty.giftCatalogTitle")}
@@ -264,7 +261,7 @@ export function GiftCatalogScreen() {
               <Ionicons name="gift-outline" size={13} color={kit.color.accentDeep} />
             </View>
             <UIText style={s.statValue}>{fmtN(availableCount)}</UIText>
-            <UIText style={s.statLabel}>{IS_RTL ? "هدايا متاحة" : "Available"}</UIText>
+            <UIText style={s.statLabel}>{t("loyalty.giftStatAvailable")}</UIText>
           </View>
           <View style={s.statCell}>
             <View style={[s.statIconWell, { backgroundColor: kit.color.warnTint }]}>
@@ -273,7 +270,7 @@ export function GiftCatalogScreen() {
             <UIText style={s.statValue}>
               {lowestCostValid !== null ? fmtN(lowestCostValid) : "—"}
             </UIText>
-            <UIText style={s.statLabel}>{IS_RTL ? "أقل تكلفة" : "Lowest cost"}</UIText>
+            <UIText style={s.statLabel}>{t("loyalty.giftStatLowest")}</UIText>
           </View>
         </View>
 
@@ -286,7 +283,7 @@ export function GiftCatalogScreen() {
               accessibilityState={{ selected: !affordableOnly }}
               style={[s.chip, !affordableOnly && s.chipActive]}>
               <UIText style={[s.chipText, !affordableOnly && s.chipTextActive]}>
-                {FTXT.all}
+                {t("loyalty.giftFilterAll")}
               </UIText>
             </Pressable>
             <Pressable
@@ -300,7 +297,7 @@ export function GiftCatalogScreen() {
                 color={affordableOnly ? kit.color.onInk : kit.color.accentDeep}
               />
               <UIText style={[s.chipText, affordableOnly && s.chipTextActive]}>
-                {FTXT.affordable}
+                {t("loyalty.giftFilterAffordable")}
               </UIText>
             </Pressable>
           </View>
@@ -320,7 +317,7 @@ export function GiftCatalogScreen() {
             <View style={s.emptyIcon}>
               <Ionicons name="star-outline" size={30} color={kit.color.inkFaint} />
             </View>
-            <UIText style={s.emptyText} maxFontSizeMultiplier={1.5}>{FTXT.none}</UIText>
+            <UIText style={s.emptyText} maxFontSizeMultiplier={1.5}>{t("loyalty.giftFilterNone")}</UIText>
           </View>
         ) : (
           <View style={[s.grid, { flexDirection: flexRow(IS_RTL) }]}>
@@ -381,7 +378,7 @@ function GiftCard({ gift, width, currentBalance, isRedeeming, onRedeem }: GiftCa
     ? t("loyalty.giftSoldOutPill")
     : lowStock
     ? t("loyalty.giftStockRemaining", { n: available })
-    : IS_RTL ? "متاح الآن" : "In stock";
+    : t("loyalty.giftInStock");
 
   const buttonLabel = isRedeeming
     ? t("loyalty.redeemLoading")

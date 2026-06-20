@@ -5,7 +5,7 @@
 
 import React from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
-import { Text as UIText } from "@/shared/ui";
+import { Text as UIText } from "./Text";
 import { theme } from "@/shared/theme";
 
 interface LoadingOverlayProps {

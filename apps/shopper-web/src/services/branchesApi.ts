@@ -5,14 +5,14 @@ export type ApiBranch = Branch;
 
 // ─── Real United Pharmacies branches (fallback when API is unreachable) ───────
 //
-// These are the actual 5 branches. Coordinates and names match
-// apps/shopper-native/src/features/delivery/branches/data.ts exactly.
+// Exactly the 5 branches from the official branch listing.
+// Coordinates and names match apps/shopper-native/src/features/delivery/branches/data.ts.
 
 const FALLBACK_BRANCHES: Branch[] = [
   {
     id:          "gardenia",
-    nameAr:      "صيدليات المتحدة - جاردينيا",
-    nameEn:      "United Pharmacies - Gardenia",
+    nameAr:      "صيدليات المتحدة - جاردينيا سيتي",
+    nameEn:      "United Pharmacies - Gardenia City",
     governorate: "Cairo",
     area:        "القاهرة الجديدة",
     lat:         30.0827,
@@ -21,8 +21,8 @@ const FALLBACK_BRANCHES: Branch[] = [
   },
   {
     id:          "maadi",
-    nameAr:      "صيدليات المتحدة - شارع فلسطين",
-    nameEn:      "United Pharmacies - Palestine Street",
+    nameAr:      "صيدليات المتحدة - المعادي",
+    nameEn:      "United Pharmacies - Maadi",
     governorate: "Cairo",
     area:        "المعادي",
     lat:         30.0146,
@@ -30,19 +30,19 @@ const FALLBACK_BRANCHES: Branch[] = [
     isActive:    true,
   },
   {
-    id:          "nasr-city-hay-asher",
-    nameAr:      "صيدليات المتحدة - الحي العاشر",
-    nameEn:      "United Pharmacies - Al Hay Al Asher",
+    id:          "masakin-dhabbat",
+    nameAr:      "صيدليات المتحدة - مساكن الظباط",
+    nameEn:      "United Pharmacies - Masakin Al-Dhubbat",
     governorate: "Cairo",
     area:        "مدينة نصر",
-    lat:         30.0485,
-    lng:         31.3533,
+    lat:         30.0520,
+    lng:         31.3550,
     isActive:    true,
   },
   {
-    id:          "zahraa-gomhoureya",
-    nameAr:      "صيدليات المتحدة - زهراء الجمهورية",
-    nameEn:      "United Pharmacies - Zahraa El Gomhoureya",
+    id:          "ismailia-14",
+    nameAr:      "صيدليات المتحدة - شارع الاسماعيليه ١٤",
+    nameEn:      "United Pharmacies - Ismailia St. No. 14",
     governorate: "Cairo",
     area:        "مدينة نصر",
     lat:         30.0650,
@@ -50,13 +50,13 @@ const FALLBACK_BRANCHES: Branch[] = [
     isActive:    true,
   },
   {
-    id:          "zahraa-madinet-nasr",
-    nameAr:      "صيدليات المتحدة - مدينة نصر",
-    nameEn:      "United Pharmacies - Nasr City",
+    id:          "ismailia-13",
+    nameAr:      "صيدليات المتحدة - شارع الاسماعيليه ١٣",
+    nameEn:      "United Pharmacies - Ismailia St. No. 13",
     governorate: "Cairo",
     area:        "مدينة نصر",
-    lat:         30.0520,
-    lng:         31.3550,
+    lat:         30.0655,
+    lng:         31.3785,
     isActive:    true,
   },
 ];

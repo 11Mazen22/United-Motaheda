@@ -1,11 +1,6 @@
 /**
  * SavingsStrip — Tier-3 supporting trust band.
  *
- * Replaces the old 4-cell TrustStrip with a single-line ranked statement.
- * Flat (no shadow), hairline border only, so it sits visually quieter than
- * any hero/primary card on the page. Used as the closing reassurance just
- * before the PharmacistCard.
- *
  *   ┌───────────────────────────────────────────────┐
  *   │ ✓ Genuine medicines      ✓ 30-min delivery   │
  *   │ ✓ Licensed pharmacists   ✓ Cold-chain logistics│
@@ -15,6 +10,7 @@
 import React, { memo } from "react";
 import { StyleSheet, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { Text as UIText } from "@/shared/ui";
 import { theme } from "@/shared/theme";
 import { kit } from "@/shared/kit";
@@ -25,32 +21,25 @@ const TEXT_START = textAlignStart(IS_RTL);
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>["name"];
 
-const TRUST_LINES: Array<{ icon: IoniconsName; ar: string; en: string }> = [
-  { icon: "shield-checkmark", ar: "أدوية أصلية ١٠٠٪",     en: "Genuine medicines"     },
-  { icon: "flash",            ar: "توصيل في ٣٠ دقيقة",    en: "30-min delivery"       },
-  { icon: "ribbon",           ar: "صيادلة معتمدون",       en: "Licensed pharmacists"  },
-  { icon: "snow",             ar: "شحن مبرّد للأدوية",    en: "Cold-chain logistics"  },
-];
+const TRUST_ICONS: IoniconsName[] = ["shield-checkmark", "flash", "ribbon", "snow"];
+const TRUST_KEYS = ["home.savingsLine1", "home.savingsLine2", "home.savingsLine3", "home.savingsLine4"] as const;
 
 export const SavingsStrip = memo(function SavingsStrip() {
+  const { t } = useTranslation();
   return (
     <View style={s.wrap}>
       <View style={s.eyebrowRow}>
         <Ionicons name="leaf-outline" size={12} color={kit.color.accentDeep} />
-        <UIText style={s.eyebrow}>
-          {IS_RTL ? "وعدنا لك" : "Our promise"}
-        </UIText>
+        <UIText style={s.eyebrow}>{t("home.savingsPromise")}</UIText>
       </View>
 
       <View style={s.grid}>
-        {TRUST_LINES.map((line, i) => (
-          <View key={i} style={s.cell}>
+        {TRUST_KEYS.map((key, i) => (
+          <View key={key} style={s.cell}>
             <View style={s.iconWrap}>
-              <Ionicons name={line.icon} size={14} color={kit.color.accentDeep} />
+              <Ionicons name={TRUST_ICONS[i]} size={14} color={kit.color.accentDeep} />
             </View>
-            <UIText style={s.label} numberOfLines={1}>
-              {IS_RTL ? line.ar : line.en}
-            </UIText>
+            <UIText style={s.label} numberOfLines={1}>{t(key)}</UIText>
           </View>
         ))}
       </View>

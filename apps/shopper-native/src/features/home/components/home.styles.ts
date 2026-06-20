@@ -83,42 +83,52 @@ export const shStyles = StyleSheet.create({
   },
 });
 
-// ─── Countdown styles (FlashSaleSection) ─────────────────────────────────────
+// ─── Countdown styles (FlashSaleSection with creative animations) ─────────────────
 
 export const cntStyles = StyleSheet.create({
   timerRow: {
     flexDirection: "row",
     alignItems:    "center",
-    gap:           4,
+    gap:           8,
   },
   colon: {
-    color:      kit.color.inkFaint,
-    fontSize:   16,
+    color:      "#ff6b6b",
+    fontSize:   18,
     fontFamily: theme.fonts.black,
-    marginBottom: 12,   // aligns colon with the digit cells
+    marginBottom: 14,
+    fontWeight: "700",
   },
   unit: {
     alignItems: "center",
-    gap:        3,
+    gap:        4,
   },
   cell: {
     borderRadius:      10,
-    paddingHorizontal: 9,
-    paddingVertical:   6,
-    minWidth:          36,
+    paddingHorizontal: 12,
+    paddingVertical:   8,
+    minWidth:          44,
     alignItems:        "center",
-    backgroundColor:   kit.color.ink,
+    justifyContent:    "center",
+    borderWidth:       0,
+    shadowColor:       "#ff6b6b",
+    shadowOffset:      { width: 0, height: 0 },
+    shadowOpacity:     0.3,
+    shadowRadius:      8,
+    elevation:         6,
   },
   value: {
-    color:              kit.color.onInk,
-    fontSize:           14,
-    lineHeight:         20,
+    color:              "#fff",
+    fontSize:           16,
+    lineHeight:         22,
     fontFamily:         theme.fonts.black,
     includeFontPadding: false,
+    fontWeight:         "700",
   },
   unitLabel: {
-    color:    kit.color.inkFaint,
-    fontSize: 9.5,
+    color:    "#ff6b6b",
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 0.3,
   },
 });
 
@@ -126,11 +136,19 @@ export const cntStyles = StyleSheet.create({
 
 export const flashStyles = StyleSheet.create({
   itemWrap: {
-    width:     162,
+    width:     166,
     marginEnd: 12,
   },
   sectionGap: {
-    gap: kit.sp(4),   // 16 px
+    gap: kit.sp(5),
+  },
+  railContainer: {
+    overflow: "hidden",
+    borderRadius: kit.radius.lg,
+  },
+  railContent: {
+    paddingHorizontal: theme.layout.pagePaddingH,
+    paddingVertical: 4,
   },
 });
 

@@ -1,25 +1,10 @@
-/**
- * FlashSaleSection — PROTECTED performance-optimised flash-sale rail.
- *
- * ⚠️  DO NOT change the memoization strategy, CountdownDisplay isolation,
- *     FlashList usage, or stable-callback pattern here.
- *     These were deliberately engineered to prevent the 1-second countdown
- *     tick from re-rendering the product list.
- *
- * Architecture:
- *   • CountdownDisplay is isolated in its own memo so setInterval only
- *     re-renders the timer subtree, never FlashSaleSection or ProductCard.
- *   • FlashSaleItem wraps ProductCard with a stable per-item onPress so
- *     ProductCard.memo's comparator sees no prop changes between renders.
- *   • FlashList (not FlatList) for recycled layout on the horizontal rail.
- */
-
 import React, { memo, useCallback } from "react";
 import { Platform, Pressable, StyleSheet, View } from "react-native";
 import { FlashList } from "@shopify/flash-list";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useTranslation } from "react-i18next";
+import { LinearGradient } from "expo-linear-gradient";
 import { Text as UIText } from "@/shared/ui";
 import { theme } from "@/shared/theme";
 import { flexRow, isRtl, FORWARD_CHEVRON } from "@/utils/layout";
@@ -40,9 +25,14 @@ const CountdownUnit = memo(function CountdownUnit({
 }: { value: string; label: string }) {
   return (
     <View style={cs.unit}>
-      <View style={cs.cell}>
+      <LinearGradient
+        colors={["#ff6b6b", "#ff0000"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={cs.cell}
+      >
         <UIText style={cs.value}>{value}</UIText>
-      </View>
+      </LinearGradient>
       <UIText variant="eyebrow" color="tertiary" style={cs.unitLabel}>{label}</UIText>
     </View>
   );
@@ -54,11 +44,11 @@ const CountdownDisplay = memo(function CountdownDisplay() {
   const { h, m, s } = useEndOfDayCountdown();
   return (
     <View style={cs.timerRow}>
-      <CountdownUnit value={s} label={t("home.flashSec")} />
+      <CountdownUnit value={h} label={t("home.flashHrs")} />
       <UIText style={cs.colon}>:</UIText>
       <CountdownUnit value={m} label={t("home.flashMin")} />
       <UIText style={cs.colon}>:</UIText>
-      <CountdownUnit value={h} label={t("home.flashHrs")} />
+      <CountdownUnit value={s} label={t("home.flashSec")} />
     </View>
   );
 });
@@ -92,31 +82,34 @@ const FlashSaleItem = memo(function FlashSaleItem({
 const va = StyleSheet.create({
   wrap: {
     paddingHorizontal: theme.layout.pagePaddingH,
-    paddingTop:        10,
+    paddingTop:        8,
+    paddingBottom:     6,
   },
   btn: {
     borderRadius: kit.radius.pill,
     overflow:     "hidden",
   },
   btnPressed: {
-    opacity: 0.85,
+    opacity: 0.9,
+    transform: [{ scale: 0.97 }],
   },
   btnInner: {
     flexDirection:   flexRow(isRtl()),
     alignItems:      "center",
     justifyContent:  "center",
-    gap:             8,
-    height:          46,
+    gap:             10,
+    height:          52,
     borderRadius:    kit.radius.pill,
-    backgroundColor: kit.color.surface,
-    borderWidth:     1,
-    borderColor:     kit.color.line,
+    paddingHorizontal: 20,
   },
   text: {
-    fontFamily: theme.fonts.black,
-    fontSize: 13, lineHeight: 19,
-    color: kit.color.ink,
+    fontFamily: theme.fonts.bold,
+    fontSize: 14, 
+    lineHeight: 21,
+    color: "#fff",
     includeFontPadding: false,
+    fontWeight: "700",
+    letterSpacing: 0.5,
   },
 });
 
@@ -153,8 +146,7 @@ export const FlashSaleSection = memo(function FlashSaleSection({
 
   return (
     <View style={fs.sectionGap}>
-      {/* Header: countdown fills the rightSlot; "See All" is a separate
-          button below so both elements are always visible.                */}
+      {/* Header: countdown displays prominently; "See All" is a separate button */}
       <HomeSectionHeader
         eyebrow={t("home.flashEnds")}
         title={t("home.flashTitle")}
@@ -163,28 +155,35 @@ export const FlashSaleSection = memo(function FlashSaleSection({
         rightSlot={<CountdownDisplay />}
       />
 
-      {/* Horizontal product rail */}
-      <FlashList
-        data={items}
-        keyExtractor={(p) => p.id}
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: theme.layout.pagePaddingH }}
-        renderItem={renderFlashItem}
-      />
+      {/* Horizontal product rail with professional spacing */}
+      <View style={fs.railContainer}>
+        <FlashList
+          data={items}
+          keyExtractor={(p) => p.id}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={fs.railContent}
+          renderItem={renderFlashItem}
+        />
+      </View>
 
-      {/* ── "View All Deals" CTA — outlined, brand-accented, never destructive ── */}
+      {/* ── "View All Deals" CTA — animated gradient button ── */}
       {onViewAll && (
         <View style={va.wrap}>
           <Pressable
             onPress={handleViewAll}
             accessibilityRole="button"
             style={({ pressed }) => [va.btn, pressed && va.btnPressed]}>
-            <View style={va.btnInner}>
-              <Ionicons name="flame" size={15} color={kit.color.danger} />
+            <LinearGradient
+              colors={["#ff6b6b", "#ff0000", "#cc0000"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={va.btnInner}
+            >
+              <Ionicons name="flash" size={18} color="#fff" />
               <UIText style={va.text}>{t("home.viewAll")}</UIText>
-              <Ionicons name={FORWARD_CHEVRON} size={15} color={kit.color.inkSoft} />
-            </View>
+              <Ionicons name={FORWARD_CHEVRON} size={18} color="#fff" />
+            </LinearGradient>
           </Pressable>
         </View>
       )}

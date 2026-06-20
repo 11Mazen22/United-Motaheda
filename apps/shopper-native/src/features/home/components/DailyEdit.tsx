@@ -23,6 +23,7 @@ import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { Text as UIText } from "@/shared/ui";
 import { theme } from "@/shared/theme";
 import { kit } from "@/shared/kit";
@@ -143,6 +144,7 @@ const EditorialHeroCard = memo(function EditorialHeroCard({
   lang,
   onPress,
 }: EditorialHeroCardProps) {
+  const { t }       = useTranslation();
   const displayName = lang === "ar" ? (product.nameAr ?? product.name) : (product.name ?? product.nameAr);
   const category    = product.categoryName ?? "";
   const isSale      = Boolean(product.isSale);
@@ -177,7 +179,7 @@ const EditorialHeroCard = memo(function EditorialHeroCard({
         {(isSale || isNew) && (
           <View style={[s.heroBadge, { backgroundColor: isSale ? kit.color.danger : kit.color.accentDeep }]}>
             <UIText style={s.heroBadgeText}>
-              {isSale ? (IS_RTL ? "تخفيض" : "Sale") : (IS_RTL ? "جديد" : "New")}
+              {isSale ? t("common.sale") : t("common.new")}
             </UIText>
           </View>
         )}

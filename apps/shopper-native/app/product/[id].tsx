@@ -1,9 +1,12 @@
 import React, { useState, useCallback, useEffect } from "react";
 import {
+  Dimensions,
   NativeScrollEvent,
   NativeSyntheticEvent,
+  Platform,
   Pressable,
   ScrollView,
+  Share,
   StyleSheet,
   View,
 } from "react-native";
@@ -44,19 +47,19 @@ import { kit, Button as KitButton } from "@/shared/kit";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const IS_RTL = isRtl();
+const IS_RTL     = isRtl();
+const SCREEN_W   = Dimensions.get("window").width;
+// Distance the Back button travels to reach the opposite edge on scroll
+// (screen width - start padding 16 - end padding 16 - button width 44)
+const NAV_TRAVEL = SCREEN_W - 76;
 
 // Trust-first principle: 4 pharmacy-specific confidence signals shown
 // BEFORE the product name — safety before purchase, always.
-const TRUST_ITEMS: {
-  icon: React.ComponentProps<typeof Ionicons>["name"];
-  title: string;
-  sub: string;
-}[] = [
-  { icon: "shield-checkmark-outline", title: "أصالة مضمونة",    sub: "مُدرج في قائمة الأدوية المعتمدة"   },
-  { icon: "thermometer-outline",      title: "حفظ مُتحكَّم به",  sub: "حفظ وفق معايير السلسلة الباردة"   },
-  { icon: "medal-outline",            title: "مُرخَّص رسمياً",   sub: "معتمد من هيئة الدواء المصرية"     },
-  { icon: "storefront-outline",       title: "موزع معتمد",       sub: "مباشرة من الموزع الرسمي المعتمد" },
+const TRUST_ICONS: React.ComponentProps<typeof Ionicons>["name"][] = [
+  "shield-checkmark-outline",
+  "thermometer-outline",
+  "medal-outline",
+  "storefront-outline",
 ];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -135,6 +138,8 @@ export default function ProductDetailScreen() {
   const hrtScale   = useSharedValue(1);
   const btnScale   = useSharedValue(1);
   const headerOpac = useSharedValue(0);
+  // Nav button scroll-aware animation: 0 = top state, 1 = scrolled state
+  const navProgress = useSharedValue(0);
 
   // Halo breathes — slow sine cycle, extremely restrained (±6%)
   useEffect(() => {
@@ -178,9 +183,23 @@ export default function ProductDetailScreen() {
   }));
 
   const sealAnim  = useAnimatedStyle(() => ({ transform: [{ scale: sealScale.value }] }));
-  const hrtAnim   = useAnimatedStyle(() => ({ transform: [{ scale: hrtScale.value }] }));
   const btnAnim   = useAnimatedStyle(() => ({ transform: [{ scale: btnScale.value }] }));
   const stickyHdr = useAnimatedStyle(() => ({ opacity: headerOpac.value }));
+
+  // Back button slides to the opposite edge on scroll (RTL: right→left, LTR: left→right)
+  const backNavAnim = useAnimatedStyle(() => ({
+    transform: [{
+      translateX: interpolate(navProgress.value, [0, 1], [0, IS_RTL ? NAV_TRAVEL : -NAV_TRAVEL]),
+    }],
+  }));
+
+  // Favorite slides up to fill Back's vacated spot, while its heart-beat scale is preserved
+  const hrtAnim = useAnimatedStyle(() => ({
+    transform: [
+      { scale:      hrtScale.value },
+      { translateY: interpolate(navProgress.value, [0, 1], [0, -(44 + 10)]) },
+    ],
+  }));
 
   // ── Data ───────────────────────────────────────────────────────────────────
 
@@ -220,7 +239,12 @@ export default function ProductDetailScreen() {
     if (headerOpac.value !== target) {
       headerOpac.value = withTiming(target, { duration: 180 });
     }
-  }, [headerOpac, scrollY]);
+    // Nav buttons animate after a small scroll (80px) — spring for natural feel
+    const navTarget = y > 80 ? 1 : 0;
+    if (navProgress.value !== navTarget) {
+      navProgress.value = withSpring(navTarget, { damping: 16, stiffness: 120 });
+    }
+  }, [headerOpac, navProgress, scrollY]);
 
   const handleAdd = useCallback(() => {
     if (!product) return;
@@ -266,6 +290,18 @@ export default function ProductDetailScreen() {
     setProfile((v) => !v);
   }, []);
 
+  const handleShare = useCallback(async () => {
+    if (!product) return;
+    const name = product.nameAr ?? product.name;
+    try {
+      await Share.share(
+        Platform.OS === "android"
+          ? { message: `${name} — ${t("product.shareText", { name })}` }
+          : { title: name, message: t("product.shareText", { name }) },
+      );
+    } catch {}
+  }, [product, t]);
+
   // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
@@ -307,32 +343,44 @@ export default function ProductDetailScreen() {
 
       {/* ── Floating action buttons ── */}
       <View style={[fab.stack, { top: insets.top + 12 }]}>
-        <Pressable
-          onPress={() => router.back()}
-          accessibilityRole="button"
-          accessibilityLabel={t("common.back")}
-          style={({ pressed }) => [fab.btn, pressed && fab.btnPressed]}>
-          <Ionicons name={BACK_CHEVRON} size={18} color="#fff" />
-        </Pressable>
+        <Animated.View style={backNavAnim}>
+          <Pressable
+            onPress={() => router.back()}
+            accessibilityRole="button"
+            accessibilityLabel={t("common.back")}
+            style={({ pressed }) => [fab.btn, pressed && fab.btnPressed]}>
+            <Ionicons name={BACK_CHEVRON} size={18} color="#fff" />
+          </Pressable>
+        </Animated.View>
 
         {product && (
-          <Animated.View style={hrtAnim}>
+          <>
+            <Animated.View style={hrtAnim}>
+              <Pressable
+                onPress={handleWishlist}
+                accessibilityRole="button"
+                accessibilityLabel={inWishlist ? t("product.removeFromWishlist") : t("product.addToWishlist")}
+                style={({ pressed }) => [
+                  fab.btn,
+                  inWishlist && fab.btnWishlistActive,
+                  pressed && fab.btnPressed,
+                ]}>
+                <Ionicons
+                  name={inWishlist ? "heart" : "heart-outline"}
+                  size={18}
+                  color={inWishlist ? "#F87171" : "#fff"}
+                />
+              </Pressable>
+            </Animated.View>
+
             <Pressable
-              onPress={handleWishlist}
+              onPress={handleShare}
               accessibilityRole="button"
-              accessibilityLabel={inWishlist ? t("product.removeFromWishlist") : t("product.addToWishlist")}
-              style={({ pressed }) => [
-                fab.btn,
-                inWishlist && fab.btnWishlistActive,
-                pressed && fab.btnPressed,
-              ]}>
-              <Ionicons
-                name={inWishlist ? "heart" : "heart-outline"}
-                size={18}
-                color={inWishlist ? "#F87171" : "#fff"}
-              />
+              accessibilityLabel={t("product.shareProduct")}
+              style={({ pressed }) => [fab.btn, pressed && fab.btnPressed]}>
+              <Ionicons name="share-outline" size={18} color="#fff" />
             </Pressable>
-          </Animated.View>
+          </>
         )}
       </View>
 
@@ -387,7 +435,7 @@ export default function ProductDetailScreen() {
                   entering={FadeIn.duration(400).delay(220).springify().damping(18)}
                   style={[stage.seal, sealAnim]}>
                   <Ionicons name="shield-checkmark" size={12} color={kit.color.accentDeep} />
-                  <UIText style={stage.sealText}>مُدرج ومعتمد</UIText>
+                  <UIText style={stage.sealText}>{t("product.sealVerified")}</UIText>
                 </Animated.View>
               )}
             </>
@@ -418,37 +466,27 @@ export default function ProductDetailScreen() {
                 entering={FadeInDown.duration(400).delay(100).springify().damping(22)}
                 style={trust.card}>
                 <View style={[trust.row, { flexDirection: flexRow(IS_RTL) }]}>
-                  <View style={[trust.cell, trust.cellDivider]}>
-                    <View style={trust.iconCircle}>
-                      <Ionicons name={TRUST_ITEMS[0].icon} size={17} color={kit.color.accentDeep} />
+                  {([0, 1] as const).map((i) => (
+                    <View key={i} style={[trust.cell, i === 0 && trust.cellDivider]}>
+                      <View style={trust.iconCircle}>
+                        <Ionicons name={TRUST_ICONS[i]} size={17} color={kit.color.accentDeep} />
+                      </View>
+                      <UIText style={trust.cellTitle}>{t(`product.trust${i}Title`)}</UIText>
+                      <UIText style={trust.cellSub}>{t(`product.trust${i}Sub`)}</UIText>
                     </View>
-                    <UIText style={trust.cellTitle}>{TRUST_ITEMS[0].title}</UIText>
-                    <UIText style={trust.cellSub}>{TRUST_ITEMS[0].sub}</UIText>
-                  </View>
-                  <View style={trust.cell}>
-                    <View style={trust.iconCircle}>
-                      <Ionicons name={TRUST_ITEMS[1].icon} size={17} color={kit.color.accentDeep} />
-                    </View>
-                    <UIText style={trust.cellTitle}>{TRUST_ITEMS[1].title}</UIText>
-                    <UIText style={trust.cellSub}>{TRUST_ITEMS[1].sub}</UIText>
-                  </View>
+                  ))}
                 </View>
                 <View style={trust.rowDivider} />
                 <View style={[trust.row, { flexDirection: flexRow(IS_RTL) }]}>
-                  <View style={[trust.cell, trust.cellDivider]}>
-                    <View style={trust.iconCircle}>
-                      <Ionicons name={TRUST_ITEMS[2].icon} size={17} color={kit.color.accentDeep} />
+                  {([2, 3] as const).map((i) => (
+                    <View key={i} style={[trust.cell, i === 2 && trust.cellDivider]}>
+                      <View style={trust.iconCircle}>
+                        <Ionicons name={TRUST_ICONS[i]} size={17} color={kit.color.accentDeep} />
+                      </View>
+                      <UIText style={trust.cellTitle}>{t(`product.trust${i}Title`)}</UIText>
+                      <UIText style={trust.cellSub}>{t(`product.trust${i}Sub`)}</UIText>
                     </View>
-                    <UIText style={trust.cellTitle}>{TRUST_ITEMS[2].title}</UIText>
-                    <UIText style={trust.cellSub}>{TRUST_ITEMS[2].sub}</UIText>
-                  </View>
-                  <View style={trust.cell}>
-                    <View style={trust.iconCircle}>
-                      <Ionicons name={TRUST_ITEMS[3].icon} size={17} color={kit.color.accentDeep} />
-                    </View>
-                    <UIText style={trust.cellTitle}>{TRUST_ITEMS[3].title}</UIText>
-                    <UIText style={trust.cellSub}>{TRUST_ITEMS[3].sub}</UIText>
-                  </View>
+                  ))}
                 </View>
               </Animated.View>
 
@@ -514,7 +552,7 @@ export default function ProductDetailScreen() {
 
                   {/* Precision quantity stepper */}
                   <View style={{ gap: 5, alignItems: "center" }}>
-                    <UIText style={action.stepperLabel}>الكمية</UIText>
+                    <UIText style={action.stepperLabel}>{t("product.quantityLabel")}</UIText>
                     <View style={[action.stepper, { flexDirection: flexRow(IS_RTL) }]}>
                       <Pressable
                         onPress={handleIncrement}
@@ -550,10 +588,10 @@ export default function ProductDetailScreen() {
                 <View style={[action.confidence, { flexDirection: flexRow(IS_RTL) }]}>
                   <Ionicons name="storefront-outline" size={11} color={kit.color.inkFaint} />
                   <UIText style={action.confidenceText}>
-                    سعر موحد بجميع فروع الصيدلية المتحدة
+                    {t("product.confidencePrice")}
                   </UIText>
                   <View style={action.confidenceDot} />
-                  <UIText style={action.confidenceText}>شامل الضريبة</UIText>
+                  <UIText style={action.confidenceText}>{t("product.confidenceTax")}</UIText>
                 </View>
               </Animated.View>
 
@@ -579,7 +617,7 @@ export default function ProductDetailScreen() {
                   </View>
                   <View style={{ gap: 2, flex: 1 }}>
                     <UIText style={clin.eyebrow}>{t("product.detailsEyebrow")}</UIText>
-                    <UIText style={clin.title}>الملف الصيدلاني</UIText>
+                    <UIText style={clin.title}>{t("product.clinProfileTitle")}</UIText>
                   </View>
                 </View>
 
@@ -587,7 +625,7 @@ export default function ProductDetailScreen() {
                 <View style={[clin.attestation, { flexDirection: flexRow(IS_RTL) }]}>
                   <View style={clin.attestationDot} />
                   <UIText style={clin.attestationText}>
-                    تم التحقق من هذا المنتج بواسطة فريق الصيدليين المعتمدين
+                    {t("product.clinAttestation")}
                   </UIText>
                 </View>
 
@@ -610,7 +648,7 @@ export default function ProductDetailScreen() {
                   onPress={handleProfileToggle}
                   style={[clin.expandBtn, { flexDirection: flexRow(IS_RTL) }]}>
                   <UIText style={clin.expandText}>
-                    {profileExpanded ? "طيّ الملف" : "عرض الملف الكامل"}
+                    {profileExpanded ? t("product.clinCollapse") : t("product.clinExpandAll")}
                   </UIText>
                   <Ionicons
                     name={profileExpanded ? "chevron-up-outline" : "chevron-down-outline"}
@@ -636,10 +674,10 @@ export default function ProductDetailScreen() {
                       <Ionicons name="person-circle-outline" size={18} color={kit.color.accentDeep} />
                     </View>
                     <View style={{ flex: 1 }}>
-                      <UIText style={rel.eyebrow}>يُنصح به الصيدلاني</UIText>
-                      <UIText style={rel.title}>كثيراً ما يُوصف مع هذا المنتج</UIText>
+                      <UIText style={rel.eyebrow}>{t("product.pharmacistPick")}</UIText>
+                      <UIText style={rel.title}>{t("product.pharmacistPickSub")}</UIText>
                     </View>
-                    <UIText style={rel.count}>{relatedProducts.length} منتجات</UIText>
+                    <UIText style={rel.count}>{t("product.pharmacistPickCount", { count: relatedProducts.length })}</UIText>
                   </View>
                   <ScrollView
                     horizontal

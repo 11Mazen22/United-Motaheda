@@ -34,6 +34,7 @@ import Animated, {
   withRepeat,
   withTiming,
 } from "react-native-reanimated";
+import { useTranslation } from "react-i18next";
 import { Text as UIText } from "@/shared/ui";
 import { theme } from "@/shared/theme";
 import { kit } from "@/shared/kit";
@@ -42,60 +43,26 @@ import { useLoyaltyBalance } from "@/features/loyalty/hooks/useLoyaltyBalance";
 import { useAuth } from "@/features/auth";
 import { useOrders } from "@/features/orders/hooks/useOrders";
 import { usePrescriptions } from "@/features/prescriptions/hooks/usePrescriptions";
+import type { TFunction } from "i18next";
 
 const IS_RTL     = isRtl();
 const TEXT_START = textAlignStart(IS_RTL);
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>["name"];
 
-// ─── Bilingual copy (module-level for stable refs) ───────────────────────────
-
-const COPY = IS_RTL
-  ? {
-      welcomeMorning: "صباح الخير",
-      welcomeDay:     "أهلاً بك",
-      welcomeEvening: "مساء الخير",
-      guestName:      "زائر",
-      activeOrder:    "طلب قيد التوصيل",
-      readyRx:        "وصفة جاهزة",
-      points:         "نقطة",
-      noActivity:     "كل شيء على ما يُرام اليوم",
-      guestPitch:     "أصالة · توصيل ٣٠ دقيقة · صيدلي ٢٤/٧",
-      scanRx:         "مسح وصفة",
-      deals:          "العروض",
-      pharmacist:     "صيدلي",
-      sealLabel:      "موثّق",
-    }
-  : {
-      welcomeMorning: "Good morning",
-      welcomeDay:     "Welcome",
-      welcomeEvening: "Good evening",
-      guestName:      "Guest",
-      activeOrder:    "Order on the way",
-      readyRx:        "Rx ready",
-      points:         "pts",
-      noActivity:     "You're all caught up",
-      guestPitch:     "Genuine · 30-min delivery · 24/7 pharmacist",
-      scanRx:         "Scan Rx",
-      deals:          "Deals",
-      pharmacist:     "Pharmacist",
-      sealLabel:      "Verified",
-    };
-
-function greetingFor(now: Date): string {
+function greetingFor(now: Date, t: TFunction): string {
   const h = now.getHours();
-  if (h >= 5 && h < 12)  return COPY.welcomeMorning;
-  if (h >= 12 && h < 18) return COPY.welcomeDay;
-  return COPY.welcomeEvening;
+  if (h >= 5 && h < 12)  return t("home.heroMorning");
+  if (h >= 12 && h < 18) return t("home.heroDay");
+  return t("home.heroEvening");
 }
 
 // ─── Props ───────────────────────────────────────────────────────────────────
 
 interface HomeHeroProps {
-  onScanRx:     () => void;
-  onDeals:      () => void;
-  onPharmacist: () => void;
-  onLoyalty?:   () => void;
+  onScanRx:   () => void;
+  onDeals:    () => void;
+  onLoyalty?: () => void;
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
@@ -103,9 +70,9 @@ interface HomeHeroProps {
 export const HomeHero = memo(function HomeHero({
   onScanRx,
   onDeals,
-  onPharmacist,
   onLoyalty,
 }: HomeHeroProps) {
+  const { t } = useTranslation();
   const reduced = useReducedMotion() ?? false;
   const { user } = useAuth();
   const isAuthed = Boolean(user);
@@ -147,19 +114,19 @@ export const HomeHero = memo(function HomeHero({
   const haloStyle = useAnimatedStyle(() => ({ opacity: halo.value }));
 
   // ── Greeting ─────────────────────────────────────────────────────────────
-  const greeting = useMemo(() => greetingFor(new Date()), []);
-  const displayName = (userName ?? "").split(" ")[0] || COPY.guestName;
+  const greeting = useMemo(() => greetingFor(new Date(), t), [t]);
+  const displayName = (userName ?? "").split(" ")[0] || t("home.heroGuestDefault");
 
   // ── Status row content ───────────────────────────────────────────────────
   const statusItems = useMemo(() => {
     if (!isAuthed) {
-      return [{ kind: "guest" as const, label: COPY.guestPitch }];
+      return [{ kind: "guest" as const, label: t("home.heroGuestPitch") }];
     }
     const items: Array<{ kind: "order" | "rx" | "points" | "calm"; label: string; icon: IoniconsName; tone: string }> = [];
     if (activeOrders > 0) {
       items.push({
         kind: "order",
-        label: `${activeOrders} ${COPY.activeOrder}`,
+        label: `${activeOrders} ${t("home.heroOrderActive")}`,
         icon: "cube-outline",
         tone: kit.color.success,
       });
@@ -167,7 +134,7 @@ export const HomeHero = memo(function HomeHero({
     if (readyRx > 0) {
       items.push({
         kind: "rx",
-        label: `${readyRx} ${COPY.readyRx}`,
+        label: `${readyRx} ${t("home.heroRxReady")}`,
         icon: "medkit-outline",
         tone: kit.color.warn,
       });
@@ -175,7 +142,7 @@ export const HomeHero = memo(function HomeHero({
     if (loyalty?.balance != null && loyalty.balance > 0) {
       items.push({
         kind: "points",
-        label: `${loyalty.balance.toLocaleString()} ${COPY.points}`,
+        label: `${loyalty.balance.toLocaleString()} ${t("home.heroPoints")}`,
         icon: "sparkles",
         tone: kit.color.accentDeep,
       });
@@ -183,13 +150,15 @@ export const HomeHero = memo(function HomeHero({
     if (items.length === 0) {
       items.push({
         kind: "calm",
-        label: COPY.noActivity,
+        label: t("home.heroCalmMsg"),
         icon: "checkmark-circle-outline",
         tone: kit.color.accentDeep,
       });
     }
     return items;
-  }, [isAuthed, activeOrders, readyRx, loyalty?.balance]);
+  }, [isAuthed, activeOrders, readyRx, loyalty?.balance, t]);
+
+  const sealLabel = t("home.heroSealLabel");
 
   return (
     <View style={s.wrap}>
@@ -211,13 +180,13 @@ export const HomeHero = memo(function HomeHero({
           <Pressable
             onPress={isAuthed && onLoyalty ? onLoyalty : undefined}
             accessibilityRole={isAuthed && onLoyalty ? "button" : undefined}
-            accessibilityLabel={COPY.sealLabel}
+            accessibilityLabel={sealLabel}
             style={s.sealWrap}>
             <Animated.View style={[s.sealHalo, haloStyle]} pointerEvents="none" />
             <View style={s.sealInner}>
               <Ionicons name="shield-checkmark" size={22} color={kit.color.accentDeep} />
             </View>
-            <UIText style={s.sealLabel}>{COPY.sealLabel}</UIText>
+            <UIText style={s.sealLabel}>{sealLabel}</UIText>
           </Pressable>
         </View>
 
@@ -253,19 +222,14 @@ export const HomeHero = memo(function HomeHero({
         <View style={s.chipRow}>
           <HeroChip
             icon="scan-outline"
-            label={COPY.scanRx}
+            label={t("home.heroScanRx")}
             primary
             onPress={onScanRx}
           />
           <HeroChip
-            icon="pricetag-outline"
-            label={COPY.deals}
+            icon="compass-outline"
+            label={t("home.heroExplore")}
             onPress={onDeals}
-          />
-          <HeroChip
-            icon="chatbubbles-outline"
-            label={COPY.pharmacist}
-            onPress={onPharmacist}
           />
         </View>
       </View>

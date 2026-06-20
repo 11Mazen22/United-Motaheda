@@ -191,7 +191,7 @@ function ProductsDesktop() {
   // `useCatalog()` is used ONLY for the category sidebar list.
   // The category data is cached in localStorage (30-min TTL) so this is fast.
   // We no longer use it to get products — that comes from useInfiniteProducts below.
-  const { categories, isLoading: isCatalogLoading } = useCatalog();
+  const { categories } = useCatalog();
 
   const { searchQuery, setSearchQuery } = useSearchInput();
 
@@ -456,7 +456,7 @@ function ProductsDesktop() {
                 </p>
                 <p className="mt-2 text-sm text-rose-600">{error}</p>
               </div>
-            ) : showInitialSkeleton || isCatalogLoading ? (
+            ) : showInitialSkeleton ? (
               /* ── Initial skeleton grid ── */
               <CatalogSkeletonGrid count={8} />
             ) : products.length > 0 ? (

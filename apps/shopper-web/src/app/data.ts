@@ -47,6 +47,8 @@ export const siteContact = {
   whatsappHref: "201112343212",
   email: "united.pharmacy.eg@gmail.com",
   whatsappUrl: "https://wa.me/201112343212?text=مرحباً،%20أود%20الاستفسار%20عن%20منتج",
+  mainBranchAr: "جاردينيا سيتي - محل B1 مول CITY WALK",
+  mainBranchEn: "Gardenia City - Shop B1, City Walk Mall",
 } as const;
 
 export const siteSocials = [
@@ -58,9 +60,15 @@ export const siteSocials = [
 
 const sharedBranchHoursAr = getServiceHoursSentence("ar");
 const sharedBranchHoursEn = getServiceHoursSentence("en");
-const supportLine = "01012255595";
-const whatsappSupportLine = "01112343212";
-const zahraaLine = "01090530095";
+
+// Branch phone numbers — taken from the official branch listing photo
+const gardeniaPhone  = "01012255595";
+const maadiPhone     = "01061128400";
+const dhabbatPhone1  = "01226898995";
+const dhabbatPhone2  = "01090530095";
+const ismailia14Phone = "01201967825";
+const ismailia13Phone = "01090530095";
+const whatsappLine   = "01112343212";
 
 const buildBranchDirectionsUrl = (lat: number, lng: number) =>
   `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${lat},${lng}`)}`;
@@ -91,13 +99,13 @@ export type SiteLocation = {
 export const locations = [
   {
     id: "gardenia",
-    nameAr: "القاهرة",
-    nameEn: "Cairo",
-    fullNameAr: "صيدليات المتحدة - القاهرة",
-    fullNameEn: "United Pharmacies - Cairo",
-    addressAr: "القاهرة، مصر",
-    addressEn: "Cairo, Egypt",
-    phones: [supportLine, whatsappSupportLine],
+    nameAr: "جاردينيا سيتي",
+    nameEn: "Gardenia City",
+    fullNameAr: "صيدليات المتحدة - جاردينيا سيتي",
+    fullNameEn: "United Pharmacies - Gardenia City",
+    addressAr: "محل B1 مول CITY WALK كومباوند جاردينيا سيتي",
+    addressEn: "Shop B1, City Walk Mall, Gardenia City Compound",
+    phones: [gardeniaPhone, whatsappLine],
     hoursAr: sharedBranchHoursAr,
     hoursEn: sharedBranchHoursEn,
     mapsDirectionsUrl: buildBranchDirectionsUrl(30.0827, 31.3853),
@@ -107,20 +115,20 @@ export const locations = [
     mapZoom: 16,
     isPrimary: true,
     governorate: "Cairo",
-    area: "القاهرة",
+    area: "القاهرة الجديدة",
     deliveryEnabled: true,
     mapEmbedSrc:
       "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3452.31!2d31.3853!3d30.0827!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMzDCsDA0JzU3LjciTiAzMcKwMjMnMDcuMSJF!5e0!3m2!1sen!2seg!4v1",
   },
   {
     id: "maadi",
-    nameAr: "شارع فلسطين",
-    nameEn: "Palestine Street",
-    fullNameAr: "صيدليات المتحدة - شارع فلسطين",
-    fullNameEn: "United Pharmacies - Palestine Street",
-    addressAr: "١ شارع فلسطين، البساتين الشرقية، المعادي، القاهرة",
-    addressEn: "1 Palestine Rd, El-Basatin Sharkeya, Maadi, Cairo",
-    phones: [supportLine, whatsappSupportLine],
+    nameAr: "المعادي",
+    nameEn: "Maadi",
+    fullNameAr: "صيدليات المتحدة - المعادي",
+    fullNameEn: "United Pharmacies - Maadi",
+    addressAr: "ش فلسطين، بندر مول، المعادي، القاهرة",
+    addressEn: "Palestine St., Bandar Mall, Maadi, Cairo",
+    phones: [maadiPhone, whatsappLine],
     hoursAr: sharedBranchHoursAr,
     hoursEn: sharedBranchHoursEn,
     mapsDirectionsUrl: buildBranchDirectionsUrl(30.0146, 31.2824),
@@ -136,37 +144,37 @@ export const locations = [
       "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3454.8!2d31.2824!3d30.0146!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMzDCsDAwJzUyLjYiTiAzMcKwMTYnNTYuNiJF!5e0!3m2!1sen!2seg!4v1",
   },
   {
-    id: "nasr-city-hay-asher",
-    nameAr: "الحي العاشر",
-    nameEn: "Al Hay Al Asher",
-    fullNameAr: "صيدليات المتحدة - الحي العاشر",
-    fullNameEn: "United Pharmacies - Al Hay Al Asher",
-    addressAr: "الحي العاشر، مدينة نصر، القاهرة",
-    addressEn: "Al Hay Al Asher, Nasr City, Cairo",
-    phones: [zahraaLine, whatsappSupportLine],
+    id: "masakin-dhabbat",
+    nameAr: "مساكن الظباط",
+    nameEn: "Masakin Al-Dhubbat",
+    fullNameAr: "صيدليات المتحدة - مساكن الظباط",
+    fullNameEn: "United Pharmacies - Masakin Al-Dhubbat",
+    addressAr: "عمارة 336 شارع فاطمة الزهراء متفرع من الميثاق",
+    addressEn: "Building 336, Fatima Al-Zahraa St., off Al-Mithaq St.",
+    phones: [dhabbatPhone1, dhabbatPhone2],
     hoursAr: sharedBranchHoursAr,
     hoursEn: sharedBranchHoursEn,
-    mapsDirectionsUrl: buildBranchDirectionsUrl(30.0485, 31.3533),
-    mapQuery: "30.0485,31.3533",
-    lat: 30.0485,
-    lng: 31.3533,
+    mapsDirectionsUrl: buildBranchDirectionsUrl(30.0520, 31.3550),
+    mapQuery: "30.0520,31.3550",
+    lat: 30.0520,
+    lng: 31.3550,
     mapZoom: 17,
     isPrimary: false,
     governorate: "Cairo",
     area: "مدينة نصر",
     deliveryEnabled: true,
     mapEmbedSrc:
-      "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3453.5!2d31.3533!3d30.0485!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMzDCsDAyJzU0LjYiTiAzMcKwMjEnMTEuOSJF!5e0!3m2!1sen!2seg!4v1",
+      "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3453.3!2d31.3550!3d30.0520!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMzDCsDAzJzA3LjIiTiAzMcKwMjEnMTguMCJF!5e0!3m2!1sen!2seg!4v1",
   },
   {
-    id: "zahraa-gomhoureya",
-    nameAr: "شارع الجمهورية",
-    nameEn: "El Gomhoureya St.",
-    fullNameAr: "صيدليات المتحدة - زهراء الجمهورية",
-    fullNameEn: "United Pharmacies - Zahraa El Gomhoureya",
-    addressAr: "شارع الجمهورية ع١٤، زهراء مدينة نصر، القاهرة",
-    addressEn: "El Gomhoureya St. #14, Zahraa Nasr City, Cairo",
-    phones: [zahraaLine, whatsappSupportLine],
+    id: "ismailia-14",
+    nameAr: "شارع الاسماعيليه - ١٤",
+    nameEn: "Ismailia St. – No. 14",
+    fullNameAr: "صيدليات المتحدة - شارع الاسماعيليه ١٤",
+    fullNameEn: "United Pharmacies - Ismailia St. No. 14",
+    addressAr: "١٤ ش الأسماعيلية متفرع من شارع الميثاق، زهراء مدينة نصر",
+    addressEn: "14 Ismailia St., off Al-Mithaq St., Zahraa Nasr City",
+    phones: [ismailia14Phone, whatsappLine],
     hoursAr: sharedBranchHoursAr,
     hoursEn: sharedBranchHoursEn,
     mapsDirectionsUrl: buildBranchDirectionsUrl(30.0650, 31.3780),
@@ -182,27 +190,27 @@ export const locations = [
       "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3452.9!2d31.3780!3d30.0650!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMzDCsDAzJzU0LjAiTiAzMcKwMjInNDAuOCJF!5e0!3m2!1sen!2seg!4v1",
   },
   {
-    id: "zahraa-madinet-nasr",
-    nameAr: "طريق فاطمة الزهراء",
-    nameEn: "Fatma El-Zahraa Rd.",
-    fullNameAr: "صيدليات المتحدة - مدينة نصر",
-    fullNameEn: "United Pharmacies - Nasr City",
-    addressAr: "طريق فاطمة الزهراء، الحي العاشر، مدينة نصر، القاهرة",
-    addressEn: "Fatma El-Zahraa Rd, Al Hay Al Asher, Nasr City, Cairo",
-    phones: [zahraaLine, whatsappSupportLine],
+    id: "ismailia-13",
+    nameAr: "شارع الاسماعيليه - ١٣",
+    nameEn: "Ismailia St. – No. 13",
+    fullNameAr: "صيدليات المتحدة - شارع الاسماعيليه ١٣",
+    fullNameEn: "United Pharmacies - Ismailia St. No. 13",
+    addressAr: "١٣ ش الأسماعيلية متفرع من شارع الميثاق، زهراء مدينة نصر",
+    addressEn: "13 Ismailia St., off Al-Mithaq St., Zahraa Nasr City",
+    phones: [ismailia13Phone, whatsappLine],
     hoursAr: sharedBranchHoursAr,
     hoursEn: sharedBranchHoursEn,
-    mapsDirectionsUrl: buildBranchDirectionsUrl(30.0520, 31.3550),
-    mapQuery: "30.0520,31.3550",
-    lat: 30.0520,
-    lng: 31.3550,
-    mapZoom: 17,
+    mapsDirectionsUrl: buildBranchDirectionsUrl(30.0655, 31.3785),
+    mapQuery: "30.0655,31.3785",
+    lat: 30.0655,
+    lng: 31.3785,
+    mapZoom: 16,
     isPrimary: false,
     governorate: "Cairo",
     area: "مدينة نصر",
     deliveryEnabled: true,
     mapEmbedSrc:
-      "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3453.3!2d31.3550!3d30.0520!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMzDCsDAzJzA3LjIiTiAzMcKwMjEnMTguMCJF!5e0!3m2!1sen!2seg!4v1",
+      "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3452.9!2d31.3785!3d30.0655!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMzDCsDAzJzU1LjgiTiAzMcKwMjInNDIuNiJF!5e0!3m2!1sen!2seg!4v1",
   },
 ] satisfies readonly SiteLocation[];
 

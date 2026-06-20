@@ -42,6 +42,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { Text as UIText } from "@/shared/ui";
+import { useTranslation } from "react-i18next";
 import { AppLogo } from "@/shared/components/AppLogo";
 import { PressableScale } from "@/shared/motion";
 import { theme } from "@/shared/theme";
@@ -78,6 +79,7 @@ export function SplashOverlay(): React.ReactElement | null {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function SplashSequenceView({ onExited }: { onExited: () => void }): React.ReactElement {
+  const { t }   = useTranslation();
   const reduced = useReducedMotion();
 
   const seq = useSplashSequence({
@@ -233,7 +235,7 @@ function SplashSequenceView({ onExited }: { onExited: () => void }): React.React
               <View style={styles.brandLine} />
             </View>
             <UIText variant="caption" style={styles.brandSub}>
-              {IS_RTL ? "متجر أدويتك الموثوق" : "Your trusted pharmacy"}
+              {t("splash.tagline")}
             </UIText>
           </Animated.View>
 
@@ -249,12 +251,12 @@ function SplashSequenceView({ onExited }: { onExited: () => void }): React.React
               scaleTo={0.93}
               hitSlop={12}
               accessibilityRole="button"
-              accessibilityLabel={IS_RTL ? "تخطّي المقدمة" : "Skip intro"}
-              accessibilityHint={IS_RTL ? "ينهي فيديو البداية ويفتح التطبيق" : "Ends the intro video and opens the app"}
+              accessibilityLabel={t("splash.skipLabel")}
+              accessibilityHint={t("splash.skipHint")}
               style={styles.skipBtn}>
               <View style={styles.skipInner}>
                 <UIText weight="bold" style={styles.skipText} numberOfLines={1}>
-                  {IS_RTL ? "تخطّي" : "Skip"}
+                  {t("splash.skip")}
                 </UIText>
                 <Ionicons name="close" size={13} color="rgba(255,255,255,0.58)" />
               </View>

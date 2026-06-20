@@ -32,25 +32,6 @@ const IS_RTL     = isRtl();
 const TEXT_START = textAlignStart(IS_RTL);
 const FWD        = IS_RTL ? "chevron-back" : "chevron-forward";
 
-// Component-local bilingual copy (same inline pattern as SplashOverlay) — keeps
-// the new surface self-contained without a locale-file migration.
-const TXT = IS_RTL
-  ? {
-      title: "اليوم", needsYou: "ما يحتاج انتباهك", viewAll: "الكل",
-      onTheWay: "طلبك قيد التنفيذ", track: "تتبّع",
-      ready: "جاهز للاستلام", needsRefill: "يحتاج تجديد", nextRefill: "التجديد التالي",
-      refill: "تجديد", view: "عرض",
-      allGood: "كل شيء على ما يُرام", allGoodSub: "لا توجد طلبات قيد التوصيل أو تجديدات مطلوبة",
-      items: (n: number) => `${n} منتج`,
-    }
-  : {
-      title: "Today", needsYou: "Needs your attention", viewAll: "All",
-      onTheWay: "Your order is on the way", track: "Track",
-      ready: "Ready", needsRefill: "Needs refill", nextRefill: "Next refill",
-      refill: "Refill", view: "View",
-      allGood: "You're all caught up", allGoodSub: "No deliveries in progress and no refills due",
-      items: (n: number) => `${n} item${n === 1 ? "" : "s"}`,
-    };
 
 // ── tone → kit color (order status pill) ──
 function toneColor(tone: OrderTone): { fg: string; bg: string } {
@@ -110,10 +91,10 @@ export const TodayCare = memo(function TodayCare(): React.ReactElement | null {
   return (
     <View style={s.wrap}>
       <View style={s.header}>
-        <UIText style={s.title}>{TXT.title}</UIText>
+        <UIText style={s.title}>{t("home.todayTitle")}</UIText>
         {needsYou.length > 0 && (
           <PressableScale onPress={openMeds} scaleTo={0.96} hitSlop={8} accessibilityRole="button" style={s.viewAll}>
-            <UIText style={s.viewAllText}>{TXT.viewAll}</UIText>
+            <UIText style={s.viewAllText}>{t("home.todayViewAll")}</UIText>
             <Ionicons name={FWD} size={13} color={kit.color.accentDeep} />
           </PressableScale>
         )}
@@ -146,24 +127,24 @@ const OrderNowCard = memo(function OrderNowCard({
       onPress={handle}
       scaleTo={0.985}
       accessibilityRole="button"
-      accessibilityLabel={`${TXT.onTheWay} — ${view.label}`}
+      accessibilityLabel={`${t("home.todayOnTheWay")} — ${view.label}`}
       style={s.card}>
       <View style={[s.iconTile, { backgroundColor: c.bg }]}>
         <Ionicons name={view.icon} size={22} color={c.fg} />
       </View>
       <View style={s.cardBody}>
-        <UIText numberOfLines={1} style={s.cardTitle}>{TXT.onTheWay}</UIText>
+        <UIText numberOfLines={1} style={s.cardTitle}>{t("home.todayOnTheWay")}</UIText>
         <View style={s.metaRow}>
           <View style={[s.pill, { backgroundColor: c.bg }]}>
             <UIText style={[s.pillText, { color: c.fg }]}>{view.label}</UIText>
           </View>
           <UIText numberOfLines={1} style={s.metaText}>
-            {TXT.items(order.items.length)} · {order.total} {IS_RTL ? "ج.م" : "EGP"}
+            {t("home.todayItems", { count: order.items.length })} · {order.total} {IS_RTL ? "ج.م" : "EGP"}
           </UIText>
         </View>
       </View>
       <View style={s.cta}>
-        <UIText style={s.ctaText}>{TXT.track}</UIText>
+        <UIText style={s.ctaText}>{t("home.todayTrack")}</UIText>
         <Ionicons name={FWD} size={14} color={kit.color.accentDeep} />
       </View>
     </PressableScale>
@@ -177,6 +158,7 @@ const RxNeedCard = memo(function RxNeedCard({
   rx:      Prescription;
   onPress: (id: string) => void;
 }) {
+  const { t }  = useTranslation();
   const ready  = rx.status === "ready";
   const fg     = ready ? kit.color.success : kit.color.warn;
   const bg     = ready ? kit.color.successTint : kit.color.warnTint;
@@ -186,7 +168,7 @@ const RxNeedCard = memo(function RxNeedCard({
       onPress={handle}
       scaleTo={0.985}
       accessibilityRole="button"
-      accessibilityLabel={`${rx.name} — ${ready ? TXT.ready : TXT.needsRefill}`}
+      accessibilityLabel={`${rx.name} — ${ready ? t("home.todayReady") : t("home.todayNeedsRefill")}`}
       style={s.card}>
       <View style={[s.iconTile, { backgroundColor: bg }]}>
         <Ionicons name={ready ? "checkmark-circle" : "medkit"} size={22} color={fg} />
@@ -195,13 +177,13 @@ const RxNeedCard = memo(function RxNeedCard({
         <UIText numberOfLines={1} style={s.cardTitle}>{rx.name}</UIText>
         <View style={s.metaRow}>
           <View style={[s.pill, { backgroundColor: bg }]}>
-            <UIText style={[s.pillText, { color: fg }]}>{ready ? TXT.ready : TXT.needsRefill}</UIText>
+            <UIText style={[s.pillText, { color: fg }]}>{ready ? t("home.todayReady") : t("home.todayNeedsRefill")}</UIText>
           </View>
           <UIText numberOfLines={1} style={s.metaText}>{rx.dose}</UIText>
         </View>
       </View>
       <View style={s.cta}>
-        <UIText style={s.ctaText}>{ready ? TXT.view : TXT.refill}</UIText>
+        <UIText style={s.ctaText}>{ready ? t("home.todayView") : t("home.todayRefill")}</UIText>
         <Ionicons name={FWD} size={14} color={kit.color.accentDeep} />
       </View>
     </PressableScale>
@@ -210,14 +192,15 @@ const RxNeedCard = memo(function RxNeedCard({
 
 // ── Calm all-clear state (authed, nothing pending) ──
 const AllGood = memo(function AllGood() {
+  const { t } = useTranslation();
   return (
     <View style={[s.card, s.allGood]}>
       <View style={[s.iconTile, { backgroundColor: kit.color.accentTint }]}>
         <Ionicons name="shield-checkmark" size={22} color={kit.color.accentDeep} />
       </View>
       <View style={s.cardBody}>
-        <UIText numberOfLines={1} style={s.cardTitle}>{TXT.allGood}</UIText>
-        <UIText numberOfLines={2} style={s.allGoodSub}>{TXT.allGoodSub}</UIText>
+        <UIText numberOfLines={1} style={s.cardTitle}>{t("home.todayAllGood")}</UIText>
+        <UIText numberOfLines={2} style={s.allGoodSub}>{t("home.todayAllGoodSub")}</UIText>
       </View>
     </View>
   );

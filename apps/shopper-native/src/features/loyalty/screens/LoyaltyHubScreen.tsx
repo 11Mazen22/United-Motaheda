@@ -20,6 +20,7 @@ import {
   StyleSheet,
   View,
 } from "react-native";
+
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -50,8 +51,6 @@ type IoniconsName = React.ComponentProps<typeof Ionicons>["name"];
 
 const IS_RTL     = isRtl();
 const TEXT_START = textAlignStart(IS_RTL);
-
-const REDEEM_TITLE = IS_RTL ? "استبدل نقاطك" : "Redeem your points";
 
 // ─── Props ─────────────────────────────────────────────────────────────────────
 
@@ -231,7 +230,7 @@ export function LoyaltyHubScreen({
   );
 }
 
-// ─── RewardActions — promoted reward-discovery grid (kit) ──────────────────────
+// ─── RewardActions — promoted reward-discovery grid ────────────────────────────
 
 function RewardActions({
   onGifts, onCoupons, onWallet, onHistory,
@@ -242,32 +241,47 @@ function RewardActions({
   onHistory?: () => void;
 }) {
   const { t } = useTranslation();
-  const items: { icon: IoniconsName; label: string; onPress: () => void }[] = [
-    onGifts   && { icon: "gift-outline"      as IoniconsName, label: t("loyalty.destGifts"),   onPress: onGifts },
-    onCoupons && { icon: "pricetags-outline" as IoniconsName, label: t("loyalty.destCoupons"), onPress: onCoupons },
-    onWallet  && { icon: "wallet-outline"    as IoniconsName, label: t("loyalty.destWallet"),  onPress: onWallet },
-    onHistory && { icon: "time-outline"      as IoniconsName, label: t("loyalty.destHistory"), onPress: onHistory },
-  ].filter(Boolean) as { icon: IoniconsName; label: string; onPress: () => void }[];
+
+  type ActionItem = {
+    icon:    IoniconsName;
+    label:   string;
+    sub:     string;
+    color:   string;
+    onPress: () => void;
+  };
+
+  const items: ActionItem[] = (
+    [
+      onGifts   && { icon: "gift-outline"      as IoniconsName, label: t("loyalty.destGifts"),   sub: t("loyalty.destGiftsSub"),   color: kit.color.accent,   onPress: onGifts   },
+      onCoupons && { icon: "pricetags-outline" as IoniconsName, label: t("loyalty.destCoupons"), sub: t("loyalty.destCouponsSub"), color: kit.color.warn,     onPress: onCoupons },
+      onWallet  && { icon: "wallet-outline"    as IoniconsName, label: t("loyalty.destWallet"),  sub: t("loyalty.destWalletSub"),  color: kit.color.success,  onPress: onWallet  },
+      onHistory && { icon: "time-outline"      as IoniconsName, label: t("loyalty.destHistory"), sub: t("loyalty.destHistorySub"), color: kit.color.inkSoft,  onPress: onHistory },
+    ] as (ActionItem | false)[]
+  ).filter(Boolean) as ActionItem[];
 
   if (items.length === 0) return null;
 
   return (
     <View style={s.section}>
-      <UIText style={s.sectionTitle}>{REDEEM_TITLE}</UIText>
+      <UIText style={s.sectionTitle}>{t("loyalty.redeemTitle")}</UIText>
       <View style={s.grid}>
         {items.map((it) => (
-          <PressableScale
-            key={it.label}
-            onPress={it.onPress}
-            scaleTo={0.96}
-            accessibilityRole="button"
-            accessibilityLabel={it.label}
-            style={s.actionCard}>
-            <View style={s.actionIcon}>
-              <Ionicons name={it.icon} size={22} color={kit.color.accentDeep} />
-            </View>
-            <UIText numberOfLines={1} style={s.actionLabel}>{it.label}</UIText>
-          </PressableScale>
+          <View key={it.label} style={s.actionOuter}>
+            <PressableScale
+              onPress={it.onPress}
+              scaleTo={0.96}
+              accessibilityRole="button"
+              accessibilityLabel={it.label}
+              style={s.actionCard}>
+              <View style={[s.actionIcon, { backgroundColor: it.color + "18" }]}>
+                <Ionicons name={it.icon} size={22} color={it.color} />
+              </View>
+              <View style={s.actionTextWrap}>
+                <UIText numberOfLines={1} style={s.actionLabel}>{it.label}</UIText>
+                <UIText numberOfLines={1} style={s.actionSub}>{it.sub}</UIText>
+              </View>
+            </PressableScale>
+          </View>
         ))}
       </View>
     </View>
@@ -355,8 +369,9 @@ const s = StyleSheet.create({
     textAlign: TEXT_START, includeFontPadding: false,
   },
   grid: { flexDirection: flexRow(IS_RTL), flexWrap: "wrap", gap: 10 },
+  actionOuter: { width: "47.8%", flexGrow: 1 },
   actionCard: {
-    width: "47.8%", flexGrow: 1,
+    width: "100%",
     flexDirection: flexRow(IS_RTL), alignItems: "center", gap: 12,
     paddingVertical: kit.sp(3), paddingHorizontal: kit.sp(3),
     backgroundColor: kit.color.surface, borderRadius: kit.radius.card,
@@ -364,10 +379,15 @@ const s = StyleSheet.create({
   },
   actionIcon: {
     width: 40, height: 40, borderRadius: 12,
-    alignItems: "center", justifyContent: "center", backgroundColor: kit.color.accentTint,
+    alignItems: "center", justifyContent: "center", flexShrink: 0,
   },
+  actionTextWrap: { flex: 1, gap: 2, minWidth: 0 },
   actionLabel: {
-    flex: 1, fontFamily: theme.fonts.bold, fontSize: 13, color: kit.color.ink,
+    fontFamily: theme.fonts.black, fontSize: 13, color: kit.color.ink,
+    textAlign: TEXT_START, includeFontPadding: false,
+  },
+  actionSub: {
+    fontFamily: theme.fonts.regular, fontSize: 11, color: kit.color.inkFaint,
     textAlign: TEXT_START, includeFontPadding: false,
   },
 

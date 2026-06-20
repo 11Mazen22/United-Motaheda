@@ -75,7 +75,8 @@
         {
           "photosPermission": "نحتاج الوصول إلى الصور لرفع إيصال التحويل عند الدفع بفودافون كاش أو إنستاباي."
         }
-      ]
+      ],
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true

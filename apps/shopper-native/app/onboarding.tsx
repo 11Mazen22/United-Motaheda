@@ -1,28 +1,16 @@
 /**
- * Onboarding — 2026 VIP rebuild on the @/shared/kit design language.
+ * Onboarding — 2026 premium brand launch experience.
  *
- * Architecture (full-bleed pages):
- *   • Each slide: tinted visual STAGE (top ~55%) with a large ink-tone tile,
- *     two floating satellite chips, and a metric stat pill — then a white
- *     SHEET PANEL below with start-aligned editorial type.
- *   • Chrome (fixed): brand row + custom skip chip (top); segmented progress
- *     bar + circular ink FAB that expands on the final slide (bottom).
- *   • No LinearGradient (banned per design policy).
+ * Architecture: horizontal FlatList pager, each page = colored stage + white panel.
+ * Fixed chrome: brand bar top · segment+FAB bottom.
  *
- * VIP changes from previous build:
- *   • Tile: 128→140px, radius 38→42, white border + deep shadow
- *   • Stage: adds inner glow circle + second satellite chip per slide
- *   • Skip: custom surface chip with close icon instead of ghost text button
- *   • Panel title: 26→28px
- *   • Step counter: coloured dot prefix using slide tone
- *   • Segment height: 5→6px
- *   • FAB on last slide: deeper shadow
- *
- * Functional core preserved exactly:
- *   • Active index via onViewableItemsChanged + RTL_ANDROID inversion.
- *   • pagerOffset for programmatic scrollToOffset navigation.
- *   • Completion → AsyncStorage[ONBOARDING_KEY] → router.replace("/(tabs)").
- *   • Reduced-motion: springs collapse to instant states.
+ * Improvements over prior version:
+ *  • Dual counter-rotating ambient rings for depth
+ *  • Panel slides up on activation (translateY spring)
+ *  • Eyebrow label per slide (colored, uppercase)
+ *  • Feature pills row (2 per slide) from i18n featureX keys
+ *  • includeFontPadding:false + explicit lineHeight on every text style
+ *  • Slightly larger hero tile (148px) + refined satellite positions
  */
 
 import React, { memo, useCallback, useEffect, useRef, useState } from "react";
@@ -40,11 +28,13 @@ import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, {
+  Easing,
   FadeIn,
   FadeInDown,
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
+  withRepeat,
   withSpring,
   withTiming,
 } from "react-native-reanimated";
@@ -56,76 +46,132 @@ import { Text as UIText } from "@/shared/ui";
 import { theme } from "@/shared/theme";
 import { ONBOARDING_KEY } from "@/lib/onboardingKey";
 import { flexRow, isRtl, textAlignStart, FORWARD_CHEVRON } from "@/utils/layout";
-import { pagerOffset, PressableScale, RTL_ANDROID } from "@/shared/motion";
+import { PressableScale } from "@/shared/motion";
 import { kit } from "@/shared/kit";
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>["name"];
 
-const IS_RTL     = isRtl();
+const IS_RTL    = isRtl();
 const TEXT_START = textAlignStart(IS_RTL);
 
-// ─── Slide model ──────────────────────────────────────────────────────────────
+// ─── Slide data ───────────────────────────────────────────────────────────────
 
 interface Slide {
-  id:             number;
-  titleKey:       string;
-  bodyKey:        string;
-  metricValue:    string;
-  metricLabelKey: string;
-  icon:           IoniconsName;
-  satIcon:        IoniconsName;
-  satIcon2:       IoniconsName;
-  tone:           string;
-  tint:           string;
+  id:              number;
+  eyebrowKey:      string;
+  titleKey:        string;
+  bodyKey:         string;
+  metricValue:     string;
+  metricLabelKey:  string;
+  features:        [string, string];
+  icon:            IoniconsName;
+  satIcon:         IoniconsName;
+  satIcon2:        IoniconsName;
+  tone:            string;
+  tint:            string;
 }
 
 const SLIDES: Slide[] = [
   {
-    id: 1,
+    id:             1,
+    eyebrowKey:     "onboarding.slide1Eyebrow",
     titleKey:       "onboarding.slide1Title",
     bodyKey:        "onboarding.slide1Body",
     metricValue:    "52k+",
     metricLabelKey: "onboarding.metricProducts",
-    icon:     "medkit",
-    satIcon:  "sparkles",
-    satIcon2: "bag-handle-outline",
-    tone:     "#0E7E74",
-    tint:     "#E2F1EE",
+    features:       ["onboarding.featureGenuine", "onboarding.featureSupport"],
+    icon:           "medkit",
+    satIcon:        "sparkles",
+    satIcon2:       "bag-handle-outline",
+    tone:           "#0E7E74",
+    tint:           "#E2F1EE",
   },
   {
-    id: 2,
+    id:             2,
+    eyebrowKey:     "onboarding.slide2Eyebrow",
     titleKey:       "onboarding.slide2Title",
     bodyKey:        "onboarding.slide2Body",
     metricValue:    "30–60",
     metricLabelKey: "onboarding.metricDelivery",
-    icon:     "flash",
-    satIcon:  "time",
-    satIcon2: "navigate-outline",
-    tone:     "#2358D6",
-    tint:     "#E9EFFC",
+    features:       ["onboarding.featureFastDelivery", "onboarding.featureEasyPayment"],
+    icon:           "flash",
+    satIcon:        "time",
+    satIcon2:       "navigate-outline",
+    tone:           "#2358D6",
+    tint:           "#E9EFFC",
   },
   {
-    id: 3,
+    id:             3,
+    eyebrowKey:     "onboarding.slide3Eyebrow",
     titleKey:       "onboarding.slide3Title",
     bodyKey:        "onboarding.slide3Body",
     metricValue:    "100%",
     metricLabelKey: "onboarding.metricQuality",
-    icon:     "shield-checkmark",
-    satIcon:  "ribbon",
-    satIcon2: "checkmark-done-outline",
-    tone:     "#15803D",
-    tint:     "#E7F3EA",
+    features:       ["onboarding.featureSecureOrders", "onboarding.featureEasyReorder"],
+    icon:           "shield-checkmark",
+    satIcon:        "ribbon",
+    satIcon2:       "checkmark-done-outline",
+    tone:           "#15803D",
+    tint:           "#E7F3EA",
   },
 ];
 
 const SLIDE_COUNT = SLIDES.length;
 const LAST_INDEX  = SLIDE_COUNT - 1;
 
-// ─── SlidePage ────────────────────────────────────────────────────────────────
+// ─── Ambient rings (two counter-rotating for visual depth) ────────────────────
+
+const AmbientRings = memo(function AmbientRings({
+  reduced,
+  tone,
+}: { reduced: boolean; tone: string }) {
+  const r1 = useSharedValue(0);
+  const r2 = useSharedValue(0);
+
+  useEffect(() => {
+    if (reduced) return;
+    r1.value = withRepeat(
+      withTiming(360,  { duration: 22000, easing: Easing.linear }),
+      -1, false,
+    );
+    r2.value = withRepeat(
+      withTiming(-360, { duration: 34000, easing: Easing.linear }),
+      -1, false,
+    );
+  }, [reduced, r1, r2]);
+
+  const s1 = useAnimatedStyle(() => ({ transform: [{ rotate: `${r1.value}deg` }] }));
+  const s2 = useAnimatedStyle(() => ({ transform: [{ rotate: `${r2.value}deg` }] }));
+
+  return (
+    <>
+      <Animated.View style={[page.ring1, { borderColor: tone + "30" }, s1]} />
+      <Animated.View style={[page.ring2, { borderColor: tone + "1A" }, s2]} />
+    </>
+  );
+});
+
+// ─── Feature pill ─────────────────────────────────────────────────────────────
+
+const FeaturePill = memo(function FeaturePill({
+  label,
+  tone,
+}: { label: string; tone: string }) {
+  return (
+    <View style={[
+      page.featurePill,
+      { borderColor: tone + "38", backgroundColor: tone + "10" },
+    ]}>
+      <Ionicons name="checkmark-circle" size={13} color={tone} />
+      <UIText style={[page.featurePillText, { color: tone }]}>{label}</UIText>
+    </View>
+  );
+});
+
+// ─── Individual slide ─────────────────────────────────────────────────────────
 
 const SlidePage = memo(function SlidePage({
   slide,
-  index,
   width,
   reduced,
   isActive,
@@ -133,16 +179,15 @@ const SlidePage = memo(function SlidePage({
   bottomPad,
 }: {
   slide:     Slide;
-  index:     number;
   width:     number;
   reduced:   boolean;
   isActive:  boolean;
   topPad:    number;
   bottomPad: number;
 }) {
-  const { t } = useTranslation();
-
+  const { t }  = useTranslation();
   const appear = useSharedValue(reduced || isActive ? 1 : 0);
+
   useEffect(() => {
     if (reduced) { appear.value = 1; return; }
     appear.value = isActive
@@ -152,27 +197,39 @@ const SlidePage = memo(function SlidePage({
 
   const tileAnim = useAnimatedStyle(() => ({
     transform: [
-      { rotate:     `${-6 + appear.value * 1}deg` },
-      { scale:       0.92 + appear.value * 0.08 },
-      { translateY: (1 - appear.value) * 14 },
-    ],
-  }));
-  const satAnim = useAnimatedStyle(() => ({
-    transform: [
-      { rotate:     `${9 - appear.value * 2}deg` },
+      { rotate:     `${-4 + appear.value * 4}deg` },
+      { scale:      0.88 + appear.value * 0.12 },
       { translateY: (1 - appear.value) * 20 },
     ],
+    opacity: appear.value,
   }));
-  // Second satellite — opposite entry direction for organic feel
+
+  const sat1Anim = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: (1 - appear.value) * 36 },
+      { translateY: (1 - appear.value) * -24 },
+      { scale:      appear.value },
+    ],
+    opacity: appear.value,
+  }));
+
   const sat2Anim = useAnimatedStyle(() => ({
     transform: [
-      { rotate:     `${-5 + appear.value * 1.5}deg` },
-      { translateY: (1 - appear.value) * 22 },
-      { scale:       0.88 + appear.value * 0.12 },
+      { translateX: (1 - appear.value) * -30 },
+      { translateY: (1 - appear.value) * 28 },
+      { scale:      appear.value },
     ],
+    opacity: appear.value,
   }));
+
   const statAnim = useAnimatedStyle(() => ({
-    transform: [{ translateY: (1 - appear.value) * 28 }],
+    transform: [{ translateY: (1 - appear.value) * 24 }],
+    opacity:   appear.value,
+  }));
+
+  const panelAnim = useAnimatedStyle(() => ({
+    transform: [{ translateY: (1 - appear.value) * 14 }],
+    opacity:   0.55 + appear.value * 0.45,
   }));
 
   return (
@@ -180,34 +237,36 @@ const SlidePage = memo(function SlidePage({
 
       {/* ── Stage ── */}
       <View style={page.stage}>
-        {/* Outer wash circle */}
+        {/* Full-bleed tint wash */}
         <View style={[page.stageWash, { backgroundColor: slide.tint }]} />
-        {/* Inner highlight — lighter center without LinearGradient */}
+        {/* Soft center glow */}
         <View style={page.stageGlow} />
 
-        {/* Main tile — rotated, springs in on activation */}
+        <AmbientRings reduced={reduced} tone={slide.tone} />
+
+        {/* Hero tile */}
         <Animated.View
           style={[
             page.tile,
             { backgroundColor: slide.tone, borderColor: "rgba(255,255,255,0.22)" },
             tileAnim,
-          ]}>
-          <Ionicons name={slide.icon} size={64} color="#ffffff" />
+          ]}
+        >
+          <Ionicons name={slide.icon} size={68} color="#fff" />
         </Animated.View>
 
-        {/* Satellite 1 — top-end corner */}
-        <Animated.View style={[page.satellite, satAnim]}>
-          <Ionicons name={slide.satIcon} size={22} color={slide.tone} />
+        {/* Satellite cards */}
+        <Animated.View style={[page.sat1, sat1Anim]}>
+          <Ionicons name={slide.satIcon} size={24} color={slide.tone} />
+        </Animated.View>
+        <Animated.View style={[page.sat2, sat2Anim]}>
+          <Ionicons name={slide.satIcon2} size={19} color={slide.tone} />
         </Animated.View>
 
-        {/* Satellite 2 — bottom-start, secondary floating element */}
-        <Animated.View style={[page.satellite2, sat2Anim]}>
-          <Ionicons name={slide.satIcon2} size={18} color={slide.tone} />
-        </Animated.View>
-
-        {/* Stat chip — metric + label, bottom-start */}
+        {/* Metric chip */}
         <Animated.View
-          style={[page.statChip, { flexDirection: flexRow(IS_RTL) }, statAnim]}>
+          style={[page.statChip, { flexDirection: flexRow(IS_RTL) }, statAnim]}
+        >
           <UIText style={[page.statValue, { writingDirection: "ltr" }]}>
             {slide.metricValue}
           </UIText>
@@ -215,39 +274,56 @@ const SlidePage = memo(function SlidePage({
         </Animated.View>
       </View>
 
-      {/* ── Sheet panel ── */}
-      <View style={[page.panel, { paddingBottom: bottomPad }]}>
-        {/* Step counter: coloured dot prefix */}
+      {/* ── Content panel ── */}
+      <Animated.View style={[page.panel, { paddingBottom: bottomPad }, panelAnim]}>
+
+        {/* Step counter */}
         <View style={[page.stepRow, { flexDirection: flexRow(IS_RTL) }]}>
           <View style={[page.stepDot, { backgroundColor: slide.tone }]} />
           <UIText style={page.step} accessibilityElementsHidden>
-            {`0${index + 1} — 0${SLIDE_COUNT}`}
+            {`0${slide.id} — 0${SLIDE_COUNT}`}
           </UIText>
         </View>
-        <UIText style={page.title}>{t(slide.titleKey)}</UIText>
-        <UIText style={page.body}>{t(slide.bodyKey)}</UIText>
-      </View>
 
+        {/* Eyebrow */}
+        <UIText style={[page.eyebrow, { color: slide.tone }]}>
+          {t(slide.eyebrowKey)}
+        </UIText>
+
+        {/* Title */}
+        <UIText style={page.title}>{t(slide.titleKey)}</UIText>
+
+        {/* Body */}
+        <UIText style={page.body}>{t(slide.bodyKey)}</UIText>
+
+        {/* Feature pills */}
+        <View style={[page.featureRow, { flexDirection: flexRow(IS_RTL) }]}>
+          {slide.features.map((key) => (
+            <FeaturePill key={key} label={t(key)} tone={slide.tone} />
+          ))}
+        </View>
+
+      </Animated.View>
     </View>
   );
 });
 
-// ─── Progress segment ─────────────────────────────────────────────────────────
+// ─── Segment dot ──────────────────────────────────────────────────────────────
 
 const Segment = memo(function Segment({
   active,
   reduced,
-}: {
-  active:  boolean;
-  reduced: boolean;
-}) {
-  const w = useSharedValue(active ? 32 : 12);
+}: { active: boolean; reduced: boolean }) {
+  const w = useSharedValue(active ? 32 : 10);
+
   useEffect(() => {
     w.value = reduced
-      ? (active ? 32 : 12)
-      : withSpring(active ? 32 : 12, { damping: 18, stiffness: 220 });
+      ? active ? 32 : 10
+      : withSpring(active ? 32 : 10, { damping: 18, stiffness: 220 });
   }, [active, reduced, w]);
+
   const style = useAnimatedStyle(() => ({ width: w.value }));
+
   return (
     <Animated.View
       style={[
@@ -259,35 +335,37 @@ const Segment = memo(function Segment({
   );
 });
 
-// ─── Screen ───────────────────────────────────────────────────────────────────
+// ─── Main screen ──────────────────────────────────────────────────────────────
 
 export default function OnboardingScreen() {
-  const { t }   = useTranslation();
-  const router  = useRouter();
-  const insets  = useSafeAreaInsets();
+  const { t }    = useTranslation();
+  const router   = useRouter();
+  const insets   = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
-  const reduced = useReducedMotion();
-  const listRef = useRef<FlatList<Slide>>(null);
+  const reduced  = useReducedMotion();
+  const listRef  = useRef<FlatList<Slide>>(null);
 
-  const [index, setIndex] = useState(0);
-  const finishingRef = useRef(false);
-  const prevIndexRef = useRef(0);
+  const [index, setIndex]   = useState(0);
+  const finishingRef        = useRef(false);
+  const prevIndexRef        = useRef(0);
 
-  const compact   = height < 720;
-  const topPad    = insets.top + 64;
-  const bottomPad = Math.max(insets.bottom, 12) + 104;
+  const compact    = height < 720;
+  const topPad     = insets.top + 64;
+  const bottomPad  = Math.max(insets.bottom, 12) + 104;
 
   const viewConfig = useRef({ itemVisiblePercentThreshold: 60 }).current;
-  const onViewRef  = useRef(({ viewableItems }: { viewableItems: ViewToken[] }) => {
-    const rawI = viewableItems[0]?.index;
-    if (rawI == null) return;
-    const i = RTL_ANDROID ? LAST_INDEX - rawI : rawI;
-    setIndex(i);
-    if (i !== prevIndexRef.current) {
-      prevIndexRef.current = i;
-      if (Platform.OS !== "web") Haptics.selectionAsync().catch(() => {});
-    }
-  }).current;
+  const onViewRef  = useRef(
+    ({ viewableItems }: { viewableItems: ViewToken[] }) => {
+      const rawI = viewableItems[0]?.index;
+      if (rawI == null) return;
+      setIndex(rawI);
+      if (rawI !== prevIndexRef.current) {
+        prevIndexRef.current = rawI;
+        if (Platform.OS !== "web")
+          Haptics.selectionAsync().catch(() => {});
+      }
+    },
+  ).current;
 
   const finish = useCallback(async () => {
     if (finishingRef.current) return;
@@ -298,11 +376,14 @@ export default function OnboardingScreen() {
     router.replace("/(tabs)");
   }, [router]);
 
-  const goTo = useCallback((i: number) => {
-    if (i < 0 || i >= SLIDE_COUNT) return;
-    if (Platform.OS !== "web") Haptics.selectionAsync().catch(() => {});
-    listRef.current?.scrollToOffset({ offset: pagerOffset(i, width, LAST_INDEX), animated: true });
-  }, [width]);
+  const goTo = useCallback(
+    (i: number) => {
+      if (i < 0 || i >= SLIDE_COUNT) return;
+      if (Platform.OS !== "web") Haptics.selectionAsync().catch(() => {});
+      listRef.current?.scrollToOffset({ offset: i * width, animated: true });
+    },
+    [width],
+  );
 
   const goNext = useCallback(() => {
     if (index < LAST_INDEX) goTo(index + 1);
@@ -310,13 +391,12 @@ export default function OnboardingScreen() {
   }, [index, goTo, finish]);
 
   const renderItem = useCallback(
-    ({ item, index: i }: ListRenderItemInfo<Slide>) => (
+    ({ item }: ListRenderItemInfo<Slide>) => (
       <SlidePage
         slide={item}
-        index={i}
         width={width}
         reduced={reduced}
-        isActive={i === index}
+        isActive={item.id - 1 === index}
         topPad={topPad}
         bottomPad={bottomPad}
       />
@@ -330,6 +410,28 @@ export default function OnboardingScreen() {
   );
 
   const isLast = index === LAST_INDEX;
+
+  // FAB pulse ring on last slide
+  const pulse        = useSharedValue(1);
+  const pulseOpacity = useSharedValue(0.3);
+  useEffect(() => {
+    if (isLast && !reduced) {
+      pulse.value        = withRepeat(withSpring(1.32), -1, true);
+      pulseOpacity.value = withRepeat(withTiming(0, { duration: 900 }), -1, true);
+    } else {
+      pulse.value        = withTiming(1);
+      pulseOpacity.value = withTiming(0.3);
+    }
+  }, [isLast, reduced, pulse, pulseOpacity]);
+
+  const fabRingStyle = useAnimatedStyle(() => ({
+    transform:   [{ scale: pulse.value }],
+    opacity:     pulseOpacity.value,
+    borderColor: kit.color.inkFaint,
+    borderWidth: 2,
+  }));
+
+  const currentTone = SLIDES[index]?.tone ?? kit.color.accent;
 
   return (
     <View style={chrome.root}>
@@ -348,18 +450,17 @@ export default function OnboardingScreen() {
         decelerationRate="fast"
         onViewableItemsChanged={onViewRef}
         viewabilityConfig={viewConfig}
-        initialScrollIndex={RTL_ANDROID ? LAST_INDEX : 0}
+        initialScrollIndex={0}
         windowSize={SLIDE_COUNT}
         initialNumToRender={SLIDE_COUNT}
         maxToRenderPerBatch={SLIDE_COUNT}
       />
 
-      {/* ── Top chrome: brand + custom skip chip ── */}
+      {/* ── Top bar: logo + skip ── */}
       <Animated.View
         entering={reduced ? undefined : FadeInDown.duration(380).delay(60)}
-        style={[chrome.topRow, { top: insets.top + 10, flexDirection: flexRow(IS_RTL) }]}>
-
-        {/* Brand mark + name */}
+        style={[chrome.topRow, { top: insets.top + 10, flexDirection: flexRow(IS_RTL) }]}
+      >
         <View style={[chrome.brand, { flexDirection: flexRow(IS_RTL) }]}>
           <View style={chrome.brandMark}>
             <AppLogo size="sm" />
@@ -367,62 +468,73 @@ export default function OnboardingScreen() {
           <UIText style={chrome.brandName}>United Pharmacy</UIText>
         </View>
 
-        {/* Skip chip — surface pill with close icon */}
         <PressableScale
           onPress={() => void finish()}
-          scaleTo={0.94}
+          scaleTo={0.93}
           accessibilityRole="button"
           accessibilityLabel={t("onboarding.skipLabel")}
-          style={chrome.skipChip}>
-          <View style={[chrome.skipChipInner, { flexDirection: flexRow(IS_RTL) }]}>
-            <UIText style={chrome.skipChipText} numberOfLines={1}>{t("onboarding.skip")}</UIText>
+          style={chrome.skipChip}
+        >
+          <View style={[chrome.skipInner, { flexDirection: flexRow(IS_RTL) }]}>
+            <UIText style={chrome.skipText} numberOfLines={1}>
+              {t("onboarding.skip")}
+            </UIText>
             <Ionicons name="close" size={13} color={kit.color.inkFaint} />
           </View>
         </PressableScale>
-
       </Animated.View>
 
-      {/* ── Bottom chrome: progress + FAB ── */}
+      {/* ── Bottom bar: dots + FAB ── */}
       <Animated.View
         entering={reduced ? undefined : FadeIn.duration(420).delay(260)}
-        style={[chrome.controls, { bottom: Math.max(insets.bottom, 12) + 18, flexDirection: flexRow(IS_RTL) }]}>
-
-        {/* Segmented progress bar */}
+        style={[
+          chrome.controls,
+          { bottom: Math.max(insets.bottom, 12) + 18, flexDirection: flexRow(IS_RTL) },
+        ]}
+      >
+        {/* Segment dots */}
         <View
           style={[chrome.segments, { flexDirection: flexRow(IS_RTL) }]}
           accessibilityRole="progressbar"
           accessibilityValue={{ min: 1, max: SLIDE_COUNT, now: index + 1 }}
-          accessibilityLabel={t("onboarding.slideProgress", { n: index + 1, total: SLIDE_COUNT })}>
+          accessibilityLabel={t("onboarding.slideProgress", {
+            n: index + 1, total: SLIDE_COUNT,
+          })}
+        >
           {SLIDES.map((s, i) => (
             <Segment key={s.id} active={i === index} reduced={reduced} />
           ))}
         </View>
 
-        {/* Circular FAB → pill on last slide */}
-        <PressableScale
-          onPress={goNext}
-          scaleTo={0.92}
-          accessibilityRole="button"
-          accessibilityLabel={isLast ? t("onboarding.start") : t("onboarding.next")}
-          style={[
-            chrome.fab,
-            { flexDirection: flexRow(IS_RTL) },
-            isLast && chrome.fabWide,
-            isLast && chrome.fabDeep,
-            compact && chrome.fabCompact,
-          ]}>
+        {/* FAB */}
+        <View style={chrome.fabWrapper}>
           {isLast && (
-            <Animated.View entering={reduced ? undefined : FadeIn.duration(180)}>
-              <UIText style={chrome.fabLabel}>{t("onboarding.start")}</UIText>
-            </Animated.View>
+            <Animated.View style={[chrome.fabPulseRing, fabRingStyle]} />
           )}
-          <Ionicons
-            name={isLast ? "checkmark" : FORWARD_CHEVRON}
-            size={22}
-            color={kit.color.onInk}
-          />
-        </PressableScale>
-
+          <PressableScale
+            onPress={goNext}
+            scaleTo={0.92}
+            accessibilityRole="button"
+            accessibilityLabel={isLast ? t("onboarding.start") : t("onboarding.next")}
+            style={[
+              chrome.fab,
+              { flexDirection: flexRow(IS_RTL), backgroundColor: currentTone },
+              isLast && chrome.fabWide,
+              compact && chrome.fabCompact,
+            ]}
+          >
+            {isLast && (
+              <Animated.View entering={reduced ? undefined : FadeIn.duration(180)}>
+                <UIText style={chrome.fabLabel}>{t("onboarding.start")}</UIText>
+              </Animated.View>
+            )}
+            <Ionicons
+              name={isLast ? "checkmark" : FORWARD_CHEVRON}
+              size={22}
+              color="#fff"
+            />
+          </PressableScale>
+        </View>
       </Animated.View>
     </View>
   );
@@ -442,12 +554,7 @@ const chrome = StyleSheet.create({
     justifyContent:    "space-between",
     paddingHorizontal: kit.sp(5),
   },
-
-  // Brand
-  brand: {
-    alignItems: "center",
-    gap:        10,
-  },
+  brand:     { alignItems: "center", gap: 10 },
   brandMark: {
     width:           36,
     height:          36,
@@ -464,31 +571,25 @@ const chrome = StyleSheet.create({
     color:              kit.color.ink,
     includeFontPadding: false,
   },
-
-  // Skip chip — clean surface pill, not a ghost text link
   skipChip: {
-    backgroundColor:   kit.color.surface,
-    borderRadius:      kit.radius.pill,
-    borderWidth:       1,
-    borderColor:       kit.color.line,
+    backgroundColor: kit.color.surface,
+    borderRadius:    kit.radius.pill,
+    borderWidth:     1,
+    borderColor:     kit.color.line,
     paddingHorizontal: 14,
     paddingVertical:   9,
     ...kit.shadow.raised,
   },
-  skipChipInner: {
-    flexDirection: "row",
-    alignItems:    "center",
-    gap:           7,
-  },
-  skipChipText: {
-    fontFamily:  theme.fonts.black,
-    fontSize:    12,
-    lineHeight:  20,
-    color:       kit.color.inkSoft,
-    flexShrink:  0,
+  skipInner: { alignItems: "center", gap: 6 },
+  skipText: {
+    fontFamily:         theme.fonts.black,
+    fontSize:           12,
+    lineHeight:         18,
+    color:              kit.color.inkSoft,
+    includeFontPadding: false,
+    flexShrink:         0,
   },
 
-  // Bottom controls row — flexDirection applied inline (RTL-aware)
   controls: {
     position:          "absolute",
     start:             0,
@@ -499,84 +600,93 @@ const chrome = StyleSheet.create({
     paddingHorizontal: kit.sp(6),
     minHeight:         60,
   },
-  segments: {
-    alignItems: "center",
-    gap:        6,
-  },
-  segment: {
-    height:       6,
-    borderRadius: 3,
-  },
+  segments: { alignItems: "center", gap: 6 },
+  segment:  { height: 6, borderRadius: 3 },
 
-  // FAB
+  fabWrapper: { justifyContent: "center", alignItems: "center" },
+  fabPulseRing: {
+    position:     "absolute",
+    width:        62,
+    height:       62,
+    borderRadius: 31,
+    borderWidth:  2,
+  },
   fab: {
-    alignItems:      "center",
-    justifyContent:  "center",
-    gap:             8,
-    minWidth:        60,
-    height:          60,
-    borderRadius:    30,
-    backgroundColor: kit.color.ink,
+    alignItems:     "center",
+    justifyContent: "center",
+    gap:            8,
+    minWidth:       60,
+    height:         60,
+    borderRadius:   30,
     ...kit.shadow.floating,
   },
-  fabWide:    { paddingHorizontal: kit.sp(6) },
+  fabWide:    { paddingHorizontal: kit.sp(6), minWidth: 160 },
   fabCompact: { height: 54, minWidth: 54, borderRadius: 27 },
-  fabDeep:    { ...kit.shadow.deep },
   fabLabel: {
     fontFamily:         theme.fonts.black,
     fontSize:           14,
     lineHeight:         20,
-    color:              kit.color.onInk,
+    color:              "#fff",
     includeFontPadding: false,
   },
 });
 
 const page = StyleSheet.create({
-  root: { flex: 1 },
+  root:  { flex: 1 },
+  stage: { flex: 1, alignItems: "center", justifyContent: "center" },
 
-  // ── Stage ────────────────────────────────────────────────────────────────────
-  stage: {
-    flex:           1,
-    alignItems:     "center",
-    justifyContent: "center",
-  },
-  // Outer tint wash
   stageWash: {
-    position:     "absolute",
-    width:        350,
-    height:       350,
-    borderRadius: 175,
-    opacity:      0.90,
+    position: "absolute",
+    top:      0,
+    left:     0,
+    right:    0,
+    bottom:   0,
+    opacity:  0.88,
   },
-  // Inner white highlight — creates depth without LinearGradient
   stageGlow: {
     position:        "absolute",
-    width:           190,
-    height:          190,
-    borderRadius:    95,
-    backgroundColor: "rgba(255,255,255,0.32)",
+    width:           200,
+    height:          200,
+    borderRadius:    100,
+    backgroundColor: "rgba(255,255,255,0.36)",
   },
 
-  // Main tile — ink-tone, rotated, deep shadow
+  ring1: {
+    position:     "absolute",
+    width:        290,
+    height:       290,
+    borderRadius: 145,
+    borderWidth:  1.5,
+    borderStyle:  "dashed",
+    opacity:      0.65,
+  },
+  ring2: {
+    position:     "absolute",
+    width:        210,
+    height:       210,
+    borderRadius: 105,
+    borderWidth:  1,
+    borderStyle:  "solid",
+    opacity:      0.45,
+  },
+
   tile: {
-    width:          140,
-    height:         140,
-    borderRadius:   42,
+    width:          148,
+    height:         148,
+    borderRadius:   46,
     alignItems:     "center",
     justifyContent: "center",
     borderWidth:    1.5,
-    // borderColor set dynamically per slide (white border)
     ...kit.shadow.deep,
   },
 
-  // Satellite 1 — top-end corner
-  satellite: {
+  sat1: {
     position:        "absolute",
-    top:             "16%",
-    end:             "22%",
-    width:           54,
-    height:          54,
-    borderRadius:    18,
+    top:             "14%",
+    end:             "16%",
+    width:           58,
+    height:          58,
+    borderRadius:    20,
     alignItems:      "center",
     justifyContent:  "center",
     backgroundColor: kit.color.surface,
@@ -584,14 +694,12 @@ const page = StyleSheet.create({
     borderColor:     kit.color.line,
     ...kit.shadow.raised,
   },
-
-  // Satellite 2 — bottom-start corner, slightly smaller
-  satellite2: {
+  sat2: {
     position:        "absolute",
     bottom:          "20%",
-    start:           "16%",
-    width:           44,
-    height:          44,
+    start:           "13%",
+    width:           46,
+    height:          46,
     borderRadius:    14,
     alignItems:      "center",
     justifyContent:  "center",
@@ -601,13 +709,12 @@ const page = StyleSheet.create({
     ...kit.shadow.raised,
   },
 
-  // Stat chip — metric value pill, bottom-start
   statChip: {
     position:          "absolute",
-    bottom:            "10%",
-    end:               "12%",
+    bottom:            "8%",
+    end:               "10%",
     alignItems:        "baseline",
-    gap:               6,
+    gap:               5,
     backgroundColor:   kit.color.surface,
     borderRadius:      kit.radius.pill,
     paddingHorizontal: 18,
@@ -618,10 +725,10 @@ const page = StyleSheet.create({
   },
   statValue: {
     fontFamily:         theme.fonts.black,
-    fontSize:           20,
-    lineHeight:         26,
+    fontSize:           22,
+    lineHeight:         28,
     color:              kit.color.ink,
-    letterSpacing:      -0.4,
+    letterSpacing:      -0.5,
     includeFontPadding: false,
   },
   statLabel: {
@@ -632,55 +739,78 @@ const page = StyleSheet.create({
     includeFontPadding: false,
   },
 
-  // ── Sheet panel ──────────────────────────────────────────────────────────────
   panel: {
-    backgroundColor:      kit.color.surface,
-    borderTopStartRadius: kit.radius.sheet + 4,
-    borderTopEndRadius:   kit.radius.sheet + 4,
-    borderTopWidth:       StyleSheet.hairlineWidth,
-    borderTopColor:       kit.color.line,
-    paddingHorizontal:    kit.sp(7),
-    paddingTop:           kit.sp(8),
-    gap:                  kit.sp(3),
+    backgroundColor:     kit.color.surface,
+    borderTopStartRadius: kit.radius.sheet + 6,
+    borderTopEndRadius:   kit.radius.sheet + 6,
+    borderTopWidth:      StyleSheet.hairlineWidth,
+    borderTopColor:      kit.color.line,
+    paddingHorizontal:   kit.sp(7),
+    paddingTop:          kit.sp(7),
+    gap:                 kit.sp(2),
   },
 
-  // Step counter — coloured dot + monospaced counter
-  stepRow: {
-    alignItems: "center",
-    gap:        8,
-  },
-  stepDot: {
-    width:        7,
-    height:       7,
-    borderRadius: 3.5,
-    flexShrink:   0,
-  },
+  stepRow: { alignItems: "center", gap: 8 },
+  stepDot: { width: 8, height: 8, borderRadius: 4, flexShrink: 0 },
   step: {
     fontFamily:         theme.fonts.black,
-    fontSize:           12,
-    lineHeight:         16,
+    fontSize:           11,
+    lineHeight:         15,
     color:              kit.color.inkFaint,
-    letterSpacing:      2,
+    letterSpacing:      2.2,
     textAlign:          TEXT_START,
     writingDirection:   "ltr",
     includeFontPadding: false,
   },
 
+  eyebrow: {
+    fontFamily:         theme.fonts.bold,
+    fontSize:           11,
+    lineHeight:         16,
+    letterSpacing:      1.4,
+    textTransform:      "uppercase",
+    textAlign:          TEXT_START,
+    includeFontPadding: false,
+    marginTop:          2,
+  },
+
   title: {
     fontFamily:         theme.fonts.black,
-    fontSize:           28,
-    lineHeight:         35,
+    fontSize:           34,
+    lineHeight:         41,
     color:              kit.color.ink,
     textAlign:          TEXT_START,
-    letterSpacing:      -0.5,
+    letterSpacing:      -0.7,
     includeFontPadding: false,
   },
+
   body: {
     fontFamily:         theme.fonts.regular,
-    fontSize:           kit.type.body.fontSize,
-    lineHeight:         kit.type.body.lineHeight + 2,
+    fontSize:           15,
+    lineHeight:         24,
     color:              kit.color.inkSoft,
     textAlign:          TEXT_START,
+    includeFontPadding: false,
+  },
+
+  featureRow: {
+    flexWrap:  "wrap",
+    gap:       8,
+    marginTop: 4,
+  },
+  featurePill: {
+    flexDirection:  "row",
+    alignItems:     "center",
+    gap:            6,
+    paddingHorizontal: 12,
+    paddingVertical:   7,
+    borderRadius:   kit.radius.pill,
+    borderWidth:    1,
+  },
+  featurePillText: {
+    fontFamily:         theme.fonts.bold,
+    fontSize:           12,
+    lineHeight:         16,
     includeFontPadding: false,
   },
 });

@@ -1,14 +1,20 @@
 /**
- * CategoryStrip — horizontal scrollable category pill rail.
+ * CategoryStrip — creative horizontal scrollable category rail with animations.
  *
- * Receives categories + loading state from the parent (no store subscriptions
- * here), so this component re-renders ONLY when its props change.
+ * V3.2 Creative enhancements:
+ *   • Gradient-backed category pills with creative color palettes
+ *   • Smooth entrance animations with staggered timing
+ *   • Pulse effects on interaction with glow layers
+ *   • Professional spacing and organization
+ *   • Smooth scroll transitions with optimized rendering
  */
 
 import React, { memo, useCallback } from "react";
-import { FlatList, View } from "react-native";
+import { FlatList, View, StyleSheet } from "react-native";
 import { useTranslation } from "react-i18next";
+
 import { theme } from "@/shared/theme";
+import { kit } from "@/shared/kit";
 import { CategoryCard } from "@/components/CategoryCard";
 import { CategoryCardSkeleton } from "@/components/ui/Skeleton";
 import { HomeSectionHeader } from "./HomeSectionHeader";
@@ -22,6 +28,8 @@ interface CategoryStripProps {
   onCategoryPress: (id: string, name: string, nameEn: string) => void;
   onViewAll:       () => void;
 }
+
+// ─── CategoryStrip ───────────────────────────────────────────────────────────
 
 export const CategoryStrip = memo(function CategoryStrip({
   categories,
@@ -47,43 +55,62 @@ export const CategoryStrip = memo(function CategoryStrip({
 
   const CONTENT_STYLE = {
     paddingHorizontal: theme.layout.pagePaddingH,
-    paddingTop:        4,
-    gap:               10,
+    paddingTop:        12,
+    paddingBottom:     8,
+    gap:               12,
   } as const;
 
   return (
-    <View style={sectionStyles.wrap}>
+    <View style={[sectionStyles.wrap, s.containerWrap]}>
       <HomeSectionHeader
         eyebrow={t("products.allProducts")}
         title={t("search.categoriesTitle")}
         icon="grid-outline"
         onMore={onViewAll}
       />
-      {/* NOTE: `inverted` removed — causes RTL double-reversal on Android.
-           OS I18nManager handles scroll direction; no prop needed.           */}
-      {isLoading ? (
-        <FlatList
-          data={SKELETON_KEYS}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={CONTENT_STYLE}
-          keyExtractor={(k) => String(k)}
-          renderItem={renderSkeleton}
-        />
-      ) : (
-        <FlatList
-          data={categories}
-          keyExtractor={(c) => c.id}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={CONTENT_STYLE}
-          removeClippedSubviews
-          initialNumToRender={6}
-          renderItem={renderCategory}
-        />
-      )}
+      {/* Creative category rail with smooth animations */}
+      <View style={s.railWrapper}>
+        {isLoading ? (
+          <FlatList
+            data={SKELETON_KEYS}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={CONTENT_STYLE}
+            keyExtractor={(k) => String(k)}
+            renderItem={renderSkeleton}
+            scrollEnabled={false}
+          />
+        ) : (
+          <FlatList
+            data={categories}
+            keyExtractor={(c) => c.id}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={CONTENT_STYLE}
+            removeClippedSubviews
+            initialNumToRender={6}
+            maxToRenderPerBatch={8}
+            updateCellsBatchingPeriod={50}
+            renderItem={renderCategory}
+            scrollEventThrottle={16}
+          />
+        )}
+      </View>
     </View>
   );
+});
+
+// ─── Creative styling ────────────────────────────────────────────────────────
+
+const s = StyleSheet.create({
+  containerWrap: {
+    paddingTop: kit.sp(7),
+  },
+  railWrapper: {
+    overflow: "hidden",
+    borderRadius: kit.radius.lg,
+    backgroundColor: kit.color.canvas,
+  },
 });
 
 // ─── Skeleton helpers (stable references → no re-allocation) ──────────────────

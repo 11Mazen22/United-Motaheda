@@ -10,6 +10,7 @@ import React, { memo, useCallback } from "react";
 import { Dimensions, Platform, StyleSheet, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import { useTranslation } from "react-i18next";
 import { Text as UIText } from "@/shared/ui";
 import { theme } from "@/shared/theme";
 import { flexRow, isRtl, textAlignStart, FORWARD_CHEVRON } from "@/utils/layout";
@@ -36,28 +37,23 @@ type ActionCardDef = {
   tint:   string;
 };
 
-const ACTION_CARDS: ActionCardDef[] = IS_RTL
-  ? [
-      { icon: "scan-outline",       label: "مسح وصفة",  sub: "ارفع وصفتك",    route: "/prescriptions/scan", accent: kit.color.accent,   tint: kit.color.accentTint  },
-      { icon: "repeat-outline",     label: "تجديد",      sub: "طلبات دورية",   route: "/(tabs)/meds",        accent: kit.color.warn,    tint: kit.color.warnTint    },
-      { icon: "bag-handle-outline", label: "إعادة طلب",  sub: "اطلب مجدداً",   route: "/(tabs)/orders",      accent: kit.color.success, tint: kit.color.successTint },
-      { icon: "pricetag-outline",   label: "العروض",     sub: "خصومات حصرية",  route: "/deals",              accent: kit.color.danger,  tint: kit.color.dangerTint  },
-    ]
-  : [
-      { icon: "scan-outline",       label: "Scan Rx",  sub: "Upload prescription", route: "/prescriptions/scan", accent: kit.color.accent,   tint: kit.color.accentTint  },
-      { icon: "repeat-outline",     label: "Refill",   sub: "Recurring orders",    route: "/(tabs)/meds",        accent: kit.color.warn,    tint: kit.color.warnTint    },
-      { icon: "bag-handle-outline", label: "Reorder",  sub: "Order again",         route: "/(tabs)/orders",      accent: kit.color.success, tint: kit.color.successTint },
-      { icon: "pricetag-outline",   label: "Offers",   sub: "Exclusive deals",     route: "/deals",              accent: kit.color.danger,  tint: kit.color.dangerTint  },
-    ];
-
 interface QuickActionsProps {
   onNavigate: (route: string) => void;
 }
 
 export const QuickActions = memo(function QuickActions({ onNavigate }: QuickActionsProps) {
+  const { t } = useTranslation();
+
+  const cards: ActionCardDef[] = [
+    { icon: "scan-outline",       label: t("home.qaScanLabel"),    sub: t("home.qaScanSub"),    route: "/prescriptions/scan", accent: kit.color.accent,   tint: kit.color.accentTint  },
+    { icon: "repeat-outline",     label: t("home.qaRefillLabel"),  sub: t("home.qaRefillSub"),  route: "/(tabs)/meds",        accent: kit.color.warn,     tint: kit.color.warnTint    },
+    { icon: "bag-handle-outline", label: t("home.qaReorderLabel"), sub: t("home.qaReorderSub"), route: "/(tabs)/orders",      accent: kit.color.success,  tint: kit.color.successTint },
+    { icon: "compass-outline",    label: t("home.qaExploreLabel"), sub: t("home.qaExploreSub"), route: "/(tabs)/products",    accent: kit.color.danger,   tint: kit.color.dangerTint  },
+  ];
+
   return (
     <View style={cs.grid}>
-      {ACTION_CARDS.map((card) => (
+      {cards.map((card) => (
         <ActionCard key={card.route} def={card} onNavigate={onNavigate} />
       ))}
     </View>

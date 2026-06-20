@@ -1,13 +1,12 @@
-import React, { memo, useCallback } from "react";
+import React, { useCallback } from "react";
 import { Dimensions, FlatList, Platform, Pressable, StyleSheet, View } from "react-native";
 import { useRouter } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { Ionicons } from "@expo/vector-icons";
-import { fetchCategories, fetchFeaturedProducts, type NativeProduct } from "@/services/productsApi";
+import { fetchCategories } from "@/services/productsApi";
 import { CategoryCard } from "@/components/CategoryCard";
-import { ProductCard } from "@/components/ProductCard";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Text as UIText } from "@/shared/ui";
 import { useCartStore } from "@/stores/cart";
@@ -25,44 +24,16 @@ const { width: W } = Dimensions.get("window");
 const GRID_PAD = 20;
 const GRID_GAP = 12;
 const CELL_W   = (W - GRID_PAD * 2 - GRID_GAP) / 2;
-const FEAT_W   = 162;
-
-// ─── Featured item wrapper ────────────────────────────────────────────────────
-
-const FeaturedItem = memo(function FeaturedItem({
-  item, lang, onPress,
-}: {
-  item:    NativeProduct;
-  lang:    "ar" | "en";
-  onPress: (id: string) => void;
-}) {
-  const handlePress = useCallback(() => onPress(item.id), [item.id, onPress]);
-  return (
-    <View style={{ width: FEAT_W }}>
-      <ProductCard product={item} lang={lang} onPress={handlePress} />
-    </View>
-  );
-});
-
-const FEAT_LIST_STYLE = { paddingHorizontal: GRID_PAD, gap: 12 } as const;
-
 // ─── Stats strip ─────────────────────────────────────────────────────────────
 
-const STAT_ITEMS_AR = [
-  { icon: "grid-outline"              as const, value: "",      label: "قسم",    color: kit.color.accentDeep, tint: kit.color.accentTint  },
-  { icon: "cube-outline"              as const, value: "5000+", label: "منتج",   color: kit.color.success,    tint: kit.color.successTint },
-  { icon: "flash-outline"             as const, value: "30د",   label: "توصيل",  color: kit.color.warn,       tint: kit.color.warnTint    },
-  { icon: "shield-checkmark-outline"  as const, value: "100%",  label: "أصالة",  color: "#7c3aed",            tint: "#f5f3ff"             },
-];
-const STAT_ITEMS_EN = [
-  { icon: "grid-outline"              as const, value: "",        label: "Categories", color: kit.color.accentDeep, tint: kit.color.accentTint  },
-  { icon: "cube-outline"              as const, value: "5000+",   label: "Products",   color: kit.color.success,    tint: kit.color.successTint },
-  { icon: "flash-outline"             as const, value: "30min",   label: "Delivery",   color: kit.color.warn,       tint: kit.color.warnTint    },
-  { icon: "shield-checkmark-outline"  as const, value: "100%",    label: "Authentic",  color: "#7c3aed",            tint: "#f5f3ff"             },
-];
-
 function StatsStrip({ catCount }: { catCount: number }) {
-  const items = IS_RTL ? STAT_ITEMS_AR : STAT_ITEMS_EN;
+  const { t } = useTranslation();
+  const items = [
+    { icon: "grid-outline"             as const, value: "",      label: t("products.statCategories"), color: kit.color.accentDeep, tint: kit.color.accentTint  },
+    { icon: "cube-outline"             as const, value: "5000+", label: t("products.statItems"),      color: kit.color.success,    tint: kit.color.successTint },
+    { icon: "flash-outline"            as const, value: IS_RTL ? "30د" : "30min", label: t("products.statFastLabel"), color: kit.color.warn, tint: kit.color.warnTint },
+    { icon: "shield-checkmark-outline" as const, value: "100%",  label: t("products.statOriginalLabel"), color: "#7c3aed",         tint: "#f5f3ff"             },
+  ];
   return (
     <View style={[st.row, { flexDirection: flexRow(IS_RTL) }]}>
       {items.map((item, i) => (
@@ -133,16 +104,9 @@ export default function ProductsScreen() {
     ? rawCategories.filter((c) => c.count > 0)
     : rawCategories;
 
-  const { data: featured = [], isLoading: featLoading } = useQuery({
-    queryKey:  ["featured"],
-    queryFn:   () => fetchFeaturedProducts(12),
-    staleTime: 5 * 60_000,
-  });
-
   // Memoised navigation handlers — stable references prevent FlatList renderItem
   // from re-running on every parent render
   const goSearch   = useCallback(() => { if (Platform.OS !== "web") Haptics.selectionAsync().catch(() => {}); router.push("/(tabs)/search");  }, [router]);
-  const goFeatured = useCallback(() => { if (Platform.OS !== "web") Haptics.selectionAsync().catch(() => {}); router.push("/featured");        }, [router]);
   const goCart     = useCallback(() => { if (Platform.OS !== "web") Haptics.selectionAsync().catch(() => {}); router.push("/(tabs)/cart");     }, [router]);
   const goCategory = useCallback(
     (item: { id: string; nameEn?: string; name: string }) =>
@@ -152,15 +116,6 @@ export default function ProductsScreen() {
   const goProduct = useCallback(
     (id: string) => router.push({ pathname: "/product/[id]", params: { id } }),
     [router],
-  );
-
-  // Stable renderItem — prevents FlatList from treating renderItem as changed
-  // on every parent render. ProductCard's custom comparator skips onPress.
-  const renderFeatured = useCallback(
-    ({ item }: { item: NativeProduct }) => (
-      <FeaturedItem item={item} lang={lang} onPress={goProduct} />
-    ),
-    [lang, goProduct],
   );
 
   return (
@@ -188,17 +143,15 @@ export default function ProductsScreen() {
                   </View>
                   <View>
                     <UIText style={s.headerEyebrow}>
-                      {IS_RTL ? "استكشف" : "Browse"}
+                      {t("products.headerEyebrow")}
                     </UIText>
                     <UIText style={s.headerTitle}>
-                      {IS_RTL ? "الأقسام" : t("products.title")}
+                      {t("products.title")}
                     </UIText>
                     <UIText style={s.headerMeta}>
                       {catsLoading
-                        ? (IS_RTL ? "جارٍ التحميل…" : t("common.loading"))
-                        : (IS_RTL
-                          ? `${categories.length} قسم · 5000+ منتج`
-                          : t("products.categoriesCount", { count: categories.length }))}
+                        ? t("common.loading")
+                        : t("products.headerMeta", { count: categories.length })}
                     </UIText>
                   </View>
                 </View>
@@ -230,11 +183,11 @@ export default function ProductsScreen() {
                   <Ionicons name="search" size={16} color={kit.color.accentDeep} />
                 </View>
                 <UIText style={[s.searchHint, { textAlign: TEXT_START }]}>
-                  {IS_RTL ? "ابحث عن دواء أو منتج…" : t("search.placeholder")}
+                  {t("search.placeholder")}
                 </UIText>
                 <View style={s.searchKbd}>
                   <UIText style={s.searchKbdText}>
-                    {IS_RTL ? "بحث" : t("tabs.search")}
+                    {t("tabs.search")}
                   </UIText>
                 </View>
               </Pressable>
@@ -250,8 +203,8 @@ export default function ProductsScreen() {
             {/* ════════════════════════════════════════════════ */}
             <View style={s.sectionHead}>
               <HomeSectionHeader
-                eyebrow={IS_RTL ? "استكشف الأقسام" : "Browse categories"}
-                title={IS_RTL ? "جميع الأقسام" : t("search.categoriesTitle")}
+                eyebrow={t("products.sectionEyebrow")}
+                title={t("products.sectionTitle")}
                 icon="grid-outline"
               />
             </View>
@@ -288,32 +241,6 @@ export default function ProductsScreen() {
               </View>
             )}
 
-            {/* ════════════════════════════════════════════════ */}
-            {/* FEATURED PRODUCTS                               */}
-            {/* ════════════════════════════════════════════════ */}
-            {!featLoading && featured.length > 0 && (
-              <View style={s.featBlock}>
-                <View style={s.sectionHead}>
-                  <HomeSectionHeader
-                    eyebrow={IS_RTL ? "مختارات المحرر" : t("home.featuredEyebrow")}
-                    title={IS_RTL ? "منتجات مميزة" : t("home.featuredTitle")}
-                    icon="star-outline"
-                    accent={kit.color.warn}
-                    onMore={goFeatured}
-                  />
-                </View>
-                <FlatList
-                  data={featured.slice(0, 8)}
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={FEAT_LIST_STYLE}
-                  keyExtractor={(p) => p.id}
-                  initialNumToRender={4}
-                  maxToRenderPerBatch={4}
-                  renderItem={renderFeatured}
-                />
-              </View>
-            )}
           </>
         }
       />
@@ -482,12 +409,6 @@ const s = StyleSheet.create({
   },
   cell: {
     width: CELL_W,
-  },
-
-  // ── Featured
-  featBlock: {
-    marginTop:    8,
-    marginBottom: 8,
   },
 });
 

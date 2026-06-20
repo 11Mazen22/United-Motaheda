@@ -88,11 +88,7 @@ export default function AdminLayout() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Security check: Ensure only authorized staff can access admin panel
-  if (!user || user.role === "customer" || !["admin", "manager", "pharmacist"].includes(user.role)) {
-    return <Navigate to="/login" replace state={{ from: location }} />;
-  }
-
+  // ── All hooks must run unconditionally before any early return ────────────
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
@@ -153,6 +149,11 @@ export default function AdminLayout() {
   const layoutStyle = {
     "--admin-sidebar-width": sidebarCollapsed ? "5.75rem" : "17.5rem",
   } as CSSProperties;
+
+  // ── Authorization guard — AFTER all hooks (Rules of Hooks) ───────────────
+  if (!user || user.role === "customer" || !["admin", "manager", "pharmacist"].includes(user.role)) {
+    return <Navigate to="/login" replace state={{ from: location }} />;
+  }
 
   return (
     <div

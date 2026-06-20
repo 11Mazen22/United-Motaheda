@@ -41,7 +41,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { theme } from "@/shared/theme";
 import { kit } from "@/shared/kit";
 import { FORWARD_CHEVRON } from "@/utils/layout";
-import { s } from "./cart.styles";
+import { s } from "@/features/cart/cart.styles";
 
 // ─── StepBtn — animated quantity button ──────────────────────────────────────
 

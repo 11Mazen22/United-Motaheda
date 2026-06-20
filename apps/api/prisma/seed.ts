@@ -36,42 +36,68 @@ async function main() {
    * - Stored as { points: [{lat,lng}, ...] } (implicitly closed).
    */
   const zoneByBranchId: Record<string, { points: Coordinates[] }> = {
-    // Branch: Nasr City - Fatma El-Zahraa
-    "zahraa-madinet-nasr": {
-      points: [
-        { lat: 30.08, lng: 31.39 },
-        { lat: 30.08, lng: 31.35 },
-        { lat: 30.06, lng: 31.335 },
-        { lat: 30.03, lng: 31.345 },
-        { lat: 30.025, lng: 31.38 },
-        { lat: 30.04, lng: 31.405 },
-        { lat: 30.07, lng: 31.4 },
-      ],
-    },
-
-    // Branch: Gardenia City (New Cairo)
+    // Branch: Gardenia City (New Cairo / Heliopolis corridor)
     gardenia: {
       points: [
         { lat: 30.125, lng: 31.415 },
         { lat: 30.125, lng: 31.365 },
         { lat: 30.105, lng: 31.35 },
-        { lat: 30.07, lng: 31.36 },
-        { lat: 30.065, lng: 31.41 },
-        { lat: 30.085, lng: 31.43 },
-        { lat: 30.11, lng: 31.425 },
+        { lat: 30.07,  lng: 31.36  },
+        { lat: 30.065, lng: 31.41  },
+        { lat: 30.085, lng: 31.43  },
+        { lat: 30.11,  lng: 31.425 },
       ],
     },
 
-    // Branch: Maadi (Palestine Rd / El-Basatin Sharkeya)
+    // Branch: Maadi (Palestine Rd / Bandar Mall)
     maadi: {
       points: [
-        { lat: 30.04, lng: 31.305 },
-        { lat: 30.04, lng: 31.255 },
-        { lat: 30.02, lng: 31.24 },
-        { lat: 29.985, lng: 31.25 },
-        { lat: 29.98, lng: 31.295 },
-        { lat: 30.0, lng: 31.32 },
+        { lat: 30.04,  lng: 31.305 },
+        { lat: 30.04,  lng: 31.255 },
+        { lat: 30.02,  lng: 31.24  },
+        { lat: 29.985, lng: 31.25  },
+        { lat: 29.98,  lng: 31.295 },
+        { lat: 30.0,   lng: 31.32  },
         { lat: 30.025, lng: 31.315 },
+      ],
+    },
+
+    // Branch: Masakin Al-Dhubbat (Fatima Al-Zahraa St., Nasr City)
+    "masakin-dhabbat": {
+      points: [
+        { lat: 30.063, lng: 31.37  },
+        { lat: 30.063, lng: 31.34  },
+        { lat: 30.045, lng: 31.335 },
+        { lat: 30.036, lng: 31.345 },
+        { lat: 30.033, lng: 31.375 },
+        { lat: 30.048, lng: 31.39  },
+        { lat: 30.060, lng: 31.385 },
+      ],
+    },
+
+    // Branch: Ismailia St. No. 14 (Zahraa Nasr City)
+    "ismailia-14": {
+      points: [
+        { lat: 30.08,  lng: 31.395 },
+        { lat: 30.08,  lng: 31.365 },
+        { lat: 30.063, lng: 31.355 },
+        { lat: 30.052, lng: 31.36  },
+        { lat: 30.05,  lng: 31.39  },
+        { lat: 30.062, lng: 31.408 },
+        { lat: 30.075, lng: 31.405 },
+      ],
+    },
+
+    // Branch: Ismailia St. No. 13 (Zahraa Nasr City)
+    "ismailia-13": {
+      points: [
+        { lat: 30.082, lng: 31.398 },
+        { lat: 30.082, lng: 31.368 },
+        { lat: 30.066, lng: 31.358 },
+        { lat: 30.055, lng: 31.363 },
+        { lat: 30.053, lng: 31.392 },
+        { lat: 30.065, lng: 31.41  },
+        { lat: 30.078, lng: 31.408 },
       ],
     },
   };
@@ -79,11 +105,11 @@ async function main() {
   const branches = [
     {
       id: "gardenia",
-      nameAr: "صيدليات المتحدة - جاردينيا",
-      nameEn: "United Pharmacies - Gardenia",
+      nameAr: "صيدليات المتحدة - جاردينيا سيتي",
+      nameEn: "United Pharmacies - Gardenia City",
       governorate: "Cairo",
       area: "القاهرة الجديدة",
-      address: "كومباوند، مول جاردينيا سيتي وراك كومباوند, Cairo Governorate 11511",
+      address: "محل B1 مول CITY WALK كومباوند جاردينيا سيتي",
       lat: 30.0827,
       lng: 31.3853,
       mapEmbedSrc:
@@ -92,11 +118,11 @@ async function main() {
     },
     {
       id: "maadi",
-      nameAr: "صيدليات المتحدة - شارع فلسطين",
-      nameEn: "United Pharmacies - Palestine Street",
+      nameAr: "صيدليات المتحدة - المعادي",
+      nameEn: "United Pharmacies - Maadi",
       governorate: "Cairo",
       area: "المعادي",
-      address: "1 Palestine Rd, El-Basatin Sharkeya, Maadi, Cairo Governorate 4234320",
+      address: "ش فلسطين، بندر مول، المعادي، القاهرة",
       lat: 30.0146,
       lng: 31.2824,
       mapEmbedSrc:
@@ -104,42 +130,42 @@ async function main() {
       isActive: true,
     },
     {
-      id: "nasr-city-hay-asher",
-      nameAr: "صيدليات المتحدة - الحي العاشر",
-      nameEn: "United Pharmacies - Al Hay Al Asher",
+      id: "masakin-dhabbat",
+      nameAr: "صيدليات المتحدة - مساكن الظباط",
+      nameEn: "United Pharmacies - Masakin Al-Dhubbat",
       governorate: "Cairo",
       area: "مدينة نصر",
-      address: "29XR+3JR, Al Hay Al Asher, Nasr City, Cairo Governorate 4444137",
-      lat: 30.0485,
-      lng: 31.3533,
+      address: "عمارة 336 شارع فاطمة الزهراء متفرع من الميثاق",
+      lat: 30.0520,
+      lng: 31.3550,
       mapEmbedSrc:
-        "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3453.5!2d31.3533!3d30.0485!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMzDCsDAyJzU0LjYiTiAzMcKwMjEnMTEuOSJF!5e0!3m2!1sen!2seg!4v1",
+        "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3453.3!2d31.3550!3d30.0520!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMzDCsDAzJzA3LjIiTiAzMcKwMjEnMTguMCJF!5e0!3m2!1sen!2seg!4v1",
       isActive: true,
     },
     {
-      id: "zahraa-gomhoureya",
-      nameAr: "صيدليات المتحدة - زهراء الجمهورية",
-      nameEn: "United Pharmacies - Zahraa El Gomhoureya",
+      id: "ismailia-14",
+      nameAr: "صيدليات المتحدة - شارع الاسماعيليه ١٤",
+      nameEn: "United Pharmacies - Ismailia St. No. 14",
       governorate: "Cairo",
       area: "مدينة نصر",
-      address: "فرع ش الجمهورية ع١٤ زهراء مدينة نصر",
-      lat: 30.065,
-      lng: 31.378,
+      address: "١٤ ش الأسماعيلية متفرع من شارع الميثاق، زهراء مدينة نصر",
+      lat: 30.0650,
+      lng: 31.3780,
       mapEmbedSrc:
         "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3452.9!2d31.3780!3d30.0650!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMzDCsDAzJzU0LjAiTiAzMcKwMjInNDAuOCJF!5e0!3m2!1sen!2seg!4v1",
       isActive: true,
     },
     {
-      id: "zahraa-madinet-nasr",
-      nameAr: "صيدليات المتحدة - مدينة نصر",
-      nameEn: "United Pharmacies - Nasr City",
+      id: "ismailia-13",
+      nameAr: "صيدليات المتحدة - شارع الاسماعيليه ١٣",
+      nameEn: "United Pharmacies - Ismailia St. No. 13",
       governorate: "Cairo",
       area: "مدينة نصر",
-      address: "29WR+XHF, Fatma El-Zahraa Rd, Al Hay Al Asher, Nasr City, Cairo Governorate 4444134",
-      lat: 30.052,
-      lng: 31.355,
+      address: "١٣ ش الأسماعيلية متفرع من شارع الميثاق، زهراء مدينة نصر",
+      lat: 30.0655,
+      lng: 31.3785,
       mapEmbedSrc:
-        "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3453.3!2d31.3550!3d30.0520!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMzDCsDAzJzA3LjIiTiAzMcKwMjEnMTguMCJF!5e0!3m2!1sen!2seg!4v1",
+        "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3452.9!2d31.3785!3d30.0655!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMzDCsDAzJzU1LjgiTiAzMcKwMjInNDIuNiJF!5e0!3m2!1sen!2seg!4v1",
       isActive: true,
     },
   ] as const;

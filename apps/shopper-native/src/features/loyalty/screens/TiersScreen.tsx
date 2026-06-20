@@ -1,9 +1,15 @@
-﻿/**
- * TiersScreen — shows the full tier ladder with the user's current position,
- * progress bar, perks, and earn multipliers.
+/**
+ * TiersScreen — premium tier ladder.
+ *
+ * Each tier card has:
+ *   • Colored header band with icon, name, threshold, and multiplier badge
+ *   • Per-tier benefits list (static lookup by sorted index)
+ *   • Animated progress bar on the current tier card
+ *   • Lock badge + reduced opacity for locked tiers
+ *   • Pulsing ring animation on the current tier icon
  */
 
-import React, { useCallback } from "react";
+import React, { useCallback, useEffect } from "react";
 import {
   Platform,
   Pressable,
@@ -17,40 +23,73 @@ import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { useTranslation } from "react-i18next";
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from "react-native-reanimated";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
 import { theme } from "@/shared/theme";
+import { kit } from "@/shared/kit";
 import { useScreenTrace } from "@/features/observability";
 import { SubScreenHeader } from "../components/SubScreenHeader";
 import { useRewardTiers } from "../hooks/useRewardTiers";
 import { useLoyaltyBalance } from "../hooks/useLoyaltyBalance";
 import type { RewardTier } from "../types";
 
-// Gradient pairs per display_order position (0-indexed)
-const TIER_GRADIENTS: [string, string][] = [
-  [theme.colors.amber[500],  theme.colors.amber[700]],
-  [theme.colors.slate[400],  theme.colors.slate[600]],
-  [theme.colors.amber[400],  theme.colors.amber[500]],
-  [theme.colors.purple[500], theme.colors.purple[700]],
-];
+// ─── Per-tier design tokens (indexed by sorted display_order position) ────────
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>["name"];
 
-const TIER_ICONS: IoniconsName[] = [
-  "shield-outline",
-  "shield-half",
-  "shield",
-  "diamond",
+type TierDef = {
+  color:  string;
+  icon:   IoniconsName;
+};
+
+// Fallback-safe: if API returns more tiers than defined here, the last entry repeats.
+const TIER_DEFS: TierDef[] = [
+  { color: "#CD7F32", icon: "shield-outline"  }, // 0 – Bronze
+  { color: "#8BA7B5", icon: "shield-half"     }, // 1 – Silver
+  { color: "#D4AF37", icon: "shield"          }, // 2 – Gold
+  { color: "#9B59B6", icon: "diamond-outline" }, // 3 – Platinum
+  { color: "#2980B9", icon: "diamond"         }, // 4 – Diamond
+  { color: "#E74C3C", icon: "trophy"          }, // 5 – VIP
 ];
+
+type BenefitDef = { icon: IoniconsName; key: string };
+
+// Benefits indexed by sorted tier position (0 = lowest/entry tier).
+// All tiers also get the base multiplier benefit added automatically.
+const TIER_EXTRA_BENEFITS: BenefitDef[][] = [
+  [{ icon: "pricetags-outline", key: "loyalty.tierBenefitWelcomeCoupons"    }],
+  [{ icon: "pricetags-outline", key: "loyalty.tierBenefitExclusiveCoupons"  },
+   { icon: "car-outline",       key: "loyalty.tierBenefitDiscountedShipping" }],
+  [{ icon: "gift-outline",      key: "loyalty.tierBenefitBirthdayGift"      },
+   { icon: "flash-outline",     key: "loyalty.tierBenefitPriorityOffers"    }],
+  [{ icon: "ribbon-outline",      key: "loyalty.tierBenefitVipService"      },
+   { icon: "trending-up-outline", key: "loyalty.tierBenefitVipPromotions"   }],
+  [{ icon: "medal-outline",  key: "loyalty.tierBenefitPremiumProducts"      },
+   { icon: "people-outline", key: "loyalty.tierBenefitPersonalPharmacist"   }],
+  [{ icon: "infinite-outline", key: "loyalty.tierBenefitUnlimitedRewards"   },
+   { icon: "trophy-outline",   key: "loyalty.tierBenefitPremiumProducts"    }],
+];
+
+// ─── Screen ──────────────────────────────────────────────────────────────────
 
 export function TiersScreen() {
   useScreenTrace("loyalty-tiers");
   const insets = useSafeAreaInsets();
-  const { t } = useTranslation();
+  const { t }  = useTranslation();
 
   const tiers   = useRewardTiers();
   const balance = useLoyaltyBalance();
 
-  const refreshing = (tiers.isFetching && !tiers.isLoading) || (balance.isFetching && !balance.isLoading);
+  const refreshing =
+    (tiers.isFetching && !tiers.isLoading) ||
+    (balance.isFetching && !balance.isLoading);
 
   const onRefresh = useCallback(() => {
     if (Platform.OS !== "web") Haptics.selectionAsync().catch(() => {});
@@ -60,11 +99,11 @@ export function TiersScreen() {
 
   if (tiers.isLoading) {
     return (
-      <View style={[styles.screen, { paddingTop: insets.top + 8 }]}>
+      <View style={[s.screen, { paddingTop: insets.top + 8 }]}>
         <SubScreenHeader title={t("loyalty.tiersTitle")} subtitle={t("loyalty.tiersSubtitle")} />
-        <ScrollView contentContainerStyle={{ padding: 16, gap: 10 }}>
+        <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
           {Array.from({ length: 4 }).map((_, i) => (
-            <View key={i} style={[styles.tierCard, { minHeight: 120, backgroundColor: theme.colors.surfaceSunken }]} accessibilityLabel={t("common.loading")} />
+            <View key={i} style={s.skeletonCard} />
           ))}
         </ScrollView>
       </View>
@@ -73,92 +112,104 @@ export function TiersScreen() {
 
   if (tiers.isError) {
     return (
-      <View style={[styles.screen, { paddingTop: insets.top + 8 }]}>
+      <View style={[s.screen, { paddingTop: insets.top + 8 }]}>
         <SubScreenHeader title={t("loyalty.tiersTitle")} subtitle={t("loyalty.tiersSubtitle")} />
-        <View style={styles.errorPanel}>
-          <Ionicons name="cloud-offline-outline" size={36} color={theme.colors.slate[400]} />
-          <UIText style={styles.errorTitle} maxFontSizeMultiplier={1.4}>{t("loyalty.tiersErrorTitle")}</UIText>
+        <View style={s.errorPanel}>
+          <View style={s.errorIconBox}>
+            <Ionicons name="cloud-offline-outline" size={32} color={kit.color.inkFaint} />
+          </View>
+          <UIText style={s.errorTitle}>{t("loyalty.tiersErrorTitle")}</UIText>
           <Pressable
             onPress={() => void tiers.refetch()}
             accessibilityRole="button"
-            accessibilityLabel={t("common.retry")}
-            style={({ pressed }) => [styles.primaryBtn, pressed && { opacity: 0.9 }]}
-          >
+            style={({ pressed }) => [s.retryBtn, pressed && { opacity: 0.88 }]}>
             <Ionicons name="refresh" size={14} color="#fff" />
-            <UIText style={styles.primaryBtnText}>{t("common.retry")}</UIText>
+            <UIText style={s.retryBtnText}>{t("common.retry")}</UIText>
           </Pressable>
         </View>
       </View>
     );
   }
 
-  const sorted          = [...(tiers.data ?? [])].sort((a, b) => a.display_order - b.display_order);
-  const lifetimeEarned  = balance.data?.lifetime_earned ?? 0;
-  const currentTierIdx  = findCurrentTierIndex(sorted, lifetimeEarned);
-  const currentTier     = sorted[currentTierIdx];
-  const nextTier        = sorted[currentTierIdx + 1] ?? null;
-  const progress        = currentTier && nextTier
-    ? Math.min(1, (lifetimeEarned - currentTier.min_lifetime_points) /
-        (nextTier.min_lifetime_points - currentTier.min_lifetime_points))
-    : 1;
+  const sorted         = [...(tiers.data ?? [])].sort((a, b) => a.display_order - b.display_order);
+  const lifetimeEarned = balance.data?.lifetime_earned ?? 0;
+
+  let currentIdx = 0;
+  for (let i = sorted.length - 1; i >= 0; i--) {
+    if (lifetimeEarned >= sorted[i].min_lifetime_points) { currentIdx = i; break; }
+  }
+
+  const currentTier = sorted[currentIdx] ?? null;
+  const nextTier    = sorted[currentIdx + 1] ?? null;
+
+  const progress =
+    currentTier && nextTier
+      ? Math.min(
+          1,
+          (lifetimeEarned - currentTier.min_lifetime_points) /
+            (nextTier.min_lifetime_points - currentTier.min_lifetime_points),
+        )
+      : 1;
 
   return (
-    <View style={[styles.screen, { paddingTop: insets.top + 8 }]}>
+    <View style={[s.screen, { paddingTop: insets.top + 8 }]}>
       <SubScreenHeader title={t("loyalty.tiersTitle")} subtitle={t("loyalty.tiersSubtitle")} />
+
       <ScrollView
-        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: insets.bottom + 32 }}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: insets.bottom + 40 }}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor={theme.colors.brand[600]}
+            tintColor={kit.color.accent}
             accessibilityLabel={t("loyalty.tiersRefreshA11y")}
           />
         }
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Current status chip */}
+        showsVerticalScrollIndicator={false}>
+
+        {/* ── Current status banner ──────────────────────────────────── */}
         {currentTier && (
-          <View
-            style={styles.statusChip}
-            accessibilityRole="text"
-            accessibilityLabel={t("loyalty.currentTierA11y", { name: currentTier.name })}
-          >
-            <View style={styles.statusLeft}>
-              <UIText style={styles.statusLabel}>{t("loyalty.currentTierLabel")}</UIText>
-              <UIText style={styles.statusTier}>{currentTier.name}</UIText>
+          <View style={[s.statusBanner, { flexDirection: flexRow(isRtl()) }]}>
+            <View style={s.statusLeft}>
+              <UIText style={s.statusLabel}>{t("loyalty.currentTierLabel")}</UIText>
+              <UIText style={s.statusTierName}>{currentTier.name}</UIText>
             </View>
             {nextTier && (
-              <View style={styles.statusProgress}>
-                <UIText style={styles.statusProgressLabel} maxFontSizeMultiplier={1.3}>
-                  {t("loyalty.pointsToNextTier", { n: Math.max(0, nextTier.min_lifetime_points - lifetimeEarned).toLocaleString("ar-EG") })}
+              <View style={s.statusRight}>
+                <UIText style={[s.statusHint, { textAlign: textAlignStart(isRtl()) }]}>
+                  {t("loyalty.pointsToNextTier", {
+                    n: Math.max(0, nextTier.min_lifetime_points - lifetimeEarned).toLocaleString(),
+                  })}
                 </UIText>
-                <View style={styles.progressTrack}>
-                  <View
-                    style={[styles.progressFill, { width: `${progress * 100}%` }]}
-                    accessibilityLabel={t("loyalty.progressPctA11y", { n: Math.round(progress * 100) })}
-                  />
+                <View style={s.statusTrack}>
+                  <View style={[s.statusFill, { width: `${Math.round(progress * 100)}%` as `${number}%` }]} />
                 </View>
               </View>
             )}
           </View>
         )}
 
-        <View style={{ gap: 10, marginTop: 16 }}>
+        {/* ── Tier cards ────────────────────────────────────────────── */}
+        <View style={{ gap: 12, marginTop: 16 }}>
           {sorted.map((tier, idx) => {
             const isCurrent  = tier.id === currentTier?.id;
             const isUnlocked = lifetimeEarned >= tier.min_lifetime_points;
-            const gradient   = TIER_GRADIENTS[idx] ?? TIER_GRADIENTS[TIER_GRADIENTS.length - 1];
-            const icon       = TIER_ICONS[idx] ?? "diamond";
+            const def        = TIER_DEFS[idx] ?? TIER_DEFS[TIER_DEFS.length - 1]!;
+            const extras     = TIER_EXTRA_BENEFITS[idx] ?? [];
+            const pointsLeft = isCurrent && nextTier
+              ? Math.max(0, nextTier.min_lifetime_points - lifetimeEarned)
+              : null;
 
             return (
               <TierCard
                 key={tier.id}
                 tier={tier}
+                def={def}
+                extras={extras}
                 isCurrent={isCurrent}
                 isUnlocked={isUnlocked}
-                gradient={gradient}
-                icon={icon}
+                progress={isCurrent ? progress : 0}
+                pointsLeft={pointsLeft}
               />
             );
           })}
@@ -168,233 +219,404 @@ export function TiersScreen() {
   );
 }
 
-// ─── Tier card ───────────────────────────────────────────────────────────────
+// ─── TierCard ────────────────────────────────────────────────────────────────
 
 interface TierCardProps {
   tier:       RewardTier;
+  def:        TierDef;
+  extras:     BenefitDef[];
   isCurrent:  boolean;
   isUnlocked: boolean;
-  gradient:   [string, string];
-  icon:       IoniconsName;
+  progress:   number;
+  pointsLeft: number | null;
 }
 
-function TierCard({ tier, isCurrent, isUnlocked, gradient, icon }: TierCardProps) {
-  const { t } = useTranslation();
+const TierCard = React.memo(function TierCard({
+  tier, def, extras, isCurrent, isUnlocked, progress, pointsLeft,
+}: TierCardProps) {
+  const { t }  = useTranslation();
+  const IS_RTL = isRtl();
+
+  const activeColor = isUnlocked ? def.color : "#A8B5C0";
+
+  const scale = useSharedValue(1);
+  useEffect(() => {
+    if (!isCurrent) { scale.value = withTiming(1, { duration: 200 }); return; }
+    scale.value = withRepeat(
+      withSequence(
+        withTiming(1.10, { duration: 850, easing: Easing.inOut(Easing.sin) }),
+        withTiming(1.00, { duration: 850, easing: Easing.inOut(Easing.sin) }),
+      ),
+      -1,
+      false,
+    );
+  }, [isCurrent, scale]);
+  const iconAnim = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+
   return (
     <View
       style={[
-        styles.tierCard,
-        isCurrent && { borderColor: gradient[0] + "60", borderWidth: 2 },
+        s.card,
+        isCurrent  && { borderColor: def.color, borderWidth: 2 },
+        !isUnlocked && { opacity: 0.70 },
       ]}
       accessibilityRole="text"
       accessibilityLabel={t("loyalty.tierCardA11y", {
         name:   tier.name,
-        points: tier.min_lifetime_points.toLocaleString("ar-EG"),
+        points: tier.min_lifetime_points.toLocaleString(),
         mult:   tier.earn_multiplier,
-      })}
-    >
-      <View
-        style={[styles.tierIcon, { backgroundColor: isUnlocked ? gradient[0] : theme.colors.slate[100] }]}
-      >
-        <Ionicons
-          name={icon}
-          size={22}
-          color={isUnlocked ? "#fff" : theme.colors.slate[400]}
-        />
-      </View>
+      })}>
 
-      <View style={{ flex: 1 }}>
-        <View style={styles.tierHead}>
-          <UIText
-            style={[styles.tierName, !isUnlocked && { color: theme.colors.slate[400] }]}
-            maxFontSizeMultiplier={1.3}
-          >
-            {tier.name}
-          </UIText>
+      {/* ── Colored header band ─────────────────────────────────────── */}
+      <View style={[s.header, { backgroundColor: activeColor }]}>
+        <View style={[s.headerLeft, { flexDirection: flexRow(IS_RTL) }]}>
+          <Animated.View style={[s.headerIconBox, iconAnim]}>
+            <Ionicons
+              name={def.icon}
+              size={22}
+              color={isUnlocked ? "#fff" : "rgba(255,255,255,0.55)"}
+            />
+          </Animated.View>
+          <View>
+            <UIText style={s.headerName}>{tier.name}</UIText>
+            <UIText style={s.headerThreshold}>
+              {tier.min_lifetime_points > 0
+                ? `${tier.min_lifetime_points.toLocaleString()} ${t("loyalty.pointsUnit")}+`
+                : t("loyalty.tierFreeLabel")}
+            </UIText>
+          </View>
+        </View>
+
+        <View style={[s.headerRight, { flexDirection: flexRow(IS_RTL) }]}>
+          <View style={s.multBadge}>
+            <UIText style={s.multNum}>{tier.earn_multiplier}</UIText>
+            <UIText style={s.multX}>×</UIText>
+          </View>
           {isCurrent && (
-            <View style={[styles.currentPill, { backgroundColor: gradient[0] + "18" }]}>
-              <UIText style={[styles.currentPillText, { color: gradient[0] }]}>
-                {t("loyalty.tierCurrentChip")}
-              </UIText>
+            <View style={s.currentPill}>
+              <UIText style={s.currentPillText}>{t("loyalty.tierCurrentChip")}</UIText>
             </View>
           )}
           {!isUnlocked && !isCurrent && (
-            <Ionicons name="lock-closed" size={12} color={theme.colors.slate[400]} />
+            <View style={s.lockPill}>
+              <Ionicons name="lock-closed" size={11} color="rgba(255,255,255,0.75)" />
+            </View>
           )}
         </View>
+      </View>
 
-        <UIText style={[styles.tierPoints, !isUnlocked && { color: theme.colors.slate[400] }]} maxFontSizeMultiplier={1.4}>
-          {t("loyalty.tierPointsEarned", { n: tier.min_lifetime_points.toLocaleString("ar-EG") })}
+      {/* ── Card body ───────────────────────────────────────────────── */}
+      <View style={s.body}>
+        <UIText style={[s.benefitsTitle, { textAlign: textAlignStart(IS_RTL) }]}>
+          {t("loyalty.tierBenefitsTitle")}
         </UIText>
 
-        <View style={styles.multiplierRow}>
-          <Ionicons
-            name="star"
-            size={12}
-            color={isUnlocked ? theme.colors.amber[600] : theme.colors.slate[400]}
-          />
-          <UIText
-            style={[styles.multiplierText, !isUnlocked && { color: theme.colors.slate[400] }]}
-            maxFontSizeMultiplier={1.3}
-          >
-            {t("loyalty.tierEarnMultiplier", { n: tier.earn_multiplier })}
-          </UIText>
-        </View>
+        {/* Base multiplier row */}
+        <BenefitRow
+          icon="star"
+          label={t("loyalty.tierEarnMultiplier", { n: tier.earn_multiplier })}
+          color={activeColor}
+          isUnlocked={isUnlocked}
+        />
+
+        {/* Per-tier extras */}
+        {extras.map((b) => (
+          <BenefitRow key={b.key} icon={b.icon} label={t(b.key)} color={activeColor} isUnlocked={isUnlocked} />
+        ))}
+
+        {/* Progress toward next tier (only on current) */}
+        {isCurrent && pointsLeft !== null && pointsLeft > 0 && (
+          <View style={s.progressSection}>
+            <View style={[s.progressMeta, { flexDirection: flexRow(IS_RTL) }]}>
+              <UIText style={[s.progressHint, { flex: 1, textAlign: textAlignStart(IS_RTL) }]}>
+                {t("loyalty.pointsToNextTier", { n: pointsLeft.toLocaleString() })}
+              </UIText>
+              <UIText style={s.progressPct}>{Math.round(progress * 100)}%</UIText>
+            </View>
+            <View style={s.progressTrack}>
+              <View style={[s.progressFill, { backgroundColor: def.color, width: `${Math.round(progress * 100)}%` as `${number}%` }]} />
+            </View>
+          </View>
+        )}
+
+        {/* Max tier or tier reached congrats */}
+        {isCurrent && (pointsLeft === null || pointsLeft <= 0) && (
+          <View style={[s.maxBanner, { flexDirection: flexRow(IS_RTL) }]}>
+            <Ionicons name="checkmark-circle" size={14} color={def.color} />
+            <UIText style={[s.maxBannerText, { color: def.color, flex: 1, textAlign: textAlignStart(IS_RTL) }]}>
+              {t("loyalty.progressCongrats", { name: tier.name })}
+            </UIText>
+          </View>
+        )}
       </View>
     </View>
   );
-}
+});
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+// ─── BenefitRow ──────────────────────────────────────────────────────────────
 
-function findCurrentTierIndex(sorted: RewardTier[], lifetimeEarned: number): number {
-  let idx = 0;
-  for (let i = sorted.length - 1; i >= 0; i--) {
-    if (lifetimeEarned >= sorted[i].min_lifetime_points) {
-      idx = i;
-      break;
-    }
-  }
-  return idx;
-}
+const BenefitRow = React.memo(function BenefitRow({
+  icon, label, color, isUnlocked,
+}: { icon: IoniconsName; label: string; color: string; isUnlocked: boolean }) {
+  const IS_RTL = isRtl();
+  return (
+    <View style={[s.benefitRow, { flexDirection: flexRow(IS_RTL) }]}>
+      <View style={[s.benefitIconBox, { backgroundColor: isUnlocked ? color + "18" : kit.color.well }]}>
+        <Ionicons name={icon} size={13} color={isUnlocked ? color : kit.color.inkFaint} />
+      </View>
+      <UIText
+        numberOfLines={1}
+        style={[
+          s.benefitLabel,
+          { textAlign: textAlignStart(IS_RTL) },
+          !isUnlocked && { color: kit.color.inkFaint },
+        ]}>
+        {label}
+      </UIText>
+    </View>
+  );
+});
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
-const styles = StyleSheet.create({
-  screen: {
-    flex:            1,
-    backgroundColor: theme.colors.bg,
+const s = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: kit.color.canvas },
+
+  // Status banner
+  statusBanner: {
+    alignItems:      "center",
+    justifyContent:  "space-between",
+    marginTop:       4,
+    backgroundColor: kit.color.surface,
+    borderRadius:    16,
+    padding:         16,
+    gap:             16,
+    borderWidth:     1,
+    borderColor:     kit.color.line,
+    ...kit.shadow.raised,
+  },
+  statusLeft: { gap: 3 },
+  statusLabel: {
+    fontFamily:         theme.fonts.regular,
+    fontSize:           11,
+    lineHeight:         16,
+    color:              kit.color.inkFaint,
+    textAlign:          textAlignStart(isRtl()),
+    includeFontPadding: false,
+  },
+  statusTierName: {
+    fontFamily:         theme.fonts.black,
+    fontSize:           19,
+    lineHeight:         24,
+    color:              kit.color.ink,
+    textAlign:          textAlignStart(isRtl()),
+    letterSpacing:      -0.3,
+    includeFontPadding: false,
+  },
+  statusRight: { flex: 1, gap: 6 },
+  statusHint: {
+    fontFamily:         theme.fonts.bold,
+    fontSize:           11,
+    lineHeight:         16,
+    color:              kit.color.inkSoft,
+    includeFontPadding: false,
+  },
+  statusTrack: {
+    height:          6,
+    borderRadius:    3,
+    backgroundColor: kit.color.well,
+    overflow:        "hidden",
+  },
+  statusFill: {
+    height:          "100%",
+    borderRadius:    3,
+    backgroundColor: kit.color.accent,
   },
 
-  statusChip: {
-    backgroundColor:   theme.colors.surface,
-    borderRadius:      16,
-    padding:           16,
-    marginTop:         4,
+  // Card
+  card: {
+    backgroundColor: kit.color.surface,
+    borderRadius:    20,
+    overflow:        "hidden",
+    borderWidth:     1,
+    borderColor:     kit.color.line,
+    ...kit.shadow.raised,
+  },
+
+  // Header band
+  header: {
+    flexDirection:   flexRow(isRtl()),
+    alignItems:      "center",
+    justifyContent:  "space-between",
+    paddingHorizontal: 16,
+    paddingVertical:   14,
+    gap:             10,
+  },
+  headerLeft: { alignItems: "center", gap: 12, flex: 1 },
+  headerIconBox: {
+    width:           44,
+    height:          44,
+    borderRadius:    14,
+    backgroundColor: "rgba(255,255,255,0.20)",
+    alignItems:      "center",
+    justifyContent:  "center",
+    flexShrink:      0,
+  },
+  headerName: {
+    fontFamily:         theme.fonts.black,
+    fontSize:           17,
+    lineHeight:         22,
+    color:              "#fff",
+    letterSpacing:      -0.2,
+    textAlign:          textAlignStart(isRtl()),
+    includeFontPadding: false,
+  },
+  headerThreshold: {
+    fontFamily:         theme.fonts.bold,
+    fontSize:           11,
+    lineHeight:         16,
+    color:              "rgba(255,255,255,0.65)",
+    textAlign:          textAlignStart(isRtl()),
+    writingDirection:   "ltr",
+    fontVariant:        ["tabular-nums"],
+    includeFontPadding: false,
+  },
+  headerRight: { alignItems: "center", gap: 6, flexShrink: 0 },
+  multBadge: {
     flexDirection:     flexRow(isRtl()),
-    alignItems:        "center",
-    justifyContent:    "space-between",
-    gap:               12,
-    ...theme.shadow.card,
+    alignItems:        "baseline",
+    gap:               2,
+    backgroundColor:   "rgba(255,255,255,0.22)",
+    paddingHorizontal: 12,
+    paddingVertical:   7,
+    borderRadius:      12,
   },
-  statusLeft: { gap: 2 },
-  statusLabel: {
-    fontFamily: theme.fonts.regular,
-    fontSize:   11,
-    color:      theme.colors.text.tertiary,
-    textAlign:  textAlignStart(isRtl()),
+  multNum: { fontFamily: theme.fonts.black, fontSize: 20, lineHeight: 26, color: "#fff", writingDirection: "ltr", includeFontPadding: false },
+  multX:   { fontFamily: theme.fonts.bold,  fontSize: 13, lineHeight: 18, color: "rgba(255,255,255,0.75)", includeFontPadding: false },
+  currentPill: {
+    backgroundColor:   "rgba(255,255,255,0.25)",
+    borderRadius:      999,
+    paddingHorizontal: 10,
+    paddingVertical:   4,
   },
-  statusTier: {
-    fontFamily: theme.fonts.black,
-    fontSize:   18,
-    color:      theme.colors.text.primary,
-    textAlign:  textAlignStart(isRtl()),
+  currentPillText: {
+    fontFamily:         theme.fonts.black,
+    fontSize:           10,
+    lineHeight:         14,
+    color:              "#fff",
+    letterSpacing:      0.2,
+    includeFontPadding: false,
   },
-  statusProgress: {
-    flex: 1,
-    gap:  6,
+  lockPill: {
+    backgroundColor: "rgba(0,0,0,0.18)",
+    borderRadius:    999,
+    padding:         7,
   },
-  statusProgressLabel: {
-    fontFamily: theme.fonts.bold,
-    fontSize:   11,
-    color:      theme.colors.text.secondary,
-    textAlign:  textAlignStart(isRtl()),
+
+  // Body
+  body: { padding: 16, gap: 10 },
+  benefitsTitle: {
+    fontFamily:         theme.fonts.black,
+    fontSize:           11,
+    lineHeight:         14,
+    letterSpacing:      0.8,
+    textTransform:      "uppercase",
+    color:              kit.color.inkFaint,
+    marginBottom:       2,
+    includeFontPadding: false,
+  },
+
+  // Benefit rows
+  benefitRow:    { alignItems: "center", gap: 10 },
+  benefitIconBox: {
+    width:          28,
+    height:         28,
+    borderRadius:   8,
+    alignItems:     "center",
+    justifyContent: "center",
+    flexShrink:     0,
+  },
+  benefitLabel: {
+    flex:               1,
+    fontFamily:         theme.fonts.bold,
+    fontSize:           13,
+    lineHeight:         18,
+    color:              kit.color.ink,
+    includeFontPadding: false,
+  },
+
+  // Progress
+  progressSection: { marginTop: 6, gap: 7 },
+  progressMeta:    { alignItems: "center", justifyContent: "space-between" },
+  progressHint: {
+    fontFamily:         theme.fonts.bold,
+    fontSize:           11,
+    lineHeight:         16,
+    color:              kit.color.inkSoft,
+    includeFontPadding: false,
+  },
+  progressPct: {
+    fontFamily:         theme.fonts.black,
+    fontSize:           11,
+    lineHeight:         16,
+    color:              kit.color.inkSoft,
+    writingDirection:   "ltr",
+    fontVariant:        ["tabular-nums"],
+    includeFontPadding: false,
   },
   progressTrack: {
     height:          6,
     borderRadius:    3,
-    backgroundColor: theme.colors.surfaceSunken,
+    backgroundColor: kit.color.well,
     overflow:        "hidden",
   },
-  progressFill: {
-    height:          "100%",
-    borderRadius:    3,
-    backgroundColor: theme.colors.brand[600],
-  },
+  progressFill: { height: "100%", borderRadius: 3 },
 
-  tierCard: {
-    flexDirection:   flexRow(isRtl()),
-    gap:             12,
-    backgroundColor: theme.colors.surface,
-    borderRadius:    14,
-    padding:         14,
-    borderWidth:     1,
-    borderColor:     theme.colors.border.default,
-  },
-  tierIcon: {
-    width:           48,
-    height:          48,
-    borderRadius:    14,
-    alignItems:      "center",
-    justifyContent:  "center",
-  },
-  tierHead: {
-    flexDirection:  flexRow(isRtl()),
-    alignItems:     "center",
-    gap:            6,
-    marginBottom:   4,
-  },
-  tierName: {
-    fontFamily: theme.fonts.black,
-    fontSize:   15,
-    color:      theme.colors.text.primary,
-  },
-  currentPill: {
-    borderRadius:      8,
-    paddingHorizontal: 8,
-    paddingVertical:   2,
-  },
-  currentPillText: {
-    fontFamily: theme.fonts.black,
-    fontSize:   9,
-  },
-  tierPoints: {
-    fontFamily: theme.fonts.regular,
-    fontSize:   11,
-    color:      theme.colors.text.secondary,
-    textAlign:  textAlignStart(isRtl()),
-    marginBottom: 4,
-  },
-  multiplierRow: {
-    flexDirection: flexRow(isRtl()),
-    alignItems:    "center",
-    gap:           4,
-  },
-  multiplierText: {
-    fontFamily: theme.fonts.bold,
-    fontSize:   11,
-    color:      theme.colors.amber[700],
-  },
-
-  errorPanel: {
-    flex:              1,
+  // Max tier banner
+  maxBanner: {
     alignItems:        "center",
-    justifyContent:    "center",
-    paddingHorizontal: 32,
-    gap:               10,
+    gap:               7,
+    marginTop:         4,
+    backgroundColor:   kit.color.accentTint,
+    borderRadius:      10,
+    paddingHorizontal: 12,
+    paddingVertical:   8,
+  },
+  maxBannerText: {
+    fontFamily:         theme.fonts.bold,
+    fontSize:           12,
+    lineHeight:         18,
+    includeFontPadding: false,
+  },
+
+  // Error + skeleton
+  errorPanel: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 32, gap: 12 },
+  errorIconBox: {
+    width: 72, height: 72, borderRadius: 22,
+    backgroundColor: kit.color.well,
+    alignItems: "center", justifyContent: "center", marginBottom: 4,
   },
   errorTitle: {
-    fontFamily: theme.fonts.black,
-    fontSize:   16,
-    color:      theme.colors.text.primary,
-    marginTop:  8,
+    fontFamily:         theme.fonts.black,
+    fontSize:           16,
+    lineHeight:         22,
+    color:              kit.color.ink,
+    textAlign:          "center",
+    includeFontPadding: false,
   },
-  primaryBtn: {
+  retryBtn: {
     flexDirection:     flexRow(isRtl()),
     alignItems:        "center",
     gap:               8,
-    backgroundColor:   theme.colors.brand[600],
+    backgroundColor:   kit.color.accent,
     borderRadius:      12,
     paddingHorizontal: 18,
     paddingVertical:   11,
-    marginTop:         8,
-    ...theme.shadow.brand,
+    marginTop:         4,
+    ...kit.shadow.raised,
   },
-  primaryBtnText: {
-    fontFamily: theme.fonts.black,
-    fontSize:   13,
-    color:      "#fff",
-  },
+  retryBtnText: { fontFamily: theme.fonts.black, fontSize: 13, lineHeight: 18, color: "#fff", includeFontPadding: false },
+  skeletonCard: { height: 170, borderRadius: 20, backgroundColor: kit.color.well },
 });
 
 export default TiersScreen;
