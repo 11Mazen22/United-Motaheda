@@ -32,6 +32,7 @@ import Animated, {
   useSharedValue,
   withSpring,
 } from "react-native-reanimated";
+import { useTranslation } from "react-i18next";
 
 import { Text as UIText }  from "../shared/ui/Text";
 import { theme }            from "../shared/theme";
@@ -123,20 +124,21 @@ const CardBadgeView = memo(function CardBadgeView({
   type:     CardBadge;
   percent?: number;
 }) {
+  const { t } = useTranslation();
   let label: string;
   let bg: string;
 
   switch (type) {
     case "sale":
-      label = percent ? `-${percent}%` : "Sale";
+      label = percent ? `-${percent}%` : t("product.sale");
       bg    = kit.color.danger;
       break;
     case "new":
-      label = "جديد";
+      label = t("product.new");
       bg    = kit.color.accentDeep;
       break;
     case "bestseller":
-      label = "الأكثر مبيعاً";
+      label = t("product.bestseller");
       bg    = kit.color.warn;
       break;
   }
@@ -196,6 +198,8 @@ export const ProductCard = memo(function ProductCard({
   onPress,
   style,
 }: ProductCardProps) {
+  const { t } = useTranslation();
+
   // ── Derived display values ──────────────────────────────────────────────
 
   const displayName = (
@@ -263,7 +267,7 @@ export const ProductCard = memo(function ProductCard({
         {/* Out-of-stock overlay */}
         {!product.inStock && (
           <View style={cs.oosOverlay}>
-            <UIText style={cs.oosText}>{"نفد المخزون"}</UIText>
+            <UIText style={cs.oosText}>{t("product.outOfStock")}</UIText>
           </View>
         )}
       </View>
@@ -288,7 +292,7 @@ export const ProductCard = memo(function ProductCard({
             <UIText style={cs.price}>
               {product.price.toLocaleString("ar-EG")}
               {"  "}
-              <UIText style={cs.currency}>{"ج.م"}</UIText>
+              <UIText style={cs.currency}>{t("common.currency")}</UIText>
             </UIText>
 
             {originalPrice !== null && (

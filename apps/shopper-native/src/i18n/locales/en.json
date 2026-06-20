@@ -368,7 +368,32 @@
         "decrement": "Decrease",
         "increment": "Increase",
         "ok": "OK",
-        "gotIt": "Got It"
+        "gotIt": "Got It",
+        "optional": "Optional"
+    },
+    "pharmacist": {
+        "title": "PharmaCare AI",
+        "subtitle": "Free Pharmacist Consultation",
+        "disclaimer": "PharmaCare AI provides educational medication information only. It does not replace licensed pharmacists, physicians, emergency services, diagnosis, or medical treatment.",
+        "disclaimerAck": "I Understand",
+        "inputPlaceholder": "Ask about a medication…",
+        "send": "Send",
+        "typing": "PharmaCare is typing…",
+        "errorTitle": "Connection Error",
+        "errorBody": "Could not reach the pharmacist assistant. Please check your connection and try again.",
+        "errorRetry": "Retry",
+        "suggestedTitle": "Suggested Questions",
+        "suggested0": "What are the side effects of Panadol?",
+        "suggested1": "Can I take Ibuprofen with Paracetamol?",
+        "suggested2": "What should I do if I missed a dose?",
+        "suggested3": "How should I store insulin?",
+        "suggested4": "Is it safe to take during pregnancy?",
+        "youLabel": "You",
+        "aiLabel": "PharmaCare AI",
+        "welcomeTitle": "Hello! I'm PharmaCare AI",
+        "welcomeBody": "Ask me about medications, dosage, side effects, drug interactions, or any pharmacy question. I'm here to help.",
+        "available247": "Available 24/7",
+        "certifiedInfo": "Evidence-based information"
     },
     "delivery": {
         "title": "Delivery Info",
@@ -1096,7 +1121,10 @@
         "trustOriginal": "100% Genuine",
         "trustReturns": "Guaranteed Returns",
         "addToWishlist": "Add to Wishlist",
-        "removeFromWishlist": "Remove from Wishlist"
+        "removeFromWishlist": "Remove from Wishlist",
+        "new": "New",
+        "bestseller": "Best Seller",
+        "sale": "Sale"
     },
     "products": {
         "title": "Categories",

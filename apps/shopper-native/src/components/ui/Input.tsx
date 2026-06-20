@@ -6,6 +6,7 @@ import {
   type TextInputProps,
   type ViewStyle,
 } from "react-native";
+import { useTranslation } from "react-i18next";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
 
 const _isRtl = isRtl();
@@ -45,6 +46,7 @@ export function Input({
   numberOfLines,
   ...rest
 }: InputProps) {
+  const { t }                 = useTranslation();
   const [focused, setFocused] = useState(false);
   const progress              = useSharedValue(0);
 
@@ -97,7 +99,7 @@ export function Input({
             {label}
           </UIText>
           {optional && (
-            <UIText style={{ fontSize: theme.fontSize.xs, color: kit.color.inkFaint }}>اختياري</UIText>
+            <UIText style={{ fontSize: theme.fontSize.xs, color: kit.color.inkFaint }}>{t("common.optional")}</UIText>
           )}
         </View>
       )}
