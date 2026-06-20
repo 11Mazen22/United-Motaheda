@@ -85,6 +85,7 @@
                    "filterTitle":  "خيارات التصفية",
                    "reset":  "إعادة الضبط",
                    "all":  "الكل",
+                   "sortRelevance": "الأكثر صلة",
                    "sortNewest":  "الأحدث",
                    "sortPriceAsc":  "الأرخص",
                    "sortPriceDesc":  "الأغلى",
