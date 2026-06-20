@@ -372,13 +372,13 @@
         "optional": "Optional"
     },
     "pharmacist": {
-        "title": "PharmaCare AI",
+        "title": "Shifaa",
         "subtitle": "Free Pharmacist Consultation",
-        "disclaimer": "PharmaCare AI provides educational medication information only. It does not replace licensed pharmacists, physicians, emergency services, diagnosis, or medical treatment.",
+        "disclaimer": "Shifaa provides educational medication information only. It does not replace licensed pharmacists, physicians, emergency services, diagnosis, or medical treatment.",
         "disclaimerAck": "I Understand",
         "inputPlaceholder": "Ask about a medication…",
         "send": "Send",
-        "typing": "PharmaCare is typing…",
+        "typing": "Shifaa is typing…",
         "errorTitle": "Connection Error",
         "errorBody": "Could not reach the pharmacist assistant. Please check your connection and try again.",
         "errorRetry": "Retry",
@@ -389,8 +389,8 @@
         "suggested3": "How should I store insulin?",
         "suggested4": "Is it safe to take during pregnancy?",
         "youLabel": "You",
-        "aiLabel": "PharmaCare AI",
-        "welcomeTitle": "Hello! I'm PharmaCare AI",
+        "aiLabel": "Shifaa",
+        "welcomeTitle": "Hello! I'm Shifaa",
         "welcomeBody": "Ask me about medications, dosage, side effects, drug interactions, or any pharmacy question. I'm here to help.",
         "available247": "Available 24/7",
         "certifiedInfo": "Evidence-based information"

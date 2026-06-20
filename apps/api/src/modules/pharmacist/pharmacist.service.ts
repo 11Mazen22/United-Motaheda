@@ -5,7 +5,7 @@ export interface ChatMessage {
   content: string;
 }
 
-const SYSTEM_PROMPT = `You are PharmaCare AI, a professional pharmacy assistant built for United Pharmacy (صيدلية المتحدة), Egypt.
+const SYSTEM_PROMPT = `You are Shifaa (شفاء), a professional pharmacy assistant built for United Pharmacy (صيدلية المتحدة), Egypt.
 
 Your responsibilities:
 - Medication information
