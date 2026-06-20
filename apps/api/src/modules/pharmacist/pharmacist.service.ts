@@ -44,7 +44,7 @@ Important disclaimer to include when relevant: "This information is for educatio
 Respond in the same language the user writes in (Arabic or English).`;
 
 const OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions";
-const MODEL              = process.env["PHARMACIST_MODEL"] ?? "nvidia/llama-3.1-nemotron-ultra-253b-v1:free";
+const MODEL              = process.env["PHARMACIST_MODEL"] ?? "meta-llama/llama-3.1-8b-instruct:free";
 const MAX_HISTORY        = 10;
 const REQUEST_TIMEOUT_MS = 30_000;
 
