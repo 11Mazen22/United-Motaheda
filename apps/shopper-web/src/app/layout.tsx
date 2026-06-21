@@ -714,41 +714,40 @@ export default function Layout() {
 
       <div className="app-shell flex min-h-screen flex-col">
 
-        {/* ── Top info strip — dark navy, teal accents ── */}
-        <div className="hidden border-b border-[#0E7E74]/20 bg-[#0A1220] xl:block">
-          <div className="mx-auto flex max-w-[90rem] items-center justify-between gap-4 px-6 py-2 text-[11px] font-bold">
-            <div className="flex items-center gap-4">
-              <span className="inline-flex items-center gap-1.5 text-white/50">
-                <Truck className="h-3.5 w-3.5 text-[#2DD4C0]" />
+        {/* ── Top utility strip (desktop) ── */}
+        <div className="hidden border-b border-slate-100 bg-[#f8fafb] xl:block">
+          <div className="mx-auto flex max-w-[90rem] items-center justify-between gap-4 px-6 py-1.5 text-[11.5px] font-bold text-slate-500">
+            <div className="flex items-center gap-5">
+              <span className="inline-flex items-center gap-1.5">
+                <Truck className="h-3.5 w-3.5 text-[#0E7E74]" />
                 {deliveryWindowCompact}
               </span>
-              <span className="h-3 w-px bg-white/12" />
-              <span className="inline-flex items-center gap-1.5 text-white/50">
-                <ShieldCheck className="h-3.5 w-3.5 text-[#2DD4C0]" />
+              <span className="h-3 w-px bg-slate-200" />
+              <span className="inline-flex items-center gap-1.5">
+                <ShieldCheck className="h-3.5 w-3.5 text-[#0E7E74]" />
                 {serviceHoursLabel}
               </span>
             </div>
-
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-5">
               <a
                 href={`tel:${primaryPhone}`}
-                className="inline-flex items-center gap-1.5 text-white/50 transition-colors hover:text-white"
+                className="inline-flex items-center gap-1.5 transition-colors hover:text-[#0E7E74]"
               >
-                <Phone className="h-3.5 w-3.5 text-[#2DD4C0]" />
+                <Phone className="h-3.5 w-3.5 text-[#0E7E74]" />
                 <span dir="ltr">{primaryPhoneDisplay}</span>
               </a>
-              <span className="h-3 w-px bg-white/12" />
-              <span className="inline-flex items-center gap-1.5 text-white/50">
-                <MapPin className="h-3.5 w-3.5 text-[#2DD4C0]" />
+              <span className="h-3 w-px bg-slate-200" />
+              <span className="inline-flex items-center gap-1.5">
+                <MapPin className="h-3.5 w-3.5 text-[#0E7E74]" />
                 {lang === "ar" ? locationLabelAr : locationLabelEn}
               </span>
-              <span className="h-3 w-px bg-white/12" />
+              <span className="h-3 w-px bg-slate-200" />
               <button
                 type="button"
                 onClick={toggleLanguage}
-                className="inline-flex items-center gap-1.5 text-white/50 transition-colors hover:text-white"
+                className="inline-flex items-center gap-1.5 transition-colors hover:text-[#0E7E74]"
               >
-                <Globe className="h-3.5 w-3.5 text-[#2DD4C0]" />
+                <Globe className="h-3.5 w-3.5 text-[#0E7E74]" />
                 {lang === "ar" ? "English" : "العربية"}
               </button>
             </div>
@@ -760,96 +759,85 @@ export default function Layout() {
         ══════════════════════════════════════════════════════════════════ */}
         <header
           className={cn(
-            "sticky top-0 z-40 transition-all duration-300",
+            "sticky top-0 z-40 bg-white transition-all duration-300",
             scrolled
-              ? "border-b border-slate-200/80 bg-white/98 shadow-[0_4px_24px_rgba(10,18,32,0.10)] backdrop-blur-md"
-              : "border-b border-slate-100 bg-white",
+              ? "border-b border-slate-200 shadow-[0_4px_24px_rgba(10,18,32,0.08)] backdrop-blur-md"
+              : "border-b border-slate-100",
           )}
         >
-
           {/* ── Main bar ────────────────────────────────────────────────── */}
-          <div
-            className={cn(
-              "mx-auto grid max-w-[90rem] items-center gap-3 px-3 py-2 md:px-6 md:py-2.5",
-              "grid-cols-[auto_1fr_auto] xl:grid-cols-[minmax(15rem,18rem)_minmax(0,1fr)_auto]",
-            )}
-          >
+          <div className="mx-auto flex max-w-[90rem] items-center gap-3 px-4 py-2.5 md:gap-4 md:px-6 md:py-3">
 
             {/* ── Brand / Logo ─────────────────────────────────────────── */}
             <Link
               to="/"
-              className="group flex min-w-0 items-center gap-2.5 rounded-2xl px-2 py-1.5 transition-all duration-200 hover:bg-slate-50 md:px-3 md:py-2"
+              className="group flex shrink-0 items-center gap-3 transition-opacity duration-200 hover:opacity-85"
             >
-              <div className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-[0.8rem] bg-[#0A1220] shadow-[0_4px_14px_rgba(10,18,32,0.22)] md:h-11 md:w-11 md:rounded-[0.95rem]">
-                <img
-                  src={images.logoMark}
-                  alt={lang === "ar" ? BRAND_NAME_AR : BRAND_NAME_EN}
-                  className="h-full w-full object-contain p-1.5"
-                />
-                <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full border-2 border-white bg-[#0E7E74] shadow-[0_0_6px_rgba(14,126,116,0.7)]" />
-              </div>
-
-              <div className="min-w-0 flex-1">
+              <img
+                src={images.logoMark}
+                alt={lang === "ar" ? BRAND_NAME_AR : BRAND_NAME_EN}
+                className="h-10 w-10 object-contain md:h-11 md:w-11"
+              />
+              <div className="hidden sm:block">
                 <p
                   className={cn(
-                    "min-w-0 font-black leading-tight text-[#0A1220]",
+                    "font-black leading-tight text-[#0A1220]",
                     lang === "ar"
-                      ? "text-[0.88rem] md:text-[1.05rem]"
-                      : "text-[0.88rem] tracking-[-0.03em] md:text-[1.1rem]",
+                      ? "text-[0.95rem] md:text-[1.05rem]"
+                      : "text-[0.9rem] tracking-[-0.03em] md:text-[1.05rem]",
                   )}
                 >
                   {lang === "ar" ? BRAND_NAME_AR : BRAND_NAME_EN}
                 </p>
-                <p className="mt-0.5 hidden text-[9.5px] font-black uppercase tracking-[0.26em] text-[#0E7E74] sm:block">
+                <p className="mt-0.5 text-[9px] font-black uppercase tracking-[0.28em] text-[#0E7E74]">
                   {t("slogan")}
                 </p>
               </div>
             </Link>
 
-            {/* ── Desktop Search ───────────────────────────────────────── */}
-            <div className="hidden xl:flex xl:items-center xl:px-4 2xl:px-6">
-              <form onSubmit={handleSearch} className="relative h-10 w-full">
+            {/* ── Desktop Search ─ grows to fill available space ────────── */}
+            <div className="hidden flex-1 xl:block xl:px-4 2xl:px-8">
+              <form onSubmit={handleSearch} className="relative h-11 w-full">
+                <Search
+                  className={cn(
+                    "pointer-events-none absolute top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400",
+                    lang === "ar" ? "right-4" : "left-4",
+                  )}
+                />
                 <SiteSearchField
-                  className="h-10 w-full"
-                  inputClassName="h-10 w-full rounded-full border-slate-200 bg-slate-50 placeholder:text-slate-400 focus:border-[#0E7E74]/40 focus:bg-white focus:ring-2 focus:ring-[#0E7E74]/15 focus:shadow-[0_4px_20px_rgba(14,126,116,0.12)] transition-all"
+                  className="h-11 w-full"
+                  inputClassName={cn(
+                    "h-11 w-full rounded-full border border-slate-200 bg-[#f7f9fc] text-[13px] placeholder:text-slate-400",
+                    "focus:border-[#0E7E74]/50 focus:bg-white focus:ring-2 focus:ring-[#0E7E74]/12 focus:shadow-[0_4px_20px_rgba(14,126,116,0.10)] transition-all",
+                    lang === "ar" ? "pr-11 pl-12" : "pl-11 pr-12",
+                  )}
                 />
                 <button
                   type="submit"
                   aria-label={lang === "ar" ? "بحث" : "Search"}
                   className={cn(
-                    "absolute top-1/2 h-7 w-7 -translate-y-1/2 rounded-full bg-[#0E7E74] text-white transition-all hover:bg-[#0A6B62] hover:shadow-[0_4px_14px_rgba(14,126,116,0.35)]",
+                    "absolute top-1/2 h-8 w-8 -translate-y-1/2 rounded-full bg-[#0E7E74] text-white transition-all hover:bg-[#0A6B62] hover:shadow-[0_4px_14px_rgba(14,126,116,0.30)]",
                     lang === "ar" ? "left-1.5" : "right-1.5",
                   )}
                 >
-                  <Search className="mx-auto h-4 w-4" />
+                  <Search className="mx-auto h-3.5 w-3.5" />
                 </button>
               </form>
             </div>
 
             {/* ── Action Cluster ───────────────────────────────────────── */}
-            <div className="flex items-center gap-1 md:gap-1.5">
+            <div className="ml-auto flex shrink-0 items-center gap-2">
 
-              {/* Admin portal — visible only to authorized staff */}
+              {/* Admin portal — compact icon+label, desktop only */}
               {isStaffPortalVisible ? (
                 <Link
                   to="/admin"
-                  className={cn(
-                    "inline-flex items-center justify-center gap-2 rounded-2xl p-2 text-[13px] font-black text-slate-700",
-                    "bg-white border border-slate-200/80",
-                    "shadow-[0_2px_12px_rgba(15,23,42,0.08),0_1px_3px_rgba(15,23,42,0.12)]",
-                    "ring-1 ring-slate-200/50",
-                    "transition-all duration-200 hover:-translate-y-0.5",
-                    "hover:bg-slate-50/80 hover:border-slate-300/60 hover:shadow-[0_4px_16px_rgba(15,23,42,0.12),0_2px_6px_rgba(15,23,42,0.16)]",
-                    "hover:ring-slate-300/60",
-                    "sm:px-3.5 sm:py-2",
-                  )}
+                  className="hidden items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-[12px] font-black text-slate-600 transition-all hover:border-[#0E7E74]/40 hover:bg-[#0E7E74]/[0.05] hover:text-[#0E7E74] xl:inline-flex"
                   aria-label={lang === "ar" ? "لوحة الإدارة" : "Admin portal"}
                 >
-                  <LayoutDashboard className="h-4 w-4" />
-                  <span className="hidden sm:inline">
-                    {lang === "ar" ? "لوحة الإدارة" : "Admin Dashboard"}
-                  </span>
-                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-teal-500" />
+                  <LayoutDashboard className="h-3.5 w-3.5" />
+                  {lang === "ar" ? "الإدارة" : "Admin"}
+                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#0E7E74]" />
                 </Link>
               ) : null}
 
@@ -861,9 +849,9 @@ export default function Layout() {
                 aria-controls="mobile-search-panel"
                 aria-label={lang === "ar" ? "فتح البحث" : "Open search"}
                 className={cn(
-                  "inline-flex h-9 w-9 items-center justify-center rounded-[1.1rem] border border-slate-200 bg-white text-slate-600 shadow-[0_2px_10px_rgba(15,23,42,0.06)] transition-all xl:hidden",
-                  "hover:border-teal-300/50 hover:bg-teal-50 hover:text-teal-700",
-                  searchOpen && "border-teal-300/50 bg-teal-50 text-teal-700",
+                  "inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 transition-all xl:hidden",
+                  "hover:border-[#0E7E74]/40 hover:bg-[#0E7E74]/[0.05] hover:text-[#0E7E74]",
+                  searchOpen && "border-[#0E7E74]/40 bg-[#0E7E74]/[0.05] text-[#0E7E74]",
                 )}
               >
                 {searchOpen ? <X className="h-4 w-4" /> : <Search className="h-4 w-4" />}
@@ -880,13 +868,13 @@ export default function Layout() {
                       aria-haspopup="menu"
                       aria-controls="user-dropdown-menu"
                       className={cn(
-                        "inline-flex h-9 items-center gap-2 rounded-2xl border px-3 text-sm font-black transition-all duration-200",
+                        "inline-flex h-9 items-center gap-2 rounded-xl border px-3 text-[13px] font-black transition-all duration-200",
                         userMenuOpen
-                          ? "border-teal-300/50 bg-teal-50 text-teal-800"
-                          : "border-slate-200 bg-white text-slate-700 shadow-[0_2px_10px_rgba(15,23,42,0.06)] hover:border-teal-300/50 hover:bg-teal-50 hover:text-teal-800",
+                          ? "border-[#0E7E74]/40 bg-[#0E7E74]/[0.06] text-[#0E7E74]"
+                          : "border-slate-200 bg-white text-slate-600 hover:border-[#0E7E74]/40 hover:bg-[#0E7E74]/[0.05] hover:text-[#0E7E74]",
                       )}
                     >
-                      <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[var(--primary)] text-[11px] font-black text-white shadow-[0_2px_8px_rgba(13,148,136,0.30)]">
+                      <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[#0E7E74] text-[11px] font-black text-white">
                         {userInitial}
                       </span>
                       <span className="hidden max-w-[7rem] truncate 2xl:block">
@@ -909,37 +897,35 @@ export default function Layout() {
                         role="menu"
                         aria-label={lang === "ar" ? "قائمة المستخدم" : "User menu"}
                         className={cn(
-                          "absolute top-[calc(100%+0.6rem)] z-50 w-64 rounded-[1.5rem] border border-slate-200/70 bg-white p-2",
-                          "shadow-[0_24px_56px_rgba(15,23,42,0.12),0_0_0_1px_rgba(13,148,136,0.04)]",
+                          "absolute top-[calc(100%+0.5rem)] z-50 w-60 rounded-2xl border border-slate-200/80 bg-white p-2",
+                          "shadow-[0_20px_48px_rgba(10,18,32,0.12)]",
                           "animate-in fade-in slide-in-from-top-2 duration-150",
                           lang === "ar" ? "left-0" : "right-0",
                         )}
                       >
-                        {/* User identity header */}
-                        <div className="mb-2 rounded-[1.2rem] border border-teal-100/80 bg-gradient-to-br from-teal-50/60 to-white px-4 py-3">
-                          <div className="flex items-center gap-3">
-                            <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[var(--primary)] text-sm font-black text-white shadow-[0_4px_12px_rgba(13,148,136,0.28)]">
+                        <div className="mb-2 rounded-xl border border-slate-100 bg-slate-50 px-3 py-2.5">
+                          <div className="flex items-center gap-2.5">
+                            <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#0E7E74] text-sm font-black text-white">
                               {userInitial}
                             </span>
                             <div className="min-w-0 flex-1">
-                              <p className="truncate text-sm font-black text-slate-900">
+                              <p className="truncate text-[13px] font-black text-slate-900">
                                 {user.fullName || (lang === "ar" ? "المستخدم" : "User")}
                               </p>
-                              <p className="truncate text-xs font-semibold text-slate-500" dir="ltr">
+                              <p className="truncate text-[11px] font-semibold text-slate-500" dir="ltr">
                                 {user.phone || user.email}
                               </p>
                             </div>
                           </div>
                         </div>
 
-                        {/* Admin link */}
                         {user.role === "admin" && (
                           <Link
                             to="/admin"
                             onClick={() => setUserMenuOpen(false)}
-                            className="flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-black text-teal-700 transition-colors hover:bg-teal-50"
+                            className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-[13px] font-black text-[#0E7E74] transition-colors hover:bg-[#0E7E74]/[0.06]"
                           >
-                            <LayoutDashboard className="h-4 w-4 text-teal-600" />
+                            <LayoutDashboard className="h-4 w-4" />
                             {lang === "ar" ? "لوحة الإدارة" : "Admin Dashboard"}
                           </Link>
                         )}
@@ -947,18 +933,18 @@ export default function Layout() {
                         <Link
                           to={accountRoute}
                           onClick={() => setUserMenuOpen(false)}
-                          className="flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-950"
+                          className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-[13px] font-bold text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900"
                         >
-                          <Settings className="h-4 w-4 text-[var(--primary)]" />
+                          <Settings className="h-4 w-4 text-slate-400" />
                           {t("personal_info")}
                         </Link>
 
                         <Link
                           to="/offers"
                           onClick={() => setUserMenuOpen(false)}
-                          className="flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-950"
+                          className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-[13px] font-bold text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900"
                         >
-                          <Tag className="h-4 w-4 text-rose-500" />
+                          <Tag className="h-4 w-4 text-slate-400" />
                           {lang === "ar" ? "العروض" : "Offers"}
                         </Link>
 
@@ -967,7 +953,7 @@ export default function Layout() {
                         <button
                           type="button"
                           onClick={handleLogout}
-                          className="flex w-full items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-bold text-rose-600 transition-colors hover:bg-rose-50"
+                          className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-[13px] font-bold text-rose-600 transition-colors hover:bg-rose-50"
                         >
                           <LogOut className="h-4 w-4" />
                           {t("logout")}
@@ -979,7 +965,7 @@ export default function Layout() {
                   <button
                     type="button"
                     onClick={() => navigate("/login")}
-                    className="inline-flex h-9 items-center gap-2 rounded-2xl border border-teal-300/40 bg-teal-50 px-4 text-sm font-black text-teal-800 transition-all hover:bg-[var(--primary)] hover:text-white hover:border-transparent hover:shadow-[0_6px_20px_rgba(13,148,136,0.28)]"
+                    className="inline-flex h-9 items-center gap-2 rounded-xl border border-[#0E7E74]/30 bg-[#0E7E74]/[0.06] px-4 text-[13px] font-black text-[#0E7E74] transition-all hover:bg-[#0E7E74] hover:border-transparent hover:text-white hover:shadow-[0_4px_16px_rgba(14,126,116,0.28)]"
                   >
                     <User className="h-4 w-4" />
                     <span>{t("login")}</span>
@@ -997,18 +983,17 @@ export default function Layout() {
                     : `Open cart, ${cartItemsCount} items`
                 }
                 className={cn(
-                  "nav-cart-button inline-flex h-9 items-center gap-2 rounded-2xl px-3 text-sm font-black text-white xl:px-3.5",
-                  "bg-[var(--primary)] shadow-[0_4px_16px_rgba(13,148,136,0.28)]",
-                  "transition-all duration-200 hover:-translate-y-0.5 hover:bg-[var(--primary-strong)] hover:shadow-[0_8px_24px_rgba(13,148,136,0.36)]",
+                  "inline-flex h-9 items-center gap-2 rounded-xl bg-[#0A1220] px-3 text-[13px] font-black text-white xl:px-4",
+                  "shadow-[0_4px_16px_rgba(10,18,32,0.18)] transition-all duration-200",
+                  "hover:bg-[#1a2535] hover:shadow-[0_6px_22px_rgba(10,18,32,0.26)]",
                 )}
               >
                 <ShoppingBag className="h-4 w-4" />
                 <span className="hidden xl:inline">{t("cart")}</span>
                 <span
                   className={cn(
-                    "inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-white px-1.5 text-[10px] font-black text-[var(--primary-strong)]",
-                    "transition-transform",
-                    cartItemsCount === 0 && "opacity-60",
+                    "inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[#0E7E74] px-1.5 text-[10px] font-black text-white",
+                    cartItemsCount === 0 && "opacity-50",
                   )}
                 >
                   {cartItemsCount}
@@ -1022,10 +1007,7 @@ export default function Layout() {
                 aria-expanded={mobileMenuOpen}
                 aria-controls="mobile-menu"
                 aria-label={lang === "ar" ? "فتح القائمة" : "Open menu"}
-                className={cn(
-                  "inline-flex h-9 w-9 items-center justify-center rounded-[1.1rem] border border-slate-200 bg-white text-slate-700 shadow-[0_2px_10px_rgba(15,23,42,0.06)] transition-all xl:hidden",
-                  "hover:border-teal-300/50 hover:bg-teal-50 hover:text-teal-700",
-                )}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 transition-all hover:border-slate-300 hover:bg-slate-50 xl:hidden"
               >
                 <Menu className="h-5 w-5" />
               </button>
@@ -1036,20 +1018,20 @@ export default function Layout() {
           {searchOpen && (
             <div
               id="mobile-search-panel"
-              className="mobile-search-panel xl:hidden animate-in slide-in-from-top-1 duration-200 border-t border-slate-100 bg-white/96 px-4 pb-4 pt-3 backdrop-blur-sm"
+              className="xl:hidden animate-in slide-in-from-top-1 duration-200 border-t border-slate-100 bg-white px-4 pb-3 pt-2.5"
             >
               <form onSubmit={handleSearch} className="relative h-11 w-full">
                 <SiteSearchField
                   inputRef={searchRef}
                   className="h-11 w-full"
-                  inputClassName="h-11 rounded-full"
+                  inputClassName="h-11 rounded-full border-slate-200 bg-slate-50"
                   mobileSubmitPadding
                 />
                 <button
                   type="submit"
                   aria-label={lang === "ar" ? "بحث" : "Search"}
                   className={cn(
-                    "absolute top-1/2 h-8 w-8 -translate-y-1/2 rounded-full bg-[var(--primary)] text-white transition-colors hover:bg-[var(--primary-strong)]",
+                    "absolute top-1/2 h-8 w-8 -translate-y-1/2 rounded-full bg-[#0E7E74] text-white transition-colors hover:bg-[#0A6B62]",
                     lang === "ar" ? "left-1.5" : "right-1.5",
                   )}
                 >
@@ -1065,7 +1047,7 @@ export default function Layout() {
               className="mx-auto flex max-w-[90rem] items-center justify-between gap-4 px-6"
               dir={lang === "ar" ? "rtl" : "ltr"}
             >
-              {/* Primary nav links — underline active indicator */}
+              {/* Primary nav links — teal underline on active */}
               <nav className="flex items-center">
                 {headerLinks.map(({ path, name, icon: Icon }) => {
                   const active = isActive(path);
@@ -1074,7 +1056,7 @@ export default function Layout() {
                       key={path}
                       to={path}
                       className={cn(
-                        "relative inline-flex items-center gap-1.5 px-4 py-3 text-[13px] font-black transition-all duration-150",
+                        "relative inline-flex items-center gap-1.5 px-4 py-3.5 text-[13px] font-black transition-all duration-150",
                         active
                           ? "text-[#0E7E74]"
                           : "text-slate-500 hover:text-[#0A1220]",
@@ -1088,7 +1070,7 @@ export default function Layout() {
                       />
                       {name}
                       {active && (
-                        <span className="absolute inset-x-3 bottom-0 h-[2.5px] rounded-full bg-[#0E7E74]" />
+                        <span className="absolute inset-x-3 bottom-0 h-[2.5px] rounded-t-full bg-[#0E7E74]" />
                       )}
                     </Link>
                   );
@@ -1096,24 +1078,24 @@ export default function Layout() {
               </nav>
 
               {/* Right side: category chips + call */}
-              <div className="flex min-w-0 flex-1 items-center justify-end gap-1.5">
-                <div className="hidden min-w-0 items-center gap-1.5 xl:flex">
-                  {headerCategories.map((category) => (
-                    <Link
-                      key={category.id}
-                      to={`/categories/${category.id}`}
-                      className="inline-flex min-w-0 items-center rounded-full border border-slate-200/80 bg-slate-50 px-3 py-1 text-[11.5px] font-black text-slate-600 transition-all hover:border-[#0E7E74]/30 hover:bg-[#0E7E74]/[0.06] hover:text-[#0E7E74]"
-                    >
-                      <span className="truncate">
-                        {getLocalizedCategoryName(category, lang)}
-                      </span>
-                    </Link>
-                  ))}
-                </div>
+              <div className="flex min-w-0 flex-1 items-center justify-end gap-1.5 py-2">
+                {headerCategories.map((category) => (
+                  <Link
+                    key={category.id}
+                    to={`/categories/${category.id}`}
+                    className="inline-flex min-w-0 shrink-0 items-center rounded-full border border-slate-200 bg-white px-3 py-1 text-[11.5px] font-bold text-slate-600 transition-all hover:border-[#0E7E74]/30 hover:bg-[#0E7E74]/[0.05] hover:text-[#0E7E74]"
+                  >
+                    <span className="truncate">
+                      {getLocalizedCategoryName(category, lang)}
+                    </span>
+                  </Link>
+                ))}
+
+                <div className="mx-1 h-4 w-px bg-slate-200" />
 
                 <Link
                   to="/categories"
-                  className="inline-flex items-center gap-1.5 rounded-full border border-[#0E7E74]/25 bg-[#0E7E74]/[0.06] px-3.5 py-1 text-[11.5px] font-black text-[#0E7E74] transition-all hover:bg-[#0E7E74]/[0.12]"
+                  className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-[#0E7E74]/30 bg-[#0E7E74]/[0.06] px-3.5 py-1 text-[11.5px] font-black text-[#0E7E74] transition-all hover:bg-[#0E7E74]/[0.12]"
                 >
                   <LayoutGrid className="h-3 w-3" />
                   {lang === "ar" ? "كل الأقسام" : "All categories"}
@@ -1121,7 +1103,7 @@ export default function Layout() {
 
                 <a
                   href={`tel:${primaryPhone}`}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-[#0E7E74] px-3.5 py-1 text-[11.5px] font-black text-white shadow-[0_4px_14px_rgba(14,126,116,0.28)] transition-all hover:bg-[#0A6B62] hover:shadow-[0_6px_18px_rgba(14,126,116,0.38)]"
+                  className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-[#0E7E74] px-4 py-1 text-[11.5px] font-black text-white shadow-[0_3px_12px_rgba(14,126,116,0.28)] transition-all hover:bg-[#0A6B62] hover:shadow-[0_5px_16px_rgba(14,126,116,0.38)]"
                 >
                   <Phone className="h-3 w-3" />
                   {lang === "ar" ? "اتصال" : "Call"}
