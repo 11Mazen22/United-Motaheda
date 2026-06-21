@@ -1,6 +1,6 @@
 ﻿import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import {
   Award,
   CheckCircle2,
@@ -122,8 +122,7 @@ export default function About() {
   const isShopperShell = useIsShopperShell();
   const { lang, t } = useLanguage();
   const { metrics } = useCatalog();
-  const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const { isMuted, toggleMute } = useGlobalAudioMute();
 
   if (isShopperShell) {
@@ -132,11 +131,12 @@ export default function About() {
   const isArabic = lang === "ar";
   const brandName = isArabic ? "صيدليات المتحدة" : "United Pharmacies";
   const defaultBranchId = locations.find((branch) => branch.isPrimary)?.id ?? locations[0]?.id ?? "cairo";
-  const selectedBranchMapId = searchParams.get("branch") ?? defaultBranchId;
+  const [selectedBranchMapId, setSelectedBranchMapId] = useState(
+    () => searchParams.get("branch") ?? defaultBranchId,
+  );
   const defaultBranch = locations.find((branch) => branch.id === defaultBranchId) ?? locations[0];
   const selectedBranch = locations.find((branch) => branch.id === selectedBranchMapId) ?? defaultBranch;
   const selectedDirectionsUrl = selectedBranch?.mapsDirectionsUrl ?? null;
-  const branchDetailHref = (branchId: string) => `/about?branch=${branchId}#branch-details`;
 
   /* ── Data ── */
 
@@ -717,7 +717,7 @@ export default function About() {
                   <Reveal key={location.id} direction="up" delay={index * 60}>
                     <button
                       type="button"
-                      onClick={() => navigate(branchDetailHref(location.id))}
+                      onClick={() => setSelectedBranchMapId(location.id)}
                       className={cn(
                         "group relative w-full overflow-hidden rounded-[1.5rem] border-2 p-5 text-start transition-all duration-200",
                         isSelected
@@ -882,7 +882,7 @@ export default function About() {
                     locations={locations}
                     selectedBranchId={selectedBranch.id}
                     isArabic={isArabic}
-                    onSelectBranch={(branchId) => setSearchParams((prev) => { prev.set("branch", branchId); return prev; }, { replace: true })}
+                    onSelectBranch={setSelectedBranchMapId}
                   />
                 </div>
               </div>

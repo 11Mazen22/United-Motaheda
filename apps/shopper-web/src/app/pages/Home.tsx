@@ -334,14 +334,12 @@ function HomeDesktop() {
                   <span className="text-[12px] font-black tabular-nums text-slate-400">
                     {catSlide + 1} <span className="text-slate-200">/</span> {totalSlides}
                   </span>
-                  {/* Prev — same solid-navy style as Next for consistency */}
                   <button type="button" onClick={goPrev} aria-label={isRtl ? "التالي" : "Previous"}
-                    className="group flex h-11 w-11 items-center justify-center rounded-xl border-2 border-[#0A1220] bg-[#0A1220] text-white transition-all duration-200 hover:bg-white hover:text-[#0A1220]">
+                    className="flex h-11 w-11 items-center justify-center rounded-xl border-2 border-[#0E7E74] bg-[#0E7E74] text-white shadow-[0_4px_14px_rgba(14,126,116,0.30)] transition-all duration-200 hover:bg-[#0A6B62] hover:border-[#0A6B62] hover:shadow-[0_6px_18px_rgba(14,126,116,0.42)] active:scale-95">
                     <ChevronLeft className={cn("h-4 w-4", isRtl && "rotate-180")} />
                   </button>
-                  {/* Next */}
                   <button type="button" onClick={goNext} aria-label={isRtl ? "السابق" : "Next"}
-                    className="group flex h-11 w-11 items-center justify-center rounded-xl border-2 border-[#0A1220] bg-[#0A1220] text-white transition-all duration-200 hover:bg-white hover:text-[#0A1220]">
+                    className="flex h-11 w-11 items-center justify-center rounded-xl border-2 border-[#0E7E74] bg-[#0E7E74] text-white shadow-[0_4px_14px_rgba(14,126,116,0.30)] transition-all duration-200 hover:bg-[#0A6B62] hover:border-[#0A6B62] hover:shadow-[0_6px_18px_rgba(14,126,116,0.42)] active:scale-95">
                     <ChevronRight className={cn("h-4 w-4", isRtl && "rotate-180")} />
                   </button>
                 </div>

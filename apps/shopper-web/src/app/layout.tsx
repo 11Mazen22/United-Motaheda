@@ -714,37 +714,41 @@ export default function Layout() {
 
       <div className="app-shell flex min-h-screen flex-col">
 
-        <div className="hidden border-b border-slate-200 bg-white xl:block">
-          <div className="mx-auto flex max-w-[90rem] items-center justify-between gap-4 px-6 py-1 text-[11px] font-bold text-slate-600">
-            <div className="flex items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
-                <Truck className="h-3 w-3 text-[var(--primary)]" />
+        {/* ── Top info strip — dark navy, teal accents ── */}
+        <div className="hidden border-b border-[#0E7E74]/20 bg-[#0A1220] xl:block">
+          <div className="mx-auto flex max-w-[90rem] items-center justify-between gap-4 px-6 py-2 text-[11px] font-bold">
+            <div className="flex items-center gap-4">
+              <span className="inline-flex items-center gap-1.5 text-white/50">
+                <Truck className="h-3.5 w-3.5 text-[#2DD4C0]" />
                 {deliveryWindowCompact}
               </span>
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
-                <ShieldCheck className="h-3 w-3 text-[var(--primary)]" />
+              <span className="h-3 w-px bg-white/12" />
+              <span className="inline-flex items-center gap-1.5 text-white/50">
+                <ShieldCheck className="h-3.5 w-3.5 text-[#2DD4C0]" />
                 {serviceHoursLabel}
               </span>
             </div>
 
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-4">
               <a
                 href={`tel:${primaryPhone}`}
-                className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 transition-colors hover:bg-slate-100"
+                className="inline-flex items-center gap-1.5 text-white/50 transition-colors hover:text-white"
               >
-                <Phone className="h-3 w-3 text-[var(--primary)]" />
+                <Phone className="h-3.5 w-3.5 text-[#2DD4C0]" />
                 <span dir="ltr">{primaryPhoneDisplay}</span>
               </a>
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
-                <MapPin className="h-3 w-3 text-[var(--primary)]" />
+              <span className="h-3 w-px bg-white/12" />
+              <span className="inline-flex items-center gap-1.5 text-white/50">
+                <MapPin className="h-3.5 w-3.5 text-[#2DD4C0]" />
                 {lang === "ar" ? locationLabelAr : locationLabelEn}
               </span>
+              <span className="h-3 w-px bg-white/12" />
               <button
                 type="button"
                 onClick={toggleLanguage}
-                className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 transition-colors hover:bg-slate-100"
+                className="inline-flex items-center gap-1.5 text-white/50 transition-colors hover:text-white"
               >
-                <Globe className="h-3 w-3 text-[var(--primary)]" />
+                <Globe className="h-3.5 w-3.5 text-[#2DD4C0]" />
                 {lang === "ar" ? "English" : "العربية"}
               </button>
             </div>
@@ -756,14 +760,9 @@ export default function Layout() {
         ══════════════════════════════════════════════════════════════════ */}
         <header
           className={cn(
-            "nav-professional sticky top-0 z-40 transition-shadow duration-200",
-            // backdrop-blur is only applied after the user scrolls.
-            // Keeping it active at the top-of-page position means blurring on
-            // every scroll frame from the very first pixel — unnecessary cost.
-            // We use a fully opaque white background at rest (no blur needed)
-            // and add blur only once content is sliding beneath the header.
+            "sticky top-0 z-40 transition-all duration-300",
             scrolled
-              ? "border-b border-slate-200 bg-white/97 shadow-[0_4px_16px_rgba(15,23,42,0.08)] backdrop-blur-md"
+              ? "border-b border-slate-200/80 bg-white/98 shadow-[0_4px_24px_rgba(10,18,32,0.10)] backdrop-blur-md"
               : "border-b border-slate-100 bg-white",
           )}
         >
@@ -771,40 +770,37 @@ export default function Layout() {
           {/* ── Main bar ────────────────────────────────────────────────── */}
           <div
             className={cn(
-              "mx-auto grid max-w-[90rem] items-center gap-2 px-3 py-1.5 md:px-5 md:py-2",
-              "grid-cols-[auto_1fr_auto] xl:grid-cols-[minmax(14rem,17rem)_minmax(0,1fr)_auto]",
+              "mx-auto grid max-w-[90rem] items-center gap-3 px-3 py-2 md:px-6 md:py-2.5",
+              "grid-cols-[auto_1fr_auto] xl:grid-cols-[minmax(15rem,18rem)_minmax(0,1fr)_auto]",
             )}
           >
 
             {/* ── Brand / Logo ─────────────────────────────────────────── */}
             <Link
               to="/"
-              className="nav-brand-card group flex min-w-0 items-center gap-2 rounded-[1.2rem] border border-slate-200/80 bg-white px-2 py-1 shadow-[0_4px_20px_rgba(15,23,42,0.06)] transition-all duration-200 hover:border-teal-300/50 hover:shadow-[0_8px_28px_rgba(13,148,136,0.12)] md:gap-2.5 md:px-2.5 md:py-1.5"
+              className="group flex min-w-0 items-center gap-2.5 rounded-2xl px-2 py-1.5 transition-all duration-200 hover:bg-slate-50 md:px-3 md:py-2"
             >
-              {/* Logo icon frame with gradient ring */}
-              <div className="site-logo-frame relative flex h-[2.2rem] w-[2.2rem] shrink-0 items-center justify-center rounded-[0.7rem] border border-teal-200/60 bg-gradient-to-br from-white to-teal-50/60 shadow-[0_2px_10px_rgba(13,148,136,0.10)] md:h-[2.8rem] md:w-[2.8rem] md:rounded-[0.85rem]">
-                {/* Subtle glow pulse on hover */}
-                <span className="absolute inset-0 rounded-[inherit] bg-teal-400/0 transition-all duration-300 group-hover:bg-teal-400/5" />
+              <div className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-[0.8rem] bg-[#0A1220] shadow-[0_4px_14px_rgba(10,18,32,0.22)] md:h-11 md:w-11 md:rounded-[0.95rem]">
                 <img
                   src={images.logoMark}
                   alt={lang === "ar" ? BRAND_NAME_AR : BRAND_NAME_EN}
-                  className="relative z-10 h-full w-full object-contain p-1.5"
+                  className="h-full w-full object-contain p-1.5"
                 />
+                <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full border-2 border-white bg-[#0E7E74] shadow-[0_0_6px_rgba(14,126,116,0.7)]" />
               </div>
 
-              {/* Brand text */}
               <div className="min-w-0 flex-1">
                 <p
                   className={cn(
-                    "min-w-0 font-black text-slate-950 leading-tight",
+                    "min-w-0 font-black leading-tight text-[#0A1220]",
                     lang === "ar"
-                      ? "text-[0.85rem] md:text-[1.05rem]"
-                      : "max-w-[6rem] text-[0.85rem] leading-[0.9] tracking-[-0.04em] sm:max-w-[8rem] md:max-w-[9rem] md:text-[1.15rem]",
+                      ? "text-[0.88rem] md:text-[1.05rem]"
+                      : "text-[0.88rem] tracking-[-0.03em] md:text-[1.1rem]",
                   )}
                 >
                   {lang === "ar" ? BRAND_NAME_AR : BRAND_NAME_EN}
                 </p>
-                <p className="mt-0.5 hidden truncate text-[10px] font-black uppercase tracking-[0.22em] text-[var(--primary)] sm:block">
+                <p className="mt-0.5 hidden text-[9.5px] font-black uppercase tracking-[0.26em] text-[#0E7E74] sm:block">
                   {t("slogan")}
                 </p>
               </div>
@@ -812,19 +808,17 @@ export default function Layout() {
 
             {/* ── Desktop Search ───────────────────────────────────────── */}
             <div className="hidden xl:flex xl:items-center xl:px-4 2xl:px-6">
-              <form onSubmit={handleSearch} className="site-search relative h-9 w-full">
+              <form onSubmit={handleSearch} className="relative h-10 w-full">
                 <SiteSearchField
-                  className="h-9 w-full"
-                  inputClassName="h-9 w-full rounded-full border-slate-200 bg-white shadow-[0_2px_14px_rgba(15,23,42,0.06)] placeholder:text-slate-400 focus:border-teal-400/50 focus:ring-2 focus:ring-teal-400/15 focus:shadow-[0_4px_20px_rgba(13,148,136,0.12)] transition-all"
+                  className="h-10 w-full"
+                  inputClassName="h-10 w-full rounded-full border-slate-200 bg-slate-50 placeholder:text-slate-400 focus:border-[#0E7E74]/40 focus:bg-white focus:ring-2 focus:ring-[#0E7E74]/15 focus:shadow-[0_4px_20px_rgba(14,126,116,0.12)] transition-all"
                 />
                 <button
                   type="submit"
                   aria-label={lang === "ar" ? "بحث" : "Search"}
                   className={cn(
-                    "absolute top-1/2 h-7 w-7 -translate-y-1/2 rounded-full transition-all",
-                    "bg-[var(--primary)] text-white",
-                    "hover:bg-[var(--primary-strong)] hover:shadow-[0_4px_14px_rgba(13,148,136,0.35)]",
-                    lang === "ar" ? "left-1" : "right-1",
+                    "absolute top-1/2 h-7 w-7 -translate-y-1/2 rounded-full bg-[#0E7E74] text-white transition-all hover:bg-[#0A6B62] hover:shadow-[0_4px_14px_rgba(14,126,116,0.35)]",
+                    lang === "ar" ? "left-1.5" : "right-1.5",
                   )}
                 >
                   <Search className="mx-auto h-4 w-4" />
@@ -1066,12 +1060,13 @@ export default function Layout() {
           )}
 
           {/* ── Desktop Navigation Bar ───────────────────────────────────── */}
-          <div className="hidden border-t border-slate-100/80 bg-white/50 xl:block">
+          <div className="hidden border-t border-slate-100 xl:block">
             <div
-              className="mx-auto flex max-w-[90rem] items-center justify-between gap-4 px-6 py-1.5"
+              className="mx-auto flex max-w-[90rem] items-center justify-between gap-4 px-6"
               dir={lang === "ar" ? "rtl" : "ltr"}
             >
-              <nav className="flex items-center gap-1">
+              {/* Primary nav links — underline active indicator */}
+              <nav className="flex items-center">
                 {headerLinks.map(({ path, name, icon: Icon }) => {
                   const active = isActive(path);
                   return (
@@ -1079,31 +1074,35 @@ export default function Layout() {
                       key={path}
                       to={path}
                       className={cn(
-                        "inline-flex items-center gap-1.5 rounded-[0.9rem] px-3.5 py-1.5 text-[12.5px] font-black transition-all duration-150",
+                        "relative inline-flex items-center gap-1.5 px-4 py-3 text-[13px] font-black transition-all duration-150",
                         active
-                          ? "bg-[var(--primary)] text-white shadow-[0_4px_14px_rgba(13,148,136,0.22)]"
-                          : "text-slate-500 hover:bg-slate-100 hover:text-slate-800",
+                          ? "text-[#0E7E74]"
+                          : "text-slate-500 hover:text-[#0A1220]",
                       )}
                     >
                       <Icon
                         className={cn(
                           "h-3.5 w-3.5 flex-shrink-0",
-                          active ? "text-white" : "text-slate-400",
+                          active ? "text-[#0E7E74]" : "text-slate-400",
                         )}
                       />
                       {name}
+                      {active && (
+                        <span className="absolute inset-x-3 bottom-0 h-[2.5px] rounded-full bg-[#0E7E74]" />
+                      )}
                     </Link>
                   );
                 })}
               </nav>
 
-              <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
-                <div className="hidden min-w-0 items-center gap-2 xl:flex">
+              {/* Right side: category chips + call */}
+              <div className="flex min-w-0 flex-1 items-center justify-end gap-1.5">
+                <div className="hidden min-w-0 items-center gap-1.5 xl:flex">
                   {headerCategories.map((category) => (
                     <Link
                       key={category.id}
                       to={`/categories/${category.id}`}
-                      className="inline-flex min-w-0 items-center rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-black text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900"
+                      className="inline-flex min-w-0 items-center rounded-full border border-slate-200/80 bg-slate-50 px-3 py-1 text-[11.5px] font-black text-slate-600 transition-all hover:border-[#0E7E74]/30 hover:bg-[#0E7E74]/[0.06] hover:text-[#0E7E74]"
                     >
                       <span className="truncate">
                         {getLocalizedCategoryName(category, lang)}
@@ -1114,21 +1113,15 @@ export default function Layout() {
 
                 <Link
                   to="/categories"
-                  className={cn(
-                    "inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3.5 py-1.5 text-[12px] font-black text-slate-700",
-                    "transition-all hover:bg-slate-50",
-                  )}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-[#0E7E74]/25 bg-[#0E7E74]/[0.06] px-3.5 py-1 text-[11.5px] font-black text-[#0E7E74] transition-all hover:bg-[#0E7E74]/[0.12]"
                 >
-                  <LayoutGrid className="h-3 w-3 text-[var(--primary)]" />
+                  <LayoutGrid className="h-3 w-3" />
                   {lang === "ar" ? "كل الأقسام" : "All categories"}
                 </Link>
 
                 <a
                   href={`tel:${primaryPhone}`}
-                  className={cn(
-                    "inline-flex items-center gap-1.5 rounded-full bg-[var(--primary)] px-3.5 py-1.5 text-[12px] font-black text-white",
-                    "shadow-[0_4px_14px_rgba(13,148,136,0.22)] transition-all hover:bg-[var(--primary-strong)] hover:shadow-[0_6px_18px_rgba(13,148,136,0.30)]",
-                  )}
+                  className="inline-flex items-center gap-1.5 rounded-full bg-[#0E7E74] px-3.5 py-1 text-[11.5px] font-black text-white shadow-[0_4px_14px_rgba(14,126,116,0.28)] transition-all hover:bg-[#0A6B62] hover:shadow-[0_6px_18px_rgba(14,126,116,0.38)]"
                 >
                   <Phone className="h-3 w-3" />
                   {lang === "ar" ? "اتصال" : "Call"}
