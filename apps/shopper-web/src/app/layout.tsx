@@ -714,40 +714,40 @@ export default function Layout() {
 
       <div className="app-shell flex min-h-screen flex-col">
 
-        {/* ── Top utility strip (desktop) ── */}
-        <div className="hidden border-b border-slate-100 bg-[#f8fafb] xl:block">
-          <div className="mx-auto flex max-w-[90rem] items-center justify-between gap-4 px-6 py-1.5 text-[11.5px] font-bold text-slate-500">
-            <div className="flex items-center gap-5">
-              <span className="inline-flex items-center gap-1.5">
-                <Truck className="h-3.5 w-3.5 text-[#0E7E74]" />
+        {/* ── Top utility strip (desktop) — dark premium cap ── */}
+        <div className="hidden bg-[#0A1220] xl:block">
+          <div className="mx-auto flex max-w-[90rem] items-center justify-between gap-4 px-6 py-2 text-[11.5px] font-bold">
+            <div className="flex items-center gap-4">
+              <span className="inline-flex items-center gap-1.5 text-white/60">
+                <Truck className="h-3.5 w-3.5 text-[#2DD4C0]" />
                 {deliveryWindowCompact}
               </span>
-              <span className="h-3 w-px bg-slate-200" />
-              <span className="inline-flex items-center gap-1.5">
-                <ShieldCheck className="h-3.5 w-3.5 text-[#0E7E74]" />
+              <span className="h-3 w-px bg-white/[0.10]" />
+              <span className="inline-flex items-center gap-1.5 text-white/60">
+                <ShieldCheck className="h-3.5 w-3.5 text-[#2DD4C0]" />
                 {serviceHoursLabel}
               </span>
             </div>
-            <div className="flex items-center gap-5">
+            <div className="flex items-center gap-4">
               <a
                 href={`tel:${primaryPhone}`}
-                className="inline-flex items-center gap-1.5 transition-colors hover:text-[#0E7E74]"
+                className="inline-flex items-center gap-1.5 text-white/60 transition-colors hover:text-[#2DD4C0]"
               >
-                <Phone className="h-3.5 w-3.5 text-[#0E7E74]" />
+                <Phone className="h-3.5 w-3.5 text-[#2DD4C0]" />
                 <span dir="ltr">{primaryPhoneDisplay}</span>
               </a>
-              <span className="h-3 w-px bg-slate-200" />
-              <span className="inline-flex items-center gap-1.5">
-                <MapPin className="h-3.5 w-3.5 text-[#0E7E74]" />
+              <span className="h-3 w-px bg-white/[0.10]" />
+              <span className="inline-flex items-center gap-1.5 text-white/55">
+                <MapPin className="h-3.5 w-3.5 text-[#2DD4C0]" />
                 {lang === "ar" ? locationLabelAr : locationLabelEn}
               </span>
-              <span className="h-3 w-px bg-slate-200" />
+              <span className="h-3 w-px bg-white/[0.10]" />
               <button
                 type="button"
                 onClick={toggleLanguage}
-                className="inline-flex items-center gap-1.5 transition-colors hover:text-[#0E7E74]"
+                className="inline-flex items-center gap-1.5 rounded-md border border-white/[0.14] bg-white/[0.05] px-2.5 py-1 text-white/65 transition-all hover:border-white/30 hover:bg-white/[0.10] hover:text-white"
               >
-                <Globe className="h-3.5 w-3.5 text-[#0E7E74]" />
+                <Globe className="h-3.5 w-3.5" />
                 {lang === "ar" ? "English" : "العربية"}
               </button>
             </div>
@@ -1041,15 +1041,15 @@ export default function Layout() {
             </div>
           )}
 
-          {/* ── Desktop Navigation Bar — dark ink premium ───────────────── */}
-          <div className="hidden bg-[#0A1220] xl:block">
+          {/* ── Desktop Navigation Bar — light + black-outline system ──── */}
+          <div className="hidden border-t border-[#0A1220]/[0.09] bg-white xl:block">
             <div
               className="mx-auto flex max-w-[90rem] items-center px-6"
               dir={lang === "ar" ? "rtl" : "ltr"}
             >
-              {/* Primary nav links — mint underline + white text on active */}
+              {/* Primary nav links — filled ink pill on active */}
               <nav
-                className="flex items-center"
+                className="flex items-center gap-0.5 py-2"
                 aria-label={lang === "ar" ? "التنقل الرئيسي" : "Main navigation"}
               >
                 {headerLinks.map(({ path, name, icon: Icon }) => {
@@ -1059,16 +1059,16 @@ export default function Layout() {
                       key={path}
                       to={path}
                       className={cn(
-                        "inline-flex items-center gap-1.5 border-b-2 px-4 pb-[0.7rem] pt-[0.75rem] text-[12.5px] transition-all duration-150",
+                        "inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-[12.5px] font-black transition-all duration-150",
                         active
-                          ? "border-[#2DD4C0] font-black text-white"
-                          : "border-transparent font-bold text-white/50 hover:border-white/20 hover:text-white/80",
+                          ? "bg-[#0A1220] text-white"
+                          : "text-[#0A1220]/50 hover:bg-[#0A1220]/[0.05] hover:text-[#0A1220]",
                       )}
                     >
                       <Icon
                         className={cn(
                           "h-3.5 w-3.5 flex-shrink-0",
-                          active ? "text-[#2DD4C0]" : "text-white/30",
+                          active ? "text-[#2DD4C0]" : "text-[#0A1220]/30",
                         )}
                       />
                       {name}
@@ -1078,15 +1078,15 @@ export default function Layout() {
               </nav>
 
               {/* Vertical separator */}
-              <div className="mx-3 h-5 w-px bg-white/[0.09]" />
+              <div className="mx-3 h-5 w-px bg-[#0A1220]/[0.10]" />
 
-              {/* Category chips + all categories — fills remaining space */}
-              <div className="flex min-w-0 flex-1 items-center gap-1.5 py-2.5">
+              {/* Category chips — black-outlined + teal CTA */}
+              <div className="flex min-w-0 flex-1 items-center gap-1.5 py-2">
                 {headerCategories.map((category) => (
                   <Link
                     key={category.id}
                     to={`/categories/${category.id}`}
-                    className="inline-flex min-w-0 shrink-0 items-center rounded-full border border-white/[0.08] bg-white/[0.04] px-3 py-[3px] text-[11px] font-bold text-white/50 transition-all hover:border-white/[0.16] hover:bg-white/[0.09] hover:text-white/80"
+                    className="inline-flex min-w-0 shrink-0 items-center rounded-full border border-[#0A1220]/[0.20] px-3 py-[3px] text-[11px] font-bold text-[#0A1220]/60 transition-all hover:border-[#0A1220]/60 hover:bg-[#0A1220]/[0.04] hover:text-[#0A1220]"
                   >
                     <span className="truncate">
                       {getLocalizedCategoryName(category, lang)}
@@ -1094,21 +1094,21 @@ export default function Layout() {
                   </Link>
                 ))}
 
-                <div className="mx-1.5 h-3.5 w-px bg-white/[0.09]" />
+                <div className="mx-1.5 h-3.5 w-px bg-[#0A1220]/[0.10]" />
 
                 <Link
                   to="/categories"
-                  className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-[#0E7E74]/40 bg-[#0E7E74]/[0.10] px-3.5 py-[3px] text-[11px] font-black text-[#2DD4C0] transition-all hover:border-[#0E7E74]/60 hover:bg-[#0E7E74]/[0.20]"
+                  className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-[#0E7E74]/60 bg-[#0E7E74]/[0.06] px-3.5 py-[3px] text-[11px] font-black text-[#0E7E74] transition-all hover:bg-[#0E7E74] hover:text-white"
                 >
                   <LayoutGrid className="h-3 w-3" />
                   {lang === "ar" ? "كل الأقسام" : "All categories"}
                 </Link>
               </div>
 
-              {/* Call CTA — anchors to the trailing edge */}
+              {/* Call CTA */}
               <a
                 href={`tel:${primaryPhone}`}
-                className="ms-3 inline-flex shrink-0 items-center gap-1.5 rounded-full bg-[#0E7E74] px-4 py-1.5 text-[11.5px] font-black text-white shadow-[0_0_16px_rgba(14,126,116,0.32)] transition-all hover:bg-[#0A6B62] hover:shadow-[0_0_26px_rgba(14,126,116,0.50)] active:scale-95"
+                className="ms-3 inline-flex shrink-0 items-center gap-1.5 rounded-full bg-[#0E7E74] px-4 py-1.5 text-[11.5px] font-black text-white shadow-[0_3px_14px_rgba(14,126,116,0.28)] transition-all hover:bg-[#0A6B62] hover:shadow-[0_5px_20px_rgba(14,126,116,0.42)] active:scale-95"
               >
                 <Phone className="h-3 w-3" />
                 {lang === "ar" ? "اتصال" : "Call"}

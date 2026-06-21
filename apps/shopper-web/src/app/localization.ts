@@ -20,6 +20,23 @@ function warnMissingTranslationOnce(key: string, message: string) {
   }
 }
 
+/**
+ * Returns true only when a product name string is a real, readable name.
+ * Rejects common garbage patterns found in the catalog's nameEn field:
+ *   "-2", "()", "(SOLO SEPT)", "** ML ***", "100", "15", etc.
+ */
+function isUsableProductName(name: string): boolean {
+  if (!name) return false;
+  // Pure number or negative number (e.g. "-2", "100")
+  if (/^-?\d+$/.test(name)) return false;
+  // Entire name wrapped in parentheses — internal codes like "(SOLO SEPT)"
+  if (/^\(.+\)$/.test(name)) return false;
+  // After stripping all non-letter characters, must have ≥ 3 letters remaining
+  // catches "** ML ***" (→ "ML", 2 letters) and "()" (→ "", 0 letters)
+  const lettersOnly = name.replace(/[^a-zA-Z؀-ۿ]/g, "");
+  return lettersOnly.length >= 3;
+}
+
 export function getLocalizedProductName(product: CatalogProduct, lang: "ar" | "en") {
   const nameAr = (product.nameAr || product.name || "").trim();
   const nameEn = (product.nameEn || "").trim();
@@ -35,14 +52,17 @@ export function getLocalizedProductName(product: CatalogProduct, lang: "ar" | "e
     return nameAr || nameEn || product.id;
   }
 
-  if (!nameEn && nameAr) {
+  // English mode: only use nameEn if it's a real name, not a garbage catalog code
+  const usableEn = isUsableProductName(nameEn) ? nameEn : "";
+
+  if (!usableEn && nameAr) {
     warnMissingTranslationOnce(
       `product-name-en:${product.id}`,
       `[i18n] Missing English product name for ${product.id}; using Arabic fallback.`,
     );
     return nameAr;
   }
-  return nameEn || nameAr || product.id;
+  return usableEn || nameAr || product.id;
 }
 
 export function getLocalizedCategoryName(category: CatalogCategory, lang: "ar" | "en") {
