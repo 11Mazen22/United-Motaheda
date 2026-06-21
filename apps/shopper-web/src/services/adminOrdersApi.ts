@@ -178,16 +178,20 @@ const ORDERS_SELECT_WITH_ITEMS = [
 const ORDERS_SELECT_NO_ITEMS = ORDERS_BASE_COLUMNS.join(",");
 
 // PostgREST returns code "PGRST200" for missing relationships and HTTP 404 for
-// missing tables. We treat both as "join not available" and retry.
+// missing tables. The exact code depends on the Supabase version, so we treat
+// the query as "join not available" whenever its message or code points at the
+// embedded order_items join — and ALSO whenever the request returns 404, since
+// the join's missing row is the overwhelmingly common cause of that here.
 function isMissingRelationship(err: unknown): boolean {
-  const e = err as { code?: string; message?: string; status?: number } | null;
+  const e = err as { code?: string; message?: string; status?: number; details?: string; hint?: string } | null;
   if (!e) return false;
-  if (e.code === "PGRST200") return true;
-  if (e.status === 404) return true;
-  const msg = (e.message ?? "").toLowerCase();
-  return msg.includes("could not find a relationship")
-      || msg.includes("relation \"order_items\" does not exist")
-      || msg.includes("order_items");
+  if (e.code === "PGRST200" || e.code === "PGRST106") return true;
+  if (e.status === 404 || e.status === 400) return true;
+  const text = `${e.message ?? ""} ${e.details ?? ""} ${e.hint ?? ""}`.toLowerCase();
+  return text.includes("could not find a relationship")
+      || text.includes("relation \"order_items\" does not exist")
+      || text.includes("order_items")
+      || text.includes("embedded resource");
 }
 
 // ─── Public API ───────────────────────────────────────────────────────────────

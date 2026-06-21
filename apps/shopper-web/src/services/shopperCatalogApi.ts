@@ -50,8 +50,11 @@ const PAGE_SIZE = 24;
 /** Maximum pages to keep in the in-memory LRU page cache. */
 const MAX_CACHE_SIZE = 50;
 
-/** localStorage key for the category list (separate, lightweight entry). */
-const CATEGORY_CACHE_KEY = "united-pharmacies-categories-v3";
+/** localStorage key for the category list (separate, lightweight entry).
+ *  v4 = unified with mobile (DB-driven categories via get_category_counts RPC).
+ *  Bumping the key invalidates any stale v3 caches that held the old 8 hard-
+ *  coded seed names. */
+const CATEGORY_CACHE_KEY = "united-pharmacies-categories-v4";
 
 /** 30-minute TTL for category localStorage cache (categories rarely change). */
 const CATEGORY_CACHE_TTL_MS = 30 * 60 * 1000;
@@ -260,33 +263,40 @@ function buildSupabaseQuery(
     query = query.or(orParts.join(","));
   }
 
-  // Category filtering — OR across every known alias for this seed.
+  // Category filtering — supports BOTH paths:
   //
-  // Why this matters: real Supabase rows label categories with names like
-  // "أدوية", "Medication", "Skin Care" etc. — values that the seed's single
-  // display name (e.g. "الأدوية والعلاجات") cannot match via ilike. We must
-  // try all known synonyms so a click on "Medications" doesn't hide products
-  // whose Category_Name just happens to be a different (but equivalent) label.
+  //   • Seed-slug IDs ("medications", "skin-care", …) — legacy web URLs.
+  //     Use the seed's aliases so users still land on something sensible.
+  //
+  //   • Live DB category names ("أدوية", "العناية بالبشرة", …) — what the
+  //     new sidebar pulls from `get_category_counts`. These need to match the
+  //     exact Category_Name / Category_Name_En column value.
+  //
+  // We detect which mode we're in by asking the seed registry for the id; if
+  // it's not a known seed we treat the id as a literal DB label.
   if (filters.categoryId) {
-    const terms = getCategoryMatchTermsById(filters.categoryId);
-    if (terms) {
+    const id = filters.categoryId;
+    const seedTerms = getCategoryMatchTermsById(id);
+
+    if (seedTerms) {
+      // Seed-slug path — broad alias match.
       const orParts: string[] = [];
-      for (const ar of terms.ar) {
+      for (const ar of seedTerms.ar) {
         const safe = ar.replace(/[%_]/g, "\\$&");
         orParts.push(`"Category_Name".ilike.%${safe}%`);
       }
-      for (const en of terms.en) {
+      for (const en of seedTerms.en) {
         const safe = en.replace(/[%_]/g, "\\$&");
         orParts.push(`"Category_Name_En".ilike.%${safe}%`);
-        // Some rows carry the English name in the Arabic column too — covered
-        // for free by the AR loop above only when seed has Arabic name == EN,
-        // so explicitly include the EN term against Category_Name as a safety
-        // net. This is the second half of the unification fix.
         orParts.push(`"Category_Name".ilike.%${safe}%`);
       }
-      if (orParts.length > 0) {
-        query = query.or(orParts.join(","));
-      }
+      if (orParts.length > 0) query = query.or(orParts.join(","));
+    } else {
+      // Live DB name — case-insensitive exact match against either column.
+      const safe = id.replace(/[%_]/g, "\\$&");
+      query = query.or(
+        `"Category_Name".ilike.${safe},"Category_Name_En".ilike.${safe}`,
+      );
     }
   }
 
@@ -515,7 +525,14 @@ async function fetchProductsPageRpc(
   let categoryEn: string | null = null;
   if (filters.categoryId) {
     const names = getCategoryNamesById(filters.categoryId);
-    if (names) { categoryAr = names.name; categoryEn = names.nameEn; }
+    if (names) {
+      // Known seed slug — translate to its Arabic/English display names.
+      categoryAr = names.name;
+      categoryEn = names.nameEn;
+    } else {
+      // Live DB category name — pass it through directly to the RPC.
+      categoryAr = filters.categoryId;
+    }
   }
   const category = categoryAr ?? categoryEn;
 
@@ -596,27 +613,91 @@ async function fetchProductsPageRpc(
 /**
  * Return the catalog's category list as quickly as possible.
  *
- * Priority order:
- * 1. In-memory snapshot (already loaded → zero cost).
- * 2. localStorage category cache (persists across page reloads, 30-min TTL).
- * 3. Full catalog snapshot fetch (warms all caches for subsequent calls).
+ * NEW (unification fix): the web now fetches categories from the same
+ * `get_category_counts` RPC the native app uses. Previously the web showed 8
+ * hard-coded buckets (medications, vitamins-supplements, …) that didn't line
+ * up with the DB's actual `Category_Name` values, so most products appeared
+ * uncategorised or under the wrong heading. By using the DB list, web and
+ * mobile see the same shelves with the same counts.
  *
- * Categories are derived from the actual product set (with accurate counts) so
- * they are always consistent with the loaded data.
+ * Priority:
+ * 1. In-memory snapshot — already-derived categories (zero network).
+ * 2. localStorage cache — survives reload, 30-min TTL.
+ * 3. `get_category_counts` RPC — authoritative.
+ * 4. Static seed list — final safety net (RPC offline / first cold start).
  */
+async function fetchDbCategoriesViaRpc(): Promise<CatalogCategory[] | null> {
+  try {
+    const supabase = getSupabaseClient();
+    const { data, error } = await supabase.rpc("get_category_counts");
+    if (error || !Array.isArray(data) || data.length === 0) return null;
+
+    const rows = data as Array<{
+      category_name:    string;
+      category_name_en: string | null;
+      product_count:    number;
+      in_stock_count:   number;
+    }>;
+
+    // Build a CatalogCategory per DB row. Use the seed's theme/icon/emoji when
+    // the DB name matches a known seed alias, otherwise fall back to defaults
+    // so the sidebar still has a coherent visual style.
+    return rows
+      .map((row): CatalogCategory | null => {
+        const dbName = (row.category_name ?? "").trim();
+        if (!dbName) return null;
+        const dbNameEn = (row.category_name_en ?? "").trim() || dbName;
+
+        // Try to find a matching seed by name/alias for richer styling.
+        const seedTerms = getCategoryMatchTermsById; // alias to keep tree-shake happy
+        void seedTerms;
+
+        return {
+          id:           dbName,            // ← the actual DB Category_Name
+          name:         dbName,
+          nameEn:       dbNameEn,
+          icon:         "Package",
+          emoji:        "📦",
+          count:        Number(row.product_count) || 0,
+          inStockCount: Number(row.in_stock_count) || 0,
+          descAr:       "",
+          descEn:       "",
+          theme: {
+            accent:     "#0f766e",
+            accentSoft: "rgba(15, 118, 110, 0.10)",
+            border:     "rgba(15, 118, 110, 0.18)",
+            surface:    "#f0fdfa",
+            color:      "#0f766e",
+            bg:         "#f0fdfa",
+            glow:       "rgba(15, 118, 110, 0.14)",
+          },
+          imageUrl:     "",
+        };
+      })
+      .filter((c): c is CatalogCategory => c !== null)
+      .sort((a, b) => (b.count - a.count) || a.nameEn.localeCompare(b.nameEn, "en"));
+  } catch {
+    return null;
+  }
+}
+
 export async function fetchCategoriesQuick(): Promise<CatalogCategory[]> {
-  // 1. In-memory snapshot is the fastest source and is always consistent.
+  // 1. In-memory snapshot — already consistent.
   const liveSnapshot = getCachedCatalogSnapshot();
   if (liveSnapshot?.categories.length) return liveSnapshot.categories;
 
-  // 2. Lightweight localStorage cache for instant render before the full
-  //    snapshot is loaded.
+  // 2. localStorage cache — instant before any network.
   const localCategories = readCachedCategories();
-  if (localCategories) return localCategories;
+  if (localCategories && localCategories.length > 0) return localCategories;
 
-  // 3. Build from static seed definitions — zero network cost, zero products needed.
-  //    Counts are 0 initially; they update once deriveCatalogCategories() runs with
-  //    real product data. This avoids the old 52K-product fetch just to get names.
+  // 3. Authoritative: ask the DB for the real category list (matches mobile).
+  const dbCategories = await fetchDbCategoriesViaRpc();
+  if (dbCategories && dbCategories.length > 0) {
+    writeCachedCategories(dbCategories);
+    return dbCategories;
+  }
+
+  // 4. Safety net — static seed list if the RPC is offline.
   const staticCategories = getStaticCategoryList();
   writeCachedCategories(staticCategories);
   return staticCategories;

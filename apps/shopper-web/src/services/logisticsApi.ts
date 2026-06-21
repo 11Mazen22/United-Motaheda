@@ -261,15 +261,24 @@ export async function listOpsOrders() {
     throw new Error(error.message);
   }
 
-  // Fetch order items separately for each order
   const orders = (data ?? []) as RawOpsOrderRow[];
+
+  // Fetch line items per order, but tolerate the order_items table being
+  // unavailable (404/400 from PostgREST when the table doesn't exist or RLS
+  // blocks selects). Without this fallback the whole ops board fails with
+  // "Failed to load orders" even though the orders rows themselves are fine.
   const ordersWithItems = await Promise.all(
     orders.map(async (order) => {
-      const { data: items } = await supabase
-        .from("order_items")
-        .select("product_id, quantity, product_snapshot")
-        .eq("order_id", order.id);
-      return { ...order, order_items: items ?? [] };
+      try {
+        const { data: items, error: itemsErr } = await supabase
+          .from("order_items")
+          .select("product_id, quantity, product_snapshot")
+          .eq("order_id", order.id);
+        if (itemsErr) return { ...order, order_items: [] };
+        return { ...order, order_items: items ?? [] };
+      } catch {
+        return { ...order, order_items: [] };
+      }
     }),
   );
 
@@ -329,18 +338,58 @@ export async function listIntegrationEvents() {
 
 export async function assignDriver(orderId: string, driverId: string | null) {
   const supabase = getSupabaseClient();
-  const { data, error } = await supabase.functions.invoke("assign-driver", {
-    body: {
-      order_id: orderId,
-      driver_id: driverId,
-    },
-  });
+
+  // Previously this called the `assign-driver` Edge Function, which often
+  // isn't deployed on this Supabase project. The UI then optimistically
+  // displays "Driver assigned" and immediately receives back garbage from
+  // the missing function, leaving the assignment in an inconsistent state.
+  //
+  // Direct UPDATE with `.select()` is more reliable: PostgREST returns the
+  // rows it actually mutated, so we can detect RLS denials (empty array) and
+  // raise a real error instead of pretending the assignment succeeded.
+  const { data, error } = await supabase
+    .from("orders")
+    .update({
+      assigned_driver_id: driverId,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", orderId)
+    .select(
+      "id, external_ref, customer_name, customer_phone, customer_address, customer_lat, customer_lng, status, assigned_driver_id, updated_at, created_at, note, total, qr_token",
+    );
 
   if (error) {
     throw new Error(error.message);
   }
 
-  return data;
+  if (!data || data.length === 0) {
+    throw new Error(
+      "Driver assignment was not applied. Check that your role can update orders (RLS).",
+    );
+  }
+
+  const updatedRow = data[0] as RawOpsOrderRow;
+  if ((updatedRow.assigned_driver_id ?? null) !== (driverId ?? null)) {
+    throw new Error("Driver did not persist; the database returned the previous value.");
+  }
+
+  // Fetch line items and the driver list so the caller can build a
+  // ManagedOrder identical to what updateManagedOrderStatus returns.
+  let items: Array<{ product_id: string | null; quantity: number | null; product_snapshot?: Record<string, unknown> | null }> = [];
+  try {
+    const { data: itemsData } = await supabase
+      .from("order_items")
+      .select("product_id, quantity, product_snapshot")
+      .eq("order_id", orderId);
+    items = itemsData ?? [];
+  } catch {
+    items = [];
+  }
+
+  const drivers = await listDrivers();
+  const driversById = new Map(drivers.map((d) => [d.id, d]));
+  const orderWithItems = { ...updatedRow, order_items: items } as RawOpsOrderRow;
+  return mapToManagedOrder(mapRawOrderRow(orderWithItems), driversById);
 }
 
 export async function listManagedOrders(options?: {
@@ -366,43 +415,64 @@ export async function updateManagedOrderStatus(
   nextStatus: LogisticsOrderStatus,
 ): Promise<ManagedOrder> {
   const supabase = getSupabaseClient();
+  const normalizedStatus = normalizeOrderStatus(nextStatus);
 
-  // Step 1: Update without select (PostgREST doesn't support embedded relations on PATCH)
-  const { error: updateError } = await supabase
+  // Step 1: Update the row AND ask PostgREST to return the modified row.
+  //
+  // Critically we need `.select()` here. Without it, an RLS policy that
+  // silently denies the UPDATE leaves no rows changed but also returns no
+  // error — the request looks like a success, and the follow-up SELECT in
+  // step 2 returns the unchanged row, so the UI replaces the optimistic
+  // status with the OLD value. The user sees "تم التحديث" toast but the
+  // status stays "في الانتظار". That's the exact bug reported.
+  //
+  // With `.select()` PostgREST returns the rows it actually mutated. If the
+  // array comes back empty, the update was blocked (or the id is wrong) and
+  // we throw so the caller can revert the optimistic state.
+  const { data: updatedRows, error: updateError } = await supabase
     .from("orders")
     .update({
-      status: normalizeOrderStatus(nextStatus),
+      status: normalizedStatus,
       updated_at: new Date().toISOString(),
     })
-    .eq("id", orderId);
+    .eq("id", orderId)
+    .select(
+      "id, external_ref, customer_name, customer_phone, customer_address, customer_lat, customer_lng, status, assigned_driver_id, updated_at, created_at, note, total, qr_token",
+    );
 
   if (updateError) {
     throw new Error(updateError.message || "Unable to update the order status.");
   }
 
-  // Step 2: Fetch the updated order and its items separately
-  const [{ data, error: fetchError }, { data: items }] = await Promise.all([
-    supabase
-      .from("orders")
-      .select(
-        "id, external_ref, customer_name, customer_phone, customer_address, customer_lat, customer_lng, status, assigned_driver_id, updated_at, created_at, note, total, qr_token",
-      )
-      .eq("id", orderId),
-    supabase
+  if (!updatedRows || updatedRows.length === 0) {
+    // RLS blocked the update silently, or no row matched. Either way the
+    // status was NOT changed — surface a real error so the UI reverts.
+    throw new Error(
+      "Status update was not applied. Check that your role can update orders (RLS).",
+    );
+  }
+
+  // Defensive verification: the row we got back should reflect the new status.
+  // If it doesn't, the UPDATE was effectively a no-op (e.g. RLS row visible
+  // but write blocked) and we must NOT pretend it succeeded.
+  const updatedRow = updatedRows[0] as RawOpsOrderRow;
+  if (normalizeOrderStatus(updatedRow.status) !== normalizedStatus) {
+    throw new Error("Status did not persist; the database returned the previous value.");
+  }
+
+  // Step 2: Fetch line items separately (tolerant of order_items missing).
+  let items: Array<{ product_id: string | null; quantity: number | null; product_snapshot?: Record<string, unknown> | null }> = [];
+  try {
+    const { data: itemsData } = await supabase
       .from("order_items")
       .select("product_id, quantity, product_snapshot")
-      .eq("order_id", orderId),
-  ]);
-
-  if (fetchError) {
-    throw new Error(fetchError.message || "Unable to fetch the updated order.");
+      .eq("order_id", orderId);
+    items = itemsData ?? [];
+  } catch {
+    items = [];
   }
 
-  if (!data || data.length === 0) {
-    throw new Error("Order not found after update.");
-  }
-
-  const orderWithItems = { ...data[0], order_items: items ?? [] } as RawOpsOrderRow;
+  const orderWithItems = { ...updatedRow, order_items: items } as RawOpsOrderRow;
   const drivers = await listDrivers();
   const driversById = new Map(drivers.map((driver) => [driver.id, driver]));
   return mapToManagedOrder(mapRawOrderRow(orderWithItems), driversById);

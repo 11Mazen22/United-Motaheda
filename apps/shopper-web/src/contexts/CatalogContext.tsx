@@ -232,9 +232,14 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  // Always refresh categories on mount — even when the seed cache produced a
+  // non-empty list. The seed only reflects what was in localStorage at the
+  // time the module loaded; the authoritative list lives in Supabase
+  // (`get_category_counts` RPC) and must be re-pulled so the sidebar matches
+  // the live DB instead of showing a stale snapshot.
   useEffect(() => {
-    if (categories.length === 0) void refreshCategories();
-  }, [categories.length, refreshCategories]);
+    void refreshCategories();
+  }, [refreshCategories]);
 
   // ── loadNextPage ──────────────────────────────────────────────────────────
 
@@ -306,18 +311,25 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
           Object.fromEntries(snapshot.products.map((p) => [p.id, p])),
         );
         setIsFullCatalogReady(true);
-        setCategories(snapshot.categories);
+        // Note: deliberately NOT calling setCategories(snapshot.categories)
+        // here. snapshot.categories is built from the legacy CATEGORY_SEEDS
+        // map and would clobber the live DB-driven category list pulled via
+        // `refreshCategories()`. The full-catalog refresh is for product data
+        // only; categories stay sourced from `get_category_counts` so the web
+        // sidebar mirrors the mobile app.
         setTotalCount(snapshot.products.length);
         setIsLoading(false);
         setLastUpdated(new Date().toISOString());
         setError(null);
       });
       invalidatePageCache();
+      // Pull fresh DB categories after a full refresh in case counts moved.
+      void refreshCategories();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Refresh failed");
       setIsLoading(false);
     }
-  }, []);
+  }, [refreshCategories]);
 
   // ── upsertProduct / removeProduct (optimistic mutations) ─────────────────
 
@@ -362,10 +374,25 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
 
   const catalogSource = allProducts.length > 0 ? allProducts : products;
 
+  // `deriveCatalogCategories` always rebuilds the list from the hard-coded
+  // CATEGORY_SEEDS (the 8 legacy buckets). That overrides whatever DB-driven
+  // category list we just loaded via `refreshCategories`. Detect that case and
+  // pass through the live `categories` state instead — that's what unifies the
+  // web's category sidebar with the mobile app.
+  //
+  // We treat the state as authoritative whenever it has any non-seed id (the
+  // seed ids are stable kebab-case slugs; DB names contain Arabic or spaces).
+  const isDbDrivenList = useMemo(() => {
+    if (categories.length === 0) return false;
+    // Seed ids are kebab-case ASCII; DB ids are full category names. If we
+    // see even one non-seed-shaped id, the list came from the DB.
+    return categories.some((c) => /[^a-z0-9-]/i.test(c.id));
+  }, [categories]);
+
   const derivedCategories = useMemo(
-    () => deriveCatalogCategories(catalogSource, categories),
+    () => (isDbDrivenList ? categories : deriveCatalogCategories(catalogSource, categories)),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [catalogSource, categories],
+    [catalogSource, categories, isDbDrivenList],
   );
 
   const productsById = useMemo(() => productMap, [productMap]);
