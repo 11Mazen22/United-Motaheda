@@ -196,13 +196,12 @@ export function BranchMap({
         })}
       </div>
 
-      {/* ── All-branches strip — horizontal scrollable row ── */}
-      <div className="absolute inset-x-0 bottom-0 overflow-x-auto">
+      {/* ── All-branches strip — equal-width row filling the map width ── */}
+      <div className="absolute inset-x-0 bottom-0">
         <div className={cn(
-          "flex gap-2 px-4 pb-4 pt-2",
+          "flex gap-1.5 px-3 pb-3 pt-1.5",
           isArabic ? "flex-row-reverse" : "flex-row",
-        )}
-          style={{ width: "max-content", minWidth: "100%" }}>
+        )}>
           {valid.map((l) => {
             const isSel = l.id === selectedBranchId;
             return (
@@ -211,23 +210,23 @@ export function BranchMap({
                 type="button"
                 onClick={() => onSelectBranch(l.id)}
                 className={cn(
-                  "flex min-w-[152px] shrink-0 flex-col gap-0.5 rounded-xl border px-3 py-2.5 text-start transition-all duration-200 focus-visible:outline-none",
+                  "flex min-w-0 flex-1 flex-col gap-0.5 rounded-xl border px-2.5 py-2 text-start transition-all duration-200 focus-visible:outline-none",
                   isSel
                     ? "border-[#0E7E74]/50 bg-[#0E7E74]/15 shadow-[0_0_18px_rgba(14,126,116,0.28)]"
                     : "border-white/[0.09] bg-white/[0.06] hover:border-[#0E7E74]/30 hover:bg-white/[0.10]",
                 )}
               >
                 <p className={cn(
-                  "truncate text-[11px] font-black leading-snug",
+                  "truncate text-[10.5px] font-black leading-snug",
                   isSel ? "text-[#2DD4C0]" : "text-white/75",
                 )}>
                   {isArabic ? l.nameAr : l.nameEn}
                 </p>
-                <p className="truncate text-[9.5px] font-medium leading-snug text-white/38">
+                <p className="truncate text-[9px] font-medium leading-snug text-white/40">
                   {isArabic ? l.addressAr : l.addressEn}
                 </p>
                 {l.phones?.[0] && (
-                  <p className="mt-0.5 text-[9px] font-bold tabular-nums text-white/28" dir="ltr">
+                  <p className="mt-0.5 text-[8.5px] font-bold tabular-nums text-white/25" dir="ltr">
                     {l.phones[0]}
                   </p>
                 )}
