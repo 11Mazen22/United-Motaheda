@@ -766,7 +766,7 @@ export default function Layout() {
           )}
         >
           {/* ── Main bar ────────────────────────────────────────────────── */}
-          <div className="mx-auto flex max-w-[90rem] items-center gap-3 px-4 py-2.5 md:gap-4 md:px-6 md:py-3">
+          <div className="mx-auto flex max-w-[90rem] items-center gap-3 px-4 py-3 md:gap-4 md:px-6 md:py-3.5">
 
             {/* ── Brand / Logo ─────────────────────────────────────────── */}
             <Link
@@ -797,7 +797,7 @@ export default function Layout() {
 
             {/* ── Desktop Search ─ grows to fill available space ────────── */}
             <div className="hidden flex-1 xl:block xl:px-4 2xl:px-8">
-              <form onSubmit={handleSearch} className="relative h-11 w-full">
+              <form onSubmit={handleSearch} className="relative h-12 w-full">
                 <Search
                   className={cn(
                     "pointer-events-none absolute top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400",
@@ -805,22 +805,22 @@ export default function Layout() {
                   )}
                 />
                 <SiteSearchField
-                  className="h-11 w-full"
+                  className="h-12 w-full"
                   inputClassName={cn(
-                    "h-11 w-full rounded-full border border-slate-200 bg-[#f7f9fc] text-[13px] placeholder:text-slate-400",
-                    "focus:border-[#0E7E74]/50 focus:bg-white focus:ring-2 focus:ring-[#0E7E74]/12 focus:shadow-[0_4px_20px_rgba(14,126,116,0.10)] transition-all",
-                    lang === "ar" ? "pr-11 pl-12" : "pl-11 pr-12",
+                    "h-12 w-full rounded-full border border-slate-200 bg-slate-50 text-[13.5px] placeholder:text-slate-400",
+                    "focus:border-[#0E7E74]/50 focus:bg-white focus:ring-2 focus:ring-[#0E7E74]/15 focus:shadow-[0_4px_22px_rgba(14,126,116,0.12)] transition-all",
+                    lang === "ar" ? "pr-11 pl-13" : "pl-11 pr-13",
                   )}
                 />
                 <button
                   type="submit"
                   aria-label={lang === "ar" ? "بحث" : "Search"}
                   className={cn(
-                    "absolute top-1/2 h-8 w-8 -translate-y-1/2 rounded-full bg-[#0E7E74] text-white transition-all hover:bg-[#0A6B62] hover:shadow-[0_4px_14px_rgba(14,126,116,0.30)]",
+                    "absolute top-1/2 h-9 w-9 -translate-y-1/2 rounded-full bg-[#0E7E74] text-white shadow-[0_3px_12px_rgba(14,126,116,0.25)] transition-all hover:bg-[#0A6B62] hover:shadow-[0_5px_18px_rgba(14,126,116,0.38)]",
                     lang === "ar" ? "left-1.5" : "right-1.5",
                   )}
                 >
-                  <Search className="mx-auto h-3.5 w-3.5" />
+                  <Search className="mx-auto h-4 w-4" />
                 </button>
               </form>
             </div>
@@ -1041,14 +1041,17 @@ export default function Layout() {
             </div>
           )}
 
-          {/* ── Desktop Navigation Bar ───────────────────────────────────── */}
-          <div className="hidden border-t border-slate-100 xl:block">
+          {/* ── Desktop Navigation Bar — dark ink premium ───────────────── */}
+          <div className="hidden bg-[#0A1220] xl:block">
             <div
-              className="mx-auto flex max-w-[90rem] items-center justify-between gap-4 px-6"
+              className="mx-auto flex max-w-[90rem] items-center px-6"
               dir={lang === "ar" ? "rtl" : "ltr"}
             >
-              {/* Primary nav links — teal underline on active */}
-              <nav className="flex items-center">
+              {/* Primary nav links — mint underline + white text on active */}
+              <nav
+                className="flex items-center"
+                aria-label={lang === "ar" ? "التنقل الرئيسي" : "Main navigation"}
+              >
                 {headerLinks.map(({ path, name, icon: Icon }) => {
                   const active = isActive(path);
                   return (
@@ -1056,34 +1059,34 @@ export default function Layout() {
                       key={path}
                       to={path}
                       className={cn(
-                        "relative inline-flex items-center gap-1.5 px-4 py-3.5 text-[13px] font-black transition-all duration-150",
+                        "inline-flex items-center gap-1.5 border-b-2 px-4 pb-[0.7rem] pt-[0.75rem] text-[12.5px] transition-all duration-150",
                         active
-                          ? "text-[#0E7E74]"
-                          : "text-slate-500 hover:text-[#0A1220]",
+                          ? "border-[#2DD4C0] font-black text-white"
+                          : "border-transparent font-bold text-white/50 hover:border-white/20 hover:text-white/80",
                       )}
                     >
                       <Icon
                         className={cn(
                           "h-3.5 w-3.5 flex-shrink-0",
-                          active ? "text-[#0E7E74]" : "text-slate-400",
+                          active ? "text-[#2DD4C0]" : "text-white/30",
                         )}
                       />
                       {name}
-                      {active && (
-                        <span className="absolute inset-x-3 bottom-0 h-[2.5px] rounded-t-full bg-[#0E7E74]" />
-                      )}
                     </Link>
                   );
                 })}
               </nav>
 
-              {/* Right side: category chips + call */}
-              <div className="flex min-w-0 flex-1 items-center justify-end gap-1.5 py-2">
+              {/* Vertical separator */}
+              <div className="mx-3 h-5 w-px bg-white/[0.09]" />
+
+              {/* Category chips + all categories — fills remaining space */}
+              <div className="flex min-w-0 flex-1 items-center gap-1.5 py-2.5">
                 {headerCategories.map((category) => (
                   <Link
                     key={category.id}
                     to={`/categories/${category.id}`}
-                    className="inline-flex min-w-0 shrink-0 items-center rounded-full border border-slate-200 bg-white px-3 py-1 text-[11.5px] font-bold text-slate-600 transition-all hover:border-[#0E7E74]/30 hover:bg-[#0E7E74]/[0.05] hover:text-[#0E7E74]"
+                    className="inline-flex min-w-0 shrink-0 items-center rounded-full border border-white/[0.08] bg-white/[0.04] px-3 py-[3px] text-[11px] font-bold text-white/50 transition-all hover:border-white/[0.16] hover:bg-white/[0.09] hover:text-white/80"
                   >
                     <span className="truncate">
                       {getLocalizedCategoryName(category, lang)}
@@ -1091,24 +1094,25 @@ export default function Layout() {
                   </Link>
                 ))}
 
-                <div className="mx-1 h-4 w-px bg-slate-200" />
+                <div className="mx-1.5 h-3.5 w-px bg-white/[0.09]" />
 
                 <Link
                   to="/categories"
-                  className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-[#0E7E74]/30 bg-[#0E7E74]/[0.06] px-3.5 py-1 text-[11.5px] font-black text-[#0E7E74] transition-all hover:bg-[#0E7E74]/[0.12]"
+                  className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-[#0E7E74]/40 bg-[#0E7E74]/[0.10] px-3.5 py-[3px] text-[11px] font-black text-[#2DD4C0] transition-all hover:border-[#0E7E74]/60 hover:bg-[#0E7E74]/[0.20]"
                 >
                   <LayoutGrid className="h-3 w-3" />
                   {lang === "ar" ? "كل الأقسام" : "All categories"}
                 </Link>
-
-                <a
-                  href={`tel:${primaryPhone}`}
-                  className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-[#0E7E74] px-4 py-1 text-[11.5px] font-black text-white shadow-[0_3px_12px_rgba(14,126,116,0.28)] transition-all hover:bg-[#0A6B62] hover:shadow-[0_5px_16px_rgba(14,126,116,0.38)]"
-                >
-                  <Phone className="h-3 w-3" />
-                  {lang === "ar" ? "اتصال" : "Call"}
-                </a>
               </div>
+
+              {/* Call CTA — anchors to the trailing edge */}
+              <a
+                href={`tel:${primaryPhone}`}
+                className="ms-3 inline-flex shrink-0 items-center gap-1.5 rounded-full bg-[#0E7E74] px-4 py-1.5 text-[11.5px] font-black text-white shadow-[0_0_16px_rgba(14,126,116,0.32)] transition-all hover:bg-[#0A6B62] hover:shadow-[0_0_26px_rgba(14,126,116,0.50)] active:scale-95"
+              >
+                <Phone className="h-3 w-3" />
+                {lang === "ar" ? "اتصال" : "Call"}
+              </a>
             </div>
           </div>
         </header>
