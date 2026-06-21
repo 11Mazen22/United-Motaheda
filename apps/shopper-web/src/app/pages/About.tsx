@@ -226,8 +226,8 @@ export default function About() {
       bgColor: "#3B82F615",
     },
     {
-      yearAr: metrics.totalProducts.toLocaleString("ar-EG"),
-      yearEn: metrics.totalProducts.toLocaleString(),
+      yearAr: "٢٠٢٣",
+      yearEn: "2023",
       titleAr: "كتالوج أوسع",
       titleEn: "Broader catalog",
       descAr: "توسعت التغطية لتشمل الأدوية والمكملات والعناية الشخصية والأجهزة الطبية.",
