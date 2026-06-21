@@ -556,7 +556,8 @@ export default function Layout() {
     [lang],
   );
 
-  const navLinks = useMemo(() => [...browseLinks, ...supportLinks], [browseLinks, supportLinks]);
+  // Footer quick-links: browse pages + About + Contact (excludes Orders/Wishlist/etc.)
+  const footerNavLinks = useMemo(() => [...browseLinks, ...supportLinks.slice(-2)], [browseLinks, supportLinks]);
   const headerLinks = useMemo(
     () => [
       { name: t("home"), path: "/", icon: Home },
@@ -1175,10 +1176,9 @@ export default function Layout() {
           brandNameEn={BRAND_NAME_EN}
           phoneDisplay={siteContact.phoneDisplay}
           phoneHref={siteContact.phoneHref}
-          whatsappDisplay={siteContact.whatsappDisplay}
           whatsappUrl={siteContact.whatsappUrl}
           email={siteContact.email}
-          navLinks={navLinks}
+          navLinks={footerNavLinks}
           socialLinks={socialLinks}
         />
 

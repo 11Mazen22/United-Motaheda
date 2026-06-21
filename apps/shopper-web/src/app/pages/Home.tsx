@@ -265,8 +265,10 @@ function HomeDesktop() {
                 <ArrowRight className={cn("h-4 w-4 transition-transform group-hover:translate-x-0.5", isRtl && "rotate-180 group-hover:-translate-x-0.5")} />
               </Link>
               <Link to="/offers"
-                className={cn("group inline-flex h-12 items-center gap-2 rounded-2xl border-2 border-[#0A1220] bg-white px-7 text-[13px] font-black text-[#0A1220] transition-all duration-200 hover:bg-[#0A1220] hover:text-white hover:-translate-y-0.5", isRtl && "flex-row-reverse")}>
-                {isRtl ? "العروض الحالية" : "Current Offers"}
+                className={cn("group inline-flex h-12 items-center gap-2 rounded-2xl border-2 border-[#0A1220] bg-white px-7 text-[13px] font-black transition-all duration-200 hover:bg-[#0A1220] hover:-translate-y-0.5", isRtl && "flex-row-reverse")}>
+                <span className="text-[#0A1220] transition-colors duration-200 group-hover:text-white">
+                  {isRtl ? "العروض الحالية" : "Current Offers"}
+                </span>
                 <Sparkles className="h-4 w-4 text-[#0E7E74] transition-colors duration-200 group-hover:text-white" />
               </Link>
             </div>
