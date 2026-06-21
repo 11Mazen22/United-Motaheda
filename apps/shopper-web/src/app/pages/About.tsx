@@ -9,7 +9,6 @@ import {
   HeartPulse,
   MapPin,
   Phone,
-  PlayCircle,
   ShieldCheck,
   Star,
   Store,
@@ -24,7 +23,7 @@ import {
 import unitedIcon from "@assets/brand/about-icon.png";
 import { useCatalog } from "../../contexts/CatalogContext";
 import { useLanguage } from "../../contexts/LanguageContext";
-import { images, locations, promoVideoGallery, siteContact } from "../data";
+import { images, locations, siteContact } from "../data";
 import { BranchMap } from "../components/BranchMap";
 import {
   getDeliveryWindowCompactLabel,
@@ -32,7 +31,6 @@ import {
   getServiceHoursLabel,
 } from "../config";
 import { PageHero, SectionIntro, InfoTile, StatTile } from "../components/BrandPrimitives";
-import { PromotionalVideo } from "../components/PromotionalVideo";
 import { Reveal } from "../components/Reveal";
 import { cn } from "../components/UI";
 import { useIsShopperShell } from "../components/ui/use-mobile";
@@ -88,26 +86,6 @@ function useGlobalAudioMute() {
 /* ─────────────────────────────────────────────
    Tiny internal primitives used only in About
 ───────────────────────────────────────────── */
-
-interface CheckRowProps {
-  icon: React.ElementType;
-  textAr: string;
-  textEn: string;
-  isArabic: boolean;
-}
-
-function CheckRow({ icon: Icon, textAr, textEn, isArabic }: CheckRowProps) {
-  return (
-    <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3.5 shadow-sm transition-shadow hover:shadow-md">
-      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-50 text-slate-600">
-        <Icon className="h-4 w-4" />
-      </div>
-      <p className={cn("text-sm font-bold text-slate-800", isArabic && "leading-7")}>
-        {isArabic ? textAr : textEn}
-      </p>
-    </div>
-  );
-}
 
 interface SignalPillProps {
   icon: React.ElementType;
@@ -397,7 +375,7 @@ export default function About() {
             {/* Identity card — light surface */}
             <div className="about-identity-card panel-soft rounded-[1.85rem] border border-slate-100 bg-white p-6 shadow-[0_12px_40px_rgba(15,23,42,0.08)]">
               <div className="mb-5 flex items-center gap-4">
-                <div className="relative flex h-16 w-16 items-center justify-center overflow-hidden rounded-[1.35rem] border border-slate-200 bg-[#0A1220] shadow-[0_6px_18px_rgba(10,18,32,0.20)]">
+                <div className="relative flex h-16 w-16 items-center justify-center overflow-hidden rounded-[1.35rem] border border-slate-200 bg-white shadow-[0_6px_18px_rgba(10,18,32,0.10)]">
                   <img
                     src={unitedIcon}
                     alt={brandName}
@@ -611,105 +589,6 @@ export default function About() {
               ))}
             </div>
           </div>
-        </div>
-      </section>
-
-      {/* ══════════════════════════════════════
-          PLATFORM VIDEO
-      ══════════════════════════════════════ */}
-      <section className="page-section pb-14">
-        <SectionIntro
-          eyebrow={
-            <span className="badge-teal">
-              <PlayCircle className="h-4 w-4" />
-              {isArabic ? "فيديو المنصة" : "Platform Video"}
-            </span>
-          }
-          title={isArabic ? "شاهد المنصة بشكل أوضح" : "See the platform in action"}
-          description={
-            isArabic
-              ? "هذا العرض يوضح شكل المنصة وطريقة تقديم تجربة أكثر هدوءاً ووضوحاً داخل الموقع."
-              : "This walkthrough shows how the platform presents a calmer, clearer pharmacy experience across the site."
-          }
-        />
-
-        <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr] xl:items-stretch">
-          <Reveal direction="up">
-            <div className="flex h-full flex-col rounded-[2rem] border border-slate-200 bg-[linear-gradient(180deg,#ffffff_0%,#f4fbfb_100%)] p-6 shadow-[0_18px_40px_rgba(15,23,42,0.06)] md:p-7">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-50 text-slate-600">
-                <PlayCircle className="h-5 w-5" />
-              </div>
-              <h3
-                className="mt-4 font-black tracking-tight text-slate-950"
-                style={{ fontSize: "clamp(1.4rem, 2.5vw, 2rem)", lineHeight: 1.15, ...(isArabic ? {} : { fontFamily: "var(--font-serif)" }) }}
-              >
-                {isArabic ? "عرض مرئي لواجهة المتحدة" : "A visual walkthrough of United"}
-              </h3>
-              <p className="mt-3 text-sm font-semibold leading-7 text-slate-500">
-                {isArabic
-                  ? "يعرض الفيديو الهوية البصرية، طريقة تقديم المحتوى، ومسار التصفح الذي تم تصميمه ليكون أسهل وأكثر مهنية."
-                  : "The video highlights the visual identity, content presentation, and browsing flow designed to feel easier and more professional."}
-              </p>
-
-              <div className="mt-5 grid gap-3">
-                {[
-                  { icon: ShieldCheck, textAr: "إبراز أوضح للثقة والهوية", textEn: "Clearer emphasis on trust and identity" },
-                  { icon: Store, textAr: "تنظيم بصري أفضل للأقسام والمحتوى", textEn: "Better visual structure for sections and content" },
-                  { icon: Zap, textAr: "تجربة استخدام أسرع وأهدأ", textEn: "A faster and calmer experience" },
-                ].map((item) => (
-                  <CheckRow
-                    key={item.textEn}
-                    icon={item.icon}
-                    textAr={item.textAr}
-                    textEn={item.textEn}
-                    isArabic={isArabic}
-                  />
-                ))}
-              </div>
-
-              <div className="mt-auto pt-6">
-                <a
-                  href={images.videoLink}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex h-11 items-center gap-2 rounded-2xl bg-[var(--primary)] px-5 text-sm font-black text-white transition-all hover:bg-[var(--primary-strong)]"
-                >
-                  <PlayCircle className="h-4 w-4" />
-                  {isArabic ? "فتح الفيديو في نافذة جديدة" : "Open video in a new tab"}
-                </a>
-              </div>
-            </div>
-          </Reveal>
-
-          <Reveal direction="up" delay={80}>
-            <div className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
-              <div className="border-b border-slate-100 px-6 py-5">
-                <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-600">
-                  {isArabic ? "المشاهدة المباشرة" : "Live Preview"}
-                </p>
-                <h3
-                  className="mt-2 font-black tracking-tight text-slate-950"
-                  style={{ fontSize: "clamp(1.3rem, 2.2vw, 1.75rem)", lineHeight: 1.15, ...(isArabic ? {} : { fontFamily: "var(--font-serif)" }) }}
-                >
-                  {isArabic ? "فيديو تعريفي مدمج داخل الصفحة" : "Embedded walkthrough inside the page"}
-                </h3>
-              </div>
-              <div className="p-4 md:p-5">
-                <div className="overflow-hidden rounded-[1.6rem] border border-slate-200 bg-slate-100 shadow-[0_18px_40px_rgba(15,23,42,0.08)]">
-                  <PromotionalVideo
-                    src={images.videoLink}
-                    title={isArabic ? "فيديو منصة المتحدة" : "United platform video"}
-                    galleryTitle={t("video_gallery_title")}
-                    galleryItems={promoVideoGallery.map((clip) => ({
-                      id: clip.id,
-                      title: isArabic ? clip.titleAr : clip.titleEn,
-                      src: clip.src,
-                    }))}
-                  />
-                </div>
-              </div>
-            </div>
-          </Reveal>
         </div>
       </section>
 

@@ -147,33 +147,31 @@ function HomeDesktop() {
     <div className="home-page overflow-x-hidden">
 
       {/* ══════════════════════════════════════════
-          1. HERO
+          1. HERO — light mode
       ══════════════════════════════════════════ */}
-      <section className="relative flex min-h-[92vh] flex-col items-center justify-center overflow-hidden bg-[#0A1220]">
+      <section className="relative flex min-h-[92vh] flex-col items-center justify-center overflow-hidden bg-white">
 
         {/* dot-grid texture */}
         <div aria-hidden className="pointer-events-none absolute inset-0"
           style={{
-            backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px)",
+            backgroundImage: "radial-gradient(circle, rgba(10,18,32,0.055) 1px, transparent 1px)",
             backgroundSize: "32px 32px",
           }} />
 
-        {/* top teal glow */}
-        <div aria-hidden className="pointer-events-none absolute inset-0"
-          style={{ background: "radial-gradient(ellipse 70% 45% at 50% -5%, rgba(14,126,116,0.28), transparent)" }} />
-
-        {/* bottom-left accent glow */}
-        <div aria-hidden className="pointer-events-none absolute bottom-0 left-0 h-64 w-64 rounded-full bg-[#0E7E74]/10 blur-3xl" />
+        {/* top-right teal glow */}
+        <div aria-hidden className="pointer-events-none absolute -top-40 -right-40 h-[480px] w-[480px] rounded-full bg-[#0E7E74]/[0.09] blur-3xl" />
+        {/* bottom-left accent */}
+        <div aria-hidden className="pointer-events-none absolute -bottom-20 -left-20 h-72 w-72 rounded-full bg-[#0E7E74]/[0.06] blur-3xl" />
 
         <div className="page-section relative z-10 w-full py-20 sm:py-28">
           <div className="mx-auto max-w-3xl text-center">
 
             {/* Eyebrow pill */}
             <div className="animate-hero-text" style={{ animationDelay: "0ms" }}>
-              <span className="inline-flex items-center gap-2.5 rounded-full border border-white/[0.12] bg-white/[0.07] px-5 py-2 backdrop-blur-sm">
-                <span className="h-2 w-2 rounded-full bg-[#0E7E74] shadow-[0_0_8px_rgba(14,126,116,0.9)]" aria-hidden />
-                <span className="text-[11px] font-black uppercase tracking-[0.2em] text-white/70">
-                  {isRtl ? "يونايتد فارماسيز — القاهرة" : "United Pharmacies — Cairo"}
+              <span className="inline-flex items-center gap-2.5 rounded-full border border-[#0A1220]/12 bg-[#0A1220]/[0.04] px-5 py-2">
+                <span className="h-2 w-2 rounded-full bg-[#0E7E74] shadow-[0_0_8px_rgba(14,126,116,0.6)]" aria-hidden />
+                <span className="text-[11px] font-black uppercase tracking-[0.2em] text-[#0A1220]/60">
+                  {isRtl ? "صيدليات المتحدة — القاهرة" : "United Pharmacies — Cairo"}
                 </span>
               </span>
             </div>
@@ -181,10 +179,10 @@ function HomeDesktop() {
             {/* Heading */}
             <h1
               className={cn(
-                "animate-hero-text mt-7 text-white",
+                "animate-hero-text mt-7 text-[#0A1220]",
                 isRtl
                   ? "font-black text-[2.8rem] leading-[1.22] sm:text-[4.2rem]"
-                  : "font-bold leading-[1.04] tracking-[-0.025em] text-[3.4rem] sm:text-[5.2rem] lg:text-[6.2rem]",
+                  : "font-bold leading-[1.04] tracking-[-0.03em] text-[3.4rem] sm:text-[5.2rem] lg:text-[6.2rem]",
               )}
               style={{
                 animationDelay: "120ms",
@@ -192,15 +190,15 @@ function HomeDesktop() {
               }}
             >
               {isRtl ? (
-                <>دواؤك بكلمة<br /><span className="text-[#2DD4C0]">واحدة فقط</span></>
+                <>دواؤك بكلمة<br /><span className="text-[#0E7E74]">واحدة فقط</span></>
               ) : (
-                <>Your medicine,<br /><em className="not-italic text-[#2DD4C0]">one search away.</em></>
+                <>Your medicine,<br /><em className="not-italic text-[#0E7E74]">one search away.</em></>
               )}
             </h1>
 
             {/* Subtext */}
             <p
-              className="animate-hero-text mx-auto mt-6 max-w-lg text-[15px] font-medium leading-[1.8] text-white/60"
+              className="animate-hero-text mx-auto mt-6 max-w-lg text-[15px] font-medium leading-[1.8] text-[#0A1220]/55"
               style={{ animationDelay: "240ms" }}
             >
               {isRtl
@@ -210,7 +208,7 @@ function HomeDesktop() {
 
             {/* Search */}
             {error && (
-              <div className="animate-hero-text mx-auto mt-5 max-w-lg rounded-xl border border-amber-400/25 bg-amber-500/10 px-4 py-2.5 text-sm font-bold text-amber-300"
+              <div className="animate-hero-text mx-auto mt-5 max-w-lg rounded-xl border border-amber-400/40 bg-amber-50 px-4 py-2.5 text-sm font-bold text-amber-700"
                 style={{ animationDelay: "280ms" }}>
                 {isRtl ? "تعذر تحديث الكتالوج — تُعرض آخر البيانات المتاحة." : "Catalog refresh issue — showing last available data."}
               </div>
@@ -227,7 +225,7 @@ function HomeDesktop() {
                 onClear={() => { setSearchQuery(""); commitQuery(""); }}
                 placeholder={isRtl ? "ابحث بالاسم أو الكود أو القسم…" : "Search by name, code, or category…"}
                 lang={lang}
-                shellClassName="rounded-2xl border-white/15 bg-white shadow-[0_0_0_3px_rgba(14,126,116,0.22),0_24px_56px_rgba(0,0,0,0.45)]"
+                shellClassName="rounded-2xl border-[#0A1220]/12 shadow-[0_0_0_3px_rgba(14,126,116,0.14),0_20px_48px_rgba(10,18,32,0.12)]"
                 suggestions={searchDropdown}
               />
             </form>
@@ -239,25 +237,25 @@ function HomeDesktop() {
             >
               <Link to="/products"
                 className={cn(
-                  "group inline-flex h-12 items-center gap-2.5 rounded-2xl bg-white px-8 text-[13px] font-black text-[#0A1220] shadow-[0_10px_32px_rgba(0,0,0,0.32)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_18px_40px_rgba(0,0,0,0.40)]",
+                  "group inline-flex h-12 items-center gap-2.5 rounded-2xl bg-[#0A1220] px-8 text-[13px] font-black text-white shadow-[0_8px_28px_rgba(10,18,32,0.28)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#0E1929] hover:shadow-[0_14px_36px_rgba(10,18,32,0.36)]",
                   isRtl && "flex-row-reverse",
                 )}>
                 {isRtl ? "تصفح المنتجات" : "Browse Products"}
                 <ArrowRight className={cn("h-4 w-4 transition-transform group-hover:translate-x-0.5", isRtl && "rotate-180 group-hover:translate-x-0 group-hover:-translate-x-0.5")} />
               </Link>
               <Link to="/offers"
-                className="inline-flex h-12 items-center gap-2 rounded-2xl border border-white/15 bg-white/[0.08] px-7 text-[13px] font-black text-white backdrop-blur-sm transition-all duration-200 hover:bg-white/[0.14] hover:-translate-y-0.5">
+                className={cn("group inline-flex h-12 items-center gap-2 rounded-2xl border-2 border-[#0A1220] bg-white px-7 text-[13px] font-black text-[#0A1220] transition-all duration-200 hover:bg-[#0A1220] hover:text-white hover:-translate-y-0.5", isRtl && "flex-row-reverse")}>
                 {isRtl ? "العروض الحالية" : "Current Offers"}
-                <Sparkles className="h-4 w-4 text-[#2DD4C0]" />
+                <Sparkles className="h-4 w-4 text-[#0E7E74] transition-colors duration-200 group-hover:text-white" />
               </Link>
             </div>
 
             {/* Stats row */}
             <div
-              className="animate-hero-text mt-12 border-t border-white/[0.10] pt-10"
+              className="animate-hero-text mt-12 border-t border-[#0A1220]/[0.08] pt-10"
               style={{ animationDelay: "580ms" }}
             >
-              <div className={cn("flex items-center justify-center gap-0 divide-x divide-white/[0.10]", isRtl && "divide-x-reverse flex-row-reverse")}>
+              <div className={cn("flex items-center justify-center divide-x divide-[#0A1220]/[0.08]", isRtl && "divide-x-reverse flex-row-reverse")}>
                 {[
                   { value: "8,000+", labelAr: "منتج متاح",    labelEn: "Products"  },
                   { value: "5",      labelAr: "فروع القاهرة", labelEn: "Branches"  },
@@ -266,10 +264,10 @@ function HomeDesktop() {
                 ].map(({ value, labelAr, labelEn }) => (
                   <div key={labelEn} className="flex flex-1 flex-col items-center gap-1.5 px-4">
                     <span
-                      className="text-[1.9rem] font-bold leading-none text-white sm:text-[2.4rem]"
+                      className="text-[1.9rem] font-bold leading-none text-[#0A1220] sm:text-[2.4rem]"
                       style={{ fontFamily: "var(--font-serif)" }}
                     >{value}</span>
-                    <span className="text-[10px] font-black uppercase tracking-[0.14em] text-white/55">
+                    <span className="text-[10px] font-black uppercase tracking-[0.14em] text-[#0A1220]/45">
                       {isRtl ? labelAr : labelEn}
                     </span>
                   </div>
@@ -279,10 +277,6 @@ function HomeDesktop() {
 
           </div>
         </div>
-
-        {/* fade-to-white edge */}
-        <div aria-hidden className="absolute bottom-0 inset-x-0 h-16"
-          style={{ background: "linear-gradient(to bottom, transparent, white)" }} />
       </section>
 
 
