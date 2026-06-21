@@ -706,6 +706,13 @@
 @keyframes hero-text-in { from { opacity:0; transform:translateY(36px) scale(0.97) } to { opacity:1; transform:translateY(0) scale(1) } }
 .animate-hero-text { animation: hero-text-in 0.80s cubic-bezier(0.16, 1, 0.3, 1) both; }
 
+/* WhatsApp float — idle "breathing" line at bottom of screen */
+@keyframes wa-breathe {
+  0%, 100% { opacity: 0.60; box-shadow: 0 0 0 0 rgba(34,197,94,0); }
+  50%       { opacity: 1;    box-shadow: 0 -4px 14px rgba(34,197,94,0.38); }
+}
+.animate-wa-breathe { animation: wa-breathe 2.6s cubic-bezier(0.4,0,0.6,1) infinite; }
+
 /* Animation delays */
 .delay-50  { animation-delay:  50ms; }
 .delay-100 { animation-delay: 100ms; }

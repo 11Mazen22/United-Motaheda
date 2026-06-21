@@ -48,6 +48,7 @@ import { CartDrawer } from "./components/CartDrawer";
 import { FloatingCartButton } from "./components/FloatingCartButton";
 import { ShopperMobileLayout } from "./components/ShopperMobileLayout";
 import { SiteFooter } from "./components/SiteFooter";
+import { WhatsAppFloat } from "./components/WhatsAppFloat";
 import { resolveSiteSearchSubmitPath, SiteSearchField } from "./components/SiteSearchField";
 import { cn } from "./components/UI";
 import { useIsShopperShell } from "./components/ui/use-mobile";
@@ -1147,24 +1148,13 @@ export default function Layout() {
         </main>
 
         {/* ══════════════════════════════════════════════════════════════════
-            WHATSAPP FLOATING ACTION BUTTON
+            WHATSAPP FLOAT — bottom-center morphing line
         ══════════════════════════════════════════════════════════════════ */}
-        <a
-          href={whatsappUrl}
-          target="_blank"
-          rel="noreferrer"
-          aria-label={lang === "ar" ? "دعم واتساب مباشر" : "Direct WhatsApp support"}
-          className={cn(
-            "site-whatsapp-fab fixed bottom-6 end-6 z-[72] inline-flex items-center gap-2 rounded-full",
-            "bg-[#25D366] px-4 py-3 text-sm font-black text-white",
-            "shadow-[0_16px_36px_rgba(37,211,102,0.28)]",
-            "transition-all duration-200 hover:-translate-y-1 hover:bg-[#1fb95a] hover:shadow-[0_20px_44px_rgba(37,211,102,0.36)]",
-            overlayOpen && "pointer-events-none opacity-0",
-          )}
-        >
-          <MessageCircle className="h-5 w-5" />
-          <span className="hidden sm:inline">{lang === "ar" ? "واتساب" : "WhatsApp"}</span>
-        </a>
+        <WhatsAppFloat
+          url={whatsappUrl}
+          isArabic={lang === "ar"}
+          hidden={overlayOpen}
+        />
 
         {/* ══════════════════════════════════════════════════════════════════
             SITE FOOTER
