@@ -715,39 +715,39 @@ export default function Layout() {
       <div className="app-shell flex min-h-screen flex-col">
 
         {/* ── Top utility strip (desktop) — dark premium cap ── */}
-        <div className="hidden bg-[#0A1220] xl:block">
-          <div className="mx-auto flex max-w-[90rem] items-center justify-between gap-4 px-6 py-2 text-[11.5px] font-bold">
-            <div className="flex items-center gap-4">
-              <span className="inline-flex items-center gap-1.5 text-white/60">
+        <div className="hidden border-b border-[#0E7E74]/25 bg-[#0A1220] xl:block">
+          <div className="mx-auto flex max-w-[90rem] items-center justify-between gap-5 px-6 py-2 text-[11.5px] font-bold">
+            <div className="flex items-center gap-5">
+              <span className="inline-flex items-center gap-1.5 text-white/65">
                 <Truck className="h-3.5 w-3.5 text-[#2DD4C0]" />
                 {deliveryWindowCompact}
               </span>
-              <span className="h-3 w-px bg-white/[0.10]" />
-              <span className="inline-flex items-center gap-1.5 text-white/60">
+              <span className="h-3 w-px bg-white/[0.14]" />
+              <span className="inline-flex items-center gap-1.5 text-white/65">
                 <ShieldCheck className="h-3.5 w-3.5 text-[#2DD4C0]" />
                 {serviceHoursLabel}
               </span>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-5">
               <a
                 href={`tel:${primaryPhone}`}
-                className="inline-flex items-center gap-1.5 text-white/60 transition-colors hover:text-[#2DD4C0]"
+                className="inline-flex items-center gap-1.5 text-white/65 transition-colors duration-150 hover:text-[#2DD4C0]"
               >
                 <Phone className="h-3.5 w-3.5 text-[#2DD4C0]" />
                 <span dir="ltr">{primaryPhoneDisplay}</span>
               </a>
-              <span className="h-3 w-px bg-white/[0.10]" />
-              <span className="inline-flex items-center gap-1.5 text-white/55">
+              <span className="h-3 w-px bg-white/[0.14]" />
+              <span className="inline-flex items-center gap-1.5 text-white/60">
                 <MapPin className="h-3.5 w-3.5 text-[#2DD4C0]" />
                 {lang === "ar" ? locationLabelAr : locationLabelEn}
               </span>
-              <span className="h-3 w-px bg-white/[0.10]" />
+              <span className="h-3 w-px bg-white/[0.14]" />
               <button
                 type="button"
                 onClick={toggleLanguage}
-                className="inline-flex items-center gap-1.5 rounded-md border border-white/[0.14] bg-white/[0.05] px-2.5 py-1 text-white/65 transition-all hover:border-white/30 hover:bg-white/[0.10] hover:text-white"
+                className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.16] bg-white/[0.06] px-3 py-[3.5px] text-white/70 transition-all duration-150 hover:border-white/[0.30] hover:bg-white/[0.12] hover:text-white"
               >
-                <Globe className="h-3.5 w-3.5" />
+                <Globe className="h-3 w-3" />
                 {lang === "ar" ? "English" : "العربية"}
               </button>
             </div>
