@@ -334,9 +334,9 @@ function HomeDesktop() {
                   <span className="text-[12px] font-black tabular-nums text-slate-400">
                     {catSlide + 1} <span className="text-slate-200">/</span> {totalSlides}
                   </span>
-                  {/* Prev */}
+                  {/* Prev — same solid-navy style as Next for consistency */}
                   <button type="button" onClick={goPrev} aria-label={isRtl ? "التالي" : "Previous"}
-                    className="group flex h-11 w-11 items-center justify-center rounded-xl border-2 border-[#0A1220] bg-white text-[#0A1220] transition-all duration-200 hover:bg-[#0A1220] hover:text-white">
+                    className="group flex h-11 w-11 items-center justify-center rounded-xl border-2 border-[#0A1220] bg-[#0A1220] text-white transition-all duration-200 hover:bg-white hover:text-[#0A1220]">
                     <ChevronLeft className={cn("h-4 w-4", isRtl && "rotate-180")} />
                   </button>
                   {/* Next */}

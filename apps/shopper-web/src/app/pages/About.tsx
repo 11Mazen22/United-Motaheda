@@ -337,7 +337,7 @@ export default function About() {
             </Link>
             <Link
               to="/contact"
-              className="inline-flex h-12 items-center gap-2 rounded-2xl border border-white/15 bg-white/10 px-6 text-sm font-black text-white backdrop-blur-sm transition-all hover:bg-white/15"
+              className="inline-flex h-12 items-center gap-2 rounded-2xl border border-[#0A1220]/20 bg-[#0A1220]/[0.07] px-6 text-sm font-black text-[#0A1220] backdrop-blur-sm transition-all hover:bg-[#0A1220]/[0.13] hover:border-[#0A1220]/35"
             >
               {isArabic ? "تواصل معنا" : "Contact Us"}
             </Link>

@@ -1,4 +1,4 @@
-import { MapPin, Navigation2, Phone } from "lucide-react";
+import { MapPin } from "lucide-react";
 import { cn } from "./UI";
 import type { SiteLocation } from "../data";
 
@@ -206,29 +206,44 @@ export function BranchMap({
         })}
       </div>
 
-      {/* ── Bottom info strip for selected branch ── */}
-      <div className="absolute inset-x-4 bottom-4">
-        <div className="flex items-center gap-3 rounded-xl border border-white/[0.09] bg-white/[0.06] px-3.5 py-2.5 backdrop-blur-sm">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#0E7E74]/20">
-            <Navigation2 className="h-3.5 w-3.5 text-[#2DD4C0]" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-[11px] font-black text-white/90">
-              {isArabic ? selected.fullNameAr : selected.fullNameEn}
-            </p>
-            <p className="mt-0.5 truncate text-[10px] font-semibold text-white/40">
-              {isArabic ? selected.addressAr : selected.addressEn}
-            </p>
-          </div>
-          {selected.phones?.[0] && (
-            <a
-              href={`tel:${selected.phones[0]}`}
-              onClick={(e) => e.stopPropagation()}
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/[0.10] bg-white/[0.06] transition-colors hover:bg-[#0E7E74]/20"
-            >
-              <Phone className="h-3.5 w-3.5 text-white/50" />
-            </a>
-          )}
+      {/* ── All-branches strip — horizontal scrollable row ── */}
+      <div className="absolute inset-x-0 bottom-0 overflow-x-auto">
+        <div className={cn(
+          "flex gap-2 px-4 pb-4 pt-2",
+          isArabic ? "flex-row-reverse" : "flex-row",
+        )}
+          style={{ width: "max-content", minWidth: "100%" }}>
+          {valid.map((l) => {
+            const isSel = l.id === selectedBranchId;
+            return (
+              <button
+                key={l.id}
+                type="button"
+                onClick={() => onSelectBranch(l.id)}
+                className={cn(
+                  "flex min-w-[152px] shrink-0 flex-col gap-0.5 rounded-xl border px-3 py-2.5 text-start transition-all duration-200 focus-visible:outline-none",
+                  isSel
+                    ? "border-[#0E7E74]/50 bg-[#0E7E74]/15 shadow-[0_0_18px_rgba(14,126,116,0.28)]"
+                    : "border-white/[0.09] bg-white/[0.06] hover:border-[#0E7E74]/30 hover:bg-white/[0.10]",
+                )}
+              >
+                <p className={cn(
+                  "truncate text-[11px] font-black leading-snug",
+                  isSel ? "text-[#2DD4C0]" : "text-white/75",
+                )}>
+                  {isArabic ? l.nameAr : l.nameEn}
+                </p>
+                <p className="truncate text-[9.5px] font-medium leading-snug text-white/38">
+                  {isArabic ? l.addressAr : l.addressEn}
+                </p>
+                {l.phones?.[0] && (
+                  <p className="mt-0.5 text-[9px] font-bold tabular-nums text-white/28" dir="ltr">
+                    {l.phones[0]}
+                  </p>
+                )}
+              </button>
+            );
+          })}
         </div>
       </div>
     </div>
