@@ -123,7 +123,7 @@ export default function About() {
   const { lang, t } = useLanguage();
   const { metrics } = useCatalog();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { isMuted, toggleMute } = useGlobalAudioMute();
 
   if (isShopperShell) {
@@ -882,7 +882,7 @@ export default function About() {
                     locations={locations}
                     selectedBranchId={selectedBranch.id}
                     isArabic={isArabic}
-                    onSelectBranch={(branchId) => navigate(branchDetailHref(branchId))}
+                    onSelectBranch={(branchId) => setSearchParams((prev) => { prev.set("branch", branchId); return prev; }, { replace: true })}
                   />
                 </div>
               </div>
