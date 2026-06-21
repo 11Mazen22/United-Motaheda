@@ -41,6 +41,19 @@ import { getServiceHoursSentence } from "../config";
 import { HomeMobile } from "./HomeMobile";
 
 /* ─── Category icon pool (pharmacy-relevant) ────────────────── */
+const CAT_GRADIENTS = [
+  "from-teal-500 to-emerald-600",
+  "from-rose-500 to-pink-600",
+  "from-violet-500 to-purple-700",
+  "from-amber-500 to-orange-600",
+  "from-sky-500 to-blue-600",
+  "from-lime-500 to-green-600",
+  "from-cyan-400 to-teal-600",
+  "from-fuchsia-500 to-pink-700",
+  "from-indigo-500 to-violet-600",
+  "from-orange-500 to-red-500",
+];
+
 const CAT_ICONS = [
   Pill, Activity, Baby, Sparkles, Stethoscope,
   FlaskConical, Thermometer, Eye, Leaf, Apple,
