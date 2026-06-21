@@ -12,6 +12,7 @@
      Inter 400-900 serves as a genuine same-weight fallback. */
   --font-body: 'Outfit', 'Inter', system-ui, sans-serif;
   --font-display: 'Outfit', 'Inter', system-ui, sans-serif;
+  --font-serif: 'Playfair Display', Georgia, 'Times New Roman', serif;
   --font-body-ar: 'Cairo', system-ui, sans-serif;
   --font-display-ar: 'Cairo', system-ui, sans-serif;
 
