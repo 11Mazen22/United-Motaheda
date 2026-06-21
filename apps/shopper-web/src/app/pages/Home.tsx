@@ -370,21 +370,29 @@ function HomeDesktop() {
               </Link>
             </div>
 
-            {/* Luxury dark category tiles */}
-            <div className="flex flex-wrap gap-2.5">
+            {/* Rectangle category cards — white + bold black border, inverts on hover */}
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
 
-              {/* "All" tile — brand teal */}
+              {/* "All" anchor — pre-filled dark navy */}
               <Link
                 to="/products"
-                className="group relative flex h-[130px] w-[104px] flex-col items-center justify-center gap-3 overflow-hidden rounded-2xl bg-[#0E7E74] shadow-[0_6px_22px_rgba(14,126,116,0.38)] transition-all duration-250 hover:-translate-y-1 hover:shadow-[0_14px_32px_rgba(14,126,116,0.52)] sm:w-[114px]"
+                className={cn(
+                  "group flex h-[90px] items-center gap-4 rounded-2xl border-2 border-[#0A1220] bg-[#0A1220] px-5 transition-all duration-200 hover:border-[#0E7E74] hover:shadow-[0_8px_24px_rgba(10,18,32,0.22)]",
+                  isRtl && "flex-row-reverse",
+                )}
               >
-                <div aria-hidden className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_70%_15%,rgba(255,255,255,0.15),transparent_60%)]" />
-                <div className="relative flex h-11 w-11 items-center justify-center rounded-xl bg-white/20 ring-1 ring-white/30 transition-transform duration-250 group-hover:scale-110">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/[0.12]">
                   <ShoppingBag className="h-5 w-5 text-white" />
                 </div>
-                <span className="relative px-2 text-center text-[11px] font-black leading-tight text-white">
-                  {isRtl ? "الكل" : "All"}
-                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[13px] font-black text-white">
+                    {isRtl ? "الكل" : "All"}
+                  </p>
+                  <p className="mt-0.5 truncate text-[10.5px] font-medium text-white/45">
+                    {isRtl ? "تصفح الجميع" : "Browse all"}
+                  </p>
+                </div>
+                <ArrowRight className={cn("h-3.5 w-3.5 shrink-0 text-white/35 transition-transform duration-200 group-hover:translate-x-0.5", isRtl && "rotate-180")} />
               </Link>
 
               {categoryChips.map((cat, i) => {
@@ -394,15 +402,18 @@ function HomeDesktop() {
                   <Link
                     key={cat.id}
                     to={`/products?category=${encodeURIComponent(cat.id)}`}
-                    className="group relative flex h-[130px] w-[104px] flex-col items-center justify-center gap-3 overflow-hidden rounded-2xl border border-[#1A2535] bg-[#0A1220] shadow-[0_4px_16px_rgba(10,18,32,0.30)] transition-all duration-250 hover:-translate-y-1 hover:border-[#0E7E74]/40 hover:shadow-[0_12px_28px_rgba(14,126,116,0.18)] sm:w-[114px]"
+                    className={cn(
+                      "group flex h-[90px] items-center gap-4 rounded-2xl border-2 border-[#0A1220] bg-white px-5 transition-all duration-200 hover:bg-[#0A1220] hover:shadow-[0_8px_24px_rgba(10,18,32,0.22)]",
+                      isRtl && "flex-row-reverse",
+                    )}
                   >
-                    <div aria-hidden className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_65%_15%,rgba(255,255,255,0.04),transparent_55%)]" />
-                    <div className="relative flex h-11 w-11 items-center justify-center rounded-xl bg-white/[0.07] ring-1 ring-white/[0.10] transition-all duration-250 group-hover:scale-110 group-hover:bg-[#0E7E74]/20 group-hover:ring-[#0E7E74]/40">
-                      <IconComp className="h-5 w-5 text-white/70 transition-colors duration-250 group-hover:text-[#2DD4C0]" />
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#0A1220] transition-colors duration-200 group-hover:bg-white/[0.13]">
+                      <IconComp className="h-5 w-5 text-white" />
                     </div>
-                    <span className="relative line-clamp-2 px-2 text-center text-[10.5px] font-black leading-tight text-white/70 transition-colors duration-250 group-hover:text-white">
+                    <p className="min-w-0 flex-1 truncate text-[13px] font-black text-[#0A1220] transition-colors duration-200 group-hover:text-white">
                       {label}
-                    </span>
+                    </p>
+                    <ArrowRight className={cn("h-3.5 w-3.5 shrink-0 text-[#0A1220]/25 transition-all duration-200 group-hover:translate-x-0.5 group-hover:text-white/45", isRtl && "rotate-180")} />
                   </Link>
                 );
               })}
