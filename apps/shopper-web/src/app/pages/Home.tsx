@@ -147,76 +147,97 @@ function HomeDesktop() {
     <div className="home-page overflow-x-hidden">
 
       {/* ══════════════════════════════════════════
-          1. HERO — light mode
+          1. HERO — powerful light mode
       ══════════════════════════════════════════ */}
-      <section className="relative flex min-h-[92vh] flex-col items-center justify-center overflow-hidden bg-white">
+      {/* NO overflow-hidden on section — keeps search dropdown visible above stats */}
+      <section className="relative flex min-h-[94vh] flex-col items-center justify-center bg-white">
 
-        {/* dot-grid texture */}
-        <div aria-hidden className="pointer-events-none absolute inset-0"
-          style={{
-            backgroundImage: "radial-gradient(circle, rgba(10,18,32,0.055) 1px, transparent 1px)",
-            backgroundSize: "32px 32px",
-          }} />
+        {/* Decorative layer — overflow-hidden isolated so dropdown can escape */}
+        <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+          {/* dot-grid texture */}
+          <div className="absolute inset-0"
+            style={{
+              backgroundImage: "radial-gradient(circle, rgba(10,18,32,0.05) 1px, transparent 1px)",
+              backgroundSize: "30px 30px",
+            }} />
+          {/* top-right teal bloom */}
+          <div className="absolute -top-48 -right-48 h-[550px] w-[550px] rounded-full bg-[#0E7E74]/[0.10] blur-3xl" />
+          {/* bottom-left accent */}
+          <div className="absolute -bottom-24 -left-24 h-80 w-80 rounded-full bg-[#0E7E74]/[0.07] blur-3xl" />
+          {/* center soft glow */}
+          <div className="absolute left-1/2 top-1/2 h-[600px] w-[600px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#0E7E74]/[0.03] blur-3xl" />
+        </div>
 
-        {/* top-right teal glow */}
-        <div aria-hidden className="pointer-events-none absolute -top-40 -right-40 h-[480px] w-[480px] rounded-full bg-[#0E7E74]/[0.09] blur-3xl" />
-        {/* bottom-left accent */}
-        <div aria-hidden className="pointer-events-none absolute -bottom-20 -left-20 h-72 w-72 rounded-full bg-[#0E7E74]/[0.06] blur-3xl" />
-
-        <div className="page-section relative z-10 w-full py-20 sm:py-28">
+        {/* Content — z-20 so search dropdown stacks above stats */}
+        <div className="page-section relative z-20 w-full py-20 sm:py-28">
           <div className="mx-auto max-w-3xl text-center">
 
             {/* Eyebrow pill */}
             <div className="animate-hero-text" style={{ animationDelay: "0ms" }}>
-              <span className="inline-flex items-center gap-2.5 rounded-full border border-[#0A1220]/12 bg-[#0A1220]/[0.04] px-5 py-2">
-                <span className="h-2 w-2 rounded-full bg-[#0E7E74] shadow-[0_0_8px_rgba(14,126,116,0.6)]" aria-hidden />
-                <span className="text-[11px] font-black uppercase tracking-[0.2em] text-[#0A1220]/60">
-                  {isRtl ? "صيدليات المتحدة — القاهرة" : "United Pharmacies — Cairo"}
+              <span className={cn(
+                "inline-flex items-center gap-2.5 rounded-full border border-[#0E7E74]/25 bg-[#0E7E74]/[0.06] px-5 py-2",
+                isRtl && "flex-row-reverse",
+              )}>
+                <span className="h-2 w-2 rounded-full bg-[#0E7E74] shadow-[0_0_10px_rgba(14,126,116,0.7)]" aria-hidden />
+                <span className="text-[11px] font-black uppercase tracking-[0.22em] text-[#0E7E74]">
+                  {isRtl ? "لكل داء دواء — صيدليات المتحدة" : "For Every Disease, A Cure — United"}
                 </span>
               </span>
             </div>
 
             {/* Heading */}
-            <h1
-              className={cn(
-                "animate-hero-text mt-7 text-[#0A1220]",
-                isRtl
-                  ? "font-black text-[2.8rem] leading-[1.22] sm:text-[4.2rem]"
-                  : "font-bold leading-[1.04] tracking-[-0.03em] text-[3.4rem] sm:text-[5.2rem] lg:text-[6.2rem]",
-              )}
-              style={{
-                animationDelay: "120ms",
-                ...(isRtl ? {} : { fontFamily: "var(--font-serif)" }),
-              }}
-            >
-              {isRtl ? (
-                <>دواؤك بكلمة<br /><span className="text-[#0E7E74]">واحدة فقط</span></>
-              ) : (
-                <>Your medicine,<br /><em className="not-italic text-[#0E7E74]">one search away.</em></>
-              )}
-            </h1>
+            {isRtl ? (
+              <h1
+                className="animate-hero-text mt-6 font-black text-[#0A1220]"
+                style={{
+                  animationDelay: "120ms",
+                  fontSize: "clamp(2.6rem, 6vw, 4.4rem)",
+                  lineHeight: 1.25,
+                  direction: "rtl",
+                }}
+              >
+                مش لاقي دواك؟{" "}
+                <span className="text-[#0E7E74]">احنا معاك!</span>
+              </h1>
+            ) : (
+              <h1
+                className="animate-hero-text mt-6 font-bold text-[#0A1220]"
+                style={{
+                  animationDelay: "120ms",
+                  fontFamily: "var(--font-serif)",
+                  fontSize: "clamp(3.2rem, 7vw, 6rem)",
+                  lineHeight: 1.05,
+                  letterSpacing: "-0.03em",
+                }}
+              >
+                Can't find<br />
+                your medicine?{" "}
+                <em className="not-italic text-[#0E7E74]">We've got you.</em>
+              </h1>
+            )}
 
             {/* Subtext */}
             <p
-              className="animate-hero-text mx-auto mt-6 max-w-lg text-[15px] font-medium leading-[1.8] text-[#0A1220]/55"
-              style={{ animationDelay: "240ms" }}
+              className="animate-hero-text mx-auto mt-5 text-[15px] font-medium leading-[1.85] text-[#0A1220]/55"
+              style={{ animationDelay: "240ms", maxWidth: "34rem" }}
             >
               {isRtl
-                ? "ابحث عن آلاف الأدوية والمستلزمات الصحية — سريعًا وبسهولة"
-                : "Browse thousands of medicines, vitamins, and health essentials — all in one place."}
+                ? "ابحث عن اكتر من آلاف الأدوية عشان تساعدك في داءك"
+                : "Search over thousands of medicines and health essentials to help with your condition."}
             </p>
 
-            {/* Search */}
+            {/* Error banner */}
             {error && (
-              <div className="animate-hero-text mx-auto mt-5 max-w-lg rounded-xl border border-amber-400/40 bg-amber-50 px-4 py-2.5 text-sm font-bold text-amber-700"
+              <div className="animate-hero-text mx-auto mt-4 max-w-lg rounded-xl border border-amber-400/40 bg-amber-50 px-4 py-2.5 text-sm font-bold text-amber-700"
                 style={{ animationDelay: "280ms" }}>
                 {isRtl ? "تعذر تحديث الكتالوج — تُعرض آخر البيانات المتاحة." : "Catalog refresh issue — showing last available data."}
               </div>
             )}
 
+            {/* Search — z-30 so dropdown floats above everything below */}
             <form
-              className="animate-hero-text relative mx-auto mt-7 max-w-2xl"
-              style={{ animationDelay: "340ms" }}
+              className="animate-hero-text relative z-30 mx-auto mt-8 max-w-2xl"
+              style={{ animationDelay: "320ms" }}
               onSubmit={handleSearch}
             >
               <SearchBar
@@ -225,23 +246,23 @@ function HomeDesktop() {
                 onClear={() => { setSearchQuery(""); commitQuery(""); }}
                 placeholder={isRtl ? "ابحث بالاسم أو الكود أو القسم…" : "Search by name, code, or category…"}
                 lang={lang}
-                shellClassName="rounded-2xl border-[#0A1220]/12 shadow-[0_0_0_3px_rgba(14,126,116,0.14),0_20px_48px_rgba(10,18,32,0.12)]"
+                shellClassName="h-14 rounded-2xl border-[#0A1220]/12 bg-white shadow-[0_0_0_3px_rgba(14,126,116,0.16),0_20px_52px_rgba(10,18,32,0.13)]"
                 suggestions={searchDropdown}
               />
             </form>
 
             {/* CTAs */}
             <div
-              className="animate-hero-text mt-7 flex flex-wrap items-center justify-center gap-3"
-              style={{ animationDelay: "460ms" }}
+              className="animate-hero-text mt-6 flex flex-wrap items-center justify-center gap-3"
+              style={{ animationDelay: "420ms" }}
             >
               <Link to="/products"
                 className={cn(
-                  "group inline-flex h-12 items-center gap-2.5 rounded-2xl bg-[#0A1220] px-8 text-[13px] font-black text-white shadow-[0_8px_28px_rgba(10,18,32,0.28)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#0E1929] hover:shadow-[0_14px_36px_rgba(10,18,32,0.36)]",
+                  "group inline-flex h-12 items-center gap-2.5 rounded-2xl bg-[#0A1220] px-8 text-[13px] font-black text-white shadow-[0_8px_28px_rgba(10,18,32,0.30)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#0E1929] hover:shadow-[0_14px_36px_rgba(10,18,32,0.40)]",
                   isRtl && "flex-row-reverse",
                 )}>
                 {isRtl ? "تصفح المنتجات" : "Browse Products"}
-                <ArrowRight className={cn("h-4 w-4 transition-transform group-hover:translate-x-0.5", isRtl && "rotate-180 group-hover:translate-x-0 group-hover:-translate-x-0.5")} />
+                <ArrowRight className={cn("h-4 w-4 transition-transform group-hover:translate-x-0.5", isRtl && "rotate-180 group-hover:-translate-x-0.5")} />
               </Link>
               <Link to="/offers"
                 className={cn("group inline-flex h-12 items-center gap-2 rounded-2xl border-2 border-[#0A1220] bg-white px-7 text-[13px] font-black text-[#0A1220] transition-all duration-200 hover:bg-[#0A1220] hover:text-white hover:-translate-y-0.5", isRtl && "flex-row-reverse")}>
@@ -250,24 +271,24 @@ function HomeDesktop() {
               </Link>
             </div>
 
-            {/* Stats row */}
+            {/* Stats row — z-10 stays below search dropdown */}
             <div
-              className="animate-hero-text mt-12 border-t border-[#0A1220]/[0.08] pt-10"
-              style={{ animationDelay: "580ms" }}
+              className="animate-hero-text relative z-10 mt-12 border-t border-[#0A1220]/[0.07] pt-9"
+              style={{ animationDelay: "540ms" }}
             >
-              <div className={cn("flex items-center justify-center divide-x divide-[#0A1220]/[0.08]", isRtl && "divide-x-reverse flex-row-reverse")}>
+              <div className={cn("flex items-center justify-center divide-x divide-[#0A1220]/[0.07]", isRtl && "divide-x-reverse flex-row-reverse")}>
                 {[
                   { value: "8,000+", labelAr: "منتج متاح",    labelEn: "Products"  },
                   { value: "5",      labelAr: "فروع القاهرة", labelEn: "Branches"  },
                   { value: "100%",   labelAr: "أدوية أصلية",  labelEn: "Genuine"   },
                   { value: "24h",    labelAr: "توصيل سريع",   labelEn: "Delivery"  },
                 ].map(({ value, labelAr, labelEn }) => (
-                  <div key={labelEn} className="flex flex-1 flex-col items-center gap-1.5 px-4">
+                  <div key={labelEn} className="flex flex-1 flex-col items-center gap-1.5 px-3 sm:px-5">
                     <span
-                      className="text-[1.9rem] font-bold leading-none text-[#0A1220] sm:text-[2.4rem]"
+                      className="text-[1.75rem] font-bold leading-none text-[#0A1220] sm:text-[2.2rem]"
                       style={{ fontFamily: "var(--font-serif)" }}
                     >{value}</span>
-                    <span className="text-[10px] font-black uppercase tracking-[0.14em] text-[#0A1220]/45">
+                    <span className="text-[9.5px] font-black uppercase tracking-[0.16em] text-[#0A1220]/40">
                       {isRtl ? labelAr : labelEn}
                     </span>
                   </div>
