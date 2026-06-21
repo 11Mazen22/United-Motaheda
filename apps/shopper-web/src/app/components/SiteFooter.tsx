@@ -91,8 +91,8 @@ export function SiteFooter({
           <div className="flex flex-col gap-3 py-5 sm:flex-row sm:items-center sm:justify-between">
             {/* Brand mark */}
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white shadow-sm">
-                <img src={images.logoMark} alt={brandName} className="h-7 w-7 object-contain" />
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center">
+                <img src={images.logoMark} alt={brandName} className="h-10 w-10 object-contain" />
               </div>
               <div>
                 <p className="text-[13px] font-black text-[#0A1220]">{brandName}</p>

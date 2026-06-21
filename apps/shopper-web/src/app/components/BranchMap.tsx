@@ -190,17 +190,7 @@ export function BranchMap({
                 />
               </span>
 
-              {/* Label pill below pin */}
-              <span
-                className={cn(
-                  "pointer-events-none absolute start-1/2 top-[calc(100%+0.5rem)] hidden min-w-max -translate-x-1/2 rounded-lg px-2.5 py-1 text-[10.5px] font-black shadow-md sm:block",
-                  isSel
-                    ? "border border-[#0E7E74]/60 bg-[#0E7E74]/90 text-white backdrop-blur-sm"
-                    : "border border-white/[0.10] bg-[#0F1E2D]/90 text-white/60 backdrop-blur-sm",
-                )}
-              >
-                {label}
-              </span>
+              {/* Label shown in bottom strip — no floating pill needed */}
             </button>
           );
         })}
