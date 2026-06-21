@@ -519,7 +519,10 @@ export default function About() {
                 <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-600">
                   {isArabic ? "الهوية البصرية" : "Visual Identity"}
                 </p>
-                <h2 className="mt-2 text-2xl font-black tracking-tight text-slate-900">
+                <h2
+                  className="mt-2 font-black tracking-tight text-slate-900"
+                  style={{ fontSize: "clamp(1.5rem, 2.8vw, 2.2rem)", lineHeight: 1.12, ...(isArabic ? {} : { fontFamily: "var(--font-serif)" }) }}
+                >
                   {isArabic
                     ? "شكل بصري يعكس الثقة والوضوح"
                     : "A visual system built for trust and clarity"}
@@ -578,7 +581,10 @@ export default function About() {
                 <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-600">
                   {isArabic ? "كيف نعمل" : "How We Work"}
                 </p>
-                <h3 className="mt-2 text-2xl font-black tracking-tight text-slate-950">
+                <h3
+                  className="mt-2 font-black tracking-tight text-slate-950"
+                  style={{ fontSize: "clamp(1.4rem, 2.5vw, 2rem)", lineHeight: 1.15, ...(isArabic ? {} : { fontFamily: "var(--font-serif)" }) }}
+                >
                   {isArabic
                     ? "كل جزء في الصفحة يخدم قراراً أوضح"
                     : "Each section is designed to support a clearer decision"}
@@ -633,7 +639,10 @@ export default function About() {
               <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-50 text-slate-600">
                 <PlayCircle className="h-5 w-5" />
               </div>
-              <h3 className="mt-4 text-2xl font-black tracking-tight text-slate-950">
+              <h3
+                className="mt-4 font-black tracking-tight text-slate-950"
+                style={{ fontSize: "clamp(1.4rem, 2.5vw, 2rem)", lineHeight: 1.15, ...(isArabic ? {} : { fontFamily: "var(--font-serif)" }) }}
+              >
                 {isArabic ? "عرض مرئي لواجهة المتحدة" : "A visual walkthrough of United"}
               </h3>
               <p className="mt-3 text-sm font-semibold leading-7 text-slate-500">
@@ -678,7 +687,10 @@ export default function About() {
                 <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-600">
                   {isArabic ? "المشاهدة المباشرة" : "Live Preview"}
                 </p>
-                <h3 className="mt-2 text-2xl font-black tracking-tight text-slate-950">
+                <h3
+                  className="mt-2 font-black tracking-tight text-slate-950"
+                  style={{ fontSize: "clamp(1.3rem, 2.2vw, 1.75rem)", lineHeight: 1.15, ...(isArabic ? {} : { fontFamily: "var(--font-serif)" }) }}
+                >
                   {isArabic ? "فيديو تعريفي مدمج داخل الصفحة" : "Embedded walkthrough inside the page"}
                 </h3>
               </div>
@@ -723,26 +735,29 @@ export default function About() {
         <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
           {milestones.map((item, index) => (
             <Reveal key={item.titleEn} delay={index * 80} direction="up">
-              <div className="card-premium flex h-full flex-col gap-4 rounded-[1.85rem] border border-slate-100 bg-white p-6 shadow-[0_8px_30px_rgba(15,23,42,0.06)] transition-transform duration-300 hover:-translate-y-1 hover:shadow-[0_18px_44px_rgba(15,23,42,0.10)]">
+              <div className="group flex h-full flex-col gap-4 rounded-[1.85rem] border-2 border-[#0A1220] bg-white p-6 shadow-[0_4px_18px_rgba(10,18,32,0.06)] transition-all duration-200 hover:bg-[#0A1220] hover:-translate-y-1 hover:shadow-[0_16px_44px_rgba(10,18,32,0.22)]">
                 <div className="flex items-center justify-between gap-4">
                   <div
-                    className="flex h-11 w-11 items-center justify-center rounded-2xl"
+                    className="flex h-11 w-11 items-center justify-center rounded-2xl transition-all duration-200 group-hover:bg-white/[0.12]"
                     style={{ backgroundColor: item.bgColor }}
                   >
-                    <item.icon className="h-5 w-5" style={{ color: item.color }} />
+                    <item.icon className="h-5 w-5 transition-colors duration-200" style={{ color: item.color }} />
                   </div>
                   <span
-                    className="rounded-full px-3 py-1 text-xs font-black uppercase tracking-[0.16em]"
+                    className="rounded-full px-3 py-1 text-xs font-black uppercase tracking-[0.16em] transition-all duration-200 group-hover:bg-white/[0.12] group-hover:text-white"
                     style={{ color: item.color, backgroundColor: item.bgColor }}
                   >
                     {isArabic ? item.yearAr : item.yearEn}
                   </span>
                 </div>
                 <div>
-                  <h3 className="text-lg font-black text-slate-900">
+                  <h3
+                    className="font-black text-slate-900 transition-colors duration-200 group-hover:text-white"
+                    style={{ fontSize: "clamp(1.05rem, 2vw, 1.2rem)", ...(isArabic ? {} : { fontFamily: "var(--font-serif)" }) }}
+                  >
                     {isArabic ? item.titleAr : item.titleEn}
                   </h3>
-                  <p className="mt-2 text-sm font-semibold leading-7 text-slate-500">
+                  <p className="mt-2 text-sm font-semibold leading-7 text-slate-500 transition-colors duration-200 group-hover:text-white/60">
                     {isArabic ? item.descAr : item.descEn}
                   </p>
                 </div>
@@ -775,7 +790,10 @@ export default function About() {
                 <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-600">
                   {isArabic ? "فروعنا وخدمتنا" : "Branches & Service"}
                 </p>
-                <h3 className="mt-2 text-3xl font-black tracking-tight text-slate-950">
+                <h3
+                  className="mt-2 font-black tracking-tight text-slate-950"
+                  style={{ fontSize: "clamp(1.6rem, 3vw, 2.4rem)", lineHeight: 1.1, ...(isArabic ? {} : { fontFamily: "var(--font-serif)" }) }}
+                >
                   {isArabic
                     ? `${locations.length} فروع تخدم القاهرة على مدار الساعة`
                     : `${locations.length} branches serving Cairo around the clock`}
@@ -999,34 +1017,51 @@ export default function About() {
       ══════════════════════════════════════ */}
       <section className="page-section pb-16">
         <Reveal direction="up">
-          <div className="rounded-[2rem] border border-slate-200 bg-[linear-gradient(180deg,#ffffff_0%,#f4fbfb_100%)] p-6 shadow-[0_18px_40px_rgba(15,23,42,0.06)] md:p-8">
-            <div className="grid gap-8 xl:grid-cols-[1.1fr_0.9fr] xl:items-center">
-              <div>
-                <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-600">
+          <div className="relative overflow-hidden rounded-[2rem] bg-[#0A1220] p-8 shadow-[0_24px_60px_rgba(10,18,32,0.28)] md:p-12">
+            {/* dot texture */}
+            <div aria-hidden className="pointer-events-none absolute inset-0"
+              style={{
+                backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.055) 1px, transparent 1px)",
+                backgroundSize: "28px 28px",
+              }} />
+            {/* teal glow */}
+            <div aria-hidden className="pointer-events-none absolute inset-0"
+              style={{ background: "radial-gradient(ellipse 55% 80% at 90% 50%, rgba(14,126,116,0.22), transparent)" }} />
+
+            <div className={cn("relative z-10 grid gap-10 xl:grid-cols-[1.1fr_0.9fr] xl:items-center", isArabic && "xl:grid-cols-[0.9fr_1.1fr]")}>
+              <div className={isArabic ? "text-right" : "text-left"}>
+                <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[#2DD4C0]">
                   {isArabic ? "وعد المتحدة" : "The United Promise"}
                 </p>
-                <h3 className="mt-2 text-3xl font-black tracking-tight text-slate-950">
+                <h3
+                  className="mt-3 font-bold text-white"
+                  style={{
+                    fontSize: "clamp(1.8rem, 3.5vw, 2.8rem)",
+                    lineHeight: 1.1,
+                    ...(isArabic ? {} : { fontFamily: "var(--font-serif)" }),
+                  }}
+                >
                   {isArabic
                     ? "نعمل على جعل الصيدلية الرقمية أقرب وأوضح"
-                    : "We work to make digital pharmacy feel closer and clearer"}
+                    : "Making digital pharmacy feel closer and clearer"}
                 </h3>
-                <p className="mt-3 max-w-2xl text-sm font-semibold leading-7 text-slate-500">
+                <p className="mt-4 max-w-xl text-[14px] font-medium leading-[1.8] text-white/60">
                   {isArabic
                     ? "سواء كنت تبحث عن دواء، مكمل غذائي، أو خدمة دعم مباشرة، هدفنا أن تبدو الرحلة أبسط وأكثر مهنية من أول خطوة حتى إتمام الطلب."
-                    : "Whether you are looking for medicine, supplements, or direct support, our goal is a simpler and more professional journey from first click to fulfilled order."}
+                    : "Whether you are looking for medicine, supplements, or direct support — our goal is a simpler, more professional journey from first click to fulfilled order."}
                 </p>
 
-                <div className="mt-6 flex flex-wrap gap-3">
+                <div className={cn("mt-7 flex flex-wrap gap-3", isArabic && "flex-row-reverse")}>
                   <Link
                     to="/products"
-                    className="inline-flex h-11 items-center gap-2 rounded-2xl bg-[var(--primary)] px-5 text-sm font-black text-white transition-all hover:bg-[var(--primary-strong)]"
+                    className={cn("inline-flex h-12 items-center gap-2 rounded-2xl bg-white px-8 text-[13px] font-black text-[#0A1220] shadow-[0_8px_24px_rgba(255,255,255,0.18)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_16px_36px_rgba(255,255,255,0.26)]", isArabic && "flex-row-reverse")}
                   >
                     {isArabic ? "تصفح المنتجات" : "Browse Products"}
                     <ArrowUpRight className="h-4 w-4" />
                   </Link>
                   <Link
                     to="/contact"
-                    className="inline-flex h-11 items-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 text-sm font-black text-slate-800 transition-all hover:border-slate-300 hover:bg-slate-50"
+                    className="inline-flex h-12 items-center gap-2 rounded-2xl border border-white/20 bg-white/[0.08] px-7 text-[13px] font-black text-white backdrop-blur-sm transition-all duration-200 hover:bg-white/[0.15] hover:-translate-y-0.5"
                   >
                     {isArabic ? "تواصل معنا" : "Contact Us"}
                   </Link>
@@ -1034,15 +1069,22 @@ export default function About() {
               </div>
 
               <div className="grid gap-3">
-                {promiseItems.map((item) => (
-                  <CheckRow
-                    key={item.textEn}
-                    icon={item.icon}
-                    textAr={item.textAr}
-                    textEn={item.textEn}
-                    isArabic={isArabic}
-                  />
-                ))}
+                {promiseItems.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <div
+                      key={item.textEn}
+                      className={cn("flex items-center gap-3.5 rounded-2xl border border-white/[0.10] bg-white/[0.06] px-5 py-4 backdrop-blur-sm", isArabic && "flex-row-reverse")}
+                    >
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/[0.10]">
+                        <Icon className="h-4 w-4 text-[#2DD4C0]" />
+                      </div>
+                      <p className={cn("text-[13px] font-semibold text-white/80", isArabic && "text-right leading-7")}>
+                        {isArabic ? item.textAr : item.textEn}
+                      </p>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>

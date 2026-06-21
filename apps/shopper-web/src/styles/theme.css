@@ -688,15 +688,23 @@
   to   { opacity: 1; transform: translateY(0); }
 }
 
-.animate-float       { animation: float 3s ease-in-out infinite; }
-.animate-float-slow  { animation: float-slow 5s ease-in-out infinite; }
-.animate-slide-up    { animation: slide-up 0.65s cubic-bezier(0.16, 1, 0.3, 1) both; }
-.animate-slide-down  { animation: slide-down 0.50s cubic-bezier(0.16, 1, 0.3, 1) both; }
-.animate-fade-in     { animation: fade-in 0.55s ease-out both; }
-.animate-scale-in    { animation: scale-in 0.45s cubic-bezier(0.16, 1, 0.3, 1) both; }
-.animate-gradient    { background-size: 200% 200%; animation: gradient-x 4s ease infinite; }
-.animate-pulse-ring  { animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
-.animate-count-up    { animation: count-up 0.6s ease-out both; }
+.animate-float         { animation: float 3s ease-in-out infinite; }
+.animate-float-slow    { animation: float-slow 5s ease-in-out infinite; }
+.animate-slide-up      { animation: slide-up 0.65s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.animate-slide-down    { animation: slide-down 0.50s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.animate-fade-in       { animation: fade-in 0.55s ease-out both; }
+.animate-scale-in      { animation: scale-in 0.45s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.animate-gradient      { background-size: 200% 200%; animation: gradient-x 4s ease infinite; }
+.animate-pulse-ring    { animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+.animate-count-up      { animation: count-up 0.6s ease-out both; }
+/* Carousel directional slide-in */
+@keyframes slide-in-from-right { from { opacity:0; transform:translateX(48px) } to { opacity:1; transform:translateX(0) } }
+@keyframes slide-in-from-left  { from { opacity:0; transform:translateX(-48px) } to { opacity:1; transform:translateX(0) } }
+.animate-carousel-fwd  { animation: slide-in-from-right 0.40s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.animate-carousel-back { animation: slide-in-from-left  0.40s cubic-bezier(0.16, 1, 0.3, 1) both; }
+/* Hero entrance */
+@keyframes hero-text-in { from { opacity:0; transform:translateY(36px) scale(0.97) } to { opacity:1; transform:translateY(0) scale(1) } }
+.animate-hero-text { animation: hero-text-in 0.80s cubic-bezier(0.16, 1, 0.3, 1) both; }
 
 /* Animation delays */
 .delay-50  { animation-delay:  50ms; }
