@@ -8,12 +8,7 @@
  *   - Paginated listing suitable for the admin table
  */
 
-import { createClient } from "@supabase/supabase-js";
-
-const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL as string,
-  import.meta.env.VITE_SUPABASE_ANON_KEY as string,
-);
+import { getSupabaseClient } from "../lib/supabaseClient";
 
 // ─── Public types ─────────────────────────────────────────────────────────────
 
@@ -221,8 +216,10 @@ export async function fetchAdminOrders(
   const from = (page - 1) * pageSize;
   const to   = from + pageSize - 1;
 
+  const sb = getSupabaseClient();
+
   const buildQuery = (selectStr: string) => {
-    let q = supabase
+    let q = sb
       .from("orders")
       .select(selectStr, { count: "exact" })
       .order("created_at", { ascending: false })
@@ -271,8 +268,9 @@ export async function fetchAdminOrders(
 
 /** Fetch a single order by ID with full item details. */
 export async function fetchAdminOrderById(id: string): Promise<AdminOrder | null> {
+  const sb = getSupabaseClient();
   const run = (selectStr: string) =>
-    supabase.from("orders").select(selectStr).eq("id", id).maybeSingle();
+    sb.from("orders").select(selectStr).eq("id", id).maybeSingle();
 
   let { data, error } = await run(ORDERS_SELECT_WITH_ITEMS);
 
@@ -293,7 +291,7 @@ export async function adminUpdateOrderStatus(
   orderId: string,
   status:  AdminOrderStatus,
 ): Promise<void> {
-  const { error } = await supabase
+  const { error } = await getSupabaseClient()
     .from("orders")
     .update({ status, last_status_at: new Date().toISOString() })
     .eq("id", orderId);
@@ -303,7 +301,7 @@ export async function adminUpdateOrderStatus(
 
 /** Mark a manual payment as verified (admin review). */
 export async function adminVerifyPayment(orderId: string): Promise<void> {
-  const { error } = await supabase
+  const { error } = await getSupabaseClient()
     .from("orders")
     .update({ payment_status: "verified" })
     .eq("id", orderId);
@@ -316,7 +314,7 @@ export async function adminRejectPayment(
   orderId: string,
   reason?: string,
 ): Promise<void> {
-  const { error } = await supabase
+  const { error } = await getSupabaseClient()
     .from("orders")
     .update({
       payment_status: "failed",
@@ -341,7 +339,7 @@ async function hydrateItems(orders: AdminOrder[]): Promise<AdminOrder[]> {
   if (missingIds.size === 0) return orders;
 
   try {
-    const { data } = await supabase
+    const { data } = await getSupabaseClient()
       .from("products")
       .select('id, "Name_Ar", "Name_En", image_url')
       .in("id", Array.from(missingIds));

@@ -397,11 +397,13 @@ export default function About() {
             {/* Identity card — light surface */}
             <div className="about-identity-card panel-soft rounded-[1.85rem] border border-slate-100 bg-white p-6 shadow-[0_12px_40px_rgba(15,23,42,0.08)]">
               <div className="mb-5 flex items-center gap-4">
-                <img
-                  src={unitedIcon}
-                  alt={brandName}
-                  className="h-16 w-16 rounded-[1.35rem] border border-slate-200 bg-white p-2 shadow-sm"
-                />
+                <div className="relative flex h-16 w-16 items-center justify-center overflow-hidden rounded-[1.35rem] border border-slate-200 bg-[#0A1220] shadow-[0_6px_18px_rgba(10,18,32,0.20)]">
+                  <img
+                    src={unitedIcon}
+                    alt={brandName}
+                    className="h-full w-full object-contain p-1.5"
+                  />
+                </div>
                 <div>
                   <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-600">
                     {isArabic ? "هويتنا" : "Our Identity"}

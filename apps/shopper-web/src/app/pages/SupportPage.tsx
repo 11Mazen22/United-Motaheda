@@ -500,7 +500,7 @@ export default function SupportPage({ type }: SupportPageProps) {
           { label: copyText(page.title, lang) },
         ]}
         eyebrow={
-          <span className="badge-teal border-0 bg-slate-500/10 text-teal-200">
+          <span className="badge-teal">
             <page.icon className="h-4 w-4" />
             {copyText(page.eyebrow, lang)}
           </span>
@@ -512,7 +512,6 @@ export default function SupportPage({ type }: SupportPageProps) {
             {page.stats.map((item) => (
               <StatTile
                 key={`${item.label.en}-${item.value.en}`}
-                dark
                 value={copyText(item.value, lang)}
                 label={copyText(item.label, lang)}
               />
@@ -538,7 +537,12 @@ export default function SupportPage({ type }: SupportPageProps) {
             {type === "faq"
               ? FAQ_ITEMS.map((item, index) => (
                   <Reveal key={item.question.en} delay={index * 50} direction="up">
-                    <div className="card-premium overflow-hidden">
+                    <div className={cn(
+                      "overflow-hidden rounded-2xl border bg-white transition-all",
+                      openFaq === index
+                        ? "border-[#0E7E74]/30 shadow-[0_8px_24px_rgba(14,126,116,0.10)]"
+                        : "border-slate-200 shadow-sm hover:border-slate-300 hover:shadow-md",
+                    )}>
                       <button
                         onClick={() => setOpenFaq(openFaq === index ? null : index)}
                         className="flex w-full items-center justify-between gap-4 px-5 py-5 text-start"
@@ -547,7 +551,9 @@ export default function SupportPage({ type }: SupportPageProps) {
                           <span
                             className={cn(
                               "flex h-9 w-9 items-center justify-center rounded-xl text-sm font-black transition-all",
-                              openFaq === index ? "bg-[var(--primary)] text-white" : "bg-slate-50 text-slate-600",
+                              openFaq === index
+                                ? "bg-[#0A1220] text-[#2DD4C0]"
+                                : "bg-slate-50 text-slate-500",
                             )}
                           >
                             {index + 1}
@@ -558,16 +564,16 @@ export default function SupportPage({ type }: SupportPageProps) {
                         </div>
                         <ChevronDown
                           className={cn(
-                            "h-5 w-5 flex-shrink-0 text-slate-400 transition-transform",
+                            "h-5 w-5 flex-shrink-0 text-slate-400 transition-transform duration-200",
                             openFaq === index && "rotate-180 text-slate-600",
                           )}
                         />
                       </button>
 
                       {openFaq === index && (
-                        <div className="border-t border-slate-100 bg-slate-50 px-5 py-4">
+                        <div className="border-t border-slate-100 bg-gradient-to-b from-slate-50/80 to-white px-5 py-4">
                           <div className="flex gap-3">
-                            <div className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl bg-white text-slate-600 shadow-sm">
+                            <div className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl bg-[#0E7E74]/10 text-[#0E7E74]">
                               <item.icon className="h-4 w-4" />
                             </div>
                             <p className="text-sm font-semibold leading-7 text-slate-600">
@@ -581,16 +587,20 @@ export default function SupportPage({ type }: SupportPageProps) {
                 ))
               : page.blocks.map((block, index) => (
                   <Reveal key={block.title.en} delay={index * 55} direction="up">
-                    <div className="card-premium p-6">
-                      <div className="flex items-start gap-4">
-                        <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl bg-slate-50 text-slate-600">
+                    <div className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition-all hover:border-slate-300 hover:shadow-md">
+                      <div
+                        aria-hidden
+                        className="pointer-events-none absolute -right-8 -top-8 h-28 w-28 rounded-full bg-teal-50/60 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+                      />
+                      <div className="relative flex items-start gap-4">
+                        <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-[#0A1220] text-[#2DD4C0]">
                           <block.icon className="h-5 w-5" />
                         </div>
                         <div className="min-w-0">
-                          <h3 className="mb-2 text-lg font-black text-slate-900">
+                          <h3 className="mb-2 text-base font-black text-slate-900">
                             {copyText(block.title, lang)}
                           </h3>
-                          <p className="text-sm font-semibold leading-7 text-slate-600">
+                          <p className="text-sm font-semibold leading-7 text-slate-500">
                             {copyText(block.body, lang)}
                           </p>
                         </div>

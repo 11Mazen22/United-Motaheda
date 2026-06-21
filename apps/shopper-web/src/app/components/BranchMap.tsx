@@ -1,4 +1,4 @@
-import { MapPin } from "lucide-react";
+import { MapPin, Navigation2, Phone } from "lucide-react";
 import { cn } from "./UI";
 import type { SiteLocation } from "../data";
 
@@ -10,7 +10,7 @@ type BranchMapProps = {
   className?: string;
 };
 
-const MAP_PADDING = 12;
+const MAP_PAD = 14;
 
 export function BranchMap({
   locations,
@@ -19,84 +19,184 @@ export function BranchMap({
   onSelectBranch,
   className,
 }: BranchMapProps) {
-  const validLocations = locations.filter(
-    (location) => Number.isFinite(location.lat) && Number.isFinite(location.lng),
+  const valid = locations.filter(
+    (l) => Number.isFinite(l.lat) && Number.isFinite(l.lng),
   );
 
-  if (validLocations.length === 0) {
+  if (valid.length === 0) {
     return (
       <div
         className={cn(
-          "flex min-h-[280px] items-center justify-center rounded-[1.7rem] border border-slate-200 bg-slate-50 p-6 text-center text-sm font-semibold text-slate-500",
+          "flex min-h-[320px] items-center justify-center rounded-2xl border border-white/[0.08] bg-[#0A1220] p-6 text-center text-sm font-semibold text-white/40",
           className,
         )}
       >
-        {isArabic ? "لا توجد إحداثيات متاحة للفروع حالياً." : "Branch coordinates are unavailable right now."}
+        {isArabic ? "لا توجد إحداثيات متاحة حالياً." : "Branch coordinates unavailable."}
       </div>
     );
   }
 
-  const latitudes = validLocations.map((location) => location.lat);
-  const longitudes = validLocations.map((location) => location.lng);
-  const minLat = Math.min(...latitudes);
-  const maxLat = Math.max(...latitudes);
-  const minLng = Math.min(...longitudes);
-  const maxLng = Math.max(...longitudes);
-  const latRange = maxLat - minLat || 1;
-  const lngRange = maxLng - minLng || 1;
+  const lats = valid.map((l) => l.lat);
+  const lngs = valid.map((l) => l.lng);
+  const minLat = Math.min(...lats);
+  const maxLat = Math.max(...lats);
+  const minLng = Math.min(...lngs);
+  const maxLng = Math.max(...lngs);
+  const latRange = maxLat - minLat || 0.01;
+  const lngRange = maxLng - minLng || 0.01;
+
+  const toXY = (lat: number, lng: number) => ({
+    x: MAP_PAD + ((lng - minLng) / lngRange) * (100 - MAP_PAD * 2),
+    y: MAP_PAD + (1 - (lat - minLat) / latRange) * (100 - MAP_PAD * 2),
+  });
+
+  const selected = valid.find((l) => l.id === selectedBranchId) ?? valid[0];
+  const centroid = {
+    x: valid.reduce((s, l) => s + toXY(l.lat, l.lng).x, 0) / valid.length,
+    y: valid.reduce((s, l) => s + toXY(l.lat, l.lng).y, 0) / valid.length,
+  };
 
   return (
     <div
       className={cn(
-        "relative min-h-[320px] overflow-hidden rounded-[1.7rem] border border-slate-200 bg-[linear-gradient(180deg,#ffffff_0%,#eef8f7_100%)]",
+        "relative min-h-[340px] overflow-hidden rounded-2xl border border-white/[0.07] bg-[#0A1220]",
         className,
       )}
     >
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(45,212,191,0.18),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(59,130,246,0.12),transparent_34%)]" />
-      <div className="absolute inset-0 opacity-60 [background-image:linear-gradient(rgba(148,163,184,0.12)_1px,transparent_1px),linear-gradient(90deg,rgba(148,163,184,0.12)_1px,transparent_1px)] [background-size:34px_34px]" />
-      <div className="absolute inset-x-6 top-6 flex items-center justify-between gap-3">
-        <div className="rounded-full border border-white/80 bg-white/92 px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.16em] text-slate-600 shadow-sm">
-          {isArabic ? "خريطة الفروع" : "Branch Map"}
+      {/* ── Fine grid ── */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 opacity-[0.07]"
+        style={{
+          backgroundImage:
+            "linear-gradient(rgba(255,255,255,0.9) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.9) 1px,transparent 1px)",
+          backgroundSize: "36px 36px",
+        }}
+      />
+
+      {/* ── Radial glow behind selected branch ── */}
+      {(() => {
+        const { x, y } = toXY(selected.lat, selected.lng);
+        return (
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 opacity-30"
+            style={{
+              background: `radial-gradient(circle 120px at ${x}% ${y}%, rgba(14,126,116,0.55), transparent 70%)`,
+            }}
+          />
+        );
+      })()}
+
+      {/* ── Header bar ── */}
+      <div className="absolute inset-x-4 top-4 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 rounded-xl border border-white/[0.10] bg-white/[0.06] px-3 py-1.5 backdrop-blur-sm">
+          <MapPin className="h-3.5 w-3.5 text-[#2DD4C0]" />
+          <span className="text-[11px] font-black uppercase tracking-[0.16em] text-white/70">
+            {isArabic ? "خريطة الفروع" : "Branch Map"}
+          </span>
         </div>
-        <div className="rounded-full border border-slate-200 bg-white/92 px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.16em] text-slate-500 shadow-sm">
-          {locations.length} {isArabic ? "فروع" : "branches"}
+        <div className="flex items-center gap-1.5 rounded-xl border border-white/[0.10] bg-white/[0.06] px-3 py-1.5 backdrop-blur-sm">
+          <span className="h-1.5 w-1.5 rounded-full bg-[#0E7E74] shadow-[0_0_6px_rgba(14,126,116,0.9)]" />
+          <span className="text-[11px] font-bold text-white/50">
+            {valid.length} {isArabic ? "فروع" : "branches"}
+          </span>
         </div>
       </div>
 
-      <div className="absolute inset-0">
-        {validLocations.map((location) => {
-          const normalizedX = (location.lng - minLng) / lngRange;
-          const normalizedY = (location.lat - minLat) / latRange;
-          const left = MAP_PADDING + normalizedX * (100 - MAP_PADDING * 2);
-          const top = MAP_PADDING + (1 - normalizedY) * (100 - MAP_PADDING * 2);
-          const selected = location.id === selectedBranchId;
-          const label = isArabic ? location.nameAr : location.nameEn;
+      {/* ── SVG: connection spokes + branch dots ── */}
+      <svg
+        viewBox="0 0 100 100"
+        preserveAspectRatio="xMidYMid meet"
+        className="absolute inset-0 h-full w-full"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        {/* Dashed spokes from centroid to each branch */}
+        {valid.map((l) => {
+          const { x, y } = toXY(l.lat, l.lng);
+          return (
+            <line
+              key={`spoke-${l.id}`}
+              x1={centroid.x}
+              y1={centroid.y}
+              x2={x}
+              y2={y}
+              stroke="rgba(14,126,116,0.20)"
+              strokeWidth="0.6"
+              strokeDasharray="2 2.5"
+            />
+          );
+        })}
 
+        {/* Centroid hub dot */}
+        <circle cx={centroid.x} cy={centroid.y} r="1.4" fill="rgba(14,126,116,0.35)" />
+
+        {/* Branch pins */}
+        {valid.map((l) => {
+          const { x, y } = toXY(l.lat, l.lng);
+          const isSel = l.id === selectedBranchId;
+          return (
+            <g key={`dot-${l.id}`}>
+              {isSel && (
+                <>
+                  <circle cx={x} cy={y} r="5.5" fill="rgba(14,126,116,0.12)" />
+                  <circle cx={x} cy={y} r="3.8" fill="rgba(14,126,116,0.20)" />
+                </>
+              )}
+              <circle
+                cx={x}
+                cy={y}
+                r={isSel ? "2.8" : "2"}
+                fill={isSel ? "#0E7E74" : "#1E3A4A"}
+                stroke={isSel ? "#2DD4C0" : "rgba(255,255,255,0.18)"}
+                strokeWidth="0.7"
+              />
+            </g>
+          );
+        })}
+      </svg>
+
+      {/* ── Interactive HTML pins (clickable) ── */}
+      <div className="absolute inset-0">
+        {valid.map((l) => {
+          const { x, y } = toXY(l.lat, l.lng);
+          const isSel = l.id === selectedBranchId;
+          const label = isArabic ? l.nameAr : l.nameEn;
           return (
             <button
-              key={location.id}
+              key={l.id}
               type="button"
-              onClick={() => onSelectBranch(location.id)}
-              className="group absolute -translate-x-1/2 -translate-y-1/2 text-left focus-visible:outline-none"
-              style={{ left: `${left}%`, top: `${top}%` }}
+              onClick={() => onSelectBranch(l.id)}
+              className={cn(
+                "group absolute -translate-x-1/2 -translate-y-1/2 focus-visible:outline-none",
+              )}
+              style={{ left: `${x}%`, top: `${y}%` }}
               aria-label={label}
             >
+              {/* Pin icon */}
               <span
                 className={cn(
-                  "flex h-12 w-12 items-center justify-center rounded-full border shadow-[0_12px_30px_rgba(15,23,42,0.15)] transition-transform duration-200 group-hover:scale-105",
-                  selected
-                    ? "border-teal-500 bg-teal-500 text-white"
-                    : "border-white/80 bg-white text-slate-700",
+                  "flex h-10 w-10 items-center justify-center rounded-full border transition-all duration-200",
+                  isSel
+                    ? "border-[#2DD4C0] bg-[#0E7E74] shadow-[0_0_18px_rgba(14,126,116,0.7)] scale-110"
+                    : "border-white/20 bg-[#142030] shadow-[0_4px_14px_rgba(0,0,0,0.4)] hover:border-[#0E7E74]/60 hover:bg-[#1A3040] hover:scale-105",
                 )}
               >
-                <MapPin className="h-5 w-5" />
+                <MapPin
+                  className={cn(
+                    "h-4 w-4 transition-colors",
+                    isSel ? "text-white" : "text-white/50 group-hover:text-[#2DD4C0]",
+                  )}
+                />
               </span>
+
+              {/* Label pill below pin */}
               <span
                 className={cn(
-                  "pointer-events-none absolute start-1/2 top-[calc(100%+0.6rem)] hidden min-w-max -translate-x-1/2 rounded-full border px-3 py-1.5 text-[11px] font-black shadow-sm sm:block",
-                  selected
-                    ? "border-teal-200 bg-white text-teal-700"
-                    : "border-slate-200 bg-white/95 text-slate-600",
+                  "pointer-events-none absolute start-1/2 top-[calc(100%+0.5rem)] hidden min-w-max -translate-x-1/2 rounded-lg px-2.5 py-1 text-[10.5px] font-black shadow-md sm:block",
+                  isSel
+                    ? "border border-[#0E7E74]/60 bg-[#0E7E74]/90 text-white backdrop-blur-sm"
+                    : "border border-white/[0.10] bg-[#0F1E2D]/90 text-white/60 backdrop-blur-sm",
                 )}
               >
                 {label}
@@ -104,6 +204,32 @@ export function BranchMap({
             </button>
           );
         })}
+      </div>
+
+      {/* ── Bottom info strip for selected branch ── */}
+      <div className="absolute inset-x-4 bottom-4">
+        <div className="flex items-center gap-3 rounded-xl border border-white/[0.09] bg-white/[0.06] px-3.5 py-2.5 backdrop-blur-sm">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#0E7E74]/20">
+            <Navigation2 className="h-3.5 w-3.5 text-[#2DD4C0]" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-[11px] font-black text-white/90">
+              {isArabic ? selected.fullNameAr : selected.fullNameEn}
+            </p>
+            <p className="mt-0.5 truncate text-[10px] font-semibold text-white/40">
+              {isArabic ? selected.addressAr : selected.addressEn}
+            </p>
+          </div>
+          {selected.phones?.[0] && (
+            <a
+              href={`tel:${selected.phones[0]}`}
+              onClick={(e) => e.stopPropagation()}
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/[0.10] bg-white/[0.06] transition-colors hover:bg-[#0E7E74]/20"
+            >
+              <Phone className="h-3.5 w-3.5 text-white/50" />
+            </a>
+          )}
+        </div>
       </div>
     </div>
   );

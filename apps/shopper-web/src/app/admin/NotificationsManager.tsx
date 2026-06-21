@@ -38,7 +38,7 @@ interface SentNotification {
   type:       NotifType;
   title:      string;
   body:       string;
-  read:       boolean;
+  is_read:    boolean;
   created_at: string;
 }
 
@@ -218,8 +218,9 @@ function ComposeCard({
         const rows = userIds.map((uid) => ({
           user_id: uid,
           type,
-          title:   cleanTitle,
-          body:    cleanBody,
+          title:    cleanTitle,
+          body:     cleanBody,
+          is_read:  false,
         }));
 
         // Supabase has a 1000-row insert limit per call — chunk to be safe.
@@ -274,7 +275,7 @@ function ComposeCard({
           type,
           title:      cleanTitle,
           body:       cleanBody,
-          read:       false,
+          is_read:    false,
           created_at: new Date().toISOString(),
         });
       } else {
@@ -518,7 +519,7 @@ function NotifRow({ n, onDelete, isNew }: { n: SentNotification; onDelete: (id: 
   return (
     <div className={`group flex items-start gap-3 rounded-xl border px-4 py-3 transition-all hover:shadow-sm hover:-translate-y-px ${
       isNew ? "notif-row-enter" : ""
-    } ${n.read ? "border-slate-100 bg-white" : `${meta.bg} ${meta.border}`}`}>
+    } ${n.is_read ? "border-slate-100 bg-white" : `${meta.bg} ${meta.border}`}`}>
       <div className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${meta.bg} ${meta.color}`}>
         <meta.icon className="h-5 w-5" />
       </div>
@@ -541,7 +542,7 @@ function NotifRow({ n, onDelete, isNew }: { n: SentNotification; onDelete: (id: 
               broadcast
             </span>
           )}
-          {!n.read && (
+          {!n.is_read && (
             <span className="inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-600">
               جديد
             </span>
@@ -708,7 +709,7 @@ export default function NotificationsManager() {
   useEffect(() => {
     getSupabaseClient()
       .from("notifications")
-      .select("id, user_id, type, title, body, read, created_at")
+      .select("id, user_id, type, title, body, is_read, created_at")
       .order("created_at", { ascending: false })
       .limit(60)
       .then(({ data }) => {
@@ -753,7 +754,7 @@ export default function NotificationsManager() {
     try { await getSupabaseClient().from("notifications").delete().in("id", ids); } catch { /**/ }
   }, [sent]);
 
-  const unread = sent.filter((n) => !n.read).length;
+  const unread = sent.filter((n) => !n.is_read).length;
   const today  = sent.filter((n) => new Date(n.created_at).toDateString() === new Date().toDateString()).length;
   const broadcasts = sent.filter((n) => n.user_id === null).length;
 
