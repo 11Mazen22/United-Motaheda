@@ -183,24 +183,118 @@ function ComposeCard({
     setResult(null);
     try {
       const sb = getSupabaseClient();
+      const cleanTitle = title.trim();
+      const cleanBody  = body.trim();
+
       if (target === "all") {
-        const { error } = await sb.rpc("broadcast_notification", {
-          p_type: type, p_title: title.trim(), p_body: body.trim(), p_data: {},
+        // ── Broadcast path ────────────────────────────────────────────────
+        // The previous version called the `broadcast_notification` RPC. That
+        // function isn't deployed on this Supabase instance, so it 404'd and
+        // surfaced the "فشل الإرسال" error to the admin every time.
+        //
+        // We now do the broadcast directly from the client:
+        //   1. Pull every active user ID from `profiles` (the source of truth
+        //      for app accounts — same table the native app reads/writes).
+        //   2. Bulk-insert one notification row per user. The mobile app's
+        //      realtime channel `notifications:user_id=eq.<uid>` already
+        //      listens for INSERTs on this table, so each device that has the
+        //      app open lights up instantly.
+        //   3. Best-effort: also push to every registered Expo device token
+        //      (so closed apps wake up). Failures here don't block the in-app
+        //      delivery — they just mean push couldn't reach offline devices.
+        const { data: profiles, error: pErr } = await sb
+          .from("profiles")
+          .select("id");
+        if (pErr) throw pErr;
+
+        const userIds = (profiles ?? [])
+          .map((p) => (p as { id?: string }).id)
+          .filter((id): id is string => typeof id === "string" && id.length > 0);
+
+        if (userIds.length === 0) {
+          throw new Error("No user accounts found to broadcast to.");
+        }
+
+        const rows = userIds.map((uid) => ({
+          user_id: uid,
+          type,
+          title:   cleanTitle,
+          body:    cleanBody,
+        }));
+
+        // Supabase has a 1000-row insert limit per call — chunk to be safe.
+        const CHUNK = 500;
+        for (let i = 0; i < rows.length; i += CHUNK) {
+          const { error: insErr } = await sb
+            .from("notifications")
+            .insert(rows.slice(i, i + CHUNK));
+          if (insErr) throw insErr;
+        }
+
+        // Best-effort: forward to Expo Push so devices wake up when the app
+        // isn't open. We collect every registered token and POST them to the
+        // Expo push gateway in batches of 100 (Expo's per-call cap).
+        void (async () => {
+          try {
+            const { data: tokenRows } = await sb
+              .from("notification_tokens")
+              .select("expo_push_token");
+            const tokens = (tokenRows ?? [])
+              .map((r) => (r as { expo_push_token?: string }).expo_push_token)
+              .filter((t): t is string => typeof t === "string" && t.length > 0);
+
+            const PUSH_CHUNK = 100;
+            for (let i = 0; i < tokens.length; i += PUSH_CHUNK) {
+              const batch = tokens.slice(i, i + PUSH_CHUNK).map((to) => ({
+                to,
+                sound:    "default",
+                title:    cleanTitle,
+                body:     cleanBody,
+                data:     { type },
+                priority: "high",
+              }));
+              await fetch("https://exp.host/--/api/v2/push/send", {
+                method:  "POST",
+                headers: {
+                  "Accept":           "application/json",
+                  "Accept-Encoding":  "gzip, deflate",
+                  "Content-Type":     "application/json",
+                },
+                body: JSON.stringify(batch),
+              });
+            }
+          } catch {
+            // Best-effort. In-app realtime delivery already succeeded above.
+          }
+        })();
+
+        onSent({
+          id:         Date.now().toString(),
+          user_id:    null,
+          type,
+          title:      cleanTitle,
+          body:       cleanBody,
+          read:       false,
+          created_at: new Date().toISOString(),
         });
-        if (error) throw error;
-        onSent({ id: Date.now().toString(), user_id: null, type, title: title.trim(), body: body.trim(), read: false, created_at: new Date().toISOString() });
       } else {
+        // ── Single-user path ──────────────────────────────────────────────
         const { data, error } = await sb
           .from("notifications")
-          .insert({ user_id: userId.trim(), type, title: title.trim(), body: body.trim() })
-          .select().single();
+          .insert({ user_id: userId.trim(), type, title: cleanTitle, body: cleanBody })
+          .select()
+          .single();
         if (error) throw error;
         onSent(data as SentNotification);
       }
+
       setResult("ok");
       setTitle("");
       setBody("");
-    } catch {
+    } catch (err) {
+      if (import.meta.env.DEV) {
+        console.error("[NotificationsManager] send failed:", err);
+      }
       setResult("err");
     } finally {
       setSending(false);

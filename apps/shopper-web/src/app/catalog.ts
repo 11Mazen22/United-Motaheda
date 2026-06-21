@@ -1014,6 +1014,37 @@ export function getCategoryNamesById(id: string): { name: string; nameEn: string
 }
 
 /**
+ * Returns every Arabic + English alias known for a category seed (including
+ * its display names). Used by the products page filter so that selecting
+ * "Medications" also pulls in DB rows whose Category_Name is "أدوية" or
+ * "Medication" — not only the exact seed display name.
+ *
+ * This is the fix for the user-reported issue "most of the products in the
+ * website itself are not in their categories": the previous filter used a
+ * single ilike against the display name, which missed many real DB labels.
+ */
+export function getCategoryMatchTermsById(
+  id: string,
+): { ar: string[]; en: string[] } | null {
+  const seed = CATEGORY_SEED_BY_ID[id];
+  if (!seed) return null;
+
+  const ar = new Set<string>();
+  const en = new Set<string>();
+
+  ar.add(seed.names.ar);
+  en.add(seed.names.en);
+
+  for (const alias of seed.aliases) {
+    // Heuristic: aliases with any Arabic codepoint go to ar; otherwise en.
+    if (/[؀-ۿ]/.test(alias)) ar.add(alias);
+    else en.add(alias);
+  }
+
+  return { ar: Array.from(ar), en: Array.from(en) };
+}
+
+/**
  * Returns all CATEGORY_SEEDS as fully-shaped CatalogCategory objects with
  * zero product counts. Used as a zero-network fallback for the category sidebar
  * on cold-start before any products are loaded from Supabase.

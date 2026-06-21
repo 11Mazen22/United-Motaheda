@@ -14,6 +14,7 @@ import {
   fetchCatalogSnapshot,
   getCachedCatalogSnapshot,
   getCategoryNamesById,
+  getCategoryMatchTermsById,
   getStaticCategoryList,
   type CatalogSnapshot,
   type CatalogProduct,
@@ -259,18 +260,33 @@ function buildSupabaseQuery(
     query = query.or(orParts.join(","));
   }
 
-  // Category filtering via display-name matching (AR + EN).
-  // Resolved directly from CATEGORY_SEEDS — no full snapshot required.
-  // This means category filtering works correctly on cold start without
-  // waiting for 52K products to load into memory.
+  // Category filtering — OR across every known alias for this seed.
+  //
+  // Why this matters: real Supabase rows label categories with names like
+  // "أدوية", "Medication", "Skin Care" etc. — values that the seed's single
+  // display name (e.g. "الأدوية والعلاجات") cannot match via ilike. We must
+  // try all known synonyms so a click on "Medications" doesn't hide products
+  // whose Category_Name just happens to be a different (but equivalent) label.
   if (filters.categoryId) {
-    const names = getCategoryNamesById(filters.categoryId);
-    if (names) {
-      const arName = `%${names.name}%`;
-      const enName = `%${names.nameEn}%`;
-      query = query.or(
-        `"Category_Name".ilike.${arName},"Category_Name_En".ilike.${enName}`,
-      );
+    const terms = getCategoryMatchTermsById(filters.categoryId);
+    if (terms) {
+      const orParts: string[] = [];
+      for (const ar of terms.ar) {
+        const safe = ar.replace(/[%_]/g, "\\$&");
+        orParts.push(`"Category_Name".ilike.%${safe}%`);
+      }
+      for (const en of terms.en) {
+        const safe = en.replace(/[%_]/g, "\\$&");
+        orParts.push(`"Category_Name_En".ilike.%${safe}%`);
+        // Some rows carry the English name in the Arabic column too — covered
+        // for free by the AR loop above only when seed has Arabic name == EN,
+        // so explicitly include the EN term against Category_Name as a safety
+        // net. This is the second half of the unification fix.
+        orParts.push(`"Category_Name".ilike.%${safe}%`);
+      }
+      if (orParts.length > 0) {
+        query = query.or(orParts.join(","));
+      }
     }
   }
 
@@ -415,15 +431,26 @@ export async function fetchProductsPage(
   const cached = pageCache.get(pageNumber, filters);
   if (cached) return cached;
 
-  let products: CatalogProduct[];
-  let totalCount: number;
+  let products: CatalogProduct[] = [];
+  let totalCount: number = 0;
 
   if (filters.searchQuery?.trim()) {
-    // ── Search path: server-side search_products RPC ────────────────────────
+    // ── Search path ─────────────────────────────────────────────────────────
+    //
+    // We try the search_products RPC first (bilingual ranking, prefix/fuzzy),
+    // but fall back to plain ilike whenever the RPC either:
+    //   • throws (404 because RPC not deployed, 400 schema mismatch, etc.)
+    //   • returns 0 rows (the previous version trusted this answer and showed
+    //     "no results" even when ilike could have matched — that's the root
+    //     cause of the user's "search shows nothing" complaint).
+    let rpcSucceeded = false;
     try {
       const result = await fetchProductsPageRpc(pageNumber, filters);
-      products   = result.products;
-      totalCount = result.totalCount;
+      if (result.products.length > 0 || result.totalCount > 0) {
+        products     = result.products;
+        totalCount   = result.totalCount;
+        rpcSucceeded = true;
+      }
     } catch (rpcError) {
       if (import.meta.env.DEV) {
         console.debug("[shopperCatalogApi] search_products RPC failed, falling back to ilike", {
@@ -432,6 +459,9 @@ export async function fetchProductsPage(
           rpcError,
         });
       }
+    }
+
+    if (!rpcSucceeded) {
       const result = await fetchProductsPageIlike(pageNumber, filters);
       products   = result.products;
       totalCount = result.totalCount;
@@ -492,20 +522,6 @@ async function fetchProductsPageRpc(
   const rawQuery = filters.searchQuery!.trim();
   const sort = filters.sortBy === "relevant" || !filters.sortBy ? "relevance" : filters.sortBy;
 
-  // Always log an informational payload for debugging disappearing suggestions.
-  try {
-    // eslint-disable-next-line no-console
-    console.info("[shopperCatalogApi] fetchProductsPageRpc called", {
-      pageNumber,
-      rawQuery,
-      category,
-      inStock: filters.inStock,
-      minPrice: filters.minPrice,
-      maxPrice: filters.maxPrice,
-      sort,
-    });
-  } catch {}
-
   const { data, error } = await supabase.rpc("search_products", {
     p_query:     rawQuery,
     p_category:  category ?? null,
@@ -517,29 +533,61 @@ async function fetchProductsPageRpc(
     p_offset:    (pageNumber - 1) * PAGE_SIZE,
   });
 
-  if (error) {
-    // eslint-disable-next-line no-console
-    console.warn("[shopperCatalogApi] search_products RPC error", error);
-    throw new Error(`RPC failed: ${error.message}`);
-  }
-
-  if (!data || !Array.isArray(data)) {
-    // eslint-disable-next-line no-console
-    console.info("[shopperCatalogApi] search_products returned no data", { data });
-    return { products: [], totalCount: 0 };
-  }
-
-  try {
-    // eslint-disable-next-line no-console
-    console.info("[shopperCatalogApi] search_products returned", {
-      rows: data.length,
-      firstRow: data[0],
-    });
-  } catch {}
+  if (error) throw new Error(`RPC failed: ${error.message}`);
+  if (!data || !Array.isArray(data)) return { products: [], totalCount: 0 };
 
   const totalCount = Number((data[0] as Record<string, unknown> | undefined)?.total_count ?? 0);
-  const products   = (data as Record<string, unknown>[])
-    .map((row, i) => normalizeSupabaseProduct(row, (pageNumber - 1) * PAGE_SIZE + i + 2))
+
+  // The `search_products` RPC returns *lowercase* column names (name_ar,
+  // name_en, category_name, …) — Postgres folds unquoted identifiers to lower-
+  // case. The catalog normalizer reads the *quoted* schema columns (Name_Ar,
+  // Name_En, Category_Name, …). Without this translation every row would be
+  // dropped because `normalizeSupabaseProduct` couldn't find Name_Ar/Price/etc,
+  // and the search would silently render "No matching products" even though
+  // 2,000+ rows came back. That's the user-reported "search shows nothing" bug.
+  interface RpcProductRow {
+    id?:               string;
+    code?:             string | null;
+    barcode?:          string | null;
+    name_ar?:          string | null;
+    name_en?:          string | null;
+    price?:            number | string | null;
+    stock?:            number | string | null;
+    category_name?:    string | null;
+    category_name_en?: string | null;
+    image_url?:        string | null;
+  }
+
+  const toSchemaShape = (row: RpcProductRow): Record<string, unknown> => {
+    const stockNum =
+      typeof row.stock === "number"
+        ? row.stock
+        : Number.parseFloat(String(row.stock ?? "0"));
+    const inStock = Number.isFinite(stockNum) && stockNum > 0;
+
+    return {
+      id:               row.id,
+      Code:             row.code ?? "",
+      Barcode:          row.barcode ?? "",
+      Name_Ar:          row.name_ar ?? "",
+      Name_En:          row.name_en ?? "",
+      // Use English name as the canonical "Name" fallback — matches how the
+      // products table itself stores values when both AR/EN are present.
+      Name:             row.name_en ?? row.name_ar ?? "",
+      Price:            row.price ?? 0,
+      Category_Name:    row.category_name ?? "",
+      Category_Name_En: row.category_name_en ?? "",
+      // The RPC doesn't return is_active directly — derive it from stock so
+      // products with positive stock are shown as in-stock in the grid.
+      is_active:        inStock,
+      image_url:        row.image_url ?? null,
+    };
+  };
+
+  const products = (data as RpcProductRow[])
+    .map((row, i) =>
+      normalizeSupabaseProduct(toSchemaShape(row), (pageNumber - 1) * PAGE_SIZE + i + 2),
+    )
     .filter((p): p is CatalogProduct => p !== null);
 
   return { products, totalCount };

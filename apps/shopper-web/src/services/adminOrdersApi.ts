@@ -146,7 +146,8 @@ function mapRow(row: OrderRow): AdminOrder {
   };
 }
 
-const ORDERS_SELECT = [
+// Base order columns that the orders table is guaranteed to have.
+const ORDERS_BASE_COLUMNS = [
   "id",
   "external_ref",
   "created_at",
@@ -163,8 +164,31 @@ const ORDERS_SELECT = [
   "shipping_fee",
   "discount_total",
   "total",
+];
+
+// Two select strings: one with the order_items join, one without.
+// We try the join first; if it 404s (relationship not declared in Supabase or
+// table missing), we transparently retry without the join so the admin panel
+// can still surface order metadata instead of failing outright.
+const ORDERS_SELECT_WITH_ITEMS = [
+  ...ORDERS_BASE_COLUMNS,
   "order_items(id,product_id,quantity,unit_price,line_total,product_snapshot)",
 ].join(",");
+
+const ORDERS_SELECT_NO_ITEMS = ORDERS_BASE_COLUMNS.join(",");
+
+// PostgREST returns code "PGRST200" for missing relationships and HTTP 404 for
+// missing tables. We treat both as "join not available" and retry.
+function isMissingRelationship(err: unknown): boolean {
+  const e = err as { code?: string; message?: string; status?: number } | null;
+  if (!e) return false;
+  if (e.code === "PGRST200") return true;
+  if (e.status === 404) return true;
+  const msg = (e.message ?? "").toLowerCase();
+  return msg.includes("could not find a relationship")
+      || msg.includes("relation \"order_items\" does not exist")
+      || msg.includes("order_items");
+}
 
 // ─── Public API ───────────────────────────────────────────────────────────────
 
@@ -193,34 +217,49 @@ export async function fetchAdminOrders(
   const from = (page - 1) * pageSize;
   const to   = from + pageSize - 1;
 
-  let query = supabase
-    .from("orders")
-    .select(ORDERS_SELECT, { count: "exact" })
-    .order("created_at", { ascending: false })
-    .range(from, to);
+  const buildQuery = (selectStr: string) => {
+    let q = supabase
+      .from("orders")
+      .select(selectStr, { count: "exact" })
+      .order("created_at", { ascending: false })
+      .range(from, to);
 
-  if (status) {
-    query = query.eq("status", status);
+    if (status) q = q.eq("status", status);
+
+    if (search?.trim()) {
+      const s = search.trim();
+      q = q.or(
+        `customer_name.ilike.%${s}%,customer_phone.ilike.%${s}%,id.ilike.%${s}%`,
+      );
+    }
+
+    if (fromDate) q = q.gte("created_at", fromDate);
+    if (toDate)   q = q.lte("created_at", toDate);
+
+    return q;
+  };
+
+  // First attempt: include order_items join (the rich path).
+  let { data, error, count } = await buildQuery(ORDERS_SELECT_WITH_ITEMS);
+
+  // Fallback: retry without the join if the relationship/table is missing.
+  if (error && isMissingRelationship(error)) {
+    if (import.meta.env.DEV) {
+      console.debug(
+        "[adminOrdersApi] order_items join unavailable, retrying without it",
+        error,
+      );
+    }
+    ({ data, error, count } = await buildQuery(ORDERS_SELECT_NO_ITEMS));
   }
-
-  if (search?.trim()) {
-    const s = search.trim();
-    query = query.or(
-      `customer_name.ilike.%${s}%,customer_phone.ilike.%${s}%,id.ilike.%${s}%`,
-    );
-  }
-
-  if (fromDate) query = query.gte("created_at", fromDate);
-  if (toDate)   query = query.lte("created_at", toDate);
-
-  const { data, error, count } = await query;
 
   if (error) throw error;
 
   const rows   = (data ?? []) as unknown as OrderRow[];
   let   orders = rows.map(mapRow);
 
-  // Hydrate missing product names/images from live products table
+  // Hydrate missing product names/images from live products table (no-op
+  // when items are empty, so this is safe in the fallback path too).
   orders = await hydrateItems(orders);
 
   return { orders, totalCount: count ?? 0 };
@@ -228,11 +267,14 @@ export async function fetchAdminOrders(
 
 /** Fetch a single order by ID with full item details. */
 export async function fetchAdminOrderById(id: string): Promise<AdminOrder | null> {
-  const { data, error } = await supabase
-    .from("orders")
-    .select(ORDERS_SELECT)
-    .eq("id", id)
-    .maybeSingle();
+  const run = (selectStr: string) =>
+    supabase.from("orders").select(selectStr).eq("id", id).maybeSingle();
+
+  let { data, error } = await run(ORDERS_SELECT_WITH_ITEMS);
+
+  if (error && isMissingRelationship(error)) {
+    ({ data, error } = await run(ORDERS_SELECT_NO_ITEMS));
+  }
 
   if (error) throw error;
   if (!data) return null;

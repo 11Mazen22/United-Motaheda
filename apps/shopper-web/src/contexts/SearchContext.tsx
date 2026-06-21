@@ -149,9 +149,21 @@ export function SearchProvider({ children }: { children: ReactNode }) {
   const { products } = useCatalog();
 
   // ── 1. Raw input state ────────────────────────────────────────────────────
+  //
+  // Initialize from the URL on first render so deep-links like
+  // /products?search=panadol arrive with the query already populated. The
+  // previous version started both states empty, which let the "clear URL when
+  // empty" effect run on mount and wipe the ?search= param before the URL→
+  // state sync effect had a chance to read it.
 
-  const [searchQuery,    setSearchQueryRaw] = useState("");
-  const [committedQuery, setCommittedQuery] = useState("");
+  const initialUrlQuery = (() => {
+    if (typeof window === "undefined") return "";
+    const params = new URLSearchParams(window.location.search);
+    return (params.get("search") ?? params.get("q") ?? "").trim();
+  })();
+
+  const [searchQuery,    setSearchQueryRaw] = useState(initialUrlQuery);
+  const [committedQuery, setCommittedQuery] = useState(initialUrlQuery);
   const debounceTimer                       = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const setSearchQuery = useCallback((value: string) => {
@@ -307,47 +319,45 @@ export function SearchProvider({ children }: { children: ReactNode }) {
     const abortSignal = suggestionAbort.current.signal;
 
     // ── Instant path: fuzzy match on already-loaded products ──────────────
-    // This gives the dropdown immediate results without waiting for Supabase.
-    // Products is only ~24 items so this runs in < 1 ms.
-    //
-    // Always call setSuggestions — even with [] — so stale results from the
-    // previous keystroke are cleared immediately instead of lingering until the
-    // server response arrives and overwrites them (causing the brief-flash-then-
-    // disappear symptom the user sees).
-    const instantIds = products.length > 0 ? rankInline(products, query, SUGGESTIONS_LIMIT) : [];
-    startTransition(() => {
-      setSuggestions(
-        instantIds.length > 0
-          ? mapIdsToProducts(instantIds, productsById, SUGGESTIONS_LIMIT)
-          : [],
-      );
-    });
+    // Fuzzy-match the ~24 page-1 products so the dropdown can show something
+    // immediately while Supabase is queried.
+    const instantProducts =
+      products.length > 0
+        ? mapIdsToProducts(
+            rankInline(products, query, SUGGESTIONS_LIMIT),
+            productsById,
+            SUGGESTIONS_LIMIT,
+          )
+        : [];
 
+    startTransition(() => setSuggestions(instantProducts));
     setSuggestionsBusy(true);
 
     // ── Server path: full-catalog search via Supabase ilike ───────────────
-    // Debounced so we don't spam Supabase on every keystroke.
+    //
+    // CRITICAL: an empty server response must NOT overwrite a non-empty instant
+    // fuzzy list. That was the cause of the "results flash then disappear" bug:
+    // a flaky RPC fallback returned 0 rows and wiped out genuine matches.
+    //
+    // Rule:
+    //   • server returns ≥1 result → use server result (authoritative for 52K).
+    //   • server returns 0 results → keep whatever instant fuzzy produced.
     if (suggestionDebounceRef.current) clearTimeout(suggestionDebounceRef.current);
     suggestionDebounceRef.current = setTimeout(() => {
       void fetchProductsPage(1, { searchQuery: query })
-          .then((result) => {
-            if (abortSignal.aborted) return;
-            // Debug: log server suggestion results so we can trace disappearing results
-            try {
-              // eslint-disable-next-line no-console
-              console.debug("[SearchContext] suggestions server result", {
-                query,
-                count: result.products.length,
-                first: (result.products[0] as any)?.id,
-              });
-            } catch {}
-            startTransition(() => {
+        .then((result) => {
+          if (abortSignal.aborted) return;
+          startTransition(() => {
+            if (result.products.length > 0) {
               setSuggestions(result.products.slice(0, SUGGESTIONS_LIMIT));
-              setSuggestionsBusy(false);
-            });
-          })
+            }
+            // else: keep the instant fuzzy results already in state.
+            setSuggestionsBusy(false);
+          });
+        })
         .catch(() => {
           if (abortSignal.aborted) return;
+          // Network/RPC failure — leave the instant fuzzy results visible.
           startTransition(() => setSuggestionsBusy(false));
         });
     }, SUGGESTION_SERVER_DEBOUNCE_MS);
