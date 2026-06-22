@@ -110,118 +110,103 @@ export function ShopperMobileLayout() {
           ref={headerRef}
           className={cn(
             "shopper-shell__header sticky top-0 z-30 w-full",
-            "bg-white/90 backdrop-blur-2xl",
-            "transition-shadow duration-300",
-            headerShadow && "shadow-[0_1px_0_rgba(15,23,42,0.06),0_4px_20px_rgba(15,23,42,0.05)]",
+            "bg-white transition-shadow duration-300",
+            headerShadow && "shadow-[0_4px_24px_rgba(10,18,32,0.10)]",
           )}
-          style={{
-            paddingTop: "env(safe-area-inset-top, 0px)",
-            WebkitBackdropFilter: "blur(24px) saturate(1.5)",
-          } as React.CSSProperties}
         >
-          {/* Top hairline gradient */}
+          {/* ── Dark cap: location + language + profile ── */}
           <div
-            aria-hidden
-            className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-slate-200/80 to-transparent"
-          />
-
-          <div
-            className={cn(
-              "shopper-shell__header-card w-full px-4 pt-3",
-              isCatalogBrowseRoute ? "pb-1.5" : isFocusedTaskRoute ? "pb-2.5" : "pb-2",
-            )}
+            className="bg-[#0A1220] px-4 pb-3"
+            style={{
+              paddingTop: "calc(env(safe-area-inset-top, 0px) + 0.75rem)",
+            } as React.CSSProperties}
           >
-            {/* ── Top bar: location + actions ── */}
-            <div className="shopper-shell__topbar flex items-center gap-3">
+            <div className="flex items-center gap-3">
+              {/* Location */}
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-1.5 text-sm font-black text-slate-950">
-                  <MapPin className="h-3.5 w-3.5 shrink-0 text-[var(--primary)]" />
+                <div className="flex items-center gap-1.5 text-sm font-black text-white">
+                  <MapPin className="h-3.5 w-3.5 shrink-0 text-[#2DD4C0]" />
                   <span className="truncate">{displayLocation}</span>
                 </div>
-                <p className="mt-0.5 truncate text-[11px] font-semibold text-slate-400">
+                <p className="mt-0.5 truncate text-[11px] font-semibold text-white/50">
                   {displayAddress}
                 </p>
               </div>
 
+              {/* Actions */}
               <div className="flex items-center gap-2">
-                {/* Language toggle */}
                 <button
                   type="button"
                   onClick={toggleLanguage}
-                  className={cn(
-                    "inline-flex h-9 items-center gap-1 rounded-full px-3",
-                    "border border-slate-200 bg-white text-xs font-black text-slate-700",
-                    "shadow-sm transition-all active:scale-95",
-                  )}
-                  style={{ WebkitTapHighlightColor: "transparent" }}
+                  className="inline-flex h-8 items-center gap-1.5 rounded-full border border-white/[0.16] bg-white/[0.07] px-3 text-[11px] font-black text-white/75 transition-all active:scale-95 hover:border-white/[0.30] hover:bg-white/[0.13] hover:text-white"
+                  style={{ WebkitTapHighlightColor: "transparent" } as React.CSSProperties}
                   aria-label={lang === "ar" ? "تغيير اللغة إلى الإنجليزية" : "Switch to Arabic"}
                 >
-                  <Globe2 className="h-3.5 w-3.5" />
+                  <Globe2 className="h-3 w-3" />
                   <span>{lang === "ar" ? "EN" : "AR"}</span>
                 </button>
 
-                {/* Profile button */}
                 <button
                   type="button"
                   onClick={() => navigate(user ? "/profile" : "/login")}
                   className={cn(
-                    "inline-flex h-9 w-9 items-center justify-center rounded-full",
-                    "border border-slate-200 bg-white text-slate-700",
-                    "shadow-sm transition-all active:scale-95",
-                    user && "border-[var(--primary)]/30 bg-[var(--primary)]/5",
+                    "inline-flex h-8 w-8 items-center justify-center rounded-full",
+                    "border border-white/[0.16] bg-white/[0.07] text-white/75",
+                    "transition-all active:scale-95 hover:border-white/[0.30] hover:bg-white/[0.13]",
+                    user && "border-[#2DD4C0]/40 bg-[#2DD4C0]/[0.12] text-[#2DD4C0]",
                   )}
-                  style={{ WebkitTapHighlightColor: "transparent" }}
+                  style={{ WebkitTapHighlightColor: "transparent" } as React.CSSProperties}
                   aria-label={user ? t("profile") : t("login")}
                 >
                   {user ? (
-                    <span className="text-[11px] font-black text-[var(--primary)]">
+                    <span className="text-[11px] font-black">
                       {(user.fullName || user.phone || "U").charAt(0).toUpperCase()}
                     </span>
                   ) : (
-                    <User className="h-4 w-4" />
+                    <User className="h-3.5 w-3.5" />
                   )}
                 </button>
               </div>
             </div>
+          </div>
 
-            {/* ── Search bar ── */}
-            {showSearchBar ? (
-              <>
-                <form onSubmit={handleSearchSubmit} className="relative mt-3 h-13 w-full">
-                  <SiteSearchField
-                    className="h-13 w-full"
-                    inputClassName={cn(
-                      "!rounded-[1.5rem] h-13 border border-slate-200 bg-white/95",
-                      "text-sm font-semibold",
-                      "shadow-[0_4px_24px_rgba(15,23,42,0.06)]",
-                      "focus:border-[var(--primary)] focus:ring-4 focus:ring-[var(--primary)]/10",
-                      "transition-all duration-200",
-                    )}
-                    mobileSubmitPadding
+          {/* ── White section: search bar + meta rail ── */}
+          {showSearchBar ? (
+            <div className={cn("px-4 pt-2.5", isCatalogBrowseRoute ? "pb-2" : "pb-3")}>
+              <form onSubmit={handleSearchSubmit} className="relative h-13 w-full">
+                <SiteSearchField
+                  className="h-13 w-full"
+                  inputClassName={cn(
+                    "!rounded-[1.5rem] h-13 border border-[#0A1220]/[0.14] bg-white",
+                    "text-sm font-semibold text-[#0A1220]",
+                    "shadow-[0_2px_12px_rgba(10,18,32,0.05)]",
+                    "focus:border-[#0E7E74] focus:ring-4 focus:ring-[#0E7E74]/10",
+                    "transition-all duration-200",
+                  )}
+                  mobileSubmitPadding
+                />
+                <button
+                  type="submit"
+                  className={cn(
+                    "absolute top-1/2 inline-flex h-9 w-9 -translate-y-1/2",
+                    "items-center justify-center rounded-[1.1rem]",
+                    "bg-[#0E7E74] text-white",
+                    "shadow-[0_4px_16px_rgba(14,126,116,0.32)]",
+                    "transition-all hover:bg-[#0A6B62] active:scale-95",
+                    lang === "ar" ? "left-2" : "right-2",
+                  )}
+                  style={{ WebkitTapHighlightColor: "transparent" } as React.CSSProperties}
+                  aria-label={lang === "ar" ? "بحث" : "Search"}
+                >
+                  <ArrowUpRight
+                    className={cn("h-4 w-4", lang === "ar" && "rotate-180")}
                   />
-                  <button
-                    type="submit"
-                    className={cn(
-                      "absolute top-1/2 inline-flex h-9 w-9 -translate-y-1/2",
-                      "items-center justify-center rounded-[1.1rem]",
-                      "bg-[var(--primary)] text-white",
-                      "shadow-[0_4px_16px_rgba(36,184,181,0.4)]",
-                      "transition-all hover:bg-[var(--primary-strong)] active:scale-95",
-                      lang === "ar" ? "left-2" : "right-2",
-                    )}
-                    style={{ WebkitTapHighlightColor: "transparent" }}
-                    aria-label={lang === "ar" ? "بحث" : "Search"}
-                  >
-                    <ArrowUpRight
-                      className={cn("h-4 w-4", lang === "ar" && "rotate-180")}
-                    />
-                  </button>
-                </form>
+                </button>
+              </form>
 
-                {/* ── Meta rail: delivery chip + support ── */}
-                {!isCatalogBrowseRoute ? (
+              {!isCatalogBrowseRoute ? (
                 <div className="mt-2.5 flex items-center gap-2">
-                  <span className="shopper-shell__meta-chip inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-black text-slate-700 shadow-sm">
+                  <span className="inline-flex items-center rounded-full border border-[#0A1220]/[0.18] px-3 py-1 text-[11px] font-black text-[#0A1220]/65">
                     {deliveryLabel}
                   </span>
                   <a
@@ -229,21 +214,26 @@ export function ShopperMobileLayout() {
                     target="_blank"
                     rel="noreferrer"
                     className={cn(
-                      "shopper-shell__meta-chip--accent inline-flex items-center gap-1.5 rounded-full",
-                      "bg-[var(--primary)] px-3 py-1.5 text-[11px] font-black text-white",
-                      "shadow-[0_4px_14px_rgba(36,184,181,0.35)]",
+                      "inline-flex items-center gap-1.5 rounded-full",
+                      "bg-[#0E7E74] px-3 py-1 text-[11px] font-black text-white",
+                      "shadow-[0_4px_14px_rgba(14,126,116,0.32)]",
                       "transition-all active:scale-95",
                     )}
-                    style={{ WebkitTapHighlightColor: "transparent" }}
+                    style={{ WebkitTapHighlightColor: "transparent" } as React.CSSProperties}
                   >
                     <MessageCircle className="h-3.5 w-3.5" />
                     <span>{lang === "ar" ? "مساعدة مباشرة" : "Direct support"}</span>
                   </a>
                 </div>
-                ) : null}
-              </>
-            ) : null}
-          </div>
+              ) : null}
+            </div>
+          ) : null}
+
+          {/* Bottom ink hairline */}
+          <div
+            aria-hidden
+            className="absolute inset-x-0 bottom-0 h-px bg-[#0A1220]/[0.10]"
+          />
         </header>
       ) : null}
 

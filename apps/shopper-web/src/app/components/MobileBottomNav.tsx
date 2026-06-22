@@ -55,7 +55,6 @@ export function MobileBottomNav({ hidden = false }: { hidden?: boolean }) {
       aria-label={lang === "ar" ? "التنقل السفلي" : "Bottom navigation"}
       dir={lang === "ar" ? "rtl" : "ltr"}
       className={cn(
-        // Visible on mobile / tablet only — hidden on desktop and larger screens.
         "fixed inset-x-0 bottom-0 z-[70] lg:hidden",
         "transition-transform duration-500 will-change-transform",
         hidden && "pointer-events-none translate-y-full",
@@ -69,12 +68,12 @@ export function MobileBottomNav({ hidden = false }: { hidden?: boolean }) {
     >
       <div className="pointer-events-none mx-auto w-full max-w-[32rem] px-2 pb-2">
         <div
-          className="pointer-events-auto relative overflow-hidden rounded-[1.35rem] border border-white/85 bg-white/92 p-1.5 shadow-[0_14px_34px_rgba(15,23,42,0.12)] backdrop-blur-2xl"
+          className="pointer-events-auto relative overflow-hidden rounded-[1.35rem] border border-white/85 bg-white/94 p-1.5 shadow-[0_14px_34px_rgba(10,18,32,0.14)] backdrop-blur-2xl"
           style={{ WebkitBackdropFilter: "blur(24px) saturate(1.35)" }}
         >
           <div
             aria-hidden
-            className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.88),rgba(255,255,255,0.96)),radial-gradient(circle_at_top,rgba(36,184,181,0.08),transparent_42%)]"
+            className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.90),rgba(255,255,255,0.97)),radial-gradient(circle_at_top,rgba(10,18,32,0.04),transparent_45%)]"
           />
           <div className="relative flex items-center gap-1">
             {links.map(({ path, icon: Icon, label, isCart }) => {
@@ -90,26 +89,23 @@ export function MobileBottomNav({ hidden = false }: { hidden?: boolean }) {
                     "group relative flex min-h-[3.3rem] flex-1 flex-col items-center justify-center gap-0.5 rounded-[0.95rem] px-1",
                     "transition-all duration-300 active:scale-[0.97]",
                     active
-                      ? "bg-[linear-gradient(180deg,rgba(36,184,181,0.1),rgba(36,184,181,0.04))] text-[var(--primary)] shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]"
-                      : "text-slate-400",
+                      ? "bg-[#0A1220] shadow-[0_4px_16px_rgba(10,18,32,0.22)]"
+                      : "text-[#0A1220]/35",
                   )}
-                  style={{ WebkitTapHighlightColor: "transparent" }}
+                  style={{ WebkitTapHighlightColor: "transparent" } as React.CSSProperties}
                 >
-                  <span
-                    className={cn(
-                      "relative flex h-7 w-7 items-center justify-center rounded-full transition-all duration-300",
-                      active ? "bg-white shadow-[0_6px_16px_rgba(36,184,181,0.14)]" : "bg-transparent",
-                    )}
-                  >
+                  <span className="relative flex h-7 w-7 items-center justify-center">
                     <Icon
                       className={cn(
                         "h-[17px] w-[17px] transition-all duration-300",
-                        active ? "text-[var(--primary)]" : "text-slate-400 group-hover:text-slate-600",
+                        active
+                          ? "text-[#2DD4C0]"
+                          : "text-[#0A1220]/35 group-hover:text-[#0A1220]/60",
                       )}
                       strokeWidth={active ? 2.3 : 1.9}
                     />
                     {isCart && cartCount > 0 ? (
-                      <span className="absolute -end-1.5 -top-1 inline-flex min-h-[16px] min-w-[16px] items-center justify-center rounded-full border border-white bg-[var(--primary)] px-1 text-[8px] font-black leading-none text-white shadow-[0_5px_12px_rgba(36,184,181,0.24)]">
+                      <span className="absolute -end-1.5 -top-1 inline-flex min-h-[16px] min-w-[16px] items-center justify-center rounded-full border border-white bg-[#0E7E74] px-1 text-[8px] font-black leading-none text-white shadow-[0_4px_10px_rgba(14,126,116,0.30)]">
                         {cartCount > 99 ? "99+" : cartCount}
                       </span>
                     ) : null}
@@ -117,7 +113,9 @@ export function MobileBottomNav({ hidden = false }: { hidden?: boolean }) {
                   <span
                     className={cn(
                       "max-w-[3.4rem] truncate text-[9px] font-black leading-none tracking-tight transition-colors duration-300",
-                      active ? "text-[var(--primary)]" : "text-slate-400 group-hover:text-slate-600",
+                      active
+                        ? "text-white"
+                        : "text-[#0A1220]/35 group-hover:text-[#0A1220]/60",
                     )}
                   >
                     {label}
