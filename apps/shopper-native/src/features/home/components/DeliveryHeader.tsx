@@ -158,7 +158,7 @@ export const DeliveryHeader = memo(function DeliveryHeader({
               accessibilityRole="button"
               accessibilityLabel={t("profile.notifications")}
               style={s.actionBtn}>
-              <Ionicons name="notifications-outline" size={19} color={kit.color.inkSoft} />
+              <Ionicons name="notifications-outline" size={19} color="rgba(255,255,255,0.75)" />
             </Pressable>
           )}
           <Pressable
@@ -169,7 +169,7 @@ export const DeliveryHeader = memo(function DeliveryHeader({
             accessibilityRole="button"
             accessibilityLabel={t("tabs.cart")}
             style={s.cartBtn}>
-            <Ionicons name="bag-outline" size={19} color={kit.color.inkSoft} />
+            <Ionicons name="bag-outline" size={19} color="rgba(255,255,255,0.75)" />
             {cartCount > 0 && (
               <View style={s.cartBadge}>
                 <UIText style={s.cartBadgeText}>{cartCount > 9 ? "9+" : cartCount}</UIText>
@@ -182,7 +182,7 @@ export const DeliveryHeader = memo(function DeliveryHeader({
       {/* ── Compact greeting row (metric pills moved to HomeHero) ───────────── */}
       <View style={s.greetingRow}>
         <View style={s.greetingIconWrap}>
-          <Ionicons name={timeIcon} size={12} color={kit.color.accentDeep} />
+          <Ionicons name={timeIcon} size={12} color="#2DD4C0" />
         </View>
         <UIText style={s.greetingText}>{greeting}</UIText>
       </View>
@@ -205,7 +205,7 @@ export const DeliveryHeader = memo(function DeliveryHeader({
           <UIText style={s.searchPlaceholder} numberOfLines={1}>
             {t("search.placeholder")}
           </UIText>
-          <View style={[s.searchBadge, { backgroundColor: kit.color.accent }]}>
+          <View style={[s.searchBadge, { backgroundColor: "#0E7E74" }]}>
             <Ionicons name="sparkles" size={13} color={kit.color.onInk} />
           </View>
         </Pressable>
@@ -219,7 +219,7 @@ export const DeliveryHeader = memo(function DeliveryHeader({
 
 const s = StyleSheet.create({
   header: {
-    backgroundColor:   kit.color.canvas,
+    backgroundColor:   "#0A1220",
     paddingBottom:     kit.sp(3),
     paddingHorizontal: theme.layout.pagePaddingH,
     overflow:          "hidden",   // clips the ambient orb
@@ -232,8 +232,8 @@ const s = StyleSheet.create({
     width:         250,
     height:        250,
     borderRadius:  125,
-    backgroundColor: kit.color.accentTint,
-    opacity:       0.55,
+    backgroundColor: "rgba(14,126,116,0.14)",
+    opacity:       1,
   },
 
   // ── Top bar ──────────────────────────────────────────────────────────────
@@ -257,15 +257,15 @@ const s = StyleSheet.create({
     height:       60,
     borderRadius: 20,
     borderWidth:  1.5,
-    borderColor:  kit.color.accent,
+    borderColor:  "rgba(45,212,192,0.32)",
   },
   logoWrap: {
     width:           48,
     height:          48,
     borderRadius:    16,
-    backgroundColor: kit.color.surface,
+    backgroundColor: "#FFFFFF",
     borderWidth:     1,
-    borderColor:     kit.color.line,
+    borderColor:     "rgba(255,255,255,0.12)",
     alignItems:      "center",
     justifyContent:  "center",
     overflow:        "hidden",
@@ -281,9 +281,9 @@ const s = StyleSheet.create({
     width:           44,
     height:          44,
     borderRadius:    22,
-    backgroundColor: kit.color.surface,
+    backgroundColor: "rgba(255,255,255,0.07)",
     borderWidth:     1,
-    borderColor:     kit.color.line,
+    borderColor:     "rgba(255,255,255,0.16)",
     alignItems:      "center",
     justifyContent:  "center",
   },
@@ -291,9 +291,9 @@ const s = StyleSheet.create({
     width:           44,
     height:          44,
     borderRadius:    22,
-    backgroundColor: kit.color.surface,
+    backgroundColor: "rgba(255,255,255,0.07)",
     borderWidth:     1,
-    borderColor:     kit.color.line,
+    borderColor:     "rgba(255,255,255,0.16)",
     alignItems:      "center",
     justifyContent:  "center",
   },
@@ -301,7 +301,7 @@ const s = StyleSheet.create({
     position:          "absolute",
     top:               -4,
     end:               -4,
-    backgroundColor:   kit.color.accent,
+    backgroundColor:   "#0E7E74",
     borderRadius:      9,
     minWidth:          18,
     height:            18,
@@ -309,7 +309,7 @@ const s = StyleSheet.create({
     justifyContent:    "center",
     paddingHorizontal: 4,
     borderWidth:       1.5,
-    borderColor:       kit.color.canvas,
+    borderColor:       "#0A1220",
   },
   cartBadgeText: {
     color:              kit.color.onInk,
@@ -333,13 +333,13 @@ const s = StyleSheet.create({
     borderRadius:    9,
     alignItems:      "center",
     justifyContent:  "center",
-    backgroundColor: kit.color.accentTint,
+    backgroundColor: "rgba(45,212,192,0.14)",
   },
   greetingText: {
     fontFamily:         theme.fonts.bold,
     fontSize:           12,
     lineHeight:         18,
-    color:              kit.color.inkSoft,
+    color:              "rgba(255,255,255,0.60)",
     textAlign:          TEXT_START,
     includeFontPadding: false,
   },
@@ -354,7 +354,7 @@ const s = StyleSheet.create({
     right:        -3,
     bottom:       -3,
     borderRadius: kit.radius.pill + 3,
-    backgroundColor: kit.color.accentTint,
+    backgroundColor: "rgba(14,126,116,0.12)",
   },
   searchBar: {
     flexDirection:     flexRow(IS_RTL),
@@ -362,10 +362,10 @@ const s = StyleSheet.create({
     gap:               4,
     height:            60,
     paddingHorizontal: 8,
-    backgroundColor:   kit.color.surface,
+    backgroundColor:   "#FFFFFF",
     borderRadius:      kit.radius.pill,
     borderWidth:       1,
-    borderColor:       kit.color.line,
+    borderColor:       "rgba(10,18,32,0.14)",
     ...kit.shadow.floating,
   },
   searchIconWrap: {

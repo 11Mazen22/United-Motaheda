@@ -1,11 +1,11 @@
-﻿/**
- * Tab Layout — White Bar with Top Indicator (single-accent)
+/**
+ * Tab Layout — White Bar with Ink Pill (single-accent)
  *
- * Quiet monochrome navigation (Linear / Things / Stripe):
+ * Premium ink navigation (United Pharmacies 2026):
  *   • White bar, hairline top separator, flush to the bottom edge
- *   • Active tab: teal top-indicator line + filled teal icon + black label
- *   • Inactive tab: outline icon + muted slate label — no shapes, no backgrounds
- *   • ONE accent (kit teal) across all tabs; wayfinding via icon + weight, not hue
+ *   • Active tab: filled ink pill (#0A1220) + mint icon (#2DD4C0) + white label
+ *   • Inactive tab: outline icon + ink/35 label — no shapes, no backgrounds
+ *   • ONE accent across all tabs; wayfinding via icon + weight, not hue
  */
 
 import React, { useCallback, useEffect } from "react";
@@ -36,43 +36,14 @@ type IoniconsName = React.ComponentProps<typeof Ionicons>["name"];
 interface TabConfig {
   active:   IoniconsName;
   inactive: IoniconsName;
-  color:    string;              // single color for icon + label when active
-  grad:     [string, string];   // gradient for the indicator line
 }
 
-// One accent across all tabs — wayfinding comes from icon + weight, not hue.
-const ACCENT_GRAD: [string, string] = [kit.color.accent, kit.color.accentDeep];
 const TAB_CONFIG: Record<string, TabConfig> = {
-  index: {
-    active:   "home",
-    inactive: "home-outline",
-    color:    kit.color.accent,
-    grad:     ACCENT_GRAD,
-  },
-  meds: {
-    active:   "medkit",
-    inactive: "medkit-outline",
-    color:    kit.color.accent,
-    grad:     ACCENT_GRAD,
-  },
-  products: {
-    active:   "grid",
-    inactive: "grid-outline",
-    color:    kit.color.accent,
-    grad:     ACCENT_GRAD,
-  },
-  orders: {
-    active:   "cube",
-    inactive: "cube-outline",
-    color:    kit.color.accent,
-    grad:     ACCENT_GRAD,
-  },
-  profile: {
-    active:   "person-circle",
-    inactive: "person-circle-outline",
-    color:    kit.color.accent,
-    grad:     ACCENT_GRAD,
-  },
+  index:    { active: "home",          inactive: "home-outline"          },
+  meds:     { active: "medkit",        inactive: "medkit-outline"        },
+  products: { active: "grid",          inactive: "grid-outline"          },
+  orders:   { active: "cube",          inactive: "cube-outline"          },
+  profile:  { active: "person-circle", inactive: "person-circle-outline" },
 };
 
 const TAB_LABEL_KEY: Record<string, string> = {
@@ -82,6 +53,12 @@ const TAB_LABEL_KEY: Record<string, string> = {
   orders:   "tabs.orders",
   profile:  "tabs.profile",
 };
+
+// ─── Design tokens ────────────────────────────────────────────────────────────
+
+const INK         = "#0A1220";
+const MINT        = "#2DD4C0";
+const INACTIVE    = "rgba(10,18,32,0.35)";
 
 // ─── Animation preset ─────────────────────────────────────────────────────────
 
@@ -107,34 +84,32 @@ function TabItem({ name, focused, badge, onPress }: TabItemProps) {
     progress.value = withSpring(focused ? 1 : 0, SPRING);
   }, [focused, progress]);
 
-  // Top indicator: scaleX 0 → 1, opacity 0 → 1
-  const indicatorStyle = useAnimatedStyle(() => ({
-    opacity:   interpolate(progress.value, [0, 1], [0, 1],   Extrapolation.CLAMP),
+  // Ink pill: scales in and fades in
+  const pillStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(progress.value, [0, 1], [0, 1], Extrapolation.CLAMP),
     transform: [
-      { scaleX: interpolate(progress.value, [0, 1], [0, 1], Extrapolation.CLAMP) },
+      { scale: interpolate(progress.value, [0, 0.6, 1], [0.80, 0.95, 1], Extrapolation.CLAMP) },
     ],
   }));
 
-  // Icon: scale up, slight lift
+  // Icon: slight lift on focus
   const iconStyle = useAnimatedStyle(() => ({
     transform: [
-      { scale:      interpolate(progress.value, [0, 1], [0.88, 1.06], Extrapolation.CLAMP) },
-      { translateY: interpolate(progress.value, [0, 1], [0, -2],      Extrapolation.CLAMP) },
+      { scale:      interpolate(progress.value, [0, 1], [0.90, 1.04], Extrapolation.CLAMP) },
+      { translateY: interpolate(progress.value, [0, 1], [0,    -1  ], Extrapolation.CLAMP) },
     ],
   }));
 
-  // Label: match icon lift
+  // Label: match lift
   const labelStyle = useAnimatedStyle(() => ({
     transform: [
       { translateY: interpolate(progress.value, [0, 1], [0, -1], Extrapolation.CLAMP) },
     ],
   }));
 
-  // Light bar — inactive tabs use dark slate at reduced opacity
-  const iconColor  = focused ? cfg.color                   : "rgba(100,116,139,0.60)";
-  const labelColor = focused ? cfg.color                   : "rgba(100,116,139,0.55)";
-  const labelFont  = focused ? theme.fonts.black           : theme.fonts.regular;
-  const iconSize   = focused ? 24 : 22;
+  const iconColor  = focused ? MINT     : INACTIVE;
+  const labelColor = focused ? "#FFFFFF" : INACTIVE;
+  const labelFont  = focused ? theme.fonts.black : theme.fonts.regular;
 
   const handlePress = useCallback(() => {
     if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
@@ -150,16 +125,14 @@ function TabItem({ name, focused, badge, onPress }: TabItemProps) {
       accessibilityState={{ selected: focused }}
       style={styles.tabItem}>
 
-      {/* ── Top indicator — flat teal line, stays inside bounds ── */}
-      <Animated.View style={[styles.indicatorWrap, indicatorStyle]}>
-        <View style={[styles.indicatorLine, { backgroundColor: kit.color.accent }]} />
-      </Animated.View>
+      {/* ── Ink pill background ── */}
+      <Animated.View style={[styles.activePill, pillStyle]} />
 
       {/* ── Icon ── */}
       <Animated.View style={iconStyle}>
         <Ionicons
           name={focused ? cfg.active : cfg.inactive}
-          size={iconSize}
+          size={22}
           color={iconColor}
         />
       </Animated.View>
@@ -204,7 +177,7 @@ function BottomTabBar({ state, navigation }: BottomTabBarProps) {
 
   return (
     <View style={[styles.barOuter, { paddingBottom: Math.max(insets.bottom, 4) }]}>
-      {/* Hairline separator — 1px dark line at top of bar */}
+      {/* Hairline separator */}
       <View style={styles.topHairline} />
       <View style={styles.barInner}>
         {visibleRoutes.map((route) => {
@@ -245,34 +218,32 @@ export default function TabLayout() {
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
-const BAR_H        = 62;
-const INDICATOR_W  = 28;
-const INDICATOR_H  = 3;
+const BAR_H = 62;
 
 const styles = StyleSheet.create({
 
-  // Outer bar: clean white, flush to bottom, upward shadow
+  // Outer bar: clean white, flush to bottom
   barOuter: {
     width:           "100%",
     backgroundColor: "#FFFFFF",
-    shadowColor:     "#0C1A2E",
+    shadowColor:     INK,
     shadowOffset:    { width: 0, height: -2 },
     shadowOpacity:   0.07,
     shadowRadius:    10,
     elevation:       12,
   },
 
-  // Single-pixel separator between content and bar
+  // Single-pixel ink separator at top of bar
   topHairline: {
     height:          StyleSheet.hairlineWidth,
-    backgroundColor: "rgba(15,23,42,0.10)",
+    backgroundColor: "rgba(10,18,32,0.10)",
   },
 
-  // Inner row of tab items
+  // Inner row
   barInner: {
-    flexDirection:    "row",
-    height:           BAR_H,
-    alignItems:       "center",
+    flexDirection:     "row",
+    height:            BAR_H,
+    alignItems:        "center",
     paddingHorizontal: 4,
   },
 
@@ -283,21 +254,18 @@ const styles = StyleSheet.create({
     alignItems:     "center",
     justifyContent: "center",
     gap:            3,
-    paddingTop:     INDICATOR_H, // make room for the indicator at the very top
     position:       "relative",
   },
 
-  // Gradient indicator line — INSIDE the bar, no overflow
-  indicatorWrap: {
-    position:     "absolute",
-    top:          0,              // flush with the top edge of each tab item
-    width:        INDICATOR_W,
-    height:       INDICATOR_H,
-    borderRadius: INDICATOR_H,
-    overflow:     "hidden",
-  },
-  indicatorLine: {
-    flex: 1,
+  // Ink pill — absolutely positioned behind icon+label
+  activePill: {
+    position:        "absolute",
+    top:             8,
+    bottom:          8,
+    left:            4,
+    right:           4,
+    borderRadius:    14,
+    backgroundColor: INK,
   },
 
   // Label — always rendered

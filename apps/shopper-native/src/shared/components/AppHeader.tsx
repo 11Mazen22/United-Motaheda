@@ -131,7 +131,7 @@ const styles = StyleSheet.create({
   containerDefault: {
     backgroundColor: theme.colors.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border.default,
+    borderBottomColor: "rgba(10,18,32,0.10)",
   },
   row: {
     flexDirection:     flexRow(isRtl()),
