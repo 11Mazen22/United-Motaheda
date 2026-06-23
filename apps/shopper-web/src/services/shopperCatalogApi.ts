@@ -594,8 +594,8 @@ async function fetchProductsPageRpc(
       Price:            row.price ?? 0,
       Category_Name:    row.category_name ?? "",
       Category_Name_En: row.category_name_en ?? "",
-      // The RPC doesn't return is_active directly — derive it from stock so
-      // products with positive stock are shown as in-stock in the grid.
+      // Pass the real stock level so the normalizer can show accurate counts.
+      Stock:            Number.isFinite(stockNum) ? stockNum : 0,
       is_active:        inStock,
       image_url:        row.image_url ?? null,
     };

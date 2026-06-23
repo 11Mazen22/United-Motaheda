@@ -346,12 +346,12 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     borderWidth:     1.5,
     borderColor:     "rgba(14,126,116,0.16)",
-    // Brand-tinted soft glow (iOS)
     shadowColor:     "#0E7E74",
     shadowOffset:    { width: 0, height: 10 },
     shadowOpacity:   0.30,
     shadowRadius:    24,
     elevation:       16,
+    boxShadow:       "0px 10px 24px rgba(14,126,116,0.30)",
   },
 
   // ── Wordmark ──────────────────────────────────────────────────────────────────

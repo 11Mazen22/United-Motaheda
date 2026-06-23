@@ -136,7 +136,9 @@ export default function RootLayout() {
           <NetworkBridge />
           <LanguageProvider>
           <AuthProvider>
-            {Platform.OS !== "web" && <StatusBar style="light" />}
+            {Platform.OS !== "web" && (
+              <StatusBar style="light" translucent backgroundColor="transparent" />
+            )}
             <NotificationSync />
             <PushBootstrap />
             <CartReservationNotifier />

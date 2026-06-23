@@ -625,20 +625,31 @@ export default function SpecialOrdersManager() {
             />
           ) : (
             <div className="grid gap-3">
-              {filteredRequests.map((request) => (
+              {filteredRequests.map((request) => {
+                const accentColorMap: Record<SpecialOrderRequest["status"], string> = {
+                  submitted: "#f59e0b",
+                  reviewing: "#0ea5e9",
+                  fulfilled: "#10b981",
+                  cancelled: "#94a3b8",
+                };
+                const accent = accentColorMap[request.status];
+                return (
                 <article
                   key={request.id}
-                  className="group rounded-[1.5rem] border border-slate-200/80 bg-white p-4 shadow-sm transition-all duration-150 hover:border-slate-200 hover:shadow-md"
+                  className="group relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm transition-all duration-150 hover:shadow-md hover:-translate-y-0.5"
+                  style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.5)" }}
                 >
+                  <div className="h-[3px]" style={{ background: accent }} />
+                  <div className="p-4">
                   <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
-                        <p className="text-base font-bold text-slate-950">
+                        <p className="text-base font-black text-slate-950">
                           {request.product_name}
                         </p>
                         <span
                           className={cn(
-                            "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-bold",
+                            "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-wide",
                             getStatusClasses(request.status),
                           )}
                         >
@@ -660,8 +671,8 @@ export default function SpecialOrdersManager() {
                       </p>
 
                       {request.notes && (
-                        <div className="mt-2.5 rounded-[1rem] border border-slate-200/80 bg-white px-3 py-2.5">
-                          <p className="text-sm font-semibold leading-6 text-slate-500">
+                        <div className="mt-2.5 rounded-xl border border-slate-100 bg-slate-50/80 px-3 py-2.5">
+                          <p className="text-sm font-medium leading-6 text-slate-500">
                             {request.notes}
                           </p>
                         </div>
@@ -678,8 +689,10 @@ export default function SpecialOrdersManager() {
                       </div>
                     </div>
                   </div>
+                  </div>
                 </article>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

@@ -170,6 +170,31 @@ export function AdminErrorBanner({ message }: { message: string }) {
 
 // ─── AdminMetricCard ──────────────────────────────────────────────────────────
 
+interface ToneConfig {
+  gradient: string;
+  iconBg: string;
+  iconShadow: string;
+  iconColor: string;
+  valueColor: string;
+  badgeBg: string;
+  badgeText: string;
+  badgeBorder: string;
+  barColor: string;
+  glowColor: string;
+}
+
+const METRIC_TONES: Record<string, ToneConfig> = {
+  slate:   { gradient: "from-slate-600 to-slate-700",   iconBg: "rgba(100,116,139,0.12)", iconShadow: "rgba(100,116,139,0.3)",  iconColor: "#475569", valueColor: "#1e293b", badgeBg: "#f8fafc", badgeText: "#64748b", badgeBorder: "#e2e8f0", barColor: "#64748b",  glowColor: "rgba(100,116,139,0.08)" },
+  teal:    { gradient: "from-teal-600 to-emerald-700",  iconBg: "rgba(14,126,116,0.12)",  iconShadow: "rgba(14,126,116,0.35)", iconColor: "#0E7E74", valueColor: "#134e4a", badgeBg: "#f0fdfa", badgeText: "#0f766e", badgeBorder: "#99f6e4", barColor: "#0E7E74",  glowColor: "rgba(14,126,116,0.06)"  },
+  blue:    { gradient: "from-blue-600 to-indigo-700",   iconBg: "rgba(59,130,246,0.12)",  iconShadow: "rgba(59,130,246,0.3)",  iconColor: "#2563eb", valueColor: "#1e3a8a", badgeBg: "#eff6ff", badgeText: "#1d4ed8", badgeBorder: "#93c5fd", barColor: "#3b82f6",  glowColor: "rgba(59,130,246,0.06)"  },
+  amber:   { gradient: "from-amber-500 to-orange-600",  iconBg: "rgba(245,158,11,0.12)",  iconShadow: "rgba(245,158,11,0.3)",  iconColor: "#d97706", valueColor: "#78350f", badgeBg: "#fffbeb", badgeText: "#b45309", badgeBorder: "#fcd34d", barColor: "#f59e0b",  glowColor: "rgba(245,158,11,0.06)"  },
+  emerald: { gradient: "from-emerald-600 to-green-700", iconBg: "rgba(16,185,129,0.12)",  iconShadow: "rgba(16,185,129,0.3)",  iconColor: "#059669", valueColor: "#14532d", badgeBg: "#ecfdf5", badgeText: "#047857", badgeBorder: "#6ee7b7", barColor: "#10b981",  glowColor: "rgba(16,185,129,0.06)"  },
+  rose:    { gradient: "from-rose-600 to-pink-700",     iconBg: "rgba(244,63,94,0.12)",   iconShadow: "rgba(244,63,94,0.3)",   iconColor: "#e11d48", valueColor: "#881337", badgeBg: "#fff1f2", badgeText: "#be123c", badgeBorder: "#fda4af", barColor: "#f43f5e",  glowColor: "rgba(244,63,94,0.06)"   },
+  violet:  { gradient: "from-violet-600 to-purple-700", iconBg: "rgba(139,92,246,0.12)",  iconShadow: "rgba(139,92,246,0.3)",  iconColor: "#7c3aed", valueColor: "#3b0764", badgeBg: "#f5f3ff", badgeText: "#6d28d9", badgeBorder: "#c4b5fd", barColor: "#8b5cf6",  glowColor: "rgba(139,92,246,0.06)"  },
+  sky:     { gradient: "from-sky-500 to-cyan-600",      iconBg: "rgba(14,165,233,0.12)",  iconShadow: "rgba(14,165,233,0.3)",  iconColor: "#0284c7", valueColor: "#0c4a6e", badgeBg: "#f0f9ff", badgeText: "#0369a1", badgeBorder: "#7dd3fc", barColor: "#0ea5e9",  glowColor: "rgba(14,165,233,0.06)"  },
+  purple:  { gradient: "from-purple-600 to-fuchsia-700",iconBg: "rgba(168,85,247,0.12)",  iconShadow: "rgba(168,85,247,0.3)",  iconColor: "#9333ea", valueColor: "#4a044e", badgeBg: "#fdf4ff", badgeText: "#7e22ce", badgeBorder: "#d8b4fe", barColor: "#a855f7",  glowColor: "rgba(168,85,247,0.06)"  },
+};
+
 export function AdminMetricCard({
   label,
   value,
@@ -184,63 +209,64 @@ export function AdminMetricCard({
   note?: string;
   trend?: string;
   icon?: ComponentType<{ className?: string }>;
-  tone?: "slate" | "teal" | "blue" | "amber" | "emerald" | "rose" | string;
+  tone?: "slate" | "teal" | "blue" | "amber" | "emerald" | "rose" | "violet" | "sky" | "purple" | string;
   className?: string;
 }) {
-  const TONES: Record<string, { iconBg: string; iconColor: string; badgeBg: string; badgeText: string; badgeBorder: string; barColor: string }> = {
-    slate:   { iconBg: "bg-slate-50", iconColor: "text-slate-600", badgeBg: "bg-slate-50", badgeText: "text-slate-700", badgeBorder: "border-slate-200", barColor: "bg-slate-500" },
-    teal:    { iconBg: "bg-teal-50", iconColor: "text-teal-600", badgeBg: "bg-teal-50", badgeText: "text-teal-700", badgeBorder: "border-teal-200", barColor: "bg-teal-500" },
-    blue:    { iconBg: "bg-blue-50", iconColor: "text-blue-600", badgeBg: "bg-blue-50", badgeText: "text-blue-700", badgeBorder: "border-blue-200", barColor: "bg-blue-500" },
-    amber:   { iconBg: "bg-amber-50", iconColor: "text-amber-600", badgeBg: "bg-amber-50", badgeText: "text-amber-700", badgeBorder: "border-amber-200", barColor: "bg-amber-500" },
-    emerald: { iconBg: "bg-emerald-50", iconColor: "text-emerald-600", badgeBg: "bg-emerald-50", badgeText: "text-emerald-700", badgeBorder: "border-emerald-200", barColor: "bg-emerald-500" },
-    rose:    { iconBg: "bg-rose-50", iconColor: "text-rose-600", badgeBg: "bg-rose-50", badgeText: "text-rose-700", badgeBorder: "border-rose-200", barColor: "bg-rose-500" },
-  };
-
-  const resolvedKey = Object.keys(TONES).find((k) => tone.startsWith(k)) ?? "slate";
-  const t = TONES[resolvedKey];
+  const resolvedKey = Object.keys(METRIC_TONES).find((k) => tone.startsWith(k)) ?? "slate";
+  const t = METRIC_TONES[resolvedKey];
 
   return (
     <div
       className={cn(
-        "admin-card shine-host group relative overflow-hidden rounded-xl border border-slate-200 bg-white p-5 shadow-sm",
+        "group relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-0.5",
         className,
       )}
+      style={{ boxShadow: `0 1px 3px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.6)` }}
     >
-      <div className={cn("absolute inset-x-0 top-0 h-0.5 rounded-t-xl", t.barColor)} />
-      <div className="flex items-start justify-between gap-3">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">
-          {label}
+      {/* Top accent bar with gradient */}
+      <div
+        className={cn("absolute inset-x-0 top-0 h-[3px] rounded-t-2xl bg-gradient-to-r", t.gradient)}
+      />
+
+      {/* Ambient background glow from accent */}
+      <div
+        className="pointer-events-none absolute inset-0 rounded-2xl"
+        style={{ background: `radial-gradient(ellipse 80% 60% at 10% 0%, ${t.glowColor}, transparent)` }}
+      />
+
+      <div className="relative p-5">
+        <div className="flex items-start justify-between gap-3">
+          <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">
+            {label}
+          </p>
+          {Icon && (
+            <span
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl shadow-sm transition-transform duration-300 group-hover:scale-110"
+              style={{ backgroundColor: t.iconBg, boxShadow: `0 4px 12px ${t.iconShadow}` }}
+            >
+              <Icon className="h-5 w-5" style={{ color: t.iconColor }} />
+            </span>
+          )}
+        </div>
+
+        <p className="mt-3 text-3xl font-black tracking-tight" style={{ color: t.valueColor }}>
+          {value}
         </p>
-        {Icon && (
-          <span
-            className={cn(
-              "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-transform duration-300 group-hover:scale-110",
-              t.iconBg,
-            )}
+
+        {note && (
+          <p className="mt-1 text-sm font-medium text-slate-400">{note}</p>
+        )}
+
+        {trend && (
+          <div
+            className="mt-3 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold"
+            style={{ backgroundColor: t.badgeBg, color: t.badgeText, borderColor: t.badgeBorder }}
           >
-            <Icon className={cn("h-4 w-4", t.iconColor)} />
-          </span>
+            <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: t.barColor }} />
+            {trend}
+          </div>
         )}
       </div>
-      <p className="animate-number-pop mt-3 text-2xl font-bold tracking-tight text-slate-800">
-        {value}
-      </p>
-      {note && (
-        <p className="mt-1 text-sm text-slate-500">{note}</p>
-      )}
-      {trend && (
-        <div
-          className={cn(
-            "mt-3 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-semibold",
-            t.badgeBg,
-            t.badgeText,
-            t.badgeBorder,
-          )}
-        >
-          <span className={cn("h-1 w-1 rounded-full", t.barColor)} />
-          {trend}
-        </div>
-      )}
     </div>
   );
 }
@@ -255,6 +281,7 @@ export function AdminSectionCard({
   children,
   className,
   bodyClassName,
+  accent = "teal",
 }: {
   eyebrow?: string;
   title: string;
@@ -263,29 +290,44 @@ export function AdminSectionCard({
   children: ReactNode;
   className?: string;
   bodyClassName?: string;
+  accent?: "teal" | "blue" | "amber" | "violet" | "rose" | "sky";
 }) {
+  const accentColors = {
+    teal:   { bar: "#0E7E74", label: "#0f766e", dot: "#0E7E74" },
+    blue:   { bar: "#3b82f6", label: "#1d4ed8", dot: "#3b82f6" },
+    amber:  { bar: "#f59e0b", label: "#b45309", dot: "#f59e0b" },
+    violet: { bar: "#8b5cf6", label: "#6d28d9", dot: "#8b5cf6" },
+    rose:   { bar: "#f43f5e", label: "#be123c", dot: "#f43f5e" },
+    sky:    { bar: "#0ea5e9", label: "#0369a1", dot: "#0ea5e9" },
+  };
+  const ac = accentColors[accent] ?? accentColors.teal;
+
   return (
     <div
       className={cn(
-        "overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm",
+        "overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm",
         className,
       )}
+      style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.5)" }}
     >
-      <div className="flex flex-col gap-3 border-b border-slate-100 bg-slate-50/30 px-5 py-4 md:flex-row md:items-center md:justify-between md:px-6">
+      <div
+        className="flex flex-col gap-3 border-b px-5 py-4 md:flex-row md:items-center md:justify-between md:px-6"
+        style={{ borderColor: "rgba(0,0,0,0.05)", backgroundColor: "rgba(248,250,252,0.6)" }}
+      >
         <div className="min-w-0">
           {eyebrow && (
             <div className="mb-2 inline-flex items-center gap-2">
-              <span className="h-1 w-4 rounded-full bg-teal-500" />
-              <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-teal-600">
+              <span className="h-1 w-5 rounded-full" style={{ backgroundColor: ac.bar }} />
+              <p className="text-[10px] font-black uppercase tracking-[0.26em]" style={{ color: ac.label }}>
                 {eyebrow}
               </p>
             </div>
           )}
-          <h3 className="text-lg font-bold tracking-tight text-slate-800">
+          <h3 className="text-lg font-black tracking-tight text-slate-800">
             {title}
           </h3>
           {description && (
-            <p className="mt-1 text-sm text-slate-500">
+            <p className="mt-1 text-sm font-medium text-slate-500">
               {description}
             </p>
           )}

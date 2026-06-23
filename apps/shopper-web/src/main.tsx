@@ -30,7 +30,16 @@ function LocationBootstrap() {
 // Metrics are logged to the console in dev; sent to VITE_VITALS_ENDPOINT in prod.
 reportWebVitals();
 
-ReactDOM.createRoot(document.getElementById("root")!).render(
+// HMR guard: preserve the root reference across hot-module re-evaluations.
+// Without this, every HMR cycle calls createRoot() on the same #root container,
+// creating duplicate roots that race each other and cause removeChild crashes.
+const container = document.getElementById("root")!;
+const w = window as unknown as { __reactRoot?: ReactDOM.Root };
+if (!w.__reactRoot) {
+  w.__reactRoot = ReactDOM.createRoot(container);
+}
+
+w.__reactRoot.render(
   <React.StrictMode>
     <ErrorBoundary>
       <QueryClientProvider client={getSharedQueryClient()}>

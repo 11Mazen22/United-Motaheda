@@ -326,7 +326,7 @@ const s = StyleSheet.create({
 
   // ── Identity block
   identity: {
-    flexDirection:  IS_RTL ? "row-reverse" : "row",
+    flexDirection:  flexRow(IS_RTL),
     alignItems:     "center",
     gap:            16,
   },
@@ -388,7 +388,7 @@ const s = StyleSheet.create({
     paddingRight: 4,
   },
   chip: {
-    flexDirection:     IS_RTL ? "row-reverse" : "row",
+    flexDirection:     flexRow(IS_RTL),
     alignItems:        "center",
     gap:               5,
     paddingHorizontal: 13,

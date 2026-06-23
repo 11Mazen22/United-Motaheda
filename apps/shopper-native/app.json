@@ -32,7 +32,11 @@
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO"
-      ]
+      ],
+      "statusBar": {
+        "backgroundColor": "transparent",
+        "translucent": true
+      }
     },
     "web": {
       "bundler": "metro",
@@ -86,10 +90,10 @@
         "origin": false
       },
       "eas": {
-        "projectId": "fa2c9eec-4491-41f9-92bb-892a56bcc578"
+        "projectId": "cc0dea9d-00d1-4ac8-9923-426fe3ba1c52"
       }
     },
     "runtimeVersion": "1.0.0",
-    "owner": "mazenmohamed"
+    "owner": "mazen-moham"
   }
 }

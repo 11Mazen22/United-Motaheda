@@ -295,6 +295,7 @@ const s = StyleSheet.create({
     shadowOpacity:   0.16,
     shadowRadius:    24,
     elevation:       32,
+    boxShadow:       "0px -6px 24px rgba(10,22,40,0.16)",
     zIndex:          9999,
     overflow:        "hidden",
   },

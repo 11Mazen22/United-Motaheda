@@ -16,13 +16,22 @@
 
 import { Platform } from "react-native";
 
-// ── Shadow factory (unchanged) ─────────────────────────────────────────
+function hexToRgba(hex: string, a: number): string {
+  const h = hex.replace("#", "");
+  const n = parseInt(h.length === 3 ? h.split("").map((c) => c + c).join("") : h, 16);
+  return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
+}
+
+// ── Shadow factory ──────────────────────────────────────────────────────
+// Android uses boxShadow (New Architecture / newArchEnabled:true) instead of
+// elevation. boxShadow is NOT clipped by overflow:hidden on the same view,
+// unlike elevation — so cards with overflow:hidden correctly show their shadow.
 function makeShadow(
   color: string,
   yOffset: number,
   opacity: number,
   blur: number,
-  elevation: number,
+  _elevation: number,
 ): object {
   return Platform.select({
     ios: {
@@ -31,7 +40,9 @@ function makeShadow(
       shadowOpacity: opacity,
       shadowRadius: blur,
     },
-    android: { elevation },
+    android: {
+      boxShadow: `0px ${yOffset}px ${blur}px ${hexToRgba(color, opacity)}`,
+    },
     default: {},
   }) ?? {};
 }
@@ -70,17 +81,17 @@ export const kit = {
 
   // ── Color palette (all V3 tokens preserved + new semantic layers) ────
   color: {
-    // ── Primary accent (unchanged) ─────────────────────────────────────
-    accent: "#06b6d4",
-    accentDeep: "#0ea5b7",
-    accentTint: "#e6f7f8",
+    // ── Primary accent — unified brand teal ────────────────────────────
+    accent: "#0E7E74",
+    accentDeep: "#0A5F58",
+    accentTint: "#E6F4F2",
     onAccent: "#ffffff",
     onInk: "#ffffff",
 
-    // ── Inks (unchanged) ──────────────────────────────────────────────
-    ink: "#07122a",
+    // ── Inks ──────────────────────────────────────────────────────────
+    ink: "#0A1220",
     inkSoft: "#475569",
-    inkFaint: "#94a3b8",
+    inkFaint: "#5E6A7C",
 
     // ── Background layers (unchanged) ─────────────────────────────────
     canvas: "#f8fafc",
@@ -146,7 +157,7 @@ export const kit = {
     raised: makeShadow("#0f172a", 1, 0.06, 3, 2),
     floating: makeShadow("#0f172a", 4, 0.10, 12, 6),
     deep: makeShadow("#0f172a", 8, 0.14, 20, 10),
-    brandGlow: makeShadow("#06b6d4", 0, 0.12, 12, 2),
+    brandGlow: makeShadow("#0E7E74", 0, 0.12, 12, 2),
 
     // 2026 additions
     /** Gentle elevation for cards sitting directly on canvas */
@@ -154,7 +165,7 @@ export const kit = {
     /** Pronounced overlay shadow for modals / sheets */
     overlay: makeShadow("#0f172a", 0, 0.18, 30, 8),
     /** Soft ambient glow for focused inputs / search bars */
-    glow: makeShadow("#06b6d4", 0, 0.08, 8, 2),
+    glow: makeShadow("#0E7E74", 0, 0.08, 8, 2),
   },
 
   // ── Typography (unchanged + font families now included) ──────────────

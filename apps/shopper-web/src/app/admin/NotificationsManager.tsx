@@ -88,23 +88,44 @@ function relativeTime(iso: string) {
 // ─── Stat Card ────────────────────────────────────────────────────────────────
 
 function StatCard({
-  label, value, icon: Icon, color, bg, delta,
-}: { label: string; value: number; icon: React.ElementType; color: string; bg: string; delta?: number }) {
+  label, value, icon: Icon, gradient, glowColor, iconBg, iconShadow, valueColor, delta,
+}: {
+  label: string;
+  value: number;
+  icon: React.ElementType;
+  gradient: string;
+  glowColor: string;
+  iconBg: string;
+  iconShadow: string;
+  valueColor: string;
+  delta?: number;
+}) {
   return (
-    <div className={`admin-card shine-host group relative overflow-hidden rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm`}>
-      <div className={`pointer-events-none absolute -right-6 -top-6 h-24 w-24 rounded-full ${bg} opacity-60 transition-transform duration-300 group-hover:scale-125`} />
-      <div className="relative flex items-center gap-3">
-        <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${bg} ${color} transition-transform duration-300 group-hover:scale-110`}>
-          <Icon className="h-5 w-5" />
-        </div>
-        <div className="min-w-0">
-          <p className="animate-number-pop text-2xl font-black text-slate-900 tabular-nums">{value}</p>
-          <p className="truncate text-xs font-semibold text-slate-500">{label}</p>
-        </div>
-        {delta !== undefined && delta > 0 && (
-          <span className="animate-pop-in ms-auto shrink-0 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-bold text-emerald-700">
-            +{delta} اليوم
+    <div
+      className="group relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-0.5"
+      style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.6)" }}
+    >
+      <div className={`absolute inset-x-0 top-0 h-[3px] rounded-t-2xl bg-gradient-to-r ${gradient}`} />
+      <div
+        className="pointer-events-none absolute inset-0 rounded-2xl"
+        style={{ background: `radial-gradient(ellipse 80% 60% at 10% 0%, ${glowColor}, transparent)` }}
+      />
+      <div className="relative p-5">
+        <div className="flex items-start justify-between gap-3">
+          <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">{label}</p>
+          <span
+            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl shadow-sm transition-transform duration-300 group-hover:scale-110"
+            style={{ backgroundColor: iconBg, boxShadow: `0 4px 12px ${iconShadow}` }}
+          >
+            <Icon className="h-5 w-5" style={{ color: valueColor }} />
           </span>
+        </div>
+        <p className="mt-3 text-3xl font-black tracking-tight" style={{ color: valueColor }}>{value}</p>
+        {delta !== undefined && delta > 0 && (
+          <div className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-bold text-emerald-700">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+            +{delta} اليوم
+          </div>
         )}
       </div>
     </div>
@@ -763,10 +784,10 @@ export default function NotificationsManager() {
 
       {/* ── Stats row ── */}
       <div className="stagger-children grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <StatCard label={lang === "ar" ? "إجمالي المُرسَل"  : "Total Sent"}   value={sent.length}  icon={BellIcon}            color="text-teal-700"    bg="bg-teal-50"    delta={today} />
-        <StatCard label={lang === "ar" ? "أُرسلت اليوم"     : "Sent Today"}   value={today}        icon={PaperAirplaneIcon}   color="text-blue-700"    bg="bg-blue-50"    />
-        <StatCard label={lang === "ar" ? "غير مقروءة"        : "Unread"}       value={unread}       icon={BellAlertIcon}       color="text-amber-700"   bg="bg-amber-50"   />
-        <StatCard label={lang === "ar" ? "بث عام"            : "Broadcasts"}   value={broadcasts}   icon={MegaphoneIcon}       color="text-purple-700"  bg="bg-purple-50"  />
+        <StatCard label={lang === "ar" ? "إجمالي المُرسَل" : "Total Sent"}  value={sent.length} icon={BellIcon}          gradient="from-teal-600 to-emerald-700"   glowColor="rgba(14,126,116,0.06)"   iconBg="rgba(14,126,116,0.12)"  iconShadow="rgba(14,126,116,0.35)"  valueColor="#134e4a" delta={today} />
+        <StatCard label={lang === "ar" ? "أُرسلت اليوم"   : "Sent Today"}  value={today}       icon={PaperAirplaneIcon} gradient="from-blue-600 to-indigo-700"    glowColor="rgba(59,130,246,0.06)"   iconBg="rgba(59,130,246,0.12)"  iconShadow="rgba(59,130,246,0.3)"   valueColor="#1e3a8a" />
+        <StatCard label={lang === "ar" ? "غير مقروءة"     : "Unread"}      value={unread}      icon={BellAlertIcon}     gradient="from-amber-500 to-orange-600"   glowColor="rgba(245,158,11,0.06)"   iconBg="rgba(245,158,11,0.12)"  iconShadow="rgba(245,158,11,0.3)"   valueColor="#78350f" />
+        <StatCard label={lang === "ar" ? "بث عام"          : "Broadcasts"}  value={broadcasts}  icon={MegaphoneIcon}     gradient="from-violet-600 to-purple-700"  glowColor="rgba(139,92,246,0.06)"   iconBg="rgba(139,92,246,0.12)"  iconShadow="rgba(139,92,246,0.3)"   valueColor="#3b0764" />
       </div>
 
       {/* ── Analytics + compose ──────────── History ── */}

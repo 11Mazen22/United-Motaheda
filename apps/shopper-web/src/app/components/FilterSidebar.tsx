@@ -26,6 +26,7 @@ import {
 } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
+  Award,
   CheckCircle2,
   ChevronDown,
   LayoutGrid,
@@ -66,6 +67,12 @@ export type FilterSidebarProps = {
   maxPrice: number;
   onPriceRangeChange: (range: [number, number]) => void;
   currency?: string;
+
+  // Brand (optional — when provided, renders a multi-select chip cloud)
+  brands?: string[];                       // ALL available brands (from products)
+  activeBrands?: string[];                 // currently selected
+  onToggleBrand?: (brand: string) => void;
+  onClearBrands?: () => void;
 
   // Summary
   totalResults: number;
@@ -132,7 +139,9 @@ const SidebarSection = memo(function SidebarSection({
 });
 
 // ─── Price slider ─────────────────────────────────────────────────────────────
-// Single-handle max-price slider. Uses RAF to debounce visual updates.
+// Dual-state design: `displayMax` updates on every drag for smooth UI;
+// the parent `onChange` is called ONLY on pointer/touch/key release so the
+// parent never triggers an API call mid-drag — eliminating scroll jump.
 
 const PriceSlider = memo(function PriceSlider({
   value,
@@ -148,74 +157,119 @@ const PriceSlider = memo(function PriceSlider({
   lang: "ar" | "en";
 }) {
   const cur = currency ?? "EGP";
-  const pct = max > 0 ? (value[1] / max) * 100 : 0;
-  const rafRef = useRef<number | null>(null);
 
-  const handleChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const next = Number(e.target.value);
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
-      rafRef.current = requestAnimationFrame(() => onChange([0, next]));
-    },
-    [onChange],
-  );
+  // Local display value — updated every drag tick for smooth visual feedback.
+  // The parent is NOT notified until the user releases the slider.
+  const [displayMax, setDisplayMax] = useState(value[1]);
+  const isDraggingRef = useRef(false);
 
+  // Sync display value when parent resets it (e.g., "Clear all").
+  const prevCommittedRef = useRef(value[1]);
+  useEffect(() => {
+    if (value[1] !== prevCommittedRef.current && !isDraggingRef.current) {
+      prevCommittedRef.current = value[1];
+      setDisplayMax(value[1]);
+    }
+  }, [value]);
+
+  const pct = max > 0 ? (displayMax / max) * 100 : 0;
   const step = useMemo(() => Math.max(1, Math.round(max / 200)), [max]);
 
+  // Update display only — no parent call, no API request.
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    isDraggingRef.current = true;
+    setDisplayMax(Number(e.target.value));
+  }, []);
+
+  // Commit to parent on release → single API call per gesture.
+  const handleCommit = useCallback(() => {
+    if (!isDraggingRef.current) return;
+    isDraggingRef.current = false;
+    prevCommittedRef.current = displayMax;
+    onChange([0, displayMax]);
+  }, [onChange, displayMax]);
+
+  const isFiltered = displayMax < max;
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {/* Value display */}
       <div className="flex items-center justify-between">
         <span className="text-[10px] font-semibold text-slate-400">
           {lang === "ar" ? "من ٠ حتى" : "0 to"}
         </span>
         <span
-          className="inline-flex items-center gap-1 rounded-xl border border-teal-200/80 bg-gradient-to-r from-teal-50 to-emerald-50 px-3 py-1 text-[11px] font-black text-teal-700 shadow-sm"
+          className={cn(
+            "inline-flex items-center gap-1 rounded-xl border px-3 py-1 text-[11px] font-black shadow-sm transition-colors duration-150",
+            isFiltered
+              ? "border-teal-300 bg-gradient-to-r from-teal-50 to-emerald-50 text-teal-700"
+              : "border-slate-200 bg-slate-50 text-slate-500",
+          )}
           dir="ltr"
         >
           <Tag className="h-2.5 w-2.5" />
-          {value[1].toLocaleString()} {cur}
+          {displayMax.toLocaleString()} {cur}
         </span>
       </div>
 
       {/* Track */}
-      <div className="relative flex h-6 items-center">
+      <div className="relative flex h-7 items-center">
         {/* Background track */}
-        <div className="h-1.5 w-full rounded-full bg-slate-100">
+        <div className="h-2 w-full rounded-full bg-slate-100">
           {/* Filled portion */}
           <div
-            className="h-full rounded-full bg-gradient-to-r from-teal-400 to-teal-500"
-            style={{ width: `${pct}%`, willChange: "width" }}
+            className="h-full rounded-full bg-gradient-to-r from-teal-400 to-teal-500 transition-none"
+            style={{ width: `${pct}%` }}
           />
         </div>
 
-        {/* Native range — invisible but interactive */}
+        {/* Native range input — fully transparent, sits on top for interactions */}
         <input
           type="range"
           min={0}
           max={max}
           step={step}
-          value={value[1]}
+          value={displayMax}
           onChange={handleChange}
+          onMouseUp={handleCommit}
+          onTouchEnd={handleCommit}
+          onKeyUp={handleCommit}
           className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
           aria-label={lang === "ar" ? "الحد الأقصى للسعر" : "Maximum price"}
           aria-valuemin={0}
           aria-valuemax={max}
-          aria-valuenow={value[1]}
+          aria-valuenow={displayMax}
         />
 
         {/* Visual thumb */}
         <div
-          className="pointer-events-none absolute h-5 w-5 -translate-x-1/2 rounded-full border-2 border-teal-500 bg-white shadow-[0_2px_8px_rgba(20,184,166,0.35)]"
-          style={{ left: `${pct}%`, willChange: "left" }}
+          className={cn(
+            "pointer-events-none absolute h-5 w-5 -translate-x-1/2 rounded-full border-2 bg-white transition-shadow duration-150",
+            isFiltered
+              ? "border-teal-500 shadow-[0_2px_10px_rgba(20,184,166,0.40)]"
+              : "border-slate-300 shadow-[0_1px_4px_rgba(15,23,42,0.15)]",
+          )}
+          style={{ left: `${pct}%` }}
         />
       </div>
 
       {/* Min/max labels */}
-      <div className="flex items-center justify-between text-[10px] font-semibold text-slate-400" dir="ltr">
+      <div
+        className="flex items-center justify-between text-[10px] font-semibold text-slate-400"
+        dir="ltr"
+      >
         <span>0</span>
-        <span>{max.toLocaleString()} {cur}</span>
+        <span>
+          {max.toLocaleString()} {cur}
+        </span>
       </div>
+
+      {/* "Drag to filter" hint — only shown when at max */}
+      {!isFiltered && (
+        <p className="text-center text-[9px] font-semibold uppercase tracking-[0.14em] text-slate-300">
+          {lang === "ar" ? "اسحب لتحديد حد السعر" : "Drag to set a price cap"}
+        </p>
+      )}
     </div>
   );
 });
@@ -388,6 +442,9 @@ const SidebarBody = memo(function SidebarBody(
     maxPrice,
     onPriceRangeChange,
     currency,
+    brands,
+    activeBrands,
+    onToggleBrand,
     hasFilters,
     onClearAll,
   } = props;
@@ -420,6 +477,15 @@ const SidebarBody = memo(function SidebarBody(
         onRemove: () => onPriceRangeChange([0, maxPrice]),
       });
     }
+    if (activeBrands && activeBrands.length > 0 && onToggleBrand) {
+      for (const b of activeBrands) {
+        result.push({
+          key: `brand:${b}`,
+          label: b,
+          onRemove: () => onToggleBrand(b),
+        });
+      }
+    }
     return result;
   }, [
     onlyInStock,
@@ -428,6 +494,8 @@ const SidebarBody = memo(function SidebarBody(
     maxPrice,
     priceRange,
     currency,
+    activeBrands,
+    onToggleBrand,
     lang,
     onInStockChange,
     onCategoryChange,
@@ -550,6 +618,91 @@ const SidebarBody = memo(function SidebarBody(
           />
         </SidebarSection>
       )}
+
+      {/* ── Brand ───────────────────────────────────────────── */}
+      {brands && brands.length > 0 && onToggleBrand && (
+        <SidebarSection
+          title={lang === "ar" ? "العلامة التجارية" : "Brand"}
+          icon={Award}
+          badge={activeBrands?.length ?? 0}
+          defaultOpen={false}
+        >
+          <BrandCloud
+            brands={brands}
+            active={activeBrands ?? []}
+            onToggle={onToggleBrand}
+            lang={lang}
+          />
+        </SidebarSection>
+      )}
+    </div>
+  );
+});
+
+// ─── Brand chip cloud ──────────────────────────────────────────────────────
+
+const BrandCloud = memo(function BrandCloud({
+  brands, active, onToggle, lang,
+}: {
+  brands: string[];
+  active: string[];
+  onToggle: (brand: string) => void;
+  lang: "ar" | "en";
+}) {
+  const [query, setQuery] = useState("");
+  const activeSet = useMemo(() => new Set(active.map((b) => b.toLowerCase())), [active]);
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return brands;
+    return brands.filter((b) => b.toLowerCase().includes(q));
+  }, [brands, query]);
+
+  return (
+    <div className="space-y-2">
+      {brands.length > 8 && (
+        <div className="relative">
+          <Search className="pointer-events-none absolute start-2.5 top-1/2 h-3 w-3 -translate-y-1/2 text-slate-400" />
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder={lang === "ar" ? "بحث في العلامات…" : "Search brands…"}
+            className="h-8 w-full rounded-xl border border-slate-200 bg-slate-50/80 ps-7 pe-3 text-[11px] font-semibold text-slate-700 placeholder-slate-400 outline-none transition-all focus:border-teal-300 focus:bg-white focus:ring-2 focus:ring-teal-100"
+            dir={lang === "ar" ? "rtl" : "ltr"}
+          />
+        </div>
+      )}
+      <div
+        className="flex flex-wrap gap-1.5 overflow-y-auto pr-0.5"
+        style={{ maxHeight: "12rem", scrollbarWidth: "thin" }}
+      >
+        {filtered.length === 0 ? (
+          <p className="w-full py-2 text-center text-[11px] font-semibold text-slate-400">
+            {lang === "ar" ? "لا توجد علامات" : "No brands"}
+          </p>
+        ) : (
+          filtered.map((b) => {
+            const isActive = activeSet.has(b.toLowerCase());
+            return (
+              <button
+                key={b}
+                type="button"
+                onClick={() => onToggle(b)}
+                className={cn(
+                  "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10.5px] font-black transition-all",
+                  isActive
+                    ? "border-teal-300 bg-teal-50 text-teal-700"
+                    : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50",
+                )}
+              >
+                {b}
+                {isActive && <X className="h-2.5 w-2.5" />}
+              </button>
+            );
+          })
+        )}
+      </div>
     </div>
   );
 });

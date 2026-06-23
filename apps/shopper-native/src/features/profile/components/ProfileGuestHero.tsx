@@ -220,6 +220,7 @@ const s = StyleSheet.create({
     shadowOpacity: 0.32,
     shadowRadius:  16,
     elevation:     8,
+    boxShadow:    "0px 8px 16px rgba(13,184,168,0.32)",
   },
   primaryGrad: {
     flexDirection:   flexRow(IS_RTL),

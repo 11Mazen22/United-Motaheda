@@ -158,10 +158,10 @@ export default function AdminLayout() {
   return (
     <div
       style={layoutStyle}
-      className="admin-layout flex min-h-screen flex-col bg-[var(--admin-bg)] text-[var(--admin-text)]"
+      className="admin-layout flex min-h-screen flex-col bg-[#F2F5F9] text-slate-900"
     >
-      {/* Clean, soft background gradient */}
-      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(ellipse_at_top_left,rgba(13,148,136,0.04),transparent_40%),radial-gradient(ellipse_at_bottom_right,rgba(15,23,42,0.02),transparent_24%)]" />
+      {/* Subtle background texture */}
+      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(ellipse_80%_50%_at_top_left,rgba(14,126,116,0.03),transparent)]" />
 
       {/* Desktop sidebar */}
       <AdminSidebar
@@ -205,47 +205,50 @@ export default function AdminLayout() {
 
       {/* Main content area */}
       <div className="relative min-h-screen transition-[padding-inline-start] duration-300 lg:ps-[var(--admin-sidebar-width)]">
-        {/* Sticky header – refined with softer bg */}
-        <header className="sticky top-0 z-30 border-b border-[var(--admin-border)] bg-white/95 backdrop-blur-md shadow-sm">
+        {/* Sticky header */}
+        <header className="sticky top-0 z-30 border-b border-slate-200/80 bg-white shadow-sm">
           <div className="mx-auto flex max-w-[112rem] items-center justify-between gap-4 px-4 py-3 md:px-6 lg:px-8">
-            {/* Left: menu toggle + title */}
+            {/* Left: mobile menu toggle + page title */}
             <div className="flex min-w-0 items-center gap-3">
               <button
                 type="button"
                 onClick={() => setSidebarOpen(true)}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--admin-border)] bg-white text-slate-500 shadow-sm transition-colors hover:bg-slate-50 active:scale-95 lg:hidden"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 shadow-sm transition-colors hover:bg-slate-50 active:scale-95 lg:hidden"
                 aria-label={lang === "ar" ? "فتح القائمة" : "Open navigation"}
               >
                 <Bars3Icon className="h-5 w-5" />
               </button>
 
               <div className="min-w-0">
-                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[var(--admin-accent)]">
+                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-teal-600">
                   {lang === "ar" ? "لوحة الإدارة" : "Admin panel"}
                 </p>
-                <h2 className="truncate text-xl font-bold tracking-tight text-[var(--admin-heading)] sm:text-2xl">
+                <h2 className="truncate text-xl font-black tracking-tight text-slate-900 sm:text-2xl">
                   {routeMeta.title}
                 </h2>
-                <p className="mt-0.5 hidden text-sm font-medium leading-5 text-[var(--admin-text-muted)] md:block">
+                <p className="mt-0.5 hidden text-sm font-medium leading-5 text-slate-500 md:block">
                   {routeMeta.subtitle}
                 </p>
               </div>
             </div>
 
-            {/* Right: date + user + actions */}
+            {/* Right: date + user chip + actions */}
             <div className="flex shrink-0 items-center gap-2 md:gap-2.5">
               {/* Date pill */}
-              <div className="hidden rounded-xl border border-[var(--admin-border)] bg-white px-3 py-2 text-sm font-semibold text-[var(--admin-text-muted)] shadow-sm md:block">
+              <div className="hidden rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-500 md:block">
                 {todayLabel}
               </div>
 
               {/* User chip */}
-              <div className="hidden items-center gap-2.5 rounded-xl border border-[var(--admin-border)] bg-white px-3 py-2 shadow-sm md:flex">
-                <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-teal-50 text-sm font-extrabold text-teal-700">
+              <div className="hidden items-center gap-2.5 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm md:flex">
+                <span
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-sm font-black text-white"
+                  style={{ backgroundColor: "#0A1220" }}
+                >
                   {userInitial}
                 </span>
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-bold text-slate-900">
+                  <p className="truncate text-sm font-black text-slate-900">
                     {user?.fullName || (lang === "ar" ? "مدير النظام" : "Administrator")}
                   </p>
                   <p className="truncate text-xs font-medium text-slate-500" dir="ltr">
@@ -258,7 +261,7 @@ export default function AdminLayout() {
               <button
                 type="button"
                 onClick={() => navigate("/")}
-                className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-[var(--admin-border)] bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm transition-colors hover:bg-slate-50"
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm transition-colors hover:bg-slate-50"
               >
                 <ArrowTopRightOnSquareIcon className="h-4 w-4 text-teal-600" />
                 <span className="hidden sm:inline">{lang === "ar" ? "المتجر" : "Store"}</span>
@@ -268,7 +271,8 @@ export default function AdminLayout() {
               <button
                 type="button"
                 onClick={handleSignOut}
-                className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-bold text-white shadow-md transition-colors hover:bg-slate-800 active:scale-95"
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-xl px-4 text-sm font-black text-white shadow-md transition-colors hover:opacity-90 active:scale-95"
+                style={{ backgroundColor: "#0A1220" }}
               >
                 <ArrowLeftOnRectangleIcon className="h-4 w-4" />
                 <span className="hidden sm:inline">{lang === "ar" ? "خروج" : "Logout"}</span>

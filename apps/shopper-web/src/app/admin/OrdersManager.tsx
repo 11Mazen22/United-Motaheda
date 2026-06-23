@@ -224,9 +224,13 @@ function isWithinSelectedDateRange(orderDate: string, preset: DatePreset, dateFr
   return true;
 }
 
-function allowedNextStatuses(current: OrderStatus, role: AdminRole): OrderStatus[] {
+function allowedNextStatuses(current: OrderStatus, role: AdminRole, paymentStatus?: string): OrderStatus[] {
   if (role === "driver") {
     return current === "Out for Delivery" ? ["Delivered"] : [];
+  }
+  // Failed payment — only cancellation is valid
+  if (paymentStatus === "failed" && current !== "Cancelled") {
+    return ["Cancelled"];
   }
   return ORDER_STATUSES.filter((status) => status !== current);
 }
@@ -244,7 +248,7 @@ const StatusSelect = memo(function StatusSelect({
   disabled: boolean;
   onChange: (order: AdminOrder, next: OrderStatus) => void;
 }) {
-  const options = allowedNextStatuses(order.status, role);
+  const options = allowedNextStatuses(order.status, role, order.paymentStatus);
   if (!options.length) {
     return (
       <span className={cn("admin-badge", getStatusClasses(order.status))}>
@@ -270,6 +274,14 @@ const StatusSelect = memo(function StatusSelect({
   );
 });
 
+function getStatusAccentColor(status: OrderStatus): string {
+  if (status === "Delivered") return "#10b981";
+  if (status === "Cancelled") return "#f43f5e";
+  if (status === "Out for Delivery") return "#0ea5e9";
+  if (status === "Processing") return "#8b5cf6";
+  return "#f59e0b";
+}
+
 const OrderCard = memo(function OrderCard({
   order,
   lang,
@@ -281,34 +293,48 @@ const OrderCard = memo(function OrderCard({
   updating: boolean;
   onStatusChange: (order: AdminOrder, next: OrderStatus) => void;
 }) {
+  const accent = getStatusAccentColor(order.status);
   return (
-    <article className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">{lang === "ar" ? "رقم الطلب" : "Order ID"}</p>
-          <p className="mt-1 truncate text-sm font-bold text-slate-900" dir="ltr">{order.id}</p>
-        </div>
-        <span className={cn("admin-badge shrink-0", getStatusClasses(order.status))}>
-          <span className={cn("h-1.5 w-1.5 rounded-full", getStatusDot(order.status))} />
-          {getStatusLabel(order.status, lang)}
-        </span>
-      </div>
+    <article
+      className="relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5"
+      style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.5)" }}
+    >
+      {/* Status accent top bar */}
+      <div className="h-[3px]" style={{ background: accent }} />
 
-      <div className="mt-3 rounded-lg border border-slate-100 bg-slate-50 px-3.5 py-3">
-        <p className="text-sm font-bold text-slate-900">{order.customerName || (lang === "ar" ? "عميل" : "Customer")}</p>
-        <p className="mt-0.5 text-xs font-semibold text-slate-500" dir="ltr">{order.customerPhone}</p>
-        {order.customerAddress && <p className="mt-1 line-clamp-2 text-xs font-semibold text-slate-500">{order.customerAddress}</p>}
-      </div>
-
-      <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <p className="text-base font-bold text-slate-950">{formatCurrency(order.totalPrice, lang)}</p>
-          <p className="mt-0.5 text-xs font-semibold text-slate-500">{formatDate(order.orderDate, lang)}</p>
-          {order.assignedDriver && <p className="mt-1 text-xs font-semibold text-slate-500">🚚 {order.assignedDriver}</p>}
+      <div className="p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">{lang === "ar" ? "رقم الطلب" : "Order ID"}</p>
+            <p className="mt-1 truncate text-sm font-bold text-slate-900" dir="ltr">#{order.id.slice(-8).toUpperCase()}</p>
+          </div>
+          <span className={cn("inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-bold", getStatusClasses(order.status))}>
+            <span className={cn("h-1.5 w-1.5 rounded-full", getStatusDot(order.status))} />
+            {getStatusLabel(order.status, lang)}
+          </span>
         </div>
-        <div className="flex items-center gap-2">
-          {updating && <ArrowPathIcon className="h-4 w-4 animate-spin text-teal-600" />}
-          <StatusSelect order={order} lang={lang} role="manager" disabled={updating} onChange={onStatusChange} />
+
+        <div className="mt-3 rounded-xl border border-slate-100 bg-slate-50/80 px-3.5 py-3">
+          <p className="text-sm font-bold text-slate-900">{order.customerName || (lang === "ar" ? "عميل" : "Customer")}</p>
+          <p className="mt-0.5 text-xs font-semibold text-slate-500" dir="ltr">{order.customerPhone}</p>
+          {order.customerAddress && <p className="mt-1 line-clamp-2 text-xs font-semibold text-slate-500">{order.customerAddress}</p>}
+        </div>
+
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <p className="text-lg font-black text-slate-950">{formatCurrency(order.totalPrice, lang)}</p>
+            <p className="mt-0.5 text-xs font-semibold text-slate-500">{formatDate(order.orderDate, lang)}</p>
+            {order.assignedDriver && (
+              <p className="mt-1 flex items-center gap-1 text-xs font-semibold text-slate-500">
+                <TruckIcon className="h-3 w-3 text-sky-500" />
+                {order.assignedDriver}
+              </p>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            {updating && <ArrowPathIcon className="h-4 w-4 animate-spin text-teal-600" />}
+            <StatusSelect order={order} lang={lang} role="manager" disabled={updating} onChange={onStatusChange} />
+          </div>
         </div>
       </div>
     </article>
@@ -320,12 +346,27 @@ const OrderCard = memo(function OrderCard({
 function getPaymentStatusBadge(status: string) {
   switch (status) {
     case "pending_verification":
-      return <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-[11px] font-bold text-amber-700">⏳ بانتظار التحقق</span>;
+      return (
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-amber-700">
+          <span className="h-1.5 w-1.5 rounded-full bg-amber-500 shadow-[0_0_4px_rgba(245,158,11,0.6)]" />
+          بانتظار التحقق
+        </span>
+      );
     case "verified":
     case "paid":
-      return <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-bold text-emerald-700">✓ تم التحقق</span>;
+      return (
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-emerald-700">
+          <CheckCircleIcon className="h-3 w-3 text-emerald-500" />
+          تم التحقق
+        </span>
+      );
     case "failed":
-      return <span className="inline-flex items-center gap-1 rounded-full border border-rose-200 bg-rose-50 px-2.5 py-0.5 text-[11px] font-bold text-rose-700">✗ مرفوض</span>;
+      return (
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-rose-200 bg-rose-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-rose-700">
+          <XCircleIcon className="h-3 w-3 text-rose-500" />
+          مرفوض
+        </span>
+      );
     default:
       return null;
   }

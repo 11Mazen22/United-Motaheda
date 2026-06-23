@@ -115,6 +115,7 @@ export const cntStyles = StyleSheet.create({
     shadowOpacity:     0.3,
     shadowRadius:      8,
     elevation:         6,
+    boxShadow:         "0px 0px 8px rgba(255,107,107,0.3)",
   },
   value: {
     color:              "#fff",

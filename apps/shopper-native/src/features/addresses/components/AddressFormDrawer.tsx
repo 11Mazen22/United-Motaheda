@@ -1037,6 +1037,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 4,
     elevation: 4,
+    boxShadow: "0px 2px 4px rgba(10,154,140,0.30)",
   },
   stepPillCompleted: {
     backgroundColor: theme.colors.brand[50],
@@ -1271,6 +1272,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 4,
     elevation: 4,
+    boxShadow: "0px 2px 4px rgba(10,154,140,0.30)",
   },
   navBtnPrimaryText: {
     fontSize: 13,
@@ -1292,6 +1294,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 6,
     elevation: 5,
+    boxShadow: "0px 4px 6px rgba(10,154,140,0.30)",
   },
   submitText: {
     fontSize: 15,
@@ -1326,6 +1329,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.18,
     shadowRadius: 24,
     elevation: 12,
+    boxShadow: "0px 8px 24px rgba(0,0,0,0.18)",
   },
   discardIconWrap: {
     width: 64,

@@ -61,7 +61,12 @@ function buildSignature(
     return `no-coordinates:${requestedBranchId ?? ""}:${label ?? ""}:${itemSignature}`;
   }
 
-  return `${coordinates.lat}:${coordinates.lng}:${requestedBranchId ?? ""}:${label ?? ""}:${itemSignature}`;
+  // Round to 4 decimal places (~11 m accuracy) so GPS jitter and repeated
+  // WiFi triangulation calls don't produce new query keys on every tick.
+  const lat = Math.round(coordinates.lat * 10_000) / 10_000;
+  const lng = Math.round(coordinates.lng * 10_000) / 10_000;
+
+  return `${lat}:${lng}:${requestedBranchId ?? ""}:${label ?? ""}:${itemSignature}`;
 }
 
 export function useLocationState(): LocationState;
@@ -96,9 +101,9 @@ export function useBrowserLocation(enabled = true) {
         setPermission("denied");
       },
       {
-        enableHighAccuracy: true,
-        maximumAge: 0,
-        timeout: 8_000,
+        enableHighAccuracy: false,
+        maximumAge: 60_000,
+        timeout: 20_000,
       },
     );
 

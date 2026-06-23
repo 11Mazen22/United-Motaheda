@@ -11,7 +11,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Text as UIText }  from "../shared/ui/Text";
 import { theme }            from "../shared/theme";
 import { kit }              from "../shared/kit";
-import { isRtl, FORWARD_CHEVRON } from "../utils/layout";
+import { isRtl, flexRow, FORWARD_CHEVRON } from "../utils/layout";
 import type { NativeCategory } from "../features/products/types";
 
 // ─── Palette ─────────────────────────────────────────────────────────────────
@@ -184,7 +184,7 @@ export const CategoryCard = memo(function CategoryCard({
           </UIText>
 
           {/* Count + forward chevron */}
-          <View style={[cs.gridFoot, { flexDirection: IS_RTL ? "row-reverse" : "row" }]}>
+          <View style={[cs.gridFoot, { flexDirection: flexRow(IS_RTL) }]}>
             {showCount && (
               <UIText style={cs.gridCount}>
                 {formatCount(category.count)}{lang === "ar" ? " منتج" : " items"}
@@ -227,7 +227,7 @@ export const CategoryGridSkeleton = memo(function CategoryGridSkeleton() {
 const cs = StyleSheet.create({
   // ── Pill (Creative gradient category rail)
   pill: {
-    flexDirection:     IS_RTL ? "row-reverse" : "row",
+    flexDirection:     flexRow(IS_RTL),
     alignItems:        "center",
     gap:               10,
     height:            48,
@@ -235,7 +235,7 @@ const cs = StyleSheet.create({
     borderRadius:      kit.radius.pill,
     borderWidth:       1,
     borderColor:       "rgba(255,255,255,0.2)",
-    ...kit.shadow.soft,
+    ...kit.shadow.raised,
   },
   pillDot: {
     width:          32,
@@ -280,7 +280,7 @@ const cs = StyleSheet.create({
     height:          48,
     borderRadius:    kit.radius.pill,
     backgroundColor: kit.color.well,
-    ...kit.shadow.soft,
+    ...kit.shadow.raised,
   },
 
   // ── Grid card

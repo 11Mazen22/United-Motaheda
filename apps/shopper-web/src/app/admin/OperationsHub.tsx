@@ -133,7 +133,10 @@ const StatusSelect = memo(function StatusSelect({
   disabled: boolean;
   onChange: (order: AdminOrder, next: OrderStatus) => void;
 }) {
-  const allowed = STATUS_FLOW[order.status] ?? [];
+  // If payment was rejected, only allow cancellation
+  const allowed = order.paymentStatus === "failed" && order.status !== "Cancelled"
+    ? (["Cancelled"] as OrderStatus[])
+    : (STATUS_FLOW[order.status] ?? []);
   if (allowed.length === 0) {
     return <span className="text-sm text-slate-600">{getStatusLabel(order.status, lang)}</span>;
   }
@@ -214,6 +217,17 @@ const OrderRow = memo(function OrderRow({
 
 // ─── OrderCard (mobile) ──────────────────────────────────────────────────────
 
+function getStatusAccent(status: OrderStatus): string {
+  const map: Record<OrderStatus, string> = {
+    Pending:            "#f59e0b",
+    Processing:         "#8b5cf6",
+    "Out for Delivery": "#0ea5e9",
+    Delivered:          "#10b981",
+    Cancelled:          "#f43f5e",
+  };
+  return map[status] ?? "#64748b";
+}
+
 const OrderCard = memo(function OrderCard({
   order,
   drivers,
@@ -230,46 +244,59 @@ const OrderCard = memo(function OrderCard({
   onDriverAssign: (orderId: string, driverId: string) => void;
 }) {
   const busy = updatingId === order.id;
+  const accent = getStatusAccent(order.status);
   return (
-    <article className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-sm font-medium text-slate-700" dir="ltr">{order.id}</p>
-          <p className="mt-0.5 text-xs text-slate-400">{formatDate(order.orderDate, lang)}</p>
+    <article
+      className="relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5"
+      style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.5)" }}
+    >
+      <div className="h-[3px]" style={{ background: accent }} />
+
+      <div className="p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
+              {lang === "ar" ? "رقم الطلب" : "Order ID"}
+            </p>
+            <p className="mt-1 text-sm font-bold text-slate-900" dir="ltr">
+              #{order.id.slice(-8).toUpperCase()}
+            </p>
+            <p className="mt-0.5 text-xs font-medium text-slate-400">{formatDate(order.orderDate, lang)}</p>
+          </div>
+          <span className={cn("inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide", getStatusClasses(order.status))}>
+            {getStatusLabel(order.status, lang)}
+          </span>
         </div>
-        <span className={cn("inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-medium", getStatusClasses(order.status))}>
-          {getStatusLabel(order.status, lang)}
-        </span>
-      </div>
-      <div className="mt-3 rounded-md border border-slate-100 bg-slate-50 px-3 py-2">
-        <p className="text-sm font-medium text-slate-700">{order.customerName || "—"}</p>
-        <p className="mt-0.5 text-xs text-slate-400" dir="ltr">{order.customerPhone}</p>
-      </div>
-      <div className="mt-3 space-y-2.5">
-        <div>
-          <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-slate-400">
-            {lang === "ar" ? "تعيين سائق" : "Assign driver"}
-          </p>
-          <DriverSelect
-            order={order}
-            drivers={drivers}
-            lang={lang}
-            disabled={busy}
-            onChange={onDriverAssign}
-          />
+        <div className="mt-3 rounded-xl border border-slate-100 bg-slate-50/80 px-3 py-2.5">
+          <p className="text-sm font-bold text-slate-800">{order.customerName || "—"}</p>
+          <p className="mt-0.5 text-xs font-semibold text-slate-400" dir="ltr">{order.customerPhone}</p>
         </div>
-        <div>
-          <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-slate-400">
-            {lang === "ar" ? "الحالة" : "Status"}
-          </p>
-          <div className="flex items-center gap-2">
-            {busy && <ArrowPathIcon className="h-3.5 w-3.5 animate-spin text-teal-600" />}
-            <StatusSelect
+        <div className="mt-3 space-y-2.5">
+          <div>
+            <p className="mb-1.5 text-[9px] font-black uppercase tracking-[0.18em] text-slate-400">
+              {lang === "ar" ? "تعيين سائق" : "Assign driver"}
+            </p>
+            <DriverSelect
               order={order}
+              drivers={drivers}
               lang={lang}
               disabled={busy}
-              onChange={onStatusChange}
+              onChange={onDriverAssign}
             />
+          </div>
+          <div>
+            <p className="mb-1.5 text-[9px] font-black uppercase tracking-[0.18em] text-slate-400">
+              {lang === "ar" ? "الحالة" : "Status"}
+            </p>
+            <div className="flex items-center gap-2">
+              {busy && <ArrowPathIcon className="h-3.5 w-3.5 animate-spin text-teal-600" />}
+              <StatusSelect
+                order={order}
+                lang={lang}
+                disabled={busy}
+                onChange={onStatusChange}
+              />
+            </div>
           </div>
         </div>
       </div>

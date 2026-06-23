@@ -176,6 +176,12 @@ const RoleSelect = memo(function RoleSelect({
 
 // ─── StaffStatusBadge ─────────────────────────────────────────────────────────
 
+const STATUS_DOT: Record<StaffStatus, string> = {
+  Active:    "bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.7)]",
+  Inactive:  "bg-amber-400",
+  Suspended: "bg-rose-500",
+};
+
 const StaffStatusBadge = memo(function StaffStatusBadge({
   status,
   lang,
@@ -186,10 +192,11 @@ const StaffStatusBadge = memo(function StaffStatusBadge({
   return (
     <span
       className={cn(
-        "inline-flex rounded-md border px-2.5 py-1 text-xs font-medium",
+        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-wide",
         getStatusClasses(status)
       )}
     >
+      <span className={cn("h-1.5 w-1.5 rounded-full", STATUS_DOT[status])} />
       {translateStatus(status, lang)}
     </span>
   );
@@ -247,16 +254,19 @@ const StaffTableRow = memo(function StaffTableRow({
     <TableRow className="border-slate-100 transition-colors hover:bg-slate-50/60">
       <TableCell className="px-4 py-3 align-top">
         <div className="flex min-w-[14rem] items-center gap-3">
-          <span className="inline-flex h-9 w-9 items-center justify-center rounded-md bg-teal-50 text-sm font-bold text-teal-700">
+          <span
+            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-sm font-black text-white shadow-sm"
+            style={{ background: "linear-gradient(135deg, #0E7E74 0%, #0d6b62 100%)" }}
+          >
             {(member.fullName || member.username || "A")
               .slice(0, 1)
               .toUpperCase()}
           </span>
           <div className="min-w-0">
-            <p className="truncate text-sm font-medium text-slate-800">
+            <p className="truncate text-sm font-bold text-slate-800">
               {member.fullName || (lang === "ar" ? "موظف" : "Staff member")}
             </p>
-            <p className="mt-0.5 truncate text-xs text-slate-400">
+            <p className="mt-0.5 truncate text-xs font-medium text-slate-400">
               {member.email ||
                 (lang === "ar" ? "بدون بريد إلكتروني" : "No email")}
             </p>
@@ -316,64 +326,75 @@ const StaffMobileCard = memo(function StaffMobileCard({
   onRoleChange: (m: StaffMember, next: SupabaseRole) => void;
   canEdit: boolean;
 }) {
+  const roleColor: Record<string, string> = {
+    admin:      "#0E7E74", manager: "#0ea5e9", pharmacist: "#8b5cf6",
+    driver:     "#f59e0b", customer: "#64748b",
+  };
+  const rc = roleColor[member.role] ?? "#64748b";
+
   return (
-    <article className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-3">
-          <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-teal-50 text-sm font-bold text-teal-700">
-            {(member.fullName || member.username || "A")
-              .slice(0, 1)
-              .toUpperCase()}
-          </span>
-          <div className="min-w-0">
-            <p className="truncate text-sm font-medium text-slate-800">
-              {member.fullName || (lang === "ar" ? "موظف" : "Staff member")}
-            </p>
-            <p
-              className="mt-0.5 truncate text-xs text-slate-400"
-              dir="ltr"
+    <article
+      className="relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5"
+      style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.5)" }}
+    >
+      <div className="h-[3px]" style={{ background: rc }} />
+
+      <div className="p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-3">
+            <span
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-sm font-black text-white shadow-sm"
+              style={{ background: `linear-gradient(135deg, ${rc}e0 0%, ${rc}99 100%)` }}
             >
-              {member.username}
+              {(member.fullName || member.username || "A").slice(0, 1).toUpperCase()}
+            </span>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-bold text-slate-800">
+                {member.fullName || (lang === "ar" ? "موظف" : "Staff member")}
+              </p>
+              <p className="mt-0.5 truncate text-xs font-medium text-slate-400" dir="ltr">
+                {member.username}
+              </p>
+            </div>
+          </div>
+          <StaffStatusBadge status={member.status} lang={lang} />
+        </div>
+
+        <div className="mt-3 grid gap-2">
+          <div className="rounded-xl border border-slate-100 bg-slate-50/80 px-3 py-2.5">
+            <p className="text-[9px] font-black uppercase tracking-[0.18em] text-slate-400">
+              {lang === "ar" ? "صلاحية الوصول" : "Access level"}
+            </p>
+            <div className="mt-2">
+              <RoleSelect
+                member={member}
+                lang={lang}
+                disabled={!canEdit || updatingRole}
+                onChange={canEdit ? onRoleChange : () => {}}
+              />
+            </div>
+          </div>
+          <div className="rounded-xl border border-slate-100 bg-slate-50/80 px-3 py-2.5">
+            <p className="text-[9px] font-black uppercase tracking-[0.18em] text-slate-400">
+              {lang === "ar" ? "الهاتف" : "Phone"}
+            </p>
+            <p className="mt-1 text-sm font-bold text-slate-700" dir="ltr">
+              {member.phone || "—"}
             </p>
           </div>
         </div>
-        <StaffStatusBadge status={member.status} lang={lang} />
-      </div>
 
-      <div className="mt-3 grid gap-2">
-        <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
-          <p className="text-[10px] font-medium uppercase tracking-wide text-slate-400">
-            {lang === "ar" ? "صلاحية الوصول" : "Access level"}
-          </p>
-          <div className="mt-2">
-            <RoleSelect
-              member={member}
-              lang={lang}
-              disabled={!canEdit || updatingRole}
-              onChange={canEdit ? onRoleChange : () => {}}
-            />
-          </div>
+        <div className="mt-3 flex gap-2">
+          <StaffStatusSelect
+            member={member}
+            lang={lang}
+            disabled={!canEdit || updatingStatus}
+            onChange={canEdit ? onStatusChange : () => {}}
+          />
+          {updatingStatus && (
+            <ArrowPathIcon className="h-4 w-4 animate-spin text-teal-600" />
+          )}
         </div>
-        <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
-          <p className="text-[10px] font-medium uppercase tracking-wide text-slate-400">
-            {lang === "ar" ? "الهاتف" : "Phone"}
-          </p>
-          <p className="mt-1 text-sm text-slate-700" dir="ltr">
-            {member.phone || "—"}
-          </p>
-        </div>
-      </div>
-
-      <div className="mt-3 flex gap-2">
-        <StaffStatusSelect
-          member={member}
-          lang={lang}
-          disabled={!canEdit || updatingStatus}
-          onChange={canEdit ? onStatusChange : () => {}}
-        />
-        {updatingStatus && (
-          <ArrowPathIcon className="h-4 w-4 animate-spin text-teal-600" />
-        )}
       </div>
     </article>
   );
@@ -749,7 +770,7 @@ export default function StaffManager() {
               type="button"
               onClick={clearFilters}
               disabled={!activeFilterCount}
-              className="inline-flex h-9 items-center justify-center rounded-md border border-slate-200 bg-white px-3 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex h-9 items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {lang === "ar" ? "إعادة ضبط" : "Reset"}
             </button>
@@ -757,11 +778,9 @@ export default function StaffManager() {
               type="button"
               onClick={() => void loadStaff(true, true)}
               disabled={refreshing}
-              className="inline-flex h-9 items-center justify-center gap-1 rounded-md border border-slate-200 bg-white px-3 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 disabled:opacity-60"
+              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-50 disabled:opacity-60"
             >
-              <ArrowPathIcon
-                className={cn("h-4 w-4", refreshing && "animate-spin")}
-              />
+              <ArrowPathIcon className={cn("h-4 w-4", refreshing && "animate-spin")} />
               {lang === "ar" ? "تحديث" : "Refresh"}
             </button>
             <button
@@ -771,7 +790,8 @@ export default function StaffManager() {
                 setForm(EMPTY_FORM);
                 setFormError("");
               }}
-              className="inline-flex h-9 items-center justify-center gap-1 rounded-md bg-slate-700 px-3 text-sm font-medium text-white shadow-sm transition-colors hover:bg-slate-600"
+              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl px-4 text-sm font-bold text-white shadow-sm transition-all hover:opacity-90 active:scale-95"
+              style={{ background: "linear-gradient(135deg, #0E7E74 0%, #0d6b62 100%)" }}
             >
               <PlusIcon className="h-4 w-4" />
               {lang === "ar" ? "إضافة موظف" : "Add employee"}
@@ -800,7 +820,7 @@ export default function StaffManager() {
               <select
                 value={roleFilter}
                 onChange={(e) => setRoleFilter(e.target.value)}
-                className="h-9 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-600 outline-none transition focus:border-teal-400 focus:ring-2 focus:ring-teal-500/10"
+                className="h-9 rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-600 outline-none transition focus:border-teal-400 focus:ring-2 focus:ring-teal-500/10"
               >
                 <option value="all">
                   {lang === "ar" ? "جميع الأدوار" : "All roles"}
@@ -816,7 +836,7 @@ export default function StaffManager() {
                 onChange={(e) =>
                   setStatusFilter(e.target.value as StatusFilter)
                 }
-                className="h-9 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-600 outline-none transition focus:border-teal-400 focus:ring-2 focus:ring-teal-500/10"
+                className="h-9 rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-600 outline-none transition focus:border-teal-400 focus:ring-2 focus:ring-teal-500/10"
               >
                 <option value="all">
                   {lang === "ar" ? "جميع الحالات" : "All statuses"}
@@ -996,7 +1016,7 @@ export default function StaffManager() {
                     role: e.target.value as StaffRole,
                   }))
                 }
-                className="h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-600 outline-none transition focus:border-teal-400 focus:ring-2 focus:ring-teal-500/10"
+                className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-600 outline-none transition focus:border-teal-400 focus:ring-2 focus:ring-teal-500/10"
               >
                 {STAFF_ROLES.map((r) => (
                   <option key={r.value} value={r.value}>
@@ -1018,7 +1038,7 @@ export default function StaffManager() {
                     status: e.target.value as StaffStatus,
                   }))
                 }
-                className="h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-600 outline-none transition focus:border-teal-400 focus:ring-2 focus:ring-teal-500/10"
+                className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-600 outline-none transition focus:border-teal-400 focus:ring-2 focus:ring-teal-500/10"
               >
                 <option value="Active">
                   {lang === "ar" ? "نشط" : "Active"}
@@ -1042,14 +1062,15 @@ export default function StaffManager() {
               <button
                 type="button"
                 onClick={() => setDialogOpen(false)}
-                className="inline-flex h-9 items-center justify-center rounded-md border border-slate-200 bg-white px-4 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50"
+                className="inline-flex h-9 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-50"
               >
                 {lang === "ar" ? "إلغاء" : "Cancel"}
               </button>
               <button
                 type="submit"
                 disabled={submitting}
-                className="inline-flex h-9 items-center justify-center gap-1 rounded-md bg-slate-700 px-4 text-sm font-medium text-white transition-colors hover:bg-slate-600 disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl px-4 text-sm font-bold text-white shadow-sm transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                style={{ background: "linear-gradient(135deg, #0E7E74 0%, #0d6b62 100%)" }}
               >
                 {submitting && (
                   <ArrowPathIcon className="h-4 w-4 animate-spin" />

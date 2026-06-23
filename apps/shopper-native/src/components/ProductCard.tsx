@@ -37,7 +37,7 @@ import { useTranslation } from "react-i18next";
 import { Text as UIText }  from "../shared/ui/Text";
 import { theme }            from "../shared/theme";
 import { kit }              from "../shared/kit";
-import { isRtl }            from "../utils/layout";
+import { isRtl, flexRow }   from "../utils/layout";
 import { useCartStore }     from "../stores/cart";
 import { useWishlistStore } from "../stores/wishlist";
 import type { NativeProduct } from "../features/products/types";
@@ -434,7 +434,7 @@ const cs = StyleSheet.create({
 
   // ── Price row ──────────────────────────────────────────────────────────
   bottomRow: {
-    flexDirection:  IS_RTL ? "row-reverse" : "row",
+    flexDirection:  flexRow(IS_RTL),
     alignItems:     "flex-end",
     justifyContent: "space-between",
     marginTop:      4,

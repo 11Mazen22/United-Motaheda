@@ -131,6 +131,14 @@ function getOrderStatusTone(status: AdminOrder["status"]): string {
   return "border-amber-200 bg-amber-50 text-amber-700";
 }
 
+function getOrderStatusAccent(status: AdminOrder["status"]): string {
+  if (status === "Delivered") return "#10b981";
+  if (status === "Cancelled") return "#f43f5e";
+  if (status === "Out for Delivery") return "#0ea5e9";
+  if (status === "Processing") return "#8b5cf6";
+  return "#f59e0b";
+}
+
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 const OverviewOrderCard = memo(function OverviewOrderCard({
@@ -142,32 +150,41 @@ const OverviewOrderCard = memo(function OverviewOrderCard({
   lang: Language;
   showTotal: boolean;
 }) {
+  const accent = getOrderStatusAccent(order.status);
   return (
-    <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-[0_2px_8px_rgba(15,23,42,0.04)] transition-shadow hover:shadow-[0_4px_16px_rgba(15,23,42,0.06)]">
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div className="min-w-0">
-          <p className="text-sm font-bold text-slate-900">{order.id}</p>
-          <p className="mt-1 line-clamp-1 text-sm font-semibold text-slate-600">
-            {order.customerName || (lang === "ar" ? "عميل بدون اسم" : "Unnamed customer")}
-          </p>
-          <p className="mt-1 text-xs font-semibold text-slate-500" dir="ltr">
-            {order.customerPhone}
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <span className={cn("inline-flex rounded-full border px-3 py-1 text-xs font-bold", getOrderStatusTone(order.status))}>
-            {getOrderStatusLabel(order.status, lang)}
-          </span>
-          {showTotal && (
-            <span className="text-sm font-bold text-slate-900">
-              {formatCurrency(order.totalPrice, lang)}
+    <div
+      className="relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5"
+      style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.5)" }}
+    >
+      <div className="h-[3px]" style={{ background: accent }} />
+      <div className="p-4">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div className="min-w-0">
+            <p className="text-sm font-bold text-slate-900" dir="ltr">
+              #{order.id.slice(-8).toUpperCase()}
+            </p>
+            <p className="mt-1 line-clamp-1 text-sm font-semibold text-slate-600">
+              {order.customerName || (lang === "ar" ? "عميل بدون اسم" : "Unnamed customer")}
+            </p>
+            <p className="mt-1 text-xs font-semibold text-slate-500" dir="ltr">
+              {order.customerPhone}
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className={cn("inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-wide", getOrderStatusTone(order.status))}>
+              {getOrderStatusLabel(order.status, lang)}
             </span>
-          )}
+            {showTotal && (
+              <span className="text-sm font-black text-slate-900">
+                {formatCurrency(order.totalPrice, lang)}
+              </span>
+            )}
+          </div>
         </div>
+        <p className="mt-3 text-xs font-semibold text-slate-500">
+          {formatDate(order.orderDate, lang)}
+        </p>
       </div>
-      <p className="mt-3 text-xs font-semibold text-slate-500">
-        {formatDate(order.orderDate, lang)}
-      </p>
     </div>
   );
 });
@@ -183,13 +200,24 @@ const InventoryAlertRow = memo(function InventoryAlertRow({
   stock: number;
   lang: Language;
 }) {
+  const accentColor = stock === 0 ? "#f43f5e" : stock < 5 ? "#f97316" : "#f59e0b";
+  const badgeClass = stock === 0
+    ? "border-rose-200 bg-rose-50 text-rose-700"
+    : stock < 5
+    ? "border-orange-200 bg-orange-50 text-orange-700"
+    : "border-amber-200 bg-amber-50 text-amber-700";
+
   return (
-    <div className="flex items-center justify-between gap-4 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-[0_1px_3px_rgba(15,23,42,0.04)]">
-      <div className="min-w-0">
+    <div
+      className="relative overflow-hidden flex items-center justify-between gap-4 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
+      style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.5)" }}
+    >
+      <div className="absolute bottom-0 left-0 top-0 w-[3px] rounded-l-2xl" style={{ background: accentColor }} />
+      <div className="min-w-0 ps-2">
         <p className="truncate text-sm font-bold text-slate-900">{name}</p>
-        <p className="mt-1 text-xs font-semibold text-slate-500">{categoryName}</p>
+        <p className="mt-0.5 text-xs font-semibold text-slate-500">{categoryName}</p>
       </div>
-      <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700">
+      <span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-wide ${badgeClass}`}>
         <BellAlertIcon className="h-3.5 w-3.5" />
         {lang === "ar" ? `${stock} متبقي` : `${stock} left`}
       </span>
@@ -468,22 +496,30 @@ export default function DashboardOverview() {
                   label: lang === "ar" ? "إجمالي المنتجات" : "Total products",
                   value: formatCompactNumber(metrics.totalProducts, lang),
                   note: lang === "ar" ? `${metrics.totalCategories} قسم نشط` : `${metrics.totalCategories} active categories`,
+                  accent: "#0E7E74",
                 },
                 {
                   label: lang === "ar" ? "المنتجات المتاحة" : "In-stock products",
                   value: formatCompactNumber(metrics.inStockProducts, lang),
                   note: lang === "ar" ? `${inventoryCoverage}% من الكتالوج` : `${inventoryCoverage}% of catalog`,
+                  accent: "#10b981",
                 },
                 {
                   label: lang === "ar" ? "تغطية الباركود" : "Barcode coverage",
                   value: `${barcodeCoverage}%`,
                   note: lang === "ar" ? `${metrics.barcodedProducts} منتج مربوط` : `${metrics.barcodedProducts} linked products`,
+                  accent: "#8b5cf6",
                 },
               ].map((item) => (
-                <div key={item.label} className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                  <p className="text-sm font-bold text-slate-700">{item.label}</p>
+                <div
+                  key={item.label}
+                  className="relative overflow-hidden flex items-center justify-between gap-3 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
+                  style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.5)" }}
+                >
+                  <div className="absolute bottom-0 left-0 top-0 w-[3px] rounded-l-2xl" style={{ background: item.accent }} />
+                  <p className="ps-2 text-sm font-bold text-slate-700">{item.label}</p>
                   <div className="text-end">
-                    <p className="text-xl font-bold text-slate-950">{item.value}</p>
+                    <p className="text-xl font-black" style={{ color: item.accent }}>{item.value}</p>
                     <p className="mt-0.5 text-xs font-semibold text-slate-500">{item.note}</p>
                   </div>
                 </div>
@@ -582,16 +618,22 @@ export default function DashboardOverview() {
             ) : (
               <div className="grid gap-3">
                 {[
-                  { label: lang === "ar" ? "إجمالي الموظفين" : "Total employees", value: staff.length },
-                  { label: lang === "ar" ? "الموظفون النشطون" : "Active employees", value: activeEmployees },
+                  { label: lang === "ar" ? "إجمالي الموظفين" : "Total employees", value: staff.length, accent: "#64748b" },
+                  { label: lang === "ar" ? "الموظفون النشطون" : "Active employees", value: activeEmployees, accent: "#10b981" },
                   {
                     label: lang === "ar" ? "الوصول الموقوف" : "Suspended access",
                     value: staff.filter((m) => m.status === "Suspended").length,
+                    accent: "#f43f5e",
                   },
                 ].map((item) => (
-                  <div key={item.label} className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                    <p className="text-sm font-bold text-slate-700">{item.label}</p>
-                    <p className="text-xl font-bold text-slate-950">
+                  <div
+                    key={item.label}
+                    className="relative overflow-hidden flex items-center justify-between gap-3 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
+                    style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.5)" }}
+                  >
+                    <div className="absolute bottom-0 left-0 top-0 w-[3px] rounded-l-2xl" style={{ background: item.accent }} />
+                    <p className="ps-2 text-sm font-bold text-slate-700">{item.label}</p>
+                    <p className="text-xl font-black" style={{ color: item.accent }}>
                       {formatCompactNumber(item.value, lang)}
                     </p>
                   </div>

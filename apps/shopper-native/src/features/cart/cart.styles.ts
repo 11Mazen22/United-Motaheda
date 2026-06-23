@@ -458,6 +458,7 @@ export const s = StyleSheet.create({
     shadowOpacity:     0.06,
     shadowRadius:      16,
     elevation:         14,
+    boxShadow:         "0px -6px 16px rgba(7,18,42,0.06)",
   },
   footerHandle: {
     width:           36,

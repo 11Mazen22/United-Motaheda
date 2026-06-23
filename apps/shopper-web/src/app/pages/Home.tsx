@@ -1,6 +1,7 @@
 // Home.tsx — luxury editorial redesign with animations
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Activity, Apple, ArrowRight, Baby, Brain,
   ChevronLeft, ChevronRight,
@@ -334,73 +335,132 @@ function HomeDesktop() {
                   <span className="text-[12px] font-black tabular-nums text-slate-400">
                     {catSlide + 1} <span className="text-slate-200">/</span> {totalSlides}
                   </span>
-                  <button type="button" onClick={goPrev} aria-label={isRtl ? "التالي" : "Previous"}
-                    className="flex h-11 w-11 items-center justify-center rounded-xl border-2 border-[#0E7E74] bg-[#0E7E74] text-white shadow-[0_4px_14px_rgba(14,126,116,0.30)] transition-all duration-200 hover:bg-[#0A6B62] hover:border-[#0A6B62] hover:shadow-[0_6px_18px_rgba(14,126,116,0.42)] active:scale-95">
+                  <motion.button
+                    type="button" onClick={goPrev} aria-label={isRtl ? "التالي" : "Previous"}
+                    whileHover={{ scale: 1.08, boxShadow: "0 8px 24px rgba(14,126,116,0.45)" }}
+                    whileTap={{ scale: 0.84 }}
+                    transition={{ type: "spring", stiffness: 420, damping: 18 }}
+                    className="flex h-11 w-11 items-center justify-center rounded-xl border-2 border-[#0E7E74] bg-[#0E7E74] text-white shadow-[0_4px_14px_rgba(14,126,116,0.30)]">
                     <ChevronLeft className={cn("h-4 w-4", isRtl && "rotate-180")} />
-                  </button>
-                  <button type="button" onClick={goNext} aria-label={isRtl ? "السابق" : "Next"}
-                    className="flex h-11 w-11 items-center justify-center rounded-xl border-2 border-[#0E7E74] bg-[#0E7E74] text-white shadow-[0_4px_14px_rgba(14,126,116,0.30)] transition-all duration-200 hover:bg-[#0A6B62] hover:border-[#0A6B62] hover:shadow-[0_6px_18px_rgba(14,126,116,0.42)] active:scale-95">
+                  </motion.button>
+                  <motion.button
+                    type="button" onClick={goNext} aria-label={isRtl ? "السابق" : "Next"}
+                    whileHover={{ scale: 1.08, boxShadow: "0 8px 24px rgba(14,126,116,0.45)" }}
+                    whileTap={{ scale: 0.84 }}
+                    transition={{ type: "spring", stiffness: 420, damping: 18 }}
+                    className="flex h-11 w-11 items-center justify-center rounded-xl border-2 border-[#0E7E74] bg-[#0E7E74] text-white shadow-[0_4px_14px_rgba(14,126,116,0.30)]">
                     <ChevronRight className={cn("h-4 w-4", isRtl && "rotate-180")} />
-                  </button>
+                  </motion.button>
                 </div>
               </div>
             </Reveal>
 
-            {/* Cards — key on animKey forces re-mount → triggers CSS animation */}
-            <div
-              key={animKey}
-              className={cn(
-                "grid grid-cols-3 gap-4",
-                slideDir === "fwd" ? "animate-carousel-fwd" : "animate-carousel-back",
-              )}
-            >
-              {visible.map((cat, i) => {
-                if (cat === null) {
-                  return (
-                    <Link key="all" to="/products"
-                      className={cn(
-                        "group flex h-[120px] items-center gap-5 overflow-hidden rounded-2xl border-2 border-[#0A1220] bg-[#0A1220] px-7 shadow-[0_6px_24px_rgba(10,18,32,0.18)] transition-all duration-200 hover:border-[#0E7E74] hover:-translate-y-1 hover:shadow-[0_16px_40px_rgba(10,18,32,0.28)]",
-                        isRtl && "flex-row-reverse",
-                      )}>
-                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white/[0.10]">
-                        <ShoppingBag className="h-5 w-5 text-white" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-[16px] font-black text-white">
-                          {isRtl ? "الكل" : "All"}
-                        </p>
-                        <p className="mt-0.5 truncate text-[11px] font-semibold text-white/55">
-                          {isRtl ? "تصفح جميع المنتجات" : "Browse everything"}
-                        </p>
-                      </div>
-                      <ArrowRight className={cn("h-4 w-4 shrink-0 text-white/40 transition-transform group-hover:translate-x-0.5", isRtl && "rotate-180")} />
-                    </Link>
-                  );
-                }
+            {/* Cards — overflow-x:clip clips the horizontal slide without touching y-axis,
+                so hover:-translate-y-1 on cards is never clipped */}
+            <div style={{ overflowX: "clip" }}>
+              <AnimatePresence mode="popLayout" custom={slideDir}>
+                <motion.div
+                  key={animKey}
+                  custom={slideDir}
+                  variants={{
+                    enter: (dir: "fwd" | "back") => ({
+                      x: dir === "fwd" ? 80 : -80,
+                      opacity: 0,
+                    }),
+                    center: {
+                      x: 0,
+                      opacity: 1,
+                      transition: {
+                        x:             { type: "spring", stiffness: 320, damping: 32 },
+                        opacity:       { duration: 0.18 },
+                        staggerChildren: 0.07,
+                        delayChildren:   0.06,
+                      },
+                    },
+                    exit: (dir: "fwd" | "back") => ({
+                      x: dir === "fwd" ? -80 : 80,
+                      opacity: 0,
+                      transition: {
+                        x:       { type: "spring", stiffness: 400, damping: 38 },
+                        opacity: { duration: 0.14 },
+                      },
+                    }),
+                  }}
+                  initial="enter"
+                  animate="center"
+                  exit="exit"
+                  className="grid grid-cols-3 gap-4"
+                >
+                  {visible.map((cat, i) => {
+                    if (cat === null) {
+                      return (
+                        <motion.div
+                          key="all"
+                          variants={{
+                            enter:  { opacity: 0, y: 14, scale: 0.96 },
+                            center: { opacity: 1, y: 0,  scale: 1,
+                              transition: { type: "spring", stiffness: 380, damping: 26 } },
+                            exit:   { opacity: 0, y: -8, scale: 0.97,
+                              transition: { duration: 0.14 } },
+                          }}
+                        >
+                          <Link to="/products"
+                            className={cn(
+                              "group flex h-[120px] items-center gap-5 overflow-hidden rounded-2xl border-2 border-[#0A1220] bg-[#0A1220] px-7 shadow-[0_6px_24px_rgba(10,18,32,0.18)] transition-all duration-200 hover:border-[#0E7E74] hover:-translate-y-1 hover:shadow-[0_16px_40px_rgba(10,18,32,0.28)]",
+                              isRtl && "flex-row-reverse",
+                            )}>
+                            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white/[0.10]">
+                              <ShoppingBag className="h-5 w-5 text-white" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-[16px] font-black text-white">
+                                {isRtl ? "الكل" : "All"}
+                              </p>
+                              <p className="mt-0.5 truncate text-[11px] font-semibold text-white/55">
+                                {isRtl ? "تصفح جميع المنتجات" : "Browse everything"}
+                              </p>
+                            </div>
+                            <ArrowRight className={cn("h-4 w-4 shrink-0 text-white/40 transition-transform group-hover:translate-x-0.5", isRtl && "rotate-180")} />
+                          </Link>
+                        </motion.div>
+                      );
+                    }
 
-                const catIdx  = categoryChips.findIndex((c) => c.id === cat.id);
-                const Icon    = CAT_ICONS[catIdx % CAT_ICONS.length];
-                const label   = isRtl ? cat.name : (cat.nameEn ?? cat.name);
+                    const catIdx = categoryChips.findIndex((c) => c.id === cat.id);
+                    const Icon   = CAT_ICONS[catIdx % CAT_ICONS.length];
+                    const label  = isRtl ? cat.name : (cat.nameEn ?? cat.name);
 
-                return (
-                  <Link
-                    key={cat.id + "-" + i}
-                    to={`/products?category=${encodeURIComponent(cat.id)}`}
-                    className={cn(
-                      "group flex h-[120px] items-center gap-5 overflow-hidden rounded-2xl border-2 border-[#0A1220] bg-white px-7 shadow-[0_4px_16px_rgba(10,18,32,0.06)] transition-all duration-200 hover:bg-[#0A1220] hover:-translate-y-1 hover:shadow-[0_16px_40px_rgba(10,18,32,0.22)]",
-                      isRtl && "flex-row-reverse",
-                    )}
-                  >
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#0A1220] transition-colors duration-200 group-hover:bg-white/[0.12]">
-                      <Icon className="h-5 w-5 text-white" />
-                    </div>
-                    <p className="min-w-0 flex-1 truncate text-[16px] font-black text-[#0A1220] transition-colors duration-200 group-hover:text-white">
-                      {label}
-                    </p>
-                    <ArrowRight className={cn("h-4 w-4 shrink-0 text-[#0A1220]/20 transition-all duration-200 group-hover:translate-x-0.5 group-hover:text-white/50", isRtl && "rotate-180")} />
-                  </Link>
-                );
-              })}
+                    return (
+                      <motion.div
+                        key={cat.id + "-" + i}
+                        variants={{
+                          enter:  { opacity: 0, scale: 0.97 },
+                          center: { opacity: 1, scale: 1,
+                            transition: { type: "spring", stiffness: 380, damping: 26 } },
+                          exit:   { opacity: 0, scale: 0.97,
+                            transition: { duration: 0.14 } },
+                        }}
+                      >
+                        <Link
+                          to={`/products?category=${encodeURIComponent(cat.id)}`}
+                          className={cn(
+                            "group flex h-[120px] items-center gap-5 overflow-hidden rounded-2xl border-2 border-[#0A1220] bg-white px-7 shadow-[0_4px_16px_rgba(10,18,32,0.06)] transition-all duration-200 hover:bg-[#0A1220] hover:-translate-y-1 hover:shadow-[0_16px_40px_rgba(10,18,32,0.22)]",
+                            isRtl && "flex-row-reverse",
+                          )}
+                        >
+                          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#0A1220] transition-colors duration-200 group-hover:bg-white/[0.12]">
+                            <Icon className="h-5 w-5 text-white" />
+                          </div>
+                          <p className="min-w-0 flex-1 truncate text-[16px] font-black text-[#0A1220] transition-colors duration-200 group-hover:text-white">
+                            {label}
+                          </p>
+                          <ArrowRight className={cn("h-4 w-4 shrink-0 text-[#0A1220]/20 transition-all duration-200 group-hover:translate-x-0.5 group-hover:text-white/50", isRtl && "rotate-180")} />
+                        </Link>
+                      </motion.div>
+                    );
+                  })}
+                </motion.div>
+              </AnimatePresence>
             </div>
 
             {/* Dot indicators */}
@@ -409,7 +469,11 @@ function HomeDesktop() {
                 <button
                   key={i}
                   type="button"
-                  onClick={() => { setCatSlide(i); setAnimKey((k) => k + 1); }}
+                  onClick={() => {
+                    setSlideDir(i > catSlide ? (isRtl ? "back" : "fwd") : (isRtl ? "fwd" : "back"));
+                    setCatSlide(i);
+                    setAnimKey((k) => k + 1);
+                  }}
                   aria-label={`Slide ${i + 1}`}
                   className={cn(
                     "h-[5px] rounded-full transition-all duration-300",

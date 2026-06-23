@@ -1,10 +1,11 @@
 ﻿// ShopperMobileViews.tsx – cleaned version
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   ArrowLeft,
   Bell,
   CircleHelp,
   FileText,
+  Heart,
   Info,
   LayoutGrid,
   LogOut,
@@ -25,6 +26,7 @@ import { Link, useLocation, useNavigate, useParams, useSearchParams } from "reac
 import { useAuth } from "../../contexts/AuthContext";
 import { useCart } from "../../contexts/CartContext";
 import { useCatalog } from "../../contexts/CatalogContext";
+import { useFavorites } from "../../contexts/FavoritesContext";
 import { useLanguage } from "../../contexts/LanguageContext";
 import { useSearchInput } from "../../contexts/SearchContext";
 import {
@@ -37,6 +39,7 @@ import {
   getDeliveryWindowSentence,
 } from "../config";
 import { readOrders, syncRemoteOrders, type StoredOrder } from "../orders";
+import { fetchProductsByIds } from "../../services/shopperCatalogApi";
 import {
   getCachedCustomerOrders,
   getCustomerOrders,
@@ -2075,6 +2078,105 @@ export function MobileProfileView() {
           <LogOut className="h-4 w-4" />
           {lang === "ar" ? "تسجيل الخروج" : "Logout"}
         </button>
+      </div>
+    </ShopperPage>
+  );
+}
+
+// ─── MobileFavoritesView ──────────────────────────────────────────────────────
+
+export function MobileFavoritesView() {
+  const { lang } = useLanguage();
+  const { productsById } = useCatalog();
+  const { favoriteIds, isBusy } = useFavorites();
+  const [fetchedProducts, setFetchedProducts] = useState<Record<string, CatalogProduct>>({});
+  const fetchedRef = useRef<Record<string, CatalogProduct>>({});
+  const [isFetchingFavs, setIsFetchingFavs] = useState(false);
+
+  useEffect(() => {
+    if (favoriteIds.size === 0) return;
+    const missingIds = Array.from(favoriteIds).filter(
+      (id) => !productsById[id] && !fetchedRef.current[id],
+    );
+    if (missingIds.length === 0) return;
+    setIsFetchingFavs(true);
+    void fetchProductsByIds(missingIds).then((fetched) => {
+      fetched.forEach((p) => { fetchedRef.current[p.id] = p; });
+      setFetchedProducts({ ...fetchedRef.current });
+      setIsFetchingFavs(false);
+    });
+  }, [favoriteIds, productsById]);
+
+  const favoriteProducts = useMemo(() => {
+    const allById: Record<string, CatalogProduct> = { ...fetchedProducts, ...productsById };
+    return Array.from(favoriteIds)
+      .map((id) => allById[id])
+      .filter((p): p is CatalogProduct => Boolean(p));
+  }, [favoriteIds, productsById, fetchedProducts]);
+
+  const isLoading = isBusy || isFetchingFavs;
+  const availableCount = favoriteProducts.filter((p) => p.inStock).length;
+
+  return (
+    <ShopperPage docked={false} className="w-full">
+      <div className="space-y-4">
+        {/* Header card */}
+        <ShopperSurface>
+          <div className="flex items-center gap-3">
+            <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-rose-50">
+              <Heart className="h-5 w-5 fill-rose-400 text-rose-400" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <h1 className="text-xl font-black text-slate-950">
+                {lang === "ar" ? "المفضلة" : "Favourites"}
+              </h1>
+              <p className="text-xs font-semibold text-slate-400">
+                {favoriteIds.size}{" "}
+                {lang === "ar" ? "منتج محفوظ" : favoriteIds.size === 1 ? "saved item" : "saved items"}
+              </p>
+            </div>
+            {favoriteProducts.length > 0 && (
+              <span
+                className="inline-flex items-center gap-1 rounded-xl px-2.5 py-1 text-[11px] font-black text-white"
+                style={{ background: "var(--primary)" }}
+              >
+                <Sparkles className="h-3 w-3" />
+                {availableCount}
+              </span>
+            )}
+          </div>
+        </ShopperSurface>
+
+        {isLoading ? (
+          <CatalogSkeletonGrid count={6} />
+        ) : favoriteProducts.length === 0 ? (
+          <EmptyState
+            icon={Heart}
+            title={lang === "ar" ? "لا توجد منتجات محفوظة" : "No saved items"}
+            description={
+              lang === "ar"
+                ? "احفظ المنتجات للرجوع إليها لاحقاً من صفحات الكتالوج والعروض."
+                : "Save products from the catalog or offers to find them here."
+            }
+            action={
+              <Link
+                to="/products"
+                className="inline-flex h-12 items-center gap-2 rounded-2xl bg-[var(--primary)] px-6 text-sm font-black text-white"
+              >
+                <Package className="h-4 w-4" />
+                {lang === "ar" ? "تصفح المنتجات" : "Browse products"}
+              </Link>
+            }
+          />
+        ) : (
+          <ShopperSurface>
+            <div className="grid grid-cols-2 gap-3">
+              {favoriteProducts.map((product) => (
+                <ShopperProductTile key={product.id} product={product} />
+              ))}
+            </div>
+          </ShopperSurface>
+        )}
       </div>
     </ShopperPage>
   );

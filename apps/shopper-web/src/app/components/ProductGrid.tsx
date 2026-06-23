@@ -80,11 +80,14 @@ import { cn } from "./UI";
 // non-deterministic on some browsers, producing subtle scroll jitter.
 // Plain "auto" rows (the browser default) are measured once, stably.
 const GRID_CLASSES = cn(
-  "catalog-products-grid grid gap-3 sm:gap-4",
-  "grid-cols-2 lg:grid-cols-3",
-  "xl:[grid-template-columns:repeat(auto-fill,minmax(14.5rem,1fr))]",
-  "2xl:[grid-template-columns:repeat(auto-fill,minmax(15.5rem,1fr))]",
-  "min-[1920px]:[grid-template-columns:repeat(auto-fill,minmax(16.5rem,1fr))]",
+  // gap: 20px default, 24px on lg+ — cards need breathing room for hover shadows
+  "catalog-products-grid grid gap-5 lg:gap-6",
+  // Column count: 2 on mobile, 3 on md, auto-fill on xl+
+  "grid-cols-2 md:grid-cols-3",
+  // xl+: auto-fill with min 15rem per card — wider than the old 14.5rem
+  "xl:[grid-template-columns:repeat(auto-fill,minmax(15rem,1fr))]",
+  "2xl:[grid-template-columns:repeat(auto-fill,minmax(16rem,1fr))]",
+  "min-[1920px]:[grid-template-columns:repeat(auto-fill,minmax(17rem,1fr))]",
 );
 
 // ─── Stable VirtuosoGrid component references ─────────────────────────────────
@@ -108,7 +111,10 @@ const GridItemContainer = forwardRef<
   HTMLDivElement,
   { children?: ReactNode; className?: string }
 >(({ children, className }, ref) => (
-  <div ref={ref} className={cn("min-h-0", className)}>
+  // `relative` creates a stacking context so `hover:z-10` on ProductCard
+  // lifts the card above its siblings without being clipped.
+  // `min-h-0` is kept to prevent grid items from collapsing in some flex contexts.
+  <div ref={ref} className={cn("relative min-h-0", className)}>
     {children}
   </div>
 ));

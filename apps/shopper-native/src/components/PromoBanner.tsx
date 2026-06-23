@@ -46,7 +46,7 @@ import { useTranslation } from "react-i18next";
 import { Text as UIText } from "../shared/ui/Text";
 import { theme }           from "../shared/theme";
 import { kit }             from "../shared/kit";
-import { isRtl }           from "../utils/layout";
+import { isRtl, flexRow }  from "../utils/layout";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -83,7 +83,7 @@ const BANNERS: readonly Banner[] = [
     titleKey: "home.heroTitle1",
     subKey:   "home.heroSub1",
     icon:     "pricetag",
-    colors:   ["#0891b2", "#0ea5b7", "#06b6d4"],
+    colors:   ["#0A5F58", "#0E7E74", "#12A396"],
     route:    "/checkout",
     a11yKey:  "home.heroTitle1",
   },
@@ -339,7 +339,7 @@ const cs = StyleSheet.create({
     flex:              1,
     paddingHorizontal: 20,
     paddingVertical:   18,
-    flexDirection:     IS_RTL ? "row-reverse" : "row",
+    flexDirection:     flexRow(IS_RTL),
     justifyContent:    "space-between",
     alignItems:        "center",
   },
@@ -370,7 +370,7 @@ const cs = StyleSheet.create({
     gap:  6,
   },
   tagPill: {
-    flexDirection:     IS_RTL ? "row-reverse" : "row",
+    flexDirection:     flexRow(IS_RTL),
     alignItems:        "center",
     gap:               5,
     alignSelf:         "flex-start",

@@ -37,9 +37,32 @@ export function extractActiveIngredients(product: Pick<SearchResultItem, "nameAr
 
 export function buildMedicalInfo(
   product: Pick<SearchResultItem, "nameAr" | "nameEn" | "categoryNameEn">,
+  lang: "ar" | "en" = "en",
 ): ProductMedicalInfo {
-  const displayName = product.nameEn || product.nameAr;
+  const displayName = lang === "ar"
+    ? (product.nameAr || product.nameEn)
+    : (product.nameEn || product.nameAr);
   const ingredientTokens = extractActiveIngredients(product);
+
+  if (lang === "ar") {
+    return {
+      usageInstructions: [
+        `راجع إرشادات الاستخدام الموجودة على عبوة ${displayName} قبل الاستعمال.`,
+        "استخدم المنتج بالطريقة المذكورة على العبوة أو وفق توجيهات الصيدلي.",
+      ],
+      dosageGuidance: [
+        "اتبع تعليمات الجرعة والفترات الزمنية المحددة على العبوة.",
+        "لا تزيد الكمية أو مرات الاستخدام دون استشارة متخصص.",
+      ],
+      safetyWarnings: [
+        "احفظ المنتج بعيداً عن متناول الأطفال.",
+        "أوقف الاستخدام واستشر صيدلانياً إذا ظهرت أعراض غير معتادة.",
+      ],
+      activeIngredients: ingredientTokens,
+      generalDisclaimer:
+        "هذه المعلومات إرشادات صيدلانية عامة ولا تُغني عن التشخيص أو المشورة العلاجية الشخصية.",
+    };
+  }
 
   return {
     usageInstructions: [
