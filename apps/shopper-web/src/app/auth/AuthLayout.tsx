@@ -93,14 +93,13 @@ export default function AuthLayout({
       <header className="flex items-center justify-between border-b border-slate-200 bg-white px-5 py-4 lg:hidden">
         <div className="flex items-center gap-2.5">
           <div
-            className="flex h-8 w-8 items-center justify-center rounded-lg"
-            style={{ background: INK }}
+            className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-lg"
+            style={{ background: "white", boxShadow: "0 1px 6px rgba(0,0,0,0.18)" }}
           >
             <img
               src={images.logoMark}
               alt="United Pharmacies"
-              className="h-5 w-5 object-contain"
-              style={{ filter: "brightness(0) invert(1)" }}
+              className="h-7 w-7 object-contain"
             />
           </div>
           <span className="text-sm font-black tracking-tight" style={{ color: INK }}>
@@ -161,17 +160,13 @@ export default function AuthLayout({
           <motion.div variants={slideUp} className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div
-                className="flex h-10 w-10 items-center justify-center rounded-xl"
-                style={{
-                  background: "rgba(255,255,255,0.09)",
-                  border: "1px solid rgba(255,255,255,0.15)",
-                }}
+                className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl"
+                style={{ background: "white", boxShadow: "0 2px 10px rgba(0,0,0,0.22)" }}
               >
                 <img
                   src={images.logoMark}
                   alt=""
-                  className="h-6 w-6 object-contain"
-                  style={{ filter: "brightness(0) invert(1)" }}
+                  className="h-9 w-9 object-contain"
                 />
               </div>
               <div>
@@ -229,20 +224,20 @@ export default function AuthLayout({
                   background: "rgba(14,126,116,0.09)",
                 }}
               />
-              {/* Pharmacy cross emblem */}
+              {/* Logo card — white background so the brand mark renders in true color */}
               <div
-                className="relative z-10 flex h-[72px] w-[72px] items-center justify-center rounded-[1.4rem]"
+                className="relative z-10 flex h-[72px] w-[72px] items-center justify-center overflow-hidden rounded-[1.4rem]"
                 style={{
-                  background: "rgba(14,126,116,0.22)",
-                  border: "1px solid rgba(78,206,198,0.42)",
+                  background: "white",
                   boxShadow:
-                    "0 0 0 1px rgba(78,206,198,0.1), 0 0 40px rgba(14,126,116,0.45), inset 0 1px 0 rgba(255,255,255,0.12)",
+                    "0 0 0 1px rgba(78,206,198,0.22), 0 0 48px rgba(14,126,116,0.55), 0 8px 32px rgba(0,0,0,0.28)",
                 }}
               >
-                <svg width="38" height="38" viewBox="0 0 38 38" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="United Pharmacies">
-                  <rect x="14" y="3" width="10" height="32" rx="5" fill="#4ecec6"/>
-                  <rect x="3" y="14" width="32" height="10" rx="5" fill="#4ecec6"/>
-                </svg>
+                <img
+                  src={images.logoMark}
+                  alt="United Pharmacies"
+                  className="h-[60px] w-[60px] object-contain"
+                />
               </div>
             </div>
 

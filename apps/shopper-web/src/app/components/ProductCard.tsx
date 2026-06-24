@@ -15,7 +15,7 @@
  */
 
 import { AnimatePresence, motion } from "framer-motion";
-import { CheckCircle2, Eye, ShoppingBag, Zap } from "lucide-react";
+import { CheckCircle2, Eye, ShoppingBag, Tag, Zap } from "lucide-react";
 import {
   memo,
   useEffect,
@@ -160,11 +160,24 @@ export const ProductCard = memo(function ProductCard({
       {/* overflow:hidden ONLY here — clips image to rounded top corners        */}
       <div className="relative aspect-square overflow-hidden rounded-t-2xl bg-[#F7FAFB]">
 
-        {/* Category pill + favourite */}
+        {/* Category pill + offer badge + favourite */}
         <div className="absolute inset-x-3 top-3 z-10 flex items-start justify-between gap-2">
-          <span className="inline-flex max-w-[68%] items-center truncate rounded-lg border border-white/70 bg-white/92 px-2 py-1 text-[9px] font-black tracking-wide text-slate-600 shadow-sm">
-            {displayCategoryName}
-          </span>
+          <div className="flex flex-col gap-1">
+            <span className="inline-flex max-w-[120px] items-center truncate rounded-lg border border-white/70 bg-white/92 px-2 py-1 text-[9px] font-black tracking-wide text-slate-600 shadow-sm">
+              {displayCategoryName}
+            </span>
+            {product.isOffer && product.originalPrice ? (
+              <span className="inline-flex items-center gap-1 self-start rounded-md bg-amber-500 px-1.5 py-0.5 text-[9px] font-black text-white shadow-md">
+                <Tag className="h-2.5 w-2.5" />
+                {`${Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}% OFF`}
+              </span>
+            ) : product.isOffer ? (
+              <span className="inline-flex items-center gap-1 self-start rounded-md bg-amber-500 px-1.5 py-0.5 text-[9px] font-black text-white shadow-md">
+                <Tag className="h-2.5 w-2.5" />
+                {lang === "ar" ? "عرض" : "OFFER"}
+              </span>
+            ) : null}
+          </div>
           <FavoriteHeartButton
             productId={product.id}
             size="sm"
@@ -277,7 +290,16 @@ export const ProductCard = memo(function ProductCard({
             <p className="text-[9px] font-black uppercase tracking-[0.15em] text-slate-400">
               {lang === "ar" ? "السعر" : "Price"}
             </p>
-            <p className="mt-0.5 text-[1.1rem] font-black leading-none tracking-tight text-slate-900">
+            {product.originalPrice && (
+              <p className="text-[9px] font-bold leading-none text-slate-400 line-through">
+                {product.originalPrice.toFixed(2)}{" "}
+                <span className="text-[8px]">{t("currency")}</span>
+              </p>
+            )}
+            <p className={cn(
+              "mt-0.5 text-[1.1rem] font-black leading-none tracking-tight",
+              product.isOffer && product.originalPrice ? "text-amber-600" : "text-slate-900",
+            )}>
               {product.price.toFixed(2)}{" "}
               <span className="text-[10px] font-bold text-slate-400">{t("currency")}</span>
             </p>

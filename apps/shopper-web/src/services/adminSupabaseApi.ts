@@ -25,6 +25,8 @@ export interface AdminProduct {
   categoryNameEn: string;
   inStock: boolean;
   is_active: boolean;
+  is_offer: boolean;
+  original_price?: number;
   imageUrl?: string;
   created_at?: string;
   updated_at?: string;
@@ -139,6 +141,8 @@ export async function fetchAdminProducts(): Promise<AdminProduct[]> {
       categoryNameEn: row.Category_Name_En || '',
       inStock: Boolean(row.is_active),
       is_active: Boolean(row.is_active),
+      is_offer: Boolean(row.is_offer),
+      original_price: row.original_price != null ? Number(row.original_price) : undefined,
       created_at: row.created_at,
       updated_at: row.updated_at,
     }));
@@ -180,7 +184,7 @@ export async function updateAdminProduct(payload: ProductMutationPayload): Promi
     }
 
     // Prepare update data
-    const updateData = {
+    const updateData: Record<string, unknown> = {
       Barcode: payload.Barcode || '',
       Name: payload.Name,
       Name_Ar: payload.Name_Ar,
@@ -190,9 +194,15 @@ export async function updateAdminProduct(payload: ProductMutationPayload): Promi
       Category: payload.Category,
       Category_Name: payload.Category_Name,
       Category_Name_En: payload.Category_Name_En,
-      is_active: Number(payload.Stock) > 0, // Auto-set active based on stock
+      is_active: Number(payload.Stock) > 0,
       updated_at: new Date().toISOString(),
     };
+    if (payload.is_offer !== undefined) {
+      updateData.is_offer = payload.is_offer;
+    }
+    if (payload.original_price !== undefined) {
+      updateData.original_price = payload.original_price;
+    }
 
     // Update the product
     const { data, error } = await supabase

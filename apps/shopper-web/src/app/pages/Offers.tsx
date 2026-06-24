@@ -135,6 +135,7 @@ function OffersEmptyState({
   hasFilters: boolean;
   onReset:    () => void;
 }) {
+  const noOffersAtAll = !hasFilters;
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }}
@@ -142,16 +143,26 @@ function OffersEmptyState({
       className="rounded-[1.8rem] border border-slate-200/80 bg-white/92 p-12 text-center shadow-sm backdrop-blur-xl"
     >
       <div className="mx-auto flex max-w-sm flex-col items-center">
-        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-100 to-amber-50 shadow-[0_8px_24px_rgba(245,158,11,0.12)]">
-          <PackageSearch className="h-7 w-7 text-amber-500" />
+        <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-100 to-amber-50 shadow-[0_8px_24px_rgba(245,158,11,0.12)]">
+          {noOffersAtAll ? (
+            <Tag className="h-7 w-7 text-amber-400" />
+          ) : (
+            <PackageSearch className="h-7 w-7 text-amber-500" />
+          )}
         </div>
         <h2 className="mt-5 text-xl font-black tracking-tight text-slate-900">
-          {lang === "ar" ? "لا توجد عروض مطابقة" : "No matching offers"}
+          {noOffersAtAll
+            ? (lang === "ar" ? "لا توجد عروض نشطة الآن" : "No active offers right now")
+            : (lang === "ar" ? "لا توجد عروض مطابقة" : "No matching offers")}
         </h2>
         <p className="mt-2 text-sm font-semibold leading-7 text-slate-500">
-          {lang === "ar"
-            ? "جرّب تغيير البحث أو إزالة بعض الفلاتر."
-            : "Try a different search term or clear some filters."}
+          {noOffersAtAll
+            ? (lang === "ar"
+                ? "ترقّب! سيتم إضافة عروض وتخفيضات قريباً."
+                : "Stay tuned — deals and discounts are coming soon.")
+            : (lang === "ar"
+                ? "جرّب تغيير البحث أو إزالة بعض الفلاتر."
+                : "Try a different search term or clear some filters.")}
         </p>
         {hasFilters && (
           <button
@@ -218,7 +229,7 @@ function OffersDesktop() {
     },
   });
 
-  // ── Offers feed — full serverFilters including the inStock toggle ─────────
+  // ── Offers feed — server-filters locked to is_offer = true ──────────────
   const {
     products: rawProducts,
     isLoading,
@@ -228,7 +239,7 @@ function OffersDesktop() {
     totalCount,
     activeQuery,
     error,
-  } = useInfiniteProducts(filters.serverFilters);
+  } = useInfiniteProducts({ ...filters.serverFilters, isOffer: true });
 
   // ── Client-side brand filter ─────────────────────────────────────────────
   const products = useMemo(
@@ -325,8 +336,8 @@ function OffersDesktop() {
               </h1>
               <p className="mt-1.5 max-w-xl text-[13px] font-semibold leading-6 text-slate-500">
                 {lang === "ar"
-                  ? "استعرض المنتجات المتاحة، وابحث بداخلها، ورتبها حسب القسم أو السعر."
-                  : "Browse available products, search within them, and sort by category or price."}
+                  ? "منتجات مختارة بعروض وتخفيضات حقيقية. ابحث وصفِّ بحسب القسم أو السعر."
+                  : "Hand-picked products with real discounts. Search and sort by category or price."}
               </p>
             </div>
           </div>

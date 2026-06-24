@@ -162,6 +162,8 @@ export type ProductMutationPayload = {
   Category: string;
   Category_Name: string;
   Category_Name_En: string;
+  is_offer?: boolean;
+  original_price?: number | null;
 };
 
 export type FastEntryProductPayload = {

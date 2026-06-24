@@ -81,6 +81,8 @@ export interface InfiniteProductsFilters {
    * `buildSupabaseQuery`. Defaults to "relevant" (in-stock first, then name A–Z).
    */
   sortBy?: "relevant" | "price_asc" | "price_desc" | "name";
+  /** When true, only rows where `is_offer = true` are returned. */
+  isOffer?: boolean;
 }
 
 export interface UseInfiniteProductsResult {
@@ -119,7 +121,7 @@ const SEARCH_DEBOUNCE_MS = 220;
 export function useInfiniteProducts(
   filters: InfiniteProductsFilters,
 ): UseInfiniteProductsResult {
-  const { query = "", categoryId, inStock, maxPrice, sortBy } = filters;
+  const { query = "", categoryId, inStock, maxPrice, sortBy, isOffer } = filters;
 
   // ── 1. Debounce the raw query ─────────────────────────────────────────────
   //
@@ -198,11 +200,10 @@ export function useInfiniteProducts(
     const serverFilters: ProductFilters = {
       searchQuery: debouncedQuery || undefined,
       categoryId: categoryId || undefined,
-      // Only send the inStock flag when it's explicitly true; undefined = no filter.
       inStock: inStock === true ? true : undefined,
-      // Only send maxPrice when it's a positive number.
       maxPrice: maxPrice && maxPrice > 0 ? maxPrice : undefined,
       sortBy: sortBy || undefined,
+      isOffer: isOffer === true ? true : undefined,
     };
 
     void fetchProductsPage(1, serverFilters)
@@ -222,7 +223,7 @@ export function useInfiniteProducts(
         setError(err instanceof Error ? err.message : "Failed to load products");
         setIsLoading(false);
       });
-  }, [debouncedQuery, categoryId, inStock, maxPrice, sortBy]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [debouncedQuery, categoryId, inStock, maxPrice, sortBy, isOffer]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── 4. fetchNextPage — called by VirtuosoGrid's endReached ───────────────
   //

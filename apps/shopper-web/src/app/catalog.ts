@@ -69,6 +69,8 @@ export type CatalogProduct = {
   categoryNameEn: string;
   imageUrl?: string;
   sourceRow: number;
+  isOffer?: boolean;
+  originalPrice?: number;
 };
 
 export type CatalogSnapshot = {
@@ -688,6 +690,11 @@ export function normalizeSupabaseProduct(row: Record<string, unknown>, sourceRow
   const imageUrl = sanitizeText(row.image_url ?? "");
   const idSeed = code || barcode || `${categorySeed.id}-${name}`;
 
+  const isOffer = row.is_offer === true;
+  const originalPriceRaw = parseNumber(String(row.original_price ?? ""));
+  const originalPrice =
+    originalPriceRaw !== null && originalPriceRaw > price ? originalPriceRaw : undefined;
+
   return {
     id: String(row.id || `${slugify(idSeed)}-${sourceRow}`),
     code,
@@ -703,6 +710,8 @@ export function normalizeSupabaseProduct(row: Record<string, unknown>, sourceRow
     categoryNameEn: categorySeed.names.en,
     imageUrl: isValidHttpUrl(imageUrl) ? imageUrl : undefined,
     sourceRow,
+    isOffer: isOffer || undefined,
+    originalPrice,
   } satisfies CatalogProduct;
 }
 

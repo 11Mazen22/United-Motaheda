@@ -83,6 +83,8 @@ interface ProductFormState {
   price: string;
   stock: string;
   description: string;
+  isOffer: boolean;
+  originalPrice: string;
 }
 
 interface BarcodeLookupResult {
@@ -109,6 +111,8 @@ const EMPTY_FORM: ProductFormState = {
   price: "",
   stock: "",
   description: "",
+  isOffer: false,
+  originalPrice: "",
 };
 
 const ITEMS_PER_PAGE = 15;
@@ -271,6 +275,14 @@ const ProductCard = memo(function ProductCard({
           <p className="mt-2 text-[10px] font-mono text-slate-400" dir="ltr">{product.barcode}</p>
         )}
 
+        {product.is_offer && (
+          <div className="mt-2 inline-flex items-center gap-1 rounded-md bg-amber-100 px-2 py-0.5 text-[10px] font-black text-amber-700">
+            <span>🏷</span>
+            {lang === "ar" ? "عرض نشط" : "Active offer"}
+            {product.original_price ? ` · ${formatCurrency(product.original_price, lang)}` : ""}
+          </div>
+        )}
+
       {canEdit && (
         <button
           type="button"
@@ -394,6 +406,8 @@ export default function ProductManager() {
       price: String(product.price),
       stock: String(product.stock),
       description: "",
+      isOffer: product.is_offer ?? false,
+      originalPrice: product.original_price != null ? String(product.original_price) : "",
     });
     setFormError("");
     setDialogOpen(true);
@@ -461,6 +475,7 @@ export default function ProductManager() {
     setSubmitting(true);
     setFormError("");
     try {
+      const origPrice = form.originalPrice ? Number(form.originalPrice) : null;
       const payload = {
         Code: form.id || `PROD-${Date.now()}`,
         Barcode: form.barcode || "",
@@ -472,6 +487,8 @@ export default function ProductManager() {
         Category: form.categoryId,
         Category_Name: categories.find((c) => c.id === form.categoryId)?.name || "",
         Category_Name_En: categories.find((c) => c.id === form.categoryId)?.nameEn || "",
+        is_offer: form.isOffer,
+        original_price: origPrice && !Number.isNaN(origPrice) ? origPrice : null,
       } satisfies ProductMutationPayload;
 
       let updatedProduct: AdminProduct;
@@ -806,6 +823,47 @@ export default function ProductManager() {
                 onChange={(v) => setForm((p) => ({ ...p, stock: v }))}
                 type="number"
               />
+            </div>
+
+            {/* Offer section */}
+            <div className="rounded-xl border border-amber-200/80 bg-amber-50/50 p-3.5 space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-bold text-slate-800">
+                    {lang === "ar" ? "تمييز كعرض" : "Mark as offer"}
+                  </p>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    {lang === "ar"
+                      ? "سيظهر في صفحة العروض مع شارة مميزة."
+                      : "Product will appear on the Offers page with a badge."}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setForm((p) => ({ ...p, isOffer: !p.isOffer }))}
+                  className={cn(
+                    "relative h-6 w-11 shrink-0 rounded-full transition-colors duration-200",
+                    form.isOffer ? "bg-amber-500" : "bg-slate-200",
+                  )}
+                  role="switch"
+                  aria-checked={form.isOffer}
+                >
+                  <span
+                    className={cn(
+                      "absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform duration-200",
+                      form.isOffer ? "translate-x-5" : "translate-x-0.5",
+                    )}
+                  />
+                </button>
+              </div>
+              {form.isOffer && (
+                <AdminFormField
+                  label={lang === "ar" ? "السعر الأصلي (قبل التخفيض)" : "Original price (before discount)"}
+                  value={form.originalPrice}
+                  onChange={(v) => setForm((p) => ({ ...p, originalPrice: v }))}
+                  type="number"
+                />
+              )}
             </div>
 
             {formError && (

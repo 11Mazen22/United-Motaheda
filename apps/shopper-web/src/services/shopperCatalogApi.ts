@@ -16,6 +16,7 @@ import {
   getCategoryNamesById,
   getCategoryMatchTermsById,
   getStaticCategoryList,
+  resolveCategory,
   type CatalogSnapshot,
   type CatalogProduct,
   type CatalogCategory,
@@ -32,6 +33,7 @@ export interface ProductFilters {
   minPrice?: number;
   maxPrice?: number;
   sortBy?: "price_asc" | "price_desc" | "name" | "relevant";
+  isOffer?: boolean;
 }
 
 export interface PageResult {
@@ -54,7 +56,7 @@ const MAX_CACHE_SIZE = 50;
  *  v4 = unified with mobile (DB-driven categories via get_category_counts RPC).
  *  Bumping the key invalidates any stale v3 caches that held the old 8 hard-
  *  coded seed names. */
-const CATEGORY_CACHE_KEY = "united-pharmacies-categories-v4";
+const CATEGORY_CACHE_KEY = "united-pharmacies-categories-v6";
 
 /** 30-minute TTL for category localStorage cache (categories rarely change). */
 const CATEGORY_CACHE_TTL_MS = 30 * 60 * 1000;
@@ -83,6 +85,7 @@ class PageCache {
       minPrice: filters.minPrice ?? 0,
       maxPrice: filters.maxPrice ?? 0,
       sortBy: filters.sortBy ?? "relevant",
+      isOffer: filters.isOffer ?? false,
     });
   }
 
@@ -305,6 +308,11 @@ function buildSupabaseQuery(
   // catalog — confirm with the DB schema if true stock-level filtering is needed.
   if (filters.inStock !== undefined) {
     query = query.eq("is_active", filters.inStock);
+  }
+
+  // Offer filter — only fetch products marked is_offer = true.
+  if (filters.isOffer) {
+    query = query.eq("is_offer", true);
   }
 
   // Price range filters.
@@ -639,39 +647,32 @@ async function fetchDbCategoriesViaRpc(): Promise<CatalogCategory[] | null> {
       in_stock_count:   number;
     }>;
 
-    // Build a CatalogCategory per DB row. Use the seed's theme/icon/emoji when
-    // the DB name matches a known seed alias, otherwise fall back to defaults
-    // so the sidebar still has a coherent visual style.
+    // Build a CatalogCategory per DB row. Match each DB category name against
+    // seed aliases to inherit the seed's imageUrl, theme, icon, emoji, and
+    // descriptions — so categories rendered from the live DB look identical to
+    // those coming from the static seed list.
     return rows
       .map((row): CatalogCategory | null => {
         const dbName = (row.category_name ?? "").trim();
         if (!dbName) return null;
         const dbNameEn = (row.category_name_en ?? "").trim() || dbName;
 
-        // Try to find a matching seed by name/alias for richer styling.
-        const seedTerms = getCategoryMatchTermsById; // alias to keep tree-shake happy
-        void seedTerms;
+        // Resolve against seed aliases — falls back to "general-healthcare" seed.
+        const seed = resolveCategory(dbName, dbNameEn, "", "");
 
         return {
-          id:           dbName,            // ← the actual DB Category_Name
-          name:         dbName,
-          nameEn:       dbNameEn,
-          icon:         "Package",
-          emoji:        "📦",
-          count:        Number(row.product_count) || 0,
-          inStockCount: Number(row.in_stock_count) || 0,
-          descAr:       "",
-          descEn:       "",
-          theme: {
-            accent:     "#0f766e",
-            accentSoft: "rgba(15, 118, 110, 0.10)",
-            border:     "rgba(15, 118, 110, 0.18)",
-            surface:    "#f0fdfa",
-            color:      "#0f766e",
-            bg:         "#f0fdfa",
-            glow:       "rgba(15, 118, 110, 0.14)",
-          },
-          imageUrl:     "",
+          id:            dbName,   // keep the real DB category name as the id
+          name:          dbName,
+          nameEn:        dbNameEn,
+          icon:          seed.icon,
+          emoji:         seed.emoji,
+          count:         Number(row.product_count) || 0,
+          inStockCount:  Number(row.in_stock_count) || 0,
+          descAr:        seed.desc.ar,
+          descEn:        seed.desc.en,
+          theme:         seed.theme,
+          imageUrl:      seed.imageUrl,
+          imagePosition: seed.imagePosition,
         };
       })
       .filter((c): c is CatalogCategory => c !== null)

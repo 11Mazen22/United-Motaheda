@@ -67,6 +67,7 @@ import { cn } from "../components/UI";
 import { useDebouncedValue } from "../hooks/useDebouncedValue";
 import { useCatalogCategorySearch } from "../hooks/useCatalogCategorySearch";
 import { getMaxPriceCeiled } from "../hooks/useCatalogFilters";
+import { useInfiniteProducts } from "../hooks/useInfiniteProducts";
 
 const SORT_OPTIONS = [
   { value: "relevant", labelAr: "الأكثر صلة", labelEn: "Most relevant" },
@@ -691,13 +692,23 @@ export function MobileProductsView() {
 
 export function MobileOffersView() {
   const { lang } = useLanguage();
-  const { categories, featuredProducts, isLoading } = useCatalog();
+  const { categories } = useCatalog();
   const [activeCategory, setActiveCategory] = useState("all");
   const [sortBy, setSortBy] =
     useState<(typeof OFFERS_SORT_OPTIONS)[number]["value"]>("relevant");
   const [filterOpen, setFilterOpen] = useState(false);
   const [sortOpen, setSortOpen] = useState(false);
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+
+  const categoryId = activeCategory !== "all" ? activeCategory : undefined;
+
+  const {
+    products,
+    isLoading,
+    isFetchingNext,
+    fetchNextPage,
+    hasNextPage,
+    totalCount,
+  } = useInfiniteProducts({ isOffer: true, categoryId, sortBy });
 
   const categoryOptions = useMemo(
     () => [
@@ -709,21 +720,7 @@ export function MobileOffersView() {
     ],
     [categories, lang],
   );
-  useEffect(() => {
-    setVisibleCount(PAGE_SIZE);
-  }, [activeCategory, sortBy]);
 
-  const filteredProducts = useMemo(() => {
-    return featuredProducts.filter((product) => {
-      return activeCategory === "all" || product.category === activeCategory;
-    });
-  }, [activeCategory, featuredProducts]);
-
-  const sortedProducts = useMemo(
-    () => sortProducts(filteredProducts, sortBy, "", lang),
-    [filteredProducts, lang, sortBy],
-  );
-  const visibleProducts = sortedProducts.slice(0, visibleCount);
   const activeCategoryLabel = categoryOptions.find((item) => item.id === activeCategory)?.label;
   const hasFilters = activeCategory !== "all";
 
@@ -736,7 +733,9 @@ export function MobileOffersView() {
           activeFilters={
             <>
               <span className="inline-flex rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-black text-slate-700">
-                {sortedProducts.length} {lang === "ar" ? "عنصر" : "items"}
+                {totalCount > 0
+                  ? `${totalCount.toLocaleString()} ${lang === "ar" ? "عرض" : "offers"}`
+                  : (lang === "ar" ? "العروض" : "Offers")}
               </span>
               {activeCategoryLabel && activeCategory !== "all" ? (
                 <button
@@ -766,12 +765,12 @@ export function MobileOffersView() {
             ))}
           </div>
         </ShopperSurface>
-        {isLoading && featuredProducts.length === 0 ? (
+        {isLoading && products.length === 0 ? (
           <CatalogSkeletonGrid count={6} />
-        ) : visibleProducts.length > 0 ? (
+        ) : products.length > 0 ? (
           <>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-              {visibleProducts.map((product) => (
+              {products.map((product) => (
                 <ShopperProductTile
                   key={product.id}
                   product={product}
@@ -779,33 +778,46 @@ export function MobileOffersView() {
                 />
               ))}
             </div>
-            {sortedProducts.length > visibleCount ? (
+            {hasNextPage ? (
               <button
                 type="button"
-                onClick={() => setVisibleCount((current) => current + PAGE_SIZE)}
-                className="inline-flex h-12 w-full items-center justify-center rounded-[1.35rem] border border-slate-200 bg-white text-sm font-black text-slate-700 shadow-[0_14px_28px_rgba(15,23,42,0.05)]"
+                onClick={fetchNextPage}
+                disabled={isFetchingNext}
+                className="inline-flex h-12 w-full items-center justify-center rounded-[1.35rem] border border-slate-200 bg-white text-sm font-black text-slate-700 shadow-[0_14px_28px_rgba(15,23,42,0.05)] disabled:opacity-60"
               >
-                {lang === "ar" ? "عرض المزيد" : "Load more"}
+                {isFetchingNext
+                  ? (lang === "ar" ? "جارٍ التحميل…" : "Loading…")
+                  : (lang === "ar" ? "عرض المزيد" : "Load more")}
               </button>
             ) : null}
           </>
         ) : (
           <EmptyState
-            icon={Sparkles}
-            title={lang === "ar" ? "لا توجد عروض مطابقة" : "No matching offers"}
+            icon={Tag as typeof Sparkles}
+            title={
+              hasFilters
+                ? (lang === "ar" ? "لا توجد عروض مطابقة" : "No matching offers")
+                : (lang === "ar" ? "لا توجد عروض نشطة الآن" : "No active offers right now")
+            }
             description={
-              lang === "ar"
-                ? "جرّب إلغاء التصنيف الحالي أو الرجوع إلى كل العروض."
-                : "Try clearing the current category or returning to all offers."
+              hasFilters
+                ? (lang === "ar"
+                    ? "جرّب إلغاء التصنيف الحالي أو الرجوع إلى كل العروض."
+                    : "Try clearing the current category or returning to all offers.")
+                : (lang === "ar"
+                    ? "ترقّب! سيتم إضافة عروض وتخفيضات قريباً."
+                    : "Stay tuned — deals and discounts are coming soon.")
             }
             action={
-              <button
-                type="button"
-                onClick={() => setActiveCategory("all")}
-                className="inline-flex h-12 items-center justify-center rounded-2xl bg-[var(--primary)] px-6 text-sm font-black text-white"
-              >
-                {lang === "ar" ? "إعادة الضبط" : "Reset"}
-              </button>
+              hasFilters ? (
+                <button
+                  type="button"
+                  onClick={() => setActiveCategory("all")}
+                  className="inline-flex h-12 items-center justify-center rounded-2xl bg-[var(--primary)] px-6 text-sm font-black text-white"
+                >
+                  {lang === "ar" ? "إعادة الضبط" : "Reset"}
+                </button>
+              ) : null
             }
           />
         )}
