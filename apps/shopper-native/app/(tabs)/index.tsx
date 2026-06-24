@@ -119,6 +119,7 @@ export default function HomeScreen() {
   const goSearch     = useCallback(() => router.push("/search"         as any), [router]);
   const goNotifs     = useCallback(() => router.push("/notifications"  as any), [router]);
   const goAllCats    = useCallback(() => router.push("/(tabs)/products"     ), [router]);
+  const goOffers     = useCallback(() => router.push("/offers"         as any), [router]);
   const goScanRx     = useCallback(() => router.push("/prescriptions/scan" as any), [router]);
   const goLoyalty    = useCallback(() => router.push("/loyalty"        as any), [router]);
 
@@ -203,6 +204,7 @@ export default function HomeScreen() {
           <FlashSaleSection
             products={saleProducts}
             onProductPress={goProduct}
+            onViewAll={goOffers}
           />
         )}
 

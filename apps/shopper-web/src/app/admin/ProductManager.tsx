@@ -83,7 +83,7 @@ interface ProductFormState {
   price: string;
   stock: string;
   description: string;
-  isOffer: boolean;
+  isSale: boolean;
   originalPrice: string;
 }
 
@@ -111,7 +111,7 @@ const EMPTY_FORM: ProductFormState = {
   price: "",
   stock: "",
   description: "",
-  isOffer: false,
+  isSale: false,
   originalPrice: "",
 };
 
@@ -275,7 +275,7 @@ const ProductCard = memo(function ProductCard({
           <p className="mt-2 text-[10px] font-mono text-slate-400" dir="ltr">{product.barcode}</p>
         )}
 
-        {product.is_offer && (
+        {product.is_sale && (
           <div className="mt-2 inline-flex items-center gap-1 rounded-md bg-amber-100 px-2 py-0.5 text-[10px] font-black text-amber-700">
             <span>🏷</span>
             {lang === "ar" ? "عرض نشط" : "Active offer"}
@@ -406,7 +406,7 @@ export default function ProductManager() {
       price: String(product.price),
       stock: String(product.stock),
       description: "",
-      isOffer: product.is_offer ?? false,
+      isSale: product.is_sale ?? false,
       originalPrice: product.original_price != null ? String(product.original_price) : "",
     });
     setFormError("");
@@ -487,7 +487,7 @@ export default function ProductManager() {
         Category: form.categoryId,
         Category_Name: categories.find((c) => c.id === form.categoryId)?.name || "",
         Category_Name_En: categories.find((c) => c.id === form.categoryId)?.nameEn || "",
-        is_offer: form.isOffer,
+        is_sale: form.isSale,
         original_price: origPrice && !Number.isNaN(origPrice) ? origPrice : null,
       } satisfies ProductMutationPayload;
 
@@ -825,46 +825,47 @@ export default function ProductManager() {
               />
             </div>
 
-            {/* Offer section */}
-            <div className="rounded-xl border border-amber-200/80 bg-amber-50/50 p-3.5 space-y-3">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-sm font-bold text-slate-800">
-                    {lang === "ar" ? "تمييز كعرض" : "Mark as offer"}
-                  </p>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    {lang === "ar"
-                      ? "سيظهر في صفحة العروض مع شارة مميزة."
-                      : "Product will appear on the Offers page with a badge."}
-                  </p>
-                </div>
+            {/* Offer status */}
+            <div className="space-y-1.5">
+              <p className="text-sm font-medium text-slate-700">
+                {lang === "ar" ? "حالة العرض" : "Offer status"}
+              </p>
+              <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
-                  onClick={() => setForm((p) => ({ ...p, isOffer: !p.isOffer }))}
+                  onClick={() => setForm((p) => ({ ...p, isSale: false }))}
                   className={cn(
-                    "relative h-6 w-11 shrink-0 rounded-full transition-colors duration-200",
-                    form.isOffer ? "bg-amber-500" : "bg-slate-200",
+                    "h-9 rounded-lg border text-sm font-bold transition-all",
+                    !form.isSale
+                      ? "border-slate-300 bg-slate-100 text-slate-800 shadow-inner"
+                      : "border-slate-200 bg-white text-slate-400 hover:bg-slate-50",
                   )}
-                  role="switch"
-                  aria-checked={form.isOffer}
                 >
-                  <span
-                    className={cn(
-                      "absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform duration-200",
-                      form.isOffer ? "translate-x-5" : "translate-x-0.5",
-                    )}
-                  />
+                  {lang === "ar" ? "ليس عرضاً" : "Not an offer"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setForm((p) => ({ ...p, isSale: true }))}
+                  className={cn(
+                    "h-9 rounded-lg border text-sm font-bold transition-all",
+                    form.isSale
+                      ? "border-teal-300 bg-teal-50 text-teal-700 shadow-inner"
+                      : "border-slate-200 bg-white text-slate-400 hover:bg-slate-50",
+                  )}
+                >
+                  {lang === "ar" ? "عرض نشط ✓" : "Active offer ✓"}
                 </button>
               </div>
-              {form.isOffer && (
-                <AdminFormField
-                  label={lang === "ar" ? "السعر الأصلي (قبل التخفيض)" : "Original price (before discount)"}
-                  value={form.originalPrice}
-                  onChange={(v) => setForm((p) => ({ ...p, originalPrice: v }))}
-                  type="number"
-                />
-              )}
             </div>
+
+            {form.isSale && (
+              <AdminFormField
+                label={lang === "ar" ? "السعر الأصلي قبل التخفيض (EGP)" : "Original price before discount (EGP)"}
+                value={form.originalPrice}
+                onChange={(v) => setForm((p) => ({ ...p, originalPrice: v }))}
+                type="number"
+              />
+            )}
 
             {formError && (
               <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">

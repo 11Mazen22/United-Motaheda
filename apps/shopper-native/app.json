@@ -14,7 +14,7 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": false,
+      "supportsTablet": true,
       "bundleIdentifier": "com.unitedpharmacy.app",
       "buildNumber": "1",
       "jsEngine": "hermes",
@@ -30,8 +30,7 @@
       "package": "com.unitedpharmacy.app",
       "jsEngine": "hermes",
       "permissions": [
-        "android.permission.CAMERA",
-        "android.permission.RECORD_AUDIO"
+        "android.permission.CAMERA"
       ],
       "statusBar": {
         "backgroundColor": "transparent",

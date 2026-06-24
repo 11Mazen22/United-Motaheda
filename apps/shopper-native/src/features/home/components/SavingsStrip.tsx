@@ -15,6 +15,7 @@ import { Text as UIText } from "@/shared/ui";
 import { theme } from "@/shared/theme";
 import { kit } from "@/shared/kit";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
+import { useScreenLayout } from "@/utils/responsive";
 
 const IS_RTL     = isRtl();
 const TEXT_START = textAlignStart(IS_RTL);
@@ -25,9 +26,10 @@ const TRUST_ICONS: IoniconsName[] = ["shield-checkmark", "flash", "ribbon", "sno
 const TRUST_KEYS = ["home.savingsLine1", "home.savingsLine2", "home.savingsLine3", "home.savingsLine4"] as const;
 
 export const SavingsStrip = memo(function SavingsStrip() {
-  const { t } = useTranslation();
+  const { t }       = useTranslation();
+  const { pagePad } = useScreenLayout();
   return (
-    <View style={s.wrap}>
+    <View style={[s.wrap, { marginHorizontal: pagePad }]}>
       <View style={s.eyebrowRow}>
         <Ionicons name="leaf-outline" size={12} color={kit.color.accentDeep} />
         <UIText style={s.eyebrow}>{t("home.savingsPromise")}</UIText>
@@ -49,7 +51,6 @@ export const SavingsStrip = memo(function SavingsStrip() {
 
 const s = StyleSheet.create({
   wrap: {
-    marginHorizontal:  theme.layout.pagePaddingH,
     marginTop:         kit.sp(4),
     marginBottom:      kit.sp(2),
     backgroundColor:   kit.color.canvas,

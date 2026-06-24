@@ -23,6 +23,7 @@
 
 import React, { memo, useCallback, useEffect, useMemo } from "react";
 import { Platform, Pressable, StyleSheet, View } from "react-native";
+import { useScreenLayout } from "@/utils/responsive";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import Animated, {
@@ -72,9 +73,10 @@ export const HomeHero = memo(function HomeHero({
   onDeals,
   onLoyalty,
 }: HomeHeroProps) {
-  const { t } = useTranslation();
-  const reduced = useReducedMotion() ?? false;
-  const { user } = useAuth();
+  const { t }             = useTranslation();
+  const reduced           = useReducedMotion() ?? false;
+  const { user }          = useAuth();
+  const { pagePad }       = useScreenLayout();
   const isAuthed = Boolean(user);
   const userName = user?.name ?? null;
 
@@ -161,7 +163,7 @@ export const HomeHero = memo(function HomeHero({
   const sealLabel = t("home.heroSealLabel");
 
   return (
-    <View style={s.wrap}>
+    <View style={[s.wrap, { paddingHorizontal: pagePad }]}>
       <View style={s.card}>
         {/* Accent rail */}
         <View style={s.rail} />
@@ -286,11 +288,10 @@ const HeroChip = memo(function HeroChip({ icon, label, primary, onPress }: HeroC
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
 const s = StyleSheet.create({
-  // Outer page padding
+  // Outer page padding — horizontal is applied dynamically from useScreenLayout
   wrap: {
-    paddingHorizontal: theme.layout.pagePaddingH,
-    paddingTop:        kit.sp(3),
-    paddingBottom:     kit.sp(2),
+    paddingTop:    kit.sp(3),
+    paddingBottom: kit.sp(2),
   },
 
   // The hero card itself — only floating-shadow surface on the page

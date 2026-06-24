@@ -56,6 +56,7 @@ export const SearchProductRowSchema = z.object({
   rating_avg:        z.coerce.number().nullable().optional(),
   rating_count:      z.coerce.number().int().nullable().optional(),
   discount_percent:  z.coerce.number().nullable().optional(),
+  original_price:    z.coerce.number().nullable().optional(),
   is_new:            z.boolean().optional().default(false),
   is_bestseller:     z.boolean().optional().default(false),
   is_sale:           z.boolean().optional().default(false),
@@ -82,6 +83,7 @@ export const RawProductRowSchema = z.object({
   rating_avg:         z.coerce.number().nullable().optional(),
   rating_count:       z.coerce.number().int().nullable().optional(),
   discount_percent:   z.coerce.number().nullable().optional(),
+  original_price:     z.coerce.number().nullable().optional(),
   is_new:             z.boolean().optional().default(false),
   is_bestseller:      z.boolean().optional().default(false),
   is_sale:            z.boolean().optional().default(false),
@@ -108,6 +110,7 @@ export interface NativeProduct {
   ratingAvg?:       number | null;
   ratingCount?:     number | null;
   discountPercent?: number | null;
+  originalPrice?:   number | null;
   isNew?:           boolean;
   isBestseller?:    boolean;
   isSale?:          boolean;
@@ -131,6 +134,14 @@ export interface ProductPage {
 
 export function normalizeSearchRow(row: SearchProductRow): NativeProduct {
   const stock = Number(row.stock ?? 0);
+  const price = Number(row.price ?? 0);
+  const originalPrice = row.original_price != null && Number(row.original_price) > price
+    ? Number(row.original_price) : null;
+  const discountPercent = row.discount_percent != null
+    ? row.discount_percent
+    : (originalPrice && price > 0
+      ? Math.round((originalPrice - price) / originalPrice * 100)
+      : null);
   return {
     id:              row.id,
     code:            row.code ?? "",
@@ -138,7 +149,7 @@ export function normalizeSearchRow(row: SearchProductRow): NativeProduct {
     name:            row.name_ar ?? row.name_en ?? "",
     nameAr:          row.name_ar ?? undefined,
     nameEn:          row.name_en ?? undefined,
-    price:           Number(row.price ?? 0),
+    price,
     stock,
     inStock:         stock > 0,
     category:        row.category_name ?? "",
@@ -147,7 +158,8 @@ export function normalizeSearchRow(row: SearchProductRow): NativeProduct {
     imageUrl:        row.image_url ?? undefined,
     ratingAvg:       row.rating_avg ?? null,
     ratingCount:     row.rating_count ?? null,
-    discountPercent: row.discount_percent ?? null,
+    discountPercent,
+    originalPrice,
     isNew:           row.is_new ?? false,
     isBestseller:    row.is_bestseller ?? false,
     isSale:          row.is_sale ?? false,
@@ -156,6 +168,14 @@ export function normalizeSearchRow(row: SearchProductRow): NativeProduct {
 
 export function normalizeRawRow(row: RawProductRow): NativeProduct {
   const stock = Number(row.Stock ?? 0);
+  const price = Number(row.Price ?? 0);
+  const originalPrice = row.original_price != null && Number(row.original_price) > price
+    ? Number(row.original_price) : null;
+  const discountPercent = row.discount_percent != null
+    ? row.discount_percent
+    : (originalPrice && price > 0
+      ? Math.round((originalPrice - price) / originalPrice * 100)
+      : null);
   return {
     id:              row.id,
     code:            row.Code ?? "",
@@ -163,7 +183,7 @@ export function normalizeRawRow(row: RawProductRow): NativeProduct {
     name:            row.Name_Ar ?? row.Name_En ?? "",
     nameAr:          row.Name_Ar ?? undefined,
     nameEn:          row.Name_En ?? undefined,
-    price:           Number(row.Price ?? 0),
+    price,
     stock,
     inStock:         Boolean(row.is_active) && stock > 0,
     category:        row.Category_Name ?? "",
@@ -172,7 +192,8 @@ export function normalizeRawRow(row: RawProductRow): NativeProduct {
     imageUrl:        row.image_url ?? undefined,
     ratingAvg:       row.rating_avg ?? null,
     ratingCount:     row.rating_count ?? null,
-    discountPercent: row.discount_percent ?? null,
+    discountPercent,
+    originalPrice,
     isNew:           row.is_new ?? false,
     isBestseller:    row.is_bestseller ?? false,
     isSale:          row.is_sale ?? false,

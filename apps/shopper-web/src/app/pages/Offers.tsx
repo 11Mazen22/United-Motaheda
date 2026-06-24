@@ -239,7 +239,7 @@ function OffersDesktop() {
     totalCount,
     activeQuery,
     error,
-  } = useInfiniteProducts({ ...filters.serverFilters, isOffer: true });
+  } = useInfiniteProducts({ ...filters.serverFilters, isSale: true });
 
   // ── Client-side brand filter ─────────────────────────────────────────────
   const products = useMemo(

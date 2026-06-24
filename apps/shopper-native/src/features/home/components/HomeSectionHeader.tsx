@@ -14,6 +14,7 @@ import { theme } from "@/shared/theme";
 import { shStyles as base } from "./home.styles";
 import { flexRow, isRtl, textAlignStart, FORWARD_CHEVRON } from "@/utils/layout";
 import { kit } from "@/shared/kit";
+import { useScreenLayout } from "@/utils/responsive";
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>["name"];
 
@@ -35,10 +36,11 @@ export const HomeSectionHeader = memo(function HomeSectionHeader({
   onMore,
   rightSlot,
 }: HomeSectionHeaderProps) {
-  const { t } = useTranslation();
+  const { t }       = useTranslation();
+  const { pagePad } = useScreenLayout();
 
   return (
-    <View style={base.row}>
+    <View style={[base.row, { paddingHorizontal: pagePad }]}>
       {/* Leading cluster — icon tile + text stack */}
       <View style={base.left}>
         <View style={[sh.iconTile, { backgroundColor: accent + "14" }]}>

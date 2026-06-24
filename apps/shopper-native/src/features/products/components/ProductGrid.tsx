@@ -29,6 +29,7 @@ import { FlashList } from "@shopify/flash-list";
 import { ProductCard } from "@/components/ProductCard";
 import { theme } from "@/shared/theme";
 import { flexRow, isRtl } from "@/utils/layout";
+import { useScreenLayout } from "@/utils/responsive";
 import type { NativeProduct } from "../types";
 
 const ITEM_TYPE_PRODUCT = "p" as const;
@@ -58,17 +59,14 @@ export const ProductGrid = React.memo(function ProductGrid({
   contentContainerStyle,
   lang = "ar",
 }: ProductGridProps) {
+  const { numColumns, isTablet } = useScreenLayout();
+
   const keyExtractor = useCallback((item: NativeProduct) => item.id, []);
   const getItemType  = useCallback(() => ITEM_TYPE_PRODUCT, []);
 
-  // Provide exact layout dimensions so FlashList never needs a measurement pass.
-  // Eliminates the first-render jitter where cards momentarily appear at the
-  // wrong vertical position before FlashList corrects the scroll offset.
-  // Card anatomy: 172 image + (14 padding × 2) + 10 category + 40 name (2×20)
-  // + 14 stars + 8 price-row margin + 40 price/button + 5 cell padding = ~317 px.
   const overrideItemLayout = useCallback(
     (layout: { span?: number; size?: number }) => {
-      layout.size = 317;
+      layout.size = 280;
       layout.span = 1;
     },
     [],
@@ -76,7 +74,7 @@ export const ProductGrid = React.memo(function ProductGrid({
 
   const renderItem = useCallback(
     ({ item }: { item: NativeProduct }) => (
-      <View style={cellStyle}>
+      <View style={[cellStyle, isTablet && cellStyleTablet]}>
         <ProductCard
           product={item}
           lang={lang}
@@ -84,15 +82,20 @@ export const ProductGrid = React.memo(function ProductGrid({
         />
       </View>
     ),
-    [lang, onProductPress],
+    [lang, onProductPress, isTablet],
   );
 
   const containerStyle = useMemo(
     () => ({
-      padding:       contentContainerStyle?.padding ?? 12,
+      padding:       contentContainerStyle?.padding ?? (isTablet ? 16 : 12),
       paddingBottom: contentContainerStyle?.paddingBottom ?? 24,
     }),
-    [contentContainerStyle?.padding, contentContainerStyle?.paddingBottom],
+    [contentContainerStyle?.padding, contentContainerStyle?.paddingBottom, isTablet],
+  );
+
+  const columnWrapperDynamic = useMemo(
+    () => ({ flexDirection: FLEX_DIR, gap: isTablet ? 0 : 0 }),
+    [isTablet],
   );
 
   const refreshControl =
@@ -112,12 +115,13 @@ export const ProductGrid = React.memo(function ProductGrid({
         data={products}
         keyExtractor={keyExtractor}
         renderItem={renderItem}
-        numColumns={2}
+        numColumns={numColumns}
+        key={`grid-${numColumns}`}
         onEndReached={onEndReached}
         onEndReachedThreshold={0.5}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={containerStyle}
-        columnWrapperStyle={columnWrapperStyle}
+        columnWrapperStyle={columnWrapperDynamic}
         ListHeaderComponent={ListHeaderComponent}
         ListFooterComponent={ListFooterComponent}
         ListEmptyComponent={ListEmptyComponent}
@@ -128,10 +132,6 @@ export const ProductGrid = React.memo(function ProductGrid({
         windowSize={7}
         removeClippedSubviews
         style={{ flex: 1 }}
-        // No extraData — ProductCard reads cart/wishlist directly from Zustand
-        // stores, so it re-renders via store subscriptions rather than through
-        // the list's extraData prop. Passing products.length was triggering a
-        // full visible-items re-render on every next-page load.
       />
     );
   }
@@ -143,14 +143,9 @@ export const ProductGrid = React.memo(function ProductGrid({
       keyExtractor={keyExtractor}
       getItemType={getItemType}
       renderItem={renderItem}
-      numColumns={2}
-      // Card: 172px image + 14+14 padding + ~9.5 category label + ~40 name
-      // (2 lines × 20px) + ~14 stars row + ~34 price/button + 20 gap = ~317px.
-      // Note: FlashList v2 does not require estimatedItemSize (only optimal, not mandatory).
+      numColumns={numColumns}
+      key={`grid-${numColumns}`}
       overrideItemLayout={overrideItemLayout}
-      // drawDistance: pre-render 1.5 screen-heights ahead so the user never
-      // sees blank cells during normal scrolling.  Larger values increase
-      // mount/unmount work; smaller values risk visible blanks on fast flings.
       drawDistance={Platform.OS === "android" ? 300 : 250}
       onEndReached={onEndReached}
       onEndReachedThreshold={0.6}
@@ -161,17 +156,11 @@ export const ProductGrid = React.memo(function ProductGrid({
       ListEmptyComponent={ListEmptyComponent}
       refreshControl={refreshControl}
       style={{ flex: 1 }}
-      // No extraData — see FlatList note above.
     />
   );
 });
 
-const cellStyle = {
-  flex:    1,
-  padding: 5,
-} as const;
+const cellStyle        = { flex: 1, padding: 5 } as const;
+const cellStyleTablet  = { padding: 7 } as const;
 
 const FLEX_DIR = flexRow(isRtl());
-const columnWrapperStyle = {
-  flexDirection: FLEX_DIR,
-};

@@ -34,8 +34,8 @@ import { ProductCard, ProductCardSkeleton } from "@/components/ProductCard";
 import { HomeSectionHeader } from "./HomeSectionHeader";
 import { sectionStyles } from "./home.styles";
 import { fetchFeaturedProducts, productKeys } from "@/features/products";
-import { theme } from "@/shared/theme";
 import { kit } from "@/shared/kit";
+import { useScreenLayout } from "@/utils/responsive";
 import type { NativeProduct } from "@/features/products";
 
 const ITEM_W = 160;
@@ -50,9 +50,9 @@ export interface FeaturedSectionProps {
   onViewAll?: () => void;
 }
 
-const SkeletonRow = memo(function SkeletonRow() {
+const SkeletonRow = memo(function SkeletonRow({ pagePad }: { pagePad: number }) {
   return (
-    <View style={cs.skeletonRow}>
+    <View style={[cs.skeletonRow, { paddingHorizontal: pagePad }]}>
       {Array.from({ length: SKELETON_COUNT }).map((_, i) => (
         <View key={i} style={cs.itemWrap}>
           <ProductCardSkeleton />
@@ -71,7 +71,8 @@ export const FeaturedSection = memo(function FeaturedSection({
   onProductPress,
   onViewAll,
 }: FeaturedSectionProps) {
-  const { t } = useTranslation();
+  const { t }       = useTranslation();
+  const { pagePad } = useScreenLayout();
 
   const { data, isLoading } = useQuery<NativeProduct[]>({
     queryKey: productKeys.featured(FEATURED_LIMIT),
@@ -112,7 +113,7 @@ export const FeaturedSection = memo(function FeaturedSection({
         onMore={onViewAll}
       />
 
-      {isLoading && <SkeletonRow />}
+      {isLoading && <SkeletonRow pagePad={pagePad} />}
 
       {!isLoading && products.length > 0 && (
         <FlashList<NativeProduct>
@@ -121,7 +122,7 @@ export const FeaturedSection = memo(function FeaturedSection({
           renderItem={renderItem}
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={cs.listContent}
+          contentContainerStyle={{ paddingHorizontal: pagePad }}
           ItemSeparatorComponent={Separator}
         />
       )}
@@ -130,9 +131,6 @@ export const FeaturedSection = memo(function FeaturedSection({
 });
 
 const cs = StyleSheet.create({
-  listContent: {
-    paddingHorizontal: theme.layout.pagePaddingH,
-  },
   itemWrap: {
     width: ITEM_W,
   },
@@ -141,7 +139,6 @@ const cs = StyleSheet.create({
   },
   skeletonRow: {
     flexDirection: "row",
-    paddingHorizontal: theme.layout.pagePaddingH,
     gap: SEPARATOR_W,
   },
 });

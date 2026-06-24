@@ -501,12 +501,12 @@ export function ShopperProductTile({
             <span className="inline-flex max-w-[100px] items-center rounded-full border border-white/80 bg-white/95 px-2.5 py-1 text-[10px] font-black text-slate-700 shadow-sm">
               <span className="truncate">{badge || displayCategoryName}</span>
             </span>
-            {product.isOffer && product.originalPrice ? (
+            {product.isSale && product.originalPrice ? (
               <span className="inline-flex items-center gap-1 self-start rounded-md bg-amber-500 px-1.5 py-0.5 text-[9px] font-black text-white shadow-md">
                 <Tag className="h-2.5 w-2.5" />
                 {`${Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}% OFF`}
               </span>
-            ) : product.isOffer ? (
+            ) : product.isSale ? (
               <span className="inline-flex items-center gap-1 self-start rounded-md bg-amber-500 px-1.5 py-0.5 text-[9px] font-black text-white shadow-md">
                 <Tag className="h-2.5 w-2.5" />
                 {lang === "ar" ? "عرض" : "OFFER"}
@@ -573,7 +573,7 @@ export function ShopperProductTile({
               {product.originalPrice.toFixed(2)} <span className="text-[9px]">{t("currency")}</span>
             </p>
           )}
-          <p className={cn("text-[1.05rem] font-black tracking-tight", product.isOffer && product.originalPrice ? "text-amber-600" : "text-slate-950")}>
+          <p className={cn("text-[1.05rem] font-black tracking-tight", product.isSale && product.originalPrice ? "text-amber-600" : "text-slate-950")}>
             {product.price.toFixed(2)} <span className="text-xs text-slate-400">{t("currency")}</span>
           </p>
           <p className="mt-1 text-[11px] font-semibold leading-4 text-slate-500">

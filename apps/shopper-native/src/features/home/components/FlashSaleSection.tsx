@@ -9,14 +9,12 @@ import { Text as UIText } from "@/shared/ui";
 import { theme } from "@/shared/theme";
 import { flexRow, isRtl, FORWARD_CHEVRON } from "@/utils/layout";
 import { kit } from "@/shared/kit";
+import { useScreenLayout } from "@/utils/responsive";
 import { ProductCard } from "@/components/ProductCard";
 import { HomeSectionHeader } from "./HomeSectionHeader";
 import { flashStyles as fs, cntStyles as cs } from "./home.styles";
 import type { NativeProduct } from "@/features/products";
 import { useEndOfDayCountdown } from "../hooks/useEndOfDayCountdown";
-
-// ─── Sale discount rotation (stable — module-level constant) ──────────────────
-const SALE_DISCOUNTS = [25, 15, 20, 30, 10, 20];
 
 // ─── CountdownUnit ────────────────────────────────────────────────────────────
 
@@ -56,10 +54,9 @@ const CountdownDisplay = memo(function CountdownDisplay() {
 // ─── FlashSaleItem — stable list cell ────────────────────────────────────────
 
 const FlashSaleItem = memo(function FlashSaleItem({
-  item, index, lang, onPress,
+  item, lang, onPress,
 }: {
   item:    NativeProduct;
-  index:   number;
   lang:    "ar" | "en";
   onPress: (id: string) => void;
 }) {
@@ -70,7 +67,6 @@ const FlashSaleItem = memo(function FlashSaleItem({
         product={item}
         lang={lang}
         badge="sale"
-        discountPercent={SALE_DISCOUNTS[index % SALE_DISCOUNTS.length]}
         onPress={handlePress}
       />
     </View>
@@ -81,9 +77,8 @@ const FlashSaleItem = memo(function FlashSaleItem({
 
 const va = StyleSheet.create({
   wrap: {
-    paddingHorizontal: theme.layout.pagePaddingH,
-    paddingTop:        8,
-    paddingBottom:     6,
+    paddingTop:    8,
+    paddingBottom: 6,
   },
   btn: {
     borderRadius: kit.radius.pill,
@@ -129,10 +124,11 @@ export const FlashSaleSection = memo(function FlashSaleSection({
   const { t, i18n } = useTranslation();
   const lang        = i18n.language === "en" ? "en" as const : "ar" as const;
   const items       = products.slice(0, 6);
+  const { pagePad } = useScreenLayout();
 
   const renderFlashItem = useCallback(
-    ({ item, index }: { item: NativeProduct; index: number }) => (
-      <FlashSaleItem item={item} index={index} lang={lang} onPress={onProductPress} />
+    ({ item }: { item: NativeProduct }) => (
+      <FlashSaleItem item={item} lang={lang} onPress={onProductPress} />
     ),
     [lang, onProductPress],
   );
@@ -169,13 +165,13 @@ export const FlashSaleSection = memo(function FlashSaleSection({
 
       {/* ── "View All Deals" CTA — animated gradient button ── */}
       {onViewAll && (
-        <View style={va.wrap}>
+        <View style={[va.wrap, { paddingHorizontal: pagePad }]}>
           <Pressable
             onPress={handleViewAll}
             accessibilityRole="button"
             style={({ pressed }) => [va.btn, pressed && va.btnPressed]}>
             <LinearGradient
-              colors={["#ff6b6b", "#ff0000", "#cc0000"]}
+              colors={[kit.color.accent, kit.color.accentDeep]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={va.btnInner}

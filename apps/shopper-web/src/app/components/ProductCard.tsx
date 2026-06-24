@@ -166,12 +166,12 @@ export const ProductCard = memo(function ProductCard({
             <span className="inline-flex max-w-[120px] items-center truncate rounded-lg border border-white/70 bg-white/92 px-2 py-1 text-[9px] font-black tracking-wide text-slate-600 shadow-sm">
               {displayCategoryName}
             </span>
-            {product.isOffer && product.originalPrice ? (
+            {product.isSale && product.originalPrice ? (
               <span className="inline-flex items-center gap-1 self-start rounded-md bg-amber-500 px-1.5 py-0.5 text-[9px] font-black text-white shadow-md">
                 <Tag className="h-2.5 w-2.5" />
                 {`${Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}% OFF`}
               </span>
-            ) : product.isOffer ? (
+            ) : product.isSale ? (
               <span className="inline-flex items-center gap-1 self-start rounded-md bg-amber-500 px-1.5 py-0.5 text-[9px] font-black text-white shadow-md">
                 <Tag className="h-2.5 w-2.5" />
                 {lang === "ar" ? "عرض" : "OFFER"}
@@ -298,7 +298,7 @@ export const ProductCard = memo(function ProductCard({
             )}
             <p className={cn(
               "mt-0.5 text-[1.1rem] font-black leading-none tracking-tight",
-              product.isOffer && product.originalPrice ? "text-amber-600" : "text-slate-900",
+              product.isSale && product.originalPrice ? "text-amber-600" : "text-slate-900",
             )}>
               {product.price.toFixed(2)}{" "}
               <span className="text-[10px] font-bold text-slate-400">{t("currency")}</span>

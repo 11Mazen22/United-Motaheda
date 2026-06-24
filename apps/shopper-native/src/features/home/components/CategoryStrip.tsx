@@ -22,12 +22,12 @@ import Animated, {
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 
-import { theme } from "@/shared/theme";
 import { kit } from "@/shared/kit";
 import { CategoryCard } from "@/components/CategoryCard";
 import { CategoryCardSkeleton } from "@/components/ui/Skeleton";
 import { HomeSectionHeader } from "./HomeSectionHeader";
 import { sectionStyles } from "./home.styles";
+import { useScreenLayout } from "@/utils/responsive";
 import type { NativeCategory } from "@/features/products";
 
 const IS_RTL    = I18nManager.isRTL;
@@ -49,7 +49,8 @@ export const CategoryStrip = memo(function CategoryStrip({
   onCategoryPress,
   onViewAll,
 }: CategoryStripProps) {
-  const { t } = useTranslation();
+  const { t }       = useTranslation();
+  const { pagePad } = useScreenLayout();
 
   const listRef    = useRef<FlatList>(null);
   const scrollX    = useRef(0);
@@ -146,7 +147,7 @@ export const CategoryStrip = memo(function CategoryStrip({
   );
 
   const CONTENT_STYLE = {
-    paddingHorizontal: theme.layout.pagePaddingH,
+    paddingHorizontal: pagePad,
     paddingTop:        12,
     paddingBottom:     8,
     gap:               12,

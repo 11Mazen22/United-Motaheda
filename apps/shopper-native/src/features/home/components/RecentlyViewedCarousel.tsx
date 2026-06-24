@@ -18,6 +18,7 @@ import { ProductCard } from "@/components/ProductCard";
 import { useRecentlyViewedFeed } from "@/features/recommendations/hooks/useRecentlyViewedFeed";
 import { HomeSectionHeader } from "./HomeSectionHeader";
 import { sectionStyles } from "./home.styles";
+import { useScreenLayout } from "@/utils/responsive";
 import type { NativeProduct } from "@/features/products";
 
 interface RecentlyViewedCarouselProps {
@@ -59,6 +60,7 @@ const RecentlyViewedInner = memo(function RecentlyViewedInner({
   onProductPress,
   title,
 }: InnerProps) {
+  const { pagePad } = useScreenLayout();
   const renderItem = useCallback<ListRenderItem<NativeProduct>>(
     ({ item }) => (
       <View style={s.itemWrap}>
@@ -87,7 +89,7 @@ const RecentlyViewedInner = memo(function RecentlyViewedInner({
         horizontal
         showsHorizontalScrollIndicator={false}
         renderItem={renderItem}
-        contentContainerStyle={{ paddingHorizontal: theme.layout.pagePaddingH }}
+        contentContainerStyle={{ paddingHorizontal: pagePad }}
         ItemSeparatorComponent={Separator}
       />
     </View>

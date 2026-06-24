@@ -11,6 +11,7 @@ import {
 } from "@heroicons/react/24/outline";
 import {
   type ComponentType,
+  type CSSProperties,
   type ReactNode,
   useMemo,
 } from "react";
@@ -208,7 +209,7 @@ export function AdminMetricCard({
   value: ReactNode;
   note?: string;
   trend?: string;
-  icon?: ComponentType<{ className?: string }>;
+  icon?: ComponentType<{ className?: string; style?: CSSProperties }>;
   tone?: "slate" | "teal" | "blue" | "amber" | "emerald" | "rose" | "violet" | "sky" | "purple" | string;
   className?: string;
 }) {

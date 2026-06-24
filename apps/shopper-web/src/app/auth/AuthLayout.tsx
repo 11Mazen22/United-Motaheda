@@ -4,11 +4,7 @@ import { Link } from "react-router-dom";
 import {
   ArrowLeft,
   ArrowRight,
-  Building2,
-  Clock3,
-  HeartPulse,
   ShieldCheck,
-  Truck,
 } from "lucide-react";
 import { useLanguage } from "../../contexts/LanguageContext";
 import { getServiceHoursLabel } from "../config";

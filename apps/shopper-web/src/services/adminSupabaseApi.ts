@@ -25,7 +25,7 @@ export interface AdminProduct {
   categoryNameEn: string;
   inStock: boolean;
   is_active: boolean;
-  is_offer: boolean;
+  is_sale: boolean;
   original_price?: number;
   imageUrl?: string;
   created_at?: string;
@@ -141,7 +141,7 @@ export async function fetchAdminProducts(): Promise<AdminProduct[]> {
       categoryNameEn: row.Category_Name_En || '',
       inStock: Boolean(row.is_active),
       is_active: Boolean(row.is_active),
-      is_offer: Boolean(row.is_offer),
+      is_sale: Boolean(row.is_sale),
       original_price: row.original_price != null ? Number(row.original_price) : undefined,
       created_at: row.created_at,
       updated_at: row.updated_at,
@@ -197,8 +197,8 @@ export async function updateAdminProduct(payload: ProductMutationPayload): Promi
       is_active: Number(payload.Stock) > 0,
       updated_at: new Date().toISOString(),
     };
-    if (payload.is_offer !== undefined) {
-      updateData.is_offer = payload.is_offer;
+    if (payload.is_sale !== undefined) {
+      updateData.is_sale = payload.is_sale;
     }
     if (payload.original_price !== undefined) {
       updateData.original_price = payload.original_price;
@@ -235,6 +235,8 @@ export async function updateAdminProduct(payload: ProductMutationPayload): Promi
       categoryNameEn: data.Category_Name_En || '',
       inStock: Boolean(data.is_active),
       is_active: Boolean(data.is_active),
+      is_sale: Boolean(data.is_sale),
+      original_price: data.original_price != null ? Number(data.original_price) : undefined,
       created_at: data.created_at,
       updated_at: data.updated_at,
     };
@@ -300,6 +302,8 @@ export async function createAdminProduct(payload: ProductMutationPayload): Promi
       categoryNameEn: data.Category_Name_En || '',
       inStock: Boolean(data.is_active),
       is_active: Boolean(data.is_active),
+      is_sale: Boolean(data.is_sale),
+      original_price: data.original_price != null ? Number(data.original_price) : undefined,
       created_at: data.created_at,
       updated_at: data.updated_at,
     };

@@ -17,6 +17,7 @@ import { type ReactNode, useEffect, useState } from "react";
 import { Link, useNavigate }       from "react-router-dom";
 import { type CartItem, useCart }  from "../../contexts/CartContext";
 import { useLanguage }             from "../../contexts/LanguageContext";
+import type { TranslationKey }    from "../../i18n/translationData";
 import {
   getDeliveryWindowLabel,
   getOrderPricing,
@@ -287,7 +288,7 @@ function CartDesktop() {
 interface CartItemCardProps {
   item:           CartItem;
   lang:           "ar" | "en";
-  t:              (key: string) => string;
+  t:              (key: TranslationKey) => string;
   removeFromCart: (id: string) => void;
   updateQuantity: (id: string, qty: number) => void;
 }
@@ -441,7 +442,7 @@ function CartEmpty({
   t,
 }: {
   lang: "ar" | "en";
-  t: (key: string) => string;
+  t: (key: TranslationKey) => string;
 }) {
   return (
     <div className="cart-page flex min-h-screen flex-col items-center justify-center bg-[#F8FAFB] px-6 py-24 text-center">

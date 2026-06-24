@@ -3,7 +3,7 @@
  * and an active-item preview card showing the current page context.
  */
 
-import { useMemo, useState } from "react";
+import { type ComponentType, type CSSProperties, useMemo, useState } from "react";
 import { NavLink } from "react-router-dom";
 import {
   ArrowLeftOnRectangleIcon,
@@ -50,7 +50,7 @@ interface NavItem {
   labelEn: string;
   hintAr: string;
   hintEn: string;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: ComponentType<{ className?: string; style?: CSSProperties }>;
   allowedRoles: AdminRole[];
 }
 
@@ -58,7 +58,7 @@ interface NavSection {
   key: string;
   labelAr: string;
   labelEn: string;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: ComponentType<{ className?: string; style?: CSSProperties }>;
   items: NavItem[];
 }
 

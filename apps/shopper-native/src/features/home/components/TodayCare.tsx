@@ -25,6 +25,7 @@ import { useOrders } from "@/features/orders/hooks/useOrders";
 import { mapOrderStatus, type OrderTone } from "@/features/orders/lib/statusMap";
 import { usePrescriptions } from "@/features/prescriptions/hooks/usePrescriptions";
 import { useTranslation } from "react-i18next";
+import { useScreenLayout } from "@/utils/responsive";
 import type { Order } from "@/stores/orders";
 import type { Prescription } from "@/stores/prescriptionsStore";
 
@@ -50,9 +51,10 @@ const RX_RANK: Record<string, number> = { ready: 0, expiring: 1 };
 const ACTIVE_ORDER = (o: Order) => o.status !== "delivered" && o.status !== "cancelled";
 
 export const TodayCare = memo(function TodayCare(): React.ReactElement | null {
-  const { user } = useAuth();
-  const router   = useRouter();
-  const { t }    = useTranslation();
+  const { user }    = useAuth();
+  const router      = useRouter();
+  const { t }       = useTranslation();
+  const { pagePad } = useScreenLayout();
   const prescriptions = usePrescriptions();
   const { data: orders } = useOrders(user?.id);
 
@@ -89,7 +91,7 @@ export const TodayCare = memo(function TodayCare(): React.ReactElement | null {
   const hasContent = Boolean(activeOrder) || needsYou.length > 0;
 
   return (
-    <View style={s.wrap}>
+    <View style={[s.wrap, { paddingHorizontal: pagePad }]}>
       <View style={s.header}>
         <UIText style={s.title}>{t("home.todayTitle")}</UIText>
         {needsYou.length > 0 && (
@@ -208,9 +210,8 @@ const AllGood = memo(function AllGood() {
 
 const s = StyleSheet.create({
   wrap: {
-    paddingHorizontal: theme.layout.pagePaddingH,
-    paddingTop:        kit.sp(4),
-    gap:               kit.sp(2),
+    paddingTop: kit.sp(4),
+    gap:        kit.sp(2),
   },
   header: {
     flexDirection:  flexRow(IS_RTL),

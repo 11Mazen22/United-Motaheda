@@ -34,7 +34,7 @@ const MAX_PAGE_SIZE     = 50;
 
 /** Explicit column list for direct selects against the products table. */
 const PRODUCT_COLUMNS =
-  'id,"Code","Barcode","Name_Ar","Name_En","Price","Stock","Category_Name","Category_Name_En","is_active",image_url,rating_avg,rating_count,discount_percent,is_new,is_bestseller,is_sale';
+  'id,"Code","Barcode","Name_Ar","Name_En","Price","Stock","Category_Name","Category_Name_En","is_active",image_url,rating_avg,rating_count,discount_percent,original_price,is_new,is_bestseller,is_sale';
 
 // ─── List / search ──────────────────────────────────────────────────────────
 

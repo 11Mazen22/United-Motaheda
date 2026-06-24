@@ -6,8 +6,8 @@
  * Distinct tint per action builds spatial memory.
  */
 
-import React, { memo, useCallback } from "react";
-import { Dimensions, Platform, StyleSheet, View } from "react-native";
+import React, { memo, useCallback, useMemo } from "react";
+import { Platform, StyleSheet, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useTranslation } from "react-i18next";
@@ -16,17 +16,14 @@ import { theme } from "@/shared/theme";
 import { flexRow, isRtl, textAlignStart, FORWARD_CHEVRON } from "@/utils/layout";
 import { PressableScale } from "@/shared/motion";
 import { kit } from "@/shared/kit";
+import { useScreenLayout } from "@/utils/responsive";
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>["name"];
 
 const IS_RTL     = isRtl();
 const TEXT_START = textAlignStart(IS_RTL);
 
-// Card dimensions — two columns with a gap inside the page padding
-const PAGE_H   = theme.layout.pagePaddingH; // 20
 const CARD_GAP = 10;
-const CARD_W   = (Dimensions.get("window").width - PAGE_H * 2 - CARD_GAP) / 2;
-const CARD_H   = Math.round(CARD_W * 0.92);
 
 type ActionCardDef = {
   icon:   IoniconsName;
@@ -42,7 +39,10 @@ interface QuickActionsProps {
 }
 
 export const QuickActions = memo(function QuickActions({ onNavigate }: QuickActionsProps) {
-  const { t } = useTranslation();
+  const { t }              = useTranslation();
+  const { width, pagePad } = useScreenLayout();
+  const cardW = useMemo(() => Math.floor((width - pagePad * 2 - CARD_GAP) / 2), [width, pagePad]);
+  const cardH = useMemo(() => Math.round(cardW * 0.92), [cardW]);
 
   const cards: ActionCardDef[] = [
     { icon: "scan-outline",       label: t("home.qaScanLabel"),    sub: t("home.qaScanSub"),    route: "/prescriptions/scan", accent: kit.color.accent,   tint: kit.color.accentTint  },
@@ -52,9 +52,9 @@ export const QuickActions = memo(function QuickActions({ onNavigate }: QuickActi
   ];
 
   return (
-    <View style={cs.grid}>
+    <View style={[cs.grid, { paddingHorizontal: pagePad }]}>
       {cards.map((card) => (
-        <ActionCard key={card.route} def={card} onNavigate={onNavigate} />
+        <ActionCard key={card.route} def={card} onNavigate={onNavigate} cardW={cardW} cardH={cardH} />
       ))}
     </View>
   );
@@ -63,9 +63,13 @@ export const QuickActions = memo(function QuickActions({ onNavigate }: QuickActi
 const ActionCard = memo(function ActionCard({
   def,
   onNavigate,
+  cardW,
+  cardH,
 }: {
   def:        ActionCardDef;
   onNavigate: (route: string) => void;
+  cardW:      number;
+  cardH:      number;
 }) {
   const handlePress = useCallback(() => {
     if (Platform.OS !== "web") Haptics.selectionAsync().catch(() => {});
@@ -78,7 +82,7 @@ const ActionCard = memo(function ActionCard({
       scaleTo={0.95}
       accessibilityRole="button"
       accessibilityLabel={def.label}
-      style={cs.card}>
+      style={[cs.card, { width: cardW, height: cardH }]}>
 
       {/* VIP accent stripe */}
       <View style={[cs.accentStripe, { backgroundColor: def.accent }]} />
@@ -104,16 +108,13 @@ const ActionCard = memo(function ActionCard({
 
 const cs = StyleSheet.create({
   grid: {
-    flexDirection:     flexRow(IS_RTL),
-    flexWrap:          "wrap",
-    paddingHorizontal: PAGE_H,
-    paddingTop:        kit.sp(4),
-    paddingBottom:     kit.sp(1),
-    gap:               CARD_GAP,
+    flexDirection: flexRow(IS_RTL),
+    flexWrap:      "wrap",
+    paddingTop:    kit.sp(4),
+    paddingBottom: kit.sp(1),
+    gap:           CARD_GAP,
   },
   card: {
-    width:           CARD_W,
-    height:          CARD_H,
     backgroundColor: kit.color.surface,
     borderRadius:    kit.radius.lg,
     borderWidth:     1,

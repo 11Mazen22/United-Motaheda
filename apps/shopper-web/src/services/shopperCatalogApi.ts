@@ -33,7 +33,7 @@ export interface ProductFilters {
   minPrice?: number;
   maxPrice?: number;
   sortBy?: "price_asc" | "price_desc" | "name" | "relevant";
-  isOffer?: boolean;
+  isSale?: boolean;
 }
 
 export interface PageResult {
@@ -85,7 +85,7 @@ class PageCache {
       minPrice: filters.minPrice ?? 0,
       maxPrice: filters.maxPrice ?? 0,
       sortBy: filters.sortBy ?? "relevant",
-      isOffer: filters.isOffer ?? false,
+      isSale: filters.isSale ?? false,
     });
   }
 
@@ -310,9 +310,9 @@ function buildSupabaseQuery(
     query = query.eq("is_active", filters.inStock);
   }
 
-  // Offer filter — only fetch products marked is_offer = true.
-  if (filters.isOffer) {
-    query = query.eq("is_offer", true);
+  // Sale filter — only fetch products marked is_sale = true.
+  if (filters.isSale) {
+    query = query.eq("is_sale", true);
   }
 
   // Price range filters.

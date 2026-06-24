@@ -83,7 +83,6 @@ const OFFERS_SORT_OPTIONS = [
   { value: "name", labelAr: "الاسم", labelEn: "Name" },
 ] as const;
 
-const PAGE_SIZE = 24;
 const PROFILE_PREFERENCES_KEY = "united-pharmacies-profile-preferences-v1";
 
 function getOptionLabel<
@@ -175,42 +174,6 @@ function readPreferences() {
   }
 }
 
-function sortProducts(
-  products: CatalogProduct[],
-  sortBy: (typeof SORT_OPTIONS)[number]["value"],
-  normalizedSearch: string,
-  lang: "ar" | "en",
-) {
-  const sortLocale = lang === "ar" ? "ar" : "en";
-  return [...products].sort((left, right) => {
-    const leftName = getLocalizedProductName(left, lang);
-    const rightName = getLocalizedProductName(right, lang);
-
-    if (sortBy === "price_asc") {
-      return left.price - right.price;
-    }
-    if (sortBy === "price_desc") {
-      return right.price - left.price;
-    }
-    if (sortBy === "name") {
-      return leftName.localeCompare(rightName, sortLocale);
-    }
-    const leftStartsWithSearch =
-      normalizedSearch.length > 0 && leftName.toLowerCase().startsWith(normalizedSearch);
-    const rightStartsWithSearch =
-      normalizedSearch.length > 0 && rightName.toLowerCase().startsWith(normalizedSearch);
-    if (Number(rightStartsWithSearch) !== Number(leftStartsWithSearch)) {
-      return Number(rightStartsWithSearch) - Number(leftStartsWithSearch);
-    }
-    if (Number(right.inStock) !== Number(left.inStock)) {
-      return Number(right.inStock) - Number(left.inStock);
-    }
-    if (left.price !== right.price) {
-      return left.price - right.price;
-    }
-    return leftName.localeCompare(rightName, sortLocale);
-  });
-}
 
 export function MobileCategoriesView() {
   const { categories, isLoading } = useCatalog();
@@ -708,7 +671,7 @@ export function MobileOffersView() {
     fetchNextPage,
     hasNextPage,
     totalCount,
-  } = useInfiniteProducts({ isOffer: true, categoryId, sortBy });
+  } = useInfiniteProducts({ isSale: true, categoryId, sortBy });
 
   const categoryOptions = useMemo(
     () => [

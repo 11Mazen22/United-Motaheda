@@ -38,6 +38,7 @@ import { theme } from "@/shared/theme";
 import { AppLogo } from "@/shared/components/AppLogo";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
 import { kit } from "@/shared/kit";
+import { useScreenLayout } from "@/utils/responsive";
 
 const IS_RTL     = isRtl();
 const TEXT_START = textAlignStart(IS_RTL);
@@ -69,9 +70,10 @@ export const DeliveryHeader = memo(function DeliveryHeader({
   onSearchPress,
   onNotifPress,
 }: DeliveryHeaderProps) {
-  const { t }   = useTranslation();
-  const reduced = useReducedMotion() ?? false;
-  const timeIcon = useMemo(() => getTimeIcon(), []);
+  const { t }              = useTranslation();
+  const reduced            = useReducedMotion() ?? false;
+  const timeIcon           = useMemo(() => getTimeIcon(), []);
+  const { isTablet, pagePad } = useScreenLayout();
 
   // ── Ambient shared values ─────────────────────────────────────────────────
   const orbY              = useSharedValue(0);
@@ -127,7 +129,7 @@ export const DeliveryHeader = memo(function DeliveryHeader({
     : t("home.greetingGuest");
 
   return (
-    <View style={[s.header, { paddingTop: insets.top + 14 }]}>
+    <View style={[s.header, { paddingTop: insets.top + (isTablet ? 18 : 14), paddingHorizontal: pagePad }]}>
 
       {/* ── Ambient depth orb (clipped by overflow:hidden on header) ── */}
       <Animated.View
@@ -219,10 +221,9 @@ export const DeliveryHeader = memo(function DeliveryHeader({
 
 const s = StyleSheet.create({
   header: {
-    backgroundColor:   "#0A1220",
-    paddingBottom:     kit.sp(3),
-    paddingHorizontal: theme.layout.pagePaddingH,
-    overflow:          "hidden",   // clips the ambient orb
+    backgroundColor: "#0A1220",
+    paddingBottom:   kit.sp(3),
+    overflow:        "hidden",   // clips the ambient orb
   },
 
   // Ambient orb — receives ORB_POSITION spread in JSX

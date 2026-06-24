@@ -18,7 +18,7 @@
  */
 
 import React, { memo, useCallback } from "react";
-import { Dimensions, Platform, Pressable, StyleSheet, View } from "react-native";
+import { Platform, Pressable, StyleSheet, View } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
@@ -28,6 +28,7 @@ import { Text as UIText } from "@/shared/ui";
 import { theme } from "@/shared/theme";
 import { kit } from "@/shared/kit";
 import { flexRow, isRtl, textAlignStart, FORWARD_CHEVRON } from "@/utils/layout";
+import { useScreenLayout } from "@/utils/responsive";
 import { ProductCard } from "@/components/ProductCard";
 import { HomeSectionHeader } from "./HomeSectionHeader";
 import { sectionStyles } from "./home.styles";
@@ -38,11 +39,7 @@ import type { NativeProduct } from "@/features/products";
 const IS_RTL     = isRtl();
 const TEXT_START = textAlignStart(IS_RTL);
 
-const SCREEN_W = Dimensions.get("window").width;
-const PAGE_H   = theme.layout.pagePaddingH;
-const GAP      = 10;
-// Two compact cards under the hero — split evenly
-const COMPACT_W = Math.floor((SCREEN_W - PAGE_H * 2 - GAP) / 2);
+const GAP = 10;
 
 const EDIT_LIMIT = 6;
 const STALE_MS   = 90_000;
@@ -83,13 +80,19 @@ export const DailyEdit = memo(function DailyEdit({
     gcTime:    5 * 60_000,
   });
 
+  const { width, isTablet, pagePad } = useScreenLayout();
+
   const products = data ?? [];
 
   // Need at least 3 products to justify the editorial layout
   if (!isLoading && products.length < 3) return null;
   if (isLoading || products.length === 0) return null;
 
-  const [hero, second, third] = products;
+  const [hero, second, third, fourth] = products;
+
+  // On tablet show 3 compact cards; phone shows 2
+  const compactCount = isTablet && fourth ? 3 : 2;
+  const compactW = Math.floor((width - pagePad * 2 - GAP * (compactCount - 1)) / compactCount);
 
   return (
     <View style={sectionStyles.wrap}>
@@ -101,7 +104,7 @@ export const DailyEdit = memo(function DailyEdit({
         onMore={onViewAll}
       />
 
-      <View style={s.body}>
+      <View style={[s.body, { paddingHorizontal: pagePad }]}>
         {/* Hero editorial card */}
         <EditorialHeroCard
           product={hero}
@@ -111,20 +114,29 @@ export const DailyEdit = memo(function DailyEdit({
 
         {/* Compact split row */}
         <View style={s.compactRow}>
-          <View style={{ width: COMPACT_W }}>
+          <View style={{ width: compactW }}>
             <ProductCard
               product={second}
               lang={lang}
               onPress={() => onProductPress(second.id)}
             />
           </View>
-          <View style={{ width: COMPACT_W }}>
+          <View style={{ width: compactW }}>
             <ProductCard
               product={third}
               lang={lang}
               onPress={() => onProductPress(third.id)}
             />
           </View>
+          {isTablet && fourth && (
+            <View style={{ width: compactW }}>
+              <ProductCard
+                product={fourth}
+                lang={lang}
+                onPress={() => onProductPress(fourth.id)}
+              />
+            </View>
+          )}
         </View>
       </View>
     </View>
@@ -213,8 +225,7 @@ const EditorialHeroCard = memo(function EditorialHeroCard({
 
 const s = StyleSheet.create({
   body: {
-    paddingHorizontal: PAGE_H,
-    gap:               GAP,
+    gap: GAP,
   },
 
   // ── Hero editorial card (1+2 layout top) ─────────────────────────────────

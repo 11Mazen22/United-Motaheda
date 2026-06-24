@@ -9,7 +9,7 @@
  */
 
 import React, { useCallback, useEffect } from "react";
-import { Platform, Pressable, StyleSheet, View } from "react-native";
+import { Platform, Pressable, StyleSheet, View, useWindowDimensions } from "react-native";
 import { Tabs } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -74,9 +74,12 @@ interface TabItemProps {
 }
 
 function TabItem({ name, focused, badge, onPress }: TabItemProps) {
-  const { t } = useTranslation();
-  const cfg   = TAB_CONFIG[name] ?? TAB_CONFIG.index;
-  const label = t(TAB_LABEL_KEY[name] ?? "tabs.home");
+  const { t }        = useTranslation();
+  const cfg          = TAB_CONFIG[name] ?? TAB_CONFIG.index;
+  const label        = t(TAB_LABEL_KEY[name] ?? "tabs.home");
+  const { width }    = useWindowDimensions();
+  const isTablet     = width >= 600;
+  const iconSize     = isTablet ? 24 : 22;
 
   const progress = useSharedValue(focused ? 1 : 0);
 
@@ -132,7 +135,7 @@ function TabItem({ name, focused, badge, onPress }: TabItemProps) {
       <Animated.View style={iconStyle}>
         <Ionicons
           name={focused ? cfg.active : cfg.inactive}
-          size={22}
+          size={iconSize}
           color={iconColor}
         />
       </Animated.View>
@@ -160,6 +163,9 @@ function BottomTabBar({ state, navigation }: BottomTabBarProps) {
   const insets       = useSafeAreaInsets();
   const { user }     = useAuth();
   const unreadNotifs = useUnreadCount(user?.id);
+  const { width }    = useWindowDimensions();
+  const isTablet     = width >= 600;
+  const barH         = isTablet ? 76 : BAR_H;
 
   const onPress = useCallback(
     (route: { key: string; name: string }, focused: boolean) => {
@@ -176,10 +182,10 @@ function BottomTabBar({ state, navigation }: BottomTabBarProps) {
   const visibleRoutes = state.routes.filter((r) => r.name in TAB_CONFIG);
 
   return (
-    <View style={[styles.barOuter, { paddingBottom: Math.max(insets.bottom, 4) }]}>
+    <View style={[styles.barOuter, { paddingBottom: Math.max(insets.bottom, isTablet ? 6 : 4) }]}>
       {/* Hairline separator */}
       <View style={styles.topHairline} />
-      <View style={styles.barInner}>
+      <View style={[styles.barInner, { height: barH, paddingHorizontal: isTablet ? 24 : 4 }]}>
         {visibleRoutes.map((route) => {
           const realIdx = state.routes.findIndex((r) => r.key === route.key);
           const focused = state.index === realIdx;
@@ -250,6 +256,7 @@ const styles = StyleSheet.create({
   // Each tab fills equal space
   tabItem: {
     flex:           1,
+    maxWidth:       140,
     height:         BAR_H,
     alignItems:     "center",
     justifyContent: "center",

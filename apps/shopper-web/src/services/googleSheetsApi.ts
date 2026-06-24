@@ -146,6 +146,7 @@ export type AdminOrder = {
   status: OrderStatus;
   paymentMethod: string;
   paymentLabel: string;
+  paymentStatus?: string;
   requestPosMachine: boolean;
   assignedDriver?: string;
   assignedDriverId?: string;
@@ -162,7 +163,7 @@ export type ProductMutationPayload = {
   Category: string;
   Category_Name: string;
   Category_Name_En: string;
-  is_offer?: boolean;
+  is_sale?: boolean;
   original_price?: number | null;
 };
 
