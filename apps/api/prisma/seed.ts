@@ -62,8 +62,21 @@ async function main() {
       ],
     },
 
-    // Branch: Masakin Al-Dhubbat (Fatima Al-Zahraa St., Nasr City)
+    // Branch: Masakin Al-Dabbat (Fatima Al-Zahraa St., Nasr City) — Branch 1
     "masakin-dhabbat": {
+      points: [
+        { lat: 30.063, lng: 31.37  },
+        { lat: 30.063, lng: 31.34  },
+        { lat: 30.045, lng: 31.335 },
+        { lat: 30.036, lng: 31.345 },
+        { lat: 30.033, lng: 31.375 },
+        { lat: 30.048, lng: 31.39  },
+        { lat: 30.060, lng: 31.385 },
+      ],
+    },
+
+    // Branch: Masakin Al-Dabbat 2 (same building, second pharmacy unit)
+    "masakin-dhabbat-2": {
       points: [
         { lat: 30.063, lng: 31.37  },
         { lat: 30.063, lng: 31.34  },
@@ -131,8 +144,8 @@ async function main() {
     },
     {
       id: "masakin-dhabbat",
-      nameAr: "صيدليات المتحدة - مساكن الظباط",
-      nameEn: "United Pharmacies - Masakin Al-Dhubbat",
+      nameAr: "صيدليات المتحدة - مساكن الضباط",
+      nameEn: "United Pharmacies - Masakin Al-Dabbat",
       governorate: "Cairo",
       area: "مدينة نصر",
       address: "عمارة 336 شارع فاطمة الزهراء متفرع من الميثاق",
@@ -140,6 +153,19 @@ async function main() {
       lng: 31.3550,
       mapEmbedSrc:
         "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3453.3!2d31.3550!3d30.0520!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMzDCsDAzJzA3LjIiTiAzMcKwMjEnMTguMCJF!5e0!3m2!1sen!2seg!4v1",
+      isActive: true,
+    },
+    {
+      id: "masakin-dhabbat-2",
+      nameAr: "صيدليات المتحدة - مساكن الضباط ٢",
+      nameEn: "United Pharmacies - Masakin Al-Dabbat 2",
+      governorate: "Cairo",
+      area: "مدينة نصر",
+      address: "عمارة 336 شارع فاطمة الزهراء متفرع من الميثاق",
+      lat: 30.0521,
+      lng: 31.3551,
+      mapEmbedSrc:
+        "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3453.3!2d31.3551!3d30.0521!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMzDCsDAzJzA3LjIiTiAzMcKwMjEnMTguMCJF!5e0!3m2!1sen!2seg!4v1",
       isActive: true,
     },
     {

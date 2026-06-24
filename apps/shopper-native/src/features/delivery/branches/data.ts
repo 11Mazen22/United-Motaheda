@@ -12,13 +12,13 @@ const HOURS_AR = "كل الأيام • من 9:00 صباحاً حتى 11:00 مس
 const HOURS_EN = "Every day • 9:00 AM – 11:00 PM";
 
 // Phone numbers from the official branch listing photo
-const GARDENIA_PHONE  = "01012255595";
-const MAADI_PHONE     = "01061128400";
-const DHABBAT_PHONE_1 = "01226898995";
-const DHABBAT_PHONE_2 = "01090530095";
+const GARDENIA_PHONE    = "01012255595";
+const MAADI_PHONE       = "01061128400";
+const DHABBAT_1_PHONE   = "01226898995";
+const DHABBAT_2_PHONE   = "01090530095";
 const ISMAILIA_14_PHONE = "01201967825";
 const ISMAILIA_13_PHONE = "01090530095";
-const WHATSAPP_LINE   = "01112343212";
+const WHATSAPP_LINE     = "01112343212";
 
 const directionsUrl = (lat: number, lng: number) =>
   `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${lat},${lng}`)}`;
@@ -66,13 +66,13 @@ export const BRANCHES: readonly Branch[] = [
   },
   {
     id:              "masakin-dhabbat",
-    nameAr:          "مساكن الظباط",
-    nameEn:          "Masakin Al-Dhubbat",
-    fullNameAr:      "صيدليات المتحدة - مساكن الظباط",
-    fullNameEn:      "United Pharmacies - Masakin Al-Dhubbat",
+    nameAr:          "مساكن الضباط",
+    nameEn:          "Masakin Al-Dabbat",
+    fullNameAr:      "صيدليات المتحدة - مساكن الضباط",
+    fullNameEn:      "United Pharmacies - Masakin Al-Dabbat",
     addressAr:       "عمارة 336 شارع فاطمة الزهراء متفرع من الميثاق",
     addressEn:       "Building 336, Fatima Al-Zahraa St., off Al-Mithaq St.",
-    phones:          [DHABBAT_PHONE_1, DHABBAT_PHONE_2],
+    phones:          [DHABBAT_1_PHONE, WHATSAPP_LINE],
     hoursAr:         HOURS_AR,
     hoursEn:         HOURS_EN,
     lat:             30.0520,
@@ -83,6 +83,26 @@ export const BRANCHES: readonly Branch[] = [
     area:            "مدينة نصر",
     deliveryEnabled: true,
     mapsDirectionsUrl: directionsUrl(30.0520, 31.3550),
+  },
+  {
+    id:              "masakin-dhabbat-2",
+    nameAr:          "مساكن الضباط ٢",
+    nameEn:          "Masakin Al-Dabbat 2",
+    fullNameAr:      "صيدليات المتحدة - مساكن الضباط ٢",
+    fullNameEn:      "United Pharmacies - Masakin Al-Dabbat 2",
+    addressAr:       "عمارة 336 شارع فاطمة الزهراء متفرع من الميثاق",
+    addressEn:       "Building 336, Fatima Al-Zahraa St., off Al-Mithaq St.",
+    phones:          [DHABBAT_2_PHONE, WHATSAPP_LINE],
+    hoursAr:         HOURS_AR,
+    hoursEn:         HOURS_EN,
+    lat:             30.0521,
+    lng:             31.3551,
+    mapZoom:         17,
+    isPrimary:       false,
+    governorate:     "Cairo",
+    area:            "مدينة نصر",
+    deliveryEnabled: true,
+    mapsDirectionsUrl: directionsUrl(30.0521, 31.3551),
   },
   {
     id:              "ismailia-14",

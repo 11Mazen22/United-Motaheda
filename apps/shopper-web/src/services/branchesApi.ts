@@ -5,7 +5,7 @@ export type ApiBranch = Branch;
 
 // ─── Real United Pharmacies branches (fallback when API is unreachable) ───────
 //
-// Exactly the 5 branches from the official branch listing.
+// All 6 branches from the official branch listing.
 // Coordinates and names match apps/shopper-native/src/features/delivery/branches/data.ts.
 
 const FALLBACK_BRANCHES: Branch[] = [
@@ -31,12 +31,22 @@ const FALLBACK_BRANCHES: Branch[] = [
   },
   {
     id:          "masakin-dhabbat",
-    nameAr:      "صيدليات المتحدة - مساكن الظباط",
-    nameEn:      "United Pharmacies - Masakin Al-Dhubbat",
+    nameAr:      "صيدليات المتحدة - مساكن الضباط",
+    nameEn:      "United Pharmacies - Masakin Al-Dabbat",
     governorate: "Cairo",
     area:        "مدينة نصر",
     lat:         30.0520,
     lng:         31.3550,
+    isActive:    true,
+  },
+  {
+    id:          "masakin-dhabbat-2",
+    nameAr:      "صيدليات المتحدة - مساكن الضباط ٢",
+    nameEn:      "United Pharmacies - Masakin Al-Dabbat 2",
+    governorate: "Cairo",
+    area:        "مدينة نصر",
+    lat:         30.0521,
+    lng:         31.3551,
     isActive:    true,
   },
   {

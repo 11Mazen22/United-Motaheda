@@ -1,8 +1,8 @@
-﻿import { zodResolver } from "@hookform/resolvers/zod";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { motion } from "framer-motion";
-import { Loader2, LockKeyhole, LogIn, Mail } from "lucide-react";
+import { Eye, EyeOff, Loader2, LockKeyhole, LogIn, Mail } from "lucide-react";
 import type { ReactNode } from "react";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -10,6 +10,8 @@ import { useAuth } from "../../hooks/useAuth";
 import { useLanguage } from "../../contexts/LanguageContext";
 import { cn } from "../components/UI";
 import { createLoginSchema, type LoginFormValues } from "./authSchemas";
+
+const TEAL = "#0E7E74";
 
 type LoginFormProps = {
   defaultEmail?: string;
@@ -22,96 +24,73 @@ export default function LoginForm({
   from = "",
   registrationComplete = false,
 }: LoginFormProps) {
-  const { login } = useAuth();
-  const { lang } = useLanguage();
-  const navigate = useNavigate();
-  const isArabic = lang === "ar";
-  const schema = useMemo(() => createLoginSchema(lang), [lang]);
+  const { login }     = useAuth();
+  const { lang }      = useLanguage();
+  const navigate      = useNavigate();
+  const isArabic      = lang === "ar";
+  const schema        = useMemo(() => createLoginSchema(lang), [lang]);
+  const [showPwd, setShowPwd] = useState(false);
+
   const form = useForm<LoginFormValues>({
-    resolver: zodResolver(schema),
-    defaultValues: {
-      email: defaultEmail,
-      password: "",
-    },
+    resolver:      zodResolver(schema),
+    defaultValues: { email: defaultEmail, password: "" },
   });
 
   useEffect(() => {
-    form.reset({
-      email: defaultEmail,
-      password: "",
-    });
+    form.reset({ email: defaultEmail, password: "" });
   }, [defaultEmail, form]);
 
   const isSubmitting = form.formState.isSubmitting;
-  const rootError = form.formState.errors.root?.message;
+  const rootError    = form.formState.errors.root?.message;
 
   const onSubmit = form.handleSubmit(async (values) => {
     try {
-      const result = await login({
-        email: values.email,
-        password: values.password,
-      });
-      toast.success(
-        isArabic
-          ? "تم تسجيل الدخول بنجاح."
-          : "Signed in successfully.",
-      );
-      // Navigate to the page the user originally tried to visit, or to the
-      // role-appropriate default. Without this navigate() call the user stays
-      // on the login page (AuthLayout) after a successful sign-in — which was
-      // the "stuck on Secure Session" symptom.
+      const result = await login({ email: values.email, password: values.password });
+      toast.success(isArabic ? "تم تسجيل الدخول بنجاح." : "Signed in successfully.");
       const isStaff =
-        result.user?.role === "admin" ||
-        result.user?.role === "manager" ||
+        result.user?.role === "admin"      ||
+        result.user?.role === "manager"    ||
         result.user?.role === "pharmacist" ||
         result.user?.role === "driver";
-      const destination = from.trim() || (isStaff ? "/ops" : "/");
-      navigate(destination, { replace: true });
+      navigate(from.trim() || (isStaff ? "/ops" : "/"), { replace: true });
     } catch (error) {
       const message = error instanceof Error
         ? error.message
-        : isArabic
-          ? "تعذر تسجيل الدخول الآن."
-          : "Unable to sign in right now.";
-
+        : isArabic ? "تعذر تسجيل الدخول الآن." : "Unable to sign in right now.";
       form.setError("root", { message });
       toast.error(message);
     }
   });
 
   return (
-    <form onSubmit={onSubmit} className="space-y-5">
-      <div className="rounded-[1.6rem] border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-600">
-        {isArabic
-          ? "استخدم البريد الإلكتروني المرتبط بحسابك للعودة إلى التسوق أو متابعة الطلبات."
-          : "Use the email linked to your account to continue shopping or review your orders."}
-      </div>
+    <form onSubmit={onSubmit} className="space-y-4">
 
-      {defaultEmail ? (
-        <div
-          className={cn(
-            "rounded-[1.6rem] px-4 py-3 text-sm font-semibold",
-            registrationComplete
-              ? "border border-emerald-200 bg-emerald-50/90 text-emerald-800"
-              : "border border-slate-200 bg-slate-50/80 text-slate-900",
-          )}
-        >
-          {registrationComplete
-            ? isArabic
-              ? "تم إنشاء الحساب. تحقق من بريدك الإلكتروني ثم سجل الدخول هنا باستخدام نفس العنوان."
-              : "Your account is ready. Check your email, then sign in here with the same address."
-            : isArabic
-              ? "إذا كنت أكدت البريد الإلكتروني للتو، يمكنك المتابعة باستخدام نفس البريد هنا."
-              : "If you just confirmed your email, continue here with the same address."}
+      {/* Registration-complete banner */}
+      {registrationComplete && (
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">
+          {isArabic
+            ? "تم إنشاء الحساب — راجع بريدك الإلكتروني ثم سجل الدخول."
+            : "Account created — check your email, then sign in below."}
         </div>
-      ) : null}
+      )}
 
-      {rootError ? (
-        <div className="rounded-[1.6rem] border border-rose-200 bg-rose-50/90 px-4 py-3 text-sm font-semibold text-rose-700">
+      {/* Email-prefill note (no registration) */}
+      {defaultEmail && !registrationComplete && (
+        <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
+          {isArabic
+            ? "إذا أكدت بريدك للتو، يمكنك المتابعة بنفس البريد هنا."
+            : "If you just confirmed your email, continue with the same address."}
+        </div>
+      )}
+
+      {/* Root error */}
+      {rootError && (
+        <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
           {rootError}
         </div>
-      ) : null}
+      )}
 
+      {/* Email field */}
       <AuthField
         error={form.formState.errors.email?.message}
         icon={Mail}
@@ -123,45 +102,49 @@ export default function LoginForm({
           autoComplete="email"
           dir="ltr"
           placeholder="name@example.com"
-          className={cn(
-            "h-14 w-full rounded-[1.6rem] border bg-white/90 ps-12 pe-4 text-sm font-semibold text-slate-950 outline-none transition-all placeholder:text-slate-400",
-            form.formState.errors.email
-              ? "border-rose-300 focus:border-rose-400 focus:ring-4 focus:ring-rose-100"
-              : "border-slate-200 focus:border-teal-400 focus:ring-4 focus:ring-teal-100",
-          )}
+          className={inputClass(Boolean(form.formState.errors.email))}
           {...form.register("email")}
         />
       </AuthField>
 
+      {/* Password field */}
       <AuthField
         error={form.formState.errors.password?.message}
         icon={LockKeyhole}
         isArabic={isArabic}
         label={isArabic ? "كلمة المرور" : "Password"}
+        end={
+          <button
+            type="button"
+            tabIndex={-1}
+            onClick={() => setShowPwd((v) => !v)}
+            className="text-slate-400 transition-colors hover:text-slate-700"
+            aria-label={showPwd ? (isArabic ? "إخفاء" : "Hide password") : (isArabic ? "إظهار" : "Show password")}
+          >
+            {showPwd ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          </button>
+        }
       >
         <input
-          type="password"
+          type={showPwd ? "text" : "password"}
           autoComplete="current-password"
           dir="ltr"
-          placeholder={isArabic ? "أدخل كلمة المرور" : "Enter your password"}
-          className={cn(
-            "h-14 w-full rounded-[1.6rem] border bg-white/90 ps-12 pe-4 text-sm font-semibold text-slate-950 outline-none transition-all placeholder:text-slate-400",
-            form.formState.errors.password
-              ? "border-rose-300 focus:border-rose-400 focus:ring-4 focus:ring-rose-100"
-              : "border-slate-200 focus:border-teal-400 focus:ring-4 focus:ring-teal-100",
-          )}
+          placeholder="••••••••"
+          className={inputClass(Boolean(form.formState.errors.password), true)}
           {...form.register("password")}
         />
       </AuthField>
 
+      {/* Submit */}
       <motion.button
         type="submit"
-        whileTap={{ scale: 0.985 }}
+        whileTap={{ scale: 0.98 }}
         disabled={isSubmitting}
-        className="inline-flex h-14 w-full items-center justify-center gap-3 rounded-[1.7rem] bg-[linear-gradient(135deg,#0f1f29_0%,#12394a_55%,#17b6a4_100%)] px-6 text-sm font-black text-white shadow-[0_18px_36px_rgba(15,31,41,0.22)] transition-opacity hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60"
+        className="mt-2 inline-flex h-[52px] w-full items-center justify-center gap-2.5 rounded-xl text-[15px] font-bold text-white shadow-[0_6px_20px_rgba(14,126,116,0.35)] transition-all hover:shadow-[0_8px_24px_rgba(14,126,116,0.45)] hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-55"
+        style={{ background: "linear-gradient(135deg, #0E7E74 0%, #0d6b62 100%)" }}
       >
         {isSubmitting ? (
-          <Loader2 className="h-5 w-5 animate-spin" />
+          <Loader2 className="h-4 w-4 animate-spin" />
         ) : (
           <>
             <LogIn className="h-4 w-4" />
@@ -170,50 +153,80 @@ export default function LoginForm({
         )}
       </motion.button>
 
-      <div className="rounded-[1.8rem] border border-slate-200 bg-slate-50/80 px-4 py-4 text-sm font-semibold text-slate-600">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <span>
-            {isArabic ? "هل تحتاج إلى حساب جديد؟" : "Need a new customer account?"}
-          </span>
-          <Link
-            to="/login?tab=register"
-            state={from ? { from } : undefined}
-            className="font-black text-slate-600 transition-colors hover:text-slate-600"
-          >
-            {isArabic ? "إنشاء حساب" : "Create account"}
-          </Link>
-        </div>
-      </div>
+      {/* Link to register */}
+      <p className="text-center text-sm font-semibold text-slate-500">
+        {isArabic ? "ليس لديك حساب؟" : "No account yet?"}{" "}
+        <Link
+          to="/login?tab=register"
+          state={from ? { from } : undefined}
+          className="font-bold transition-colors hover:underline"
+          style={{ color: TEAL }}
+        >
+          {isArabic ? "إنشاء حساب" : "Create one"}
+        </Link>
+      </p>
     </form>
   );
 }
 
+/* ── Shared field wrapper ──────────────────────────────────────────────── */
+
 function AuthField({
   children,
+  className,
+  end,
   error,
   icon: Icon,
   isArabic,
   label,
 }: {
   children: ReactNode;
+  className?: string;
+  end?: ReactNode;
   error?: string;
   icon: typeof Mail;
   isArabic: boolean;
   label: string;
 }) {
   return (
-    <label className="grid gap-2">
-      <span className="text-sm font-black text-slate-700">{label}</span>
+    <label className={cn("grid gap-1.5", className)}>
+      <span className="text-sm font-bold text-slate-700">{label}</span>
       <div className="relative">
         <Icon
           className={cn(
-            "pointer-events-none absolute top-1/2 h-4 w-4 -translate-y-1/2 text-slate-600",
-            isArabic ? "right-4" : "left-4",
+            "pointer-events-none absolute top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400",
+            isArabic ? "right-3.5" : "left-3.5",
           )}
         />
         {children}
+        {end ? (
+          <div
+            className={cn(
+              "absolute top-1/2 -translate-y-1/2",
+              isArabic ? "left-3.5" : "right-3.5",
+            )}
+          >
+            {end}
+          </div>
+        ) : null}
       </div>
-      {error ? <span className="text-sm font-semibold text-rose-600">{error}</span> : null}
+      {error ? (
+        <span className="text-xs font-semibold text-rose-600">{error}</span>
+      ) : null}
     </label>
+  );
+}
+
+/* ── Input class helper ────────────────────────────────────────────────── */
+
+function inputClass(hasError: boolean, hasEnd = false): string {
+  return cn(
+    "h-12 w-full rounded-xl border bg-slate-50/60 ps-11 text-sm font-semibold text-slate-900 outline-none transition-all",
+    "shadow-[inset_0_1px_2px_rgba(0,0,0,0.05)] placeholder:text-slate-400",
+    "focus:bg-white focus:shadow-[0_0_0_0px_transparent]",
+    hasEnd ? "pe-11" : "pe-4",
+    hasError
+      ? "border-rose-300 focus:border-rose-400 focus:ring-4 focus:ring-rose-50/70"
+      : "border-slate-200 focus:border-teal-400 focus:ring-4 focus:ring-teal-50",
   );
 }
