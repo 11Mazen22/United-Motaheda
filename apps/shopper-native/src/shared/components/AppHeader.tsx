@@ -21,7 +21,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
-import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
+import { flexRow, isRtl, textAlignStart, BACK_ARROW } from "@/utils/layout";
 import { useCartStore } from "@/stores/cart";
 import { theme } from "@/shared/theme";
 
@@ -71,8 +71,9 @@ export function AppHeader({
             style={styles.iconBtn}
             accessibilityRole="button"
             accessibilityLabel={t("common.back")}>
-            {/* RTL-correct: arrow-forward visually points to start in RTL */}
-            <Ionicons name="arrow-forward" size={20} color={subtle} />
+            {/* BACK_ARROW: arrow-back in LTR, arrow-forward in RTL.
+                Ionicons glyphs aren't auto-mirrored by I18nManager. */}
+            <Ionicons name={BACK_ARROW} size={20} color={subtle} />
           </Pressable>
         ) : (
           <View style={styles.iconBtn} />

@@ -36,7 +36,7 @@ import { ADDRESS_LABELS } from "../types";
 import type { Address, AddressFormData } from "../types";
 import { SUPPORTED_GOVERNORATE } from "@/features/delivery/constants";
 import { theme } from "@/shared/theme";
-import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
+import { flexRow, isRtl, textAlignStart, BACK_ARROW, FORWARD_ARROW } from "@/utils/layout";
 
 const _isRtl = isRtl();
 
@@ -475,7 +475,7 @@ export function AddressFormDrawer({
                   radius: 14,
                 }}
               >
-                <Ionicons name="arrow-forward" size={16} color={theme.colors.slate[600]} />
+                <Ionicons name={BACK_ARROW} size={16} color={theme.colors.slate[600]} />
                 <UIText style={styles.navBtnText}>{t("common.previous")}</UIText>
               </Pressable>
             )}
@@ -491,7 +491,7 @@ export function AddressFormDrawer({
                 }}
               >
                 <UIText style={styles.navBtnPrimaryText}>{t("common.next")}</UIText>
-                <Ionicons name="arrow-back" size={16} color="#fff" />
+                <Ionicons name={FORWARD_ARROW} size={16} color="#fff" />
               </Pressable>
             ) : (
               <Pressable

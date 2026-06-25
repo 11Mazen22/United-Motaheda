@@ -104,6 +104,12 @@ export const BACK_CHEVRON    = (_isRTL ? "chevron-forward" : "chevron-back")    
 /** Chevron icon for "go forward / see more / expand". */
 export const FORWARD_CHEVRON = (_isRTL ? "chevron-back"    : "chevron-forward") as "chevron-forward" | "chevron-back";
 
+/** Arrow icon (thicker than chevron) for "go back / return to previous screen". */
+export const BACK_ARROW      = (_isRTL ? "arrow-forward"   : "arrow-back")      as "arrow-forward" | "arrow-back";
+
+/** Arrow icon for "advance to next / continue / submit". */
+export const FORWARD_ARROW   = (_isRTL ? "arrow-back"      : "arrow-forward")   as "arrow-forward" | "arrow-back";
+
 // ─── justifyContent helpers ───────────────────────────────────────────────────
 
 /**

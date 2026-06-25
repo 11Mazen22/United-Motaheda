@@ -61,7 +61,15 @@ export const HomeSectionHeader = memo(function HomeSectionHeader({
           accessibilityRole="button"
           accessibilityLabel={t("home.viewAll")}
           style={sh.more}>
-          <UIText style={sh.moreText}>{t("home.viewAll")}</UIText>
+          {/*
+            `weight="bold"` forces fontFamily via the Text component's
+            FONT_STYLES path. This is more reliable than passing fontFamily
+            inside a style object — the weight prop bypasses variant defaults
+            entirely so Cairo_700Bold cannot be lost to a stale layout pass.
+          */}
+          <UIText weight="bold" style={sh.moreText}>
+            {t("home.viewAll")}
+          </UIText>
           <Ionicons name={FORWARD_CHEVRON} size={13} color={kit.color.inkSoft} />
         </Pressable>
       ))}

@@ -24,7 +24,7 @@ import { useDeliveryContext } from "@/features/delivery";
 import { Text as UIText } from "@/shared/ui";
 import { theme } from "@/shared/theme";
 import { formatPrice } from "@/utils/format";
-import { flexRow, isRtl } from "@/utils/layout";
+import { flexRow, isRtl, FORWARD_ARROW } from "@/utils/layout";
 import type { CartItem } from "@/stores/cart";
 
 export interface CartDrawerRef {
@@ -182,7 +182,7 @@ export const CartDrawer = forwardRef<CartDrawerRef>(function CartDrawer(_, ref) 
                   <UIText variant="body-sm" weight="black" color="inverse">
                     {t("cart.checkoutNow")}
                   </UIText>
-                  <Ionicons name="arrow-back" size={14} color="#fff" />
+                  <Ionicons name={FORWARD_ARROW} size={14} color="#fff" />
                 </Pressable>
               </View>
             </View>

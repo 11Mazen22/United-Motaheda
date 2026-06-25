@@ -165,10 +165,10 @@ export const HomeHero = memo(function HomeHero({
   return (
     <View style={[s.wrap, { paddingHorizontal: pagePad }]}>
       <View style={s.card}>
-        {/* Accent rail */}
+        {/* Accent rail (top hairline highlight) */}
         <View style={s.rail} />
 
-        {/* Top row: greeting stack + seal */}
+        {/* ── Top row: greeting stack + seal ──────────────────────────── */}
         <View style={s.topRow}>
           <View style={s.greetStack}>
             <UIText style={s.eyebrow} numberOfLines={1}>
@@ -183,52 +183,55 @@ export const HomeHero = memo(function HomeHero({
             onPress={isAuthed && onLoyalty ? onLoyalty : undefined}
             accessibilityRole={isAuthed && onLoyalty ? "button" : undefined}
             accessibilityLabel={sealLabel}
+            hitSlop={8}
             style={s.sealWrap}>
             <Animated.View style={[s.sealHalo, haloStyle]} pointerEvents="none" />
             <View style={s.sealInner}>
               <Ionicons name="shield-checkmark" size={22} color={kit.color.accentDeep} />
             </View>
-            <UIText style={s.sealLabel}>{sealLabel}</UIText>
           </Pressable>
         </View>
 
-        {/* Status row — animates between order/rx/points/calm/guest */}
-        <View style={s.statusWrap}>
-          {statusItems.map((item, i) => {
-            if (item.kind === "guest") {
+        {/* ── Status row ──────────────────────────────────────────────── */}
+        {statusItems.length > 0 && (
+          <View style={s.statusWrap}>
+            {statusItems.map((item, i) => {
+              if (item.kind === "guest") {
+                return (
+                  <View key={i} style={s.statusGuest}>
+                    <UIText style={s.statusGuestText} numberOfLines={2}>
+                      {item.label}
+                    </UIText>
+                  </View>
+                );
+              }
               return (
-                <View key={i} style={s.statusGuest}>
-                  <UIText style={s.statusGuestText} numberOfLines={2}>
+                <View
+                  key={`${item.kind}-${i}`}
+                  style={[s.statusPill, { backgroundColor: item.tone + "12" }]}>
+                  <Ionicons name={item.icon} size={13} color={item.tone} />
+                  <UIText style={[s.statusPillText, { color: item.tone }]} numberOfLines={1}>
                     {item.label}
                   </UIText>
                 </View>
               );
-            }
-            return (
-              <View
-                key={`${item.kind}-${i}`}
-                style={[s.statusPill, { backgroundColor: item.tone + "12" }]}>
-                <Ionicons name={item.icon} size={13} color={item.tone} />
-                <UIText style={[s.statusPillText, { color: item.tone }]} numberOfLines={1}>
-                  {item.label}
-                </UIText>
-              </View>
-            );
-          })}
-        </View>
+            })}
+          </View>
+        )}
 
-        {/* Divider */}
+        {/* ── Divider ─────────────────────────────────────────────────── */}
         <View style={s.divider} />
 
-        {/* Primary action chips */}
-        <View style={s.chipRow}>
-          <HeroChip
+        {/* ── Actions: one strong primary, one quiet secondary ────────── */}
+        <View style={s.actionsRow}>
+          {/* Primary CTA — full-width pill, claims the visual weight */}
+          <PrimaryAction
             icon="scan-outline"
             label={t("home.heroScanRx")}
-            primary
             onPress={onScanRx}
           />
-          <HeroChip
+          {/* Secondary — ghost text-link, sits flush below */}
+          <SecondaryAction
             icon="compass-outline"
             label={t("home.heroExplore")}
             onPress={onDeals}
@@ -239,16 +242,15 @@ export const HomeHero = memo(function HomeHero({
   );
 });
 
-// ─── HeroChip ────────────────────────────────────────────────────────────────
+// ─── PrimaryAction — wide pill, anchors the hero ─────────────────────────────
 
-interface HeroChipProps {
+interface ActionProps {
   icon:    IoniconsName;
   label:   string;
-  primary?: boolean;
   onPress: () => void;
 }
 
-const HeroChip = memo(function HeroChip({ icon, label, primary, onPress }: HeroChipProps) {
+const PrimaryAction = memo(function PrimaryAction({ icon, label, onPress }: ActionProps) {
   const handlePress = useCallback(() => {
     if (Platform.OS !== "web") Haptics.selectionAsync().catch(() => {});
     onPress();
@@ -259,28 +261,41 @@ const HeroChip = memo(function HeroChip({ icon, label, primary, onPress }: HeroC
       onPress={handlePress}
       accessibilityRole="button"
       accessibilityLabel={label}
-      style={({ pressed }) => [
-        s.chip,
-        primary && s.chipPrimary,
-        pressed && (primary ? s.chipPrimaryPressed : s.chipPressed),
-      ]}>
+      style={({ pressed }) => [s.primaryBtn, pressed && s.primaryBtnPressed]}>
+      <View style={s.primaryLeft}>
+        <View style={s.primaryIcon}>
+          <Ionicons name={icon} size={18} color={kit.color.accentDeep} />
+        </View>
+        <UIText style={s.primaryLabel} numberOfLines={1}>{label}</UIText>
+      </View>
       <Ionicons
-        name={icon}
+        name={FORWARD_CHEVRON}
         size={18}
-        color={primary ? kit.color.onAccent : kit.color.accentDeep}
+        color={kit.color.onAccent}
+        style={s.primaryChevron}
       />
-      <UIText
-        style={[s.chipLabel, primary && s.chipLabelPrimary]}
-        numberOfLines={1}>
-        {label}
-      </UIText>
-      {primary && (
-        <Ionicons
-          name={FORWARD_CHEVRON}
-          size={14}
-          color={kit.color.onAccent}
-        />
-      )}
+    </Pressable>
+  );
+});
+
+// ─── SecondaryAction — ghost link, never competes with primary ──────────────
+
+const SecondaryAction = memo(function SecondaryAction({ icon, label, onPress }: ActionProps) {
+  const handlePress = useCallback(() => {
+    if (Platform.OS !== "web") Haptics.selectionAsync().catch(() => {});
+    onPress();
+  }, [onPress]);
+
+  return (
+    <Pressable
+      onPress={handlePress}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      hitSlop={8}
+      style={({ pressed }) => [s.secondaryBtn, pressed && s.secondaryBtnPressed]}>
+      <Ionicons name={icon} size={16} color={kit.color.accentDeep} />
+      <UIText style={s.secondaryLabel} numberOfLines={1}>{label}</UIText>
+      <Ionicons name={FORWARD_CHEVRON} size={14} color={kit.color.inkFaint} />
     </Pressable>
   );
 });
@@ -296,15 +311,15 @@ const s = StyleSheet.create({
 
   // The hero card itself — only floating-shadow surface on the page
   card: {
-    backgroundColor: kit.color.surface,
-    borderRadius:    kit.radius.xl,
-    borderWidth:     1,
-    borderColor:     kit.color.line,
-    paddingTop:      kit.sp(6),
-    paddingBottom:   kit.sp(4),
+    backgroundColor:   kit.color.surface,
+    borderRadius:      kit.radius.xl,
+    borderWidth:       1,
+    borderColor:       kit.color.line,
+    paddingTop:        kit.sp(6),
+    paddingBottom:     kit.sp(5),
     paddingHorizontal: kit.sp(5),
-    gap:             kit.sp(4),
-    overflow:        "hidden",
+    gap:               kit.sp(4),
+    overflow:          "hidden",
     ...kit.shadow.floating,
   },
 
@@ -318,17 +333,16 @@ const s = StyleSheet.create({
     backgroundColor: kit.color.accentDeep,
   },
 
-  // Top row: greeting + seal
+  // ── Top row: greeting + seal ───────────────────────────────────────
   topRow: {
     flexDirection:  flexRow(IS_RTL),
     alignItems:     "center",
     justifyContent: "space-between",
     gap:            kit.sp(3),
   },
-
   greetStack: {
     flex: 1,
-    gap:  2,
+    gap:  3,
   },
   eyebrow: {
     fontFamily:         theme.fonts.bold,
@@ -350,41 +364,34 @@ const s = StyleSheet.create({
     includeFontPadding: false,
   },
 
-  // Seal (trust badge with breathing halo)
+  // Trust seal — compact circular badge with breathing halo. No more text
+  // label below — the icon is universally legible and the previous label
+  // was forcing the seal to dictate the topRow's vertical alignment.
   sealWrap: {
-    width:          64,
+    width:          52,
+    height:         52,
     alignItems:     "center",
-    gap:            2,
+    justifyContent: "center",
   },
   sealHalo: {
     position:        "absolute",
-    top:             -3,
-    width:           54,
-    height:          54,
-    borderRadius:    27,
+    width:           56,
+    height:          56,
+    borderRadius:    28,
     backgroundColor: kit.color.accentTint,
   },
   sealInner: {
-    width:           48,
-    height:          48,
-    borderRadius:    24,
-    backgroundColor: kit.color.accentTint,
+    width:           46,
+    height:          46,
+    borderRadius:    23,
+    backgroundColor: kit.color.surface,
     alignItems:      "center",
     justifyContent:  "center",
     borderWidth:     1.5,
     borderColor:     kit.color.accentDeep,
   },
-  sealLabel: {
-    fontFamily:         theme.fonts.black,
-    fontSize:           9,
-    lineHeight:         13,
-    letterSpacing:      0.8,
-    color:              kit.color.accentDeep,
-    textTransform:      "uppercase",
-    includeFontPadding: false,
-  },
 
-  // Status row
+  // ── Status row ────────────────────────────────────────────────────
   statusWrap: {
     flexDirection: flexRow(IS_RTL),
     flexWrap:      "wrap",
@@ -404,9 +411,7 @@ const s = StyleSheet.create({
     lineHeight:         15,
     includeFontPadding: false,
   },
-  statusGuest: {
-    paddingVertical: 2,
-  },
+  statusGuest: { paddingVertical: 2 },
   statusGuestText: {
     fontFamily:         theme.fonts.regular,
     fontSize:           13,
@@ -417,46 +422,79 @@ const s = StyleSheet.create({
   },
 
   divider: {
-    height:           StyleSheet.hairlineWidth,
-    backgroundColor:  kit.color.line,
-    marginVertical:   2,
+    height:          StyleSheet.hairlineWidth,
+    backgroundColor: kit.color.line,
   },
 
-  // Action chips
-  chipRow: {
-    flexDirection: flexRow(IS_RTL),
-    gap:           8,
+  // ── Actions ───────────────────────────────────────────────────────
+  // One vertical stack: strong primary pill on top, ghost secondary below.
+  // No more sibling chips fighting for equal width.
+  actionsRow: {
+    gap: 10,
   },
-  chip: {
-    flex:              1,
+
+  // Primary — filled accent pill, full width, internal left-cluster + chevron
+  primaryBtn: {
     flexDirection:     flexRow(IS_RTL),
     alignItems:        "center",
-    justifyContent:    "center",
-    gap:               6,
-    height:            48,
-    paddingHorizontal: 10,
-    borderRadius:      kit.radius.lg,
-    backgroundColor:   kit.color.well,
-  },
-  chipPressed: {
-    backgroundColor: kit.color.accentTint,
-  },
-  chipPrimary: {
-    backgroundColor: kit.color.accentDeep,
+    justifyContent:    "space-between",
+    height:            54,
+    paddingHorizontal: 8,
+    paddingEnd:        16,
+    borderRadius:      kit.radius.pill,
+    backgroundColor:   kit.color.accentDeep,
     ...kit.shadow.raised,
   },
-  chipPrimaryPressed: {
-    opacity: 0.88,
+  primaryBtnPressed: { opacity: 0.9 },
+  primaryLeft: {
+    flexDirection: flexRow(IS_RTL),
+    alignItems:    "center",
+    gap:           10,
+    flexShrink:    1,
   },
-  chipLabel: {
+  primaryIcon: {
+    width:           38,
+    height:          38,
+    borderRadius:    19,
+    backgroundColor: kit.color.accentTint,
+    alignItems:      "center",
+    justifyContent:  "center",
+  },
+  primaryLabel: {
     fontFamily:         theme.fonts.black,
-    fontSize:           12,
-    lineHeight:         16,
-    color:              kit.color.accentDeep,
+    fontSize:           14,
+    lineHeight:         20,
+    letterSpacing:      0.2,
+    color:              kit.color.onAccent,
     includeFontPadding: false,
     flexShrink:         1,
   },
-  chipLabelPrimary: {
-    color: kit.color.onAccent,
+  // The chevron sits at the trailing edge regardless of direction —
+  // RN's RTL system already flips `marginEnd`, no manual scaleX needed
+  // because FORWARD_CHEVRON already selects the visually-correct glyph.
+  primaryChevron: {
+    opacity: 0.92,
+  },
+
+  // Secondary — ghost link, sits flush below the primary
+  secondaryBtn: {
+    flexDirection:     flexRow(IS_RTL),
+    alignItems:        "center",
+    justifyContent:    "center",
+    gap:               8,
+    height:            40,
+    paddingHorizontal: 12,
+    borderRadius:      kit.radius.pill,
+    backgroundColor:   "transparent",
+  },
+  secondaryBtnPressed: {
+    backgroundColor: kit.color.accentTint,
+  },
+  secondaryLabel: {
+    fontFamily:         theme.fonts.bold,
+    fontSize:           13,
+    lineHeight:         18,
+    color:              kit.color.accentDeep,
+    includeFontPadding: false,
   },
 });

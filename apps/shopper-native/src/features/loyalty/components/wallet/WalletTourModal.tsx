@@ -4,6 +4,7 @@ import { kit } from "@/shared/kit";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { Text } from "@/shared/ui";
+import { FORWARD_ARROW } from "@/utils/layout";
 import { tourStyles as s } from "./wallet.styles";
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>["name"];
@@ -79,7 +80,7 @@ export const WalletTourModal = memo(function WalletTourModal({
                 <Text style={s.nextText}>
                   {isLast ? t("loyalty.tourFinish") : t("loyalty.tourNext")}
                 </Text>
-                {!isLast && <Ionicons name="arrow-back" size={14} color="#fff" />}
+                {!isLast && <Ionicons name={FORWARD_ARROW} size={14} color="#fff" />}
               </View>
             </Pressable>
           </View>

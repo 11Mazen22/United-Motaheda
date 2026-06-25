@@ -435,11 +435,11 @@ export default function OnboardingScreen() {
     }
   }, [isLast, reduced, pulse, pulseOpacity]);
 
+  // Pulse ring color tracks the current slide tone so the CTA reads as
+  // visually anchored to the content the user just finished consuming.
   const fabRingStyle = useAnimatedStyle(() => ({
-    transform:   [{ scale: pulse.value }],
-    opacity:     pulseOpacity.value,
-    borderColor: kit.color.inkFaint,
-    borderWidth: 2,
+    transform: [{ scale: pulse.value }],
+    opacity:   pulseOpacity.value,
   }));
 
   const currentTone = SLIDES[index]?.tone ?? kit.color.accent;
@@ -528,7 +528,10 @@ export default function OnboardingScreen() {
         {/* FAB */}
         <View style={chrome.fabWrapper}>
           {isLast && (
-            <Animated.View style={[chrome.fabPulseRing, fabRingStyle]} />
+            <Animated.View
+              style={[chrome.fabPulseRing, { borderColor: currentTone }, fabRingStyle]}
+              pointerEvents="none"
+            />
           )}
           <PressableScale
             onPress={goNext}
@@ -590,18 +593,21 @@ const chrome = StyleSheet.create({
     color:              kit.color.ink,
     includeFontPadding: false,
   },
+  // Skip pill — sized like a touchable target (≥44pt) and visually quieter
+  // than the brand mark so the eye reads brand → progress → CTA, not skip.
   skipChip: {
-    backgroundColor: kit.color.surface,
-    borderRadius:    kit.radius.pill,
-    borderWidth:     1,
-    borderColor:     kit.color.line,
-    paddingHorizontal: 14,
-    paddingVertical:   9,
+    minHeight:         36,
+    backgroundColor:   kit.color.surface,
+    borderRadius:      kit.radius.pill,
+    borderWidth:       1,
+    borderColor:       kit.color.line,
+    paddingHorizontal: 16,
+    paddingVertical:   8,
     ...kit.shadow.raised,
   },
-  skipInner: { alignItems: "center", gap: 6 },
+  skipInner: { alignItems: "center", justifyContent: "center", gap: 6 },
   skipText: {
-    fontFamily:         theme.fonts.black,
+    fontFamily:         theme.fonts.bold,
     fontSize:           12,
     lineHeight:         18,
     color:              kit.color.inkSoft,
@@ -623,23 +629,32 @@ const chrome = StyleSheet.create({
   segment:  { height: 6, borderRadius: 3 },
 
   fabWrapper: { justifyContent: "center", alignItems: "center" },
+  // Pulse ring borrows the current slide's tone via inline `borderColor`,
+  // not a static neutral — it visually says "this is your forward action".
   fabPulseRing: {
     position:     "absolute",
-    width:        62,
-    height:       62,
-    borderRadius: 31,
+    width:        72,
+    height:       72,
+    borderRadius: 36,
     borderWidth:  2,
   },
   fab: {
     alignItems:     "center",
     justifyContent: "center",
-    gap:            8,
+    gap:            10,
     minWidth:       60,
     height:         60,
     borderRadius:   30,
+    paddingHorizontal: 8,
     ...kit.shadow.floating,
   },
-  fabWide:    { paddingHorizontal: kit.sp(6), minWidth: 160 },
+  // On the last slide the FAB widens into a labelled CTA. The label
+  // ("ابدأ الآن" / "Start Now") gets generous horizontal breathing room
+  // so it never crowds the checkmark glyph.
+  fabWide: {
+    paddingHorizontal: kit.sp(7),
+    minWidth:          180,
+  },
   fabCompact: { height: 54, minWidth: 54, borderRadius: 27 },
   fabLabel: {
     fontFamily:         theme.fonts.black,

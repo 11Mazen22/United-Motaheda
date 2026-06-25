@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 import { Text } from "@/shared/ui";
 import { theme } from "@/shared/theme";
 import type { Coupon } from "../../types";
-import { FORWARD_CHEVRON } from "@/utils/layout";
+import { FORWARD_CHEVRON, FORWARD_ARROW } from "@/utils/layout";
 import {
   cardStyles as cs,
   sectionHeaderStyles as sh,
@@ -196,7 +196,7 @@ export const EmptyCard = memo(function EmptyCard({
           accessibilityRole="button"
           accessibilityLabel={ctaLabel}>
           <Text style={fs.emptyCardCtaText}>{ctaLabel}</Text>
-          <Ionicons name="arrow-back" size={13} color={theme.colors.brand[700]} />
+          <Ionicons name={FORWARD_ARROW} size={13} color={theme.colors.brand[700]} />
         </Pressable>
       )}
     </View>
