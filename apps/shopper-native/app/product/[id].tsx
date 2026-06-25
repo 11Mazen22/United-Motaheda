@@ -87,6 +87,108 @@ function Stars({ value, size = 14 }: { value: number; size?: number }) {
   );
 }
 
+// ─── ImageCarousel — paginated horizontal image gallery ─────────────────────
+
+const STAGE_W = SCREEN_W;
+
+function ImageCarousel({
+  images,
+  accessibilityName,
+  parallaxStyle,
+}: {
+  images:            string[];
+  accessibilityName: string;
+  parallaxStyle:     unknown;
+}): React.ReactElement {
+  const [idx, setIdx] = useState(0);
+
+  const onPageScroll = useCallback(
+    (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const x   = e.nativeEvent.contentOffset.x;
+      const next = Math.round(x / STAGE_W);
+      // RTL: physical scroll origin is the right edge — map physical
+      // position back to logical "page index" so dot N highlights when
+      // image N is on screen, regardless of language.
+      const logical = IS_RTL ? Math.max(0, images.length - 1 - next) : next;
+      if (logical !== idx) setIdx(logical);
+    },
+    [idx, images.length],
+  );
+
+  // No images → empty tile
+  if (images.length === 0) {
+    return (
+      <View style={carousel.emptyWrap}>
+        <View style={carousel.emptyTile}>
+          <MaterialCommunityIcons name="pill" size={56} color={kit.color.inkFaint} />
+        </View>
+      </View>
+    );
+  }
+
+  // Single image → render directly with parallax (skip ScrollView overhead)
+  if (images.length === 1) {
+    return (
+      <Animated.View
+        style={[carousel.page, parallaxStyle as object]}
+        accessible
+        accessibilityLabel={accessibilityName}>
+        <Image
+          source={{ uri: images[0] }}
+          style={carousel.img}
+          contentFit="contain"
+          transition={300}
+        />
+      </Animated.View>
+    );
+  }
+
+  // Multi-image → horizontal pager + RTL-correct pagination dots
+  // Physical pages run LTR on the canvas; in RTL the dots are reversed
+  // visually so the active dot reads in the user's expected direction.
+  const physicalPages = IS_RTL ? [...images].reverse() : images;
+
+  return (
+    <View style={carousel.multi}>
+      <ScrollView
+        horizontal
+        pagingEnabled
+        bounces={false}
+        showsHorizontalScrollIndicator={false}
+        onScroll={onPageScroll}
+        scrollEventThrottle={16}
+        style={{ direction: "ltr" }}>
+        {physicalPages.map((uri, i) => (
+          <Animated.View
+            key={`${uri}-${i}`}
+            style={[carousel.page, parallaxStyle as object]}
+            accessibilityLabel={`${accessibilityName} — ${i + 1}`}>
+            <Image
+              source={{ uri }}
+              style={carousel.img}
+              contentFit="contain"
+              transition={300}
+            />
+          </Animated.View>
+        ))}
+      </ScrollView>
+
+      {/* Pagination dots — physical row, but the "active" index is logical */}
+      <View style={[carousel.dots, { flexDirection: flexRow(IS_RTL) }]}>
+        {images.map((_, i) => (
+          <View
+            key={i}
+            style={[
+              carousel.dot,
+              i === idx && carousel.dotActive,
+            ]}
+          />
+        ))}
+      </View>
+    </View>
+  );
+}
+
 // ─── ClinRow ─────────────────────────────────────────────────────────────────
 
 function ClinRow({
@@ -411,21 +513,21 @@ export default function ProductDetailScreen() {
                 <View style={stage.haloInner} />
               </Animated.View>
 
-              {/* Layer 2: Product image — parallax against the halo */}
-              {product?.imageUrl ? (
-                <Animated.View style={[stage.imgWrap, imgParallax]}>
-                  <Image
-                    source={{ uri: product.imageUrl }}
-                    style={stage.img}
-                    contentFit="contain"
-                    transition={300}
-                  />
-                </Animated.View>
-              ) : (
-                <View style={stage.emptyWrap}>
-                  <View style={stage.emptyTile}>
-                    <MaterialCommunityIcons name="pill" size={56} color={kit.color.inkFaint} />
-                  </View>
+              {/* Layer 2: Image carousel — paginated, works with a single
+                  image today, ready for product.images[] expansion later */}
+              <ImageCarousel
+                images={product?.imageUrl ? [product.imageUrl] : []}
+                accessibilityName={product?.nameAr ?? product?.name ?? ""}
+                parallaxStyle={imgParallax}
+              />
+
+              {/* Top-leading discount badge (if on sale) — absolute, never
+                  interferes with the carousel paging gestures */}
+              {product?.discountPercent && product.discountPercent > 0 && (
+                <View style={stage.discountBadge} pointerEvents="none">
+                  <UIText style={stage.discountBadgeText}>
+                    -{product.discountPercent}%
+                  </UIText>
                 </View>
               )}
 
@@ -541,35 +643,80 @@ export default function ProductDetailScreen() {
                 style={action.card}>
 
                 <View style={[action.row, { flexDirection: flexRow(IS_RTL) }]}>
-                  {/* Price column */}
-                  <View style={{ flex: 1, gap: 3 }}>
+                  {/* Price column — current + optional strikethrough original */}
+                  <View style={action.priceCol}>
                     <UIText style={action.priceLabel}>{t("product.priceLabel")}</UIText>
-                    <UIText style={action.priceValue}>{formatPrice(product.price * qty)}</UIText>
+
+                    {/* Main current price + currency on a single baseline */}
+                    <View style={[action.priceRow, { flexDirection: flexRow(IS_RTL) }]}>
+                      <UIText style={action.priceValue}>
+                        {formatPrice(product.price * qty)}
+                      </UIText>
+                      <UIText style={action.priceCurrency}>
+                        {t("common.currency")}
+                      </UIText>
+                    </View>
+
+                    {/* Original strikethrough + discount % chip when on sale */}
+                    {product.originalPrice && product.originalPrice > product.price && (
+                      <View style={[action.priceCompareRow, { flexDirection: flexRow(IS_RTL) }]}>
+                        <UIText style={action.priceOriginal} numberOfLines={1}>
+                          {formatPrice(product.originalPrice * qty)} {t("common.currency")}
+                        </UIText>
+                        {product.discountPercent && product.discountPercent > 0 && (
+                          <View style={action.discountChip}>
+                            <UIText style={action.discountChipText}>
+                              -{product.discountPercent}%
+                            </UIText>
+                          </View>
+                        )}
+                      </View>
+                    )}
+
                     {qty > 1 && (
-                      <UIText style={action.priceUnit}>{formatPrice(product.price)} × {qty}</UIText>
+                      <UIText style={action.priceUnit}>
+                        {formatPrice(product.price)} {t("common.currency")} × {qty}
+                      </UIText>
                     )}
                   </View>
 
-                  {/* Precision quantity stepper */}
-                  <View style={{ gap: 5, alignItems: "center" }}>
+                  {/* Premium quantity stepper —
+                      Icon buttons sit in 44pt square wells with explicit
+                      borderColor and individual press feedback. The value
+                      cell is the same height, centered. No more inline
+                      `flexDirection` mutation — `cs.stepper` already
+                      handles RTL through `flexRow(IS_RTL)`. */}
+                  <View style={action.stepperCol}>
                     <UIText style={action.stepperLabel}>{t("product.quantityLabel")}</UIText>
-                    <View style={[action.stepper, { flexDirection: flexRow(IS_RTL) }]}>
-                      <Pressable
-                        onPress={handleIncrement}
-                        disabled={qty >= maxQty}
-                        style={[action.stepBtn, qty >= maxQty && { opacity: 0.45 }]}>
-                        <View style={action.stepBtnInc}>
-                          <Ionicons name="add" size={20} color={kit.color.onInk} />
-                        </View>
-                      </Pressable>
-                      <View style={action.stepValue}>
-                        <UIText style={action.stepValueText}>{qty}</UIText>
-                      </View>
+                    <View style={action.stepper}>
                       <Pressable
                         onPress={handleDecrement}
                         disabled={qty === 1}
-                        style={[action.stepBtn, qty === 1 && { opacity: 0.4 }]}>
-                        <Ionicons name="remove" size={20} color={kit.color.inkSoft} />
+                        accessibilityRole="button"
+                        accessibilityLabel={t("product.decrement")}
+                        style={({ pressed }) => [
+                          action.stepBtn,
+                          pressed && !(qty === 1) && action.stepBtnPressed,
+                          qty === 1 && action.stepBtnDisabled,
+                        ]}>
+                        <Ionicons name="remove" size={20} color={qty === 1 ? kit.color.inkFaint : kit.color.inkSoft} />
+                      </Pressable>
+
+                      <View style={action.stepValue}>
+                        <UIText style={action.stepValueText}>{qty}</UIText>
+                      </View>
+
+                      <Pressable
+                        onPress={handleIncrement}
+                        disabled={qty >= maxQty}
+                        accessibilityRole="button"
+                        accessibilityLabel={t("product.increment")}
+                        style={({ pressed }) => [
+                          action.stepBtnPrimary,
+                          pressed && !(qty >= maxQty) && action.stepBtnPrimaryPressed,
+                          qty >= maxQty && action.stepBtnDisabled,
+                        ]}>
+                        <Ionicons name="add" size={20} color={kit.color.onAccent} />
                       </Pressable>
                     </View>
                     {product.inStock && product.stock > 0 && product.stock <= 10 && (
@@ -643,18 +790,29 @@ export default function ProductDetailScreen() {
                   )}
                 </View>
 
-                {/* Expand / collapse toggle — the moment of delight */}
+                {/* Expand / collapse toggle — premium pressed feedback,
+                    chevron flips vertically (open/close) so RTL/LTR don't
+                    matter for this axis */}
                 <Pressable
                   onPress={handleProfileToggle}
-                  style={[clin.expandBtn, { flexDirection: flexRow(IS_RTL) }]}>
+                  accessibilityRole="button"
+                  accessibilityState={{ expanded: profileExpanded }}
+                  accessibilityLabel={profileExpanded ? t("product.clinCollapse") : t("product.clinExpandAll")}
+                  style={({ pressed }) => [
+                    clin.expandBtn,
+                    { flexDirection: flexRow(IS_RTL) },
+                    pressed && clin.expandBtnPressed,
+                  ]}>
                   <UIText style={clin.expandText}>
                     {profileExpanded ? t("product.clinCollapse") : t("product.clinExpandAll")}
                   </UIText>
-                  <Ionicons
-                    name={profileExpanded ? "chevron-up-outline" : "chevron-down-outline"}
-                    size={14}
-                    color={kit.color.accentDeep}
-                  />
+                  <View style={clin.expandChevronWell}>
+                    <Ionicons
+                      name={profileExpanded ? "chevron-up" : "chevron-down"}
+                      size={15}
+                      color={kit.color.accentDeep}
+                    />
+                  </View>
                 </Pressable>
               </Animated.View>
 
@@ -705,13 +863,23 @@ export default function ProductDetailScreen() {
         </View>
       </ScrollView>
 
-      {/* ── Sticky CTA — the decision anchor ── */}
+      {/* ── Sticky CTA — the decision anchor.
+          Floating bar pinned to the bottom of the SafeAreaView.
+          When the item is already in the cart, a quiet "View cart" pill
+          floats above the primary CTA. Otherwise the bar is just the
+          full-width Add to Cart button. ── */}
       {product && (
-        <View style={[cta.outer, { paddingBottom: insets.bottom + 14 }]}>
+        <View style={[cta.outer, { paddingBottom: insets.bottom + 12 }]}>
           {inCart && (
             <Pressable
               onPress={() => router.push("/(tabs)/cart")}
-              style={[cta.viewCart, { flexDirection: flexRow(IS_RTL) }]}>
+              accessibilityRole="button"
+              accessibilityLabel={t("product.viewCart")}
+              style={({ pressed }) => [
+                cta.viewCart,
+                { flexDirection: flexRow(IS_RTL) },
+                pressed && cta.viewCartPressed,
+              ]}>
               <Ionicons name="cart-outline" size={14} color={kit.color.accentDeep} />
               <UIText style={cta.viewCartText}>{t("product.viewCart")}</UIText>
               <Ionicons name={FORWARD_CHEVRON} size={12} color={kit.color.accentDeep} />
@@ -726,6 +894,7 @@ export default function ProductDetailScreen() {
                   ? t("product.addWithPrice", { price: formatPrice(product.price * qty) })
                   : t("product.unavailable")
               }
+              icon={inCart ? "add" : "cart-outline"}
               onPress={handleAdd}
               variant={inCart ? "secondary" : "primary"}
               size="lg"
@@ -850,6 +1019,87 @@ const stage = StyleSheet.create({
     fontSize:   11,
     fontFamily: theme.fonts.bold,
     color:      kit.color.accentDeep,
+  },
+
+  // Discount badge — anchored to the top-leading edge via `start`.
+  // `start` is forceRTL-aware: left in LTR, right in RTL.
+  discountBadge: {
+    position:          "absolute",
+    top:               14,
+    start:             14,
+    paddingHorizontal: 10,
+    paddingVertical:   5,
+    borderRadius:      10,
+    backgroundColor:   kit.color.danger,
+    zIndex:            20,
+    ...kit.shadow.raised,
+  },
+  discountBadgeText: {
+    fontSize:           12,
+    lineHeight:         16,
+    fontFamily:         theme.fonts.black,
+    color:              kit.color.onAccent,
+    letterSpacing:      0.3,
+    includeFontPadding: false,
+  },
+});
+
+// ─── ImageCarousel styles ────────────────────────────────────────────────────
+
+const carousel = StyleSheet.create({
+  multi: {
+    width:  "100%",
+    height: "100%",
+  },
+  page: {
+    width:             STAGE_W,
+    height:            "100%",
+    paddingHorizontal: 28,
+    paddingVertical:   24,
+  },
+  img: {
+    width:  "100%",
+    height: "100%",
+  },
+  emptyWrap: {
+    alignItems:     "center",
+    justifyContent: "center",
+    flex:           1,
+  },
+  emptyTile: {
+    width:           110,
+    height:          110,
+    borderRadius:    34,
+    backgroundColor: kit.color.surface,
+    borderWidth:     1,
+    borderColor:     kit.color.line,
+    alignItems:      "center",
+    justifyContent:  "center",
+    ...kit.shadow.raised,
+  },
+
+  // Pagination dots — physical row, but the active state tracks logical idx
+  dots: {
+    position:       "absolute",
+    bottom:         18,
+    alignSelf:      "center",
+    gap:            6,
+    alignItems:     "center",
+    justifyContent: "center",
+    paddingHorizontal: 12,
+    paddingVertical:   6,
+    borderRadius:      999,
+    backgroundColor:   "rgba(15,23,42,0.18)",
+  },
+  dot: {
+    width:           6,
+    height:          6,
+    borderRadius:    3,
+    backgroundColor: "rgba(255,255,255,0.55)",
+  },
+  dotActive: {
+    width:           18,
+    backgroundColor: kit.color.surface,
   },
 });
 
@@ -994,61 +1244,159 @@ const action = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: kit.color.line,
   },
+  priceCol: {
+    flex:        1,
+    gap:         4,
+    flexShrink:  1,
+    minWidth:    0,
+  },
   priceLabel: {
-    fontSize:   11,
-    fontFamily: theme.fonts.semibold,
-    color:      kit.color.inkFaint,
-    textAlign:  IS_RTL ? "right" : "left",
+    fontSize:           10,
+    lineHeight:         14,
+    fontFamily:         theme.fonts.bold,
+    color:              kit.color.inkFaint,
+    letterSpacing:      0.5,
+    textTransform:      "uppercase",
+    textAlign:          IS_RTL ? "right" : "left",
+    includeFontPadding: false,
+  },
+  // Main price row — value + currency on a single baseline.
+  priceRow: {
+    alignItems: "baseline",
+    gap:        6,
+    flexWrap:   "wrap",
   },
   priceValue: {
-    fontSize:      32,
-    fontFamily:    theme.fonts.black,
-    color:         kit.color.ink,
-    letterSpacing: -1.0,
-    textAlign:     IS_RTL ? "right" : "left",
+    fontSize:           30,
+    lineHeight:         36,
+    fontFamily:         theme.fonts.black,
+    color:              kit.color.ink,
+    letterSpacing:      -0.8,
+    includeFontPadding: false,
+  },
+  priceCurrency: {
+    fontSize:           14,
+    lineHeight:         18,
+    fontFamily:         theme.fonts.bold,
+    color:              kit.color.inkSoft,
+    letterSpacing:      0.2,
+    includeFontPadding: false,
+  },
+  // Compare row — original price (strikethrough) + discount chip
+  priceCompareRow: {
+    alignItems: "center",
+    gap:        8,
+    flexWrap:   "wrap",
+    marginTop:  2,
+  },
+  priceOriginal: {
+    fontSize:           13,
+    lineHeight:         18,
+    fontFamily:         theme.fonts.regular,
+    color:              kit.color.inkFaint,
+    textDecorationLine: "line-through",
+    includeFontPadding: false,
+    flexShrink:         1,
+  },
+  discountChip: {
+    paddingHorizontal: 7,
+    paddingVertical:   2,
+    borderRadius:      999,
+    backgroundColor:   kit.color.dangerTint,
+    borderWidth:       1,
+    borderColor:       "rgba(239,68,68,0.32)",
+  },
+  discountChipText: {
+    fontSize:           10,
+    lineHeight:         13,
+    fontFamily:         theme.fonts.black,
+    color:              kit.color.danger,
+    letterSpacing:      0.4,
+    includeFontPadding: false,
   },
   priceUnit: {
-    fontSize:   12,
-    fontFamily: theme.fonts.regular,
-    color:      kit.color.inkFaint,
-    textAlign:  IS_RTL ? "right" : "left",
+    fontSize:           11,
+    lineHeight:         15,
+    fontFamily:         theme.fonts.regular,
+    color:              kit.color.inkFaint,
+    textAlign:          IS_RTL ? "right" : "left",
+    includeFontPadding: false,
+    marginTop:          2,
+  },
+
+  // Stepper column
+  stepperCol: {
+    gap:        6,
+    alignItems: "center",
+    flexShrink: 0,
   },
   stepperLabel: {
-    fontSize:   10,
-    fontFamily: theme.fonts.semibold,
-    color:      kit.color.inkFaint,
+    fontSize:           10,
+    lineHeight:         14,
+    fontFamily:         theme.fonts.bold,
+    color:              kit.color.inkFaint,
+    letterSpacing:      0.5,
+    textTransform:      "uppercase",
+    includeFontPadding: false,
   },
+  // Stepper: outer well + value cell + accent primary +
   stepper: {
+    flexDirection:   flexRow(IS_RTL),
     alignItems:      "center",
     backgroundColor: kit.color.well,
     borderRadius:    14,
     borderWidth:     1,
     borderColor:     kit.color.line,
-    overflow:        "hidden",
+    padding:         3,
+    gap:             3,
   },
+  // Decrement button — neutral surface chip
   stepBtn: {
-    width:          44,
-    height:         44,
-    alignItems:     "center",
-    justifyContent: "center",
-  },
-  stepBtnInc: {
-    width:           44,
-    height:          44,
+    width:           42,
+    height:          42,
+    borderRadius:    11,
     alignItems:      "center",
     justifyContent:  "center",
-    backgroundColor: kit.color.ink,
+    backgroundColor: kit.color.surface,
+    borderWidth:     1,
+    borderColor:     kit.color.line,
+  },
+  stepBtnPressed: {
+    backgroundColor: kit.color.accentTint,
+    borderColor:     kit.color.accent,
+    transform:       [{ scale: 0.96 }],
+  },
+  stepBtnDisabled: {
+    opacity: 0.45,
+  },
+  // Increment button — primary accent
+  stepBtnPrimary: {
+    width:           42,
+    height:          42,
+    borderRadius:    11,
+    alignItems:      "center",
+    justifyContent:  "center",
+    backgroundColor: kit.color.accentDeep,
+    borderWidth:     1,
+    borderColor:     kit.color.accentDeep,
+  },
+  stepBtnPrimaryPressed: {
+    opacity:   0.88,
+    transform: [{ scale: 0.96 }],
   },
   stepValue: {
-    minWidth:       44,
+    minWidth:       40,
+    height:         42,
     alignItems:     "center",
     justifyContent: "center",
   },
   stepValueText: {
-    fontSize:      18,
-    fontFamily:    theme.fonts.black,
-    color:         kit.color.ink,
-    letterSpacing: -0.2,
+    fontSize:           18,
+    lineHeight:         24,
+    fontFamily:         theme.fonts.black,
+    color:              kit.color.ink,
+    letterSpacing:      -0.3,
+    includeFontPadding: false,
   },
   stockNote: {
     fontSize:   10,
@@ -1182,16 +1530,33 @@ const clin = StyleSheet.create({
   expandBtn: {
     alignItems:        "center",
     justifyContent:    "center",
-    gap:               6,
-    paddingVertical:   13,
+    gap:               8,
+    paddingVertical:   14,
     paddingHorizontal: 18,
     borderTopWidth:    StyleSheet.hairlineWidth,
     borderTopColor:    kit.color.line,
+    backgroundColor:   kit.color.surface,
+  },
+  expandBtnPressed: {
+    backgroundColor: kit.color.well,
   },
   expandText: {
-    fontSize:   13,
-    fontFamily: theme.fonts.bold,
-    color:      kit.color.accentDeep,
+    fontSize:           13,
+    lineHeight:         18,
+    fontFamily:         theme.fonts.black,
+    color:              kit.color.accentDeep,
+    letterSpacing:      -0.1,
+    includeFontPadding: false,
+  },
+  expandChevronWell: {
+    width:           24,
+    height:          24,
+    borderRadius:    8,
+    alignItems:      "center",
+    justifyContent:  "center",
+    backgroundColor: kit.color.accentTint,
+    borderWidth:     1,
+    borderColor:     "rgba(14,126,116,0.18)",
   },
 });
 
@@ -1256,15 +1621,26 @@ const cta = StyleSheet.create({
     shadowRadius:      18,
     elevation:         8,
   },
+  // "View cart" link — sits above the primary CTA when item is in cart
   viewCart: {
-    alignItems:     "center",
-    justifyContent: "center",
-    gap:            6,
-    paddingVertical: 4,
+    alignItems:        "center",
+    justifyContent:    "center",
+    gap:               6,
+    paddingVertical:   6,
+    paddingHorizontal: 12,
+    borderRadius:      kit.radius.pill,
+    backgroundColor:   "transparent",
+    alignSelf:         "center",
+  },
+  viewCartPressed: {
+    backgroundColor: kit.color.accentTint,
   },
   viewCartText: {
-    fontSize:   13,
-    fontFamily: theme.fonts.bold,
-    color:      kit.color.accentDeep,
+    fontSize:           13,
+    lineHeight:         18,
+    fontFamily:         theme.fonts.black,
+    color:              kit.color.accentDeep,
+    letterSpacing:      -0.1,
+    includeFontPadding: false,
   },
 });
