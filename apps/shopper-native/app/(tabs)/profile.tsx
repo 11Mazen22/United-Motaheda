@@ -120,37 +120,47 @@ const MenuRow = memo(function MenuRow({
       onPressOut={handleOut}
       accessibilityRole="button"
       accessibilityLabel={subtitle ? `${label}, ${subtitle}` : label}>
-      <Animated.View style={[mr.row, { flexDirection: flexRow(IS_RTL) }, !last && mr.sep, anim]}>
+      <Animated.View style={[mr.row, !last && mr.sep, anim]}>
 
+        {/* Leading icon tile */}
         <View style={[mr.iconTile, {
           backgroundColor: danger ? kit.color.dangerTint  : `${ic}14`,
           borderColor:     danger ? "rgba(179,38,30,0.28)" : `${ic}26`,
         }]}>
-          <Ionicons name={icon} size={19} color={ic} />
+          <Ionicons name={icon} size={20} color={ic} />
         </View>
 
+        {/* Title + optional subtitle — flex:1 so the chevron stays at the
+            trailing edge. Vertical metrics are dictated by the label; the
+            subtitle floats underneath with a tight 16pt line-height so the
+            row's overall height grows only when a subtitle exists. */}
         <View style={mr.textGroup}>
           <UIText
-            style={[mr.label, danger && { color: kit.color.danger }, { textAlign: TEXT_START }]}
+            weight="bold"
+            style={[mr.label, danger && { color: kit.color.danger }]}
             numberOfLines={1}>
             {label}
           </UIText>
           {subtitle && (
-            <UIText style={[mr.sub, { textAlign: TEXT_START }]} numberOfLines={1}>
+            <UIText weight="semibold" style={mr.sub} numberOfLines={1}>
               {subtitle}
             </UIText>
           )}
         </View>
 
-        {badge != null && (
-          <View style={[mr.badgePill, danger && mr.badgeDanger]}>
-            <UIText style={[mr.badgeText, { color: danger ? kit.color.danger : kit.color.accentDeep }]}>
-              {badge}
-            </UIText>
+        {/* Trailing cluster: optional badge + chevron well */}
+        <View style={mr.trailing}>
+          {badge != null && (
+            <View style={[mr.badgePill, danger && mr.badgeDanger]}>
+              <UIText weight="black" style={[mr.badgeText, { color: danger ? kit.color.danger : kit.color.accentDeep }]}>
+                {badge}
+              </UIText>
+            </View>
+          )}
+          <View style={mr.chevronWell}>
+            <Ionicons name={FORWARD_CHEVRON} size={14} color={kit.color.inkFaint} />
           </View>
-        )}
-
-        <Ionicons name={FORWARD_CHEVRON} size={15} color={kit.color.inkFaint} />
+        </View>
       </Animated.View>
     </Pressable>
   );
@@ -404,14 +414,22 @@ export default function ProfileScreen() {
               disabled={signingOut}
               accessibilityRole="button"
               accessibilityLabel={t("profile.logout")}
-              style={({ pressed }) => [s.dangerCard, { flexDirection: flexRow(IS_RTL) }, pressed && s.dangerCardPressed]}>
-              <View style={s.dangerIconWell}>
-                <Ionicons name="log-out-outline" size={20} color={kit.color.danger} />
+              style={({ pressed }) => [s.dangerCard, pressed && s.dangerCardPressed]}>
+              {/* Leading cluster: icon + label */}
+              <View style={s.dangerLeading}>
+                <View style={s.dangerIconWell}>
+                  <Ionicons name="log-out-outline" size={20} color={kit.color.danger} />
+                </View>
+                <UIText style={s.dangerLabel} numberOfLines={1}>
+                  {signingOut ? t("common.loading") : t("profile.logout")}
+                </UIText>
               </View>
-              <UIText style={[s.dangerLabel, { textAlign: TEXT_START }]}>
-                {signingOut ? t("common.loading") : t("profile.logout")}
-              </UIText>
-              <Ionicons name={FORWARD_CHEVRON} size={15} color="rgba(179,38,30,0.5)" />
+              {/* Trailing chevron — pinned to the row's end edge */}
+              <Ionicons
+                name={FORWARD_CHEVRON}
+                size={16}
+                color="rgba(179,38,30,0.55)"
+              />
             </Pressable>
           </View>
         )}
@@ -461,12 +479,13 @@ const sl = StyleSheet.create({
 
 const mr = StyleSheet.create({
   row: {
+    flexDirection:     flexRow(IS_RTL),
     alignItems:        "center",
-    justifyContent:    "space-between",
-    paddingVertical:   16,
+    paddingVertical:   14,
     paddingHorizontal: 16,
     backgroundColor:   kit.color.surface,
     gap:               14,
+    minHeight:         64,
   },
   sep: {
     borderBottomWidth: StyleSheet.hairlineWidth,
@@ -482,42 +501,58 @@ const mr = StyleSheet.create({
     flexShrink:     0,
   },
   textGroup: {
-    flex: 1,
-    gap:  3,
+    flex:           1,
+    gap:            2,
+    justifyContent: "center",
+    flexShrink:     1,
   },
   label: {
-    fontFamily:         theme.fonts.bold,
     fontSize:           14,
     lineHeight:         20,
     color:              kit.color.ink,
+    letterSpacing:      -0.1,
+    textAlign:          TEXT_START,
     includeFontPadding: false,
   },
   sub: {
-    fontFamily:         theme.fonts.regular,
-    fontSize:           12,
-    lineHeight:         17,
+    fontSize:           11,
+    lineHeight:         16,
     color:              kit.color.inkFaint,
+    textAlign:          TEXT_START,
+    letterSpacing:      0.1,
     includeFontPadding: false,
   },
+  trailing: {
+    flexDirection: flexRow(IS_RTL),
+    alignItems:    "center",
+    gap:           8,
+    flexShrink:    0,
+  },
+  chevronWell: {
+    width:          22,
+    height:         22,
+    alignItems:     "center",
+    justifyContent: "center",
+  },
   badgePill: {
-    minWidth:          24,
+    minWidth:          26,
     height:            24,
     borderRadius:      12,
     alignItems:        "center",
     justifyContent:    "center",
-    paddingHorizontal: 7,
+    paddingHorizontal: 8,
     backgroundColor:   kit.color.accentTint,
     borderWidth:       1,
-    borderColor:       kit.color.line,
+    borderColor:       "rgba(14,126,116,0.18)",
   },
   badgeDanger: {
     backgroundColor: kit.color.dangerTint,
     borderColor:     "rgba(179,38,30,0.3)",
   },
   badgeText: {
-    fontFamily:         theme.fonts.bold,
     fontSize:           10,
     lineHeight:         14,
+    letterSpacing:      0.2,
     includeFontPadding: false,
   },
 });
@@ -642,25 +677,39 @@ const s = StyleSheet.create({
     paddingHorizontal: theme.layout.pagePaddingH,
     marginTop:         kit.sp(5),
   },
+  // Sign-out: explicit row layout, justify space-between.
+  // Leading cluster = icon + label; trailing = chevron.
   dangerCard: {
+    flexDirection:     flexRow(IS_RTL),
     alignItems:        "center",
-    gap:               14,
+    justifyContent:    "space-between",
+    gap:               12,
     backgroundColor:   kit.color.dangerTint,
     borderRadius:      kit.radius.lg,
-    paddingVertical:   16,
+    paddingVertical:   14,
     paddingHorizontal: 16,
     borderWidth:       1.5,
-    borderColor:       "rgba(179,38,30,0.38)",
+    borderColor:       "rgba(179,38,30,0.32)",
     ...kit.shadow.raised,
   },
-  dangerCardPressed: { opacity: 0.85 },
+  dangerCardPressed: {
+    opacity:   0.88,
+    transform: [{ scale: 0.99 }],
+  },
+  dangerLeading: {
+    flex:          1,
+    flexDirection: flexRow(IS_RTL),
+    alignItems:    "center",
+    gap:           14,
+    flexShrink:    1,
+  },
   dangerIconWell: {
-    width:           46,
-    height:          46,
+    width:           44,
+    height:          44,
     borderRadius:    14,
     backgroundColor: "rgba(179,38,30,0.13)",
     borderWidth:     1,
-    borderColor:     "rgba(179,38,30,0.3)",
+    borderColor:     "rgba(179,38,30,0.28)",
     alignItems:      "center",
     justifyContent:  "center",
     flexShrink:      0,
@@ -670,7 +719,9 @@ const s = StyleSheet.create({
     fontFamily:         theme.fonts.extrabold,
     fontSize:           14,
     lineHeight:         20,
+    letterSpacing:      -0.1,
     color:              kit.color.danger,
+    textAlign:          TEXT_START,
     includeFontPadding: false,
   },
 

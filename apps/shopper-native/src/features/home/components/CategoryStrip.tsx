@@ -153,11 +153,17 @@ export const CategoryStrip = memo(function CategoryStrip({
     gap:               12,
   } as const;
 
-  // RTL: left button is "forward" (more items to the left), right is "back"
+  // Visual left = previous in LTR, next in RTL. The chevron glyph picks the
+  // right direction per language; the scroll direction adapts via the
+  // physical-position handlers so the rail scrolls toward what the chevron
+  // points to.
   const onLeftPress  = IS_RTL ? scrollFwd  : scrollBack;
   const onRightPress = IS_RTL ? scrollBack : scrollFwd;
-  const leftChevron  = (IS_RTL ? "chevron-forward" : "chevron-back")  as React.ComponentProps<typeof Ionicons>["name"];
-  const rightChevron = (IS_RTL ? "chevron-back"    : "chevron-forward") as React.ComponentProps<typeof Ionicons>["name"];
+  // Arrow glyphs: left button always shows a "<" (chevron-back),
+  // right button always shows a ">" (chevron-forward). The visual meaning
+  // is "scroll in this direction" — independent of language semantics.
+  const leftChevron: React.ComponentProps<typeof Ionicons>["name"]  = "chevron-back";
+  const rightChevron: React.ComponentProps<typeof Ionicons>["name"] = "chevron-forward";
 
   return (
     <View style={[sectionStyles.wrap, s.containerWrap]}>

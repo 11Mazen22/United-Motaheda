@@ -61,16 +61,19 @@ export function Input({
     ? lineHeight * lineCount + verticalPad * 2
     : theme.layout.inputHeight;
 
+  // Premium focus state: idle uses a hairline `line` border on a `well`
+  // background; focused promotes to a 2pt accent ring on `surface` with
+  // the brand glow shadow. Error overrides both with a flat danger border.
   const borderAnim = useAnimatedStyle(() => ({
     borderColor: interpolateColor(
       progress.value,
       [0, 1],
       [
         error ? kit.color.danger : kit.color.line,
-        error ? kit.color.danger : kit.color.accent,
+        error ? kit.color.danger : kit.color.accentDeep,
       ],
     ),
-    borderWidth: withTiming(focused ? 1.5 : 1, { duration: 150 }),
+    borderWidth: withTiming(focused ? 2 : 1, { duration: 150 }),
   }));
 
   const handleFocus: TextInputProps["onFocus"] = (e) => {
@@ -87,19 +90,33 @@ export function Input({
 
   return (
     <View style={[{ gap: 6 }, containerStyle]}>
-      {/* Label row */}
+      {/* Label row — focused state recolors the label to accentDeep so the
+          eye lands on the active field even when scanning a long form. */}
       {label && (
         <View style={{ flexDirection: flexRow(_isRtl), alignItems: "center", justifyContent: "space-between" }}>
           <UIText style={{
-            fontSize:   theme.fontSize.sm,
-            fontFamily: theme.fonts.semibold,
-            color:      error ? kit.color.danger : kit.color.ink,
-            textAlign:  textAlignStart(_isRtl),
+            fontSize:           theme.fontSize.sm,
+            fontFamily:         theme.fonts.bold,
+            color:              error
+              ? kit.color.danger
+              : focused
+              ? kit.color.accentDeep
+              : kit.color.inkSoft,
+            textAlign:          textAlignStart(_isRtl),
+            letterSpacing:      0.2,
+            includeFontPadding: false,
           }}>
             {label}
           </UIText>
           {optional && (
-            <UIText style={{ fontSize: theme.fontSize.xs, color: kit.color.inkFaint }}>{t("common.optional")}</UIText>
+            <UIText style={{
+              fontSize:           theme.fontSize.xs,
+              fontFamily:         theme.fonts.regular,
+              color:              kit.color.inkFaint,
+              includeFontPadding: false,
+            }}>
+              {t("common.optional")}
+            </UIText>
           )}
         </View>
       )}

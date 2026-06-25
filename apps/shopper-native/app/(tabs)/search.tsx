@@ -340,7 +340,8 @@ export default function SearchScreen() {
   const inputRef = useRef<TextInput>(null);
   const { user } = useAuth();
   const { pagePad, width } = useScreenLayout();
-  const catW = Math.floor((width - pagePad * 2 - 10 * 2) / 3);
+  // 3-col grid: 8pt gutter between cells, full pagePad on the outer edges
+  const catW = Math.floor((width - pagePad * 2 - 8 * 2) / 3);
   // Resolve category labels against the active locale so English-mode users
   // never see Arabic names leak through (and vice versa).
   const catLabel = useCallback(
@@ -1554,24 +1555,27 @@ const s = StyleSheet.create({
   catGrid: {
     flexDirection: flexRow(IS_RTL),
     flexWrap:      "wrap",
-    gap:           10,
+    gap:           8,
   },
   catCell: {
     alignItems:        "center",
-    gap:               8,
-    paddingVertical:   18,
+    justifyContent:    "center",
+    gap:               10,
+    paddingVertical:   16,
     paddingHorizontal: 6,
     backgroundColor:   kit.color.surface,
-    borderRadius:      20,
+    borderRadius:      18,
     borderWidth:       1,
     borderColor:       kit.color.line,
     ...kit.shadow.raised,
   },
   catCellIcon: {
-    width:           56,
-    height:          56,
-    borderRadius:    18,
+    width:           54,
+    height:          54,
+    borderRadius:    17,
     backgroundColor: kit.color.accentTint,
+    borderWidth:     1,
+    borderColor:     "rgba(14,126,116,0.18)",
     alignItems:      "center",
     justifyContent:  "center",
   },
@@ -1579,21 +1583,24 @@ const s = StyleSheet.create({
     fontFamily:         theme.fonts.bold,
     fontSize:           11,
     lineHeight:         15,
-    color:              kit.color.inkSoft,
+    color:              kit.color.ink,
     textAlign:          "center",
+    letterSpacing:      -0.1,
+    minHeight:          30,
     includeFontPadding: false,
   },
   catCellCountBadge: {
     backgroundColor:   kit.color.accentTint,
-    borderRadius:      kit.radius.pill,
+    borderRadius:      999,
     paddingHorizontal: 8,
     paddingVertical:   2,
   },
   catCellCount: {
-    fontFamily:         theme.fonts.bold,
+    fontFamily:         theme.fonts.black,
     fontSize:           9,
-    lineHeight:         14,
+    lineHeight:         13,
     color:              kit.color.accentDeep,
+    letterSpacing:      0.3,
     includeFontPadding: false,
   },
 
