@@ -1,26 +1,22 @@
 /**
- * PrescriptionDetail — the medication command center (2026, built from zero).
+ * PrescriptionDetail — medication command center.
  *
- * Replaces the long-standing ComingSoon stub at /prescriptions/[id]. This is
- * the real "Medication Detail Experience": one screen that answers every
- * question a patient has about a single script.
- *
- * Architecture (top → bottom):
- *   1. Sticky header        — back + "Secure" trust badge
- *   2. Hero card            — status stripe, icon tile, drug name, dose,
- *                             status pill, controlled-substance badge
- *   3. Lifecycle track      — Active → Refill Due → Expired (current stage lit)
- *   4. Refill tracking       — Amazon-style vertical timeline, shown only when
- *                             an active refill order exists for this script
- *   5. Key facts grid       — refills left · next refill · prescriber ·
- *                             Rx number · schedule · added date
- *   6. Refill history       — past refill orders, or a helpful empty state
- *   7. Safety & trust        — controlled note + secure-storage reassurance
- *   8. Sticky CTA           — Request refill (disabled when expired)
- *
- * Data: usePrescription(id) + useRefillsForPrescription(id) from the store.
- * No new backend. Bilingual inline COPY (same pattern as TodayCare/HomeHero).
- * Motion is calm and reassuring — staggered FadeInDown, reduced-motion safe.
+ * Redesign (2026 visual pass):
+ *   • Unified header treatment matching AddRxEntry/AddRxManual/List —
+ *     38pt back button, secure-badge on the trailing edge, no more
+ *     standalone secure-only chip floating in space.
+ *   • All copy migrated from module-load IS_RTL ternary to t() so the
+ *     title always matches the active locale.
+ *   • Hero card: cleaner top row (heroTile + statusPill), 26pt black
+ *     medication name, controlled-substance badge promoted to a proper
+ *     row of its own.
+ *   • Lifecycle track: responsive 3-stage row with rounded connectors.
+ *     Current stage gets a 2px ring + Cairo_900Black label.
+ *   • Refill timeline: tight rail+label rows, current step pulses via
+ *     accentTint background.
+ *   • Fact grid: gap-based flex (no width:50% rounding bug), tinted icon
+ *     wells, 14pt black values aligned to start.
+ *   • Safety card: warmer accent tint, eyebrow-style title.
  */
 
 import React, { useCallback, useMemo } from "react";
@@ -33,9 +29,9 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTranslation } from "react-i18next";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { kit, Button } from "@/shared/kit";
-import { theme } from "@/shared/theme";
 import { Text } from "@/shared/ui";
 import { flexRow, isRtl, textAlignStart, BACK_CHEVRON } from "@/utils/layout";
 import { usePrescription, useRefillsForPrescription } from "@/features/prescriptions";
@@ -47,7 +43,7 @@ const IS_RTL     = isRtl();
 const TEXT_START = textAlignStart(IS_RTL);
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// STATUS TOKENS
+// Status tokens
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const STATUS_COLOR: Record<RxStatus, string> = {
@@ -63,130 +59,13 @@ const STATUS_TINT: Record<RxStatus, string> = {
   expired:  kit.color.well,
 };
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// BILINGUAL COPY
-// ═══════════════════════════════════════════════════════════════════════════════
-
-const COPY = IS_RTL
-  ? {
-      secure:       "آمن",
-      controlled:   "دواء خاضع للرقابة",
-      schedule:     (n: number) => `جدول ${n}`,
-      statusReady:    "جاهزة للاستلام",
-      statusActive:   "سارية",
-      statusExpiring: "تحتاج تجديد",
-      statusExpired:  "منتهية",
-      lifecycleTitle: "حالة الوصفة",
-      stageActive:    "سارية",
-      stageRefill:    "تحتاج تجديد",
-      stageExpired:   "منتهية",
-      trackingTitle:  "تتبّع طلب التجديد",
-      trackingEta:    "الوصول المتوقع",
-      trackingNo:     "رقم التتبع",
-      factsTitle:     "التفاصيل",
-      factRefills:    "تجديدات متبقية",
-      factNextRefill: "التجديد التالي",
-      factDoctor:     "الطبيب",
-      factRxNumber:   "رقم الوصفة",
-      factSchedule:   "الجدول",
-      factAdded:      "أُضيفت في",
-      historyTitle:   "سجل التجديدات",
-      historyEmpty:   "لا توجد طلبات تجديد سابقة",
-      historyEmptySub:"عند طلب تجديد، سيظهر هنا مع حالته.",
-      safetyTitle:    "الأمان والخصوصية",
-      safetyStored:   "بياناتك الطبية مشفّرة ومحفوظة بأمان في حسابك.",
-      safetyControlled:"هذا الدواء خاضع للرقابة. يتطلب وصفة سارية لكل صرف.",
-      refillCta:      "طلب تجديد",
-      refillExpired:  "الوصفة منتهية",
-      notFound:       "الوصفة غير موجودة",
-      notFoundSub:    "ربما تمت إزالتها أو لم تُحمّل بعد.",
-      back:           "رجوع",
-      refillStatus: {
-        pending:    "قيد المراجعة",
-        preparing:  "قيد التحضير",
-        ready:      "جاهز للاستلام",
-        on_the_way: "في الطريق",
-        delivered:  "تم التسليم",
-        cancelled:  "ملغي",
-      } as Record<RefillStatus, string>,
-      egp: "ج.م",
-    }
-  : {
-      secure:       "Secure",
-      controlled:   "Controlled substance",
-      schedule:     (n: number) => `Schedule ${n}`,
-      statusReady:    "Ready for pickup",
-      statusActive:   "Active",
-      statusExpiring: "Refill due",
-      statusExpired:  "Expired",
-      lifecycleTitle: "Prescription status",
-      stageActive:    "Active",
-      stageRefill:    "Refill due",
-      stageExpired:   "Expired",
-      trackingTitle:  "Refill tracking",
-      trackingEta:    "Estimated arrival",
-      trackingNo:     "Tracking no.",
-      factsTitle:     "Details",
-      factRefills:    "Refills left",
-      factNextRefill: "Next refill",
-      factDoctor:     "Prescriber",
-      factRxNumber:   "Rx number",
-      factSchedule:   "Schedule",
-      factAdded:      "Added on",
-      historyTitle:   "Refill history",
-      historyEmpty:   "No past refill requests",
-      historyEmptySub:"When you request a refill, it'll appear here with its status.",
-      safetyTitle:    "Safety & privacy",
-      safetyStored:   "Your medical data is encrypted and stored securely in your account.",
-      safetyControlled:"This medication is a controlled substance. A valid prescription is required for each fill.",
-      refillCta:      "Request refill",
-      refillExpired:  "Prescription expired",
-      notFound:       "Prescription not found",
-      notFoundSub:    "It may have been removed or hasn't loaded yet.",
-      back:           "Back",
-      refillStatus: {
-        pending:    "Under review",
-        preparing:  "Preparing",
-        ready:      "Ready for pickup",
-        on_the_way: "On the way",
-        delivered:  "Delivered",
-        cancelled:  "Cancelled",
-      } as Record<RefillStatus, string>,
-      egp: "EGP",
-    };
-
-function statusLabel(status: RxStatus): string {
-  switch (status) {
-    case "ready":    return COPY.statusReady;
-    case "active":   return COPY.statusActive;
-    case "expiring": return COPY.statusExpiring;
-    case "expired":  return COPY.statusExpired;
-  }
-}
-
-function formatDate(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
-  try {
-    return d.toLocaleDateString(IS_RTL ? "ar-EG" : "en-GB", {
-      day: "numeric", month: "short", year: "numeric",
-    });
-  } catch {
-    return iso;
-  }
-}
-
-// Rx validity lifecycle: which of the 3 stages is current?
-//   active / ready → stage 0 (still valid)
-//   expiring       → stage 1 (refill due)
-//   expired        → stage 2 (expired)
+// Rx validity lifecycle: 0=active, 1=expiring, 2=expired
 function lifecycleStage(status: RxStatus): 0 | 1 | 2 {
   if (status === "expired")  return 2;
   if (status === "expiring") return 1;
   return 0;
 }
 
-// Refill order tracking steps (cancelled is off-track)
 const REFILL_STEPS: { key: RefillStatus; icon: IoniconsName }[] = [
   { key: "pending",    icon: "document-text-outline" },
   { key: "preparing",  icon: "flask-outline" },
@@ -195,20 +74,32 @@ const REFILL_STEPS: { key: RefillStatus; icon: IoniconsName }[] = [
   { key: "delivered",  icon: "home-outline" },
 ];
 
-// The most relevant in-flight refill for this Rx (not delivered/cancelled)
 function activeRefill(refills: RefillRequest[]): RefillRequest | undefined {
   return refills.find((r) => r.status !== "delivered" && r.status !== "cancelled");
 }
 
+function formatDate(iso: string, locale: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  try {
+    return d.toLocaleDateString(locale === "ar" ? "ar-EG" : "en-GB", {
+      day: "numeric", month: "short", year: "numeric",
+    });
+  } catch {
+    return iso;
+  }
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
-// SCREEN
+// Screen
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export function PrescriptionDetail({ id }: { id: string | undefined }): React.ReactElement {
-  const router  = useRouter();
-  const insets  = useSafeAreaInsets();
-  const rx      = usePrescription(id);
-  const refills = useRefillsForPrescription(id ?? "");
+  const { t, i18n } = useTranslation();
+  const router      = useRouter();
+  const insets      = useSafeAreaInsets();
+  const rx          = usePrescription(id);
+  const refills     = useRefillsForPrescription(id ?? "");
 
   const inFlight = useMemo(() => activeRefill(refills), [refills]);
 
@@ -216,17 +107,34 @@ export function PrescriptionDetail({ id }: { id: string | undefined }): React.Re
     if (rx) router.push(`/prescriptions/${rx.id}/refill` as never);
   }, [router, rx]);
 
-  // ── Not-found guard ─────────────────────────────────────────────────────────
+  const statusLabel = useCallback((status: RxStatus): string => {
+    switch (status) {
+      case "ready":    return t("prescriptions.statusReady");
+      case "active":   return t("prescriptions.statusActive");
+      case "expiring": return t("prescriptions.statusExpiring");
+      case "expired":  return t("prescriptions.statusExpired");
+    }
+  }, [t]);
+
+  const refillStatusLabel = useCallback((status: RefillStatus): string => {
+    return t(`prescriptions.refillStatus.${status}`);
+  }, [t]);
+
+  // ── Not-found guard ────────────────────────────────────────────────────────
   if (!rx) {
     return (
       <View style={s.screen}>
         <Header insets={insets} onBack={() => router.back()} />
         <View style={s.centered}>
-          <View style={s.emptyIcon}>
-            <Ionicons name="medkit-outline" size={30} color={kit.color.inkFaint} />
+          <View style={s.notFoundIcon}>
+            <Ionicons name="medkit-outline" size={36} color={kit.color.inkFaint} />
           </View>
-          <Text style={s.emptyTitle}>{COPY.notFound}</Text>
-          <Text style={s.emptyBody}>{COPY.notFoundSub}</Text>
+          <Text weight="black" style={s.notFoundTitle}>
+            {t("prescriptions.notFound")}
+          </Text>
+          <Text style={s.notFoundBody}>
+            {t("prescriptions.notFoundSub")}
+          </Text>
         </View>
       </View>
     );
@@ -242,126 +150,189 @@ export function PrescriptionDetail({ id }: { id: string | undefined }): React.Re
 
       <ScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 110, gap: 16 }}
+        contentContainerStyle={{
+          padding:        20,
+          paddingBottom:  insets.bottom + 110,
+          gap:            16,
+        }}
         showsVerticalScrollIndicator={false}>
 
-        {/* ── Hero ── */}
+        {/* ── Hero ──────────────────────────────────────────────────── */}
         <Animated.View entering={FadeInDown.duration(280)} style={s.heroCard}>
           <View style={[s.heroStripe, { backgroundColor: color }]} />
           <View style={s.heroBody}>
-            <View style={[s.heroTop, { flexDirection: flexRow(IS_RTL) }]}>
+            <View style={s.heroTop}>
               <View style={[s.heroTile, { backgroundColor: tint }]}>
-                <Ionicons name="medkit" size={26} color={color} />
+                <Ionicons name="medkit" size={28} color={color} />
               </View>
-              <View style={[s.statusPill, { backgroundColor: tint }]}>
+              <View style={[s.statusPill, { backgroundColor: tint, borderColor: color + "33" }]}>
                 <View style={[s.statusDot, { backgroundColor: color }]} />
-                <Text style={[s.statusPillText, { color }]} numberOfLines={1}>
+                <Text weight="black" style={[s.statusPillText, { color }]} numberOfLines={1}>
                   {statusLabel(rx.status)}
                 </Text>
               </View>
             </View>
 
-            <Text style={s.heroName} numberOfLines={2}>{rx.name}</Text>
-            <Text style={s.heroDose} numberOfLines={1}>{rx.dose}</Text>
+            <Text weight="black" style={s.heroName} numberOfLines={2}>
+              {rx.name}
+            </Text>
+            <Text weight="semibold" style={s.heroDose} numberOfLines={1}>
+              {rx.dose}
+            </Text>
 
             {rx.isControlled && (
-              <View style={[s.controlledBadge, { flexDirection: flexRow(IS_RTL) }]}>
-                <Ionicons name="shield-half-outline" size={13} color={kit.color.danger} />
-                <Text style={s.controlledText}>
-                  {rx.schedule ? `${COPY.controlled} · ${COPY.schedule(rx.schedule)}` : COPY.controlled}
+              <View style={s.controlledBadge}>
+                <View style={s.controlledIconWell}>
+                  <Ionicons name="shield-half-outline" size={14} color={kit.color.danger} />
+                </View>
+                <Text weight="bold" style={s.controlledText} numberOfLines={1}>
+                  {rx.schedule
+                    ? `${t("prescriptions.controlled")} · ${t("prescriptions.scheduleN", { n: rx.schedule })}`
+                    : t("prescriptions.controlled")}
                 </Text>
               </View>
             )}
           </View>
         </Animated.View>
 
-        {/* ── Lifecycle track ── */}
+        {/* ── Lifecycle track ──────────────────────────────────────── */}
         <Animated.View entering={FadeInDown.delay(60).duration(280)} style={s.card}>
-          <Text style={s.cardTitle}>{COPY.lifecycleTitle}</Text>
-          <LifecycleTrack stage={lifecycleStage(rx.status)} />
+          <Text weight="black" style={s.cardTitle}>
+            {t("prescriptions.lifecycleTitle")}
+          </Text>
+          <LifecycleTrack
+            stage={lifecycleStage(rx.status)}
+            labels={[
+              t("prescriptions.stageActive"),
+              t("prescriptions.stageRefill"),
+              t("prescriptions.stageExpired"),
+            ]}
+          />
         </Animated.View>
 
-        {/* ── Refill tracking (only when an order is in flight) ── */}
+        {/* ── Refill tracking (in flight) ──────────────────────────── */}
         {inFlight && (
           <Animated.View entering={FadeInDown.delay(120).duration(280)} style={s.card}>
-            <View style={[s.cardTitleRow, { flexDirection: flexRow(IS_RTL) }]}>
-              <Text style={s.cardTitle}>{COPY.trackingTitle}</Text>
-              {inFlight.eta ? (
+            <View style={s.cardTitleRow}>
+              <Text weight="black" style={s.cardTitle}>
+                {t("prescriptions.trackingTitle")}
+              </Text>
+              {inFlight.eta && (
                 <View style={s.etaPill}>
-                  <Ionicons name="time-outline" size={11} color={kit.color.accentDeep} />
-                  <Text style={s.etaText}>{COPY.trackingEta}: {inFlight.eta}</Text>
+                  <Ionicons name="time-outline" size={12} color={kit.color.accentDeep} />
+                  <Text weight="bold" style={s.etaText}>
+                    {t("prescriptions.trackingEta")}: {inFlight.eta}
+                  </Text>
                 </View>
-              ) : null}
+              )}
             </View>
-            <RefillTimeline refill={inFlight} />
-            {inFlight.trackingNumber ? (
-              <View style={[s.trackingNoRow, { flexDirection: flexRow(IS_RTL) }]}>
-                <Text style={s.trackingNoLabel}>{COPY.trackingNo}</Text>
-                <Text style={s.trackingNoValue}>{inFlight.trackingNumber}</Text>
+            <RefillTimeline refill={inFlight} label={refillStatusLabel} />
+            {inFlight.trackingNumber && (
+              <View style={s.trackingNoRow}>
+                <Text weight="bold" style={s.trackingNoLabel}>
+                  {t("prescriptions.trackingNo")}
+                </Text>
+                <Text weight="black" style={s.trackingNoValue}>
+                  {inFlight.trackingNumber}
+                </Text>
               </View>
-            ) : null}
+            )}
           </Animated.View>
         )}
 
-        {/* ── Key facts ── */}
+        {/* ── Key facts grid ───────────────────────────────────────── */}
         <Animated.View entering={FadeInDown.delay(180).duration(280)} style={s.card}>
-          <Text style={s.cardTitle}>{COPY.factsTitle}</Text>
+          <Text weight="black" style={s.cardTitle}>
+            {t("prescriptions.factsTitle")}
+          </Text>
           <View style={s.factGrid}>
-            <Fact icon="repeat-outline"      label={COPY.factRefills}    value={String(rx.refills)} accent={rx.refills > 0 ? kit.color.accentDeep : kit.color.inkFaint} />
-            <Fact icon="calendar-outline"    label={COPY.factNextRefill} value={rx.nextRefill} />
-            <Fact icon="person-outline"      label={COPY.factDoctor}     value={rx.doctor} />
-            {rx.rxNumber ? (
-              <Fact icon="barcode-outline"   label={COPY.factRxNumber}   value={rx.rxNumber} />
-            ) : null}
-            {rx.isControlled && rx.schedule ? (
-              <Fact icon="shield-half-outline" label={COPY.factSchedule} value={COPY.schedule(rx.schedule)} accent={kit.color.danger} />
-            ) : null}
-            <Fact icon="time-outline"        label={COPY.factAdded}      value={formatDate(rx.addedAt)} />
+            <Fact
+              icon="repeat-outline"
+              label={t("prescriptions.factRefills")}
+              value={String(rx.refills)}
+              accent={rx.refills > 0 ? kit.color.accentDeep : kit.color.inkFaint}
+            />
+            <Fact icon="calendar-outline" label={t("prescriptions.factNextRefill")} value={rx.nextRefill} />
+            <Fact icon="person-outline"   label={t("prescriptions.factDoctor")}     value={rx.doctor} />
+            {rx.rxNumber && (
+              <Fact icon="barcode-outline" label={t("prescriptions.factRxNumber")} value={rx.rxNumber} />
+            )}
+            {rx.isControlled && rx.schedule && (
+              <Fact
+                icon="shield-half-outline"
+                label={t("prescriptions.factSchedule")}
+                value={t("prescriptions.scheduleN", { n: rx.schedule })}
+                accent={kit.color.danger}
+              />
+            )}
+            <Fact
+              icon="time-outline"
+              label={t("prescriptions.factAdded")}
+              value={formatDate(rx.addedAt, i18n.language)}
+            />
           </View>
         </Animated.View>
 
-        {/* ── Refill history ── */}
+        {/* ── Refill history ────────────────────────────────────────── */}
         <Animated.View entering={FadeInDown.delay(240).duration(280)} style={s.card}>
-          <Text style={s.cardTitle}>{COPY.historyTitle}</Text>
+          <Text weight="black" style={s.cardTitle}>
+            {t("prescriptions.historyTitle")}
+          </Text>
           {refills.length === 0 ? (
             <View style={s.histEmpty}>
               <View style={s.histEmptyIcon}>
-                <Ionicons name="receipt-outline" size={20} color={kit.color.inkFaint} />
+                <Ionicons name="receipt-outline" size={22} color={kit.color.inkFaint} />
               </View>
-              <Text style={s.histEmptyTitle}>{COPY.historyEmpty}</Text>
-              <Text style={s.histEmptySub}>{COPY.historyEmptySub}</Text>
+              <Text weight="black" style={s.histEmptyTitle}>
+                {t("prescriptions.historyEmpty")}
+              </Text>
+              <Text style={s.histEmptySub}>
+                {t("prescriptions.historyEmptySub")}
+              </Text>
             </View>
           ) : (
             <View style={{ gap: 8 }}>
               {refills.map((r) => (
-                <RefillHistoryRow key={r.id} refill={r} />
+                <RefillHistoryRow
+                  key={r.id}
+                  refill={r}
+                  label={refillStatusLabel(r.status)}
+                  dateLabel={formatDate(r.placedAt, i18n.language)}
+                  egp={t("common.currency")}
+                />
               ))}
             </View>
           )}
         </Animated.View>
 
-        {/* ── Safety & trust ── */}
+        {/* ── Safety & trust ────────────────────────────────────────── */}
         <Animated.View entering={FadeInDown.delay(300).duration(280)} style={s.safetyCard}>
-          <View style={[s.safetyHead, { flexDirection: flexRow(IS_RTL) }]}>
-            <Ionicons name="lock-closed" size={14} color={kit.color.accentDeep} />
-            <Text style={s.safetyTitle}>{COPY.safetyTitle}</Text>
+          <View style={s.safetyHead}>
+            <View style={s.safetyIconWell}>
+              <Ionicons name="lock-closed" size={14} color={kit.color.accentDeep} />
+            </View>
+            <Text weight="black" style={s.safetyTitle}>
+              {t("prescriptions.safetyTitle")}
+            </Text>
           </View>
-          <Text style={s.safetyBody}>{COPY.safetyStored}</Text>
+          <Text style={s.safetyBody}>
+            {t("prescriptions.safetyStored")}
+          </Text>
           {rx.isControlled && (
-            <Text style={[s.safetyBody, { color: kit.color.danger, marginTop: 6 }]}>
-              {COPY.safetyControlled}
+            <Text style={[s.safetyBody, { color: kit.color.danger, marginTop: 4 }]}>
+              {t("prescriptions.safetyControlled")}
             </Text>
           )}
         </Animated.View>
       </ScrollView>
 
-      {/* ── Sticky refill CTA ── */}
-      <View style={[s.ctaBar, { paddingBottom: Math.max(insets.bottom, 8) }]}>
+      {/* ── Sticky refill CTA ────────────────────────────────────────── */}
+      <View style={[s.ctaBar, { paddingBottom: Math.max(insets.bottom, 8) + 4 }]}>
         <Button
           variant="primary"
           full
           icon={isExpired ? "lock-closed" : "refresh"}
-          label={isExpired ? COPY.refillExpired : COPY.refillCta}
+          label={isExpired ? t("prescriptions.refillExpired") : t("prescriptions.refillCta")}
           disabled={isExpired}
           onPress={goRefill}
         />
@@ -371,59 +342,81 @@ export function PrescriptionDetail({ id }: { id: string | undefined }): React.Re
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// SUB-COMPONENTS
+// Sub-components
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function Header({ insets, onBack }: { insets: { top: number }; onBack: () => void }) {
+  const { t } = useTranslation();
   return (
-    <View style={[s.header, { paddingTop: insets.top + 12, flexDirection: flexRow(IS_RTL) }]}>
-      <Pressable onPress={onBack} hitSlop={8} accessibilityRole="button" accessibilityLabel={COPY.back} style={s.backBtn}>
-        <Ionicons name={BACK_CHEVRON} size={20} color={kit.color.ink} />
-      </Pressable>
-      <View style={s.secureBadge}>
-        <Ionicons name="shield-checkmark" size={12} color={kit.color.success} />
-        <Text style={s.secureText}>{COPY.secure}</Text>
+    <View style={[s.header, { paddingTop: insets.top + 12 }]}>
+      <View style={s.headerRow}>
+        <Pressable
+          onPress={onBack}
+          hitSlop={10}
+          accessibilityRole="button"
+          accessibilityLabel={t("common.back")}
+          style={({ pressed }) => [s.backBtn, pressed && s.backBtnPressed]}>
+          <Ionicons name={BACK_CHEVRON} size={20} color={kit.color.ink} />
+        </Pressable>
+
+        <View style={s.secureBadge}>
+          <Ionicons name="shield-checkmark" size={12} color={kit.color.success} />
+          <Text weight="black" style={s.secureText}>
+            {t("prescriptions.secure")}
+          </Text>
+        </View>
       </View>
     </View>
   );
 }
 
 /** 3-stage Rx validity track: Active → Refill Due → Expired */
-function LifecycleTrack({ stage }: { stage: 0 | 1 | 2 }) {
+function LifecycleTrack({ stage, labels }: { stage: 0 | 1 | 2; labels: [string, string, string] }) {
   const stages = [
-    { label: COPY.stageActive,  icon: "checkmark-circle" as IoniconsName, color: kit.color.success },
-    { label: COPY.stageRefill,  icon: "alert-circle"     as IoniconsName, color: kit.color.warn },
-    { label: COPY.stageExpired, icon: "close-circle"     as IoniconsName, color: kit.color.inkFaint },
+    { label: labels[0], icon: "checkmark-circle" as IoniconsName, color: kit.color.success },
+    { label: labels[1], icon: "alert-circle"     as IoniconsName, color: kit.color.warn },
+    { label: labels[2], icon: "close-circle"     as IoniconsName, color: kit.color.inkFaint },
   ];
   return (
-    <View style={[s.lifecycle, { flexDirection: flexRow(IS_RTL) }]}>
+    <View style={[lc.row, { flexDirection: flexRow(IS_RTL) }]}>
       {stages.map((st, i) => {
-        const reached = i <= stage;
+        const reached   = i <= stage;
         const isCurrent = i === stage;
-        const dotColor = reached ? st.color : kit.color.lineStrong;
         return (
           <React.Fragment key={st.label}>
-            <View style={s.lifecycleNode}>
+            <View style={lc.node}>
               <View
                 style={[
-                  s.lifecycleDot,
-                  { backgroundColor: reached ? st.color + "1A" : kit.color.well, borderColor: dotColor },
+                  lc.dot,
+                  {
+                    backgroundColor: reached ? st.color + "1A" : kit.color.well,
+                    borderColor:     reached ? st.color        : kit.color.lineStrong,
+                  },
                   isCurrent && { borderWidth: 2 },
                 ]}>
-                <Ionicons name={st.icon} size={16} color={dotColor} />
+                <Ionicons
+                  name={st.icon}
+                  size={18}
+                  color={reached ? st.color : kit.color.lineStrong}
+                />
               </View>
               <Text
+                weight={isCurrent ? "black" : "bold"}
                 style={[
-                  s.lifecycleLabel,
+                  lc.label,
                   { color: reached ? kit.color.ink : kit.color.inkFaint },
-                  isCurrent && { fontFamily: theme.fonts.black },
                 ]}
                 numberOfLines={1}>
                 {st.label}
               </Text>
             </View>
             {i < stages.length - 1 && (
-              <View style={[s.lifecycleBar, { backgroundColor: i < stage ? stages[i].color : kit.color.lineStrong }]} />
+              <View
+                style={[
+                  lc.bar,
+                  { backgroundColor: i < stage ? stages[i].color : kit.color.lineStrong },
+                ]}
+              />
             )}
           </React.Fragment>
         );
@@ -432,45 +425,57 @@ function LifecycleTrack({ stage }: { stage: 0 | 1 | 2 }) {
   );
 }
 
-/** Amazon-style vertical refill order timeline */
-function RefillTimeline({ refill }: { refill: RefillRequest }) {
+/** Vertical refill order timeline */
+function RefillTimeline({
+  refill, label,
+}: { refill: RefillRequest; label: (status: RefillStatus) => string }) {
   const currentIdx = REFILL_STEPS.findIndex((st) => st.key === refill.status);
   return (
-    <View style={{ gap: 0 }}>
+    <View>
       {REFILL_STEPS.map((step, i) => {
         const done    = i < currentIdx;
         const current = i === currentIdx;
         const future  = i > currentIdx;
-        const c = done || current ? kit.color.accentDeep : kit.color.lineStrong;
+        const c       = done || current ? kit.color.accentDeep : kit.color.lineStrong;
         return (
-          <View key={step.key} style={[s.tlRow, { flexDirection: flexRow(IS_RTL) }]}>
-            {/* Rail */}
-            <View style={s.tlRail}>
+          <View key={step.key} style={[tl.row, { flexDirection: flexRow(IS_RTL) }]}>
+            <View style={tl.rail}>
               <View
                 style={[
-                  s.tlNode,
-                  { borderColor: c, backgroundColor: done ? kit.color.accentDeep : kit.color.surface },
-                  current && s.tlNodeCurrent,
+                  tl.node,
+                  {
+                    borderColor:     c,
+                    backgroundColor: done ? kit.color.accentDeep : kit.color.surface,
+                  },
+                  current && tl.nodeCurrent,
                 ]}>
                 {done ? (
-                  <Ionicons name="checkmark" size={12} color={kit.color.onAccent} />
+                  <Ionicons name="checkmark" size={13} color={kit.color.onAccent} />
                 ) : (
-                  <Ionicons name={step.icon} size={12} color={current ? kit.color.accentDeep : kit.color.inkFaint} />
+                  <Ionicons
+                    name={step.icon}
+                    size={13}
+                    color={current ? kit.color.accentDeep : kit.color.inkFaint}
+                  />
                 )}
               </View>
               {i < REFILL_STEPS.length - 1 && (
-                <View style={[s.tlConnector, { backgroundColor: done ? kit.color.accentDeep : kit.color.line }]} />
+                <View
+                  style={[
+                    tl.connector,
+                    { backgroundColor: done ? kit.color.accentDeep : kit.color.line },
+                  ]}
+                />
               )}
             </View>
-            {/* Label */}
-            <View style={s.tlLabelWrap}>
+            <View style={tl.labelWrap}>
               <Text
+                weight={current ? "black" : "bold"}
                 style={[
-                  s.tlLabel,
-                  { color: future ? kit.color.inkFaint : kit.color.ink },
-                  current && { fontFamily: theme.fonts.black, color: kit.color.accentDeep },
+                  tl.label,
+                  { color: future ? kit.color.inkFaint : current ? kit.color.accentDeep : kit.color.ink },
                 ]}>
-                {COPY.refillStatus[step.key]}
+                {label(step.key)}
               </Text>
             </View>
           </View>
@@ -480,132 +485,160 @@ function RefillTimeline({ refill }: { refill: RefillRequest }) {
   );
 }
 
-function Fact({ icon, label, value, accent }: {
-  icon: IoniconsName; label: string; value: string; accent?: string;
-}) {
+function Fact({
+  icon, label, value, accent,
+}: { icon: IoniconsName; label: string; value: string; accent?: string }) {
+  const tone = accent ?? kit.color.inkFaint;
   return (
-    <View style={s.fact}>
-      <View style={[s.factIconWrap, { flexDirection: flexRow(IS_RTL) }]}>
-        <Ionicons name={icon} size={13} color={accent ?? kit.color.inkFaint} />
-        <Text style={s.factLabel} numberOfLines={1}>{label}</Text>
+    <View style={f.cell}>
+      <View style={f.head}>
+        <View style={[f.iconWell, { backgroundColor: tone + "14" }]}>
+          <Ionicons name={icon} size={13} color={tone} />
+        </View>
+        <Text weight="bold" style={f.label} numberOfLines={1}>{label}</Text>
       </View>
-      <Text style={[s.factValue, accent ? { color: accent } : null]} numberOfLines={1}>{value}</Text>
+      <Text weight="black" style={[f.value, accent ? { color: accent } : null]} numberOfLines={1}>
+        {value}
+      </Text>
     </View>
   );
 }
 
-function RefillHistoryRow({ refill }: { refill: RefillRequest }) {
+function RefillHistoryRow({
+  refill, label, dateLabel, egp,
+}: { refill: RefillRequest; label: string; dateLabel: string; egp: string }) {
   const cancelled = refill.status === "cancelled";
   const delivered = refill.status === "delivered";
-  const tone = cancelled ? kit.color.danger : delivered ? kit.color.success : kit.color.accentDeep;
-  const tint = cancelled ? kit.color.dangerTint : delivered ? kit.color.successTint : kit.color.accentTint;
+  const tone = cancelled ? kit.color.danger
+             : delivered ? kit.color.success
+             : kit.color.accentDeep;
+  const tint = cancelled ? kit.color.dangerTint
+             : delivered ? kit.color.successTint
+             : kit.color.accentTint;
   return (
-    <View style={[s.histRow, { flexDirection: flexRow(IS_RTL) }]}>
-      <View style={[s.histDot, { backgroundColor: tint }]}>
+    <View style={[h.row, { flexDirection: flexRow(IS_RTL) }]}>
+      <View style={[h.dot, { backgroundColor: tint }]}>
         <Ionicons
           name={cancelled ? "close" : delivered ? "checkmark" : "ellipsis-horizontal"}
-          size={13}
+          size={14}
           color={tone}
         />
       </View>
-      <View style={{ flex: 1 }}>
-        <Text style={[s.histStatus, { color: tone }]} numberOfLines={1}>
-          {COPY.refillStatus[refill.status]}
+      <View style={h.text}>
+        <Text weight="black" style={[h.status, { color: tone }]} numberOfLines={1}>
+          {label}
         </Text>
-        <Text style={s.histDate} numberOfLines={1}>{formatDate(refill.placedAt)}</Text>
+        <Text style={h.date} numberOfLines={1}>{dateLabel}</Text>
       </View>
       {refill.total > 0 && (
-        <Text style={s.histTotal}>{refill.total} {COPY.egp}</Text>
+        <Text weight="black" style={h.total} numberOfLines={1}>
+          {refill.total} {egp}
+        </Text>
       )}
     </View>
   );
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// STYLES
+// Styles
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: kit.color.canvas },
 
-  // Header
+  // ── Header ─────────────────────────────────────────────────────────────
   header: {
     paddingHorizontal: 20,
-    paddingBottom:     14,
-    alignItems:        "center",
-    justifyContent:    "space-between",
+    paddingBottom:     16,
     backgroundColor:   kit.color.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: kit.color.line,
+    ...kit.shadow.raised,
+  },
+  headerRow: {
+    flexDirection:  flexRow(IS_RTL),
+    alignItems:     "center",
+    justifyContent: "space-between",
   },
   backBtn: {
-    width:           40,
-    height:          40,
-    borderRadius:    20,
-    alignItems:      "center",
-    justifyContent:  "center",
-    backgroundColor: kit.color.canvas,
+    width:           38,
+    height:          38,
+    borderRadius:    14,
+    backgroundColor: kit.color.well,
     borderWidth:     1,
     borderColor:     kit.color.line,
+    alignItems:      "center",
+    justifyContent:  "center",
+  },
+  backBtnPressed: {
+    opacity:   0.7,
+    transform: [{ scale: 0.96 }],
   },
   secureBadge: {
-    flexDirection:     "row",
+    flexDirection:     flexRow(IS_RTL),
     alignItems:        "center",
-    gap:               5,
+    gap:               6,
     backgroundColor:   kit.color.successTint,
     borderRadius:      kit.radius.pill,
-    paddingHorizontal: 10,
-    paddingVertical:   6,
+    paddingHorizontal: 12,
+    paddingVertical:   7,
+    borderWidth:       1,
+    borderColor:       "rgba(5,150,105,0.18)",
   },
   secureText: {
-    fontFamily:         theme.fonts.black,
-    fontSize:           10,
-    lineHeight:         14,
-    letterSpacing:      0.4,
+    fontSize:           11,
+    lineHeight:         15,
+    letterSpacing:      0.5,
+    textTransform:      "uppercase",
     color:              kit.color.success,
     includeFontPadding: false,
   },
 
-  // Hero
+  // ── Hero ───────────────────────────────────────────────────────────────
   heroCard: {
     backgroundColor: kit.color.surface,
     borderRadius:    kit.radius.xl,
     borderWidth:     1,
     borderColor:     kit.color.line,
     overflow:        "hidden",
-    ...kit.shadow.raised,
+    ...kit.shadow.floating,
   },
-  heroStripe: { height: 4, width: "100%" },
+  heroStripe: { height: 5, width: "100%" },
   heroBody: { padding: 20, gap: 8 },
   heroTop: {
+    flexDirection:  flexRow(IS_RTL),
     alignItems:     "center",
     justifyContent: "space-between",
-    marginBottom:   4,
+    marginBottom:   6,
   },
   heroTile: {
-    width:          56,
-    height:         56,
-    borderRadius:   18,
+    width:          60,
+    height:         60,
+    borderRadius:   20,
     alignItems:     "center",
     justifyContent: "center",
   },
   statusPill: {
-    flexDirection:     "row",
+    flexDirection:     flexRow(IS_RTL),
     alignItems:        "center",
-    gap:               6,
+    gap:               7,
     paddingHorizontal: 12,
-    paddingVertical:   7,
+    paddingVertical:   8,
     borderRadius:      kit.radius.pill,
+    borderWidth:       1,
   },
-  statusDot: { width: 7, height: 7, borderRadius: 4 },
+  statusDot: {
+    width:        8,
+    height:       8,
+    borderRadius: 4,
+  },
   statusPillText: {
-    fontFamily:         theme.fonts.black,
     fontSize:           11,
     lineHeight:         15,
+    letterSpacing:      0.3,
     includeFontPadding: false,
   },
   heroName: {
-    fontFamily:         theme.fonts.black,
     fontSize:           26,
     lineHeight:         32,
     letterSpacing:      -0.6,
@@ -614,7 +647,6 @@ const s = StyleSheet.create({
     includeFontPadding: false,
   },
   heroDose: {
-    fontFamily:         theme.fonts.semibold,
     fontSize:           14,
     lineHeight:         20,
     color:              kit.color.inkSoft,
@@ -622,24 +654,35 @@ const s = StyleSheet.create({
     includeFontPadding: false,
   },
   controlledBadge: {
-    alignSelf:         "flex-start",
+    flexDirection:     flexRow(IS_RTL),
     alignItems:        "center",
-    gap:               6,
+    gap:               10,
     backgroundColor:   kit.color.dangerTint,
-    borderRadius:      kit.radius.pill,
-    paddingHorizontal: 10,
-    paddingVertical:   6,
-    marginTop:         6,
+    borderRadius:      kit.radius.lg,
+    paddingHorizontal: 12,
+    paddingVertical:   10,
+    marginTop:         8,
+    borderWidth:       1,
+    borderColor:       "rgba(239,68,68,0.18)",
+  },
+  controlledIconWell: {
+    width:           28,
+    height:          28,
+    borderRadius:    9,
+    backgroundColor: "rgba(239,68,68,0.16)",
+    alignItems:      "center",
+    justifyContent:  "center",
   },
   controlledText: {
-    fontFamily:         theme.fonts.bold,
-    fontSize:           11,
-    lineHeight:         15,
+    flex:               1,
+    fontSize:           12,
+    lineHeight:         16,
     color:              kit.color.danger,
+    textAlign:          TEXT_START,
     includeFontPadding: false,
   },
 
-  // Generic card
+  // ── Generic card ───────────────────────────────────────────────────────
   card: {
     backgroundColor: kit.color.surface,
     borderRadius:    kit.radius.lg,
@@ -650,256 +693,137 @@ const s = StyleSheet.create({
     ...kit.shadow.raised,
   },
   cardTitleRow: {
+    flexDirection:  flexRow(IS_RTL),
     alignItems:     "center",
     justifyContent: "space-between",
+    gap:            10,
   },
   cardTitle: {
-    fontFamily:         theme.fonts.black,
-    fontSize:           14,
-    lineHeight:         20,
-    color:              kit.color.ink,
-    letterSpacing:      -0.2,
-    textAlign:          TEXT_START,
-    includeFontPadding: false,
-  },
-
-  // Lifecycle track
-  lifecycle: {
-    alignItems:    "flex-start",
-    justifyContent:"space-between",
-  },
-  lifecycleNode: {
-    alignItems: "center",
-    gap:        6,
-    width:      72,
-  },
-  lifecycleDot: {
-    width:          40,
-    height:         40,
-    borderRadius:   20,
-    borderWidth:    1.5,
-    alignItems:     "center",
-    justifyContent: "center",
-  },
-  lifecycleLabel: {
-    fontFamily:         theme.fonts.bold,
-    fontSize:           10,
-    lineHeight:         14,
-    textAlign:          "center",
-    includeFontPadding: false,
-  },
-  lifecycleBar: {
-    flex:        1,
-    height:      2,
-    marginTop:   19,
-    borderRadius:1,
-  },
-
-  // Refill timeline
-  tlRow: { alignItems: "stretch" },
-  tlRail: { alignItems: "center", width: 28 },
-  tlNode: {
-    width:          26,
-    height:         26,
-    borderRadius:   13,
-    borderWidth:    1.5,
-    alignItems:     "center",
-    justifyContent: "center",
-  },
-  tlNodeCurrent: {
-    borderWidth:     2,
-    backgroundColor: kit.color.accentTint,
-  },
-  tlConnector: {
-    width:      2,
-    flex:       1,
-    minHeight:  18,
-    marginVertical: 2,
-  },
-  tlLabelWrap: {
-    flex:           1,
-    paddingHorizontal: 12,
-    paddingBottom:  16,
-    justifyContent: "center",
-  },
-  tlLabel: {
-    fontFamily:         theme.fonts.bold,
     fontSize:           13,
     lineHeight:         18,
+    color:              kit.color.inkSoft,
+    letterSpacing:      0.5,
+    textTransform:      "uppercase",
     textAlign:          TEXT_START,
     includeFontPadding: false,
   },
+
+  // ── Tracking eta + tracking# ───────────────────────────────────────────
   etaPill: {
     flexDirection:     flexRow(IS_RTL),
     alignItems:        "center",
-    gap:               5,
+    gap:               6,
     backgroundColor:   kit.color.accentTint,
     borderRadius:      kit.radius.pill,
     paddingHorizontal: 10,
     paddingVertical:   5,
   },
   etaText: {
-    fontFamily:         theme.fonts.bold,
     fontSize:           10,
     lineHeight:         14,
     color:              kit.color.accentDeep,
     includeFontPadding: false,
   },
   trackingNoRow: {
-    alignItems:        "center",
-    justifyContent:    "space-between",
-    paddingTop:        12,
-    borderTopWidth:    StyleSheet.hairlineWidth,
-    borderTopColor:    kit.color.line,
+    flexDirection:  flexRow(IS_RTL),
+    alignItems:     "center",
+    justifyContent: "space-between",
+    paddingTop:     14,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: kit.color.line,
   },
   trackingNoLabel: {
-    fontFamily:         theme.fonts.semibold,
     fontSize:           11,
-    color:              kit.color.inkFaint,
-    includeFontPadding: false,
-  },
-  trackingNoValue: {
-    fontFamily:         theme.fonts.black,
-    fontSize:           12,
-    color:              kit.color.ink,
-    includeFontPadding: false,
-  },
-
-  // Fact grid
-  factGrid: {
-    flexDirection: flexRow(IS_RTL),
-    flexWrap:      "wrap",
-    rowGap:        14,
-  },
-  fact: {
-    width: "50%",
-    gap:   4,
-    paddingEnd: 8,
-  },
-  factIconWrap: {
-    alignItems: "center",
-    gap:        6,
-  },
-  factLabel: {
-    fontFamily:         theme.fonts.bold,
-    fontSize:           10,
-    lineHeight:         14,
     color:              kit.color.inkFaint,
     letterSpacing:      0.3,
     textTransform:      "uppercase",
     includeFontPadding: false,
-    flexShrink:         1,
   },
-  factValue: {
-    fontFamily:         theme.fonts.black,
-    fontSize:           14,
-    lineHeight:         19,
-    color:              kit.color.ink,
-    textAlign:          TEXT_START,
-    includeFontPadding: false,
-  },
-
-  // Refill history
-  histRow: {
-    alignItems:        "center",
-    gap:               12,
-    backgroundColor:   kit.color.well,
-    borderRadius:      kit.radius.control,
-    paddingHorizontal: 12,
-    paddingVertical:   10,
-  },
-  histDot: {
-    width:          32,
-    height:         32,
-    borderRadius:   10,
-    alignItems:     "center",
-    justifyContent: "center",
-  },
-  histStatus: {
-    fontFamily:         theme.fonts.black,
-    fontSize:           12,
-    lineHeight:         17,
-    textAlign:          TEXT_START,
-    includeFontPadding: false,
-  },
-  histDate: {
-    fontFamily:         theme.fonts.regular,
-    fontSize:           11,
-    lineHeight:         15,
-    color:              kit.color.inkFaint,
-    textAlign:          TEXT_START,
-    includeFontPadding: false,
-    marginTop:          1,
-  },
-  histTotal: {
-    fontFamily:         theme.fonts.black,
+  trackingNoValue: {
     fontSize:           13,
     color:              kit.color.ink,
     includeFontPadding: false,
   },
+
+  // ── Fact grid ──────────────────────────────────────────────────────────
+  factGrid: {
+    flexDirection: flexRow(IS_RTL),
+    flexWrap:      "wrap",
+    rowGap:        16,
+    columnGap:     16,
+  },
+
+  // ── History empty state ───────────────────────────────────────────────
   histEmpty: {
     alignItems:      "center",
-    paddingVertical: 16,
+    paddingVertical: 14,
     gap:             8,
   },
   histEmptyIcon: {
-    width:           48,
-    height:          48,
-    borderRadius:    16,
+    width:           52,
+    height:          52,
+    borderRadius:    17,
     backgroundColor: kit.color.well,
+    borderWidth:     1,
+    borderColor:     kit.color.line,
     alignItems:      "center",
     justifyContent:  "center",
   },
   histEmptyTitle: {
-    fontFamily:         theme.fonts.black,
-    fontSize:           13,
-    lineHeight:         18,
+    fontSize:           14,
+    lineHeight:         20,
     color:              kit.color.ink,
     textAlign:          "center",
     includeFontPadding: false,
   },
   histEmptySub: {
-    fontFamily:         theme.fonts.regular,
     fontSize:           12,
-    lineHeight:         17,
+    lineHeight:         18,
     color:              kit.color.inkFaint,
     textAlign:          "center",
-    maxWidth:           260,
+    maxWidth:           280,
     includeFontPadding: false,
   },
 
-  // Safety
+  // ── Safety card ───────────────────────────────────────────────────────
   safetyCard: {
-    backgroundColor:   kit.color.accentTint,
-    borderRadius:      kit.radius.lg,
-    borderWidth:       1,
-    borderColor:       kit.color.line,
-    padding:           16,
-    gap:               6,
+    backgroundColor: kit.color.accentTint,
+    borderRadius:    kit.radius.lg,
+    borderWidth:     1,
+    borderColor:     "rgba(14,126,116,0.18)",
+    padding:         16,
+    gap:             8,
   },
   safetyHead: {
-    alignItems: "center",
-    gap:        7,
+    flexDirection: flexRow(IS_RTL),
+    alignItems:    "center",
+    gap:           10,
+  },
+  safetyIconWell: {
+    width:           30,
+    height:          30,
+    borderRadius:    10,
+    backgroundColor: "rgba(14,126,116,0.18)",
+    alignItems:      "center",
+    justifyContent:  "center",
   },
   safetyTitle: {
-    fontFamily:         theme.fonts.black,
     fontSize:           12,
     lineHeight:         17,
     color:              kit.color.accentDeep,
-    letterSpacing:      0.3,
+    letterSpacing:      0.5,
     textTransform:      "uppercase",
     includeFontPadding: false,
   },
   safetyBody: {
-    fontFamily:         theme.fonts.regular,
-    fontSize:           12,
-    lineHeight:         18,
+    fontSize:           13,
+    lineHeight:         20,
     color:              kit.color.inkSoft,
     textAlign:          TEXT_START,
     includeFontPadding: false,
   },
 
-  // Sticky CTA
+  // ── Sticky CTA ────────────────────────────────────────────────────────
   ctaBar: {
     position:          "absolute",
     left:              0,
@@ -912,7 +836,7 @@ const s = StyleSheet.create({
     borderTopColor:    kit.color.line,
   },
 
-  // Not-found / centered
+  // ── Not-found centered state ──────────────────────────────────────────
   centered: {
     flex:              1,
     alignItems:        "center",
@@ -920,30 +844,198 @@ const s = StyleSheet.create({
     paddingHorizontal: 32,
     gap:               12,
   },
-  emptyIcon: {
-    width:           72,
-    height:          72,
-    borderRadius:    24,
+  notFoundIcon: {
+    width:           84,
+    height:          84,
+    borderRadius:    28,
     backgroundColor: kit.color.well,
+    borderWidth:     1,
+    borderColor:     kit.color.line,
     alignItems:      "center",
     justifyContent:  "center",
     marginBottom:    4,
   },
-  emptyTitle: {
-    fontFamily:         theme.fonts.black,
-    fontSize:           17,
-    lineHeight:         25,
+  notFoundTitle: {
+    fontSize:           19,
+    lineHeight:         26,
     color:              kit.color.ink,
+    letterSpacing:      -0.3,
     textAlign:          "center",
     includeFontPadding: false,
   },
-  emptyBody: {
-    fontFamily:         theme.fonts.regular,
-    fontSize:           13,
-    lineHeight:         20,
+  notFoundBody: {
+    fontSize:           14,
+    lineHeight:         21,
     color:              kit.color.inkSoft,
     textAlign:          "center",
-    maxWidth:           300,
+    maxWidth:           320,
     includeFontPadding: false,
+  },
+});
+
+// ── Lifecycle track styles ────────────────────────────────────────────────────
+
+const lc = StyleSheet.create({
+  row: {
+    alignItems:     "flex-start",
+    justifyContent: "space-between",
+  },
+  node: {
+    alignItems: "center",
+    gap:        8,
+    flex:       0,
+    minWidth:   78,
+    maxWidth:   96,
+  },
+  dot: {
+    width:          44,
+    height:         44,
+    borderRadius:   22,
+    borderWidth:    1.5,
+    alignItems:     "center",
+    justifyContent: "center",
+  },
+  label: {
+    fontSize:           11,
+    lineHeight:         15,
+    textAlign:          "center",
+    includeFontPadding: false,
+  },
+  bar: {
+    flex:         1,
+    height:       2,
+    marginTop:    21,
+    marginHorizontal: 4,
+    borderRadius: 1,
+  },
+});
+
+// ── Refill timeline styles ────────────────────────────────────────────────────
+
+const tl = StyleSheet.create({
+  row: {
+    alignItems: "stretch",
+  },
+  rail: {
+    alignItems: "center",
+    width:      32,
+  },
+  node: {
+    width:          28,
+    height:         28,
+    borderRadius:   14,
+    borderWidth:    1.5,
+    alignItems:     "center",
+    justifyContent: "center",
+  },
+  nodeCurrent: {
+    borderWidth:     2,
+    backgroundColor: kit.color.accentTint,
+  },
+  connector: {
+    width:          2,
+    flex:           1,
+    minHeight:      20,
+    marginVertical: 2,
+  },
+  labelWrap: {
+    flex:              1,
+    paddingHorizontal: 14,
+    paddingTop:        4,
+    paddingBottom:     18,
+  },
+  label: {
+    fontSize:           14,
+    lineHeight:         19,
+    textAlign:          TEXT_START,
+    includeFontPadding: false,
+  },
+});
+
+// ── Fact cell styles ──────────────────────────────────────────────────────────
+
+const f = StyleSheet.create({
+  cell: {
+    flexBasis:    "45%",
+    flexGrow:     1,
+    gap:          6,
+  },
+  head: {
+    flexDirection: flexRow(IS_RTL),
+    alignItems:    "center",
+    gap:           8,
+  },
+  iconWell: {
+    width:          24,
+    height:         24,
+    borderRadius:   8,
+    alignItems:     "center",
+    justifyContent: "center",
+    flexShrink:     0,
+  },
+  label: {
+    flex:               1,
+    fontSize:           10,
+    lineHeight:         14,
+    color:              kit.color.inkFaint,
+    letterSpacing:      0.4,
+    textTransform:      "uppercase",
+    textAlign:          TEXT_START,
+    includeFontPadding: false,
+  },
+  value: {
+    fontSize:           15,
+    lineHeight:         20,
+    color:              kit.color.ink,
+    letterSpacing:      -0.2,
+    textAlign:          TEXT_START,
+    includeFontPadding: false,
+  },
+});
+
+// ── History row styles ────────────────────────────────────────────────────────
+
+const h = StyleSheet.create({
+  row: {
+    alignItems:        "center",
+    gap:               12,
+    backgroundColor:   kit.color.well,
+    borderRadius:      kit.radius.lg,
+    paddingHorizontal: 12,
+    paddingVertical:   12,
+    borderWidth:       1,
+    borderColor:       kit.color.line,
+  },
+  dot: {
+    width:          34,
+    height:         34,
+    borderRadius:   11,
+    alignItems:     "center",
+    justifyContent: "center",
+    flexShrink:     0,
+  },
+  text: {
+    flex: 1,
+    gap:  2,
+  },
+  status: {
+    fontSize:           13,
+    lineHeight:         18,
+    textAlign:          TEXT_START,
+    includeFontPadding: false,
+  },
+  date: {
+    fontSize:           11,
+    lineHeight:         15,
+    color:              kit.color.inkFaint,
+    textAlign:          TEXT_START,
+    includeFontPadding: false,
+  },
+  total: {
+    fontSize:           14,
+    lineHeight:         19,
+    color:              kit.color.ink,
+    includeFontPadding: false,
+    flexShrink:         0,
   },
 });

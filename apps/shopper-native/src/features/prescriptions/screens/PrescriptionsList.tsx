@@ -1,14 +1,19 @@
 /**
- * PrescriptionsList — the user's prescription roster. VIP 2026.
+ * PrescriptionsList — the user's prescription roster.
  *
- * Header: VIP inline header — 52×52 medkit icon tile + display title + eyebrow.
- * Stats strip: Expiring (warn) | Ready (success) | Total (accent).
- * Body:
- *   - Active RxCards sorted expiring → ready → active.
- *   - Expired section collapsed behind a disclosure row.
- *   - Empty state when no active rxs.
- * Sticky CTA: "إضافة وصفة" → /prescriptions/add.
- * Pull-to-refresh: usePrescriptionsQuery().refetch().
+ * Redesign (2026 visual pass):
+ *   • Unified header treatment matching AddRxEntry/AddRxManual:
+ *     38pt back button + quick-add pill on the trailing edge, 56pt
+ *     accent hero tile, 28pt black title at -0.6 letterSpacing.
+ *   • Stats band: 3 cells with tinted icon wells, hairline dividers,
+ *     uppercase 10pt labels in inkFaint, 22pt black metric.
+ *   • Segmented filter chip strip (All / Ready / Refill / Expired)
+ *     fully localized via t() — no IS_RTL ternary.
+ *   • Disclosure row for expired rxs polished into a card-like surface.
+ *   • Empty / error / loading states each get their own dedicated
+ *     premium layout (no shared scrap).
+ *   • Sticky bottom CTA respects safe-area + hairline top border.
+ *   • All textAlign → textAlignStart(IS_RTL); chevrons via FORWARD_CHEVRON.
  */
 
 import React, { useCallback, useMemo, useState } from "react";
@@ -24,19 +29,23 @@ import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { kit, Button, SegmentedToggle, type SegmentOption } from "@/shared/kit";
-import { theme } from "@/shared/theme";
 import { Text } from "@/shared/ui";
-// Direct imports (not the barrel) to break the require cycle:
-// shared/components/index → PharmacyBootstrap → features/prescriptions → here.
-import { RxCard }    from "@/shared/components/RxCard";
+import { RxCard } from "@/shared/components/RxCard";
 import { useAuth } from "@/features/auth";
-import { flexRow, isRtl, FORWARD_CHEVRON, BACK_CHEVRON } from "@/utils/layout";
+import {
+  flexRow,
+  isRtl,
+  textAlignStart,
+  FORWARD_CHEVRON,
+  BACK_CHEVRON,
+} from "@/utils/layout";
 import { usePrescriptions } from "../hooks/usePrescriptions";
 import { usePrescriptionsQuery } from "../hooks/usePrescriptionsQuery";
 import { sortActiveByStatus } from "../lib/statusSort";
 import type { Prescription } from "@/stores/prescriptionsStore";
 
-const IS_RTL = isRtl();
+const IS_RTL     = isRtl();
+const TEXT_START = textAlignStart(IS_RTL);
 
 interface RxRow {
   kind: "rx";
@@ -49,22 +58,9 @@ interface DisclosureRow {
 }
 type ListItem = RxRow | DisclosureRow;
 
-// ── Filter ───────────────────────────────────────────────────────────────────
 type RxFilter = "all" | "ready" | "refill" | "expired";
 
-const FILTER_OPTIONS: ReadonlyArray<SegmentOption<RxFilter>> = IS_RTL
-  ? [
-      { value: "all",     label: "الكل" },
-      { value: "ready",   label: "جاهزة" },
-      { value: "refill",  label: "تجديد" },
-      { value: "expired", label: "منتهية" },
-    ]
-  : [
-      { value: "all",     label: "All" },
-      { value: "ready",   label: "Ready" },
-      { value: "refill",  label: "Refill" },
-      { value: "expired", label: "Expired" },
-    ];
+// ─── Screen ───────────────────────────────────────────────────────────────────
 
 export function PrescriptionsList(): React.ReactElement {
   const { t }         = useTranslation();
@@ -78,23 +74,19 @@ export function PrescriptionsList(): React.ReactElement {
   const [filter, setFilter]           = useState<RxFilter>("all");
 
   const { active, expired } = useMemo(() => {
-    const expired = all.filter((p) => p.status === "expired");
-    const active  = sortActiveByStatus(all.filter((p) => p.status !== "expired"));
-    return { active, expired };
+    const expiredList = all.filter((p) => p.status === "expired");
+    const activeList  = sortActiveByStatus(all.filter((p) => p.status !== "expired"));
+    return { active: activeList, expired: expiredList };
   }, [all]);
 
-  // Stats — always reflect the full roster, not the current filter
   const expiringCount = useMemo(() => active.filter((rx) => rx.status === "expiring").length, [active]);
   const readyCount    = useMemo(() => active.filter((rx) => rx.status === "ready").length,    [active]);
   const totalActive   = active.length;
 
   const data = useMemo<ListItem[]>(() => {
-    // Expired-only view: show the expired roster directly, no disclosure.
     if (filter === "expired") {
       return expired.map((rx) => ({ kind: "rx", rx }));
     }
-
-    // Active views — optionally narrowed by status.
     const shown =
       filter === "ready"  ? active.filter((rx) => rx.status === "ready") :
       filter === "refill" ? active.filter((rx) => rx.status === "expiring") :
@@ -102,7 +94,6 @@ export function PrescriptionsList(): React.ReactElement {
 
     const out: ListItem[] = shown.map((rx) => ({ kind: "rx", rx }));
 
-    // Expired disclosure only appears in the unfiltered "All" view.
     if (filter === "all" && expired.length > 0) {
       out.push({ kind: "disclosure", count: expired.length, open: showExpired });
       if (showExpired) {
@@ -113,12 +104,18 @@ export function PrescriptionsList(): React.ReactElement {
   }, [active, expired, showExpired, filter]);
 
   const hasExpired = expired.length > 0;
+  const canGoBack  = router.canGoBack();
+
+  const FILTER_OPTIONS: ReadonlyArray<SegmentOption<RxFilter>> = useMemo(() => [
+    { value: "all",     label: t("prescriptions.filterAll") },
+    { value: "ready",   label: t("prescriptions.filterReady") },
+    { value: "refill",  label: t("prescriptions.filterRefill") },
+    { value: "expired", label: t("prescriptions.filterExpired") },
+  ], [t]);
 
   const goToAdd    = useCallback(() => router.push("/prescriptions/add" as never), [router]);
   const goToDetail = useCallback((rx: Prescription) => router.push(`/prescriptions/${rx.id}` as never), [router]);
   const goToRefill = useCallback((rx: Prescription) => router.push(`/prescriptions/${rx.id}/refill` as never), [router]);
-
-  const canGoBack = router.canGoBack();
 
   const renderItem = useCallback(({ item }: { item: ListItem }): React.ReactElement => {
     if (item.kind === "disclosure") {
@@ -127,16 +124,25 @@ export function PrescriptionsList(): React.ReactElement {
           onPress={() => setShowExpired((v) => !v)}
           accessibilityRole="button"
           accessibilityState={{ expanded: item.open }}
-          accessibilityLabel={`عرض المنتهية (${item.count})`}
-          style={[s.disclosureRow, { flexDirection: flexRow(IS_RTL) }]}>
-          <Ionicons
-            name={item.open ? "chevron-down" : FORWARD_CHEVRON}
-            size={14}
-            color={kit.color.inkFaint}
-          />
-          <Text style={s.disclosureText}>
-            {item.open ? "إخفاء المنتهية" : `عرض المنتهية (${item.count})`}
-          </Text>
+          accessibilityLabel={t("prescriptions.expiredDisclosure", { count: item.count })}
+          style={({ pressed }) => [s.disclosure, pressed && s.disclosurePressed]}>
+          <View style={[s.disclosureRow, { flexDirection: flexRow(IS_RTL) }]}>
+            <View style={s.disclosureIcon}>
+              <Ionicons name="time-outline" size={14} color={kit.color.inkFaint} />
+            </View>
+            <Text weight="bold" style={s.disclosureText}>
+              {item.open
+                ? t("prescriptions.expiredHide")
+                : t("prescriptions.expiredShow", { count: item.count })}
+            </Text>
+            <View style={s.disclosureChevron}>
+              <Ionicons
+                name={item.open ? "chevron-up" : FORWARD_CHEVRON}
+                size={14}
+                color={kit.color.inkFaint}
+              />
+            </View>
+          </View>
         </Pressable>
       );
     }
@@ -148,53 +154,60 @@ export function PrescriptionsList(): React.ReactElement {
         onRefill={goToRefill}
       />
     );
-  }, [goToDetail, goToRefill]);
+  }, [goToDetail, goToRefill, t]);
 
   const keyExtractor = useCallback(
     (item: ListItem) => item.kind === "disclosure" ? "__disclosure__" : item.rx.id,
     [],
   );
 
-  // ── VIP header ──────────────────────────────────────────────────────────────
+  // ── Header ──────────────────────────────────────────────────────────────────
   const header = (
-    <View style={[s.header, { paddingTop: insets.top + 14 }]}>
-      <View style={[s.navRow, { flexDirection: flexRow(IS_RTL) }]}>
+    <View style={[s.header, { paddingTop: insets.top + 12 }]}>
+      <View style={s.navRow}>
         {canGoBack ? (
           <Pressable
             onPress={() => router.back()}
-            hitSlop={8}
+            hitSlop={10}
             accessibilityRole="button"
-            accessibilityLabel="رجوع"
-            style={s.backBtn}>
+            accessibilityLabel={t("common.back")}
+            style={({ pressed }) => [s.backBtn, pressed && s.backBtnPressed]}>
             <Ionicons name={BACK_CHEVRON} size={20} color={kit.color.ink} />
           </Pressable>
         ) : (
           <View style={s.backBtn} />
         )}
-        {/* Quick-add pill */}
+
+        {/* Quick-add pill on the trailing edge */}
         <Pressable
           onPress={goToAdd}
           accessibilityRole="button"
-          accessibilityLabel="إضافة وصفة"
-          style={[s.addPill, { flexDirection: flexRow(IS_RTL) }]}>
+          accessibilityLabel={t("prescriptions.addTitle")}
+          style={({ pressed }) => [s.addPill, pressed && s.addPillPressed]}>
           <Ionicons name="add" size={14} color={kit.color.accentDeep} />
-          <Text style={s.addPillText}>إضافة</Text>
+          <Text weight="black" style={s.addPillText}>
+            {t("prescriptions.addShort")}
+          </Text>
         </Pressable>
       </View>
 
-      <View style={[s.identityRow, { flexDirection: flexRow(IS_RTL) }]}>
-        <View style={s.iconTile}>
-          <Ionicons name="medkit" size={22} color={kit.color.accentDeep} />
+      <View style={s.identityRow}>
+        <View style={s.heroTile}>
+          <Ionicons name="medkit" size={24} color={kit.color.accentDeep} />
         </View>
-        <View style={{ flex: 1 }}>
-          <Text style={s.eyebrow}>إدارة الصحة</Text>
-          <Text style={s.title} accessibilityRole="header">الوصفات الطبية</Text>
+        <View style={s.identityText}>
+          <Text weight="bold" style={s.eyebrow}>
+            {t("prescriptions.listEyebrow")}
+          </Text>
+          <Text weight="black" style={s.title} accessibilityRole="header">
+            {t("prescriptions.listTitle")}
+          </Text>
         </View>
       </View>
     </View>
   );
 
-  // ── Loading skeleton ─────────────────────────────────────────────────────────
+  // ── Loading skeleton ────────────────────────────────────────────────────────
   if (isLoading) {
     return (
       <View style={s.screen}>
@@ -202,7 +215,7 @@ export function PrescriptionsList(): React.ReactElement {
         <View style={{ paddingHorizontal: 20, paddingTop: 20, gap: 10 }}>
           {[0, 1, 2].map((i) => (
             <View key={i} style={s.skeletonCard}>
-              <View style={[s.skeletonStripe, { backgroundColor: kit.color.well }]} />
+              <View style={s.skeletonStripe} />
               <View style={[s.skeletonBody, { flexDirection: flexRow(IS_RTL) }]}>
                 <View style={s.skeletonTile} />
                 <View style={{ flex: 1, gap: 8 }}>
@@ -217,87 +230,77 @@ export function PrescriptionsList(): React.ReactElement {
     );
   }
 
-  // ── Error state ──────────────────────────────────────────────────────────────
+  // ── Error state ─────────────────────────────────────────────────────────────
   if (isError && active.length === 0 && expired.length === 0) {
     return (
       <View style={s.screen}>
         {header}
-        <View style={s.centered}>
-          <View style={s.emptyIcon}>
-            <Ionicons name="cloud-offline-outline" size={30} color={kit.color.inkFaint} />
-          </View>
-          <Text style={s.emptyTitle}>تعذّر تحميل الوصفات</Text>
-          <Text style={s.emptyBody}>
-            حدث خطأ أثناء جلب وصفاتك. تحقق من الاتصال وأعد المحاولة.
-          </Text>
-          <Button
-            variant="primary"
-            label="إعادة المحاولة"
-            icon="refresh"
-            onPress={refetch}
-            style={{ marginTop: 8 }}
-          />
-        </View>
+        <CenteredState
+          icon="cloud-offline-outline"
+          tint={kit.color.danger}
+          tintBg={kit.color.dangerTint}
+          title={t("prescriptions.errorTitle")}
+          body={t("prescriptions.errorBody")}
+          ctaLabel={t("common.retry")}
+          ctaIcon="refresh"
+          onCta={refetch}
+        />
       </View>
     );
   }
 
-  // ── True empty state ─────────────────────────────────────────────────────────
+  // ── True empty state ────────────────────────────────────────────────────────
   if (active.length === 0 && expired.length === 0) {
     return (
       <View style={s.screen}>
         {header}
-        <View style={s.centered}>
-          <View style={s.emptyIcon}>
-            <Ionicons name="medkit-outline" size={30} color={kit.color.inkFaint} />
-          </View>
-          <Text style={s.emptyTitle}>لا توجد وصفات طبية بعد</Text>
-          <Text style={s.emptyBody}>
-            أرسل وصفتك عبر واتساب وسيضيفها فريق الصيدلية إلى حسابك، أو أضفها برقم الوصفة.
-          </Text>
-          <Button
-            variant="primary"
-            label="إضافة وصفة"
-            icon="add"
-            onPress={goToAdd}
-            style={{ marginTop: 8 }}
-          />
-        </View>
+        <CenteredState
+          icon="medkit-outline"
+          tint={kit.color.accentDeep}
+          tintBg={kit.color.accentTint}
+          title={t("prescriptions.emptyTitle")}
+          body={t("prescriptions.emptyBody")}
+          ctaLabel={t("prescriptions.addTitle")}
+          ctaIcon="add"
+          onCta={goToAdd}
+        />
       </View>
     );
   }
 
-  // ── Main list ────────────────────────────────────────────────────────────────
+  // ── Main list ───────────────────────────────────────────────────────────────
   return (
     <View style={s.screen}>
       {header}
 
-      {/* Stats strip */}
+      {/* Stats band */}
       <View style={[s.statsBand, { flexDirection: flexRow(IS_RTL) }]}>
-        <View style={[s.statCell, s.statCellBorder]}>
-          <View style={[s.statIconWell, { backgroundColor: kit.color.warnTint }]}>
-            <Ionicons name="alert-circle-outline" size={13} color={kit.color.warn} />
-          </View>
-          <Text style={s.statValue}>{expiringCount}</Text>
-          <Text style={s.statLabel}>تنتهي قريباً</Text>
-        </View>
-        <View style={[s.statCell, s.statCellBorder]}>
-          <View style={[s.statIconWell, { backgroundColor: kit.color.successTint }]}>
-            <Ionicons name="checkmark-circle-outline" size={13} color={kit.color.success} />
-          </View>
-          <Text style={s.statValue}>{readyCount}</Text>
-          <Text style={s.statLabel}>جاهزة للاستلام</Text>
-        </View>
-        <View style={s.statCell}>
-          <View style={[s.statIconWell, { backgroundColor: kit.color.accentTint }]}>
-            <Ionicons name="medkit-outline" size={13} color={kit.color.accentDeep} />
-          </View>
-          <Text style={s.statValue}>{totalActive}</Text>
-          <Text style={s.statLabel}>إجمالي الوصفات</Text>
-        </View>
+        <StatCell
+          icon="alert-circle-outline"
+          tint={kit.color.warn}
+          tintBg={kit.color.warnTint}
+          value={expiringCount}
+          label={t("prescriptions.statExpiring")}
+          divider
+        />
+        <StatCell
+          icon="checkmark-circle-outline"
+          tint={kit.color.success}
+          tintBg={kit.color.successTint}
+          value={readyCount}
+          label={t("prescriptions.statReady")}
+          divider
+        />
+        <StatCell
+          icon="medkit-outline"
+          tint={kit.color.accentDeep}
+          tintBg={kit.color.accentTint}
+          value={totalActive}
+          label={t("prescriptions.statTotal")}
+        />
       </View>
 
-      {/* Filter bar — only when an expired roster exists to filter against */}
+      {/* Filter bar — only when an expired roster exists */}
       {hasExpired && (
         <View style={s.filterBar}>
           <SegmentedToggle
@@ -319,15 +322,15 @@ export function PrescriptionsList(): React.ReactElement {
             <View style={s.filterEmptyIcon}>
               <Ionicons name="funnel-outline" size={22} color={kit.color.inkFaint} />
             </View>
-            <Text style={s.filterEmptyText}>
+            <Text weight="bold" style={s.filterEmptyText}>
               {t("prescriptions.filterEmpty")}
             </Text>
           </View>
         }
         contentContainerStyle={{
           paddingHorizontal: 20,
-          paddingTop:        16,
-          paddingBottom:     insets.bottom + 80,
+          paddingTop:        14,
+          paddingBottom:     insets.bottom + 96,
         }}
         refreshControl={
           <RefreshControl
@@ -341,8 +344,69 @@ export function PrescriptionsList(): React.ReactElement {
       />
 
       {/* Sticky CTA */}
-      <View style={[s.ctaBar, { paddingBottom: Math.max(insets.bottom, 8) }]}>
-        <Button variant="primary" full label="إضافة وصفة" icon="add" onPress={goToAdd} />
+      <View style={[s.ctaBar, { paddingBottom: Math.max(insets.bottom, 8) + 4 }]}>
+        <Button
+          variant="primary"
+          full
+          label={t("prescriptions.addTitle")}
+          icon="add"
+          onPress={goToAdd}
+        />
+      </View>
+    </View>
+  );
+}
+
+// ─── StatCell ────────────────────────────────────────────────────────────────
+
+type IoniconsName = React.ComponentProps<typeof Ionicons>["name"];
+
+interface StatCellProps {
+  icon:    IoniconsName;
+  tint:    string;
+  tintBg:  string;
+  value:   number;
+  label:   string;
+  divider?: boolean;
+}
+
+function StatCell({ icon, tint, tintBg, value, label, divider }: StatCellProps): React.ReactElement {
+  return (
+    <View style={[s.statCell, divider && s.statCellDivider]}>
+      <View style={[s.statIconWell, { backgroundColor: tintBg }]}>
+        <Ionicons name={icon} size={14} color={tint} />
+      </View>
+      <Text weight="black" style={s.statValue}>{value}</Text>
+      <Text weight="bold" style={s.statLabel} numberOfLines={1}>{label}</Text>
+    </View>
+  );
+}
+
+// ─── CenteredState (empty / error) ───────────────────────────────────────────
+
+interface CenteredStateProps {
+  icon:     IoniconsName;
+  tint:     string;
+  tintBg:   string;
+  title:    string;
+  body:     string;
+  ctaLabel: string;
+  ctaIcon:  IoniconsName;
+  onCta:    () => void;
+}
+
+function CenteredState({
+  icon, tint, tintBg, title, body, ctaLabel, ctaIcon, onCta,
+}: CenteredStateProps): React.ReactElement {
+  return (
+    <View style={s.centered}>
+      <View style={[s.emptyIcon, { backgroundColor: tintBg, borderColor: tint + "30" }]}>
+        <Ionicons name={icon} size={34} color={tint} />
+      </View>
+      <Text weight="black" style={s.emptyTitle}>{title}</Text>
+      <Text style={s.emptyBody}>{body}</Text>
+      <View style={s.emptyCta}>
+        <Button variant="primary" label={ctaLabel} icon={ctaIcon} onPress={onCta} />
       </View>
     </View>
   );
@@ -356,49 +420,66 @@ const s = StyleSheet.create({
     backgroundColor: kit.color.canvas,
   },
 
-  // ── Header ───────────────────────────────────────────────────────────────────
+  // ── Header ──────────────────────────────────────────────────────────────────
   header: {
     paddingHorizontal: 20,
-    paddingBottom:     18,
-    gap:               16,
+    paddingBottom:     20,
+    gap:               18,
     backgroundColor:   kit.color.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: kit.color.line,
     ...kit.shadow.raised,
   },
   navRow: {
+    flexDirection:  flexRow(IS_RTL),
     alignItems:     "center",
     justifyContent: "space-between",
+    minHeight:      38,
   },
   backBtn: {
-    width:  36,
-    height: 36,
+    width:           38,
+    height:          38,
+    borderRadius:    14,
+    backgroundColor: kit.color.well,
+    borderWidth:     1,
+    borderColor:     kit.color.line,
+    alignItems:      "center",
+    justifyContent:  "center",
+  },
+  backBtnPressed: {
+    opacity:   0.7,
+    transform: [{ scale: 0.96 }],
   },
   addPill: {
+    flexDirection:     flexRow(IS_RTL),
     alignItems:        "center",
-    gap:               5,
+    gap:               6,
     backgroundColor:   kit.color.accentTint,
     borderRadius:      kit.radius.pill,
     paddingHorizontal: 14,
-    paddingVertical:   8,
+    paddingVertical:   9,
     borderWidth:       1,
-    borderColor:       kit.color.line,
+    borderColor:       "rgba(14,126,116,0.18)",
+  },
+  addPillPressed: {
+    opacity:   0.85,
+    transform: [{ scale: 0.97 }],
   },
   addPillText: {
-    fontFamily:         theme.fonts.black,
     fontSize:           12,
-    lineHeight:         17,
+    lineHeight:         16,
     color:              kit.color.accentDeep,
     includeFontPadding: false,
   },
   identityRow: {
-    alignItems: "center",
-    gap:        14,
+    flexDirection: flexRow(IS_RTL),
+    alignItems:    "center",
+    gap:           14,
   },
-  iconTile: {
-    width:           52,
-    height:          52,
-    borderRadius:    16,
+  heroTile: {
+    width:           56,
+    height:          56,
+    borderRadius:    18,
     backgroundColor: kit.color.accentTint,
     borderWidth:     1,
     borderColor:     kit.color.line,
@@ -406,28 +487,31 @@ const s = StyleSheet.create({
     justifyContent:  "center",
     flexShrink:      0,
   },
+  identityText: {
+    flex: 1,
+    gap:  2,
+  },
   eyebrow: {
-    fontFamily:         theme.fonts.bold,
     fontSize:           10,
     lineHeight:         14,
     color:              kit.color.accentDeep,
-    letterSpacing:      0.5,
-    textAlign:          "right",
+    letterSpacing:      0.6,
+    textTransform:      "uppercase",
+    textAlign:          TEXT_START,
     includeFontPadding: false,
   },
   title: {
-    fontFamily:         theme.fonts.black,
     fontSize:           28,
-    lineHeight:         36,
+    lineHeight:         34,
     color:              kit.color.ink,
     letterSpacing:      -0.6,
-    textAlign:          "right",
+    textAlign:          TEXT_START,
     includeFontPadding: false,
   },
 
-  // ── Stats band ────────────────────────────────────────────────────────────────
+  // ── Stats band ──────────────────────────────────────────────────────────────
   statsBand: {
-    backgroundColor: kit.color.surface,
+    backgroundColor:   kit.color.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: kit.color.line,
   },
@@ -435,38 +519,39 @@ const s = StyleSheet.create({
     flex:            1,
     alignItems:      "center",
     justifyContent:  "center",
-    gap:             5,
-    paddingVertical: 14,
+    gap:             6,
+    paddingVertical: 16,
+    paddingHorizontal: 6,
   },
-  statCellBorder: {
+  statCellDivider: {
     borderEndWidth: StyleSheet.hairlineWidth,
-    borderEndColor: kit.color.lineStrong,
+    borderEndColor: kit.color.line,
   },
   statIconWell: {
-    width:          32,
-    height:         32,
-    borderRadius:   10,
+    width:          34,
+    height:         34,
+    borderRadius:   12,
     alignItems:     "center",
     justifyContent: "center",
   },
   statValue: {
-    fontFamily:         theme.fonts.black,
-    fontSize:           20,
-    lineHeight:         26,
+    fontSize:           22,
+    lineHeight:         28,
     color:              kit.color.ink,
     letterSpacing:      -0.4,
     includeFontPadding: false,
   },
   statLabel: {
-    fontFamily:         theme.fonts.bold,
     fontSize:           9,
     lineHeight:         13,
     color:              kit.color.inkFaint,
+    letterSpacing:      0.4,
+    textTransform:      "uppercase",
     textAlign:          "center",
     includeFontPadding: false,
   },
 
-  // ── Filter bar ────────────────────────────────────────────────────────────────
+  // ── Filter bar ──────────────────────────────────────────────────────────────
   filterBar: {
     paddingHorizontal: 20,
     paddingTop:        14,
@@ -483,11 +568,12 @@ const s = StyleSheet.create({
     height:          56,
     borderRadius:    18,
     backgroundColor: kit.color.well,
+    borderWidth:     1,
+    borderColor:     kit.color.line,
     alignItems:      "center",
     justifyContent:  "center",
   },
   filterEmptyText: {
-    fontFamily:         theme.fonts.bold,
     fontSize:           13,
     lineHeight:         19,
     color:              kit.color.inkFaint,
@@ -495,70 +581,102 @@ const s = StyleSheet.create({
     includeFontPadding: false,
   },
 
-  // ── Disclosure row ────────────────────────────────────────────────────────────
+  // ── Disclosure row ──────────────────────────────────────────────────────────
+  disclosure: {
+    backgroundColor:   kit.color.surface,
+    borderRadius:      kit.radius.lg,
+    borderWidth:       1,
+    borderColor:       kit.color.line,
+    overflow:          "hidden",
+  },
+  disclosurePressed: {
+    backgroundColor: kit.color.well,
+  },
   disclosureRow: {
     alignItems:        "center",
-    gap:               7,
-    paddingVertical:   12,
-    paddingHorizontal: 4,
+    gap:               10,
+    paddingHorizontal: 14,
+    paddingVertical:   14,
+  },
+  disclosureIcon: {
+    width:           32,
+    height:          32,
+    borderRadius:    10,
+    backgroundColor: kit.color.well,
+    alignItems:      "center",
+    justifyContent:  "center",
+    flexShrink:      0,
   },
   disclosureText: {
-    fontFamily:         theme.fonts.bold,
+    flex:               1,
     fontSize:           12,
-    lineHeight:         17,
-    color:              kit.color.inkFaint,
+    lineHeight:         18,
+    color:              kit.color.inkSoft,
+    textAlign:          TEXT_START,
     includeFontPadding: false,
   },
+  disclosureChevron: {
+    width:          20,
+    height:         20,
+    alignItems:     "center",
+    justifyContent: "center",
+    flexShrink:     0,
+  },
 
-  // ── Empty / error ─────────────────────────────────────────────────────────────
+  // ── Empty / error ───────────────────────────────────────────────────────────
   centered: {
     flex:              1,
     alignItems:        "center",
     justifyContent:    "center",
     paddingHorizontal: 32,
-    gap:               12,
+    gap:               14,
   },
   emptyIcon: {
-    width:           72,
-    height:          72,
-    borderRadius:    24,
-    backgroundColor: kit.color.well,
+    width:           88,
+    height:          88,
+    borderRadius:    28,
+    borderWidth:     1,
     alignItems:      "center",
     justifyContent:  "center",
     marginBottom:    4,
   },
   emptyTitle: {
-    fontFamily:         theme.fonts.black,
-    fontSize:           17,
-    lineHeight:         25,
+    fontSize:           19,
+    lineHeight:         26,
     color:              kit.color.ink,
     textAlign:          "center",
+    letterSpacing:      -0.3,
     includeFontPadding: false,
   },
   emptyBody: {
-    fontFamily:         theme.fonts.regular,
-    fontSize:           13,
-    lineHeight:         20,
+    fontSize:           14,
+    lineHeight:         22,
     color:              kit.color.inkSoft,
     textAlign:          "center",
-    maxWidth:           300,
+    maxWidth:           320,
     includeFontPadding: false,
   },
+  emptyCta: {
+    marginTop: 12,
+    minWidth:  220,
+  },
 
-  // ── Skeleton ──────────────────────────────────────────────────────────────────
+  // ── Skeleton ────────────────────────────────────────────────────────────────
   skeletonCard: {
     backgroundColor: kit.color.surface,
     borderRadius:    kit.radius.lg,
     borderWidth:     1,
     borderColor:     kit.color.line,
     overflow:        "hidden",
+    ...kit.shadow.raised,
   },
   skeletonStripe: {
-    height: 4,
+    height:          4,
+    backgroundColor: kit.color.well,
   },
   skeletonBody: {
-    padding: 16,
-    gap:     12,
+    padding:    16,
+    gap:        12,
     alignItems: "center",
   },
   skeletonTile: {
@@ -574,7 +692,7 @@ const s = StyleSheet.create({
     backgroundColor: kit.color.well,
   },
 
-  // ── Sticky CTA ────────────────────────────────────────────────────────────────
+  // ── Sticky CTA ──────────────────────────────────────────────────────────────
   ctaBar: {
     position:          "absolute",
     left:              0,

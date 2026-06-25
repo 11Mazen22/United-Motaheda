@@ -1,17 +1,21 @@
 /**
- * OcrReviewForm — editable confirmation of OCR-extracted Rx fields. VIP 2026.
+ * OcrReviewForm — editable confirmation of OCR-extracted Rx fields.
  *
- * Pure UI. No router, no native deps, no store writes. Parent screen owns
- * the lifecycle (camera → OCR → parse → form → submit/rescan).
- *
- * Five fields, all in Arabic. A "تم التعرّف" badge appears next to a field's
- * label only if that field was populated in `initial` — visual hint about
- * which values came from OCR vs need manual entry.
- *
- * Submit is disabled until `name` is non-empty.
+ * Redesign (2026 visual pass):
+ *   • Premium form fields with explicit focus state — accent border + glow
+ *     shadow + accent-tinted background. Idle state is hairline only so
+ *     active fields visibly "wake up".
+ *   • OCR "recognized" pill upgraded to a teal accent badge with sparkle
+ *     icon + tight typography (10pt black caps, 0.4 tracking).
+ *   • Warning banner restructured as a card with 36pt amber icon well
+ *     and clear hierarchy (icon + body).
+ *   • Footer CTA stack: primary "Add to my prescriptions" + secondary
+ *     "Rescan" ghost button, both full-width with consistent radius.
+ *   • All copy via t() — no module-load Arabic captures.
+ *   • Pure UI: no router, no native deps, no store writes.
  */
 
-import React, { useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
   ScrollView,
   StyleSheet,
@@ -19,6 +23,7 @@ import {
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { kit, Button } from "@/shared/kit";
 import { theme } from "@/shared/theme";
 import { Text } from "@/shared/ui";
@@ -44,24 +49,25 @@ export interface OcrReviewFormProps {
 const IS_RTL     = isRtl();
 const TEXT_START = textAlignStart(IS_RTL);
 
-// ─── OCR badge ────────────────────────────────────────────────────────────────
+// ─── Recognized badge ────────────────────────────────────────────────────────
 
-function RecognizedBadge(): React.ReactElement {
+function RecognizedBadge({ label }: { label: string }): React.ReactElement {
   return (
     <View
-      accessibilityLabel="هذا الحقل تم استخراجه من الصورة"
+      accessibilityLabel={label}
       style={[s.badge, { flexDirection: flexRow(IS_RTL) }]}>
       <Ionicons name="sparkles" size={10} color={kit.color.accentDeep} />
-      <Text style={s.badgeText}>تم التعرّف</Text>
+      <Text weight="black" style={s.badgeText}>{label}</Text>
     </View>
   );
 }
 
-// ─── Form field atom ──────────────────────────────────────────────────────────
+// ─── Field atom ──────────────────────────────────────────────────────────────
 
 interface FieldProps {
   label:        string;
   recognized:   boolean;
+  recognizedLabel: string;
   required?:    boolean;
   value:        string;
   onChangeText: (v: string) => void;
@@ -70,24 +76,40 @@ interface FieldProps {
 }
 
 function Field({
-  label, recognized, required, value, onChangeText, placeholder, numeric,
+  label,
+  recognized,
+  recognizedLabel,
+  required,
+  value,
+  onChangeText,
+  placeholder,
+  numeric,
 }: FieldProps): React.ReactElement {
+  const [focused, setFocused] = useState(false);
+  const handleFocus = useCallback(() => setFocused(true),  []);
+  const handleBlur  = useCallback(() => setFocused(false), []);
+
   return (
     <View style={s.fieldWrap}>
       <View style={[s.labelRow, { flexDirection: flexRow(IS_RTL) }]}>
-        <Text style={s.fieldLabel}>
+        <Text weight="black" style={s.fieldLabel}>
           {label}{required ? " *" : ""}
         </Text>
-        {recognized && <RecognizedBadge />}
+        {recognized && <RecognizedBadge label={recognizedLabel} />}
       </View>
       <TextInput
         value={value}
         onChangeText={onChangeText}
+        onFocus={handleFocus}
+        onBlur={handleBlur}
         placeholder={placeholder}
         placeholderTextColor={kit.color.inkFaint}
         keyboardType={numeric ? "number-pad" : "default"}
         textAlign={TEXT_START as "left" | "right"}
-        style={s.fieldInput}
+        style={[
+          s.fieldInput,
+          focused && s.fieldInputFocused,
+        ]}
         accessibilityLabel={label}
         maxFontSizeMultiplier={1.3}
       />
@@ -102,6 +124,8 @@ export function OcrReviewForm({
   onSubmit,
   onRescan,
 }: OcrReviewFormProps): React.ReactElement {
+  const { t } = useTranslation();
+
   const [name,     setName]     = useState(initial.name     ?? "");
   const [dose,     setDose]     = useState(initial.dose     ?? "");
   const [refills,  setRefills]  = useState(
@@ -120,6 +144,8 @@ export function OcrReviewForm({
 
   const showNameMissingBanner = initial.name === undefined;
   const canSubmit             = name.trim().length > 0;
+
+  const recognizedLabel = t("prescriptions.ocrRecognized");
 
   const handleSubmit = (): void => {
     if (!canSubmit) return;
@@ -142,52 +168,64 @@ export function OcrReviewForm({
         showsVerticalScrollIndicator={false}>
 
         {showNameMissingBanner && (
-          <View style={[s.banner, { flexDirection: flexRow(IS_RTL) }]}>
-            <View style={s.bannerIconWell}>
-              <Ionicons name="warning" size={14} color={kit.color.warn} />
+          <View style={s.banner}>
+            <View style={[s.bannerRow, { flexDirection: flexRow(IS_RTL) }]}>
+              <View style={s.bannerIconWell}>
+                <Ionicons name="warning" size={16} color={kit.color.warn} />
+              </View>
+              <View style={s.bannerText}>
+                <Text weight="black" style={s.bannerTitle}>
+                  {t("prescriptions.ocrMissingTitle")}
+                </Text>
+                <Text style={s.bannerBody}>
+                  {t("prescriptions.ocrMissingBody")}
+                </Text>
+              </View>
             </View>
-            <Text style={s.bannerText}>
-              لم نتعرّف على اسم الدواء تلقائياً. أدخله يدوياً أو حاول مرة أخرى مع إضاءة أفضل.
-            </Text>
           </View>
         )}
 
         <Field
-          label="اسم الدواء"
+          label={t("prescriptions.ocrFieldName")}
+          placeholder={t("prescriptions.ocrFieldNamePh")}
           recognized={recognized.name}
+          recognizedLabel={recognizedLabel}
           required
           value={name}
           onChangeText={setName}
-          placeholder="مثال: ليزينوبريل 10 ملغ"
         />
         <Field
-          label="الجرعة المعتادة"
+          label={t("prescriptions.ocrFieldDose")}
+          placeholder={t("prescriptions.ocrFieldDosePh")}
           recognized={recognized.dose}
+          recognizedLabel={recognizedLabel}
           value={dose}
           onChangeText={setDose}
-          placeholder="مثال: قرص واحد · صباحاً"
         />
         <Field
-          label="عدد التجديدات المتبقية"
+          label={t("prescriptions.ocrFieldRefills")}
+          placeholder={t("prescriptions.ocrFieldRefillsPh")}
           recognized={recognized.refills}
+          recognizedLabel={recognizedLabel}
           value={refills}
           onChangeText={setRefills}
-          placeholder="مثال: 3"
           numeric
         />
         <Field
-          label="الطبيب"
+          label={t("prescriptions.ocrFieldDoctor")}
+          placeholder={t("prescriptions.ocrFieldDoctorPh")}
           recognized={recognized.doctor}
+          recognizedLabel={recognizedLabel}
           value={doctor}
           onChangeText={setDoctor}
-          placeholder="مثال: د. أحمد سامي"
         />
         <Field
-          label="رقم الوصفة"
+          label={t("prescriptions.ocrFieldRxNumber")}
+          placeholder={t("prescriptions.ocrFieldRxNumberPh")}
           recognized={recognized.rxNumber}
+          recognizedLabel={recognizedLabel}
           value={rxNumber}
           onChangeText={setRxNumber}
-          placeholder="مثال: 47820094"
           numeric
         />
 
@@ -199,14 +237,14 @@ export function OcrReviewForm({
           full
           onPress={handleSubmit}
           disabled={!canSubmit}
-          label="إضافة إلى وصفاتي"
+          label={t("prescriptions.manualAddCta")}
           icon="add"
         />
         <Button
           variant="secondary"
           full
           onPress={onRescan}
-          label="إعادة المسح"
+          label={t("prescriptions.ocrRescan")}
           icon="refresh"
         />
       </View>
@@ -221,92 +259,117 @@ const s = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop:        16,
     paddingBottom:     16,
-    gap:               14,
+    gap:               16,
   },
 
-  // ── Warning banner ────────────────────────────────────────────────────────────
+  // ── Warning banner ────────────────────────────────────────────────────────
   banner: {
-    alignItems:      "flex-start",
-    gap:             10,
-    padding:         12,
+    padding:         14,
     backgroundColor: kit.color.warnTint,
     borderRadius:    kit.radius.lg,
     borderWidth:     1,
-    borderColor:     kit.color.warn,
+    borderColor:     "rgba(245,158,11,0.32)",
+  },
+  bannerRow: {
+    alignItems: "flex-start",
+    gap:        12,
   },
   bannerIconWell: {
-    width:           28,
-    height:          28,
-    borderRadius:    9,
-    backgroundColor: "rgba(245,158,11,0.15)",
+    width:           36,
+    height:          36,
+    borderRadius:    12,
+    backgroundColor: "rgba(245,158,11,0.18)",
     alignItems:      "center",
     justifyContent:  "center",
     flexShrink:      0,
   },
   bannerText: {
-    flex:               1,
-    fontFamily:         theme.fonts.regular,
+    flex: 1,
+    gap:  3,
+  },
+  bannerTitle: {
     fontSize:           12,
-    lineHeight:         18,
+    lineHeight:         16,
+    color:              kit.color.warn,
+    letterSpacing:      0.3,
+    textTransform:      "uppercase",
+    textAlign:          TEXT_START,
+    includeFontPadding: false,
+  },
+  bannerBody: {
+    fontSize:           13,
+    lineHeight:         20,
     color:              kit.color.inkSoft,
     textAlign:          TEXT_START,
     includeFontPadding: false,
   },
 
-  // ── Field ─────────────────────────────────────────────────────────────────────
+  // ── Field ────────────────────────────────────────────────────────────────
   fieldWrap: {
-    gap: 6,
+    gap: 8,
   },
   labelRow: {
     alignItems:     "center",
     justifyContent: "space-between",
+    gap:            10,
   },
   fieldLabel: {
-    fontFamily:         theme.fonts.black,
     fontSize:           11,
     lineHeight:         16,
     color:              kit.color.inkSoft,
+    letterSpacing:      0.3,
+    textTransform:      "uppercase",
+    textAlign:          TEXT_START,
     includeFontPadding: false,
   },
   fieldInput: {
     fontFamily:         theme.fonts.semibold,
-    fontSize:           14,
-    lineHeight:         20,
+    fontSize:           15,
+    lineHeight:         21,
     color:              kit.color.ink,
     backgroundColor:    kit.color.surface,
     borderRadius:       kit.radius.lg,
     borderWidth:        1.5,
     borderColor:        kit.color.line,
     paddingHorizontal:  14,
-    paddingVertical:    12,
+    paddingVertical:    14,
+    minHeight:          52,
     includeFontPadding: false,
   },
+  fieldInputFocused: {
+    borderColor:     kit.color.accentDeep,
+    backgroundColor: kit.color.accentTint,
+    ...kit.shadow.glow,
+  },
 
-  // ── OCR badge ────────────────────────────────────────────────────────────────
+  // ── OCR "recognized" badge ───────────────────────────────────────────────
   badge: {
     alignItems:        "center",
-    gap:               4,
-    paddingHorizontal: 8,
-    paddingVertical:   3,
+    gap:               5,
+    paddingHorizontal: 9,
+    paddingVertical:   4,
     borderRadius:      kit.radius.pill,
     backgroundColor:   kit.color.accentTint,
     borderWidth:       1,
-    borderColor:       kit.color.accent,
+    borderColor:       "rgba(14,126,116,0.28)",
   },
   badgeText: {
-    fontFamily:         theme.fonts.black,
     fontSize:           9,
-    lineHeight:         13,
+    lineHeight:         12,
     color:              kit.color.accentDeep,
+    letterSpacing:      0.4,
+    textTransform:      "uppercase",
     includeFontPadding: false,
   },
 
-  // ── Footer ────────────────────────────────────────────────────────────────────
+  // ── Footer ───────────────────────────────────────────────────────────────
   footer: {
-    gap:               8,
-    padding:           20,
+    gap:               10,
+    paddingHorizontal: 20,
+    paddingTop:        14,
+    paddingBottom:     20,
     borderTopWidth:    StyleSheet.hairlineWidth,
     borderTopColor:    kit.color.line,
-    backgroundColor:   kit.color.canvas,
+    backgroundColor:   kit.color.surface,
   },
 });
