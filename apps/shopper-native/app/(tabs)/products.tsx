@@ -54,11 +54,13 @@ function StatsStrip({ catCount }: { catCount: number }) {
 
 // ─── Grid skeleton ────────────────────────────────────────────────────────────
 
+const SKELETON_CELL = { flex: 1, minWidth: "30%" as const, padding: 4 };
+
 function GridSkeleton() {
   return (
     <View style={s.grid}>
       {Array(6).fill(null).map((_, i) => (
-        <View key={i} style={s.cell}>
+        <View key={i} style={SKELETON_CELL}>
           <View style={sk.card}>
             <View style={sk.stripe} />
             <View style={sk.body}>
@@ -84,8 +86,8 @@ export default function ProductsScreen() {
   const lang      = i18n.language === "en" ? "en" as const : "ar" as const;
 
   // Responsive grid — category cards cap at 3 cols (wider aspect ratio than products)
-  const { pagePad, cols, width } = useScreenLayout();
-  const catCols = Math.min(cols, 3);
+  const { pagePad, numColumns, width } = useScreenLayout();
+  const catCols = Math.min(numColumns, 3);
   const cellW   = Math.floor((width - pagePad * 2 - GRID_GAP * (catCols - 1)) / catCols);
 
   const {
@@ -117,11 +119,6 @@ export default function ProductsScreen() {
       router.push({ pathname: "/category/[id]", params: { id: item.id, nameEn: item.nameEn ?? "", name: item.name ?? "" } }),
     [router],
   );
-  const goProduct = useCallback(
-    (id: string) => router.push({ pathname: "/product/[id]", params: { id } }),
-    [router],
-  );
-
   return (
     <View style={s.root}>
       <FlatList

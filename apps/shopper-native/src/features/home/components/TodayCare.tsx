@@ -141,7 +141,7 @@ const OrderNowCard = memo(function OrderNowCard({
             <UIText style={[s.pillText, { color: c.fg }]}>{view.label}</UIText>
           </View>
           <UIText numberOfLines={1} style={s.metaText}>
-            {t("home.todayItems", { count: order.items.length })} · {order.total} {IS_RTL ? "ج.م" : "EGP"}
+            {t("home.todayItems", { count: order.items.length })} · {order.total} {t("common.currency")}
           </UIText>
         </View>
       </View>

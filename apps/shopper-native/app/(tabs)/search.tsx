@@ -341,6 +341,12 @@ export default function SearchScreen() {
   const { user } = useAuth();
   const { pagePad, width } = useScreenLayout();
   const catW = Math.floor((width - pagePad * 2 - 10 * 2) / 3);
+  // Resolve category labels against the active locale so English-mode users
+  // never see Arabic names leak through (and vice versa).
+  const catLabel = useCallback(
+    (cat: NativeCategory) => (i18n.language === "en" ? (cat.nameEn || cat.name) : (cat.name || cat.nameEn)),
+    [i18n.language],
+  );
 
   // ── State ──
   const [query, setQuery]             = useState("");
@@ -715,7 +721,7 @@ export default function SearchScreen() {
                     <Pressable key={cat.id} onPress={() => setCatFilter(on ? null : cat.id)}
                       accessibilityRole="button"
                       style={[s.chip, on && s.chipOn]}>
-                      <UIText style={[s.chipText, on && s.chipTextOn]} numberOfLines={1}>{cat.name}</UIText>
+                      <UIText style={[s.chipText, on && s.chipTextOn]} numberOfLines={1}>{catLabel(cat)}</UIText>
                     </Pressable>
                   );
                 })}
@@ -874,7 +880,7 @@ export default function SearchScreen() {
                       <View style={s.catCellIcon}>
                         <Ionicons name={getCategoryIcon(cat.name)} size={26} color={kit.color.accentDeep} />
                       </View>
-                      <UIText style={s.catCellName} numberOfLines={2}>{cat.name}</UIText>
+                      <UIText style={s.catCellName} numberOfLines={2}>{catLabel(cat)}</UIText>
                       {cat.count > 0 && (
                         <View style={s.catCellCountBadge}>
                           <UIText style={s.catCellCount}>{cat.count}+</UIText>

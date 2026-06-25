@@ -15,13 +15,13 @@
 
 import React, { memo, useCallback, useEffect, useRef, useState } from "react";
 import {
-  FlatList,
-  type ListRenderItemInfo,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
   Platform,
+  ScrollView,
   StyleSheet,
   useWindowDimensions,
   View,
-  type ViewToken,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -343,7 +343,7 @@ export default function OnboardingScreen() {
   const insets   = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
   const reduced  = useReducedMotion();
-  const listRef  = useRef<FlatList<Slide>>(null);
+  const scrollRef = useRef<ScrollView>(null);
 
   const [index, setIndex]   = useState(0);
   const finishingRef        = useRef(false);
@@ -353,19 +353,49 @@ export default function OnboardingScreen() {
   const topPad     = insets.top + 64;
   const bottomPad  = Math.max(insets.bottom, 12) + 104;
 
-  const viewConfig = useRef({ itemVisiblePercentThreshold: 60 }).current;
-  const onViewRef  = useRef(
-    ({ viewableItems }: { viewableItems: ViewToken[] }) => {
-      const rawI = viewableItems[0]?.index;
-      if (rawI == null) return;
-      setIndex(rawI);
-      if (rawI !== prevIndexRef.current) {
-        prevIndexRef.current = rawI;
-        if (Platform.OS !== "web")
-          Haptics.selectionAsync().catch(() => {});
-      }
+  // Physical slide order (left-to-right on the canvas):
+  //   LTR: [slide1, slide2, slide3]   — index 0 = leftmost = first
+  //   RTL: [slide3, slide2, slide1]   — index 0 = rightmost = first (Arabic reading direction)
+  // The data index in `index` is ALWAYS the logical onboarding step (0..LAST_INDEX),
+  // independent of physical order, so `isLast = index === LAST_INDEX` always means slide 3.
+  const physicalSlides = IS_RTL ? [...SLIDES].reverse() : SLIDES;
+
+  // Map a logical step index (0..LAST_INDEX) ↔ physical scroll offset.
+  const logicalToOffset = useCallback(
+    (i: number) => (IS_RTL ? (LAST_INDEX - i) * width : i * width),
+    [width],
+  );
+  const offsetToLogical = useCallback(
+    (x: number) => {
+      const physical = Math.round(x / width);
+      return IS_RTL ? LAST_INDEX - physical : physical;
     },
-  ).current;
+    [width],
+  );
+
+  // Mount: scroll to the logical START (slide 1). In RTL that's the rightmost
+  // physical position, so the user sees slide 1 first regardless of language.
+  useEffect(() => {
+    const initialOffset = logicalToOffset(0);
+    if (initialOffset > 0) {
+      // Defer one frame so ScrollView has measured its content.
+      requestAnimationFrame(() => {
+        scrollRef.current?.scrollTo({ x: initialOffset, animated: false });
+      });
+    }
+  }, [logicalToOffset]);
+
+  const onScroll = useCallback(
+    (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const next = offsetToLogical(e.nativeEvent.contentOffset.x);
+      if (next === prevIndexRef.current) return;
+      if (next < 0 || next > LAST_INDEX) return;
+      prevIndexRef.current = next;
+      setIndex(next);
+      if (Platform.OS !== "web") Haptics.selectionAsync().catch(() => {});
+    },
+    [offsetToLogical],
+  );
 
   const finish = useCallback(async () => {
     if (finishingRef.current) return;
@@ -380,34 +410,15 @@ export default function OnboardingScreen() {
     (i: number) => {
       if (i < 0 || i >= SLIDE_COUNT) return;
       if (Platform.OS !== "web") Haptics.selectionAsync().catch(() => {});
-      listRef.current?.scrollToOffset({ offset: i * width, animated: true });
+      scrollRef.current?.scrollTo({ x: logicalToOffset(i), animated: true });
     },
-    [width],
+    [logicalToOffset],
   );
 
   const goNext = useCallback(() => {
     if (index < LAST_INDEX) goTo(index + 1);
     else void finish();
   }, [index, goTo, finish]);
-
-  const renderItem = useCallback(
-    ({ item }: ListRenderItemInfo<Slide>) => (
-      <SlidePage
-        slide={item}
-        width={width}
-        reduced={reduced}
-        isActive={item.id - 1 === index}
-        topPad={topPad}
-        bottomPad={bottomPad}
-      />
-    ),
-    [width, reduced, index, topPad, bottomPad],
-  );
-
-  const getItemLayout = useCallback(
-    (_: unknown, i: number) => ({ length: width, offset: width * i, index: i }),
-    [width],
-  );
 
   const isLast = index === LAST_INDEX;
 
@@ -437,24 +448,32 @@ export default function OnboardingScreen() {
     <View style={chrome.root}>
       <StatusBar style="dark" />
 
-      <FlatList
-        ref={listRef}
-        data={SLIDES}
-        keyExtractor={(s) => String(s.id)}
-        renderItem={renderItem}
-        getItemLayout={getItemLayout}
+      <ScrollView
+        ref={scrollRef}
         horizontal
         pagingEnabled
         bounces={false}
         showsHorizontalScrollIndicator={false}
         decelerationRate="fast"
-        onViewableItemsChanged={onViewRef}
-        viewabilityConfig={viewConfig}
-        initialScrollIndex={0}
-        windowSize={SLIDE_COUNT}
-        initialNumToRender={SLIDE_COUNT}
-        maxToRenderPerBatch={SLIDE_COUNT}
-      />
+        onScroll={onScroll}
+        scrollEventThrottle={16}
+        // Force LTR child layout — we handle RTL via explicit physical reordering.
+        // This avoids RN/Android's automatic horizontal-list reversal in RTL,
+        // which was causing slide 3 ("Start Now") to appear first.
+        style={{ direction: "ltr" }}
+      >
+        {physicalSlides.map((slide) => (
+          <SlidePage
+            key={slide.id}
+            slide={slide}
+            width={width}
+            reduced={reduced}
+            isActive={slide.id - 1 === index}
+            topPad={topPad}
+            bottomPad={bottomPad}
+          />
+        ))}
+      </ScrollView>
 
       {/* ── Top bar: logo + skip ── */}
       <Animated.View

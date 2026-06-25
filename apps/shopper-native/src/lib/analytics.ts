@@ -29,6 +29,8 @@ export type AnalyticsEvent =
   | "login_completed"
   | "login_failed"
   | "logout"
+  | "social_login_tapped"
+  | "social_signup_tapped"
   | "forgot_password_submitted"
   | "forgot_password_email_sent"
   | "reset_password_link_opened"

@@ -77,8 +77,6 @@ const TOTAL_STEPS = 4;
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function ProgressBar({ current }: { current: number }) {
-  const reduced = useReducedMotion() ?? false;
-
   return (
     <View style={pb.wrap}>
       {Array.from({ length: TOTAL_STEPS }, (_, i) => {

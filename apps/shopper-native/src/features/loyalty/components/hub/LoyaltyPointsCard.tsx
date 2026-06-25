@@ -29,8 +29,27 @@ import type { LoyaltyBalance, RewardTier } from "../../types";
 import { getTierColor, getTierIcon, type IoniconsName } from "./HubHelpers";
 import { heroStyles as s, tierStyles as ts } from "./hub.styles";
 
+/**
+ * Worklet-safe number formatter (1234567 → "1,234,567").
+ *
+ * The `'worklet'` directive lets Reanimated invoke this on the UI thread
+ * inside `useAnimatedProps` / `useAnimatedStyle`. Avoid `toLocaleString`
+ * here — it relies on Intl, which is not available in every JSI runtime.
+ *
+ * Callable from JS-thread code too: the directive marks where the function
+ * CAN run, not where it MUST run.
+ */
 function formatMetric(value: number): string {
-  return Math.round(value).toLocaleString("en-US");
+  'worklet';
+  const rounded = Math.round(value);
+  const sign    = rounded < 0 ? '-' : '';
+  const digits  = String(Math.abs(rounded));
+  let   out     = '';
+  for (let i = 0; i < digits.length; i++) {
+    if (i > 0 && (digits.length - i) % 3 === 0) out += ',';
+    out += digits[i];
+  }
+  return sign + out;
 }
 
 // AnimatedTextInput used for the balance counter — its `value` prop is driven

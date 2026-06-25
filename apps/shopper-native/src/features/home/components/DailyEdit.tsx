@@ -44,19 +44,9 @@ const GAP = 10;
 const EDIT_LIMIT = 6;
 const STALE_MS   = 90_000;
 
-const COPY = IS_RTL
-  ? {
-      eyebrow:  "اختيار اليوم",
-      title:    "مختارة بعناية",
-      heroLead: "اختيار الصيدلي",
-      shopNow:  "شاهد التفاصيل",
-    }
-  : {
-      eyebrow:  "Today's Edit",
-      title:    "Hand-picked for you",
-      heroLead: "Pharmacist's choice",
-      shopNow:  "See details",
-    };
+// Copy is read from i18n via t() inside the component — keep no module-level
+// language captures so the title always matches the active locale (avoids the
+// "English title leaks into Arabic" bug when running language switching).
 
 // ─── Props ───────────────────────────────────────────────────────────────────
 
@@ -73,6 +63,7 @@ export const DailyEdit = memo(function DailyEdit({
   onProductPress,
   onViewAll,
 }: DailyEditProps) {
+  const { t } = useTranslation();
   const { data, isLoading } = useQuery<NativeProduct[]>({
     queryKey:  productKeys.featured(EDIT_LIMIT),
     queryFn:   () => fetchFeaturedProducts(EDIT_LIMIT),
@@ -84,9 +75,13 @@ export const DailyEdit = memo(function DailyEdit({
 
   const products = data ?? [];
 
-  // Need at least 3 products to justify the editorial layout
-  if (!isLoading && products.length < 3) return null;
-  if (isLoading || products.length === 0) return null;
+  // Collapse the section entirely when there's nothing to show. Returning
+  // `null` from a sibling inside the home ScrollView is a no-op — Yoga won't
+  // reserve any space, so this cannot create the empty whitespace the user
+  // reported. The whitespace must come from a different code path (data
+  // arriving as 1–2 products and tripping the `< 3` guard). Same rule.
+  if (isLoading)                return null;
+  if (products.length < 3)      return null;
 
   const [hero, second, third, fourth] = products;
 
@@ -97,8 +92,8 @@ export const DailyEdit = memo(function DailyEdit({
   return (
     <View style={sectionStyles.wrap}>
       <HomeSectionHeader
-        eyebrow={COPY.eyebrow}
-        title={COPY.title}
+        eyebrow={t("home.dailyEditEyebrow")}
+        title={t("home.dailyEditTitle")}
         icon="bookmark-outline"
         accent={kit.color.accentDeep}
         onMore={onViewAll}
@@ -199,7 +194,7 @@ const EditorialHeroCard = memo(function EditorialHeroCard({
 
       {/* Body side */}
       <View style={s.heroBody}>
-        <UIText style={s.heroEyebrow}>{COPY.heroLead}</UIText>
+        <UIText style={s.heroEyebrow}>{t("home.dailyEditHeroLead")}</UIText>
         <UIText style={s.heroName} numberOfLines={2}>
           {displayName}
         </UIText>
@@ -212,7 +207,7 @@ const EditorialHeroCard = memo(function EditorialHeroCard({
         <View style={s.heroFoot}>
           <UIText style={s.heroPrice}>{formatPrice(product.price)}</UIText>
           <View style={s.heroCta}>
-            <UIText style={s.heroCtaText}>{COPY.shopNow}</UIText>
+            <UIText style={s.heroCtaText}>{t("home.dailyEditShopNow")}</UIText>
             <Ionicons name={FORWARD_CHEVRON} size={13} color={kit.color.onAccent} />
           </View>
         </View>

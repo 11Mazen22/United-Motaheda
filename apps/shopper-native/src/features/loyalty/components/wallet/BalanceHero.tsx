@@ -84,9 +84,18 @@ export const BalanceHero = memo(function BalanceHero({
   }, [balance.balance, animatedBalance]);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const balanceAnimatedProps = useAnimatedProps((): any => ({
-    text: Math.round(animatedBalance.value).toLocaleString("ar-EG"),
-  }));
+  const balanceAnimatedProps = useAnimatedProps((): any => {
+    'worklet';
+    const rounded = Math.round(animatedBalance.value);
+    const sign    = rounded < 0 ? '-' : '';
+    const digits  = String(Math.abs(rounded));
+    let   out     = '';
+    for (let i = 0; i < digits.length; i++) {
+      if (i > 0 && (digits.length - i) % 3 === 0) out += ',';
+      out += digits[i];
+    }
+    return { text: sign + out };
+  });
 
   return (
     <View style={s.wrap}>
