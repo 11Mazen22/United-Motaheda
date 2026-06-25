@@ -24,7 +24,7 @@ const CountdownUnit = memo(function CountdownUnit({
   return (
     <View style={cs.unit}>
       <LinearGradient
-        colors={["#ff6b6b", "#ff0000"]}
+        colors={[kit.color.accent, kit.color.accentDeep]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={cs.cell}
@@ -147,7 +147,7 @@ export const FlashSaleSection = memo(function FlashSaleSection({
         eyebrow={t("home.flashEnds")}
         title={t("home.flashTitle")}
         icon="flash"
-        accent={kit.color.danger}
+        accent={kit.color.accent}
         rightSlot={<CountdownDisplay />}
       />
 
@@ -158,7 +158,7 @@ export const FlashSaleSection = memo(function FlashSaleSection({
           keyExtractor={(p) => p.id}
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={fs.railContent}
+          contentContainerStyle={[fs.railContent, { paddingHorizontal: pagePad }]}
           renderItem={renderFlashItem}
         />
       </View>

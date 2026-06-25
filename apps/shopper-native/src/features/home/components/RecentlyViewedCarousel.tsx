@@ -13,7 +13,7 @@ import React, { memo, useCallback } from "react";
 import { StyleSheet, View } from "react-native";
 import { FlashList, type ListRenderItem } from "@shopify/flash-list";
 import { useTranslation } from "react-i18next";
-import { theme } from "@/shared/theme";
+import { kit } from "@/shared/kit";
 import { ProductCard } from "@/components/ProductCard";
 import { useRecentlyViewedFeed } from "@/features/recommendations/hooks/useRecentlyViewedFeed";
 import { HomeSectionHeader } from "./HomeSectionHeader";
@@ -81,7 +81,7 @@ const RecentlyViewedInner = memo(function RecentlyViewedInner({
       <HomeSectionHeader
         title={title}
         icon="time-outline"
-        accent={theme.colors.teal[600]}
+        accent={kit.color.accent}
       />
       <FlashList
         data={items}

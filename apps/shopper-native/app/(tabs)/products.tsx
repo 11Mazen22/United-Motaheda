@@ -1,5 +1,5 @@
 import React, { useCallback } from "react";
-import { Dimensions, FlatList, Platform, Pressable, StyleSheet, View } from "react-native";
+import { FlatList, Platform, Pressable, StyleSheet, View } from "react-native";
 import { useRouter } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -16,18 +16,17 @@ import { kit } from "@/shared/kit";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
 import { HomeSectionHeader } from "@/features/home/components/HomeSectionHeader";
 import { useTranslation } from "react-i18next";
+import { useScreenLayout } from "@/utils/responsive";
 
 const IS_RTL     = isRtl();
 const TEXT_START = textAlignStart(IS_RTL);
 
-const { width: W } = Dimensions.get("window");
-const GRID_PAD = 20;
 const GRID_GAP = 12;
-const CELL_W   = (W - GRID_PAD * 2 - GRID_GAP) / 2;
 // ─── Stats strip ─────────────────────────────────────────────────────────────
 
 function StatsStrip({ catCount }: { catCount: number }) {
-  const { t } = useTranslation();
+  const { t }       = useTranslation();
+  const { pagePad } = useScreenLayout();
   const items = [
     { icon: "grid-outline"             as const, value: "",      label: t("products.statCategories"), color: kit.color.accentDeep, tint: kit.color.accentTint  },
     { icon: "cube-outline"             as const, value: "5000+", label: t("products.statItems"),      color: kit.color.success,    tint: kit.color.successTint },
@@ -35,7 +34,7 @@ function StatsStrip({ catCount }: { catCount: number }) {
     { icon: "shield-checkmark-outline" as const, value: "100%",  label: t("products.statOriginalLabel"), color: "#7c3aed",         tint: "#f5f3ff"             },
   ];
   return (
-    <View style={[st.row, { flexDirection: flexRow(IS_RTL) }]}>
+    <View style={[st.row, { flexDirection: flexRow(IS_RTL), marginHorizontal: pagePad }]}>
       {items.map((item, i) => (
         <View key={i} style={[st.item, i > 0 && (IS_RTL ? st.itemBorderRight : st.itemBorderLeft)]}>
           <View style={[st.icon, { backgroundColor: item.tint }]}>
@@ -84,6 +83,11 @@ export default function ProductsScreen() {
   const cartCount = useCartStore((s) => s.itemCount());
   const lang      = i18n.language === "en" ? "en" as const : "ar" as const;
 
+  // Responsive grid — category cards cap at 3 cols (wider aspect ratio than products)
+  const { pagePad, cols, width } = useScreenLayout();
+  const catCols = Math.min(cols, 3);
+  const cellW   = Math.floor((width - pagePad * 2 - GRID_GAP * (catCols - 1)) / catCols);
+
   const {
     data:      rawCategories = [],
     isLoading: catsLoading,
@@ -131,7 +135,7 @@ export default function ProductsScreen() {
             {/* ════════════════════════════════════════════════ */}
             {/* HEADER                                          */}
             {/* ════════════════════════════════════════════════ */}
-            <View style={[s.header, { paddingTop: insets.top + 14 }]}>
+            <View style={[s.header, { paddingTop: insets.top + 14, paddingHorizontal: pagePad }]}>
 
               {/* Top row — icon block + cart */}
               <View style={[s.headerRow, { flexDirection: flexRow(IS_RTL) }]}>
@@ -201,7 +205,7 @@ export default function ProductsScreen() {
             {/* ════════════════════════════════════════════════ */}
             {/* CATEGORIES SECTION                              */}
             {/* ════════════════════════════════════════════════ */}
-            <View style={s.sectionHead}>
+            <View style={[s.sectionHead, { paddingHorizontal: pagePad }]}>
               <HomeSectionHeader
                 eyebrow={t("products.sectionEyebrow")}
                 title={t("products.sectionTitle")}
@@ -226,9 +230,9 @@ export default function ProductsScreen() {
                 description={t("products.loading")}
               />
             ) : (
-              <View style={s.grid}>
+              <View style={[s.grid, { paddingHorizontal: pagePad }]}>
                 {categories.map((item, index) => (
-                  <View key={item.id} style={s.cell}>
+                  <View key={item.id} style={{ width: cellW }}>
                     <CategoryCard
                       category={item}
                       gradientIdx={index}
@@ -256,11 +260,10 @@ const s = StyleSheet.create({
     backgroundColor: kit.color.canvas,
   },
 
-  // ── Header
+  // ── Header (paddingHorizontal applied inline via pagePad)
   header: {
-    backgroundColor:   kit.color.surface,
-    paddingHorizontal: GRID_PAD,
-    paddingBottom:     18,
+    backgroundColor: kit.color.surface,
+    paddingBottom:   18,
     gap:               16,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: kit.color.line,
@@ -393,31 +396,25 @@ const s = StyleSheet.create({
     includeFontPadding: false,
   },
 
-  // ── Section heading wrapper
+  // ── Section heading wrapper (paddingHorizontal applied inline via pagePad)
   sectionHead: {
-    paddingHorizontal: GRID_PAD,
-    marginTop:         30,
-    marginBottom:      16,
+    marginTop:    30,
+    marginBottom: 16,
   },
 
-  // ── Category grid
+  // ── Category grid (paddingHorizontal applied inline via pagePad)
   grid: {
-    flexDirection:     flexRow(IS_RTL),
-    flexWrap:          "wrap",
-    gap:               GRID_GAP,
-    paddingHorizontal: GRID_PAD,
-  },
-  cell: {
-    width: CELL_W,
+    flexDirection: flexRow(IS_RTL),
+    flexWrap:      "wrap",
+    gap:           GRID_GAP,
   },
 });
 
 // ── Stats strip styles
 const st = StyleSheet.create({
   row: {
-    marginTop:         20,
-    marginHorizontal:  GRID_PAD,
-    backgroundColor:   kit.color.surface,
+    marginTop:       20,
+    backgroundColor: kit.color.surface,
     borderRadius:      kit.radius.lg,
     borderWidth:       1,
     borderColor:       kit.color.line,

@@ -183,12 +183,12 @@ export const kit = {
    * All families are assumed to be already loaded via expo-font or similar.
    */
   font: {
-    black: "Inter-Black",
-    bold: "Inter-Bold",
-    semiBold: "Inter-SemiBold",
-    medium: "Inter-Medium",
-    regular: "Inter-Regular",
-    light: "Inter-Light",
+    black:    "Cairo_900Black",
+    bold:     "Cairo_700Bold",
+    semiBold: "Cairo_600SemiBold",
+    medium:   "Cairo_400Regular",   // Cairo has no 500; use 400
+    regular:  "Cairo_400Regular",
+    light:    "Cairo_400Regular",   // Cairo has no 300; use 400
   },
 
   /**
@@ -197,31 +197,31 @@ export const kit = {
    */
   textStyle: {
     hero: {
-      fontFamily: "Inter-Black",
-      fontSize: 32,
-      lineHeight: 40,
+      fontFamily:    "Cairo_900Black",
+      fontSize:      32,
+      lineHeight:    40,
       letterSpacing: -0.5,
-      color: "#07122a",
+      color:         "#07122a",
     },
     headline: {
-      fontFamily: "Inter-Bold",
-      fontSize: 20,
-      lineHeight: 26,
+      fontFamily:    "Cairo_700Bold",
+      fontSize:      20,
+      lineHeight:    26,
       letterSpacing: -0.3,
-      color: "#07122a",
+      color:         "#07122a",
     },
     body: {
-      fontFamily: "Inter-Regular",
-      fontSize: 14,
+      fontFamily: "Cairo_400Regular",
+      fontSize:   14,
       lineHeight: 20,
-      color: "#475569",
+      color:      "#475569",
     },
     label: {
-      fontFamily: "Inter-SemiBold",
-      fontSize: 12,
-      lineHeight: 17,
+      fontFamily:    "Cairo_600SemiBold",
+      fontSize:      12,
+      lineHeight:    17,
       letterSpacing: 0.5,
-      color: "#475569",
+      color:         "#475569",
     },
   },
 } as const;

@@ -39,7 +39,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Dimensions,
   Keyboard,
   Platform,
   Pressable,
@@ -64,6 +63,7 @@ import { fetchCategories } from "@/services/productsApi";
 import { ProductGrid, useInfiniteProducts, useProductSearch } from "@/features/products";
 import { resolveSmartQuery, detectSearchLang } from "@/utils/searchUtils";
 import { useScreenTrace } from "@/features/observability";
+import { useScreenLayout } from "@/utils/responsive";
 import { supabase } from "@/lib/supabase";
 import { ProductCardSkeleton } from "@/components/ui/Skeleton";
 import { Text as UIText } from "@/shared/ui";
@@ -81,13 +81,7 @@ import type { NativeProduct, NativeCategory } from "@/services/productsApi";
 const IS_RTL      = isRtl();
 const TEXT_START  = textAlignStart(IS_RTL);
 const INPUT_ALIGN = TEXT_START as "left" | "right" | "center";
-const SCREEN_W    = Dimensions.get("window").width;
 const H_PAD       = 20;
-
-// 3-col category cell
-const CAT_W = Math.floor((SCREEN_W - H_PAD * 2 - 10 * 2) / 3);
-// 2-col concern tile
-const CONCERN_W = Math.floor((SCREEN_W - H_PAD * 2 - 10) / 2);
 
 // Top-3 rank accents: gold / silver / brand teal
 const RANK_COLORS: Record<number, string> = {
@@ -309,6 +303,9 @@ const ConcernTile = React.memo(function ConcernTile({
   tone:    string;
   onPress: () => void;
 }) {
+  const { pagePad, width } = useScreenLayout();
+  const concernW = Math.floor((width - pagePad * 2 - 10) / 2);
+
   const handlePress = useCallback(() => {
     if (Platform.OS !== "web") Haptics.selectionAsync().catch(() => {});
     onPress();
@@ -319,7 +316,7 @@ const ConcernTile = React.memo(function ConcernTile({
       onPress={handlePress}
       accessibilityRole="button"
       accessibilityLabel={label}
-      style={({ pressed }) => [s.concernTile, pressed && { opacity: 0.85 }]}>
+      style={({ pressed }) => [s.concernTile, { width: concernW }, pressed && { opacity: 0.85 }]}>
       <View style={[s.concernIconWrap, { backgroundColor: tint }]}>
         <Ionicons name={icon} size={20} color={tone} />
       </View>
@@ -342,6 +339,8 @@ export default function SearchScreen() {
   const insets   = useSafeAreaInsets();
   const inputRef = useRef<TextInput>(null);
   const { user } = useAuth();
+  const { pagePad, width } = useScreenLayout();
+  const catW = Math.floor((width - pagePad * 2 - 10 * 2) / 3);
 
   // ── State ──
   const [query, setQuery]             = useState("");
@@ -871,7 +870,7 @@ export default function SearchScreen() {
                       key={cat.id}
                       onPress={() => router.push({ pathname: "/category/[id]", params: { id: cat.id } })}
                       accessibilityRole="button"
-                      style={({ pressed }) => [s.catCell, pressed && { opacity: 0.72 }]}>
+                      style={({ pressed }) => [s.catCell, { width: catW }, pressed && { opacity: 0.72 }]}>
                       <View style={s.catCellIcon}>
                         <Ionicons name={getCategoryIcon(cat.name)} size={26} color={kit.color.accentDeep} />
                       </View>
@@ -1475,7 +1474,6 @@ const s = StyleSheet.create({
     gap:           10,
   },
   concernTile: {
-    width:             CONCERN_W,
     flexDirection:     flexRow(IS_RTL),
     alignItems:        "center",
     gap:               12,
@@ -1553,7 +1551,6 @@ const s = StyleSheet.create({
     gap:           10,
   },
   catCell: {
-    width:             CAT_W,
     alignItems:        "center",
     gap:               8,
     paddingVertical:   18,

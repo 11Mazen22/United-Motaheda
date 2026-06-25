@@ -418,7 +418,7 @@ const cs = StyleSheet.create({
     fontFamily:         theme.fonts.black,
     fontSize:           16,
     lineHeight:         36,
-    color:              "#ff4444",
+    color:              kit.color.accentDeep,
     includeFontPadding: false,
     marginBottom:       12,
   },

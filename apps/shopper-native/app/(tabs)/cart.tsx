@@ -41,6 +41,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { theme } from "@/shared/theme";
 import { kit } from "@/shared/kit";
 import { FORWARD_CHEVRON } from "@/utils/layout";
+import { useScreenLayout } from "@/utils/responsive";
 import { s } from "@/features/cart/cart.styles";
 
 // ─── StepBtn — animated quantity button ──────────────────────────────────────
@@ -204,8 +205,9 @@ const CartHeader = memo(function CartHeader({
   count:        number;
   onClearPress: () => void;
 }) {
+  const { pagePad } = useScreenLayout();
   return (
-    <View style={[s.header, { paddingTop: insetsTop + 14 }]}>
+    <View style={[s.header, { paddingTop: insetsTop + 14, paddingHorizontal: pagePad }]}>
       <View style={s.headerRow}>
         <View style={s.headerLeft}>
           <View style={s.headerIcon}>
@@ -343,9 +345,10 @@ const CartListHeader = memo(function CartListHeader({
 // ─── CartScreen ───────────────────────────────────────────────────────────────
 
 export default function CartScreen() {
-  const { t }   = useTranslation();
-  const router  = useRouter();
-  const insets  = useSafeAreaInsets();
+  const { t }      = useTranslation();
+  const router     = useRouter();
+  const insets     = useSafeAreaInsets();
+  const { pagePad } = useScreenLayout();
 
   // Granular selectors — no whole-store subscription
   const items      = useCartStore((s) => s.items);
@@ -397,7 +400,7 @@ export default function CartScreen() {
   if (items.length === 0) {
     return (
       <View style={[s.screen, { paddingTop: insets.top }]}>
-        <View style={[s.header, { paddingTop: 16 }]}>
+        <View style={[s.header, { paddingTop: 16, paddingHorizontal: pagePad }]}>
           <View style={s.headerLeft}>
             <View style={s.headerIcon}>
               <Ionicons name="bag-outline" size={18} color={kit.color.accentDeep} />
@@ -441,7 +444,7 @@ export default function CartScreen() {
         renderItem={renderItem}
       />
 
-      <View style={[s.footer, { paddingBottom: Math.max(insets.bottom, 12) + 4 }]}>
+      <View style={[s.footer, { paddingBottom: Math.max(insets.bottom, 12) + 4, paddingHorizontal: pagePad }]}>
         <View style={s.footerHandle} />
 
         {/* Condensed subtotal + delivery rows */}

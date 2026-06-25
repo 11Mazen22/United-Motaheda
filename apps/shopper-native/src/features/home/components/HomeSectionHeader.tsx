@@ -48,7 +48,7 @@ export const HomeSectionHeader = memo(function HomeSectionHeader({
         </View>
 
         <View style={sh.textStack}>
-          {eyebrow && <UIText style={sh.eyebrow}>{eyebrow}</UIText>}
+          {eyebrow && <UIText style={[sh.eyebrow, { color: accent }]}>{eyebrow}</UIText>}
           <UIText style={sh.title}>{title}</UIText>
         </View>
       </View>
@@ -82,7 +82,6 @@ const sh = StyleSheet.create({
     fontFamily:         theme.fonts.bold,
     fontSize:           10,
     lineHeight:         15,
-    color:              kit.color.accentDeep,
     letterSpacing:      0.4,
     textAlign:          TEXT_START,
     includeFontPadding: false,

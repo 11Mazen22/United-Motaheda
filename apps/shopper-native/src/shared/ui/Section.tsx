@@ -20,6 +20,7 @@ import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from "rea
 import { Text as UIText } from "./Text";
 import { Ionicons } from "@expo/vector-icons";
 import { theme } from "@/shared/theme";
+import { kit } from "@/shared/kit";
 import { flexRow, isRtl } from "@/utils/layout";
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>["name"];
@@ -44,8 +45,8 @@ export function Section({
   children,
   action,
   style,
-  iconColor = theme.colors.brand[600],
-  iconBg = theme.colors.brand[50],
+  iconColor = kit.color.accent,
+  iconBg = kit.color.accentTint,
 }: SectionProps) {
   return (
     <View style={[styles.wrap, style]}>
@@ -92,7 +93,7 @@ const styles = StyleSheet.create({
   action: {
     fontSize: 11,
     fontFamily: theme.fonts.bold,
-    color: theme.colors.brand[600],
+    color: kit.color.accent,
   },
   body: { gap: 10 },
 });

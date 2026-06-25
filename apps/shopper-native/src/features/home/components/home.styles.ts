@@ -52,10 +52,10 @@ export const sectionStyles = StyleSheet.create({
 
 export const shStyles = StyleSheet.create({
   row: {
-    flexDirection:     flexRow(IS_RTL),
-    alignItems:        "center",
-    justifyContent:    "space-between",
-    paddingHorizontal: theme.layout.pagePaddingH,
+    flexDirection:  flexRow(IS_RTL),
+    alignItems:     "center",
+    justifyContent: "space-between",
+    // paddingHorizontal is applied inline via useScreenLayout().pagePad in each consumer
   },
   left: {
     flexDirection: flexRow(IS_RTL),
@@ -92,11 +92,11 @@ export const cntStyles = StyleSheet.create({
     gap:           8,
   },
   colon: {
-    color:      "#ff6b6b",
-    fontSize:   18,
-    fontFamily: theme.fonts.black,
+    color:        kit.color.accentDeep,
+    fontSize:     18,
+    fontFamily:   theme.fonts.black,
     marginBottom: 14,
-    fontWeight: "700",
+    fontWeight:   "700",
   },
   unit: {
     alignItems: "center",
@@ -110,12 +110,12 @@ export const cntStyles = StyleSheet.create({
     alignItems:        "center",
     justifyContent:    "center",
     borderWidth:       0,
-    shadowColor:       "#ff6b6b",
+    shadowColor:       "#0E7E74",
     shadowOffset:      { width: 0, height: 0 },
-    shadowOpacity:     0.3,
+    shadowOpacity:     0.25,
     shadowRadius:      8,
     elevation:         6,
-    boxShadow:         "0px 0px 8px rgba(255,107,107,0.3)",
+    boxShadow:         "0px 0px 8px rgba(14,126,116,0.25)",
   },
   value: {
     color:              "#fff",
@@ -126,9 +126,9 @@ export const cntStyles = StyleSheet.create({
     fontWeight:         "700",
   },
   unitLabel: {
-    color:    "#ff6b6b",
-    fontSize: 11,
-    fontWeight: "700",
+    color:         kit.color.accentDeep,
+    fontSize:      11,
+    fontWeight:    "700",
     letterSpacing: 0.3,
   },
 });
@@ -148,7 +148,6 @@ export const flashStyles = StyleSheet.create({
     borderRadius: kit.radius.lg,
   },
   railContent: {
-    paddingHorizontal: theme.layout.pagePaddingH,
     paddingVertical: 4,
   },
 });

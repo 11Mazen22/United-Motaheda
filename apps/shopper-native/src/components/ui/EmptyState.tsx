@@ -4,7 +4,7 @@ import { Text as UIText } from "@/shared/ui";
 import { Ionicons } from "@expo/vector-icons";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { theme } from "@/shared/theme";
-import { Button } from "@/shared/kit";
+import { Button, kit } from "@/shared/kit";
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>["name"];
 
@@ -42,16 +42,16 @@ export function EmptyState({
           width:           compact ? 64 : 80,
           height:          compact ? 64 : 80,
           borderRadius:    compact ? 20 : 24,
-          backgroundColor: theme.colors.brand[50],
+          backgroundColor: kit.color.accentTint,
           alignItems:      "center",
           justifyContent:  "center",
           borderWidth:     1,
-          borderColor:     theme.colors.brand[100],
+          borderColor:     kit.color.line,
         }}>
         <Ionicons
           name={icon}
           size={compact ? 28 : 34}
-          color={theme.colors.brand[400]}
+          color={kit.color.accent}
         />
       </View>
 

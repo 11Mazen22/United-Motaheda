@@ -7,6 +7,7 @@ import React from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 import { Text as UIText } from "./Text";
 import { theme } from "@/shared/theme";
+import { kit } from "@/shared/kit";
 
 interface LoadingOverlayProps {
   message?: string;
@@ -18,7 +19,7 @@ export function LoadingOverlay({ message, scrim = "rgba(2,29,46,0.55)" }: Loadin
   return (
     <View style={[StyleSheet.absoluteFill, styles.overlay, { backgroundColor: scrim }]}>
       <View style={styles.card}>
-        <ActivityIndicator size="large" color={theme.colors.brand[500]} />
+        <ActivityIndicator size="large" color={kit.color.accent} />
         {message && <UIText style={styles.text}>{message}</UIText>}
       </View>
     </View>

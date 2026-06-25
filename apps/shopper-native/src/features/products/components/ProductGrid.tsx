@@ -27,7 +27,7 @@ import {
 } from "react-native";
 import { FlashList } from "@shopify/flash-list";
 import { ProductCard } from "@/components/ProductCard";
-import { theme } from "@/shared/theme";
+import { kit } from "@/shared/kit";
 import { flexRow, isRtl } from "@/utils/layout";
 import { useScreenLayout } from "@/utils/responsive";
 import type { NativeProduct } from "../types";
@@ -94,8 +94,8 @@ export const ProductGrid = React.memo(function ProductGrid({
   );
 
   const columnWrapperDynamic = useMemo(
-    () => ({ flexDirection: FLEX_DIR, gap: isTablet ? 0 : 0 }),
-    [isTablet],
+    () => ({ flexDirection: FLEX_DIR }),
+    [],
   );
 
   const refreshControl =
@@ -103,8 +103,8 @@ export const ProductGrid = React.memo(function ProductGrid({
       <RefreshControl
         refreshing={refreshing ?? false}
         onRefresh={onRefresh}
-        tintColor={theme.colors.brand[600]}
-        colors={[theme.colors.brand[600]]}
+        tintColor={kit.color.accent}
+        colors={[kit.color.accent]}
       />
     ) : undefined;
 
