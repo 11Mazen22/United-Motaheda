@@ -536,7 +536,7 @@ export const s = StyleSheet.create({
 
   // ── Checkout row — price block + solid-ink pill CTA ───────────────────────
   checkoutRow: {
-    flexDirection:  "row",
+    flexDirection:  flexRow(IS_RTL),
     alignItems:     "center",
     justifyContent: "space-between",
     gap:            14,

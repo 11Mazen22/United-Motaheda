@@ -985,7 +985,7 @@ function FloatingLabelInput({
           <Pressable
             onPress={() => onChange("")}
             hitSlop={8}
-            style={fieldStyles.clearBtn}
+            style={({ pressed }) => [fieldStyles.clearBtn, pressed && fieldStyles.clearBtnPressed]}
           >
             <Ionicons
               name="close-circle"
@@ -1481,6 +1481,9 @@ const fieldStyles = StyleSheet.create({
   },
   clearBtn: {
     padding: 2,
+  },
+  clearBtnPressed: {
+    opacity: 0.55,
   },
   errorText: {
     fontSize: 10,

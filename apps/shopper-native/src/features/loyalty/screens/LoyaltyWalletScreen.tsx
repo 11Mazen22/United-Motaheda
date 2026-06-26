@@ -49,9 +49,6 @@ const TEXT_START = textAlignStart(IS_RTL);
 // one source of truth (was: inline `IS_RTL ? "chevron-back" : "chevron-forward"`).
 const FWD        = FORWARD_CHEVRON;
 
-const TXT = IS_RTL
-  ? { rewards: "مكافآتك", browseGifts: "تصفّح كتالوج الهدايا", browseGiftsSub: "استبدل نقاطك بهدايا", redemptions: "استبدالاتك", history: "سجل النقاط الكامل", earn: "اكسب المزيد من النقاط", frozen: "حسابك مجمّد مؤقتاً" }
-  : { rewards: "Your rewards", browseGifts: "Browse the gift catalog", browseGiftsSub: "Trade points for gifts", redemptions: "Your redemptions", history: "Full points history", earn: "Earn more points", frozen: "Your account is temporarily frozen" };
 
 export interface LoyaltyWalletScreenProps {
   title?:             string;
@@ -174,12 +171,12 @@ export function LoyaltyWalletScreen({
         {bal.frozen && (
           <View style={s.frozenBanner} accessibilityRole="alert">
             <Ionicons name="lock-closed" size={16} color={kit.color.danger} />
-            <UIText style={s.frozenText}>{TXT.frozen}</UIText>
+            <UIText style={s.frozenText}>{t("loyalty.walletFrozen")}</UIText>
           </View>
         )}
 
         {/* ── REWARDS — what you can use / get ── */}
-        <UIText style={s.groupTitle}>{TXT.rewards}</UIText>
+        <UIText style={s.groupTitle}>{t("loyalty.walletRewardsSection")}</UIText>
 
         <SectionHeader title={t("loyalty.walletMyCoupons")} icon="pricetag-outline" onSeeAll={onBrowseCoupons} />
         <WalletCouponsSection
@@ -191,11 +188,11 @@ export function LoyaltyWalletScreen({
         />
 
         {onBrowseGifts && (
-          <PressableScale onPress={onBrowseGifts} scaleTo={0.98} accessibilityRole="button" accessibilityLabel={TXT.browseGifts} style={s.browseCard}>
+          <PressableScale onPress={onBrowseGifts} scaleTo={0.98} accessibilityRole="button" accessibilityLabel={t("loyalty.walletBrowseGifts")} style={s.browseCard}>
             <View style={s.browseIcon}><Ionicons name="gift-outline" size={22} color={kit.color.accentDeep} /></View>
             <View style={s.browseBody}>
-              <UIText numberOfLines={1} style={s.browseTitle}>{TXT.browseGifts}</UIText>
-              <UIText numberOfLines={1} style={s.browseSub}>{TXT.browseGiftsSub}</UIText>
+              <UIText numberOfLines={1} style={s.browseTitle}>{t("loyalty.walletBrowseGifts")}</UIText>
+              <UIText numberOfLines={1} style={s.browseSub}>{t("loyalty.walletBrowseGiftsSub")}</UIText>
             </View>
             <Ionicons name={FWD} size={18} color={kit.color.inkFaint} />
           </PressableScale>
@@ -213,8 +210,8 @@ export function LoyaltyWalletScreen({
 
         {/* ── ACTIVITY access — full ledger + earn ── */}
         <View style={s.ledger}>
-          {onViewHistory && <LedgerLink icon="time-outline"   label={TXT.history} onPress={onViewHistory} />}
-          {onEarnPoints  && <LedgerLink icon="trending-up"    label={TXT.earn}    onPress={onEarnPoints} />}
+          {onViewHistory && <LedgerLink icon="time-outline"   label={t("loyalty.walletHistory")} onPress={onViewHistory} />}
+          {onEarnPoints  && <LedgerLink icon="trending-up"    label={t("loyalty.walletEarn")}    onPress={onEarnPoints} />}
         </View>
       </ScrollView>
     </View>

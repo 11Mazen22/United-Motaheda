@@ -826,8 +826,8 @@ const s = StyleSheet.create({
   // ── Sticky CTA ────────────────────────────────────────────────────────
   ctaBar: {
     position:          "absolute",
-    left:              0,
-    right:             0,
+    start:             0,
+    end:               0,
     bottom:            0,
     paddingHorizontal: 20,
     paddingTop:        12,

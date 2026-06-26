@@ -35,9 +35,6 @@ const IS_RTL     = isRtl();
 const TEXT_START = textAlignStart(IS_RTL);
 const FWD        = FORWARD_CHEVRON;
 
-const TXT = IS_RTL
-  ? { browse: "تصفّح كتالوج الهدايا", browseSub: "استبدل نقاطك من جديد" }
-  : { browse: "Browse the gift catalog", browseSub: "Redeem your points again" };
 
 export function RedemptionHistoryScreen() {
   useScreenTrace("loyalty-redemption-history");
@@ -148,11 +145,11 @@ export function RedemptionHistoryScreen() {
         )}
 
         {/* ── Redeem-again loop ── */}
-        <PressableScale onPress={browseGifts} scaleTo={0.98} accessibilityRole="button" accessibilityLabel={TXT.browse} style={s.browseCard}>
+        <PressableScale onPress={browseGifts} scaleTo={0.98} accessibilityRole="button" accessibilityLabel={t("loyalty.walletBrowseGifts")} style={s.browseCard}>
           <View style={s.browseIcon}><Ionicons name="gift-outline" size={22} color={kit.color.accentDeep} /></View>
           <View style={s.browseBody}>
-            <UIText numberOfLines={1} style={s.browseTitle}>{TXT.browse}</UIText>
-            <UIText numberOfLines={1} style={s.browseSub}>{TXT.browseSub}</UIText>
+            <UIText numberOfLines={1} style={s.browseTitle}>{t("loyalty.walletBrowseGifts")}</UIText>
+            <UIText numberOfLines={1} style={s.browseSub}>{t("loyalty.redemptionsBrowseSub")}</UIText>
           </View>
           <Ionicons name={FWD} size={18} color={kit.color.inkFaint} />
         </PressableScale>

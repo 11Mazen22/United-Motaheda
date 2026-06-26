@@ -913,7 +913,14 @@
         "giftInStock": "In stock",
         "giftFilterAll": "All",
         "giftFilterAffordable": "Within my points",
-        "giftFilterNone": "No gifts within your current balance"
+        "giftFilterNone": "No gifts within your current balance",
+        "walletRewardsSection": "Your rewards",
+        "walletBrowseGifts": "Browse the gift catalog",
+        "walletBrowseGiftsSub": "Trade points for gifts",
+        "walletHistory": "Full points history",
+        "walletEarn": "Earn more points",
+        "walletFrozen": "Your account is temporarily frozen",
+        "redemptionsBrowseSub": "Redeem your points again"
     },
     "notification": {
         "order": "Order Update",

@@ -1569,6 +1569,13 @@
         "giftInStock": "متاح الآن",
         "giftFilterAll": "الكل",
         "giftFilterAffordable": "ضمن رصيدي",
-        "giftFilterNone": "لا توجد هدايا ضمن رصيدك الحالي"
+        "giftFilterNone": "لا توجد هدايا ضمن رصيدك الحالي",
+        "walletRewardsSection": "مكافآتك",
+        "walletBrowseGifts": "تصفّح كتالوج الهدايا",
+        "walletBrowseGiftsSub": "استبدل نقاطك بهدايا",
+        "walletHistory": "سجل النقاط الكامل",
+        "walletEarn": "اكسب المزيد من النقاط",
+        "walletFrozen": "حسابك مجمّد مؤقتاً",
+        "redemptionsBrowseSub": "استبدل نقاطك من جديد"
     }
 }

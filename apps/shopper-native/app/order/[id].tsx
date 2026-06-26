@@ -111,7 +111,7 @@ export default function OrderDetailScreen(): React.ReactElement {
           <UIText variant="body" color="muted" align="center" style={{ marginTop: theme.spacing.sm }}>
             {t("orders.loadErrorDesc")}
           </UIText>
-          <Pressable onPress={handleRefresh} style={styles.retryBtn}>
+          <Pressable onPress={handleRefresh} style={({ pressed }) => [styles.retryBtn, pressed && styles.retryBtnPressed]}>
             <UIText variant="body-sm" weight="bold" style={{ color: kit.color.accentDeep }}>
               {t("common.retry")}
             </UIText>

@@ -42,12 +42,14 @@ import { useCartStore } from "@/stores/cart";
 import { useWishlistStore } from "@/stores/wishlist";
 import { theme } from "@/shared/theme";
 import { formatPrice } from "@/utils/format";
-import { flexRow, isRtl, BACK_CHEVRON, FORWARD_CHEVRON } from "@/utils/layout";
+import { flexRow, isRtl, textAlignStart, textAlignEnd, BACK_CHEVRON, FORWARD_CHEVRON } from "@/utils/layout";
 import { kit, Button as KitButton } from "@/shared/kit";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const IS_RTL     = isRtl();
+const TEXT_START = textAlignStart(IS_RTL);
+const TEXT_END   = textAlignEnd(IS_RTL);
 const SCREEN_W   = Dimensions.get("window").width;
 // Distance the Back button travels to reach the opposite edge on scroll
 // (screen width - start padding 16 - end padding 16 - button width 44)
@@ -973,32 +975,6 @@ const stage = StyleSheet.create({
     backgroundColor: kit.color.accentTint,
     opacity:         0.32,
   },
-  // Image wrapper — receives parallax translateY
-  imgWrap: {
-    width:             "100%",
-    height:            "100%",
-    paddingHorizontal: 28,
-    paddingVertical:   24,
-  },
-  img: {
-    width:  "100%",
-    height: "100%",
-  },
-  emptyWrap: {
-    alignItems:     "center",
-    justifyContent: "center",
-  },
-  emptyTile: {
-    width:           110,
-    height:          110,
-    borderRadius:    34,
-    backgroundColor: kit.color.surface,
-    borderWidth:     1,
-    borderColor:     kit.color.line,
-    alignItems:      "center",
-    justifyContent:  "center",
-    ...kit.shadow.raised,
-  },
   // Authentication seal — bottom-end, receives spring pulse on mount
   seal: {
     position:          "absolute",
@@ -1196,14 +1172,14 @@ const identity = StyleSheet.create({
     color:         kit.color.ink,
     letterSpacing: -0.5,
     lineHeight:    34,
-    textAlign:     IS_RTL ? "right" : "left",
+    textAlign:     TEXT_START,
   },
   nameEn: {
     fontSize:   14,
     fontFamily: theme.fonts.regular,
     color:      kit.color.inkFaint,
     fontStyle:  "italic",
-    textAlign:  IS_RTL ? "right" : "left",
+    textAlign:  TEXT_START,
   },
   ratingRow: {
     alignItems: "center",
@@ -1257,7 +1233,7 @@ const action = StyleSheet.create({
     color:              kit.color.inkFaint,
     letterSpacing:      0.5,
     textTransform:      "uppercase",
-    textAlign:          IS_RTL ? "right" : "left",
+    textAlign:          TEXT_START,
     includeFontPadding: false,
   },
   // Main price row — value + currency on a single baseline.
@@ -1319,7 +1295,7 @@ const action = StyleSheet.create({
     lineHeight:         15,
     fontFamily:         theme.fonts.regular,
     color:              kit.color.inkFaint,
-    textAlign:          IS_RTL ? "right" : "left",
+    textAlign:          TEXT_START,
     includeFontPadding: false,
     marginTop:          2,
   },
@@ -1458,14 +1434,14 @@ const clin = StyleSheet.create({
     fontSize:      10,
     fontFamily:    theme.fonts.semibold,
     color:         kit.color.accentDeep,
-    textAlign:     IS_RTL ? "right" : "left",
+    textAlign:     TEXT_START,
     letterSpacing: 0.5,
   },
   title: {
     fontSize:      17,
     fontFamily:    theme.fonts.black,
     color:         kit.color.ink,
-    textAlign:     IS_RTL ? "right" : "left",
+    textAlign:     TEXT_START,
     letterSpacing: -0.2,
   },
   attestation: {
@@ -1489,7 +1465,7 @@ const clin = StyleSheet.create({
     fontSize:   12,
     fontFamily: theme.fonts.regular,
     color:      kit.color.inkSoft,
-    textAlign:  IS_RTL ? "right" : "left",
+    textAlign:  TEXT_START,
     lineHeight: 17,
   },
   body: {
@@ -1518,14 +1494,14 @@ const clin = StyleSheet.create({
     fontFamily: theme.fonts.regular,
     color:      kit.color.inkSoft,
     flex:       1,
-    textAlign:  IS_RTL ? "right" : "left",
+    textAlign:  TEXT_START,
   },
   rowValue: {
     fontSize:   13,
     fontFamily: theme.fonts.bold,
     color:      kit.color.ink,
     maxWidth:   "50%",
-    textAlign:  IS_RTL ? "left" : "right",
+    textAlign:  TEXT_END,
   },
   expandBtn: {
     alignItems:        "center",
@@ -1582,14 +1558,14 @@ const rel = StyleSheet.create({
     fontSize:      10,
     fontFamily:    theme.fonts.semibold,
     color:         kit.color.accentDeep,
-    textAlign:     IS_RTL ? "right" : "left",
+    textAlign:     TEXT_START,
     letterSpacing: 0.5,
   },
   title: {
     fontSize:      15,
     fontFamily:    theme.fonts.black,
     color:         kit.color.ink,
-    textAlign:     IS_RTL ? "right" : "left",
+    textAlign:     TEXT_START,
     letterSpacing: -0.2,
     marginTop:     2,
   },
@@ -1607,8 +1583,8 @@ const cta = StyleSheet.create({
   outer: {
     position:          "absolute",
     bottom:            0,
-    left:              0,
-    right:             0,
+    start:             0,
+    end:               0,
     backgroundColor:   kit.color.surface,
     paddingHorizontal: 16,
     paddingTop:        14,

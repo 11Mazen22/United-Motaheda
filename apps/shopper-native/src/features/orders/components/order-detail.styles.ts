@@ -308,4 +308,9 @@ export const styles = StyleSheet.create({
     borderWidth:       1,
     borderColor:       kit.color.line,
   },
+  retryBtnPressed: {
+    backgroundColor: kit.color.accent,
+    borderColor:     kit.color.accentDeep,
+    transform:       [{ scale: 0.97 }] as const,
+  },
 });
