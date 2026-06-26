@@ -35,7 +35,8 @@
       "statusBar": {
         "backgroundColor": "transparent",
         "translucent": true
-      }
+      },
+      "versionCode": 19
     },
     "web": {
       "bundler": "metro",
