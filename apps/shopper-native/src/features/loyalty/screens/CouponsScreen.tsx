@@ -37,15 +37,18 @@ type TFunc = ReturnType<typeof useTranslation>["t"];
 const IS_RTL     = isRtl();
 const TEXT_START = textAlignStart(IS_RTL);
 const SOON_DAYS  = 7;
-
-const TXT = IS_RTL
-  ? { acquire: "استبدل نقاطك بكوبونات", expiringSoon: "تنتهي قريباً", usable: "كوبوناتك الجاهزة", expiresInDays: (n: number) => (n <= 0 ? "تنتهي اليوم" : `تنتهي خلال ${n} يوم`), expiringPill: "ينتهي قريباً", usablePill: "جاهز", balance: "رصيدك" }
-  : { acquire: "Redeem points for coupons", expiringSoon: "Expiring soon", usable: "Ready to use", expiresInDays: (n: number) => (n <= 0 ? "Expires today" : `Expires in ${n} day${n === 1 ? "" : "s"}`), expiringPill: "Expiring", usablePill: "Ready", balance: "Your points" };
+const LOCALE     = IS_RTL ? "ar-EG" : "en-US";
 
 function daysToExpiry(expiresAt: string | null | undefined): number | null {
   if (!expiresAt) return null;
   const ms = new Date(expiresAt).getTime() - Date.now();
   return ms <= 0 ? 0 : Math.ceil(ms / 86_400_000);
+}
+
+function expiresLabel(days: number | null, t: TFunc): string | null {
+  if (days === null) return null;
+  if (days <= 0) return t("loyalty.couponExpiresToday");
+  return t("loyalty.couponExpiresInDays", { n: days });
 }
 
 export function CouponsScreen() {
@@ -80,15 +83,15 @@ export function CouponsScreen() {
         showErrorSheet(
           t("loyalty.insufficientPointsTitle"),
           t("loyalty.insufficientPointsBody", {
-            cost:    batch.points_cost.toLocaleString("ar-EG"),
-            balance: currentBalance.toLocaleString("ar-EG"),
+            cost:    batch.points_cost.toLocaleString(LOCALE),
+            balance: currentBalance.toLocaleString(LOCALE),
           }),
         );
         return;
       }
       showConfirmSheet(
         t("loyalty.redeemConfirmTitle"),
-        t("loyalty.redeemConfirmBody", { cost: batch.points_cost.toLocaleString("ar-EG"), name: batch.name }),
+        t("loyalty.redeemConfirmBody", { cost: batch.points_cost.toLocaleString(LOCALE), name: batch.name }),
         () => {
           if (Platform.OS !== "web")
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
@@ -151,13 +154,13 @@ export function CouponsScreen() {
           <View style={s.balanceBar} accessibilityRole="text"
                 accessibilityLabel={t("loyalty.balanceA11y", { n: balance.data.balance })}>
             <View style={s.balanceIcon}><Ionicons name="star" size={16} color={kit.color.accentDeep} /></View>
-            <UIText style={s.balanceLabel}>{TXT.balance}</UIText>
-            <UIText style={s.balanceValue}>{balance.data.balance.toLocaleString("ar-EG")}</UIText>
+            <UIText style={s.balanceLabel}>{t("loyalty.couponsBalanceLabel")}</UIText>
+            <UIText style={s.balanceValue}>{balance.data.balance.toLocaleString(LOCALE)}</UIText>
           </View>
         )}
 
         {/* ── ACQUISITION — redeem points for coupons ── */}
-        <GroupHeader title={TXT.acquire} />
+        <GroupHeader title={t("loyalty.couponsAcquireTitle")} />
         {batches.isError ? (
           <ErrorRow onRetry={() => void batches.refetch()} />
         ) : availableBatches.length === 0 ? (
@@ -177,13 +180,13 @@ export function CouponsScreen() {
         {/* ── EXPIRATION — owned coupons expiring soon (urgent) ── */}
         {expiringSoon.length > 0 && (
           <>
-            <GroupHeader title={TXT.expiringSoon} tone="warn" icon="alarm-outline" />
+            <GroupHeader title={t("loyalty.couponsExpiringSoonTitle")} tone="warn" icon="alarm-outline" />
             {expiringSoon.map((c) => <CouponCard key={c.id} coupon={c} expiring />)}
           </>
         )}
 
         {/* ── ORGANIZATION — ready-to-use owned coupons ── */}
-        <GroupHeader title={TXT.usable} />
+        <GroupHeader title={t("loyalty.couponsReadyTitle")} />
         {coupons.isError ? (
           <ErrorRow onRetry={() => void coupons.refetch()} />
         ) : usable.length === 0 && expiringSoon.length === 0 ? (
@@ -217,7 +220,7 @@ function GroupHeader({ title, tone, icon }: {
 function CouponCard({ coupon, expiring }: { coupon: Coupon; expiring?: boolean }) {
   const { t } = useTranslation();
   const days   = daysToExpiry(coupon.expires_at);
-  const expiry = coupon.expires_at ? new Date(coupon.expires_at).toLocaleDateString("ar-EG") : null;
+  const expiry = coupon.expires_at ? new Date(coupon.expires_at).toLocaleDateString(LOCALE) : null;
   const fg = expiring ? kit.color.warn : kit.color.success;
   const bg = expiring ? kit.color.warnTint : kit.color.successTint;
   return (
@@ -234,13 +237,17 @@ function CouponCard({ coupon, expiring }: { coupon: Coupon; expiring?: boolean }
       <View style={s.couponBody}>
         <UIText style={s.couponLabel} maxFontSizeMultiplier={1.4}>{t("loyalty.couponLabel")}</UIText>
         {expiring && days !== null ? (
-          <UIText style={[s.couponMeta, { color: kit.color.warn }]} maxFontSizeMultiplier={1.4}>{TXT.expiresInDays(days)}</UIText>
+          <UIText style={[s.couponMeta, { color: kit.color.warn }]} maxFontSizeMultiplier={1.4}>
+            {expiresLabel(days, t)}
+          </UIText>
         ) : expiry ? (
           <UIText style={s.couponMeta} maxFontSizeMultiplier={1.4}>{t("loyalty.validUntil", { date: expiry })}</UIText>
         ) : null}
       </View>
       <View style={[s.statusPill, { backgroundColor: bg }]}>
-        <UIText style={[s.statusPillText, { color: fg }]}>{expiring ? TXT.expiringPill : TXT.usablePill}</UIText>
+        <UIText style={[s.statusPillText, { color: fg }]}>
+          {expiring ? t("loyalty.couponExpiringPill") : t("loyalty.couponReadyPill")}
+        </UIText>
       </View>
     </View>
   );
@@ -271,7 +278,7 @@ function BatchAcquisitionCard({ batch, currentBalance, isRedeeming, onRedeem }: 
 
   return (
     <View style={s.batchCard}
-          accessibilityLabel={t("loyalty.batchA11y", { name: batch.name, cost: batch.points_cost.toLocaleString("ar-EG") })}>
+          accessibilityLabel={t("loyalty.batchA11y", { name: batch.name, cost: batch.points_cost.toLocaleString(LOCALE) })}>
       <View style={s.batchHead}>
         <View style={s.discountBadge}>
           <UIText style={s.discountText} maxFontSizeMultiplier={1.2}>{formatDiscount(batch.discount_kind, batch.discount_value, t)}</UIText>
@@ -280,7 +287,7 @@ function BatchAcquisitionCard({ batch, currentBalance, isRedeeming, onRedeem }: 
           <UIText style={s.batchTitle} numberOfLines={2} maxFontSizeMultiplier={1.3}>{batch.name}</UIText>
           {batch.min_spend_cents != null && batch.min_spend_cents > 0 && (
             <UIText style={s.batchMeta} maxFontSizeMultiplier={1.4}>
-              {t("loyalty.minSpendBatch", { amount: (batch.min_spend_cents / 100).toLocaleString("ar-EG") })}
+              {t("loyalty.minSpendBatch", { amount: (batch.min_spend_cents / 100).toLocaleString(LOCALE) })}
             </UIText>
           )}
           {lowStock && <UIText style={[s.batchMeta, { color: kit.color.warn }]} maxFontSizeMultiplier={1.4}>{t("loyalty.lowStock", { n: remaining })}</UIText>}
@@ -291,7 +298,7 @@ function BatchAcquisitionCard({ batch, currentBalance, isRedeeming, onRedeem }: 
       <View style={s.batchFoot}>
         <View style={s.costWrap}>
           <Ionicons name="star" size={14} color={kit.color.accentDeep} />
-          <UIText style={s.costText} maxFontSizeMultiplier={1.3}>{t("loyalty.costLabel", { n: batch.points_cost.toLocaleString("ar-EG") })}</UIText>
+          <UIText style={s.costText} maxFontSizeMultiplier={1.3}>{t("loyalty.costLabel", { n: batch.points_cost.toLocaleString(LOCALE) })}</UIText>
         </View>
         <Button
           label={label}
@@ -300,7 +307,7 @@ function BatchAcquisitionCard({ batch, currentBalance, isRedeeming, onRedeem }: 
           loading={isRedeeming}
           disabled={disabled}
           onPress={onRedeem}
-          accessibilityLabel={t("loyalty.redeemBtnA11y", { name: batch.name, cost: batch.points_cost.toLocaleString("ar-EG") })}
+          accessibilityLabel={t("loyalty.redeemBtnA11y", { name: batch.name, cost: batch.points_cost.toLocaleString(LOCALE) })}
         />
       </View>
     </View>
@@ -347,7 +354,7 @@ function ErrorRow({ onRetry }: { onRetry: () => void }) {
 function formatDiscount(kind: CouponDiscountKind, value: number, t: TFunc): string {
   switch (kind) {
     case "percent":       return `${value}%-`;
-    case "flat":          return `${(value / 100).toLocaleString("ar-EG")} ج.م`;
+    case "flat":          return `${(value / 100).toLocaleString(LOCALE)} ${t("common.currency")}`;
     case "free_shipping": return t("loyalty.freeShipping");
     default:              return "";
   }

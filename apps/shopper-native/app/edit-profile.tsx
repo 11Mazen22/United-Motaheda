@@ -106,7 +106,16 @@ export default function EditProfileScreen() {
 
         {/* ── VIP Header ── */}
         <Animated.View entering={FadeIn.duration(240)} style={s.header}>
-          <Pressable onPress={() => router.back()} style={s.backBtn} hitSlop={10} accessibilityRole="button">
+          <Pressable
+            onPress={() => router.back()}
+            hitSlop={10}
+            android_ripple={{ color: kit.color.well, borderless: true }}
+            accessibilityRole="button"
+            accessibilityLabel={t("common.back")}
+            style={({ pressed }) => [
+              s.backBtn,
+              pressed && { opacity: 0.86, transform: [{ scale: 0.96 }] },
+            ]}>
             <Ionicons name={BACK_CHEVRON} size={18} color={kit.color.inkSoft} />
           </Pressable>
           <View style={s.iconTile}>
@@ -159,7 +168,7 @@ export default function EditProfileScreen() {
               {error && (
                 <Animated.View entering={FadeInDown.duration(200)} style={[s.errorBox, { flexDirection: flexRow(IS_RTL) }]}>
                   <View style={s.errorIcon}>
-                    <Ionicons name="alert-circle" size={16} color={"#E53E3E"} />
+                    <Ionicons name="alert-circle" size={16} color={kit.color.danger} />
                   </View>
                   <UIText style={[s.errorText, { textAlign: TEXT_START }]}>{error}</UIText>
                 </Animated.View>
@@ -348,24 +357,24 @@ const s = StyleSheet.create({
   errorBox: {
     alignItems:      "center",
     gap:             10,
-    backgroundColor: "rgba(229,62,62,0.06)",
+    backgroundColor: kit.color.dangerTint,
     borderRadius:    14,
     padding:         12,
     borderWidth:     1,
-    borderColor:     "rgba(229,62,62,0.20)",
+    borderColor:     `${kit.color.danger}25`,
   },
   errorIcon: {
     width:           28,
     height:          28,
     borderRadius:    9,
-    backgroundColor: "rgba(229,62,62,0.12)",
+    backgroundColor: `${kit.color.danger}10`,
     alignItems:      "center",
     justifyContent:  "center",
     flexShrink:      0,
   },
   errorText: {
     flex:               1,
-    color:              "#E53E3E",
+    color:              kit.color.danger,
     fontFamily:         theme.fonts.semibold,
     fontSize:           12,
     includeFontPadding: false,

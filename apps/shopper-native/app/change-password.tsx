@@ -99,7 +99,16 @@ export default function ChangePasswordScreen() {
 
         {/* ── VIP Header ── */}
         <Animated.View entering={FadeIn.duration(240)} style={s.header}>
-          <Pressable onPress={() => router.back()} style={s.backBtn} hitSlop={10} accessibilityRole="button">
+          <Pressable
+            onPress={() => router.back()}
+            hitSlop={10}
+            android_ripple={{ color: kit.color.well, borderless: true }}
+            accessibilityRole="button"
+            accessibilityLabel={t("common.back")}
+            style={({ pressed }) => [
+              s.backBtn,
+              pressed && { opacity: 0.86, transform: [{ scale: 0.96 }] },
+            ]}>
             <Ionicons name={BACK_CHEVRON} size={18} color={kit.color.inkSoft} />
           </Pressable>
           <View style={[s.iconTile, { backgroundColor: phase === "success" ? kit.color.successTint : kit.color.accentTint }]}>

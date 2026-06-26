@@ -26,7 +26,7 @@ import { useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { useTranslation } from "react-i18next";
-import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
+import { flexRow, isRtl } from "@/utils/layout";
 import { Text as UIText } from "@/shared/ui";
 import { Button } from "@/shared/kit";
 import { kit } from "@/shared/kit";
@@ -46,11 +46,15 @@ import { TierProgress }       from "../components/hub/TierProgress";
 import { CampaignsBanner }    from "../components/hub/CampaignsBanner";
 import { RecentActivity }     from "../components/hub/RecentActivity";
 import { WaysToEarn }         from "../components/hub/WaysToEarn";
+import {
+  quickStyles as walletQuick,
+  sectionHeaderStyles as walletHeader,
+  skeletonStyles as walletSk,
+} from "../components/wallet/wallet.styles";
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>["name"];
 
 const IS_RTL     = isRtl();
-const TEXT_START = textAlignStart(IS_RTL);
 
 // ─── Props ─────────────────────────────────────────────────────────────────────
 
@@ -261,26 +265,44 @@ function RewardActions({
 
   if (items.length === 0) return null;
 
+  const rows: ActionItem[][] = [];
+  for (let i = 0; i < items.length; i += 2) rows.push(items.slice(i, i + 2));
+
   return (
-    <View style={s.section}>
-      <UIText style={s.sectionTitle}>{t("loyalty.redeemTitle")}</UIText>
-      <View style={s.grid}>
-        {items.map((it) => (
-          <View key={it.label} style={s.actionOuter}>
-            <PressableScale
-              onPress={it.onPress}
-              scaleTo={0.96}
-              accessibilityRole="button"
-              accessibilityLabel={it.label}
-              style={s.actionCard}>
-              <View style={[s.actionIcon, { backgroundColor: it.color + "18" }]}>
-                <Ionicons name={it.icon} size={22} color={it.color} />
+    <View style={{ paddingTop: kit.sp(5) }}>
+      <View style={walletHeader.row}>
+        <View style={walletHeader.titleWrap}>
+          <Ionicons name="sparkles-outline" size={15} color={kit.color.accentDeep} />
+          <UIText style={walletHeader.title}>{t("loyalty.redeemTitle")}</UIText>
+        </View>
+      </View>
+
+      <View style={walletQuick.wrap}>
+        {rows.map((row, rowIdx) => (
+          <View key={rowIdx} style={walletQuick.row}>
+            {row.map((it) => (
+              <View key={it.label} style={walletQuick.tileOuter}>
+                <PressableScale
+                  onPress={it.onPress}
+                  scaleTo={0.96}
+                  hitSlop={8}
+                  android_ripple={{ color: kit.color.well }}
+                  accessibilityRole="button"
+                  accessibilityLabel={it.label}
+                  style={walletQuick.tile}>
+                  <View style={[walletQuick.iconWrap, { backgroundColor: it.color + "18" }]}>
+                    <Ionicons name={it.icon} size={22} color={it.color} />
+                  </View>
+                  <UIText numberOfLines={1} style={walletQuick.label}>
+                    {it.label}
+                  </UIText>
+                  <UIText numberOfLines={1} style={s.actionSubCentered}>
+                    {it.sub}
+                  </UIText>
+                </PressableScale>
               </View>
-              <View style={s.actionTextWrap}>
-                <UIText numberOfLines={1} style={s.actionLabel}>{it.label}</UIText>
-                <UIText numberOfLines={1} style={s.actionSub}>{it.sub}</UIText>
-              </View>
-            </PressableScale>
+            ))}
+            {row.length === 1 && <View style={walletQuick.tileOuter} />}
           </View>
         ))}
       </View>
@@ -327,13 +349,13 @@ function FullErrorPanel({ onRetry }: { onRetry: () => void }) {
 function HeroSkeleton() {
   return (
     <View style={{ gap: 12 }}>
-      <View style={s.skeletonHero} />
-      <View style={{ paddingHorizontal: 16, gap: 10 }}>
-        <View style={s.skeletonRow} />
-        <View style={{ flexDirection: flexRow(IS_RTL), gap: 8 }}>
-          {[0, 1, 2].map((i) => <View key={i} style={s.skeletonCard} />)}
+      <View style={walletSk.hero} />
+      <View style={{ paddingHorizontal: theme.layout.pagePaddingH, gap: 10 }}>
+        <View style={walletSk.row} />
+        <View style={[walletSk.actions, { marginHorizontal: 0 }]}>
+          {[0, 1, 2, 3].map((i) => <View key={i} style={walletSk.tile} />)}
         </View>
-        <View style={s.skeletonRow} />
+        <View style={walletSk.row} />
       </View>
     </View>
   );
@@ -361,34 +383,13 @@ const s = StyleSheet.create({
   },
   campaignsBadgeText: { fontFamily: theme.fonts.bold, fontSize: 12, color: kit.color.accentDeep },
 
-  // Reward discovery
-  section: { paddingHorizontal: theme.layout.pagePaddingH, paddingTop: kit.sp(5), gap: kit.sp(3) },
-  sectionTitle: {
-    fontFamily: theme.fonts.black, fontSize: kit.type.heading.fontSize,
-    lineHeight: kit.type.heading.lineHeight, color: kit.color.ink,
-    textAlign: TEXT_START, includeFontPadding: false,
-  },
-  grid: { flexDirection: flexRow(IS_RTL), flexWrap: "wrap", gap: 10 },
-  actionOuter: { width: "47.8%", flexGrow: 1 },
-  actionCard: {
-    width: "100%",
-    flexDirection: flexRow(IS_RTL), alignItems: "center", gap: 12,
-    paddingVertical: kit.sp(3), paddingHorizontal: kit.sp(3),
-    backgroundColor: kit.color.surface, borderRadius: kit.radius.card,
-    borderWidth: 1, borderColor: kit.color.line, ...kit.shadow.raised,
-  },
-  actionIcon: {
-    width: 40, height: 40, borderRadius: 12,
-    alignItems: "center", justifyContent: "center", flexShrink: 0,
-  },
-  actionTextWrap: { flex: 1, gap: 2, minWidth: 0 },
-  actionLabel: {
-    fontFamily: theme.fonts.black, fontSize: 13, color: kit.color.ink,
-    textAlign: TEXT_START, includeFontPadding: false,
-  },
-  actionSub: {
-    fontFamily: theme.fonts.regular, fontSize: 11, color: kit.color.inkFaint,
-    textAlign: TEXT_START, includeFontPadding: false,
+  actionSubCentered: {
+    fontFamily: theme.fonts.regular,
+    fontSize: 11,
+    lineHeight: 14,
+    color: kit.color.inkFaint,
+    textAlign: "center",
+    includeFontPadding: false,
   },
 
   // Panels
@@ -406,10 +407,6 @@ const s = StyleSheet.create({
     textAlign: "center", lineHeight: 22, maxWidth: 280,
   },
 
-  // Skeleton
-  skeletonHero: { height: 220, marginHorizontal: 16, borderRadius: 24, backgroundColor: kit.color.well },
-  skeletonRow:  { height: 56, borderRadius: 14, backgroundColor: kit.color.well },
-  skeletonCard: { flex: 1, height: 80, borderRadius: 14, backgroundColor: kit.color.well },
 });
 
 export default LoyaltyHubScreen;

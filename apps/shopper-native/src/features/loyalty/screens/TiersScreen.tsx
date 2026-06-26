@@ -181,7 +181,7 @@ export function TiersScreen() {
                     n: Math.max(0, nextTier.min_lifetime_points - lifetimeEarned).toLocaleString(),
                   })}
                 </UIText>
-                <View style={s.statusTrack}>
+                <View style={[s.statusTrack, isRtl() && s.trackRtl]}>
                   <View style={[s.statusFill, { width: `${Math.round(progress * 100)}%` as `${number}%` }]} />
                 </View>
               </View>
@@ -333,7 +333,7 @@ const TierCard = React.memo(function TierCard({
               </UIText>
               <UIText style={s.progressPct}>{Math.round(progress * 100)}%</UIText>
             </View>
-            <View style={s.progressTrack}>
+            <View style={[s.progressTrack, IS_RTL && s.trackRtl]}>
               <View style={[s.progressFill, { backgroundColor: def.color, width: `${Math.round(progress * 100)}%` as `${number}%` }]} />
             </View>
           </View>
@@ -571,6 +571,8 @@ const s = StyleSheet.create({
     overflow:        "hidden",
   },
   progressFill: { height: "100%", borderRadius: 3 },
+
+  trackRtl: { transform: [{ scaleX: -1 }] },
 
   // Max tier banner
   maxBanner: {

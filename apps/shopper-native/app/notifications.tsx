@@ -12,6 +12,7 @@ import {
 import { Text as UIText } from "@/shared/ui";
 import { Ionicons } from "@expo/vector-icons";
 import { kit } from "@/shared/kit";
+import { PressableScale } from "@/shared/motion";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
@@ -20,6 +21,7 @@ import { useTranslation } from "react-i18next";
 import { useAuth } from "@/features/auth";
 import { useNotifications, type AppNotification, type NotifType } from "@/features/notifications";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { theme } from "@/shared/theme";
 import { flexRow, isRtl, textAlignStart, BACK_CHEVRON } from "@/utils/layout";
 
@@ -32,7 +34,7 @@ const TEXT_START = textAlignStart(IS_RTL);
 const TYPE_CONFIG: Record<NotifType, { icon: IoniconsName; color: string; bg: string; labelKey: string }> = {
   order:  { icon: "bag-handle",       color: kit.color.accentDeep,  bg: kit.color.accentTint,        labelKey: "notifications.typeOrder"  },
   offer:  { icon: "pricetag",         color: kit.color.warn,         bg: kit.color.warnTint,          labelKey: "notifications.typeOffer"  },
-  health: { icon: "heart",            color: "#E53E3E",              bg: "rgba(229,62,62,0.08)",      labelKey: "notifications.typeHealth" },
+  health: { icon: "heart",            color: kit.color.danger,       bg: kit.color.dangerTint,        labelKey: "notifications.typeHealth" },
   system: { icon: "settings-outline", color: kit.color.inkSoft,     bg: kit.color.well,               labelKey: "notifications.typeSystem" },
 };
 
@@ -67,6 +69,33 @@ function timeAgo(dateStr: string, t: (k: string, opts?: Record<string, unknown>)
   return w === 1 ? t("notifications.timeWeekAgo") : t("notifications.timeWeeksAgo", { count: w });
 }
 
+// ─── Skeleton list ────────────────────────────────────────────────────────────
+function NotificationsSkeleton({ insetsBottom }: { insetsBottom: number }) {
+  return (
+    <ScrollView
+      contentContainerStyle={[
+        s.listContent,
+        { paddingBottom: insetsBottom + 40, paddingTop: 14 },
+      ]}
+      showsVerticalScrollIndicator={false}>
+      {Array.from({ length: 8 }).map((_, i) => (
+        <View key={i} style={s.notifCard}>
+          <Skeleton width={46} height={46} radius={14} />
+          <View style={{ flex: 1, gap: 10 }}>
+            <View style={{ flexDirection: flexRow(IS_RTL), alignItems: "center", gap: 10 }}>
+              <Skeleton width="62%" height={12} radius={6} />
+              <Skeleton width={64} height={10} radius={5} />
+            </View>
+            <Skeleton width="92%" height={11} radius={6} />
+            <Skeleton width="78%" height={11} radius={6} />
+            <Skeleton width={90} height={18} radius={9} />
+          </View>
+        </View>
+      ))}
+    </ScrollView>
+  );
+}
+
 // ─── Notification row ─────────────────────────────────────────────────────────
 const NotificationRow = React.memo(function NotificationRow({
   item, onPress,
@@ -74,16 +103,18 @@ const NotificationRow = React.memo(function NotificationRow({
   const { t } = useTranslation();
   const cfg   = TYPE_CONFIG[item.type] ?? TYPE_CONFIG.system;
   return (
-    <Pressable
+    <PressableScale
       onPress={onPress}
+      scaleTo={0.985}
+      hitSlop={6}
+      android_ripple={{ color: kit.color.well }}
       accessibilityRole="button"
       accessibilityLabel={`${item.title}. ${item.body}`}
       accessibilityState={{ selected: !item.isRead }}
-      style={({ pressed }) => [
-        s.notifRow,
-        !item.isRead && s.notifRowUnread,
-        item.isRead && s.notifRowRead,
-        pressed && { backgroundColor: kit.color.well },
+      style={[
+        s.notifCard,
+        !item.isRead && s.notifCardUnread,
+        item.isRead && s.notifCardRead,
       ]}>
 
       {/* Type icon */}
@@ -107,7 +138,7 @@ const NotificationRow = React.memo(function NotificationRow({
           <UIText style={[s.notifTypeText, { color: cfg.color }]}>{t(cfg.labelKey)}</UIText>
         </View>
       </View>
-    </Pressable>
+    </PressableScale>
   );
 });
 
@@ -227,21 +258,20 @@ export default function NotificationsScreen() {
 
       {/* ── List ── */}
       {loading && notifications.length === 0 ? (
-        <View style={s.loadingWrap}>
-          <ActivityIndicator size="large" color={kit.color.accent} />
-          <UIText style={s.loadingText}>{t("common.loading")}</UIText>
-        </View>
+        <NotificationsSkeleton insetsBottom={insets.bottom} />
       ) : (
         <FlatList
           data={filtered}
           keyExtractor={keyExtractor}
           renderItem={renderItem}
-          contentContainerStyle={{ paddingBottom: insets.bottom + 40 }}
+          contentContainerStyle={[
+            s.listContent,
+            { paddingBottom: insets.bottom + 40 },
+          ]}
           showsVerticalScrollIndicator={false}
-          ItemSeparatorComponent={() => <View style={s.sep} />}
+          ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
           onEndReached={handleEndReached}
           onEndReachedThreshold={0.5}
-          removeClippedSubviews
           maxToRenderPerBatch={12}
           initialNumToRender={10}
           windowSize={7}
@@ -264,7 +294,9 @@ export default function NotificationsScreen() {
               <EmptyState
                 icon="notifications-off-outline"
                 title={t("notifications.empty")}
-                description={filter !== "all" ? t("notifications.emptyFiltered") : t("notifications.empty")}
+                description={filter !== "all" ? t("notifications.emptyFiltered") : undefined}
+                actionLabel={filter !== "all" ? t("notifications.filterAll") : undefined}
+                onAction={filter !== "all" ? () => setFilter("all") : undefined}
               />
             </View>
           }
@@ -352,7 +384,7 @@ const s = StyleSheet.create({
 
   // Filter bar
   filterBar: { alignItems: "center", gap: 8 },
-  filterRow: { gap: 6, paddingRight: 4 },
+  filterRow: { gap: 6, paddingEnd: 4 },
   filterChip: {
     paddingHorizontal: 13,
     paddingVertical:   7,
@@ -391,21 +423,30 @@ const s = StyleSheet.create({
     color:      kit.color.inkFaint,
   },
 
-  // Notification row
-  notifRow: {
+  // List + card row
+  listContent: {
+    paddingHorizontal: 16,
+    paddingTop:        12,
+  },
+  notifCard: {
     flexDirection:     flexRow(IS_RTL),
     alignItems:        "flex-start",
     gap:               14,
-    paddingHorizontal: 18,
+    paddingHorizontal: 16,
     paddingVertical:   16,
     backgroundColor:   kit.color.surface,
+    borderRadius:      18,
+    borderWidth:       1,
+    borderColor:       kit.color.line,
+    ...kit.shadow.raised,
   },
-  notifRowUnread: {
+  notifCardUnread: {
     backgroundColor:  kit.color.accentTint,
+    borderColor:      `${kit.color.accent}22`,
     borderStartWidth: 3,
     borderStartColor: kit.color.accent,
   },
-  notifRowRead: { backgroundColor: kit.color.surface },
+  notifCardRead: { backgroundColor: kit.color.surface },
   notifIcon: {
     width:          46,
     height:         46,
@@ -438,6 +479,8 @@ const s = StyleSheet.create({
     fontFamily:         theme.fonts.semibold,
     color:              kit.color.inkFaint,
     includeFontPadding: false,
+    writingDirection:   "ltr",
+    fontVariant:        ["tabular-nums"],
   },
   notifBody: {
     fontSize:           12.5,
@@ -462,9 +505,5 @@ const s = StyleSheet.create({
     fontSize:           9,
     fontFamily:         theme.fonts.bold,
     includeFontPadding: false,
-  },
-  sep: {
-    height:          StyleSheet.hairlineWidth,
-    backgroundColor: kit.color.line,
   },
 });
