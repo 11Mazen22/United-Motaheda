@@ -8,7 +8,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useAuth } from "../../hooks/useAuth";
 import { useLanguage } from "../../contexts/LanguageContext";
-import { AccountSuspendedError } from "../../contexts/AuthContext";
+import { AccountInactiveError, AccountSuspendedError } from "../../contexts/AuthContext";
 import { cn } from "../components/UI";
 import { createLoginSchema, type LoginFormValues } from "./authSchemas";
 
@@ -48,15 +48,21 @@ export default function LoginForm({
     try {
       const result = await login({ email: values.email, password: values.password });
       toast.success(isArabic ? "تم تسجيل الدخول بنجاح." : "Signed in successfully.");
-      const isStaff =
-        result.user?.role === "admin"      ||
-        result.user?.role === "manager"    ||
-        result.user?.role === "pharmacist" ||
-        result.user?.role === "driver";
-      navigate(from.trim() || (isStaff ? "/ops" : "/"), { replace: true });
+      const role = result.user?.role;
+      const dest =
+        role === "admin" || role === "manager" || role === "pharmacist" ? "/admin" :
+        role === "driver" ? "/driver" : "/";
+      navigate(from.trim() || dest, { replace: true });
     } catch (error) {
       if (error instanceof AccountSuspendedError) {
         navigate("/suspended", { state: error.suspensionData, replace: true });
+        return;
+      }
+      if (error instanceof AccountInactiveError) {
+        const msg = isArabic
+          ? "هذا الحساب غير نشط. تواصل مع الدعم إذا كنت تعتقد أن هذا خطأ."
+          : "This account has been deactivated. Contact support if you think this is a mistake.";
+        form.setError("root", { message: msg });
         return;
       }
       const message = error instanceof Error

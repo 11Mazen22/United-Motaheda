@@ -69,6 +69,13 @@ export class AccountSuspendedError extends Error {
   }
 }
 
+export class AccountInactiveError extends Error {
+  constructor() {
+    super("ACCOUNT_INACTIVE");
+    this.name = "AccountInactiveError";
+  }
+}
+
 export interface UserProfile {
   id: string;
   email: string;
@@ -385,6 +392,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           reasonCodes:  susp?.reason_codes as string[] | undefined,
           adminNotes:   susp?.admin_notes  as string | undefined,
         });
+      }
+
+      if (resolvedProfile.status === "Inactive") {
+        authUserRef.current = null;
+        setUser(null);
+        await supabase.auth.signOut();
+        throw new AccountInactiveError();
       }
 
       if (!profile) setUser(resolvedProfile);

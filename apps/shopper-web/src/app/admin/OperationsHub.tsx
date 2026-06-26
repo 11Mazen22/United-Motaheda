@@ -45,7 +45,7 @@ import {
 
 type Language = "ar" | "en";
 type OrderStatus = AdminOrder["status"];
-type TabKey = "all" | "pending" | "out" | "delivered" | "cancelled";
+type TabKey = "all" | "pending" | "processing" | "out" | "delivered" | "cancelled";
 
 // ─── Status helpers ───────────────────────────────────────────────────────────
 
@@ -420,11 +420,12 @@ export default function OperationsHub() {
   const filteredOrders = useMemo(() => {
     return orders.filter((o) => {
       const tabOk =
-        activeTab === "all" ? true :
-        activeTab === "pending" ? o.status === "Pending" || o.status === "Processing" :
-        activeTab === "out" ? o.status === "Out for Delivery" :
-        activeTab === "delivered" ? o.status === "Delivered" :
-        activeTab === "cancelled" ? o.status === "Cancelled" : true;
+        activeTab === "all"        ? true :
+        activeTab === "pending"    ? o.status === "Pending" :
+        activeTab === "processing" ? o.status === "Processing" :
+        activeTab === "out"        ? o.status === "Out for Delivery" :
+        activeTab === "delivered"  ? o.status === "Delivered" :
+        activeTab === "cancelled"  ? o.status === "Cancelled" : true;
       const driverOk =
         driverFilter === "all" ? true :
         driverFilter === "none" ? !o.assignedDriverId :
@@ -440,7 +441,8 @@ export default function OperationsHub() {
 
   const summary = useMemo(() => ({
     total: orders.length,
-    pending: orders.filter((o) => o.status === "Pending" || o.status === "Processing").length,
+    pending: orders.filter((o) => o.status === "Pending").length,
+    processing: orders.filter((o) => o.status === "Processing").length,
     outForDelivery: orders.filter((o) => o.status === "Out for Delivery").length,
     delivered: orders.filter((o) => o.status === "Delivered").length,
     cancelled: orders.filter((o) => o.status === "Cancelled").length,
@@ -448,11 +450,12 @@ export default function OperationsHub() {
   }), [orders]);
 
   const tabs: { key: TabKey; label: string; count: number }[] = [
-    { key: "all",       label: lang === "ar" ? "الكل" : "All",              count: orders.length },
-    { key: "pending",   label: lang === "ar" ? "قيد المعالجة" : "In‑progress", count: summary.pending },
-    { key: "out",       label: lang === "ar" ? "خارج للتسليم" : "Out",      count: summary.outForDelivery },
-    { key: "delivered", label: lang === "ar" ? "تم التسليم" : "Delivered",  count: summary.delivered },
-    { key: "cancelled", label: lang === "ar" ? "ملغي" : "Cancelled",        count: summary.cancelled },
+    { key: "all",        label: lang === "ar" ? "الكل" : "All",              count: orders.length },
+    { key: "pending",    label: lang === "ar" ? "في الانتظار" : "Pending",   count: summary.pending },
+    { key: "processing", label: lang === "ar" ? "قيد التجهيز" : "Processing", count: summary.processing },
+    { key: "out",        label: lang === "ar" ? "خارج للتسليم" : "Out",      count: summary.outForDelivery },
+    { key: "delivered",  label: lang === "ar" ? "تم التسليم" : "Delivered",  count: summary.delivered },
+    { key: "cancelled",  label: lang === "ar" ? "ملغي" : "Cancelled",        count: summary.cancelled },
   ];
 
   const thClass = "px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500";
@@ -467,8 +470,8 @@ export default function OperationsHub() {
           tone="slate"
         />
         <AdminMetricCard
-          label={lang === "ar" ? "قيد المعالجة" : "In‑progress"}
-          value={summary.pending}
+          label={lang === "ar" ? "في الانتظار / تجهيز" : "Pending / Processing"}
+          value={summary.pending + summary.processing}
           tone="amber"
         />
         <AdminMetricCard

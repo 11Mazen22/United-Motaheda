@@ -6,7 +6,7 @@ import Layout from "./layout";
 import { CatalogProvider, useCatalog } from "../contexts/CatalogContext";
 import { CartProvider } from "../contexts/CartContext";
 import { SearchProvider } from "../contexts/SearchContext";
-import { ManagerAndAbove } from "./admin/AdminRouteProtection";
+import { AdminOnly, ManagerAndAbove } from "./admin/AdminRouteProtection";
 import { useAuth } from "../contexts/AuthContext";
 import AppBootstrapOverlay from "./components/AppBootstrapOverlay";
 import { BootstrapBlockingProvider } from "./components/BootstrapBlockingContext";
@@ -139,8 +139,8 @@ function AppShell() {
             <Route path="products/fast-entry" element={withSuspense(<FastProductEntry />)} />
             <Route path="products"            element={withSuspense(<ProductManager />)} />
             <Route path="operations"          element={withSuspense(<ManagerAndAbove><OperationsHub /></ManagerAndAbove>)} />
-            <Route path="staff"               element={withSuspense(<StaffManager />)} />
-            <Route path="users"               element={withSuspense(<UsersManager />)} />
+            <Route path="staff"               element={withSuspense(<AdminOnly><StaffManager /></AdminOnly>)} />
+            <Route path="users"               element={withSuspense(<AdminOnly><UsersManager /></AdminOnly>)} />
             <Route path="notifications"       element={withSuspense(<NotificationsManager />)} />
             <Route path="*"                   element={<Navigate to="/admin" replace />} />
           </Route>

@@ -117,7 +117,7 @@ function getPaymentLabel(method: string | null): string {
   }
 }
 type DatePreset = "all" | "today" | "last7" | "last30" | "custom";
-type TabKey = "all" | "attention" | "out" | "delivered" | "cancelled";
+type TabKey = "all" | "pending" | "processing" | "out" | "delivered" | "cancelled";
 
 const ORDER_STATUSES: OrderStatus[] = [
   "Pending",
@@ -775,15 +775,12 @@ export default function OrdersManager() {
     const query = debouncedSearch.trim().toLowerCase();
     return orders.filter((order) => {
       const tabMatches =
-        activeTab === "all"
-          ? true
-          : activeTab === "attention"
-            ? order.status === "Pending" || order.status === "Processing"
-            : activeTab === "out"
-              ? order.status === "Out for Delivery"
-              : activeTab === "delivered"
-                ? order.status === "Delivered"
-                : order.status === "Cancelled";
+        activeTab === "all"        ? true :
+        activeTab === "pending"    ? order.status === "Pending" :
+        activeTab === "processing" ? order.status === "Processing" :
+        activeTab === "out"        ? order.status === "Out for Delivery" :
+        activeTab === "delivered"  ? order.status === "Delivered" :
+        order.status === "Cancelled";
 
       if (!tabMatches) return false;
       if (statusFilter !== "all" && order.status !== statusFilter) return false;
@@ -808,18 +805,19 @@ export default function OrdersManager() {
   const summary = useMemo(() => ({
     total: orders.length,
     pending: orders.filter((order) => order.status === "Pending").length,
-    attention: orders.filter((order) => order.status === "Pending" || order.status === "Processing").length,
+    processing: orders.filter((order) => order.status === "Processing").length,
     out: orders.filter((order) => order.status === "Out for Delivery").length,
     delivered: orders.filter((order) => order.status === "Delivered").length,
     cancelled: orders.filter((order) => order.status === "Cancelled").length,
   }), [orders]);
 
   const tabs = useMemo(() => ([
-    { key: "all", label: lang === "ar" ? "الكل" : "All", count: summary.total },
-    { key: "attention", label: lang === "ar" ? "معلّقة / تجهيز" : "Pending / In progress", count: summary.attention },
-    { key: "out", label: lang === "ar" ? "خارج للتسليم" : "Out for delivery", count: summary.out },
-    { key: "delivered", label: lang === "ar" ? "تم التسليم" : "Delivered", count: summary.delivered },
-    { key: "cancelled", label: lang === "ar" ? "ملغي" : "Cancelled", count: summary.cancelled },
+    { key: "all",        label: lang === "ar" ? "الكل" : "All",              count: summary.total },
+    { key: "pending",    label: lang === "ar" ? "في الانتظار" : "Pending",   count: summary.pending },
+    { key: "processing", label: lang === "ar" ? "قيد التجهيز" : "Processing", count: summary.processing },
+    { key: "out",        label: lang === "ar" ? "خارج للتسليم" : "Out for delivery", count: summary.out },
+    { key: "delivered",  label: lang === "ar" ? "تم التسليم" : "Delivered",  count: summary.delivered },
+    { key: "cancelled",  label: lang === "ar" ? "ملغي" : "Cancelled",        count: summary.cancelled },
   ] satisfies Array<{ key: TabKey; label: string; count: number }>), [lang, summary]);
 
   const totalPages = Math.max(1, Math.ceil(filteredOrders.length / ITEMS_PER_PAGE));
@@ -922,7 +920,7 @@ export default function OrdersManager() {
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
         <AdminMetricCard label={lang === "ar" ? "إجمالي الطلبات" : "Total orders"} value={summary.total} icon={ClipboardDocumentListIcon} />
         <AdminMetricCard label={lang === "ar" ? "في الانتظار" : "Pending"} value={summary.pending} tone="amber" />
-        <AdminMetricCard label={lang === "ar" ? "قيد المتابعة" : "Needs attention"} value={summary.attention} tone="violet" />
+        <AdminMetricCard label={lang === "ar" ? "قيد التجهيز" : "Processing"} value={summary.processing} tone="violet" />
         <AdminMetricCard label={lang === "ar" ? "خارج للتسليم" : "Out for delivery"} value={summary.out} icon={TruckIcon} tone="sky" />
         <AdminMetricCard label={lang === "ar" ? "تم التسليم" : "Delivered"} value={summary.delivered} icon={CheckCircleIcon} tone="emerald" />
       </div>

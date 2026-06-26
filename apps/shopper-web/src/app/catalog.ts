@@ -673,8 +673,9 @@ export function normalizeSupabaseProduct(row: Record<string, unknown>, sourceRow
   // is_active (1/0) only for RPC rows that didn't include a stock figure.
   const rawStock = row.Stock ?? row.stock;
   const stockNum = Number.isFinite(Number(rawStock)) ? Number(rawStock) : null;
-  const inStock = stockNum !== null ? stockNum > 0 : row.is_active === true;
-  const stockVal = stockNum !== null ? stockNum : (inStock ? 1 : 0);
+  // is_active is the primary availability signal; Stock > 0 is secondary.
+  const inStock = row.is_active === true || (stockNum !== null && stockNum > 0);
+  const stockVal = stockNum !== null && stockNum > 0 ? stockNum : (inStock ? 1 : 0);
 
   const rawCategoryAr = sanitizeText(row.Category_Name);
   const rawCategoryEn = sanitizeText(row.Category_Name_En);

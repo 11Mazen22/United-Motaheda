@@ -39,11 +39,11 @@ import {
   type StaffMember,
   getAdminOrders,
   getCachedAdminOrders,
-  getCachedDashboardStats,
-  getCachedStaff,
-  getDashboardStats,
-  getStaff,
 } from "../../services/googleSheetsApi";
+import {
+  getSupabaseDashboardStats,
+  getSupabaseStaff,
+} from "../../services/adminDashboardApi";
 import { cn } from "../components/UI";
 import { Skeleton } from "../components/ui/skeleton";
 import {
@@ -60,9 +60,7 @@ type Language = "ar" | "en";
 
 // ─── Seed from cache ──────────────────────────────────────────────────────────
 
-const initialStats = getCachedDashboardStats();
 const initialOrders = getCachedAdminOrders() ?? [];
-const initialStaff = getCachedStaff() ?? [];
 
 // ─── Format helpers ───────────────────────────────────────────────────────────
 
@@ -120,14 +118,21 @@ function formatTrend(trend: number | null, lang: Language): string {
 }
 
 function getOrderStatusLabel(status: AdminOrder["status"], lang: Language): string {
-  if (status === "Delivered") return lang === "ar" ? "تم التسليم" : "Delivered";
-  if (status === "Cancelled") return lang === "ar" ? "ملغي" : "Cancelled";
-  return lang === "ar" ? "قيد المعالجة" : "Pending";
+  const ar: Record<string, string> = {
+    Pending:             "في الانتظار",
+    Processing:          "قيد التجهيز",
+    "Out for Delivery":  "خارج للتسليم",
+    Delivered:           "تم التسليم",
+    Cancelled:           "ملغي",
+  };
+  return lang === "ar" ? (ar[status] ?? status) : status;
 }
 
 function getOrderStatusTone(status: AdminOrder["status"]): string {
-  if (status === "Delivered") return "border-emerald-200 bg-emerald-50 text-emerald-700";
-  if (status === "Cancelled") return "border-rose-200 bg-rose-50 text-rose-700";
+  if (status === "Delivered")        return "border-emerald-200 bg-emerald-50 text-emerald-700";
+  if (status === "Cancelled")        return "border-rose-200 bg-rose-50 text-rose-700";
+  if (status === "Out for Delivery") return "border-sky-200 bg-sky-50 text-sky-700";
+  if (status === "Processing")       return "border-violet-200 bg-violet-50 text-violet-700";
   return "border-amber-200 bg-amber-50 text-amber-700";
 }
 
@@ -264,27 +269,24 @@ export default function DashboardOverview() {
   // Use full catalog for accurate low-stock alerts (not the paginated view)
   const { allProducts } = useFullCatalog();
 
-  const hasCached =
-    Boolean(initialStats) ||
-    Boolean(initialOrders.length) ||
-    Boolean(initialStaff.length);
+  const hasCached = Boolean(initialOrders.length);
 
-  const [stats, setStats] = useState<DashboardStats | null>(initialStats);
+  const [stats, setStats] = useState<DashboardStats | null>(null);
   const [orders, setOrders] = useState<AdminOrder[]>(initialOrders);
-  const [staff, setStaff] = useState<StaffMember[]>(initialStaff);
-  const [loading, setLoading] = useState(!hasCached);
+  const [staff, setStaff] = useState<StaffMember[]>([]);
+  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
 
   const loadOverview = useCallback(
     async (force = false) => {
-      if (hasCached || force) setRefreshing(true);
+      if (hasCached && !force) setRefreshing(true);
       else setLoading(true);
 
       const results = await Promise.allSettled([
-        getDashboardStats(force),
+        getSupabaseDashboardStats(),
         getAdminOrders(force),
-        userRole === "admin" ? getStaff(force) : Promise.resolve([]),
+        userRole === "admin" ? getSupabaseStaff() : Promise.resolve([]),
       ]);
 
       const errors: string[] = [];
