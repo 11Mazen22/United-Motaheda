@@ -22,6 +22,7 @@ import { Text as UIText } from "@/shared/ui";
 import { theme } from "@/shared/theme";
 import { kit } from "@/shared/kit";
 import { flexRow, isRtl, textAlignStart, BACK_CHEVRON } from "@/utils/layout";
+import { useScreenLayout } from "@/utils/responsive";
 import { useAuth } from "@/features/auth";
 import type { Order } from "@/stores/orders";
 import { useOrders } from "../hooks/useOrders";
@@ -44,13 +45,18 @@ function OrdersHeader({
   const total     = orders.length;
   const active    = orders.filter((o) => !["delivered", "cancelled"].includes(o.status)).length;
   const delivered = orders.filter((o) => o.status === "delivered").length;
+  const { pagePad } = useScreenLayout();
 
   return (
-    <View style={[h.header, { paddingTop: insetsTop + 14 }]}>
+    <View style={[h.header, { paddingTop: insetsTop + 14, paddingHorizontal: pagePad }]}>
       {/* Top row — back + icon tile + title block */}
       <View style={[h.topRow, { flexDirection: flexRow(isRtl()) }]}>
         {showBack ? (
-          <Pressable onPress={onBack} style={h.backBtn} accessibilityRole="button">
+          <Pressable
+            onPress={onBack}
+            style={({ pressed }) => [h.backBtn, pressed && { opacity: 0.82, transform: [{ scale: 0.96 }] }]}
+            accessibilityRole="button"
+            hitSlop={8}>
             <Ionicons name={BACK_CHEVRON} size={18} color={kit.color.inkSoft} />
           </Pressable>
         ) : null}
@@ -109,6 +115,7 @@ function OrdersList({
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { t }  = useTranslation();
+  const { pagePad } = useScreenLayout();
 
   const renderItem = useCallback(
     ({ item }: { item: Order }) => (
@@ -129,7 +136,10 @@ function OrdersList({
       <FlatList
         data={orders}
         keyExtractor={(o) => o.id}
-        contentContainerStyle={[listS.listContent, { paddingBottom: insets.bottom + 32 }]}
+        contentContainerStyle={[
+          listS.listContent,
+          { paddingHorizontal: pagePad, paddingBottom: insets.bottom + 32 },
+        ]}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -145,6 +155,25 @@ function OrdersList({
   );
 }
 
+// ─── OrdersLoadingState — header + skeleton with responsive gutter ────────────
+
+function OrdersLoadingState({
+  insetsTop, showBack, onBack,
+}: { insetsTop: number; showBack: boolean; onBack: () => void }) {
+  const { t } = useTranslation();
+  const { pagePad } = useScreenLayout();
+  return (
+    <View style={{ flex: 1, backgroundColor: kit.color.canvas }}>
+      <OrdersHeader t={t} insetsTop={insetsTop} orders={[]} showBack={showBack} onBack={onBack} />
+      <View style={[listS.skeletonContainer, { paddingHorizontal: pagePad }]}>
+        <SkeletonCard />
+        <SkeletonCard />
+        <SkeletonCard />
+      </View>
+    </View>
+  );
+}
+
 // ─── OrdersScreen — root ──────────────────────────────────────────────────────
 
 export interface OrdersScreenProps {
@@ -153,7 +182,6 @@ export interface OrdersScreenProps {
 
 export function OrdersScreen({ showBack = true }: OrdersScreenProps): React.ReactElement {
   const router   = useRouter();
-  const { t }    = useTranslation();
   const { user } = useAuth();
   const insets   = useSafeAreaInsets();
 
@@ -176,23 +204,7 @@ export function OrdersScreen({ showBack = true }: OrdersScreenProps): React.Reac
 
   // ── Loading ──────────────────────────────────────────────────────────────────
   if (isLoading) {
-    return (
-      <View style={{ flex: 1, backgroundColor: kit.color.canvas }}>
-        {/* Gradient header with empty stats while loading */}
-        <OrdersHeader
-          t={t}
-          insetsTop={insets.top}
-          orders={[]}
-          showBack={showBack}
-          onBack={() => router.back()}
-        />
-        <View style={listS.skeletonContainer}>
-          <SkeletonCard />
-          <SkeletonCard />
-          <SkeletonCard />
-        </View>
-      </View>
-    );
+    return <OrdersLoadingState insetsTop={insets.top} showBack={showBack} onBack={() => router.back()} />;
   }
 
   // ── Empty ────────────────────────────────────────────────────────────────────
@@ -213,8 +225,8 @@ export function OrdersScreen({ showBack = true }: OrdersScreenProps): React.Reac
 // ─── Header styles ────────────────────────────────────────────────────────────
 
 const h = StyleSheet.create({
+  // paddingHorizontal is set inline via useScreenLayout().pagePad for breakpoint-aware gutter
   header: {
-    paddingHorizontal: theme.layout.pagePaddingH,
     paddingBottom:     18,
     gap:               16,
     backgroundColor:   kit.color.surface,

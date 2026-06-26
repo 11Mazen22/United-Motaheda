@@ -37,8 +37,11 @@ import { Badge } from "@/components/ui/Badge";
 import { theme } from "@/shared/theme";
 import { kit } from "@/shared/kit";
 import { formatPrice } from "@/utils/format";
-import { FORWARD_CHEVRON } from "@/utils/layout";
+import { FORWARD_CHEVRON, textAlignStart, isRtl } from "@/utils/layout";
+import { useScreenLayout } from "@/utils/responsive";
 import { useAppLanguage } from "@/i18n/LanguageProvider";
+
+const TEXT_START = textAlignStart(isRtl());
 
 import {
   ORDER_STATUS_META,
@@ -75,6 +78,7 @@ export default function OrderDetailScreen(): React.ReactElement {
   const insets       = useSafeAreaInsets();
   const { t }        = useTranslation();
   const { language } = useAppLanguage();
+  const { pagePad } = useScreenLayout();
   const { id }       = useLocalSearchParams<{ id: string }>();
 
   const { data: order, isLoading, isRefetching, refetch, isError } = useOrderDetail(id);
@@ -142,14 +146,19 @@ export default function OrderDetailScreen(): React.ReactElement {
       <Animated.View entering={FadeIn.duration(240)} style={styles.header}>
         <HeaderBackButton onPress={() => router.back()} />
         <View style={{ flex: 1 }}>
-          <UIText variant="eyebrow" color="tertiary" align="right">{t("orders.orderDetail")}</UIText>
-          <UIText variant="card-title" align="right" style={styles.headerOrderId}>#{shortId}</UIText>
+          <UIText variant="eyebrow" color="tertiary" style={styles.headerEyebrow}>
+            {t("orders.orderDetail")}
+          </UIText>
+          <UIText variant="card-title" style={styles.headerOrderId}>#{shortId}</UIText>
         </View>
         <Badge variant={statusMeta.variant} size="sm">{t(statusMeta.labelKey)}</Badge>
       </Animated.View>
 
       <ScrollView
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 32 }]}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingHorizontal: pagePad, paddingBottom: insets.bottom + 32 },
+        ]}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -209,7 +218,7 @@ export default function OrderDetailScreen(): React.ReactElement {
             {order.items.map((item) => (
               <Pressable
                 key={item.productId}
-                style={({ pressed }) => [styles.itemCard, pressed && { opacity: 0.92, transform: [{ scale: 0.99 }] }]}
+                style={({ pressed }) => [styles.itemCard, pressed && styles.itemCardPressed]}
                 onPress={() => router.push(`/product/${item.productId}`)}
                 accessibilityRole="button"
                 accessibilityLabel={item.name}>
@@ -221,12 +230,12 @@ export default function OrderDetailScreen(): React.ReactElement {
                   </View>
                 )}
                 <View style={{ flex: 1 }}>
-                  <UIText variant="body-sm" weight="bold" align="right" numberOfLines={2}>
+                  <UIText variant="body-sm" weight="bold" style={styles.itemTitle} numberOfLines={2}>
                     {item.name || t("orders.noItems")}
                   </UIText>
                   <View style={styles.itemMeta}>
                     <UIText variant="caption" color="secondary">{t("orders.qty", { count: item.quantity })}</UIText>
-                    <UIText variant="caption" weight="bold" style={{ color: kit.color.accentDeep }}>
+                    <UIText variant="caption" weight="bold" style={[styles.itemPrice, { color: kit.color.accentDeep }]}>
                       {formatPrice(item.price)}
                     </UIText>
                   </View>
@@ -264,12 +273,12 @@ export default function OrderDetailScreen(): React.ReactElement {
               <Ionicons name={pmMeta.icon} size={20} color={pmMeta.color} />
             </View>
             <View style={{ flex: 1 }}>
-              <UIText variant="body-sm" weight="bold" align="right" style={{ color: pmMeta.color }}>
+              <UIText variant="body-sm" weight="bold" style={{ color: pmMeta.color, textAlign: TEXT_START }}>
                 {t(pmMeta.labelKey)}
               </UIText>
               <View style={styles.paymentStatusRow}>
                 <Ionicons name={psDisplay.icon} size={12} color={psDisplay.color} />
-                <UIText variant="caption" style={{ color: psDisplay.color, marginRight: theme.spacing.xs }}>
+                <UIText variant="caption" style={{ color: psDisplay.color }}>
                   {t(psDisplay.labelKey)}
                 </UIText>
               </View>
@@ -279,13 +288,19 @@ export default function OrderDetailScreen(): React.ReactElement {
           {isManualPay && order.transferNumber && (
             <View style={styles.transferRow}>
               <UIText variant="caption" color="tertiary">{t("orders.transferNumber")}</UIText>
-              <UIText variant="body-sm" weight="bold">{order.transferNumber}</UIText>
+              {/* Transfer numbers are value-shaped — keep LTR composition */}
+              <UIText variant="body-sm" weight="bold" style={{ textAlign: "left" }}>
+                {order.transferNumber}
+              </UIText>
             </View>
           )}
 
           {isManualPay && order.paymentProofUrl && (
             <View style={styles.proofContainer}>
-              <UIText variant="eyebrow" color="tertiary" align="right" style={{ marginBottom: theme.spacing.sm }}>
+              <UIText
+                variant="eyebrow"
+                color="tertiary"
+                style={{ marginBottom: theme.spacing.sm, textAlign: TEXT_START }}>
                 {t("orders.paymentProof")}
               </UIText>
               <SafeImage source={{ uri: order.paymentProofUrl }} style={styles.proofImage} contentFit="cover" />
@@ -293,7 +308,7 @@ export default function OrderDetailScreen(): React.ReactElement {
           )}
         </DetailSection>
 
-        {/* ── Price breakdown ────────────────────────────────────────────────── */}
+        {/* ── Price breakdown — receipt grammar ──────────────────────────────── */}
         <DetailSection title={t("orders.priceSection")} icon="receipt-outline" delay={300}>
           <InfoRow label={t("checkout.subtotalRow", { count: order.items.length })} value={formatPrice(order.subtotal)} />
           <View style={styles.priceDivider} />
@@ -311,8 +326,13 @@ export default function OrderDetailScreen(): React.ReactElement {
           )}
           <View style={styles.priceDividerSpaced} />
           <View style={styles.totalRow}>
-            <UIText variant="body" weight="extrabold" color="primary">{t("orders.total")}</UIText>
-            <UIText variant="card-title" weight="black" style={{ color: kit.color.ink, letterSpacing: -0.4 }}>
+            <UIText variant="body" weight="extrabold" color="primary" style={styles.totalLabel}>
+              {t("orders.total")}
+            </UIText>
+            <UIText
+              variant="card-title"
+              weight="black"
+              style={[styles.totalValueText, { color: kit.color.ink, letterSpacing: -0.4 }]}>
               {formatPrice(order.total)}
             </UIText>
           </View>
@@ -321,7 +341,7 @@ export default function OrderDetailScreen(): React.ReactElement {
         {/* ── Notes ──────────────────────────────────────────────────────────── */}
         {order.address.notes ? (
           <DetailSection title={t("orders.notesSection")} icon="chatbubble-outline" delay={360}>
-            <UIText variant="body-sm" color="secondary" align="right" style={{ lineHeight: 22 }}>
+            <UIText variant="body-sm" color="secondary" style={{ lineHeight: 22, textAlign: TEXT_START }}>
               {order.address.notes}
             </UIText>
           </DetailSection>

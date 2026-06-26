@@ -67,7 +67,7 @@ export function SubScreenHeader({
         accessibilityLabel={t("common.back")}
         style={({ pressed }) => [
           styles.backBtn,
-          pressed && styles.backBtnPressed,
+          pressed && [styles.backBtnPressed, { transform: [{ scale: 0.94 }] }],
         ]}
       >
         <Ionicons name={BACK_CHEVRON} size={22} color={kit.color.ink} />
@@ -87,7 +87,10 @@ const styles = StyleSheet.create({
 
   titleBlock: {
     flex:       1,
-    alignItems: "flex-end",   // text stays flush-right in RTL
+    // `textAlign: textAlignStart()` on the inner text handles direction;
+    // forcing `alignItems: flex-end` here would pin the title to the
+    // physical right in BOTH languages, breaking English.
+    alignItems: "stretch",
     gap:        1,
   },
   title: {

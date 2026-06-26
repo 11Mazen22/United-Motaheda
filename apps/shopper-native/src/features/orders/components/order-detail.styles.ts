@@ -1,7 +1,9 @@
 import { StyleSheet } from "react-native";
-import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
+import { flexRow, isRtl, textAlignStart, valueTextAlign } from "@/utils/layout";
 import { theme } from "@/shared/theme";
 import { kit } from "@/shared/kit";
+
+const TEXT_START = textAlignStart(isRtl());
 
 export const styles = StyleSheet.create({
   screen: {
@@ -24,8 +26,13 @@ export const styles = StyleSheet.create({
     borderBottomColor: kit.color.line,
     ...kit.shadow.raised,
   },
+  headerEyebrow: {
+    textAlign: TEXT_START,
+  },
   headerOrderId: {
     letterSpacing: -0.3,
+    // Order IDs are value-shaped: keep LTR composition on both languages.
+    textAlign:     valueTextAlign,
   },
   backBtn: {
     width:           40,
@@ -37,9 +44,12 @@ export const styles = StyleSheet.create({
     borderWidth:     1,
     borderColor:     kit.color.line,
   },
+  // scrollContent padding is overridden inline with useScreenLayout().pagePad
+  // by the screen so tablet breakpoints get the wider gutter.
   scrollContent: {
-    padding: theme.layout.pagePaddingH,
-    gap:     14,
+    paddingHorizontal: theme.layout.pagePaddingH,
+    paddingTop:        14,
+    gap:               14,
   },
 
   // Meta chips
@@ -142,25 +152,39 @@ export const styles = StyleSheet.create({
     flexDirection:   flexRow(isRtl()),
     alignItems:      "center",
     gap:             theme.spacing.md,
-    backgroundColor: kit.color.well,
+    backgroundColor: kit.color.surface,
     borderRadius:    14,
     padding:         theme.spacing.md,
+    borderWidth:     1,
+    borderColor:     kit.color.line,
+  },
+  itemCardPressed: {
+    backgroundColor: kit.color.well,
+    transform:       [{ scale: 0.99 }],
   },
   itemImage: {
-    width:        60,
-    height:       60,
-    borderRadius: 10,
-    overflow:     "hidden",
+    width:           60,
+    height:          60,
+    borderRadius:    10,
+    overflow:        "hidden",
+    backgroundColor: kit.color.well,
   },
   itemImagePlaceholder: {
     backgroundColor: kit.color.well,
     alignItems:      "center",
     justifyContent:  "center",
   },
+  itemTitle: {
+    textAlign: TEXT_START,
+  },
   itemMeta: {
     flexDirection:  flexRow(isRtl()),
     justifyContent: "space-between",
+    alignItems:     "center",
     marginTop:      theme.spacing.xs,
+  },
+  itemPrice: {
+    textAlign: valueTextAlign,
   },
 
   // Address
@@ -227,12 +251,22 @@ export const styles = StyleSheet.create({
     backgroundColor: kit.color.well,
   },
 
-  // Price
+  // ── Price block — receipt grammar
+  // The breakdown reads like a pharmacy receipt: small label on the logical
+  // START, numeric value on the logical END, hairlines for groupings, a thicker
+  // dashed-feel divider before the total row.
   infoRow: {
     flexDirection:   flexRow(isRtl()),
     justifyContent:  "space-between",
     alignItems:      "center",
-    paddingVertical: 3,
+    paddingVertical: 5,
+  },
+  infoLabel: {
+    textAlign: TEXT_START,
+  },
+  infoValue: {
+    // Numeric values stay LTR for "199.00 EGP" readability in either language.
+    textAlign: valueTextAlign,
   },
   priceDivider: {
     height:          StyleSheet.hairlineWidth,
@@ -240,14 +274,21 @@ export const styles = StyleSheet.create({
     marginVertical:  6,
   },
   priceDividerSpaced: {
-    height:          StyleSheet.hairlineWidth,
-    backgroundColor: kit.color.line,
+    height:          1,
+    backgroundColor: kit.color.lineStrong,
     marginVertical:  theme.spacing.md,
+    opacity:         0.6,
   },
   totalRow: {
     flexDirection:  flexRow(isRtl()),
     justifyContent: "space-between",
     alignItems:     "baseline",
+  },
+  totalLabel: {
+    textAlign: TEXT_START,
+  },
+  totalValueText: {
+    textAlign: valueTextAlign,
   },
 
   // Error state

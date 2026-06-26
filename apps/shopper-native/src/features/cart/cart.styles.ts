@@ -391,28 +391,59 @@ export const s = StyleSheet.create({
     includeFontPadding: false,
   },
 
-  // ── Pill stepper — circle buttons inside a pill container ─────────────────
+  // ── Stepper — product-detail parity: square wells, neutral −, accent + ─────
+  // Outer well holds three children of equal height (36): minus, value, plus.
+  // RTL flow is handled by flexRow(IS_RTL) so the accent + always sits on the
+  // logical END, mirroring the product detail page.
   stepper: {
-    flexDirection:   "row",
+    flexDirection:   flexRow(IS_RTL),
     alignItems:      "center",
-    gap:             4,
+    gap:             3,
     backgroundColor: kit.color.well,
-    borderRadius:    kit.radius.pill,
-    padding:         4,
+    borderRadius:    12,
+    borderWidth:     1,
+    borderColor:     kit.color.line,
+    padding:         3,
   },
+  // Decrement — neutral surface chip
   stepBtn: {
-    width:           34,
-    height:          34,
-    borderRadius:    17,
+    width:           36,
+    height:          36,
+    borderRadius:    9,
     backgroundColor: kit.color.surface,
     alignItems:      "center",
     justifyContent:  "center",
-    ...kit.shadow.raised,
+    borderWidth:     1,
+    borderColor:     kit.color.line,
+  },
+  stepBtnPressed: {
+    backgroundColor: kit.color.accentTint,
+    borderColor:     kit.color.accent,
+    transform:       [{ scale: 0.96 }],
   },
   stepBtnDisabled: {
-    backgroundColor: kit.color.well,
-    shadowOpacity:   0,
-    elevation:       0,
+    opacity: 0.45,
+  },
+  // Increment — primary accent (mirrors product detail)
+  stepBtnPrimary: {
+    width:           36,
+    height:          36,
+    borderRadius:    9,
+    backgroundColor: kit.color.accentDeep,
+    alignItems:      "center",
+    justifyContent:  "center",
+    borderWidth:     1,
+    borderColor:     kit.color.accentDeep,
+  },
+  stepBtnPrimaryPressed: {
+    opacity:   0.88,
+    transform: [{ scale: 0.96 }],
+  },
+  qtyCell: {
+    minWidth:       36,
+    height:         36,
+    alignItems:     "center",
+    justifyContent: "center",
   },
   qtyNum: {
     fontFamily:         theme.fonts.black,
@@ -421,6 +452,7 @@ export const s = StyleSheet.create({
     color:              kit.color.ink,
     minWidth:           24,
     textAlign:          "center",
+    letterSpacing:      -0.3,
     includeFontPadding: false,
   },
   qtyNumMax: {

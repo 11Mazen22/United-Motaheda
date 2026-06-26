@@ -123,3 +123,24 @@ export const justifyStart = "flex-start" as const;
  * justifyContent value for logical END alignment.
  */
 export const justifyEnd   = "flex-end"   as const;
+
+// ─── Value-direction helpers ──────────────────────────────────────────────────
+//
+// Some content is *value-shaped* and reads more clearly LTR even on an RTL
+// screen: phone numbers, OTP cells, order IDs, coupon codes, currency price
+// clusters. These helpers force a stable LTR composition so digits and
+// currency symbols stay in their canonical order regardless of the active
+// language. Layout-direction helpers (flexRow / textAlignStart) still apply
+// to the surrounding row.
+
+/**
+ * Locks a row of value-shaped tokens (numbers, currency) to LTR composition,
+ * so e.g. "199.00 EGP" doesn't flip on an Arabic screen.
+ */
+export const valueRow = "row" as const;
+
+/**
+ * Locks numeric / code-like text to LTR alignment regardless of language.
+ * Use on order IDs, transfer numbers, OTP digits, coupon codes.
+ */
+export const valueTextAlign = "left" as const;

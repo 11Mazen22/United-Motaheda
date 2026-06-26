@@ -147,10 +147,13 @@ function CheckoutScreen() {
   }
 
   // ── Main screen ───────────────────────────────────────────────────────
+  // keyboardVerticalOffset accounts for the fixed header height + safe-area
+  // so inputs scroll into view above the keyboard, not behind the sticky CTA.
   return (
     <KeyboardAvoidingView
       style={{ flex: 1, backgroundColor: kit.color.canvas }}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}>
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      keyboardVerticalOffset={Platform.OS === "ios" ? insets.top + 56 : 0}>
       <StatusBar barStyle="dark-content" backgroundColor={kit.color.canvas} />
 
       {/* Auth gate — intercepts unauthenticated order attempts */}
@@ -290,10 +293,11 @@ function CheckoutScreen() {
         )}
       </ScrollView>
 
-      {/* Sticky CTA bar */}
-      <View style={[cs.root, { paddingBottom: insets.bottom + 12 }]}>
+      {/* Sticky CTA bar — handle + value-clustered totals + primary action */}
+      <View style={[cs.root, { paddingBottom: Math.max(insets.bottom, 12) + 4 }]}>
+        <View style={cs.handle} />
         <View style={cs.totals}>
-          <View>
+          <View style={cs.priceCluster}>
             <UIText variant="eyebrow" color="tertiary" align={TEXT_START}>
               {t("checkout.dueTotal")}
             </UIText>

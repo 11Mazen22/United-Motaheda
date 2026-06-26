@@ -361,14 +361,17 @@ export function AddressFormDrawer({
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
-        keyboardVerticalOffset={0}
+        keyboardVerticalOffset={Platform.OS === "ios" ? insets.top + 60 : 0}
       >
         <View style={[styles.container, { paddingTop: insets.top + 8 }]}>
           {/* ── Header with dynamic title ── */}
           <Animated.View entering={FadeIn.duration(200)} style={styles.header}>
             <Pressable
               onPress={handleCloseRequest}
-              style={styles.closeBtn}
+              style={({ pressed }) => [
+                styles.closeBtn,
+                pressed && { opacity: 0.82, transform: [{ scale: 0.94 }] },
+              ]}
               hitSlop={24}
               pressRetentionOffset={{ top: 18, bottom: 18, left: 18, right: 18 }}
               accessibilityRole="button"
@@ -403,10 +406,14 @@ export function AddressFormDrawer({
                   onPress={() => {
                     if (idx < currentStepIdx) setCurrentStepIdx(idx);
                   }}
-                  style={[
+                  accessibilityRole="tab"
+                  accessibilityState={{ selected: isActive }}
+                  accessibilityLabel={t(step.titleKey)}
+                  style={({ pressed }) => [
                     styles.stepPill,
                     isActive && styles.stepPillActive,
                     isCompleted && styles.stepPillCompleted,
+                    pressed && idx < currentStepIdx && { opacity: 0.86, transform: [{ scale: 0.97 }] },
                   ]}
                 >
                   <Ionicons
@@ -463,12 +470,17 @@ export function AddressFormDrawer({
             />
           </ScrollView>
 
-          {/* ── Bottom Navigation ── */}
-          <View style={[styles.bottomNav, { paddingBottom: insets.bottom + 8 }]}>
+          {/* ── Bottom Navigation — safe-area aware, pressed feedback on every btn ── */}
+          <View style={[styles.bottomNav, { paddingBottom: Math.max(insets.bottom, 8) + 4 }]}>
             {!isFirstStep && (
               <Pressable
                 onPress={goToPreviousStep}
-                style={styles.navBtn}
+                accessibilityRole="button"
+                accessibilityLabel={t("common.previous")}
+                style={({ pressed }) => [
+                  styles.navBtn,
+                  pressed && { opacity: 0.86, transform: [{ scale: 0.97 }] },
+                ]}
                 android_ripple={{
                   color: theme.colors.slate[200],
                   borderless: false,
@@ -483,7 +495,12 @@ export function AddressFormDrawer({
             {!isLastStep ? (
               <Pressable
                 onPress={goToNextStep}
-                style={styles.navBtnPrimary}
+                accessibilityRole="button"
+                accessibilityLabel={t("common.next")}
+                style={({ pressed }) => [
+                  styles.navBtnPrimary,
+                  pressed && { opacity: 0.92, transform: [{ scale: 0.97 }] },
+                ]}
                 android_ripple={{
                   color: "rgba(255,255,255,0.2)",
                   borderless: false,
@@ -497,9 +514,12 @@ export function AddressFormDrawer({
               <Pressable
                 onPress={handleSubmit}
                 disabled={loading}
+                accessibilityRole="button"
+                accessibilityLabel={isEdit ? t("addressForm.saveEdit") : t("addressForm.addAddress")}
+                accessibilityState={{ disabled: loading }}
                 style={({ pressed }) => [
                   styles.submitBtn,
-                  pressed && { opacity: 0.85 },
+                  pressed && !loading && { opacity: 0.92, transform: [{ scale: 0.98 }] },
                   loading && { opacity: 0.7 },
                 ]}
                 android_ripple={{
@@ -509,11 +529,7 @@ export function AddressFormDrawer({
                 }}
               >
                 {loading ? (
-                  <ActivityIndicator
-                    color="#fff"
-                    size="small"
-                    style={{ marginLeft: 8 }}
-                  />
+                  <ActivityIndicator color="#fff" size="small" />
                 ) : (
                   <Ionicons
                     name={isEdit ? "checkmark" : "add"}
@@ -561,7 +577,12 @@ export function AddressFormDrawer({
             </UIText>
             {/* Actions */}
             <Pressable
-              style={styles.discardDangerBtn}
+              accessibilityRole="button"
+              accessibilityLabel={t("addressForm.confirmDiscardAction")}
+              style={({ pressed }) => [
+                styles.discardDangerBtn,
+                pressed && { backgroundColor: "#D63838", transform: [{ scale: 0.98 }] },
+              ]}
               onPress={() => { setShowDiscard(false); onClose(); }}
             >
               <UIText style={styles.discardDangerText}>
@@ -569,7 +590,12 @@ export function AddressFormDrawer({
               </UIText>
             </Pressable>
             <Pressable
-              style={styles.discardCancelBtn}
+              accessibilityRole="button"
+              accessibilityLabel={t("addressForm.stayAction")}
+              style={({ pressed }) => [
+                styles.discardCancelBtn,
+                pressed && { opacity: 0.7 },
+              ]}
               onPress={() => setShowDiscard(false)}
             >
               <UIText style={styles.discardCancelText}>
@@ -616,9 +642,13 @@ function StepContent({
                   <Pressable
                     key={l.key}
                     onPress={() => updateField("label", l.key)}
-                    style={[
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected: active }}
+                    accessibilityLabel={t(l.labelKey)}
+                    style={({ pressed }) => [
                       styles.labelChip,
                       active && styles.labelChipActive,
+                      pressed && { opacity: 0.88, transform: [{ scale: 0.97 }] },
                     ]}
                     android_ripple={{
                       color: theme.colors.brand[100],
@@ -829,7 +859,14 @@ function StepContent({
           {/* Default toggle card */}
           <Pressable
             onPress={() => updateField("is_default", !form.is_default)}
-            style={[styles.toggleCard, form.is_default && styles.toggleCardActive]}
+            accessibilityRole="switch"
+            accessibilityState={{ checked: form.is_default }}
+            accessibilityLabel={t("addressForm.setDefault")}
+            style={({ pressed }) => [
+              styles.toggleCard,
+              form.is_default && styles.toggleCardActive,
+              pressed && { opacity: 0.92, transform: [{ scale: 0.99 }] },
+            ]}
             android_ripple={{
               color: theme.colors.brand[100],
               borderless: false,
@@ -1163,7 +1200,7 @@ const styles = StyleSheet.create({
   labelChipActive: {
     backgroundColor: theme.colors.brand[50],
     borderColor: theme.colors.brand[300],
-    paddingLeft: 32, // make room for checkmark
+    paddingStart: 32, // logical start — make room for checkmark in both LTR and RTL
   },
   labelChipText: {
     fontSize: 12,
@@ -1176,7 +1213,7 @@ const styles = StyleSheet.create({
   },
   activeIndicator: {
     position: "absolute",
-    left: 10,
+    start:    10, // logical start edge — flips automatically in RTL
   },
 
   toggleCard: {
@@ -1225,12 +1262,14 @@ const styles = StyleSheet.create({
     color: theme.colors.slate[500],
   },
   summaryValue: {
-    fontSize: 12,
+    fontSize:   12,
     fontFamily: theme.fonts.semibold,
-    color: theme.colors.text.primary,
-    textAlign: textAlignStart(isRtl()),
-    flex: 1,
-    marginLeft: theme.spacing.md,
+    color:      theme.colors.text.primary,
+    textAlign:  textAlignStart(isRtl()),
+    flex:       1,
+    // Logical end gutter — leaves space from the value back to the label cell
+    // in both LTR and RTL (`marginLeft` was physical-only).
+    marginStart: theme.spacing.md,
   },
 
   bottomNav: {
@@ -1387,7 +1426,7 @@ const fieldStyles = StyleSheet.create({
     fontFamily: theme.fonts.bold,
     color: theme.colors.slate[500],
     textAlign: textAlignStart(isRtl()),
-    paddingRight: theme.spacing.xs,
+    paddingEnd: theme.spacing.xs,
     opacity: 0,
     transform: [{ translateY: 18 }, { scale: 0.9 }],
   },
@@ -1402,7 +1441,7 @@ const fieldStyles = StyleSheet.create({
     fontFamily: theme.fonts.bold,
     color: theme.colors.slate[500],
     textAlign: textAlignStart(isRtl()),
-    paddingRight: 2,
+    paddingEnd: 2,
   },
   inputContainer: {
     flexDirection: flexRow(isRtl()),
@@ -1416,7 +1455,7 @@ const fieldStyles = StyleSheet.create({
     gap: theme.spacing.sm,
   },
   icon: {
-    marginLeft: -2,
+    marginStart: -2,
   },
   inputError: {
     borderColor: theme.colors.red[400],
@@ -1448,7 +1487,7 @@ const fieldStyles = StyleSheet.create({
     fontFamily: theme.fonts.bold,
     color: theme.colors.red[500],
     textAlign: textAlignStart(isRtl()),
-    paddingRight: theme.spacing.xs,
+    paddingEnd: theme.spacing.xs,
     marginTop: 2,
   },
 });

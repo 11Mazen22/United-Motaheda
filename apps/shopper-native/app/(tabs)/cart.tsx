@@ -24,11 +24,6 @@ import Animated, {
   FadeInDown,
   FadeOutRight,
   Layout,
-  useAnimatedStyle,
-  useSharedValue,
-  withSequence,
-  withSpring,
-  withTiming,
 } from "react-native-reanimated";
 import { useTranslation } from "react-i18next";
 import { useCartStore, type CartItem } from "@/stores/cart";
@@ -44,49 +39,57 @@ import { FORWARD_CHEVRON } from "@/utils/layout";
 import { useScreenLayout } from "@/utils/responsive";
 import { s } from "@/features/cart/cart.styles";
 
-// ─── StepBtn — animated quantity button ──────────────────────────────────────
+// ─── StepBtn — product-detail-parity quantity button ──────────────────────────
+// Two visual variants:
+//   • "minus" — neutral surface chip with line border, ink-soft glyph
+//   • "plus"  — accentDeep primary chip with onAccent glyph
+// Pressed feedback comes from Pressable's `pressed` state (tint + scale).
+// The light haptic still fires for tactile confirmation.
 
 const StepBtn = memo(function StepBtn({
-  icon,
+  variant,
   onPress,
   disabled,
+  accessibilityLabel,
 }: {
-  icon:      "add" | "remove";
-  onPress:   () => void;
-  disabled?: boolean;
+  variant:             "plus" | "minus";
+  onPress:             () => void;
+  disabled?:           boolean;
+  accessibilityLabel?: string;
 }) {
-  const scale = useSharedValue(1);
-  const animStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
-
   const handlePress = useCallback(() => {
     if (disabled) return;
-    scale.value = withSequence(
-      withSpring(0.82, { damping: 14, stiffness: 500 }),
-      withTiming(1, { duration: 120 }),
-    );
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     }
     onPress();
-  }, [disabled, onPress, scale]);
+  }, [disabled, onPress]);
+
+  const isPrimary = variant === "plus";
+  const baseStyle = isPrimary ? s.stepBtnPrimary : s.stepBtn;
+  const pressStyle = isPrimary ? s.stepBtnPrimaryPressed : s.stepBtnPressed;
+  const glyphColor = isPrimary
+    ? kit.color.onAccent
+    : disabled
+    ? kit.color.inkFaint
+    : kit.color.inkSoft;
 
   return (
-    <Animated.View style={animStyle}>
-      <Pressable
-        onPress={handlePress}
-        disabled={disabled}
-        hitSlop={10}
-        accessibilityRole="button"
-        style={[s.stepBtn, disabled && s.stepBtnDisabled]}>
-        <Ionicons
-          name={icon}
-          size={14}
-          color={disabled ? kit.color.inkFaint : kit.color.ink}
-        />
-      </Pressable>
-    </Animated.View>
+    <Pressable
+      onPress={handlePress}
+      disabled={disabled}
+      hitSlop={8}
+      pressRetentionOffset={12}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      accessibilityState={{ disabled }}
+      style={({ pressed }) => [
+        baseStyle,
+        pressed && !disabled && pressStyle,
+        disabled && s.stepBtnDisabled,
+      ]}>
+      <Ionicons name={isPrimary ? "add" : "remove"} size={18} color={glyphColor} />
+    </Pressable>
   );
 });
 
@@ -144,7 +147,7 @@ const CartItemCard = memo(function CartItemCard({
           hitSlop={10}
           accessibilityRole="button"
           accessibilityLabel={t("cart.removeItem")}
-          style={s.deleteBtn}>
+          style={({ pressed }) => [s.deleteBtn, pressed && { opacity: 0.82, transform: [{ scale: 0.94 }] }]}>
           <Ionicons name="trash-outline" size={13} color={kit.color.danger} />
         </Pressable>
       </View>
@@ -176,9 +179,20 @@ const CartItemCard = memo(function CartItemCard({
           )}
         </View>
         <View style={s.stepper}>
-          <StepBtn icon="add"    onPress={handleInc} disabled={isAtMax} />
-          <UIText style={[s.qtyNum, isAtMax && s.qtyNumMax]}>{item.quantity}</UIText>
-          <StepBtn icon="remove" onPress={handleDec} />
+          <StepBtn
+            variant="minus"
+            onPress={handleDec}
+            accessibilityLabel={t("product.decrement")}
+          />
+          <View style={s.qtyCell}>
+            <UIText style={[s.qtyNum, isAtMax && s.qtyNumMax]}>{item.quantity}</UIText>
+          </View>
+          <StepBtn
+            variant="plus"
+            onPress={handleInc}
+            disabled={isAtMax}
+            accessibilityLabel={t("product.increment")}
+          />
         </View>
       </View>
 
@@ -226,7 +240,7 @@ const CartHeader = memo(function CartHeader({
             hitSlop={8}
             accessibilityRole="button"
             accessibilityLabel={t("cart.clearCart")}
-            style={s.clearBtn}
+            style={({ pressed }) => [s.clearBtn, pressed && { opacity: 0.85, transform: [{ scale: 0.97 }] }]}
             onPress={onClearPress}>
             <Ionicons name="trash-outline" size={13} color={kit.color.danger} />
             <UIText style={s.clearText}>{t("common.clear")}</UIText>
@@ -479,14 +493,16 @@ export default function CartScreen() {
             onPress={handleCheckout}
             disabled={!delivery.isDeliverable}
             accessibilityRole="button"
+            accessibilityLabel={t("cart.checkoutBtn", { total: total.toFixed(2) })}
             accessibilityState={{ disabled: !delivery.isDeliverable }}
+            hitSlop={6}
             style={({ pressed }) => [
               s.checkoutOuter,
-              pressed && { opacity: 0.92 },
+              pressed && delivery.isDeliverable && { opacity: 0.92, transform: [{ scale: 0.98 }] },
             ]}>
             <View style={[s.checkoutInner, !delivery.isDeliverable && s.checkoutInnerDisabled]}>
               <Ionicons name={FORWARD_CHEVRON} size={17} color={kit.color.onInk} />
-              <UIText style={s.checkoutText}>
+              <UIText style={s.checkoutText} numberOfLines={1}>
                 {delivery.isDeliverable
                   ? t("cart.checkoutBtn", { total: total.toFixed(2) })
                   : t("cart.outsideDelivery")}

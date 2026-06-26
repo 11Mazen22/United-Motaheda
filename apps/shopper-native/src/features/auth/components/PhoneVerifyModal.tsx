@@ -243,6 +243,7 @@ export function PhoneVerifyModal({
 
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : undefined}
+          keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 24}
           style={[styles.kbContainer, { pointerEvents: "box-none" }]}
           >
 
@@ -389,7 +390,9 @@ function CodeStep(props: CodeStepProps): React.ReactElement {
       {error && (
         <View style={styles.errorRow}>
           <Ionicons name="alert-circle" size={16} color={theme.colors.error.base} />
-          <Text variant="caption" align="right" style={{ flex: 1, color: theme.colors.error.text }}>
+          <Text
+            variant="caption"
+            style={{ flex: 1, color: theme.colors.error.text, textAlign: textAlignStart(isRtl()) }}>
             {error}
           </Text>
         </View>
@@ -407,7 +410,8 @@ function CodeStep(props: CodeStepProps): React.ReactElement {
           hitSlop={8}
           accessibilityRole="button"
           accessibilityState={{ disabled: !canResend }}
-          accessibilityLabel={t("phoneVerify.resendA11y")}>
+          accessibilityLabel={t("phoneVerify.resendA11y")}
+          style={({ pressed }) => pressed && canResend ? { opacity: 0.6 } : null}>
           <Text
             variant="caption"
             weight="bold"
@@ -559,15 +563,18 @@ const styles = StyleSheet.create({
     width: 1, height: 1,
     opacity: 0,
   },
+  // OTP digit row — LTR-locked: the code is a value, not language content.
+  // Reading "1 2 3 4 5 6" left-to-right is the universal OTP convention; an
+  // RTL flow would put digit-1 on the right and surprise the user.
   boxesRow: {
-    flexDirection: flexRow(isRtl()),
+    flexDirection:  "row",
     justifyContent: "center",
-    gap: theme.spacing[1],
-    marginTop:    theme.spacing[1],
+    gap:            theme.spacing[1],
+    marginTop:      theme.spacing[1],
   },
   box: {
-    width:           42,
-    height:          54,
+    width:           44,
+    height:          56,
     borderRadius:    theme.radius.md,
     backgroundColor: theme.colors.surface,
     borderWidth:     1,
@@ -579,9 +586,11 @@ const styles = StyleSheet.create({
     borderColor:     theme.colors.brand.base,
     backgroundColor: theme.colors.brand.lighter,
   },
+  // Active cell — brand glow + thicker border for clear focus signal.
   boxCursor: {
     borderColor:     theme.colors.brand.base,
     borderWidth:     1.5,
+    ...theme.shadow.brandGlow,
   },
   boxError: {
     borderColor:     theme.colors.error.base,

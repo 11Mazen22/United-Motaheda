@@ -9,9 +9,11 @@ import Animated, { FadeInDown } from "react-native-reanimated";
 import { Text as UIText } from "@/shared/ui";
 
 import { kit } from "@/shared/kit";
-import { BACK_CHEVRON } from "@/utils/layout";
+import { BACK_CHEVRON, textAlignStart, isRtl, valueTextAlign } from "@/utils/layout";
 import type { Order, OrderStatus } from "@/stores/orders";
 import { styles } from "./order-detail.styles";
+
+const TEXT_START = textAlignStart(isRtl());
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -140,7 +142,7 @@ export function DetailSection({
         <View style={styles.sectionIconBox}>
           <Ionicons name={icon} size={14} color={kit.color.accentDeep} />
         </View>
-        <UIText variant="card-title" align="right" style={styles.sectionTitle}>
+        <UIText variant="card-title" style={[styles.sectionTitle, { textAlign: TEXT_START, flex: 1 }]}>
           {title}
         </UIText>
       </View>
@@ -158,11 +160,12 @@ export function InfoRow({
 }): React.ReactElement {
   return (
     <View style={styles.infoRow}>
-      <UIText variant="body-sm" color="secondary">{label}</UIText>
+      <UIText variant="body-sm" color="secondary" style={{ textAlign: TEXT_START }}>{label}</UIText>
+      {/* Value cell stays LTR — currency totals read canonically in both langs */}
       <UIText
         variant="body-sm"
         weight="bold"
-        style={{ color: valueColor ?? kit.color.ink, textAlign: "left" }}>
+        style={{ color: valueColor ?? kit.color.ink, textAlign: valueTextAlign }}>
         {value}
       </UIText>
     </View>

@@ -37,7 +37,12 @@ export const SectionCard = React.memo(function SectionCard({
           </UIText>
         </View>
         {action && (
-          <Pressable onPress={action.onPress} hitSlop={6} style={s.actionWrap}>
+          <Pressable
+            onPress={action.onPress}
+            hitSlop={6}
+            accessibilityRole="button"
+            accessibilityLabel={action.label}
+            style={({ pressed }) => [s.actionWrap, pressed && { opacity: 0.78, transform: [{ scale: 0.97 }] }]}>
             <UIText variant="eyebrow" weight="bold" style={{ color: kit.color.accentDeep }}>
               {action.label}
             </UIText>

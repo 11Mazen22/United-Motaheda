@@ -8,7 +8,7 @@
  */
 import { StyleSheet } from "react-native";
 import { theme } from "@/shared/theme";
-import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
+import { flexRow, isRtl, valueTextAlign } from "@/utils/layout";
 import { kit } from "@/shared/kit";
 
 // ── Empty state (authenticated, no orders)
@@ -88,15 +88,19 @@ export const emptyS = StyleSheet.create({
 });
 
 // ── Orders list
+// listContent padding is overridden inline by OrdersScreen with
+// useScreenLayout().pagePad so the gutter scales on tablet/large-tablet.
 export const listS = StyleSheet.create({
   listContent: {
-    padding: theme.spacing.lg,
-    gap:     theme.spacing.md,
+    paddingHorizontal: theme.layout.pagePaddingH,
+    paddingTop:        theme.spacing.lg,
+    paddingBottom:     theme.spacing.lg,
+    gap:               theme.spacing.md,
   },
   card: {
     backgroundColor:   kit.color.surface,
     borderRadius:      kit.radius.card,
-    paddingHorizontal: theme.layout.pagePaddingH,
+    paddingHorizontal: 16,
     paddingVertical:   18,
     gap:               14,
     borderWidth:       1,
@@ -111,11 +115,13 @@ export const listS = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: kit.color.line,
   },
+  // Footer total — value-shaped, LTR-locked
   totalText: {
-    fontFamily: theme.fonts.black,
-    fontSize: 17, lineHeight: 24,
-    color: kit.color.ink,
-    textAlign: textAlignStart(isRtl()),
+    fontFamily:         theme.fonts.black,
+    fontSize:           17,
+    lineHeight:         24,
+    color:              kit.color.ink,
+    textAlign:          valueTextAlign,
     includeFontPadding: false,
   },
   skeletonRow: {

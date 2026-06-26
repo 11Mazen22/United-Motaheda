@@ -21,7 +21,7 @@ import { useRouter } from "expo-router";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { theme } from "@/shared/theme";
 import { kit } from "@/shared/kit";
-import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
+import { flexRow, isRtl, textAlignStart, FORWARD_CHEVRON } from "@/utils/layout";
 import { useScreenTrace } from "@/features/observability";
 import { SubScreenHeader } from "../components/SubScreenHeader";
 import { useActiveCampaigns } from "../hooks/useActiveCampaigns";
@@ -189,7 +189,7 @@ function RichEmptyState() {
                 <UIText style={[s.actionSub,   { textAlign: textAlignStart(IS_RTL) }]}>{a.sub}</UIText>
               </View>
               <Ionicons
-                name={IS_RTL ? "chevron-back" : "chevron-forward"}
+                name={FORWARD_CHEVRON}
                 size={16}
                 color={kit.color.inkFaint}
               />

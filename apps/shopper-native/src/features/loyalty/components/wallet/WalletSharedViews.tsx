@@ -2,7 +2,6 @@ import React, { memo } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { kit } from "@/shared/kit";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { Text } from "@/shared/ui";
 import { theme } from "@/shared/theme";
@@ -10,9 +9,14 @@ import {
   fullPanelStyles as fp,
   skeletonStyles as sk,
 } from "./wallet.styles";
-import { flexRow, isRtl, textAlignStart, BACK_CHEVRON } from "@/utils/layout";
+import { SubScreenHeader } from "../SubScreenHeader";
 
 // ─── ScreenHeader ─────────────────────────────────────────────────────────────
+//
+// Wallet-family wrapper around the canonical SubScreenHeader. Wallet screens
+// kept the old "title + optional tour button + back" signature; we forward to
+// SubScreenHeader's `rightElement` slot to retain a single header model across
+// the loyalty ecosystem without churning every wallet caller's import path.
 
 interface ScreenHeaderProps {
   title:         string;
@@ -23,72 +27,38 @@ export const ScreenHeader = memo(function ScreenHeader({
   title,
   onTourPress,
 }: ScreenHeaderProps) {
-  const router = useRouter();
-  const { t }  = useTranslation();
-
+  const { t } = useTranslation();
   return (
-    <View style={headerStyles.row}>
-      <Text style={headerStyles.title} accessibilityRole="header">{title}</Text>
-
-      {onTourPress && (
-        <Pressable
-          onPress={onTourPress}
-          hitSlop={10}
-          accessibilityRole="button"
-          accessibilityLabel={t("loyalty.walletTourA11y")}
-          style={headerStyles.tourBtn}>
-          <Ionicons name="help-circle-outline" size={22} color={theme.colors.text.secondary} />
-        </Pressable>
-      )}
-
-      <Pressable
-        onPress={() => router.back()}
-        hitSlop={12}
-        accessibilityRole="button"
-        accessibilityLabel={t("common.back")}
-        style={({ pressed }) => [
-          headerStyles.backBtn,
-          pressed && headerStyles.backBtnPressed,
-        ]}>
-        <Ionicons name={BACK_CHEVRON} size={22} color={theme.colors.text.primary} />
-      </Pressable>
-    </View>
+    <SubScreenHeader
+      title={title}
+      rightElement={
+        onTourPress ? (
+          <Pressable
+            onPress={onTourPress}
+            hitSlop={10}
+            accessibilityRole="button"
+            accessibilityLabel={t("loyalty.walletTourA11y")}
+            style={({ pressed }) => [
+              tourStyles.tourBtn,
+              pressed && { opacity: 0.78, transform: [{ scale: 0.94 }] },
+            ]}>
+            <Ionicons name="help-circle-outline" size={22} color={theme.colors.text.secondary} />
+          </Pressable>
+        ) : undefined
+      }
+    />
   );
 });
 
-const headerStyles = StyleSheet.create({
-  row: {
-    flexDirection:     flexRow(isRtl()),
-    alignItems:        "center",
-    paddingHorizontal: theme.spacing.lg,
-    paddingVertical:   theme.spacing.md,
-  },
-  title: {
-    flex:          1,
-    fontFamily:    theme.fonts.black,
-    fontSize:      22,
-    color:         theme.colors.text.primary,
-    textAlign:     textAlignStart(isRtl()),
-    letterSpacing: -0.4,
-  },
+const tourStyles = StyleSheet.create({
   tourBtn: {
-    width:           36,
-    height:          36,
-    borderRadius:    12,
-    backgroundColor: theme.colors.subtle,
-    alignItems:      "center",
-    justifyContent:  "center",
-  },
-  backBtn: {
     width:           40,
     height:          40,
     borderRadius:    12,
-    backgroundColor: theme.colors.subtle,
+    backgroundColor: kit.color.well,
     alignItems:      "center",
     justifyContent:  "center",
-  },
-  backBtnPressed: {
-    backgroundColor: theme.colors.border.default,
+    marginEnd:       4,
   },
 });
 
@@ -122,7 +92,7 @@ export const ErrorPanel = memo(function ErrorPanel({
       <Text style={fp.body}>{t("loyalty.walletErrorBody")}</Text>
       <Pressable
         onPress={onRetry}
-        style={fp.btn}
+        style={({ pressed }) => [fp.btn, pressed && { opacity: 0.9, transform: [{ scale: 0.97 }] }]}
         accessibilityRole="button"
         accessibilityLabel={t("common.retry")}>
         <View style={[fp.btnGrad, { backgroundColor: kit.color.accent }]}>

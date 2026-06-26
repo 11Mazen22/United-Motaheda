@@ -17,7 +17,7 @@ import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { useTranslation } from "react-i18next";
-import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
+import { flexRow, isRtl, textAlignStart, FORWARD_CHEVRON } from "@/utils/layout";
 import { kit, Button } from "@/shared/kit";
 import { theme } from "@/shared/theme";
 import { PressableScale } from "@/shared/motion";
@@ -33,7 +33,7 @@ type TFunc = ReturnType<typeof useTranslation>["t"];
 
 const IS_RTL     = isRtl();
 const TEXT_START = textAlignStart(IS_RTL);
-const FWD        = IS_RTL ? "chevron-back" : "chevron-forward";
+const FWD        = FORWARD_CHEVRON;
 
 const TXT = IS_RTL
   ? { browse: "تصفّح كتالوج الهدايا", browseSub: "استبدل نقاطك من جديد" }

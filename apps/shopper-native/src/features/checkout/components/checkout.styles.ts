@@ -84,15 +84,18 @@ export const stepBarStyles = StyleSheet.create({
 });
 
 // ─── Section card ─────────────────────────────────────────────────────────────
+// Single visual grammar for every checkout section: white surface, 16-radius,
+// thin brand-tinted top hairline (subtle, premium — not a heavy 3px slab),
+// hairline body separator, and a 12-gap body for control rhythm.
 export const sectionStyles = StyleSheet.create({
   card: {
     backgroundColor: kit.color.surface,
     borderRadius:    16,
-    marginBottom:    16,
+    marginBottom:    14,
     borderWidth:     1,
     borderColor:     kit.color.line,
-    borderTopWidth:  3,
-    borderTopColor:  kit.color.accentDeep,
+    borderTopWidth:  2,
+    borderTopColor:  kit.color.accent,
     overflow:        "hidden",
     ...kit.shadow.raised,
   },
@@ -140,7 +143,12 @@ export const sectionStyles = StyleSheet.create({
   },
 });
 
-// ─── CTA bar ─────────────────────────────────────────────────────────────────
+// ─── CTA bar — sticky footer with totals + primary action ─────────────────────
+// The bar is anchored to the absolute bottom. The `totals` row is split into a
+// value-direction (LTR-locked) price cluster on the logical START and a count
+// chip on the logical END. The block-banner sits between totals and the CTA
+// when the order can't proceed, with a warm tone that reads as "wait" not
+// "error" — the user hasn't done anything wrong.
 export const ctaStyles = StyleSheet.create({
   root: {
     position:          "absolute",
@@ -151,14 +159,34 @@ export const ctaStyles = StyleSheet.create({
     borderTopWidth:    StyleSheet.hairlineWidth,
     borderTopColor:    kit.color.line,
     paddingHorizontal: theme.spacing[4],
-    paddingTop:        16,
-    gap:               14,
+    paddingTop:        14,
+    gap:               12,
     ...kit.shadow.floating,
+  },
+  handle: {
+    width:           36,
+    height:          3,
+    borderRadius:    2,
+    backgroundColor: kit.color.lineStrong,
+    alignSelf:       "center",
+    marginBottom:    4,
+    opacity:         0.7,
   },
   totals: {
     flexDirection:  flexRow(isRtl()),
     alignItems:     "center",
     justifyContent: "space-between",
+    gap:            12,
+  },
+  priceCluster: {
+    flex: 1,
+  },
+  // LTR-locked value row so "199.00 EGP" doesn't visually invert on Arabic.
+  priceLine: {
+    flexDirection: "row",
+    alignItems:    "baseline",
+    gap:           4,
+    marginTop:     2,
   },
   countBadge: {
     flexDirection:     flexRow(isRtl()),

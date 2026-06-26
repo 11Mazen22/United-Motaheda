@@ -22,7 +22,7 @@ import { Text as UIText } from "@/shared/ui";
 import { kit } from "@/shared/kit";
 import { theme } from "@/shared/theme";
 import { PressableScale } from "@/shared/motion";
-import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
+import { flexRow, isRtl, textAlignStart, FORWARD_CHEVRON } from "@/utils/layout";
 import { useScreenTrace } from "@/features/observability";
 import { useAuth } from "@/features/auth/context";
 import { useLoyaltyBalance } from "../hooks/useLoyaltyBalance";
@@ -45,7 +45,9 @@ const TOUR_SEEN_KEY = "loyalty_tour_seen_v1";
 
 const IS_RTL     = isRtl();
 const TEXT_START = textAlignStart(IS_RTL);
-const FWD        = IS_RTL ? "chevron-back" : "chevron-forward";
+// Reuse the canonical directional constant so every loyalty screen reads from
+// one source of truth (was: inline `IS_RTL ? "chevron-back" : "chevron-forward"`).
+const FWD        = FORWARD_CHEVRON;
 
 const TXT = IS_RTL
   ? { rewards: "مكافآتك", browseGifts: "تصفّح كتالوج الهدايا", browseGiftsSub: "استبدل نقاطك بهدايا", redemptions: "استبدالاتك", history: "سجل النقاط الكامل", earn: "اكسب المزيد من النقاط", frozen: "حسابك مجمّد مؤقتاً" }

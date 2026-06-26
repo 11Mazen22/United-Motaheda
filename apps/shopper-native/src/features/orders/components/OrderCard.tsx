@@ -23,7 +23,7 @@ import Animated, {
 } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
 import { useTranslation } from "react-i18next";
-import { flexRow, isRtl, textAlignStart, FORWARD_CHEVRON } from "@/utils/layout";
+import { flexRow, isRtl, textAlignStart, valueTextAlign, FORWARD_CHEVRON } from "@/utils/layout";
 import { useAppLanguage } from "@/i18n/LanguageProvider";
 import { Badge } from "@/components/ui/Badge";
 import { Text as UIText } from "@/shared/ui";
@@ -256,12 +256,15 @@ export const OrderCard = memo(function OrderCard({
             <UIText
               variant="body-sm"
               weight="bold"
-              align="right"
+              style={{ textAlign: textAlignStart(isRtl()) }}
               numberOfLines={2}>
               {firstItem?.name ?? t("orders.noItems")}
             </UIText>
             {extraCount > 0 && (
-              <UIText variant="caption" color="muted" align="right">
+              <UIText
+                variant="caption"
+                color="muted"
+                style={{ textAlign: textAlignStart(isRtl()) }}>
                 {t("orders.moreItems", { count: extraCount })}
               </UIText>
             )}
@@ -309,6 +312,8 @@ const oc = StyleSheet.create({
     letterSpacing:      -0.2,
     includeFontPadding: false,
     lineHeight:         20,
+    // The `#XXXXXXXX` suffix is code-shaped; the label is i18n.
+    // Composed in JSX as "label #ID" — keep the row aligned-start.
   },
   orderDate: {
     fontFamily:         theme.fonts.regular,
@@ -355,7 +360,8 @@ const oc = StyleSheet.create({
     fontSize:           17,
     color:              kit.color.ink,
     letterSpacing:      -0.4,
-    textAlign:          textAlignStart(isRtl()),
+    // Total value — LTR-locked so "199.00 EGP" reads canonically in either lang
+    textAlign:          valueTextAlign,
     includeFontPadding: false,
     lineHeight:         22,
   },
