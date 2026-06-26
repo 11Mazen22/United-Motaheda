@@ -24,6 +24,11 @@ import {
 } from "../app/catalog";
 import { expandSearchTerms } from "@pharmacy/fuzzy-search";
 
+// Strip emoji / pictographs that may be embedded in DB category names.
+function stripEmoji(s: string): string {
+  return s.replace(/\p{Extended_Pictographic}/gu, "").replace(/\s+/g, " ").trim();
+}
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface ProductFilters {
@@ -660,10 +665,16 @@ async function fetchDbCategoriesViaRpc(): Promise<CatalogCategory[] | null> {
         // Resolve against seed aliases — falls back to "general-healthcare" seed.
         const seed = resolveCategory(dbName, dbNameEn, "", "");
 
+        // Use clean seed names for display. If no seed matched (general-healthcare
+        // fallback), strip emoji from the raw DB string instead.
+        const isGeneric = seed.id === "general-healthcare";
+        const displayAr = isGeneric ? stripEmoji(dbName)   : seed.names.ar;
+        const displayEn = isGeneric ? stripEmoji(dbNameEn) : seed.names.en;
+
         return {
-          id:            dbName,   // keep the real DB category name as the id
-          name:          dbName,
-          nameEn:        dbNameEn,
+          id:            dbName,
+          name:          displayAr,
+          nameEn:        displayEn,
           icon:          seed.icon,
           emoji:         seed.emoji,
           count:         Number(row.product_count) || 0,

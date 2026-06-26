@@ -108,13 +108,12 @@ function getAvatarColor(name: string): string {
   return AVATAR_COLORS[hash % AVATAR_COLORS.length];
 }
 
-function UserAvatar({ name, size = "md" }: { name: string; size?: "sm" | "md" }) {
-  const initials = name
-    .split(" ")
-    .slice(0, 2)
-    .map((w) => w.charAt(0).toUpperCase())
-    .join("");
-  const color = getAvatarColor(name);
+function UserAvatar({ name, email = "", size = "md" }: { name: string; email?: string; size?: "sm" | "md" }) {
+  const display = name || email;
+  const initials = display
+    ? display.split(name ? " " : "@").slice(0, 2).map((w) => w.charAt(0).toUpperCase()).join("").slice(0, 2)
+    : "?";
+  const color = getAvatarColor(display || "?");
   const cls = size === "sm" ? "h-8 w-8 text-xs" : "h-9 w-9 text-sm";
   return (
     <span
@@ -298,8 +297,7 @@ export default function UsersManager() {
       const supabase = getSupabaseClient();
       const { data } = await supabase
         .from("profiles")
-        .select("status")
-        .eq("is_active", true);
+        .select("status");
       if (data) {
         const active    = data.filter((r) => r.status === "Active").length;
         const suspended = data.filter((r) => r.status === "Suspended").length;
@@ -634,7 +632,7 @@ export default function UsersManager() {
                       {/* User info */}
                       <TableCell>
                         <div className="flex items-center gap-3">
-                          <UserAvatar name={u.fullName} />
+                          <UserAvatar name={u.fullName} email={u.email} />
                           <div className="min-w-0">
                             <p className="truncate text-sm font-bold text-slate-900">
                               {u.fullName || "—"}
