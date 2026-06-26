@@ -8,6 +8,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useAuth } from "../../hooks/useAuth";
 import { useLanguage } from "../../contexts/LanguageContext";
+import { AccountSuspendedError } from "../../contexts/AuthContext";
 import { cn } from "../components/UI";
 import { createLoginSchema, type LoginFormValues } from "./authSchemas";
 
@@ -54,6 +55,10 @@ export default function LoginForm({
         result.user?.role === "driver";
       navigate(from.trim() || (isStaff ? "/ops" : "/"), { replace: true });
     } catch (error) {
+      if (error instanceof AccountSuspendedError) {
+        navigate("/suspended", { state: error.suspensionData, replace: true });
+        return;
+      }
       const message = error instanceof Error
         ? error.message
         : isArabic ? "تعذر تسجيل الدخول الآن." : "Unable to sign in right now.";

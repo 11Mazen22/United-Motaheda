@@ -52,6 +52,23 @@ export type StaffRole = "admin" | "manager" | "pharmacist" | "driver";
 export type UserRole = StaffRole | "customer";
 export type UserStatus = "Active" | "Inactive" | "Suspended";
 
+export interface SuspensionData {
+  suspendedAt?: string;
+  durationType?: "permanent" | "temporary";
+  expiresAt?: string;
+  reasonCodes?: string[];
+  adminNotes?: string;
+}
+
+export class AccountSuspendedError extends Error {
+  readonly suspensionData: SuspensionData;
+  constructor(data: SuspensionData) {
+    super("ACCOUNT_SUSPENDED");
+    this.name = "AccountSuspendedError";
+    this.suspensionData = data;
+  }
+}
+
 export interface UserProfile {
   id: string;
   email: string;
@@ -337,13 +354,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       authUserRef.current = data.user;
 
       const profile = await resolveUser(data.user, data.session, { blockUntilProfile: true });
-      if (profile) {
-        return { user: profile };
+      const resolvedProfile = profile ?? buildProfile(data.user, null);
+
+      if (resolvedProfile.status === "Suspended") {
+        // Fetch suspension details before signing out so the error carries context.
+        const susp = await (async () => {
+          try {
+            const { data: suspRow } = await supabase
+              .from("user_suspensions")
+              .select("reason_codes, admin_notes, duration_type, expires_at, created_at")
+              .eq("user_id", data.user.id)
+              .eq("is_active", true)
+              .order("created_at", { ascending: false })
+              .limit(1)
+              .single();
+            return suspRow as Record<string, unknown> | null;
+          } catch {
+            return null;
+          }
+        })();
+
+        authUserRef.current = null;
+        setUser(null);
+        await supabase.auth.signOut();
+
+        throw new AccountSuspendedError({
+          suspendedAt:  susp?.created_at  as string | undefined,
+          durationType: susp?.duration_type as "permanent" | "temporary" | undefined,
+          expiresAt:    susp?.expires_at   as string | undefined,
+          reasonCodes:  susp?.reason_codes as string[] | undefined,
+          adminNotes:   susp?.admin_notes  as string | undefined,
+        });
       }
 
-      const fallbackProfile = buildProfile(data.user, null);
-      setUser(fallbackProfile);
-      return { user: fallbackProfile };
+      if (!profile) setUser(resolvedProfile);
+      return { user: resolvedProfile };
     },
     [resolveUser],
   );

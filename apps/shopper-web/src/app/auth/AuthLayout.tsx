@@ -316,12 +316,12 @@ export default function AuthLayout({
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.52, ease: "easeOut", delay: 0.1 }}
         className={cn(
-          "flex flex-1 items-center justify-center bg-white px-7 py-10",
-          "lg:flex-none lg:w-[32rem] xl:w-[36rem]",
+          "flex flex-1 items-center justify-center bg-white px-8 py-10 xl:px-12",
+          "lg:flex-none lg:w-[36rem] xl:w-[42rem]",
           "lg:border-s lg:border-slate-100/80",
         )}
       >
-        <div className="w-full max-w-[23rem]">
+        <div className="w-full max-w-[30rem]">
 
           {/* ── Tab switcher — editorial underline style ── */}
           <div

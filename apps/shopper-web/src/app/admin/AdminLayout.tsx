@@ -66,6 +66,14 @@ function getAdminRouteMeta(pathname: string, lang: "ar" | "en") {
         : "Organize the team, permissions, and operating status from a cleaner panel.",
     };
 
+  if (pathname.startsWith("/admin/users"))
+    return {
+      title: lang === "ar" ? "إدارة المستخدمين" : "Users",
+      subtitle: lang === "ar"
+        ? "إدارة حسابات العملاء والصلاحيات والتعليق والحذف من لوحة شاملة."
+        : "Manage customer accounts, permissions, suspensions, and deletions from one panel.",
+    };
+
   if (pathname.startsWith("/admin/notifications"))
     return {
       title: lang === "ar" ? "الإشعارات" : "Notifications",

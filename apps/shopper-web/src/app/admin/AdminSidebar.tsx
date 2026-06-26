@@ -20,6 +20,7 @@ import {
   Squares2X2Icon,
   TruckIcon,
   UsersIcon,
+  UserGroupIcon,
   BellIcon,
   VideoCameraIcon,
   XMarkIcon,
@@ -107,7 +108,8 @@ const ALL_SECTIONS: NavSection[] = [
     labelEn: "User Management",
     icon: UsersIcon,
     items: [
-      { to: "/admin/staff", labelAr: "إدارة الموظفين", labelEn: "Staff", hintAr: "الفريق والصلاحيات والأدوار", hintEn: "Team, permissions, and roles", icon: UsersIcon, allowedRoles: ["admin"] },
+      { to: "/admin/users",  labelAr: "إدارة المستخدمين",  labelEn: "Users",  hintAr: "حسابات العملاء والتعليق والحذف", hintEn: "Customer accounts, suspend, delete", icon: UserGroupIcon, allowedRoles: ["admin"] },
+      { to: "/admin/staff",  labelAr: "إدارة الموظفين",    labelEn: "Staff",  hintAr: "الفريق والصلاحيات والأدوار",    hintEn: "Team, permissions, and roles",    icon: UsersIcon,     allowedRoles: ["admin"] },
     ],
   },
   {

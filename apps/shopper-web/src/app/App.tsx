@@ -22,8 +22,11 @@ const OrdersManager        = lazy(() => import("./admin/OrdersManager"));
 const OrderTracking        = lazy(() => import("./pages/OrderTracking"));
 const ProductManager       = lazy(() => import("./admin/ProductManager"));
 const SpecialOrdersManager = lazy(() => import("./admin/SpecialOrdersManager"));
-const StaffManager             = lazy(() => import("./admin/StaffManager"));
-const NotificationsManager     = lazy(() => import("./admin/NotificationsManager"));
+const StaffManager         = lazy(() => import("./admin/StaffManager"));
+const UsersManager         = lazy(() => import("./admin/UsersManager"));
+const NotificationsManager = lazy(() => import("./admin/NotificationsManager"));
+const SuspendedPage        = lazy(() => import("./pages/SuspendedPage"));
+const SuspensionLearnMore  = lazy(() => import("./pages/SuspensionLearnMore"));
 const About                = lazy(() => import("./pages/About"));
 const Cart                 = lazy(() => import("./pages/Cart"));
 const Categories           = lazy(() => import("./pages/Categories"));
@@ -100,8 +103,10 @@ function AppShell() {
       <TopProgressBar navigationActive={navigationActive} disabled={authLoading} />
       <Routes>
         {/* ── Catalog-independent routes (no product fetch) ── */}
-        <Route path="/login"    element={withSuspense(<Login />)} />
-        <Route path="/register" element={withSuspense(<Register />)} />
+        <Route path="/login"            element={withSuspense(<Login />)} />
+        <Route path="/register"         element={withSuspense(<Register />)} />
+        <Route path="/suspended"        element={withSuspense(<SuspendedPage />)} />
+        <Route path="/suspension-info"  element={withSuspense(<SuspensionLearnMore />)} />
         <Route path="/ops" element={withSuspense(
           <ProtectedRoute requireRole={["admin", "manager"]}>
             <OperationsHub />
@@ -135,6 +140,7 @@ function AppShell() {
             <Route path="products"            element={withSuspense(<ProductManager />)} />
             <Route path="operations"          element={withSuspense(<ManagerAndAbove><OperationsHub /></ManagerAndAbove>)} />
             <Route path="staff"               element={withSuspense(<StaffManager />)} />
+            <Route path="users"               element={withSuspense(<UsersManager />)} />
             <Route path="notifications"       element={withSuspense(<NotificationsManager />)} />
             <Route path="*"                   element={<Navigate to="/admin" replace />} />
           </Route>
