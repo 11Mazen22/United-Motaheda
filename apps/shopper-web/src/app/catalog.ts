@@ -84,7 +84,7 @@ type CachedCatalogSnapshot = {
   snapshot: CatalogSnapshot;
 };
 
-const CACHE_KEY = "united-pharmacies-catalog-v8";
+const CACHE_KEY = "united-pharmacies-catalog-v10";
 const CACHE_TTL_MS = 1000 * 60 * 15;
 const FALLBACK_CATEGORY_ID = "general-healthcare";
 const DEFAULT_CATEGORY_THEME: CategoryTheme = {
@@ -673,9 +673,10 @@ export function normalizeSupabaseProduct(row: Record<string, unknown>, sourceRow
   // is_active (1/0) only for RPC rows that didn't include a stock figure.
   const rawStock = row.Stock ?? row.stock;
   const stockNum = Number.isFinite(Number(rawStock)) ? Number(rawStock) : null;
-  // is_active is the primary availability signal; Stock > 0 is secondary.
-  const inStock = row.is_active === true || (stockNum !== null && stockNum > 0);
-  const stockVal = stockNum !== null && stockNum > 0 ? stockNum : (inStock ? 1 : 0);
+  // Availability is gated by is_active only. null = legacy (available); false = disabled.
+  // Stock is a display quantity, not an availability gate — 0 means "not tracked" here.
+  const inStock = row.is_active !== false;
+  const stockVal = (stockNum !== null && stockNum > 0) ? stockNum : (inStock ? 1 : 0);
 
   const rawCategoryAr = sanitizeText(row.Category_Name);
   const rawCategoryEn = sanitizeText(row.Category_Name_En);

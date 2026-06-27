@@ -108,6 +108,9 @@ function applyProfileFilters(q: any, options: FetchUsersOptions): any {
   }
   if (statusFilter && statusFilter !== 'all') {
     q = q.eq('status', statusFilter);
+  } else {
+    // 'all' still hides soft-deleted (Inactive) accounts — filter explicitly for them.
+    q = q.neq('status', 'Inactive');
   }
   if (roleFilter && roleFilter !== 'all') {
     q = q.eq('role', roleFilter);

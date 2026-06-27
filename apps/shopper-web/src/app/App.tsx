@@ -107,15 +107,17 @@ function AppShell() {
         <Route path="/register"         element={withSuspense(<Register />)} />
         <Route path="/suspended"        element={withSuspense(<SuspendedPage />)} />
         <Route path="/suspension-info"  element={withSuspense(<SuspensionLearnMore />)} />
-        <Route path="/ops" element={withSuspense(
-          <ProtectedRoute requireRole={["admin", "manager"]}>
-            <OperationsHub />
-          </ProtectedRoute>,
-        )} />
         <Route path="/track/:orderId" element={withSuspense(<OrderTracking />)} />
 
         {/* ── Catalog-requiring routes — CatalogProvider mounted here ── */}
         <Route element={<CatalogShell />}>
+
+          {/* ── Standalone ops board (needs CatalogProvider for shared components) ── */}
+          <Route path="/ops" element={withSuspense(
+            <ProtectedRoute requireRole={["admin", "manager"]}>
+              <OperationsHub />
+            </ProtectedRoute>,
+          )} />
 
           {/* ── Driver ── */}
           <Route path="/driver" element={withSuspense(

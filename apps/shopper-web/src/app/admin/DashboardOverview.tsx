@@ -25,12 +25,12 @@ import { useNavigate } from "react-router-dom";
 import {
   ArrowPathIcon,
   ArrowTrendingUpIcon,
-  BellAlertIcon,
+
   ClipboardDocumentListIcon,
   CubeIcon,
   UsersIcon,
 } from "@heroicons/react/24/outline";
-import { useCatalog, useFullCatalog } from "../../contexts/CatalogContext";
+import { useCatalog } from "../../contexts/CatalogContext";
 import { useLanguage } from "../../contexts/LanguageContext";
 import { useAuth } from "../../contexts/AuthContext";
 import {
@@ -194,41 +194,6 @@ const OverviewOrderCard = memo(function OverviewOrderCard({
   );
 });
 
-const InventoryAlertRow = memo(function InventoryAlertRow({
-  name,
-  categoryName,
-  stock,
-  lang,
-}: {
-  name: string;
-  categoryName: string;
-  stock: number;
-  lang: Language;
-}) {
-  const accentColor = stock === 0 ? "#f43f5e" : stock < 5 ? "#f97316" : "#f59e0b";
-  const badgeClass = stock === 0
-    ? "border-rose-200 bg-rose-50 text-rose-700"
-    : stock < 5
-    ? "border-orange-200 bg-orange-50 text-orange-700"
-    : "border-amber-200 bg-amber-50 text-amber-700";
-
-  return (
-    <div
-      className="relative overflow-hidden flex items-center justify-between gap-4 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
-      style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.5)" }}
-    >
-      <div className="absolute bottom-0 left-0 top-0 w-[3px] rounded-l-2xl" style={{ background: accentColor }} />
-      <div className="min-w-0 ps-2">
-        <p className="truncate text-sm font-bold text-slate-900">{name}</p>
-        <p className="mt-0.5 text-xs font-semibold text-slate-500">{categoryName}</p>
-      </div>
-      <span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-wide ${badgeClass}`}>
-        <BellAlertIcon className="h-3.5 w-3.5" />
-        {lang === "ar" ? `${stock} متبقي` : `${stock} left`}
-      </span>
-    </div>
-  );
-});
 
 // ─── MetricSkeleton ───────────────────────────────────────────────────────────
 
@@ -262,12 +227,9 @@ export default function DashboardOverview() {
   const {
     metrics,
     lastUpdated,
-    isLoading: catalogLoading,
+    isLoading: _catalogLoading,
     error: catalogError,
   } = useCatalog();
-
-  // Use full catalog for accurate low-stock alerts (not the paginated view)
-  const { allProducts } = useFullCatalog();
 
   const hasCached = Boolean(initialOrders.length);
 
@@ -353,23 +315,10 @@ export default function DashboardOverview() {
     [orders],
   );
 
-  const lowStockItems = useMemo(
-    () =>
-      allProducts
-        .filter((p) => p.stock < 10)
-        .sort((a, b) => a.stock - b.stock || a.name.localeCompare(b.name, lang === "ar" ? "ar" : "en"))
-        .slice(0, 5),
-    [lang, allProducts],
-  );
-
   const activeEmployees = useMemo(
     () => staff.filter((m) => m.status === "Active").length,
     [staff],
   );
-
-  const inventoryCoverage = metrics.totalProducts
-    ? Math.round((metrics.inStockProducts / metrics.totalProducts) * 100)
-    : 0;
 
   const barcodeCoverage = metrics.totalProducts
     ? Math.round((metrics.barcodedProducts / metrics.totalProducts) * 100)
@@ -427,8 +376,8 @@ export default function DashboardOverview() {
             <AdminMetricCard
               label={lang === "ar" ? "المنتجات" : "Products"}
               value={formatCompactNumber(metrics.totalProducts, lang)}
-              note={lang === "ar" ? `${metrics.inStockProducts} متاح الآن` : `${metrics.inStockProducts} currently in stock`}
-              trend={lang === "ar" ? `${inventoryCoverage}% تغطية مخزون` : `${inventoryCoverage}% stock coverage`}
+              note={lang === "ar" ? `${metrics.totalCategories} قسم نشط` : `${metrics.totalCategories} active categories`}
+              trend={lang === "ar" ? `${barcodeCoverage}% تغطية باركود` : `${barcodeCoverage}% barcode coverage`}
               icon={CubeIcon}
               tone="violet"
             />
@@ -501,15 +450,15 @@ export default function DashboardOverview() {
                   accent: "#0E7E74",
                 },
                 {
-                  label: lang === "ar" ? "المنتجات المتاحة" : "In-stock products",
-                  value: formatCompactNumber(metrics.inStockProducts, lang),
-                  note: lang === "ar" ? `${inventoryCoverage}% من الكتالوج` : `${inventoryCoverage}% of catalog`,
+                  label: lang === "ar" ? "الأقسام النشطة" : "Active categories",
+                  value: formatCompactNumber(metrics.totalCategories, lang),
+                  note: lang === "ar" ? `${barcodeCoverage}% تغطية باركود` : `${barcodeCoverage}% barcode coverage`,
                   accent: "#10b981",
                 },
                 {
-                  label: lang === "ar" ? "تغطية الباركود" : "Barcode coverage",
-                  value: `${barcodeCoverage}%`,
-                  note: lang === "ar" ? `${metrics.barcodedProducts} منتج مربوط` : `${metrics.barcodedProducts} linked products`,
+                  label: lang === "ar" ? "عملاء جدد" : "New customers",
+                  value: formatCompactNumber(stats?.newCustomers ?? 0, lang),
+                  note: lang === "ar" ? "منذ آخر تحديث" : "since last sync",
                   accent: "#8b5cf6",
                 },
               ].map((item) => (
@@ -534,36 +483,45 @@ export default function DashboardOverview() {
             </div>
           </AdminSectionCard>
 
-          {/* Inventory alerts */}
+          {/* Order status breakdown */}
           <AdminSectionCard
-            eyebrow={lang === "ar" ? "المخزون" : "Inventory"}
-            title={lang === "ar" ? "تنبيهات المخزون" : "Inventory alerts"}
+            eyebrow={lang === "ar" ? "العمليات" : "Operations"}
+            title={lang === "ar" ? "حالة الطلبات" : "Order status"}
           >
-            {catalogLoading ? (
+            {isInitialLoading ? (
               <div className="space-y-3">
-                {Array.from({ length: 4 }).map((_, i) => (
+                {Array.from({ length: 5 }).map((_, i) => (
                   <Skeleton key={i} className="h-16 rounded-2xl bg-slate-100" />
                 ))}
               </div>
-            ) : lowStockItems.length ? (
-              <div className="space-y-3">
-                {lowStockItems.map((item) => (
-                  <InventoryAlertRow
-                    key={item.id}
-                    name={item.name}
-                    categoryName={item.categoryName}
-                    stock={item.stock}
-                    lang={lang}
-                  />
-                ))}
-              </div>
             ) : (
-              <AdminEmptyState
-                title={lang === "ar" ? "لا توجد تنبيهات مخزون" : "No low-stock alerts"}
-                description={lang === "ar"
-                  ? "جميع المنتجات ضمن مستوى مخزون آمن."
-                  : "All tracked products are within a safe stock range."}
-              />
+              <div className="space-y-3">
+                {(
+                  [
+                    { labelAr: "في الانتظار",    labelEn: "Pending",          status: "Pending",          accent: "#f59e0b" },
+                    { labelAr: "قيد التجهيز",    labelEn: "Processing",        status: "Processing",        accent: "#8b5cf6" },
+                    { labelAr: "خارج للتسليم",   labelEn: "Out for Delivery",  status: "Out for Delivery",  accent: "#0ea5e9" },
+                    { labelAr: "تم التسليم",     labelEn: "Delivered",         status: "Delivered",         accent: "#10b981" },
+                    { labelAr: "ملغي",           labelEn: "Cancelled",         status: "Cancelled",         accent: "#f43f5e" },
+                  ] as const
+                ).map(({ labelAr, labelEn, status, accent }) => {
+                  const count = orders.filter((o) => o.status === status).length;
+                  return (
+                    <div
+                      key={status}
+                      className="relative overflow-hidden flex items-center justify-between gap-3 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm"
+                      style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.5)" }}
+                    >
+                      <div className="absolute bottom-0 left-0 top-0 w-[3px] rounded-l-2xl" style={{ background: accent }} />
+                      <p className="ps-2 text-sm font-bold text-slate-700">{lang === "ar" ? labelAr : labelEn}</p>
+                      <div className="text-end">
+                        <p className="text-xl font-black" style={{ color: accent }}>{count}</p>
+                        <p className="mt-0.5 text-xs font-semibold text-slate-500">{lang === "ar" ? "طلب" : "orders"}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             )}
           </AdminSectionCard>
         </div>

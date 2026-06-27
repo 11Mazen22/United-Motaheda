@@ -1,17 +1,17 @@
 // Home.tsx — luxury editorial redesign with animations
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useMemo, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Activity, Apple, ArrowRight, Baby, Brain,
   ChevronLeft, ChevronRight,
-  Clock3, Crown, Dumbbell, Eye, Flame, FlaskConical, Heart,
-  Leaf, MapPin, PackageSearch, Pill, ShieldCheck,
+  Clock3, Dumbbell, Eye, Flame, FlaskConical, Heart,
+  Leaf, MapPin, Pill, ShieldCheck,
   ShoppingBag, Sparkles, Star, Stethoscope,
-  Thermometer, TrendingUp, Truck, Zap,
+  Thermometer, Truck, Zap,
 } from "lucide-react";
 import { cn } from "../components/UI";
-import { ProductGrid } from "../components/ProductGrid";
+import { ProductCard } from "../components/ProductCard";
 import { Reveal } from "../components/Reveal";
 import { SearchBar } from "../components/SearchBar";
 import { useIsShopperShell } from "../components/ui/use-mobile";
@@ -20,7 +20,6 @@ import { useLanguage } from "../../contexts/LanguageContext";
 import { useSearch } from "../../contexts/SearchContext";
 import { locations } from "../data";
 import { useCatalogCategorySearch } from "../hooks/useCatalogCategorySearch";
-import { getCatalogProductImage }  from "../catalog";
 import { getLocalizedProductName } from "../localization";
 import { getServiceHoursSentence } from "../config";
 import { HomeMobile } from "./HomeMobile";
@@ -81,12 +80,6 @@ function HomeDesktop() {
   const [animKey,  setAnimKey]    = useState(0);
   const [slideDir, setSlideDir]   = useState<"fwd" | "back">("fwd");
 
-  /* Featured leaderboard carousel state */
-  const [picksSlide,  setPicksSlide]  = useState(0);
-  const [picksKey,    setPicksKey]    = useState(0);
-  const [picksDir,    setPicksDir]    = useState<"fwd" | "back">("fwd");
-  const [picksPaused, setPicksPaused] = useState(false);
-
   const isInitialLoading = isLoading && featuredProducts.length === 0;
 
   const categoryResults = useCatalogCategorySearch(categories, searchQuery);
@@ -95,49 +88,14 @@ function HomeDesktop() {
 
   const primaryLocation = locations.find((l) => l.isPrimary) ?? locations[0];
   const categoryChips   = categories.slice(0, 14);
-  const featuredB       = featuredProducts.slice(4, 12);
-  const featuredC       = featuredProducts.slice(12, 24);
   const serviceHours    = getServiceHoursSentence(lang);
 
-  /* Featured leaderboard — paginated 4 per page (1 hero + 3 ranked), infinite wrap */
-  const PICKS_PER_PAGE = 4;
-  const dailySeed  = hashStr(new Date().toDateString());
-  const picksPool  = useMemo(
-    () => seededShuffle(featuredProducts, dailySeed).slice(0, 32),
+  const dailySeed = hashStr(new Date().toDateString());
+  const picksPool = useMemo(
+    () => seededShuffle(featuredProducts, dailySeed).slice(0, 8),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [featuredProducts, dailySeed],
   );
-  const picksPages     = Math.max(1, Math.ceil(picksPool.length / PICKS_PER_PAGE));
-  const picksClamped   = picksPages > 0 ? picksSlide % picksPages : 0;
-  const picksStart     = picksClamped * PICKS_PER_PAGE;
-  const pageItems      = picksPool.slice(picksStart, picksStart + PICKS_PER_PAGE);
-
-  const picksPrev = () => {
-    setPicksDir(isRtl ? "fwd" : "back");
-    setPicksSlide((s) => (s - 1 + picksPages) % picksPages);
-    setPicksKey((k) => k + 1);
-  };
-  const picksNext = () => {
-    setPicksDir(isRtl ? "back" : "fwd");
-    setPicksSlide((s) => (s + 1) % picksPages);
-    setPicksKey((k) => k + 1);
-  };
-  const picksGoTo = (i: number) => {
-    setPicksDir(i > picksClamped ? (isRtl ? "back" : "fwd") : (isRtl ? "fwd" : "back"));
-    setPicksSlide(i);
-    setPicksKey((k) => k + 1);
-  };
-
-  /* Auto-advance every 5.5s; pauses on hover; restarts on any navigation */
-  useEffect(() => {
-    if (picksPaused || picksPages <= 1) return;
-    const t = window.setInterval(() => {
-      setPicksDir(isRtl ? "back" : "fwd");
-      setPicksSlide((s) => (s + 1) % picksPages);
-      setPicksKey((k) => k + 1);
-    }, 5500);
-    return () => window.clearInterval(t);
-  }, [picksPaused, picksPages, picksKey, isRtl]);
 
   /* carousel — "All" slot + categories, 3 per page, infinite wrap */
   const carouselItems = [null, ...categoryChips] as (typeof categoryChips[number] | null)[];
@@ -563,421 +521,54 @@ function HomeDesktop() {
 
 
       {/* ══════════════════════════════════════════
-          3. FEATURED PRODUCTS — Editor's Showcase (light)
+          3. FEATURED PRODUCTS
       ══════════════════════════════════════════ */}
-      <section className="relative overflow-hidden bg-[#F7F9FB] py-16 sm:py-24">
+      {picksPool.length > 0 && (
+        <section className="relative overflow-hidden bg-[#F7F9FB] py-16 sm:py-24">
+          <div aria-hidden className="pointer-events-none absolute -top-40 -right-40 h-[520px] w-[520px] rounded-full bg-[#0E7E74]/[0.07] blur-3xl" />
+          <div aria-hidden className="pointer-events-none absolute -bottom-32 -left-32 h-[420px] w-[420px] rounded-full bg-[#0E7E74]/[0.05] blur-3xl" />
 
-        {/* Dot texture */}
-        <div aria-hidden className="pointer-events-none absolute inset-0"
-          style={{
-            backgroundImage: "radial-gradient(circle, rgba(10,18,32,0.04) 1px, transparent 1px)",
-            backgroundSize: "30px 30px",
-          }} />
-        {/* Teal blooms */}
-        <div aria-hidden className="pointer-events-none absolute -top-40 -right-40 h-[520px] w-[520px] rounded-full bg-[#0E7E74]/[0.07] blur-3xl" />
-        <div aria-hidden className="pointer-events-none absolute -bottom-32 -left-32 h-[420px] w-[420px] rounded-full bg-[#0E7E74]/[0.05] blur-3xl" />
-        {/* Giant editorial watermark — current page's top rank */}
-        <span aria-hidden
-          className={cn("pointer-events-none absolute -top-6 select-none text-[#0A1220]/[0.025] transition-all duration-500", isRtl ? "left-0" : "right-0")}
-          style={{ fontFamily: "var(--font-serif)", fontSize: "clamp(8rem, 18vw, 20rem)", fontWeight: 700, lineHeight: 0.8 }}>
-          {String(picksStart + 1).padStart(2, "0")}
-        </span>
-
-        <div className="page-section relative z-10">
-
-          {/* ── Section header ── */}
-          <Reveal direction="up">
-            <div className={cn("mb-10 flex flex-wrap items-end justify-between gap-4", isRtl && "flex-row-reverse")}>
-              <div className={isRtl ? "text-right" : "text-left"}>
-                {/* Eyebrow badge */}
-                <span className={cn("inline-flex items-center gap-2 rounded-full border border-[#0E7E74]/25 bg-[#0E7E74]/[0.07] px-3 py-1", isRtl && "flex-row-reverse")}>
-                  <Flame className="h-3.5 w-3.5 text-[#0E7E74]" />
-                  <span className="text-[10.5px] font-black uppercase tracking-[0.22em] text-[#0E7E74]">
-                    {isRtl ? "الأكثر طلباً" : "Top Picks"}
-                  </span>
-                </span>
-                <h2
-                  className="mt-3 font-bold text-[#0A1220]"
-                  style={{
-                    fontSize: "clamp(1.9rem, 3.6vw, 3.1rem)",
-                    lineHeight: 1.06,
-                    ...(isRtl ? {} : { fontFamily: "var(--font-serif)" }),
-                  }}
-                >
-                  {isRtl ? "منتجات مميزة" : "Featured Products"}
-                </h2>
-                {/* Accent underline */}
-                <span className={cn("mt-3 block h-1 w-16 rounded-full bg-[#0E7E74]", isRtl && "ms-auto")} aria-hidden />
-              </div>
-              <Link to="/products"
-                className={cn(
-                  "group inline-flex items-center gap-1.5 rounded-xl border-2 border-[#0A1220] bg-white px-5 py-2.5 text-[12px] font-black text-[#0A1220] transition-all duration-200 hover:bg-[#0A1220] hover:text-white",
-                  isRtl && "flex-row-reverse",
-                )}>
-                {isRtl ? "كل المنتجات" : "All products"}
-                <ArrowRight className={cn("h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5", isRtl && "rotate-180 group-hover:-translate-x-0.5")} />
-              </Link>
-            </div>
-          </Reveal>
-
-          {picksPool.length > 0 ? (
-            <>
-              {/* ════ Leaderboard carousel ════ */}
-              <div
-                className="relative"
-                onMouseEnter={() => setPicksPaused(true)}
-                onMouseLeave={() => setPicksPaused(false)}
-              >
-                {/* Side arrows */}
-                {picksPages > 1 && (
-                  <>
-                    <button
-                      type="button" onClick={picksPrev} aria-label={isRtl ? "السابق" : "Previous"}
-                      className="absolute left-0 top-1/2 z-30 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border-2 border-[#0A1220] bg-white text-[#0A1220] shadow-[0_6px_20px_rgba(10,18,32,0.16)] transition-all duration-200 hover:bg-[#0A1220] hover:text-white hover:scale-105 active:scale-95">
-                      <ChevronLeft className="h-5 w-5" />
-                    </button>
-                    <button
-                      type="button" onClick={picksNext} aria-label={isRtl ? "التالي" : "Next"}
-                      className="absolute right-0 top-1/2 z-30 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border-2 border-[#0A1220] bg-white text-[#0A1220] shadow-[0_6px_20px_rgba(10,18,32,0.16)] transition-all duration-200 hover:bg-[#0A1220] hover:text-white hover:scale-105 active:scale-95">
-                      <ChevronRight className="h-5 w-5" />
-                    </button>
-                  </>
-                )}
-
-                {/* Viewport — side padding leaves room for the arrows */}
-                <div className="px-7 sm:px-16" style={{ overflowX: "clip" }}>
-                  <AnimatePresence mode="wait" custom={picksDir}>
-                    <motion.div
-                      key={picksKey}
-                      custom={picksDir}
-                      variants={{
-                        enter:  (dir: "fwd" | "back") => ({ x: dir === "fwd" ? 90 : -90, opacity: 0 }),
-                        center: {
-                          x: 0, opacity: 1,
-                          transition: {
-                            x:               { type: "spring", stiffness: 300, damping: 32 },
-                            opacity:         { duration: 0.2 },
-                            staggerChildren: 0.08,
-                            delayChildren:   0.05,
-                          },
-                        },
-                        exit:   (dir: "fwd" | "back") => ({
-                          x: dir === "fwd" ? -90 : 90, opacity: 0,
-                          transition: { x: { type: "spring", stiffness: 400, damping: 38 }, opacity: { duration: 0.14 } },
-                        }),
-                      }}
-                      initial="enter" animate="center" exit="exit"
-                      className="grid gap-4 lg:grid-cols-[1.15fr_1fr]"
-                    >
-
-                      {/* ── HERO CARD ── */}
-                      {pageItems[0] && (() => {
-                        const hero     = pageItems[0];
-                        const heroRank = picksStart + 1;
-                        const heroImg  = getCatalogProductImage(hero);
-                        const heroName = getLocalizedProductName(hero, lang);
-                        const heroCat  = isRtl
-                          ? (hero.categoryName ?? "منتج")
-                          : (hero.categoryNameEn ?? hero.categoryName ?? "Product");
-                        const heroDisc = hero.isSale && hero.originalPrice && hero.originalPrice > hero.price
-                          ? Math.round(((hero.originalPrice - hero.price) / hero.originalPrice) * 100) : 0;
-                        return (
-                          <motion.div variants={{
-                            enter: { opacity: 0, y: 18 },
-                            center: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 340, damping: 26 } },
-                          }}>
-                            <Link to={`/products/${hero.id}`}
-                              className="group relative flex h-full min-h-[420px] flex-col overflow-hidden rounded-3xl border-2 border-[#0A1220] bg-white shadow-[0_4px_18px_rgba(10,18,32,0.06)] transition-all duration-300 hover:-translate-y-1.5 hover:shadow-[0_28px_60px_rgba(10,18,32,0.20)]">
-
-                              {/* ── Rank ribbon — top start ── */}
-                              <div className={cn(
-                                "absolute top-0 z-20 flex items-center gap-1.5 rounded-br-2xl bg-[#0A1220] py-2 pe-3.5 ps-3 text-white shadow-[0_6px_18px_rgba(10,18,32,0.30)]",
-                                isRtl ? "right-0 rounded-bl-2xl rounded-br-none ps-3.5 pe-3" : "left-0",
-                              )}>
-                                {heroRank === 1 ? (
-                                  <>
-                                    <Crown className="h-3.5 w-3.5 text-[#FFD166]" />
-                                    <span className="text-[10px] font-black uppercase tracking-[0.14em]">
-                                      {isRtl ? "الاختيار الأول" : "Top Pick"}
-                                    </span>
-                                  </>
-                                ) : (
-                                  <>
-                                    <TrendingUp className="h-3.5 w-3.5 text-[#2DD4C0]" />
-                                    <span className="text-[10px] font-black uppercase tracking-[0.14em]">
-                                      {isRtl ? `المركز ${heroRank}` : `Rank #${heroRank}`}
-                                    </span>
-                                  </>
-                                )}
-                              </div>
-
-                              {/* ── Image stage ── */}
-                              <div className="relative flex flex-1 items-center justify-center overflow-hidden border-b-2 border-[#0A1220] bg-gradient-to-br from-[#F7F9FB] to-[#EAEFF4] p-8">
-
-                                {/* Spotlight rings */}
-                                <div aria-hidden className="pointer-events-none absolute left-1/2 top-1/2 h-[300px] w-[300px] -translate-x-1/2 -translate-y-1/2 rounded-full"
-                                  style={{ background: "radial-gradient(circle, rgba(14,126,116,0.10) 0%, transparent 65%)" }} />
-                                <div aria-hidden className="pointer-events-none absolute left-1/2 top-1/2 h-[230px] w-[230px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#0E7E74]/10" />
-                                <div aria-hidden className="pointer-events-none absolute left-1/2 top-1/2 h-[170px] w-[170px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#0E7E74]/[0.14]" />
-
-                                {/* Discount badge */}
-                                {heroDisc > 0 && (
-                                  <span className={cn(
-                                    "absolute top-5 z-10 inline-flex items-center gap-1 rounded-full bg-rose-500 px-3 py-1.5 text-[11px] font-black text-white shadow-[0_4px_14px_rgba(244,63,94,0.45)]",
-                                    isRtl ? "left-5" : "right-5",
-                                  )}>
-                                    <Flame className="h-3 w-3" />
-                                    {isRtl ? `${heroDisc}% خصم` : `${heroDisc}% OFF`}
-                                  </span>
-                                )}
-
-                                {heroImg ? (
-                                  <img src={heroImg} alt={heroName}
-                                    className="relative z-0 h-48 w-auto max-w-[78%] object-contain drop-shadow-[0_16px_30px_rgba(10,18,32,0.16)] transition-transform duration-500 ease-out group-hover:-translate-y-1.5 group-hover:scale-[1.07]" />
-                                ) : (
-                                  <PackageSearch className="relative z-0 h-14 w-14 text-slate-300" />
-                                )}
-                              </div>
-
-                              {/* ── Info zone ── */}
-                              <div className={cn("p-6", isRtl ? "text-right" : "text-left")}>
-                                <span className={cn("inline-flex items-center gap-1.5 rounded-full bg-[#0E7E74]/[0.10] px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-[#0E7E74]", isRtl && "flex-row-reverse")}>
-                                  <Pill className="h-3 w-3" />
-                                  {heroCat}
-                                </span>
-
-                                <p className="mt-3 line-clamp-2 text-[18px] font-black leading-[1.35] text-[#0A1220] transition-colors duration-200 group-hover:text-[#0E7E74]">
-                                  {heroName}
-                                </p>
-
-                                <div className={cn("mt-3 flex items-center gap-3", isRtl && "flex-row-reverse")}>
-                                  <span className="tabular-nums text-[26px] font-black leading-none text-[#0A1220]">
-                                    {hero.price.toFixed(2)}
-                                    <span className="ms-1.5 text-[12px] font-semibold text-slate-400">{isRtl ? "ج.م" : "EGP"}</span>
-                                  </span>
-                                  {heroDisc > 0 && hero.originalPrice && (
-                                    <span className="tabular-nums text-[14px] font-bold text-slate-400 line-through">
-                                      {hero.originalPrice.toFixed(2)}
-                                    </span>
-                                  )}
-                                  <span className={cn(
-                                    "rounded-full px-2.5 py-0.5 text-[9.5px] font-black",
-                                    hero.inStock ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-400",
-                                  )}>
-                                    {isRtl
-                                      ? (hero.inStock ? "✓ متاح" : "نفد المخزون")
-                                      : (hero.inStock ? "✓ In stock" : "Out of stock")}
-                                  </span>
-                                </div>
-
-                                <div className={cn("mt-3 flex items-center gap-4 text-[10.5px] font-bold text-slate-400", isRtl && "flex-row-reverse")}>
-                                  <span className={cn("inline-flex items-center gap-1.5", isRtl && "flex-row-reverse")}>
-                                    <ShieldCheck className="h-3.5 w-3.5 text-[#0E7E74]" />
-                                    {isRtl ? "أصلي 100%" : "100% Genuine"}
-                                  </span>
-                                  <span className={cn("inline-flex items-center gap-1.5", isRtl && "flex-row-reverse")}>
-                                    <Truck className="h-3.5 w-3.5 text-[#0E7E74]" />
-                                    {isRtl ? "توصيل سريع" : "Fast delivery"}
-                                  </span>
-                                </div>
-
-                                <span className={cn(
-                                  "mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[#0A1220] text-[13px] font-black text-white shadow-[0_8px_22px_rgba(10,18,32,0.22)] transition-all duration-200 group-hover:bg-[#0E7E74] group-hover:shadow-[0_10px_26px_rgba(14,126,116,0.45)]",
-                                  isRtl && "flex-row-reverse",
-                                )}>
-                                  {isRtl ? "عرض المنتج" : "View Product"}
-                                  <ArrowRight className={cn("h-4 w-4 transition-transform group-hover:translate-x-0.5", isRtl && "rotate-180 group-hover:-translate-x-0.5")} />
-                                </span>
-                              </div>
-                            </Link>
-                          </motion.div>
-                        );
-                      })()}
-
-                      {/* ── RANKED COLUMN ── */}
-                      <motion.div
-                        variants={{
-                          enter: { opacity: 0, y: 18 },
-                          center: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 340, damping: 26 } },
-                        }}
-                        className="flex h-full flex-col gap-3"
-                      >
-                        {pageItems.slice(1).map((product, idx) => {
-                          const rank = picksStart + 2 + idx;
-                          const img  = getCatalogProductImage(product);
-                          const name = getLocalizedProductName(product, lang);
-                          const disc = product.isSale && product.originalPrice && product.originalPrice > product.price
-                            ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100) : 0;
-                          return (
-                            <Link key={product.id} to={`/products/${product.id}`}
-                              className={cn(
-                                "group relative flex min-h-[92px] flex-1 items-center gap-4 overflow-hidden rounded-2xl border-2 border-[#0A1220] bg-white p-3.5 ps-5 shadow-[0_2px_10px_rgba(10,18,32,0.05)] transition-all duration-200 hover:bg-[#0A1220] hover:shadow-[0_14px_32px_rgba(10,18,32,0.22)]",
-                                isRtl && "flex-row-reverse pe-5 ps-3.5",
-                              )}>
-
-                              {/* Growing accent bar */}
-                              <span aria-hidden className={cn(
-                                "absolute inset-y-0 w-1.5 origin-center scale-y-0 bg-[#0E7E74] transition-transform duration-200 group-hover:scale-y-100",
-                                isRtl ? "right-0" : "left-0",
-                              )} />
-
-                              {/* Rank */}
-                              <span
-                                className="w-8 shrink-0 text-center text-[24px] font-black tabular-nums leading-none text-[#0A1220]/20 transition-colors duration-200 group-hover:text-[#2DD4C0]"
-                                style={{ fontFamily: "var(--font-serif)" }}
-                              >
-                                {String(rank).padStart(2, "0")}
-                              </span>
-
-                              {/* Thumbnail */}
-                              <div className="relative h-[64px] w-[64px] shrink-0 overflow-hidden rounded-xl border border-[#0A1220]/10 bg-[#F7F9FB] transition-colors duration-200 group-hover:bg-white">
-                                {img
-                                  ? <img src={img} alt="" className="h-full w-full object-contain p-1.5" />
-                                  : <div className="flex h-full w-full items-center justify-center"><PackageSearch className="h-5 w-5 text-slate-300" /></div>
-                                }
-                                {disc > 0 && (
-                                  <span className={cn(
-                                    "absolute top-0 rounded-br-md bg-rose-500 px-1 py-0.5 text-[8px] font-black leading-none text-white",
-                                    isRtl ? "right-0 rounded-bl-md rounded-br-none" : "left-0",
-                                  )}>
-                                    -{disc}%
-                                  </span>
-                                )}
-                              </div>
-
-                              {/* Name + category */}
-                              <div className={cn("min-w-0 flex-1", isRtl ? "text-right" : "text-left")}>
-                                <p className="line-clamp-2 text-[13.5px] font-black leading-snug text-[#0A1220] transition-colors duration-200 group-hover:text-white">
-                                  {name}
-                                </p>
-                                <p className={cn("mt-1 flex items-center gap-1.5 truncate text-[10.5px] font-medium text-slate-400 transition-colors duration-200 group-hover:text-white/55", isRtl && "flex-row-reverse")}>
-                                  <TrendingUp className="h-3 w-3 shrink-0 text-[#0E7E74] group-hover:text-[#2DD4C0]" />
-                                  <span className="truncate">{isRtl ? product.categoryName : (product.categoryNameEn ?? product.categoryName)}</span>
-                                </p>
-                              </div>
-
-                              {/* Price */}
-                              <div className={cn("flex shrink-0 flex-col gap-0.5", isRtl ? "items-start" : "items-end")}>
-                                <span className="tabular-nums text-[15px] font-black text-[#0A1220] transition-colors duration-200 group-hover:text-white">
-                                  {product.price.toFixed(2)}
-                                </span>
-                                <span className="text-[9.5px] font-semibold text-slate-400 transition-colors duration-200 group-hover:text-white/40">
-                                  {isRtl ? "ج.م" : "EGP"}
-                                </span>
-                              </div>
-
-                              <ArrowRight className={cn("h-3.5 w-3.5 shrink-0 text-[#0A1220]/20 transition-all duration-200 group-hover:translate-x-0.5 group-hover:text-[#2DD4C0]", isRtl && "rotate-180 group-hover:-translate-x-0.5")} />
-                            </Link>
-                          );
-                        })}
-                      </motion.div>
-
-                    </motion.div>
-                  </AnimatePresence>
-                </div>
-              </div>
-
-              {/* ── Pager: dots + counter ── */}
-              {picksPages > 1 && (
-                <div className={cn("mt-7 flex items-center justify-center gap-4", isRtl && "flex-row-reverse")}>
-                  <div className="flex items-center gap-2">
-                    {Array.from({ length: picksPages }).map((_, i) => (
-                      <button
-                        key={i} type="button" onClick={() => picksGoTo(i)}
-                        aria-label={`${isRtl ? "صفحة" : "Page"} ${i + 1}`}
-                        className={cn(
-                          "h-[5px] rounded-full transition-all duration-300",
-                          i === picksClamped ? "w-8 bg-[#0A1220]" : "w-[5px] bg-slate-300 hover:bg-slate-400",
-                        )}
-                      />
-                    ))}
-                  </div>
-                  <span className="text-[11px] font-black tabular-nums text-slate-400">
-                    {picksClamped + 1} <span className="text-slate-300">/</span> {picksPages}
-                  </span>
-                </div>
-              )}
-
-              {/* ── Quick-access strip (static) ── */}
-              <Reveal direction="up" delay={120}>
-                <div className="mt-6 grid grid-cols-3 gap-2 sm:gap-3">
-                  {[
-                    { to: "/offers",     Icon: Star,        labelAr: "العروض",   labelEn: "Offers",     subAr: "أحدث الخصومات", subEn: "Latest deals" },
-                    { to: "/categories", Icon: ShoppingBag, labelAr: "الأقسام",  labelEn: "Categories", subAr: "تصفح بالقسم",   subEn: "By category"  },
-                    { to: "/products",   Icon: Zap,         labelAr: "تصفح الكل", labelEn: "Browse All", subAr: "كل المنتجات",   subEn: "Full catalog" },
-                  ].map(({ to, Icon, labelAr, labelEn, subAr, subEn }) => (
-                    <Link key={labelEn} to={to}
-                      className={cn(
-                        "group flex items-center justify-center gap-3 rounded-2xl border-2 border-[#0A1220] bg-white px-4 py-3.5 text-center shadow-[0_2px_10px_rgba(10,18,32,0.05)] transition-all duration-200 hover:bg-[#0A1220] hover:-translate-y-0.5 hover:shadow-[0_12px_28px_rgba(10,18,32,0.20)]",
-                        isRtl && "flex-row-reverse",
-                      )}>
-                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#0A1220] transition-colors duration-200 group-hover:bg-white/[0.12]">
-                        <Icon className="h-4 w-4 text-white" />
-                      </div>
-                      <div className={isRtl ? "text-right" : "text-left"}>
-                        <p className="text-[12px] font-black text-[#0A1220] transition-colors duration-200 group-hover:text-white">
-                          {isRtl ? labelAr : labelEn}
-                        </p>
-                        <p className="text-[9.5px] font-semibold text-slate-400 transition-colors duration-200 group-hover:text-white/45">
-                          {isRtl ? subAr : subEn}
-                        </p>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              </Reveal>
-            </>
-          ) : (
-            <div className="flex h-48 items-center justify-center rounded-3xl border-2 border-dashed border-slate-200 bg-white">
-              <PackageSearch className="h-8 w-8 text-slate-300" />
-            </div>
-          )}
-
-        </div>
-      </section>
-
-
-      {/* ══════════════════════════════════════════
-          4. PRODUCT CATALOG
-      ══════════════════════════════════════════ */}
-      {featuredB.length > 0 && (
-        <section className="bg-white py-14 sm:py-20">
-          <div className="page-section">
+          <div className="page-section relative z-10">
             <Reveal direction="up">
-              <div className={cn("mb-8 flex items-center justify-between", isRtl && "flex-row-reverse")}>
+              <div className={cn("mb-10 flex flex-wrap items-end justify-between gap-4", isRtl && "flex-row-reverse")}>
                 <div className={isRtl ? "text-right" : "text-left"}>
-                  <p className="text-[10.5px] font-black uppercase tracking-[0.2em] text-[#0E7E74]">
-                    {isRtl ? "مختارات من الكتالوج" : "Catalog picks"}
-                  </p>
-                  <h2
-                    className="mt-2 font-bold text-[#0A1220]"
-                    style={{
-                      fontSize: "clamp(1.6rem, 3vw, 2.4rem)",
-                      lineHeight: 1.1,
-                      ...(isRtl ? {} : { fontFamily: "var(--font-serif)" }),
-                    }}
-                  >
-                    {isRtl ? "منتجات متاحة الآن" : "Available Now"}
+                  <span className={cn("inline-flex items-center gap-2 rounded-full border border-[#0E7E74]/25 bg-[#0E7E74]/[0.07] px-3 py-1", isRtl && "flex-row-reverse")}>
+                    <Flame className="h-3.5 w-3.5 text-[#0E7E74]" />
+                    <span className="text-[10.5px] font-black uppercase tracking-[0.22em] text-[#0E7E74]">
+                      {isRtl ? "الأكثر طلباً" : "Top Picks"}
+                    </span>
+                  </span>
+                  <h2 className="mt-3 font-bold text-[#0A1220]"
+                    style={{ fontSize: "clamp(1.9rem, 3.6vw, 3.1rem)", lineHeight: 1.06, ...(isRtl ? {} : { fontFamily: "var(--font-serif)" }) }}>
+                    {isRtl ? "منتجات مميزة" : "Featured Products"}
                   </h2>
+                  <span className={cn("mt-3 block h-1 w-16 rounded-full bg-[#0E7E74]", isRtl && "ms-auto")} aria-hidden />
                 </div>
                 <Link to="/products"
-                  className={cn("inline-flex items-center gap-1.5 rounded-xl border-2 border-[#0A1220] bg-white px-5 py-2.5 text-[12px] font-black text-[#0A1220] transition-all duration-200 hover:bg-[#0A1220] hover:text-white", isRtl && "flex-row-reverse")}>
+                  className={cn("group inline-flex items-center gap-1.5 rounded-xl border-2 border-[#0A1220] bg-white px-5 py-2.5 text-[12px] font-black text-[#0A1220] transition-all duration-200 hover:bg-[#0A1220] hover:text-white", isRtl && "flex-row-reverse")}>
                   {isRtl ? "كل المنتجات" : "All products"}
-                  <ArrowRight className={cn("h-3.5 w-3.5", isRtl && "rotate-180")} />
+                  <ArrowRight className={cn("h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5", isRtl && "rotate-180 group-hover:-translate-x-0.5")} />
                 </Link>
               </div>
             </Reveal>
 
-            <div className="overflow-hidden rounded-2xl border border-slate-100 shadow-sm">
-              <ProductGrid products={featuredB} />
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+              {picksPool.map((product, i) => (
+                <Reveal key={product.id} direction="up" delay={i * 35}>
+                  <ProductCard product={product} animate={false} />
+                </Reveal>
+              ))}
             </div>
-            {featuredC.length > 0 && (
-              <Reveal direction="up" delay={80}>
-                <div className="mt-4 overflow-hidden rounded-2xl border border-slate-100 shadow-sm">
-                  <ProductGrid products={featuredC} />
-                </div>
-              </Reveal>
-            )}
+
+            <Reveal direction="up" delay={140}>
+              <div className="mt-8 flex justify-center">
+                <Link to="/products"
+                  className={cn("group inline-flex items-center gap-2 rounded-2xl border-2 border-[#0A1220] bg-white px-8 py-3 text-[13px] font-black text-[#0A1220] shadow-[0_2px_12px_rgba(10,18,32,0.08)] transition-all duration-200 hover:bg-[#0A1220] hover:text-white hover:-translate-y-0.5 hover:shadow-[0_12px_28px_rgba(10,18,32,0.20)]", isRtl && "flex-row-reverse")}>
+                  {isRtl ? "تصفح كل المنتجات" : "Browse all products"}
+                  <ArrowRight className={cn("h-4 w-4 transition-transform group-hover:translate-x-0.5", isRtl && "rotate-180 group-hover:-translate-x-0.5")} />
+                </Link>
+              </div>
+            </Reveal>
           </div>
         </section>
       )}
