@@ -308,11 +308,15 @@ const ConcernTile = React.memo(function ConcernTile({
   tone:    string;
   onPress: () => void;
 }) {
-  const { pagePad, width } = useScreenLayout();
-  // Gutter budget must match concernGrid's actual `gap: 10` (2 gaps between
-  // 3 columns) — using a mismatched constant here caused the row width to
-  // overflow by a few px and silently wrap down to 2 columns on-device.
-  const concernW = Math.floor((width - pagePad * 2 - 10 * 2) / 3);
+  const { width } = useScreenLayout();
+  // Must match the *actual* horizontal padding applied to this screen's
+  // scroll container (H_PAD, a fixed 20px — this screen does not use the
+  // dynamic `pagePad` from useScreenLayout for its own padding) and
+  // concernGrid's actual `gap: 10` (2 gaps between 3 columns). Using
+  // `pagePad` (16, a different value) here previously overestimated the
+  // available width by a few px — just enough to silently wrap the row
+  // down to 2 columns on-device despite looking correct on paper.
+  const concernW = Math.floor((width - H_PAD * 2 - 10 * 2) / 3);
 
   const handlePress = useCallback(() => {
     if (Platform.OS !== "web") Haptics.selectionAsync().catch(() => {});
@@ -348,9 +352,12 @@ export default function SearchScreen() {
   const insets   = useSafeAreaInsets();
   const inputRef = useRef<TextInput>(null);
   const { user } = useAuth();
-  const { pagePad, width } = useScreenLayout();
-  // 3-col grid: 8pt gutter between cells, full pagePad on the outer edges
-  const catW = Math.floor((width - pagePad * 2 - 8 * 2) / 3);
+  const { width } = useScreenLayout();
+  // 3-col grid: 8pt gutter between cells. Outer edges use H_PAD (this
+  // screen's actual applied padding, see `discovery` style) — not the
+  // dynamic `pagePad`, which is a different value and previously caused
+  // the same silent-wrap-to-fewer-columns bug fixed in ConcernTile above.
+  const catW = Math.floor((width - H_PAD * 2 - 8 * 2) / 3);
   // Resolve category labels against the active locale so English-mode users
   // never see Arabic names leak through (and vice versa).
   const catLabel = useCallback(

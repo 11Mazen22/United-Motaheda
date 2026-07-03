@@ -1,6 +1,6 @@
 import React from "react";
-import { View } from "react-native";
 import { GestureDetector } from "react-native-gesture-handler";
+import Animated from "react-native-reanimated";
 import { OrdersScreen } from "@/features/orders";
 import { useTabSwipeGesture } from "@/shared/navigation/useTabSwipeGesture";
 
@@ -9,12 +9,12 @@ import { useTabSwipeGesture } from "@/shared/navigation/useTabSwipeGesture";
  * but suppresses the back-button header since the tab bar provides navigation.
  */
 export default function OrdersTab(): React.ReactElement {
-  const gesture = useTabSwipeGesture("orders");
+  const { gesture, animatedStyle } = useTabSwipeGesture("orders");
   return (
     <GestureDetector gesture={gesture}>
-      <View style={{ flex: 1 }}>
+      <Animated.View style={[{ flex: 1 }, animatedStyle]}>
         <OrdersScreen showBack={false} />
-      </View>
+      </Animated.View>
     </GestureDetector>
   );
 }

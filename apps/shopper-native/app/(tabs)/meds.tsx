@@ -1,6 +1,6 @@
 import React from "react";
-import { View } from "react-native";
 import { GestureDetector } from "react-native-gesture-handler";
+import Animated from "react-native-reanimated";
 import { PrescriptionsList } from "@/features/prescriptions";
 import { useTabSwipeGesture } from "@/shared/navigation/useTabSwipeGesture";
 
@@ -13,12 +13,12 @@ import { useTabSwipeGesture } from "@/shared/navigation/useTabSwipeGesture";
  * Family / Insurance segments attach here as their routes land.
  */
 export default function MedsTab(): React.ReactElement {
-  const gesture = useTabSwipeGesture("meds");
+  const { gesture, animatedStyle } = useTabSwipeGesture("meds");
   return (
     <GestureDetector gesture={gesture}>
-      <View style={{ flex: 1 }}>
+      <Animated.View style={[{ flex: 1 }, animatedStyle]}>
         <PrescriptionsList />
-      </View>
+      </Animated.View>
     </GestureDetector>
   );
 }

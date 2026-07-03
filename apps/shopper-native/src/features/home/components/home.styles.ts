@@ -58,6 +58,8 @@ export const shStyles = StyleSheet.create({
     // paddingHorizontal is applied inline via useScreenLayout().pagePad in each consumer
   },
   left: {
+    flex:          1,
+    flexShrink:    1,
     flexDirection: flexRow(IS_RTL),
     alignItems:    "center",
     gap:           kit.sp(3),   // 12 px

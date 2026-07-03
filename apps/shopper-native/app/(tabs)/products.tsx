@@ -1,6 +1,7 @@
 import React, { useCallback } from "react";
 import { FlatList, Platform, Pressable, StyleSheet, View } from "react-native";
 import { GestureDetector } from "react-native-gesture-handler";
+import Animated from "react-native-reanimated";
 import { useRouter } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -81,7 +82,7 @@ function GridSkeleton() {
 
 export default function ProductsScreen() {
   useMountTiming("ProductsScreen");
-  const gesture = useTabSwipeGesture("products");
+  const { gesture, animatedStyle } = useTabSwipeGesture("products");
   const { t, i18n } = useTranslation();
   const router    = useRouter();
   const insets    = useSafeAreaInsets();
@@ -124,7 +125,7 @@ export default function ProductsScreen() {
   );
   return (
     <GestureDetector gesture={gesture}>
-    <View style={s.root}>
+    <Animated.View style={[s.root, animatedStyle]}>
       <FlatList
         data={[]}
         renderItem={null}
@@ -249,7 +250,7 @@ export default function ProductsScreen() {
           </>
         }
       />
-    </View>
+    </Animated.View>
     </GestureDetector>
   );
 }

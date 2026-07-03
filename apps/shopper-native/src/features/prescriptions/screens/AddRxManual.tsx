@@ -1,29 +1,35 @@
 /**
- * AddRxManual — manual Rx-number entry + debounced lookup.
+ * AddRxManual — manual Rx-number entry, now a real create flow.
+ *
+ * There is no external pharmacy lookup API (see the removed manualLookup
+ * stub) — instead, once a well-formed, non-duplicate number is entered, the
+ * user names it and saves it directly to their account via Supabase
+ * (usePrescriptionMutations). This replaces the old "look it up and hope it
+ * matches" flow, which could never actually succeed.
  *
  * Redesign (2026 visual pass):
- *   • Digit display now uses 7 fixed OTP boxes that scale fluidly with
- *     screen width (no hardcoded 40pt). Active box (the next empty slot
- *     in input order) gets a 2px accent ring + glow; filled boxes get a
- *     soft accent tint; the cursor box gets a blinking caret.
+ *   • Digit display uses 10 fixed OTP boxes that scale fluidly with screen
+ *     width. Boxes always render in natural left-to-right numeral order
+ *     (see `d.row` below) regardless of app language — Arabic UI still
+ *     reads numbers left-to-right, so this row is intentionally NOT
+ *     direction-mirrored the way most row layouts in this app are.
+ *   • A hidden TextInput backs the boxes so tapping them opens the native
+ *     numeric keyboard (keyboardType="number-pad") on both platforms, with
+ *     correct cursor/paste behaviour for free. The on-screen custom keypad
+ *     remains as a second, branded input method — both write to the same
+ *     state, so neither can conflict with the other.
  *   • The keypad lives in its own fixed footer above the bottom safe-area
- *     so it never floats relative to the scrollable content. Keys span
- *     the safe width minus 24pt symmetric padding with a 10pt inter-key
- *     gutter — strong tactile target while staying inside one-thumb reach.
- *   • Info banner (privacy / found / not-found) sits in the body between
- *     digits and keypad with breathing room above and below — never
- *     squeezed.
+ *     so it never floats relative to the scrollable content.
  *   • All typography forces Cairo via Text `weight` props rather than
  *     style.fontFamily so font precedence cannot be lost on re-render.
  */
 
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ActivityIndicator,
-  Linking,
   Pressable,
   ScrollView,
   StyleSheet,
+  TextInput,
   View,
   useWindowDimensions,
 } from "react-native";
@@ -45,33 +51,32 @@ import { kit, Button } from "@/shared/kit";
 import { Text } from "@/shared/ui";
 import { flexRow, isRtl, textAlignStart, BACK_CHEVRON } from "@/utils/layout";
 import { useAuth } from "@/features/auth";
-import { usePrescriptionsStore, type Prescription } from "@/stores/prescriptionsStore";
-import { RxCard } from "@/shared/components/RxCard";
-import { lookupRxNumber, type RxLookupResult } from "../lib/manualLookup";
+import { usePrescriptions } from "../hooks/usePrescriptions";
+import { usePrescriptionMutations } from "../hooks/usePrescriptionMutations";
+import { showSuccessSheet, showErrorSheet } from "@/shared/store/appSheetStore";
 
 const IS_RTL      = isRtl();
 const TEXT_START  = textAlignStart(IS_RTL);
 const MIN_DIGITS  = 7;
 const MAX_DIGITS  = 10;
-const DEBOUNCE_MS = 500;
 
-const WHATSAPP_RX_URL =
-  `https://wa.me/201112343212?text=${encodeURIComponent("مرحباً، أريد إضافة وصفة طبية إلى حسابي.")}`;
-
-type ScreenState = "idle" | "typing" | "looking_up" | "found" | "not_found";
+type ScreenState = "idle" | "typing" | "duplicate" | "ready";
 
 // ─── Digit display ────────────────────────────────────────────────────────────
 
 interface DigitDisplayProps {
   rxNumber: string;
   reduced:  boolean;
+  onPress:  () => void;
 }
 
 /**
- * 7-box OTP-style row. The "active" box (next empty slot) gets a 2pt
- * accent ring + accent-tint background and a blinking caret.
+ * 10-box OTP-style row. The "active" box (next empty slot) gets a 2pt
+ * accent ring + accent-tint background and a blinking caret. Tapping
+ * anywhere on the row focuses the hidden TextInput (see parent), opening
+ * the native numeric keyboard.
  */
-function DigitDisplay({ rxNumber, reduced }: DigitDisplayProps): React.ReactElement {
+function DigitDisplay({ rxNumber, reduced, onPress }: DigitDisplayProps): React.ReactElement {
   const { t } = useTranslation();
   const { width } = useWindowDimensions();
 
@@ -104,15 +109,21 @@ function DigitDisplay({ rxNumber, reduced }: DigitDisplayProps): React.ReactElem
   const caretStyle = useAnimatedStyle(() => ({ opacity: caretOpacity.value }));
 
   return (
-    <View
+    <Pressable
+      onPress={onPress}
       accessible
+      accessibilityRole="button"
       accessibilityLiveRegion="polite"
       accessibilityLabel={
         rxNumber.length === 0
           ? t("prescriptions.manualA11yNoDigits")
           : t("prescriptions.manualA11yDigits", { digits: rxNumber.split("").join(" ") })
       }
-      style={[d.row, { flexDirection: flexRow(IS_RTL) }]}>
+      // Numbers always read left-to-right in this app regardless of UI
+      // language (matches phone numbers, prices, etc.) — deliberately NOT
+      // flexRow(IS_RTL) here, unlike almost every other row in this app.
+      // Mirroring this row was the "reversed digit order" bug.
+      style={d.row}>
       {Array.from({ length: boxCount }).map((_, i) => {
         const digit    = rxNumber[i] ?? "";
         const isFilled = digit !== "";
@@ -139,7 +150,7 @@ function DigitDisplay({ rxNumber, reduced }: DigitDisplayProps): React.ReactElem
           </View>
         );
       })}
-    </View>
+    </Pressable>
   );
 }
 
@@ -238,87 +249,65 @@ function Keypad({ onDigit, onBackspace, disabled }: KeypadProps): React.ReactEle
   );
 }
 
-// ─── Preview Rx builder ──────────────────────────────────────────────────────
-
-function buildPreviewRx(match: RxLookupResult, userId: string): Prescription {
-  const stamp = new Date().toISOString();
-  return {
-    id:           "preview-match",
-    userId,
-    name:         match.name,
-    dose:         match.dose,
-    refills:      match.refills,
-    nextRefill:   match.nextRefill,
-    doctor:       match.doctor,
-    status:       match.status,
-    isControlled: match.isControlled,
-    schedule:     match.schedule,
-    addedAt:      stamp,
-    updatedAt:    stamp,
-  };
-}
-
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export function AddRxManual(): React.ReactElement {
-  const router          = useRouter();
-  const insets          = useSafeAreaInsets();
-  const reduced         = useReducedMotion() ?? false;
-  const { t }           = useTranslation();
-  const { user }        = useAuth();
-  const addPrescription = usePrescriptionsStore((s) => s.addPrescription);
+  const router    = useRouter();
+  const insets    = useSafeAreaInsets();
+  const reduced   = useReducedMotion() ?? false;
+  const { t }     = useTranslation();
+  const { user }  = useAuth();
+  const existing  = usePrescriptions();
+  const { create } = usePrescriptionMutations(user?.id);
 
-  const [rxNumber,   setRxNumber]   = useState("");
-  const [lookup,     setLookup]     = useState<RxLookupResult | null | undefined>(undefined);
-  const [pendingFor, setPendingFor] = useState<string | null>(null);
+  const inputRef = useRef<TextInput>(null);
+  const [rxNumber, setRxNumber] = useState("");
+  const [name,     setName]     = useState("");
+
+  const isDuplicate = useMemo(
+    () => rxNumber.length >= MIN_DIGITS && existing.some((rx) => rx.rxNumber === rxNumber),
+    [existing, rxNumber],
+  );
 
   const screenState: ScreenState = useMemo(() => {
     if (rxNumber.length === 0)        return "idle";
     if (rxNumber.length < MIN_DIGITS) return "typing";
-    if (pendingFor === rxNumber)      return "looking_up";
-    if (lookup === null)              return "not_found";
-    if (lookup !== undefined)         return "found";
-    return "looking_up";
-  }, [rxNumber, lookup, pendingFor]);
+    if (isDuplicate)                   return "duplicate";
+    return "ready";
+  }, [rxNumber, isDuplicate]);
 
-  useEffect(() => {
-    if (rxNumber.length < MIN_DIGITS || rxNumber.length > MAX_DIGITS) {
-      setLookup(undefined);
-      setPendingFor(null);
-      return;
-    }
-    setPendingFor(rxNumber);
-    setLookup(undefined);
-    let cancelled = false;
-    const timer = setTimeout(() => {
-      if (cancelled) return;
-      lookupRxNumber(rxNumber).then((result) => {
-        if (cancelled) return;
-        setLookup(result);
-        setPendingFor(null);
-      });
-    }, DEBOUNCE_MS);
-    return () => { cancelled = true; clearTimeout(timer); };
-  }, [rxNumber]);
-
-  const onDigit     = useCallback((digit: string) => {
-    setRxNumber((prev) => prev.length >= MAX_DIGITS ? prev : prev + digit);
+  // Shared by the hidden TextInput (paste/native keyboard) and the custom
+  // keypad — both funnel through here so digits can never get out of sync
+  // or accidentally reversed regardless of input method.
+  const applyDigits = useCallback((raw: string) => {
+    setRxNumber(raw.replace(/[^0-9]/g, "").slice(0, MAX_DIGITS));
+  }, []);
+  const onDigit = useCallback((digit: string) => {
+    setRxNumber((prev) => (prev.length >= MAX_DIGITS ? prev : prev + digit));
   }, []);
   const onBackspace = useCallback(() => {
     setRxNumber((prev) => prev.slice(0, -1));
   }, []);
-  const onSubmit    = useCallback(() => {
-    if (screenState !== "found" || !lookup || !user?.id) return;
-    const created = addPrescription({ ...lookup, userId: user.id, rxNumber, status: "active" });
-    router.replace(`/prescriptions/${created.id}` as never);
-  }, [addPrescription, lookup, rxNumber, router, screenState, user?.id]);
+  const focusHiddenInput = useCallback(() => inputRef.current?.focus(), []);
 
-  const previewRx = lookup && screenState === "found" && user?.id
-    ? buildPreviewRx(lookup, user.id)
-    : null;
+  const canSave = screenState === "ready" && name.trim().length > 0 && !create.isPending && !!user?.id;
+
+  const onSave = useCallback(async () => {
+    if (!canSave) return;
+    try {
+      const created = await create.mutateAsync({ name: name.trim(), rxNumber });
+      showSuccessSheet(
+        t("prescriptions.manualSavedTitle"),
+        t("prescriptions.manualSavedBody"),
+        () => router.replace(`/prescriptions/${created.id}` as never),
+      );
+    } catch {
+      showErrorSheet(t("prescriptions.manualSaveErrorTitle"), t("prescriptions.manualSaveErrorBody"));
+    }
+  }, [canSave, create, name, rxNumber, router, t]);
 
   // Whether the bottom CTA bar is mounted — affects keypad footer offset.
-  const showCta = screenState === "found";
+  const showCta = screenState === "ready";
 
   return (
     <View style={s.screen}>
@@ -367,34 +356,42 @@ export function AddRxManual(): React.ReactElement {
           {t("prescriptions.manualHint", { min: MIN_DIGITS, max: MAX_DIGITS })}
         </Text>
 
-        <DigitDisplay rxNumber={rxNumber} reduced={reduced} />
+        <DigitDisplay rxNumber={rxNumber} reduced={reduced} onPress={focusHiddenInput} />
 
-        {screenState === "looking_up" && (
-          <View style={[s.lookupRow, { flexDirection: flexRow(IS_RTL) }]}>
-            <ActivityIndicator size="small" color={kit.color.accent} />
-            <Text weight="bold" style={s.lookupText}>
-              {t("prescriptions.manualLooking")}
+        {/* Hidden native input — invisible, but focusable via the row above.
+            Gives the field a real numeric keyboard, cursor, and paste
+            handling on both platforms for free; onChangeText strips
+            anything non-numeric so pasted text can't reorder digits. */}
+        <TextInput
+          ref={inputRef}
+          value={rxNumber}
+          onChangeText={applyDigits}
+          keyboardType="number-pad"
+          maxLength={MAX_DIGITS}
+          style={s.hiddenInput}
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+        />
+
+        {screenState === "duplicate" && (
+          <InfoBanner tone="not_found" text={t("prescriptions.manualDuplicateBody")} />
+        )}
+
+        {screenState === "ready" && (
+          <View style={s.nameField}>
+            <Text weight="bold" style={s.nameLabel}>
+              {t("prescriptions.manualNameLabel")}
             </Text>
+            <TextInput
+              value={name}
+              onChangeText={setName}
+              placeholder={t("prescriptions.manualNamePh")}
+              placeholderTextColor={kit.color.inkFaint}
+              style={s.nameInput}
+              textAlign={TEXT_START as "left" | "right"}
+              editable={!create.isPending}
+            />
           </View>
-        )}
-
-        {screenState === "found" && previewRx && (
-          <>
-            <RxCard prescription={previewRx} variant="list" />
-            <InfoBanner tone="found" text={t("prescriptions.manualFound")} />
-          </>
-        )}
-
-        {screenState === "not_found" && (
-          <InfoBanner
-            tone="not_found"
-            text={t("prescriptions.manualNotFound")}
-            cta={{
-              label:   t("prescriptions.manualSendWhatsApp"),
-              icon:    "logo-whatsapp",
-              onPress: () => { void Linking.openURL(WHATSAPP_RX_URL).catch(() => {}); },
-            }}
-          />
         )}
 
         {(screenState === "idle" || screenState === "typing") && (
@@ -414,11 +411,11 @@ export function AddRxManual(): React.ReactElement {
         <Keypad
           onDigit={onDigit}
           onBackspace={onBackspace}
-          disabled={screenState === "looking_up"}
+          disabled={create.isPending}
         />
       </View>
 
-      {/* ── CTA bar (only when match found) ────────────────────────── */}
+      {/* ── CTA bar (only once the number is valid + not a duplicate) ── */}
       {showCta && (
         <View
           style={[s.ctaBar, { paddingBottom: Math.max(insets.bottom, 8) + 4 }]}
@@ -426,9 +423,11 @@ export function AddRxManual(): React.ReactElement {
           <Button
             variant="primary"
             full
-            onPress={onSubmit}
-            label={t("prescriptions.manualAddCta")}
-            icon="add"
+            onPress={onSave}
+            label={t("prescriptions.manualSaveCta")}
+            icon="checkmark"
+            loading={create.isPending}
+            disabled={!canSave}
           />
         </View>
       )}
@@ -532,17 +531,33 @@ const s = StyleSheet.create({
     textAlign:          TEXT_START,
     includeFontPadding: false,
   },
-  lookupRow: {
-    alignItems:      "center",
-    justifyContent:  "center",
-    gap:             10,
-    paddingVertical: 6,
+  // Invisible but focusable — see the comment where it's rendered.
+  hiddenInput: {
+    position: "absolute",
+    width:    1,
+    height:   1,
+    opacity:  0,
   },
-  lookupText: {
+  nameField: {
+    gap: 8,
+  },
+  nameLabel: {
     fontSize:           13,
     lineHeight:         18,
-    color:              kit.color.accentDeep,
+    color:              kit.color.ink,
+    textAlign:          TEXT_START,
     includeFontPadding: false,
+  },
+  nameInput: {
+    height:            52,
+    borderRadius:      kit.radius.lg,
+    borderWidth:       1,
+    borderColor:       kit.color.line,
+    backgroundColor:   kit.color.surface,
+    paddingHorizontal: 16,
+    fontSize:          15,
+    color:             kit.color.ink,
+    ...kit.shadow.raised,
   },
 
   // ── Keypad footer ───────────────────────────────────────────────────────
@@ -568,6 +583,9 @@ const s = StyleSheet.create({
 
 const d = StyleSheet.create({
   row: {
+    // Always physical "row" (never mirrored) — see the comment where this
+    // style is applied for why numbers must not follow RTL row-reversal.
+    flexDirection:   "row",
     justifyContent:  "center",
     alignItems:      "center",
     gap:             8,

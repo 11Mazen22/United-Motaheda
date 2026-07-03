@@ -159,7 +159,7 @@ const MenuRow = memo(function MenuRow({
 // ─── ProfileScreen ────────────────────────────────────────────────────────────
 
 export default function ProfileScreen() {
-  const gesture = useTabSwipeGesture("profile");
+  const { gesture, animatedStyle } = useTabSwipeGesture("profile");
   const router  = useRouter();
   const insets  = useSafeAreaInsets();
   const { t }                     = useTranslation();
@@ -200,7 +200,7 @@ export default function ProfileScreen() {
 
   return (
     <GestureDetector gesture={gesture}>
-    <View style={s.screen}>
+    <Animated.View style={[s.screen, animatedStyle]}>
       <ScrollView
         contentContainerStyle={[s.scroll, { paddingBottom: theme.layout.tabBarHeight + 32 }]}
         showsVerticalScrollIndicator={false}>
@@ -341,7 +341,7 @@ export default function ProfileScreen() {
         </View>
 
       </ScrollView>
-    </View>
+    </Animated.View>
     </GestureDetector>
   );
 }

@@ -19,11 +19,12 @@
  *   • Safety card: warmer accent tint, eyebrow-style title.
  */
 
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
   Pressable,
   ScrollView,
   StyleSheet,
+  TextInput,
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -34,7 +35,13 @@ import Animated, { FadeInDown } from "react-native-reanimated";
 import { kit, Button } from "@/shared/kit";
 import { Text } from "@/shared/ui";
 import { flexRow, isRtl, textAlignStart, BACK_CHEVRON } from "@/utils/layout";
-import { usePrescription, useRefillsForPrescription } from "@/features/prescriptions";
+import { useAuth } from "@/features/auth";
+import {
+  usePrescription,
+  useRefillsForPrescription,
+  usePrescriptionMutations,
+} from "@/features/prescriptions";
+import { showConfirmSheet, showSuccessSheet, showErrorSheet } from "@/shared/store/appSheetStore";
 import type { RxStatus, RefillRequest, RefillStatus } from "@/stores/prescriptionsStore";
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>["name"];
@@ -98,14 +105,64 @@ export function PrescriptionDetail({ id }: { id: string | undefined }): React.Re
   const { t, i18n } = useTranslation();
   const router      = useRouter();
   const insets      = useSafeAreaInsets();
+  const { user }    = useAuth();
   const rx          = usePrescription(id);
   const refills     = useRefillsForPrescription(id ?? "");
+  const { update, remove } = usePrescriptionMutations(user?.id);
 
   const inFlight = useMemo(() => activeRefill(refills), [refills]);
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [editName,   setEditName]   = useState("");
+  const [editDose,   setEditDose]   = useState("");
+  const [editDoctor, setEditDoctor] = useState("");
 
   const goRefill = useCallback(() => {
     if (rx) router.push(`/prescriptions/${rx.id}/refill` as never);
   }, [router, rx]);
+
+  const onStartEdit = useCallback(() => {
+    if (!rx) return;
+    setEditName(rx.name);
+    setEditDose(rx.dose);
+    setEditDoctor(rx.doctor);
+    setIsEditing(true);
+  }, [rx]);
+
+  const onCancelEdit = useCallback(() => {
+    setIsEditing(false);
+  }, []);
+
+  const onSaveEdit = useCallback(async () => {
+    if (!rx) return;
+    try {
+      await update.mutateAsync({
+        id:    rx.id,
+        input: { name: editName.trim(), dose: editDose.trim(), doctor: editDoctor.trim() },
+      });
+      showSuccessSheet(t("prescriptions.editSavedTitle"), t("prescriptions.editSavedBody"));
+      setIsEditing(false);
+    } catch {
+      showErrorSheet(t("prescriptions.editSaveErrorTitle"), t("prescriptions.editSaveErrorBody"));
+    }
+  }, [rx, update, editName, editDose, editDoctor, t]);
+
+  const onDelete = useCallback(() => {
+    if (!rx) return;
+    showConfirmSheet(
+      t("prescriptions.deleteTitle"),
+      t("prescriptions.deleteBody"),
+      async () => {
+        try {
+          await remove.mutateAsync(rx.id);
+          showSuccessSheet(t("prescriptions.deletedTitle"), t("prescriptions.deletedBody"), () => router.back());
+        } catch {
+          showErrorSheet(t("prescriptions.deleteErrorTitle"), t("prescriptions.deleteErrorBody"));
+        }
+      },
+      { confirmLabel: t("prescriptions.deleteConfirm"), danger: true },
+    );
+  }, [rx, remove, router, t]);
 
   const statusLabel = useCallback((status: RxStatus): string => {
     switch (status) {
@@ -146,7 +203,17 @@ export function PrescriptionDetail({ id }: { id: string | undefined }): React.Re
 
   return (
     <View style={s.screen}>
-      <Header insets={insets} onBack={() => router.back()} />
+      <Header
+        insets={insets}
+        onBack={() => router.back()}
+        isEditing={isEditing}
+        onEdit={onStartEdit}
+        onDelete={onDelete}
+        onSave={onSaveEdit}
+        onCancel={onCancelEdit}
+        deletePending={remove.isPending}
+        savePending={update.isPending}
+      />
 
       <ScrollView
         style={{ flex: 1 }}
@@ -173,12 +240,46 @@ export function PrescriptionDetail({ id }: { id: string | undefined }): React.Re
               </View>
             </View>
 
-            <Text weight="black" style={s.heroName} numberOfLines={2}>
-              {rx.name}
-            </Text>
-            <Text weight="semibold" style={s.heroDose} numberOfLines={1}>
-              {rx.dose}
-            </Text>
+            {isEditing ? (
+              <>
+                <TextInput
+                  value={editName}
+                  onChangeText={setEditName}
+                  placeholder={t("prescriptions.ocrFieldNamePh")}
+                  placeholderTextColor={kit.color.inkFaint}
+                  style={s.heroNameInput}
+                  textAlign={TEXT_START as "left" | "right"}
+                  editable={!update.isPending}
+                />
+                <TextInput
+                  value={editDose}
+                  onChangeText={setEditDose}
+                  placeholder={t("prescriptions.ocrFieldDosePh")}
+                  placeholderTextColor={kit.color.inkFaint}
+                  style={s.heroDoseInput}
+                  textAlign={TEXT_START as "left" | "right"}
+                  editable={!update.isPending}
+                />
+                <TextInput
+                  value={editDoctor}
+                  onChangeText={setEditDoctor}
+                  placeholder={t("prescriptions.ocrFieldDoctorPh")}
+                  placeholderTextColor={kit.color.inkFaint}
+                  style={s.heroDoseInput}
+                  textAlign={TEXT_START as "left" | "right"}
+                  editable={!update.isPending}
+                />
+              </>
+            ) : (
+              <>
+                <Text weight="black" style={s.heroName} numberOfLines={2}>
+                  {rx.name}
+                </Text>
+                <Text weight="semibold" style={s.heroDose} numberOfLines={1}>
+                  {rx.dose}
+                </Text>
+              </>
+            )}
 
             {rx.isControlled && (
               <View style={s.controlledBadge}>
@@ -345,8 +446,23 @@ export function PrescriptionDetail({ id }: { id: string | undefined }): React.Re
 // Sub-components
 // ═══════════════════════════════════════════════════════════════════════════════
 
-function Header({ insets, onBack }: { insets: { top: number }; onBack: () => void }) {
+interface HeaderProps {
+  insets:         { top: number };
+  onBack:         () => void;
+  isEditing?:     boolean;
+  onEdit?:        () => void;
+  onDelete?:      () => void;
+  onSave?:        () => void;
+  onCancel?:      () => void;
+  deletePending?: boolean;
+  savePending?:   boolean;
+}
+
+function Header({
+  insets, onBack, isEditing, onEdit, onDelete, onSave, onCancel, deletePending, savePending,
+}: HeaderProps) {
   const { t } = useTranslation();
+  const showActions = !!(onEdit && onDelete && onSave && onCancel);
   return (
     <View style={[s.header, { paddingTop: insets.top + 12 }]}>
       <View style={s.headerRow}>
@@ -363,11 +479,74 @@ function Header({ insets, onBack }: { insets: { top: number }; onBack: () => voi
           )}
         </Pressable>
 
-        <View style={s.secureBadge}>
-          <Ionicons name="shield-checkmark" size={12} color={kit.color.success} />
-          <Text weight="black" style={s.secureText}>
-            {t("prescriptions.secure")}
-          </Text>
+        <View style={[s.headerTrailingCluster, { flexDirection: flexRow(IS_RTL) }]}>
+          {showActions && (
+            isEditing ? (
+              <>
+                <Pressable
+                  onPress={onCancel}
+                  hitSlop={10}
+                  disabled={savePending}
+                  accessibilityRole="button"
+                  accessibilityLabel={t("common.cancel")}
+                  style={s.iconBtnTouchable}>
+                  {({ pressed }) => (
+                    <View style={[s.iconBtn, pressed && s.iconBtnPressed, savePending && s.iconBtnDisabled]}>
+                      <Ionicons name="close-outline" size={20} color={kit.color.ink} />
+                    </View>
+                  )}
+                </Pressable>
+                <Pressable
+                  onPress={onSave}
+                  hitSlop={10}
+                  disabled={savePending}
+                  accessibilityRole="button"
+                  accessibilityLabel={t("prescriptions.editSaveCta")}
+                  style={s.iconBtnTouchable}>
+                  {({ pressed }) => (
+                    <View style={[s.iconBtn, s.iconBtnAccent, pressed && s.iconBtnPressed, savePending && s.iconBtnDisabled]}>
+                      <Ionicons name="checkmark-outline" size={20} color={kit.color.accentDeep} />
+                    </View>
+                  )}
+                </Pressable>
+              </>
+            ) : (
+              <>
+                <Pressable
+                  onPress={onEdit}
+                  hitSlop={10}
+                  accessibilityRole="button"
+                  accessibilityLabel={t("prescriptions.menuEdit")}
+                  style={s.iconBtnTouchable}>
+                  {({ pressed }) => (
+                    <View style={[s.iconBtn, pressed && s.iconBtnPressed]}>
+                      <Ionicons name="pencil-outline" size={18} color={kit.color.ink} />
+                    </View>
+                  )}
+                </Pressable>
+                <Pressable
+                  onPress={onDelete}
+                  hitSlop={10}
+                  disabled={deletePending}
+                  accessibilityRole="button"
+                  accessibilityLabel={t("prescriptions.menuDelete")}
+                  style={s.iconBtnTouchable}>
+                  {({ pressed }) => (
+                    <View style={[s.iconBtn, pressed && s.iconBtnPressed, deletePending && s.iconBtnDisabled]}>
+                      <Ionicons name="trash-outline" size={18} color={kit.color.danger} />
+                    </View>
+                  )}
+                </Pressable>
+              </>
+            )
+          )}
+
+          <View style={s.secureBadge}>
+            <Ionicons name="shield-checkmark" size={12} color={kit.color.success} />
+            <Text weight="black" style={s.secureText}>
+              {t("prescriptions.secure")}
+            </Text>
+          </View>
         </View>
       </View>
     </View>
@@ -582,6 +761,38 @@ const s = StyleSheet.create({
     opacity:   0.7,
     transform: [{ scale: 0.96 }],
   },
+  headerTrailingCluster: {
+    alignItems: "center",
+    gap:        8,
+  },
+  // Bare touchable: only radius, no sizing/background — the actual visuals
+  // live on the inner View via function-as-children. A raw Pressable's own
+  // function-computed `style` prop is unreliable in this app's RN/Fabric
+  // setup (see backBtnTouchable above, the established pattern in this file).
+  iconBtnTouchable: {
+    borderRadius: 12,
+  },
+  iconBtn: {
+    width:           36,
+    height:          36,
+    borderRadius:    12,
+    backgroundColor: kit.color.well,
+    borderWidth:     1,
+    borderColor:     kit.color.line,
+    alignItems:      "center",
+    justifyContent:  "center",
+  },
+  iconBtnAccent: {
+    backgroundColor: kit.color.accentTint,
+    borderColor:     "rgba(14,126,116,0.18)",
+  },
+  iconBtnPressed: {
+    opacity:   0.7,
+    transform: [{ scale: 0.96 }],
+  },
+  iconBtnDisabled: {
+    opacity: 0.45,
+  },
   secureBadge: {
     flexDirection:     flexRow(IS_RTL),
     alignItems:        "center",
@@ -659,6 +870,27 @@ const s = StyleSheet.create({
     lineHeight:         20,
     color:              kit.color.inkSoft,
     textAlign:          TEXT_START,
+    includeFontPadding: false,
+  },
+  heroNameInput: {
+    fontSize:           22,
+    lineHeight:         28,
+    letterSpacing:      -0.4,
+    color:              kit.color.ink,
+    textAlign:          TEXT_START,
+    paddingVertical:    4,
+    borderBottomWidth:  1.5,
+    borderBottomColor:  kit.color.accent,
+    includeFontPadding: false,
+  },
+  heroDoseInput: {
+    fontSize:           14,
+    lineHeight:         20,
+    color:              kit.color.inkSoft,
+    textAlign:          TEXT_START,
+    paddingVertical:    4,
+    borderBottomWidth:  1,
+    borderBottomColor:  kit.color.line,
     includeFontPadding: false,
   },
   controlledBadge: {

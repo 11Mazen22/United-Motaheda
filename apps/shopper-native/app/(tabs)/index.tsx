@@ -31,6 +31,7 @@ import {
   View,
 } from "react-native";
 import { GestureDetector }                from "react-native-gesture-handler";
+import Animated                           from "react-native-reanimated";
 import { useSafeAreaInsets }              from "react-native-safe-area-context";
 import { useRouter }                      from "expo-router";
 import { useTranslation }                 from "react-i18next";
@@ -67,7 +68,7 @@ const CANVAS = kit.color.canvas;
 // ─── HomeScreen ──────────────────────────────────────────────────────────────
 
 export default function HomeScreen() {
-  const gesture   = useTabSwipeGesture("index");
+  const { gesture, animatedStyle } = useTabSwipeGesture("index");
   const insets    = useSafeAreaInsets();
   const router    = useRouter();
   const { i18n }  = useTranslation();
@@ -142,7 +143,7 @@ export default function HomeScreen() {
 
   return (
     <GestureDetector gesture={gesture}>
-    <View style={s.root}>
+    <Animated.View style={[s.root, animatedStyle]}>
       <StatusBar barStyle="dark-content" backgroundColor={CANVAS} />
 
       <DeliveryHeader
@@ -214,7 +215,7 @@ export default function HomeScreen() {
 
         <View style={{ height: Math.max(insets.bottom, 16) + 72 }} />
       </ScrollView>
-    </View>
+    </Animated.View>
     </GestureDetector>
   );
 }

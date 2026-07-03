@@ -41,19 +41,28 @@ export const HomeSectionHeader = memo(function HomeSectionHeader({
 
   return (
     <View style={[base.row, { paddingHorizontal: pagePad }]}>
-      {/* Leading cluster — icon tile + text stack */}
+      {/* Leading cluster — icon tile + text stack. Allowed to shrink/
+          truncate so a wide rightSlot (e.g. the flash-sale countdown)
+          never gets pushed into overlapping the title — that overlap was
+          a real bug, not just crowding. */}
       <View style={base.left}>
         <View style={[sh.iconTile, { backgroundColor: accent + "14" }]}>
           <Ionicons name={icon} size={17} color={accent} />
         </View>
 
         <View style={sh.textStack}>
-          {eyebrow && <UIText style={[sh.eyebrow, { color: accent }]}>{eyebrow}</UIText>}
-          <UIText style={sh.title}>{title}</UIText>
+          {eyebrow && (
+            <UIText style={[sh.eyebrow, { color: accent }]} numberOfLines={1}>
+              {eyebrow}
+            </UIText>
+          )}
+          <UIText style={sh.title} numberOfLines={1}>{title}</UIText>
         </View>
       </View>
 
-      {/* Trailing slot — ghost "view all" */}
+      {/* Trailing slot — ghost "view all", or a fixed-width widget (e.g. a
+          countdown) that must never be squeezed by the leading cluster. */}
+      <View style={sh.trailing}>
       {rightSlot ?? (onMore && (
         <Pressable
           onPress={onMore}
@@ -73,6 +82,7 @@ export const HomeSectionHeader = memo(function HomeSectionHeader({
           <Ionicons name={FORWARD_CHEVRON} size={13} color={kit.color.inkSoft} />
         </Pressable>
       ))}
+      </View>
     </View>
   );
 });
@@ -85,7 +95,8 @@ const sh = StyleSheet.create({
     alignItems:     "center",
     justifyContent: "center",
   },
-  textStack: { gap: 1 },
+  textStack: { flexShrink: 1, gap: 1 },
+  trailing:  { flexShrink: 0 },
   eyebrow: {
     fontFamily:         theme.fonts.bold,
     fontSize:           10,

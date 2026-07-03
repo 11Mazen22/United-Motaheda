@@ -25,6 +25,14 @@ export type { UsePrescriptionsQueryResult } from "./hooks/usePrescriptionsQuery"
 export { useRequestRefill }             from "./hooks/useRequestRefill";
 export type { RequestRefillInput }      from "./hooks/useRequestRefill";
 
+export { usePrescriptionMutations }     from "./hooks/usePrescriptionMutations";
+export {
+  createPrescription,
+  updatePrescription,
+  deletePrescription,
+}                                        from "./api";
+export type { PrescriptionInput }       from "./api";
+
 export { useDrugInteractionCheck }      from "./hooks/useDrugInteractionCheck";
 export type {
   InteractionMatch,

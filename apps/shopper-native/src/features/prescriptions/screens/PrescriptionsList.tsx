@@ -418,7 +418,7 @@ function CenteredState({
       <Text weight="black" style={s.emptyTitle}>{title}</Text>
       <Text style={s.emptyBody}>{body}</Text>
       <View style={s.emptyCta}>
-        <Button variant="primary" label={ctaLabel} icon={ctaIcon} onPress={onCta} />
+        <Button variant="primary" full label={ctaLabel} icon={ctaIcon} onPress={onCta} />
       </View>
     </View>
   );
@@ -680,9 +680,14 @@ const s = StyleSheet.create({
     maxWidth:           320,
     includeFontPadding: false,
   },
+  // `full` Button stretches to fill this wrapper — bounded width (not just
+  // minWidth) so the button doesn't hug one edge inside an oversized box.
+  // That mismatch (minWidth without a matching maxWidth, alongside a
+  // non-`full` Button's alignSelf:"flex-start") was the "shifted left" bug.
   emptyCta: {
+    width:     "100%",
+    maxWidth:  280,
     marginTop: 12,
-    minWidth:  220,
   },
 
   // ── Skeleton ────────────────────────────────────────────────────────────────
