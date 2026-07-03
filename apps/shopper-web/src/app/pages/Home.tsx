@@ -11,7 +11,7 @@ import {
   Thermometer, TrendingUp, Truck, Zap,
 } from "lucide-react";
 import { cn } from "../components/UI";
-import { ProductCard } from "../components/ProductCard";
+import { DailyPicksSection } from "../components/DailyPicksSection";
 import { Reveal } from "../components/Reveal";
 import { SearchBar } from "../components/SearchBar";
 import { useIsShopperShell } from "../components/ui/use-mobile";
@@ -87,9 +87,6 @@ function HomeDesktop() {
   const [picksDir,    setPicksDir]    = useState<"fwd" | "back">("fwd");
   const [picksPaused, setPicksPaused] = useState(false);
 
-  /* Catalog picks — active category filter */
-  const [catalogCat, setCatalogCat] = useState<string | null>(null);
-
   const isInitialLoading = isLoading && featuredProducts.length === 0;
 
   const categoryResults = useCatalogCategorySearch(categories, searchQuery);
@@ -103,28 +100,6 @@ function HomeDesktop() {
   /* Featured leaderboard — paginated 4 per page (1 hero + 3 ranked), infinite wrap */
   const PICKS_PER_PAGE = 4;
   const dailySeed  = hashStr(new Date().toDateString());
-  // Different seed so catalog picks never mirror the leaderboard on the same day
-  const catalogPool = useMemo(
-    () => seededShuffle(featuredProducts, (dailySeed ^ 0x1A2B3C4D) >>> 0).slice(0, 80),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [featuredProducts, dailySeed],
-  );
-  const catalogCats = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const p of catalogPool) {
-      if (p.category) counts.set(p.category, (counts.get(p.category) ?? 0) + 1);
-    }
-    return [...counts.entries()]
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5)
-      .map(([cat]) => cat);
-  }, [catalogPool]);
-  const visiblePicks = useMemo(() => {
-    const base = catalogCat
-      ? catalogPool.filter((p) => p.category === catalogCat)
-      : catalogPool;
-    return base.slice(0, 8);
-  }, [catalogPool, catalogCat]);
   const picksPool  = useMemo(
     () => seededShuffle(featuredProducts, dailySeed).slice(0, 32),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -422,20 +397,20 @@ function HomeDesktop() {
                     {catSlide + 1} <span className="text-slate-200">/</span> {totalSlides}
                   </span>
                   <motion.button
-                    type="button" onClick={goPrev} aria-label={isRtl ? "التالي" : "Previous"}
+                    type="button" onClick={isRtl ? goNext : goPrev} aria-label={isRtl ? "التالي" : "Previous"}
                     whileHover={{ scale: 1.08, boxShadow: "0 8px 24px rgba(14,126,116,0.45)" }}
                     whileTap={{ scale: 0.84 }}
                     transition={{ type: "spring", stiffness: 420, damping: 18 }}
                     className="flex h-11 w-11 items-center justify-center rounded-xl border-2 border-[#0E7E74] bg-[#0E7E74] text-white shadow-[0_4px_14px_rgba(14,126,116,0.30)]">
-                    <ChevronLeft className={cn("h-4 w-4", isRtl && "rotate-180")} />
+                    <ChevronLeft className="h-4 w-4" />
                   </motion.button>
                   <motion.button
-                    type="button" onClick={goNext} aria-label={isRtl ? "السابق" : "Next"}
+                    type="button" onClick={isRtl ? goPrev : goNext} aria-label={isRtl ? "السابق" : "Next"}
                     whileHover={{ scale: 1.08, boxShadow: "0 8px 24px rgba(14,126,116,0.45)" }}
                     whileTap={{ scale: 0.84 }}
                     transition={{ type: "spring", stiffness: 420, damping: 18 }}
                     className="flex h-11 w-11 items-center justify-center rounded-xl border-2 border-[#0E7E74] bg-[#0E7E74] text-white shadow-[0_4px_14px_rgba(14,126,116,0.30)]">
-                    <ChevronRight className={cn("h-4 w-4", isRtl && "rotate-180")} />
+                    <ChevronRight className="h-4 w-4" />
                   </motion.button>
                 </div>
               </div>
@@ -655,12 +630,12 @@ function HomeDesktop() {
                 {picksPages > 1 && (
                   <>
                     <button
-                      type="button" onClick={picksPrev} aria-label={isRtl ? "السابق" : "Previous"}
+                      type="button" onClick={isRtl ? picksNext : picksPrev} aria-label={isRtl ? "التالي" : "Previous"}
                       className="absolute left-0 top-1/2 z-30 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border-2 border-[#0A1220] bg-white text-[#0A1220] shadow-[0_6px_20px_rgba(10,18,32,0.16)] transition-all duration-200 hover:bg-[#0A1220] hover:text-white hover:scale-105 active:scale-95">
                       <ChevronLeft className="h-5 w-5" />
                     </button>
                     <button
-                      type="button" onClick={picksNext} aria-label={isRtl ? "التالي" : "Next"}
+                      type="button" onClick={isRtl ? picksPrev : picksNext} aria-label={isRtl ? "السابق" : "Next"}
                       className="absolute right-0 top-1/2 z-30 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border-2 border-[#0A1220] bg-white text-[#0A1220] shadow-[0_6px_20px_rgba(10,18,32,0.16)] transition-all duration-200 hover:bg-[#0A1220] hover:text-white hover:scale-105 active:scale-95">
                       <ChevronRight className="h-5 w-5" />
                     </button>
@@ -963,124 +938,12 @@ function HomeDesktop() {
       {/* ══════════════════════════════════════════
           4. CATALOG PICKS — category-filtered daily grid
       ══════════════════════════════════════════ */}
-      {visiblePicks.length > 0 && (
-        <section className="bg-white py-14 sm:py-20">
+      {featuredProducts.length > 0 && (
+        <section className="bg-[#F7FAFB] py-14 sm:py-20">
           <div className="page-section">
-
-            {/* ── Header ── */}
             <Reveal direction="up">
-              <div className={cn("flex flex-wrap items-end justify-between gap-4", isRtl && "flex-row-reverse")}>
-                <div className={isRtl ? "text-right" : "text-left"}>
-                  <span className={cn("inline-flex items-center gap-2 rounded-full border border-[#0E7E74]/25 bg-[#0E7E74]/[0.07] px-3 py-1", isRtl && "flex-row-reverse")}>
-                    <TrendingUp className="h-3.5 w-3.5 text-[#0E7E74]" />
-                    <span className="text-[10.5px] font-black uppercase tracking-[0.22em] text-[#0E7E74]">
-                      {isRtl ? "مختارات يومية" : "Daily picks"}
-                    </span>
-                  </span>
-                  <h2
-                    className="mt-3 font-bold text-[#0A1220]"
-                    style={{
-                      fontSize: "clamp(1.6rem, 3vw, 2.4rem)",
-                      lineHeight: 1.1,
-                      ...(isRtl ? {} : { fontFamily: "var(--font-serif)" }),
-                    }}
-                  >
-                    {isRtl ? "متاح الآن" : "Available Now"}
-                  </h2>
-                  <span className={cn("mt-2 block h-1 w-12 rounded-full bg-[#0E7E74]", isRtl && "ms-auto")} aria-hidden />
-                </div>
-                <Link
-                  to="/products"
-                  className={cn(
-                    "group inline-flex items-center gap-1.5 rounded-xl border-2 border-[#0A1220] bg-white px-5 py-2.5 text-[12px] font-black text-[#0A1220] transition-all duration-200 hover:bg-[#0A1220] hover:text-white",
-                    isRtl && "flex-row-reverse",
-                  )}
-                >
-                  {isRtl ? "كل المنتجات" : "All products"}
-                  <ArrowRight className={cn("h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5", isRtl && "rotate-180 group-hover:-translate-x-0.5")} />
-                </Link>
-              </div>
+              <DailyPicksSection products={featuredProducts} lang={lang} isLoading={isLoading} />
             </Reveal>
-
-            {/* ── Category filter chips ── */}
-            {catalogCats.length > 0 && (
-              <Reveal direction="up" delay={40}>
-                <div
-                  className={cn(
-                    "mt-6 flex gap-2 overflow-x-auto pb-1",
-                    "[scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
-                    isRtl && "flex-row-reverse",
-                  )}
-                >
-                  {/* All */}
-                  <button
-                    onClick={() => setCatalogCat(null)}
-                    className={cn(
-                      "shrink-0 rounded-full border-2 px-4 py-1.5 text-[12px] font-black transition-all duration-200",
-                      catalogCat === null
-                        ? "border-[#0A1220] bg-[#0A1220] text-white"
-                        : "border-slate-200 bg-white text-slate-600 hover:border-[#0A1220] hover:text-[#0A1220]",
-                    )}
-                  >
-                    {isRtl ? "الكل" : "All"}
-                  </button>
-                  {catalogCats.map((cat) => (
-                    <button
-                      key={cat}
-                      onClick={() => setCatalogCat(cat === catalogCat ? null : cat)}
-                      className={cn(
-                        "shrink-0 rounded-full border-2 px-4 py-1.5 text-[12px] font-black transition-all duration-200",
-                        cat === catalogCat
-                          ? "border-[#0E7E74] bg-[#0E7E74] text-white"
-                          : "border-slate-200 bg-white text-slate-600 hover:border-[#0E7E74] hover:text-[#0E7E74]",
-                      )}
-                    >
-                      {cat}
-                    </button>
-                  ))}
-                </div>
-              </Reveal>
-            )}
-
-            {/* ── Product grid — animated on category switch ── */}
-            <div className="mt-8">
-              <AnimatePresence mode="wait" initial={false}>
-                <motion.div
-                  key={catalogCat ?? "__all__"}
-                  initial={{ opacity: 0, y: 16 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  transition={{ duration: 0.22, ease: [0.25, 0.1, 0.25, 1] }}
-                  className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4"
-                >
-                  {visiblePicks.map((product) => (
-                    <ProductCard key={product.id} product={product} animate={false} />
-                  ))}
-                </motion.div>
-              </AnimatePresence>
-            </div>
-
-            {/* ── Bottom CTA ── */}
-            <Reveal direction="up" delay={80}>
-              <div className={cn("mt-10 flex flex-col items-center gap-2", isRtl && "text-center")}>
-                <Link
-                  to={catalogCat ? `/products?category=${encodeURIComponent(catalogCat)}` : "/products"}
-                  className={cn(
-                    "group inline-flex items-center gap-2 rounded-2xl bg-[#0A1220] px-8 py-3.5 text-[13px] font-black text-white shadow-[0_4px_20px_rgba(10,18,32,0.18)] transition-all duration-200 hover:bg-[#0E7E74] hover:-translate-y-0.5 hover:shadow-[0_10px_32px_rgba(14,126,116,0.28)]",
-                    isRtl && "flex-row-reverse",
-                  )}
-                >
-                  {catalogCat
-                    ? (isRtl ? `تصفح كل ${catalogCat}` : `Browse all in ${catalogCat}`)
-                    : (isRtl ? "تصفح الكتالوج كاملاً" : "Browse full catalog")}
-                  <ArrowRight className={cn("h-4 w-4 transition-transform group-hover:translate-x-0.5", isRtl && "rotate-180 group-hover:-translate-x-0.5")} />
-                </Link>
-                <p className="text-[11px] font-semibold text-slate-400">
-                  {isRtl ? "تتجدد المنتجات يومياً" : "Products refresh every day"}
-                </p>
-              </div>
-            </Reveal>
-
           </div>
         </section>
       )}

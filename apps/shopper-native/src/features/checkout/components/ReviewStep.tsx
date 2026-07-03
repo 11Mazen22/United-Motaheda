@@ -68,7 +68,7 @@ export const ReviewStep = React.memo(function ReviewStep({
   control,
 }: ReviewStepProps) {
   const { t, i18n } = useTranslation();
-  const sep = i18n.language.startsWith("en") ? ", " : "ØŒ ";
+  const sep = i18n.language.startsWith("en") ? ", " : "، ";
 
   const methods = PAYMENT_METHOD_CONFIGS.map((cfg) => ({
     ...cfg,
@@ -255,7 +255,7 @@ export const ReviewStep = React.memo(function ReviewStep({
         {pricing.discount > 0 && (
           <SummaryRow
             label={t("checkout.discountRow")}
-            value={`âˆ’${formatPrice(pricing.discount)}`}
+            value={`-${formatPrice(pricing.discount)}`}
             valueColor={kit.color.success}
           />
         )}

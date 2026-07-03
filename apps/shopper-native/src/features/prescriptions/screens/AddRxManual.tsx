@@ -75,10 +75,12 @@ function DigitDisplay({ rxNumber, reduced }: DigitDisplayProps): React.ReactElem
   const { t } = useTranslation();
   const { width } = useWindowDimensions();
 
-  // 7 boxes, scaled to fit the screen with 24pt outer padding + 8pt gutters
-  const boxCount  = MIN_DIGITS;
+  // Boxes scaled to fit the screen with 24pt outer padding + tighter gutters
+  // for higher counts. Sized for MAX_DIGITS so users can see and enter the
+  // full 7-10 digit range, not just the 7-digit minimum.
+  const boxCount  = MAX_DIGITS;
   const outerPad  = 48;             // 24 each side
-  const gutters   = (boxCount - 1) * 8;
+  const gutters   = (boxCount - 1) * 6;
   const boxSize   = Math.min(56, Math.floor((width - outerPad - gutters) / boxCount));
   const boxHeight = Math.round(boxSize * 1.25);
 
@@ -217,15 +219,15 @@ function Keypad({ onDigit, onBackspace, disabled }: KeypadProps): React.ReactEle
                 accessibilityLabel={isDel
                   ? t("prescriptions.manualA11yBackspace")
                   : t("prescriptions.manualA11yDigitKey", { digit: key })}
-                style={({ pressed }) => [
-                  k.key,
-                  pressed && k.keyPressed,
-                  disabled && k.keyDisabled,
-                ]}>
-                {isDel ? (
-                  <Ionicons name="backspace-outline" size={24} color={kit.color.ink} />
-                ) : (
-                  <Text weight="black" style={k.keyText}>{key}</Text>
+                style={k.keyTouchable}>
+                {({ pressed }) => (
+                  <View style={[k.key, pressed && k.keyPressed, disabled && k.keyDisabled]}>
+                    {isDel ? (
+                      <Ionicons name="backspace-outline" size={24} color={kit.color.ink} />
+                    ) : (
+                      <Text weight="black" style={k.keyText}>{key}</Text>
+                    )}
+                  </View>
                 )}
               </Pressable>
             );
@@ -329,8 +331,12 @@ export function AddRxManual(): React.ReactElement {
             hitSlop={10}
             accessibilityRole="button"
             accessibilityLabel={t("common.back")}
-            style={({ pressed }) => [s.backBtn, pressed && s.backBtnPressed]}>
-            <Ionicons name={BACK_CHEVRON} size={20} color={kit.color.ink} />
+            style={s.backBtnTouchable}>
+            {({ pressed }) => (
+              <View style={[s.backBtn, pressed && s.backBtnPressed]}>
+                <Ionicons name={BACK_CHEVRON} size={20} color={kit.color.ink} />
+              </View>
+            )}
           </Pressable>
           <View style={{ flex: 1 }} />
         </View>
@@ -452,7 +458,10 @@ const s = StyleSheet.create({
   navRow: {
     flexDirection: flexRow(IS_RTL),
     alignItems:    "center",
-    minHeight:     36,
+    minHeight:     38,
+  },
+  backBtnTouchable: {
+    borderRadius: 14,
   },
   backBtn: {
     width:           38,
@@ -641,6 +650,15 @@ const k = StyleSheet.create({
   row: {
     flexDirection: "row",
     gap:           10,
+  },
+  // Bare touchable: only `flex` (for row distribution) + radius (for ripple
+  // shape). All visual styling lives on the inner View via function-as-
+  // children — a raw Pressable's own function-computed `style` has proven
+  // unreliable in this app's RN/Fabric setup (loses sizing/background
+  // entirely in some cases, not just when `gap` is present).
+  keyTouchable: {
+    flex:         1,
+    borderRadius: kit.radius.lg,
   },
   key: {
     flex:            1,

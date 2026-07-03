@@ -30,6 +30,7 @@ import { UnauthenticatedState } from "../components/UnauthenticatedState";
 import { EmptyOrdersState }     from "../components/EmptyOrdersState";
 import { OrderCard, SkeletonCard } from "../components/OrderCard";
 import { listS } from "../components/orders.styles";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 // ─── OrdersHeader — light editorial header with embedded stats (kit) ──────────
 
@@ -155,6 +156,28 @@ function OrdersList({
   );
 }
 
+// ─── OrdersErrorState — header + network-error empty state ───────────────────
+
+function OrdersErrorState({
+  insetsTop, showBack, onBack, onRetry,
+}: { insetsTop: number; showBack: boolean; onBack: () => void; onRetry: () => void }) {
+  const { t } = useTranslation();
+  return (
+    <View style={{ flex: 1, backgroundColor: kit.color.canvas }}>
+      <OrdersHeader t={t} insetsTop={insetsTop} orders={[]} showBack={showBack} onBack={onBack} />
+      <View style={{ flex: 1, justifyContent: "center" }}>
+        <EmptyState
+          icon="wifi-outline"
+          title={t("errors.network").split(".")[0]}
+          description={t("errors.network")}
+          actionLabel={t("common.retry")}
+          onAction={onRetry}
+        />
+      </View>
+    </View>
+  );
+}
+
 // ─── OrdersLoadingState — header + skeleton with responsive gutter ────────────
 
 function OrdersLoadingState({
@@ -191,6 +214,7 @@ export function OrdersScreen({ showBack = true }: OrdersScreenProps): React.Reac
     isRefetching,
     refetch,
     isSuccess,
+    isError,
   } = useOrders(user?.id);
 
   const handleOrderPress = useCallback(
@@ -205,6 +229,18 @@ export function OrdersScreen({ showBack = true }: OrdersScreenProps): React.Reac
   // ── Loading ──────────────────────────────────────────────────────────────────
   if (isLoading) {
     return <OrdersLoadingState insetsTop={insets.top} showBack={showBack} onBack={() => router.back()} />;
+  }
+
+  // ── Error ────────────────────────────────────────────────────────────────────
+  if (isError && orders.length === 0) {
+    return (
+      <OrdersErrorState
+        insetsTop={insets.top}
+        showBack={showBack}
+        onBack={() => router.back()}
+        onRetry={() => { void refetch(); }}
+      />
+    );
   }
 
   // ── Empty ────────────────────────────────────────────────────────────────────

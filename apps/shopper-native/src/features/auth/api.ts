@@ -16,9 +16,10 @@ import { supabase } from "@/lib/supabase";
 export const EMAIL_REDIRECT_URL = Linking.createURL("auth-callback");
 
 export interface AuthUser {
-  id:    string;
-  email: string;
-  name?: string;
+  id:        string;
+  email:     string;
+  name?:     string;
+  avatarUrl?: string;
 }
 
 export interface SignUpResult extends AuthUser {

@@ -117,7 +117,7 @@ const sh = StyleSheet.create({
   moreText: {
     fontFamily:         theme.fonts.bold,
     fontSize:           11,
-    lineHeight:         16,
+    lineHeight:         17,
     color:              kit.color.inkSoft,
     includeFontPadding: false,
   },

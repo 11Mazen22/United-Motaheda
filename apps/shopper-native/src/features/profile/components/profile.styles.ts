@@ -204,47 +204,8 @@ export const styles = StyleSheet.create({
     textAlignVertical:  "center",
     lineHeight:         46,
   },
-  tierBadge: {
-    position:       "absolute",
-    bottom:         -4,
-    right:          -4,
-    width:          26,
-    height:         26,
-    borderRadius:   13,
-    alignItems:     "center",
-    justifyContent: "center",
-    borderWidth:    2.5,
-    borderColor:    theme.colors.surface,
-  },
   heroTextGroup: { alignItems: "flex-start", gap: theme.spacing.xs },
   userNameNew:   { letterSpacing: -0.4 },
-
-  // ── Tier chip — sits below name/email in the identity column ──
-  tierChip: {
-    flexDirection:     flexRow(isRtl()),
-    alignItems:        "center",
-    gap:               7,
-    backgroundColor:   HERO_GLASS.w13,
-    borderRadius:      999,
-    paddingHorizontal: 14,
-    paddingVertical:   7,
-    alignSelf:         "flex-start",   // was marginTop:10, now inline with col
-    marginTop:         4,
-    borderWidth:       1,
-    borderColor:       HERO_GLASS.w15,
-  },
-  tierChipLabelNew: { color: HERO_GLASS.w92 },
-  pointsChip: {
-    flexDirection:     flexRow(isRtl()),
-    alignItems:        "center",
-    gap:               3,
-    backgroundColor:   HERO_GLASS.w12,
-    borderRadius:      999,
-    paddingHorizontal: theme.spacing.sm,
-    paddingVertical:   2,
-  },
-  pointsChipTextNew: { color: theme.colors.surface },
-  pointsChipUnitNew: { color: HERO_GLASS.w70 },
 
   // ── Guest hero ──
   guestHero: {

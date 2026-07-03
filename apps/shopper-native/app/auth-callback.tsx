@@ -58,11 +58,24 @@ export default function AuthCallbackScreen() {
         setError(t("authCallback.invalidLink"));
         return;
       }
-      const { data, error: exErr } = await supabase.auth.exchangeCodeForSession(code);
+      let { data, error: exErr } = await supabase.auth.exchangeCodeForSession(code);
       if (exErr) {
-        if (__DEV__) console.warn("[auth-callback] exchangeCodeForSession:", exErr.message);
-        setError(t("authCallback.confirmFailed"));
-        return;
+        // This screen is a redundant safety net (see file header) — on Android
+        // in particular, both the OS Linking listener in AuthProvider AND this
+        // screen's own route can independently receive the same OAuth redirect
+        // and both attempt exchangeCodeForSession with the same one-time-use
+        // code. If the OTHER path already won that race and a session already
+        // exists, this "failure" is actually a harmless duplicate — proceed
+        // instead of showing the user a scary error for a login that already
+        // succeeded.
+        const { data: existing } = await supabase.auth.getSession();
+        if (existing.session) {
+          data = { session: existing.session, user: existing.session.user };
+        } else {
+          if (__DEV__) console.warn("[auth-callback] exchangeCodeForSession:", exErr.message);
+          setError(t("authCallback.confirmFailed"));
+          return;
+        }
       }
       // If phone verification is enabled AND the user gave us a phone at
       // signup that isn't yet confirmed, kick off the OTP flow. With the

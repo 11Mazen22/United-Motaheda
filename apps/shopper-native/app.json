@@ -30,13 +30,16 @@
       "package": "com.unitedpharmacy.app",
       "jsEngine": "hermes",
       "permissions": [
-        "android.permission.CAMERA"
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
       ],
       "statusBar": {
         "backgroundColor": "transparent",
         "translucent": true
       },
-      "versionCode": 20
+      "versionCode": 28
     },
     "web": {
       "bundler": "metro",
@@ -94,6 +97,9 @@
       }
     },
     "runtimeVersion": "1.0.0",
-    "owner": "mazen-moham"
+    "owner": "mazen-moham",
+    "updates": {
+      "url": "https://u.expo.dev/cc0dea9d-00d1-4ac8-9923-426fe3ba1c52"
+    }
   }
 }

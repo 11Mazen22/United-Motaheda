@@ -47,7 +47,6 @@ interface ProfileGuestHeroProps {
 // What the user unlocks by creating an account.
 const BENEFITS: { icon: IoniconsName; labelKey: string; tint: string; bg: string }[] = [
   { icon: "bag-check-outline", labelKey: "profile.featureOrders",   tint: theme.colors.teal[300],   bg: "rgba(13,184,168,0.16)" },
-  { icon: "diamond-outline",   labelKey: "profile.featureLoyalty",  tint: theme.colors.purple[400], bg: "rgba(147,51,234,0.16)" },
   { icon: "heart-outline",     labelKey: "profile.featureWishlist", tint: theme.colors.rose[400],   bg: "rgba(244,63,94,0.16)"  },
 ];
 

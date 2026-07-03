@@ -77,7 +77,7 @@ export default function TermsScreen() {
         {/* Last updated */}
         <Animated.View entering={FadeInDown.duration(300)} style={styles.updatedBanner}>
           <Ionicons name="calendar-outline" size={15} color={kit.color.accentDeep} />
-          <UIText style={styles.updatedText}>{t("terms.lastUpdated")}</UIText>
+          <UIText style={styles.updatedText}>{t("terms.lastUpdated", { date: "2025" })}</UIText>
         </Animated.View>
 
         {/* Warning banner */}

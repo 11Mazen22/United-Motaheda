@@ -3,6 +3,7 @@ import { AlertTriangle, Loader2, Trash2, X } from "lucide-react";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "../components/ui/dialog";
@@ -101,9 +102,9 @@ export default function DeleteUserDialog({
               <DialogTitle className="text-lg font-black text-slate-900">
                 {isArabic ? "حذف الحساب" : "Delete Account"}
               </DialogTitle>
-              <p className="mt-0.5 text-sm text-slate-500">
+              <DialogDescription className="mt-0.5 text-sm text-slate-500">
                 {user.fullName}
-              </p>
+              </DialogDescription>
             </div>
           </div>
         </DialogHeader>

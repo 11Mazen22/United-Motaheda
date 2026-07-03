@@ -19,6 +19,7 @@ import { useTranslation } from "react-i18next";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
 import { Input } from "@/components/ui/Input";
 import { theme } from "@/shared/theme";
+import { kit } from "@/shared/kit";
 import { MANUAL_PAYMENT_WALLET_NUMBER } from "../constants";
 
 export interface ManualPaymentPanelProps {
@@ -118,14 +119,14 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     paddingHorizontal: 12,
     borderRadius: 16,
-    backgroundColor: theme.colors.brand[50],
+    backgroundColor: kit.color.accentTint,
     borderWidth: 1,
     borderColor: theme.colors.border.brandSoft,
   },
   walletNumber: {
     fontSize: 32,
     fontFamily: theme.fonts.black,
-    color: theme.colors.brand[800],
+    color: kit.color.accentDeep,
     letterSpacing: 1,
     textAlign: "center",
   },
@@ -136,7 +137,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 12,
-    backgroundColor: theme.colors.brand[600],
+    backgroundColor: kit.color.accentDeep,
   },
   copyBtnText: {
     fontSize: 13,

@@ -355,8 +355,12 @@ function Header({ insets, onBack }: { insets: { top: number }; onBack: () => voi
           hitSlop={10}
           accessibilityRole="button"
           accessibilityLabel={t("common.back")}
-          style={({ pressed }) => [s.backBtn, pressed && s.backBtnPressed]}>
-          <Ionicons name={BACK_CHEVRON} size={20} color={kit.color.ink} />
+          style={s.backBtnTouchable}>
+          {({ pressed }) => (
+            <View style={[s.backBtn, pressed && s.backBtnPressed]}>
+              <Ionicons name={BACK_CHEVRON} size={20} color={kit.color.ink} />
+            </View>
+          )}
         </Pressable>
 
         <View style={s.secureBadge}>
@@ -559,6 +563,10 @@ const s = StyleSheet.create({
     flexDirection:  flexRow(IS_RTL),
     alignItems:     "center",
     justifyContent: "space-between",
+    minHeight:      38,
+  },
+  backBtnTouchable: {
+    borderRadius: 14,
   },
   backBtn: {
     width:           38,

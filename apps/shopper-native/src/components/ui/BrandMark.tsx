@@ -9,6 +9,7 @@ import Svg, {
   Path,
 } from "react-native-svg";
 import { theme } from "@/shared/theme";
+import { kit } from "@/shared/kit";
 import { Text as UIText } from "@/shared/ui";
 
 type BrandMarkSize    = "sm" | "md" | "lg" | "xl";
@@ -47,9 +48,9 @@ function PharmacyLogoMark({ size }: { size: number }) {
         </LinearGradient>
         {/* Teal cross gradient */}
         <LinearGradient id="crossGrad" x1="0" y1="0" x2="0.3" y2="1">
-          <Stop offset="0%"   stopColor={theme.colors.brand[400]} />
-          <Stop offset="50%"  stopColor={theme.colors.brand[500]} />
-          <Stop offset="100%" stopColor={theme.colors.brand[600]} />
+          <Stop offset="0%"   stopColor={kit.color.accentTint} />
+          <Stop offset="50%"  stopColor={kit.color.accent} />
+          <Stop offset="100%" stopColor={kit.color.accentDeep} />
         </LinearGradient>
         {/* Shimmer gradient (top-left light catch) */}
         <LinearGradient id="shimmer" x1="0" y1="0" x2="1" y2="1">
@@ -74,7 +75,7 @@ function PharmacyLogoMark({ size }: { size: number }) {
       <Rect x={cy} y={cx} width={cl} height={cw} rx={rx} fill="url(#crossGrad)" />
 
       {/* Center square fill (blends the intersection cleanly) */}
-      <Rect x={cx} y={cx} width={cw} height={cw} fill={theme.colors.brand[500]} />
+      <Rect x={cx} y={cx} width={cw} height={cw} fill={kit.color.accent} />
 
       {/* Tiny center dot highlight */}
       <Circle cx={s / 2} cy={s / 2} r={s * 0.045} fill="rgba(255,255,255,0.55)" />

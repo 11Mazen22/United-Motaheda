@@ -34,6 +34,10 @@ const IS_RTL = isRtl();
 
 const HEIGHTS: Record<ButtonSize, number> = { lg: 54, md: 46, sm: 38 };
 const FONT:    Record<ButtonSize, number> = { lg: 15, md: 14, sm: 12 };
+// Generous line-height (~1.5x font size) — Arabic Cairo glyphs at black/bold
+// weight carry diacritics and descenders that clip under a tight line-height,
+// especially combined with includeFontPadding:false below.
+const LINE:    Record<ButtonSize, number> = { lg: 22, md: 21, sm: 18 };
 const ICON:    Record<ButtonSize, number> = { lg: 18, md: 16, sm: 14 };
 const PAD:     Record<ButtonSize, number> = { lg: 26, md: 20, sm: 14 };
 
@@ -113,7 +117,7 @@ export function Button({
           <UIText
             style={[
               styles.label,
-              { fontSize: FONT[size], color: c.fg, fontFamily: theme.fonts.black },
+              { fontSize: FONT[size], lineHeight: LINE[size], color: c.fg, fontFamily: theme.fonts.black },
             ]}
             maxFontSizeMultiplier={1.2}>
             {label}

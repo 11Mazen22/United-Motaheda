@@ -73,13 +73,10 @@ export const DailyEdit = memo(function DailyEdit({
 
   const { width, isTablet, pagePad } = useScreenLayout();
 
-  const products = data ?? [];
+  // Only show products that have an image — imageless products would render
+  // as a frozen grey blurhash placeholder, which looks broken.
+  const products = (data ?? []).filter(p => p.imageUrl);
 
-  // Collapse the section entirely when there's nothing to show. Returning
-  // `null` from a sibling inside the home ScrollView is a no-op — Yoga won't
-  // reserve any space, so this cannot create the empty whitespace the user
-  // reported. The whitespace must come from a different code path (data
-  // arriving as 1–2 products and tripping the `< 3` guard). Same rule.
   if (isLoading)                return null;
   if (products.length < 3)      return null;
 

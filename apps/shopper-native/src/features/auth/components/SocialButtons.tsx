@@ -49,7 +49,7 @@ export function SocialButtons({ onSocialPress, loading = false }: Props) {
         accessibilityRole="button"
         accessibilityState={{ disabled: loading, busy: loading }}
         accessibilityLabel={t("auth.continueWithGoogle")}>
-        <View style={s.iconWell}>
+        <View style={[s.iconWell, IS_RTL ? { marginStart: 12 } : { marginEnd: 12 }]}>
           {loading ? (
             <ActivityIndicator size="small" color={GOOGLE_RED} />
           ) : (
@@ -67,17 +67,16 @@ export function SocialButtons({ onSocialPress, loading = false }: Props) {
 const s = StyleSheet.create({
   // Row container — icon + label centered as a single cluster.
   btn: {
+    ...kit.shadow.raised,
     flexDirection:     flexRow(IS_RTL),
     alignItems:        "center",
     justifyContent:    "center",
-    gap:               12,
     minHeight:         52,
     paddingHorizontal: 16,
     borderRadius:      kit.radius.lg,
     backgroundColor:   kit.color.surface,
     borderWidth:       1,
     borderColor:       kit.color.line,
-    ...kit.shadow.raised,
   },
   btnPressed: {
     backgroundColor: kit.color.well,

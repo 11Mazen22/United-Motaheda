@@ -23,8 +23,8 @@
  *   empty on a cold start now that the background 52K load has been removed.
  */
 
-import { useMemo, useState, type ReactNode } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft,
@@ -49,6 +49,7 @@ import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { getLocalizedCategoryName } from "../localization";
 import { useInfiniteProducts } from "../hooks/useInfiniteProducts";
 import type { CatalogProductSort } from "../hooks/useCatalogProductSearch";
+import { resolveCanonicalCategorySegment } from "../seo";
 import { MobileCategoryDetailsView } from "./ShopperMobileViews";
 import { FilterSidebar } from "../components/FilterSidebar";
 
@@ -142,7 +143,10 @@ export default function CategoryDetails() {
 
 function CategoryDetailsDesktop() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const { lang } = useLanguage();
+
+  const canonicalId = id ? resolveCanonicalCategorySegment(id) : undefined;
 
   // `useCatalog()` is used ONLY for the category metadata list.
   // Categories are cached in localStorage (30-min TTL from fetchCategoriesQuick),
@@ -162,8 +166,11 @@ function CategoryDetailsDesktop() {
 
   // Resolve the active category from the cached category list.
   const category = useMemo(
-    () => (id ? categories.find((c) => c.id === id) : undefined),
-    [categories, id],
+    () => {
+      if (!id) return undefined;
+      return categories.find((c) => c.id === canonicalId || c.id === id);
+    },
+    [categories, canonicalId, id],
   );
 
   // Related categories for the quick-browse rail (excludes current category).
@@ -190,10 +197,10 @@ function CategoryDetailsDesktop() {
     activeQuery,
     error,
   } = useInfiniteProducts({
-    query:     searchQuery,
-    categoryId: id,
-    inStock:   onlyInStock ? true : undefined,
-    sortBy:    sortBy !== "relevant" ? sortBy : undefined,
+    query:      searchQuery,
+    categoryId: canonicalId ?? id,
+    inStock:    onlyInStock ? true : undefined,
+    sortBy:     sortBy !== "relevant" ? sortBy : undefined,
   });
 
   const hasFilters = onlyInStock || searchQuery.trim().length > 0;
@@ -243,6 +250,11 @@ function CategoryDetailsDesktop() {
       </div>
     );
   }
+
+  useEffect(() => {
+    if (!id || !canonicalId || canonicalId === id) return;
+    navigate(`/categories/${canonicalId}`, { replace: true });
+  }, [canonicalId, id, navigate]);
 
   // `category` is non-null past this point (TS narrowing via the checks above).
   const displayName = category ? getLocalizedCategoryName(category, lang) : "";

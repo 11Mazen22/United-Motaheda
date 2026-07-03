@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import {
   ArrowRight,
@@ -12,7 +12,6 @@ import {
   ShieldCheck,
   ShoppingBag,
   Sparkles,
-  Star,
   Truck,
   Zap,
   type LucideIcon,
@@ -24,10 +23,10 @@ import {
   getServiceHoursSentence,
 } from "../config";
 import { CatalogSkeletonGrid } from "../components/CatalogPrimitives";
+import { DailyPicksSection } from "../components/DailyPicksSection";
 import {
   ShopperCategoryTile,
   ShopperPage,
-  ShopperProductTile,
   ShopperSectionHeader,
 } from "../components/ShopperPrimitives";
 import { cn } from "../components/UI";
@@ -68,11 +67,9 @@ const homeStyles = `
 export function HomeMobile() {
   const { lang } = useLanguage();
   const { categories, featuredProducts, isLoading } = useCatalog();
-  const [visibleOffers, setVisibleOffers] = useState(4);
 
   const primaryLocation = locations.find((loc) => loc.isPrimary) ?? locations[0];
   const categoryShortcuts = categories.slice(0, 8);
-  const visibleOfferProducts = featuredProducts.slice(0, visibleOffers);
 
   const deliveryWindowLabel = getDeliveryWindowCompactLabel(lang);
   const serviceHoursLabel = getServiceHoursSentence(lang);
@@ -373,64 +370,17 @@ export function HomeMobile() {
           </div>
         </div>
 
-        {/* ══════════════════════════════════════ FEATURED OFFERS */}
+        {/* ══════════════════════════════════════ DAILY PICKS */}
         <div
-          className="home-reveal w-full overflow-hidden rounded-[1.8rem] border border-slate-200 bg-white shadow-[0_4px_20px_rgba(15,23,42,0.06)]"
+          className="home-reveal w-full"
           style={{ animationDelay: "320ms" }}
         >
-          <div className="flex items-center gap-2.5 border-b border-slate-100 bg-[linear-gradient(90deg,#fffbeb,#f8fafc)] px-4 py-3.5">
-            <div className="flex h-7 w-7 items-center justify-center rounded-[0.6rem] bg-amber-100">
-              <Sparkles className="h-3.5 w-3.5 text-amber-600" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
-                {isRTL ? "العروض" : "Offers"}
-              </p>
-              <p className="text-[14px] font-black leading-tight text-slate-950">
-                {isRTL ? "كل العروض من الرئيسية" : "All offers from home"}
-              </p>
-            </div>
-            <Link
-              to="/offers"
-              className="inline-flex h-8 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white px-3.5 text-[11.5px] font-black text-slate-700 shadow-sm transition-all active:scale-95"
-              style={{ WebkitTapHighlightColor: "transparent" }}
-            >
-              {isRTL ? "الكل" : "View all"}
-            </Link>
-          </div>
-
-          <div className="p-3">
-            {isLoading && featuredProducts.length === 0 ? (
-              <CatalogSkeletonGrid count={4} />
-            ) : featuredProducts.length === 0 ? (
-              <p className="py-6 text-center text-[13px] font-semibold text-slate-400">
-                {isRTL ? "لا توجد عروض حالياً" : "No offers available right now"}
-              </p>
-            ) : (
-              <>
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                  {visibleOfferProducts.map((product) => (
-                    <ShopperProductTile key={product.id} product={product} showCategory={false} />
-                  ))}
-                </div>
-                {featuredProducts.length > visibleOffers && (
-                  <button
-                    type="button"
-                    onClick={() => setVisibleOffers((v) => v + 4)}
-                    className={cn(
-                      "mt-3 inline-flex h-11 w-full items-center justify-center gap-2 rounded-[1rem]",
-                      "border border-slate-200 bg-slate-50 text-[13px] font-black text-slate-700",
-                      "transition-all active:scale-[0.98] active:bg-slate-100",
-                    )}
-                    style={{ WebkitTapHighlightColor: "transparent" }}
-                  >
-                    <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-                    {isRTL ? "عرض المزيد من العروض" : "Load more offers"}
-                  </button>
-                )}
-              </>
-            )}
-          </div>
+          <DailyPicksSection
+            products={featuredProducts}
+            lang={lang}
+            isLoading={isLoading}
+            embedded
+          />
         </div>
 
         {/* ══════════════════════════════════════ CATEGORIES */}

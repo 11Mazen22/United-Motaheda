@@ -125,24 +125,28 @@ export function PrescriptionsList(): React.ReactElement {
           accessibilityRole="button"
           accessibilityState={{ expanded: item.open }}
           accessibilityLabel={t("prescriptions.expiredDisclosure", { count: item.count })}
-          style={({ pressed }) => [s.disclosure, pressed && s.disclosurePressed]}>
-          <View style={[s.disclosureRow, { flexDirection: flexRow(IS_RTL) }]}>
-            <View style={s.disclosureIcon}>
-              <Ionicons name="time-outline" size={14} color={kit.color.inkFaint} />
+          style={s.disclosureTouchable}>
+          {({ pressed }) => (
+            <View style={[s.disclosure, pressed && s.disclosurePressed]}>
+              <View style={[s.disclosureRow, { flexDirection: flexRow(IS_RTL) }]}>
+                <View style={s.disclosureIcon}>
+                  <Ionicons name="time-outline" size={14} color={kit.color.inkFaint} />
+                </View>
+                <Text weight="bold" style={s.disclosureText}>
+                  {item.open
+                    ? t("prescriptions.expiredHide")
+                    : t("prescriptions.expiredShow", { count: item.count })}
+                </Text>
+                <View style={s.disclosureChevron}>
+                  <Ionicons
+                    name={item.open ? "chevron-up" : FORWARD_CHEVRON}
+                    size={14}
+                    color={kit.color.inkFaint}
+                  />
+                </View>
+              </View>
             </View>
-            <Text weight="bold" style={s.disclosureText}>
-              {item.open
-                ? t("prescriptions.expiredHide")
-                : t("prescriptions.expiredShow", { count: item.count })}
-            </Text>
-            <View style={s.disclosureChevron}>
-              <Ionicons
-                name={item.open ? "chevron-up" : FORWARD_CHEVRON}
-                size={14}
-                color={kit.color.inkFaint}
-              />
-            </View>
-          </View>
+          )}
         </Pressable>
       );
     }
@@ -171,8 +175,12 @@ export function PrescriptionsList(): React.ReactElement {
             hitSlop={10}
             accessibilityRole="button"
             accessibilityLabel={t("common.back")}
-            style={({ pressed }) => [s.backBtn, pressed && s.backBtnPressed]}>
-            <Ionicons name={BACK_CHEVRON} size={20} color={kit.color.ink} />
+            style={s.backBtnTouchable}>
+            {({ pressed }) => (
+              <View style={[s.backBtn, pressed && s.backBtnPressed]}>
+                <Ionicons name={BACK_CHEVRON} size={20} color={kit.color.ink} />
+              </View>
+            )}
           </Pressable>
         ) : (
           <View style={s.backBtn} />
@@ -183,11 +191,15 @@ export function PrescriptionsList(): React.ReactElement {
           onPress={goToAdd}
           accessibilityRole="button"
           accessibilityLabel={t("prescriptions.addTitle")}
-          style={({ pressed }) => [s.addPill, pressed && s.addPillPressed]}>
-          <Ionicons name="add" size={14} color={kit.color.accentDeep} />
-          <Text weight="black" style={s.addPillText}>
-            {t("prescriptions.addShort")}
-          </Text>
+          style={s.addPillTouchable}>
+          {({ pressed }) => (
+            <View style={[s.addPill, pressed && s.addPillPressed]}>
+              <Ionicons name="add" size={14} color={kit.color.accentDeep} style={IS_RTL ? { marginStart: 6 } : { marginEnd: 6 }} />
+              <Text weight="black" style={s.addPillText}>
+                {t("prescriptions.addShort")}
+              </Text>
+            </View>
+          )}
         </Pressable>
       </View>
 
@@ -436,6 +448,13 @@ const s = StyleSheet.create({
     justifyContent: "space-between",
     minHeight:      38,
   },
+  // Bare touchables: a raw Pressable's own function-computed `style` has
+  // proven unreliable in this app's RN/Fabric setup — observed losing
+  // sizing/background/border entirely in some cases, row layout collapsing
+  // to a column in others. Visual styling always lives on an inner View.
+  backBtnTouchable: {
+    borderRadius: 14,
+  },
   backBtn: {
     width:           38,
     height:          38,
@@ -450,10 +469,12 @@ const s = StyleSheet.create({
     opacity:   0.7,
     transform: [{ scale: 0.96 }],
   },
+  addPillTouchable: {
+    borderRadius: kit.radius.pill,
+  },
   addPill: {
     flexDirection:     flexRow(IS_RTL),
     alignItems:        "center",
-    gap:               6,
     backgroundColor:   kit.color.accentTint,
     borderRadius:      kit.radius.pill,
     paddingHorizontal: 14,
@@ -582,6 +603,9 @@ const s = StyleSheet.create({
   },
 
   // ── Disclosure row ──────────────────────────────────────────────────────────
+  disclosureTouchable: {
+    borderRadius: kit.radius.lg,
+  },
   disclosure: {
     backgroundColor:   kit.color.surface,
     borderRadius:      kit.radius.lg,

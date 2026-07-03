@@ -173,14 +173,11 @@ const styles = StyleSheet.create({
     textAlign: textAlignStart(isRtl()),
   },
   secureBadge: {
-    position: "absolute",
-    top: 8,
-    // "end" is RTL-aware: resolves to "left" in LTR and "right" in RTL,
-    // keeping the badge on the trailing (inner) edge of the card regardless of direction.
-    end: 8,
     flexDirection: "row",
+    alignSelf: "flex-start",
     alignItems: "center",
     gap: 3,
+    marginTop: 4,
     backgroundColor: theme.colors.green[50],
     paddingHorizontal: 7,
     paddingVertical: 3,

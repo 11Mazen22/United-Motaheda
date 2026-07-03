@@ -9,6 +9,7 @@ import { AddressMapPlaceholder } from "./AddressMapPlaceholder";
 import { ADDRESS_LABELS } from "../types";
 import type { Address } from "../types";
 import { theme } from "@/shared/theme";
+import { kit } from "@/shared/kit";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>["name"];
@@ -48,7 +49,7 @@ export function AddressCard({ address, onEdit, onDelete, onSetDefault }: Props) 
         {/* Top row: label + default badge */}
         <View style={styles.topRow}>
           <View style={styles.labelPill}>
-            <Ionicons name={labelCfg.icon as IoniconsName} size={12} color={theme.colors.brand[700]} />
+            <Ionicons name={labelCfg.icon as IoniconsName} size={12} color={kit.color.accentDeep} />
             <UIText style={styles.labelText}>{t(labelCfg.labelKey)}</UIText>
           </View>
           {address.is_default && (
@@ -83,8 +84,8 @@ export function AddressCard({ address, onEdit, onDelete, onSetDefault }: Props) 
             <Pressable
               onPress={() => { haptic(); onSetDefault(); }}
               style={styles.actionBtn}>
-              <Ionicons name="star-outline" size={13} color={theme.colors.brand[600]} />
-              <UIText style={[styles.actionText, { color: theme.colors.brand[600] }]}>{t("address.setDefault")}</UIText>
+              <Ionicons name="star-outline" size={13} color={kit.color.accentDeep} />
+              <UIText style={[styles.actionText, { color: kit.color.accentDeep }]}>{t("address.setDefault")}</UIText>
             </Pressable>
           )}
           <Pressable
@@ -115,7 +116,7 @@ const styles = StyleSheet.create({
     ...theme.shadow.card,
   },
   cardDefault: {
-    borderColor: theme.colors.brand[200],
+    borderColor: "rgba(14,126,116,0.25)",
     borderWidth: 1.5,
   },
   body: {
@@ -131,7 +132,7 @@ const styles = StyleSheet.create({
     flexDirection: flexRow(isRtl()),
     alignItems: "center",
     gap: 5,
-    backgroundColor: theme.colors.brand[50],
+    backgroundColor: kit.color.accentTint,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 999,
@@ -139,7 +140,7 @@ const styles = StyleSheet.create({
   labelText: {
     fontSize: 11,
     fontFamily: theme.fonts.bold,
-    color: theme.colors.brand[700],
+    color: kit.color.accentDeep,
   },
   defaultBadge: {
     flexDirection: flexRow(isRtl()),

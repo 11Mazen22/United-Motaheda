@@ -24,6 +24,9 @@ interface ImportMetaEnv {
   // ── Third-party integrations ─────────────────────────────────────────────
   readonly VITE_WEB3FORMS_ACCESS_KEY?: string;
 
+  // ── SEO ──────────────────────────────────────────────────────────────────
+  readonly VITE_SITE_URL?: string;
+
   // ── Index signature – required so readStringEnv(key: string) can use
   //    bracket notation (import.meta.env[key]) without TypeScript errors. ──
   readonly [key: string]: string | undefined;

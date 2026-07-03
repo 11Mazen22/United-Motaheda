@@ -86,7 +86,7 @@ type CachedCatalogSnapshot = {
 
 const CACHE_KEY = "united-pharmacies-catalog-v10";
 const CACHE_TTL_MS = 1000 * 60 * 15;
-const FALLBACK_CATEGORY_ID = "general-healthcare";
+export const FALLBACK_CATEGORY_ID = "general-healthcare";
 const DEFAULT_CATEGORY_THEME: CategoryTheme = {
   accent: "#0f766e",
   accentSoft: "rgba(15, 118, 110, 0.12)",

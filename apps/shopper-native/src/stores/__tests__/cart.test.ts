@@ -58,7 +58,7 @@ jest.mock("@/features/checkout", () => ({
 // idempotencyKey: sequential strings so test assertions are deterministic.
 // Variable MUST be prefixed "mock" to be usable inside a jest.mock factory.
 let mockKeyCounter = 0;
-jest.mock("@/features/loyalty", () => ({
+jest.mock("@/lib/idempotency", () => ({
   newIdempotencyKey: jest.fn(() => `mock-idempotency-key-${++mockKeyCounter}`),
 }));
 

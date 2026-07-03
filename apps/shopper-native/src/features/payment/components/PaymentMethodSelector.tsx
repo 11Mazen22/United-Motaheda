@@ -8,6 +8,7 @@ import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
 import { PaymentMethodCard } from "./PaymentMethodCard";
 import { usePaymentStore } from "../store";
 import { theme } from "@/shared/theme";
+import { kit } from "@/shared/kit";
 
 interface Props {
   compact?: boolean;
@@ -24,7 +25,7 @@ export function PaymentMethodSelector({ compact }: Props) {
       {!compact && (
         <View style={styles.header}>
           <View style={styles.headerIcon}>
-            <Ionicons name="shield-checkmark-outline" size={14} color={theme.colors.brand[600]} />
+            <Ionicons name="shield-checkmark-outline" size={14} color={kit.color.accent} />
           </View>
           <View>
             <UIText style={styles.headerTitle}>{t("payment.paymentMethod")}</UIText>
@@ -68,7 +69,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 10,
-    backgroundColor: theme.colors.brand[50],
+    backgroundColor: kit.color.accentTint,
     alignItems: "center",
     justifyContent: "center",
   },

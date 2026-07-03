@@ -36,6 +36,7 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "../components/ui/dialog";
@@ -195,12 +196,12 @@ function UnsuspendDialog({
           <DialogTitle className="text-base font-black text-slate-900">
             {isArabic ? "رفع التعليق" : "Remove Suspension"}
           </DialogTitle>
+          <DialogDescription className="text-sm text-slate-600">
+            {isArabic
+              ? `هل أنت متأكد من رفع تعليق حساب ${user.fullName}؟ سيتمكن من تسجيل الدخول فور تنفيذ هذا الإجراء.`
+              : `Confirm removing suspension from ${user.fullName}? They will be able to sign in immediately after.`}
+          </DialogDescription>
         </DialogHeader>
-        <p className="text-sm text-slate-600">
-          {isArabic
-            ? `هل أنت متأكد من رفع تعليق حساب ${user.fullName}؟ سيتمكن من تسجيل الدخول فور تنفيذ هذا الإجراء.`
-            : `Confirm removing suspension from ${user.fullName}? They will be able to sign in immediately after.`}
-        </p>
         <div className="flex justify-end gap-3 pt-2">
           <button
             type="button"

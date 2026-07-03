@@ -114,8 +114,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     const applyAuthUser = (u: { id: string; email?: string | null; user_metadata?: Record<string, unknown> } | undefined): AuthUser | null => {
+      // Google (and most OAuth providers, via Supabase) populate user_metadata
+      // with either avatar_url or picture depending on provider — check both.
+      const meta = u?.user_metadata;
       return u
-        ? { id: u.id, email: u.email ?? "", name: u.user_metadata?.name as string | undefined }
+        ? {
+            id:        u.id,
+            email:     u.email ?? "",
+            name:      meta?.name as string | undefined,
+            avatarUrl: (meta?.avatar_url ?? meta?.picture) as string | undefined,
+          }
         : null;
     };
 

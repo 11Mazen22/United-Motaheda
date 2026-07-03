@@ -89,6 +89,7 @@ export default function AddressesScreen() {
 
   const addresses      = useAddressStore((s) => s.addresses);
   const loading        = useAddressStore((s) => s.loading);
+  const fetchError     = useAddressStore((s) => s.error);
   const fetchAddresses = useAddressStore((s) => s.fetch);
   const addAddress     = useAddressStore((s) => s.add);
   const updateAddress  = useAddressStore((s) => s.update);
@@ -187,7 +188,8 @@ export default function AddressesScreen() {
   );
 
   const showInitialSkeleton = loading && addresses.length === 0;
-  const showEmpty           = !loading && addresses.length === 0;
+  const showError           = !loading && !!fetchError && addresses.length === 0;
+  const showEmpty           = !loading && !fetchError && addresses.length === 0;
 
   return (
     <View style={s.screen}>
@@ -247,6 +249,16 @@ export default function AddressesScreen() {
       {showInitialSkeleton ? (
         <View style={s.loadingWrap}>
           {[1, 2, 3].map((i) => <ShimmerCard key={i} />)}
+        </View>
+      ) : showError ? (
+        <View style={s.emptyWrap}>
+          <EmptyState
+            icon="wifi-outline"
+            title={t("errors.network").split(".")[0]}
+            description={t("errors.network")}
+            actionLabel={t("common.retry")}
+            onAction={() => user?.id && fetchAddresses(user.id)}
+          />
         </View>
       ) : showEmpty ? (
         <View style={s.emptyWrap}>

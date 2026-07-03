@@ -22,12 +22,30 @@ const resources = {
 const stored = appKV.getString(LANG_STORAGE_KEY) as AppLanguage | undefined;
 const bootLang: AppLanguage = stored === "en" ? "en" : "ar";
 
+// Capture the REAL native layout direction before we touch it. forceRTL()
+// updates this getter's return value immediately (optimistically), even
+// though the native view tree it actually needs to affect a reload to
+// apply the new direction — so reading isRTL AFTER calling forceRTL always
+// appears to match and can never detect a mismatch. We need the pre-call
+// value to know whether the native layout engine is really already correct.
+const nativeRtlBeforeInit = I18nManager.isRTL;
+
 if (bootLang === "ar") {
   I18nManager.allowRTL(true);
   I18nManager.forceRTL(true);
 } else {
   I18nManager.allowRTL(false);
   I18nManager.forceRTL(false);
+}
+
+// Android: forceRTL() only takes visual effect on the native layout engine
+// after a reload — this includes a device's very first launch of a fresh
+// install (native default is LTR until this runs), not just a process kill
+// mid-session (e.g. during the Google OAuth browser flow). Compare against
+// the PRE-call state so a fresh install correctly triggers the one-time
+// reload needed to actually render in the right direction.
+if (Platform.OS === "android" && nativeRtlBeforeInit !== (bootLang === "ar")) {
+  void reloadApp();
 }
 
 // initImmediate: false  — forces synchronous initialisation so i18n.isInitialized

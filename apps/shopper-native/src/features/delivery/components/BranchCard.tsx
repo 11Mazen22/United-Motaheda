@@ -10,6 +10,7 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import Animated, { FadeIn } from "react-native-reanimated";
 import { theme } from "@/shared/theme";
+import { kit } from "@/shared/kit";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
 import type { Branch } from "../branches/types";
 
@@ -51,7 +52,7 @@ export const BranchCard = memo(function BranchCard({
         <Ionicons
           name={branch.isPrimary ? "star" : "medkit"}
           size={16}
-          color={selected ? "#fff" : theme.colors.brand[600]}
+          color={selected ? "#fff" : kit.color.accent}
         />
       </View>
 
@@ -83,7 +84,7 @@ export const BranchCard = memo(function BranchCard({
       <View style={styles.right}>
         {typeof distanceKm === "number" && (
           <Animated.View entering={FadeIn.duration(200)} style={styles.distPill}>
-            <Ionicons name="navigate-outline" size={10} color={theme.colors.brand[600]} />
+            <Ionicons name="navigate-outline" size={10} color={kit.color.accent} />
             <UIText style={styles.distText}>{distanceKm.toFixed(1)} كم</UIText>
           </Animated.View>
         )}
@@ -110,19 +111,19 @@ const styles = StyleSheet.create({
   },
   cardCompact: { paddingVertical: 10 },
   cardSelected: {
-    borderColor: theme.colors.brand[400],
-    backgroundColor: theme.colors.brand[50] + "60",
+    borderColor: kit.color.accentTint,
+    backgroundColor: kit.color.accentTint + "60",
     ...theme.shadow.xs,
   },
   iconWrap: {
     width: 38,
     height: 38,
     borderRadius: 12,
-    backgroundColor: theme.colors.brand[50],
+    backgroundColor: kit.color.accentTint,
     alignItems: "center",
     justifyContent: "center",
   },
-  iconWrapSelected: { backgroundColor: theme.colors.brand[600] },
+  iconWrapSelected: { backgroundColor: kit.color.accentDeep },
   body: { flex: 1, gap: 3 },
   titleRow: { flexDirection: flexRow(isRtl()), alignItems: "center", gap: 6 },
   title: { fontSize: 13, fontFamily: theme.fonts.black, color: theme.colors.text.primary, textAlign: textAlignStart(isRtl()) },
@@ -133,7 +134,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
   },
   primaryBadgeText: { fontSize: 9, fontFamily: theme.fonts.bold, color: theme.colors.amber[700] },
-  area: { fontSize: 11, fontFamily: theme.fonts.bold, color: theme.colors.brand[600], textAlign: textAlignStart(isRtl()) },
+  area: { fontSize: 11, fontFamily: theme.fonts.bold, color: kit.color.accent, textAlign: textAlignStart(isRtl()) },
   address: { fontSize: 11, fontFamily: theme.fonts.regular, color: theme.colors.slate[500], textAlign: textAlignStart(isRtl()), lineHeight: 16 },
   metaRow: { flexDirection: flexRow(isRtl()), flexWrap: "wrap", gap: 6, marginTop: 4 },
   metaPill: {
@@ -151,12 +152,12 @@ const styles = StyleSheet.create({
     flexDirection: flexRow(isRtl()),
     alignItems: "center",
     gap: 3,
-    backgroundColor: theme.colors.brand[50],
+    backgroundColor: kit.color.accentTint,
     paddingHorizontal: 7,
     paddingVertical: 3,
     borderRadius: 999,
   },
-  distText: { fontSize: 9, fontFamily: theme.fonts.black, color: theme.colors.brand[700] },
+  distText: { fontSize: 9, fontFamily: theme.fonts.black, color: kit.color.accentDeep },
   radio: {
     width: 18,
     height: 18,
@@ -166,11 +167,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  radioActive: { borderColor: theme.colors.brand[600] },
+  radioActive: { borderColor: kit.color.accent },
   radioDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: theme.colors.brand[600],
+    backgroundColor: kit.color.accentDeep,
   },
 });

@@ -142,7 +142,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontFamily: theme.fonts.semibold,
     lineHeight: 18,
-    textAlign: "left",
+    textAlign: textAlignStart(isRtl()),
   },
   confirmButton: {
     alignSelf: "stretch",

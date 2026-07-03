@@ -36,6 +36,7 @@ import Animated, {
 import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/Badge";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { ProductCard } from "@/components/ProductCard";
 import { Text as UIText } from "@/shared/ui";
 import { useCartStore } from "@/stores/cart";
@@ -51,9 +52,6 @@ const IS_RTL     = isRtl();
 const TEXT_START = textAlignStart(IS_RTL);
 const TEXT_END   = textAlignEnd(IS_RTL);
 const SCREEN_W   = Dimensions.get("window").width;
-// Distance the Back button travels to reach the opposite edge on scroll
-// (screen width - start padding 16 - end padding 16 - button width 44)
-const NAV_TRAVEL = SCREEN_W - 76;
 
 // Trust-first principle: 4 pharmacy-specific confidence signals shown
 // BEFORE the product name — safety before purchase, always.
@@ -290,24 +288,19 @@ export default function ProductDetailScreen() {
   const btnAnim   = useAnimatedStyle(() => ({ transform: [{ scale: btnScale.value }] }));
   const stickyHdr = useAnimatedStyle(() => ({ opacity: headerOpac.value }));
 
-  // Back button slides to the opposite edge on scroll (RTL: right→left, LTR: left→right)
-  const backNavAnim = useAnimatedStyle(() => ({
-    transform: [{
-      translateX: interpolate(navProgress.value, [0, 1], [0, IS_RTL ? NAV_TRAVEL : -NAV_TRAVEL]),
-    }],
+  // FAB buttons fade slightly on scroll — no positional rearrangement
+  const fabOpacity = useAnimatedStyle(() => ({
+    opacity: interpolate(navProgress.value, [0, 1], [1, 0.82], "clamp"),
   }));
 
-  // Favorite slides up to fill Back's vacated spot, while its heart-beat scale is preserved
+  // Wishlist heart: only the press-feedback scale pulse, no translateY
   const hrtAnim = useAnimatedStyle(() => ({
-    transform: [
-      { scale:      hrtScale.value },
-      { translateY: interpolate(navProgress.value, [0, 1], [0, -(44 + 10)]) },
-    ],
+    transform: [{ scale: hrtScale.value }],
   }));
 
   // ── Data ───────────────────────────────────────────────────────────────────
 
-  const { data: product, isLoading } = useQuery({
+  const { data: product, isLoading, refetch } = useQuery({
     queryKey: ["product", id],
     queryFn:  () => fetchProductById(id!),
     enabled:  !!id,
@@ -447,19 +440,19 @@ export default function ProductDetailScreen() {
 
       {/* ── Floating action buttons ── */}
       <View style={[fab.stack, { top: insets.top + 12 }]}>
-        <Animated.View style={backNavAnim}>
+        <Animated.View style={fabOpacity}>
           <Pressable
             onPress={() => router.back()}
             accessibilityRole="button"
             accessibilityLabel={t("common.back")}
             style={({ pressed }) => [fab.btn, pressed && fab.btnPressed]}>
-            <Ionicons name={BACK_CHEVRON} size={18} color="#fff" />
+            <Ionicons name={BACK_CHEVRON} size={18} color={kit.color.inkSoft} />
           </Pressable>
         </Animated.View>
 
         {product && (
           <>
-            <Animated.View style={hrtAnim}>
+            <Animated.View style={[fabOpacity, hrtAnim]}>
               <Pressable
                 onPress={handleWishlist}
                 accessibilityRole="button"
@@ -472,18 +465,20 @@ export default function ProductDetailScreen() {
                 <Ionicons
                   name={inWishlist ? "heart" : "heart-outline"}
                   size={18}
-                  color={inWishlist ? "#F87171" : "#fff"}
+                  color={inWishlist ? "#F43F5E" : kit.color.inkSoft}
                 />
               </Pressable>
             </Animated.View>
 
-            <Pressable
-              onPress={handleShare}
-              accessibilityRole="button"
-              accessibilityLabel={t("product.shareProduct")}
-              style={({ pressed }) => [fab.btn, pressed && fab.btnPressed]}>
-              <Ionicons name="share-outline" size={18} color="#fff" />
-            </Pressable>
+            <Animated.View style={fabOpacity}>
+              <Pressable
+                onPress={handleShare}
+                accessibilityRole="button"
+                accessibilityLabel={t("product.shareProduct")}
+                style={({ pressed }) => [fab.btn, pressed && fab.btnPressed]}>
+                <Ionicons name="share-outline" size={18} color={kit.color.inkSoft} />
+              </Pressable>
+            </Animated.View>
           </>
         )}
       </View>
@@ -786,7 +781,7 @@ export default function ProductDetailScreen() {
                   {/* Expandable additional rows */}
                   {profileExpanded && (
                     <Animated.View entering={FadeInDown.duration(300).springify().damping(20)}>
-                      <ClinRow icon="scan-outline"     label={t("product.barcode")}     value={product.barcode ?? "-"} />
+                      <ClinRow icon="scan-outline"     label={t("product.barcode")}     value={product.barcode ? (isNaN(+product.barcode) ? product.barcode : (+product.barcode).toFixed(0)) : "-"} />
                       <ClinRow icon="language-outline" label={t("product.nameEnLabel")} value={product.nameEn ?? "-"}  last />
                     </Animated.View>
                   )}
@@ -861,7 +856,15 @@ export default function ProductDetailScreen() {
                 </Animated.View>
               )}
             </>
-          ) : null}
+          ) : (
+            <EmptyState
+              icon="alert-circle-outline"
+              title={t("product.notFound")}
+              description={t("product.notFoundBody")}
+              actionLabel={t("product.notFoundRetry")}
+              onAction={() => refetch()}
+            />
+          )}
         </View>
       </ScrollView>
 
@@ -911,33 +914,35 @@ export default function ProductDetailScreen() {
 }
 
 // ─── Floating action buttons ──────────────────────────────────────────────────
-// Dark frosted pill — visible on light well AND product photos.
+// Frosted white pill — visible on both the light product stage and dark photos.
+// White surface + dark icon = high contrast in all lighting conditions.
 const fab = StyleSheet.create({
   stack: {
-    position: "absolute",
-    end:      16,
-    zIndex:   100,
-    gap:      10,
+    position:   "absolute",
+    end:        16,
+    zIndex:     100,
+    gap:        10,
+    alignItems: "center",
   },
   btn: {
     width:           44,
     height:          44,
     borderRadius:    22,
-    backgroundColor: "rgba(0,0,0,0.35)",
+    backgroundColor: "rgba(255,255,255,0.94)",
     alignItems:      "center",
     justifyContent:  "center",
     borderWidth:     1,
-    borderColor:     "rgba(255,255,255,0.20)",
-    elevation:       8,
+    borderColor:     "rgba(0,0,0,0.09)",
     shadowColor:     "#000",
     shadowOffset:    { width: 0, height: 2 },
-    shadowOpacity:   0.30,
-    shadowRadius:    8,
+    shadowOpacity:   0.14,
+    shadowRadius:    6,
+    elevation:       4,
   },
-  btnPressed:        { opacity: 0.72 },
+  btnPressed:        { opacity: 0.68, transform: [{ scale: 0.96 }] },
   btnWishlistActive: {
-    backgroundColor: "rgba(244,63,94,0.75)",
-    borderColor:     "rgba(255,255,255,0.25)",
+    backgroundColor: "rgba(254,202,202,0.95)",
+    borderColor:     "rgba(244,63,94,0.16)",
   },
 });
 

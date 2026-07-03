@@ -15,6 +15,7 @@ import {
   StyleSheet,
   View,
 } from "react-native";
+import { GestureDetector } from "react-native-gesture-handler";
 import { Ionicons } from "@expo/vector-icons";
 import Animated, {
   useAnimatedStyle,
@@ -28,7 +29,6 @@ import { useAuth } from "@/features/auth";
 import { useCartStore } from "@/stores/cart";
 import { useWishlistStore } from "@/stores/wishlist";
 import { useOrderStore } from "@/stores/orders";
-import { useLoyaltyBalance } from "@/features/loyalty";
 import { Text as UIText } from "@/shared/ui";
 import { theme } from "@/shared/theme";
 import { kit } from "@/shared/kit";
@@ -38,6 +38,7 @@ import { ProfileAuthHero } from "@/features/profile/components/ProfileAuthHero";
 import { ProfileGuestHero } from "@/features/profile/components/ProfileGuestHero";
 import { PROFILE } from "@/features/profile/components/profile.styles";
 import { flexRow, isRtl, textAlignStart, FORWARD_CHEVRON } from "@/utils/layout";
+import { useTabSwipeGesture } from "@/shared/navigation/useTabSwipeGesture";
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>["name"];
 
@@ -54,18 +55,6 @@ function waUrl(lang: string): string {
     : "مرحباً، أحتاج مساعدة بخصوص دواء أو طلب معين.";
   return `https://wa.me/201112343212?text=${encodeURIComponent(msg)}`;
 }
-
-function getTier(points: number) {
-  if (points >= 4000)
-    return { nameKey: "profile.tier.platinum", color: "#C084FC", ring: ["#A855F7", "#7E22CE"] as [string, string], icon: "diamond"       as IoniconsName };
-  if (points >= 1500)
-    return { nameKey: "profile.tier.gold",     color: "#FCD34D", ring: ["#FBBF24", "#F59E0B"] as [string, string], icon: "shield"        as IoniconsName };
-  if (points >= 500)
-    return { nameKey: "profile.tier.silver",   color: "#94A3B8", ring: ["#94A3B8", "#475569"] as [string, string], icon: "shield-half"   as IoniconsName };
-  return   { nameKey: "profile.tier.bronze",   color: kit.color.warn, ring: ["#D97706", "#92400E"] as [string, string], icon: "shield-outline" as IoniconsName };
-}
-
-const TIER_THRESHOLDS = [500, 1500, 4000, Infinity] as const;
 
 // ─── SectionLabel ─────────────────────────────────────────────────────────────
 
@@ -166,98 +155,11 @@ const MenuRow = memo(function MenuRow({
   );
 });
 
-// ─── LoyaltySummaryCard ───────────────────────────────────────────────────────
-
-const LoyaltySummaryCard = memo(function LoyaltySummaryCard({
-  points, tier, onPress,
-}: {
-  points:  number;
-  tier:    ReturnType<typeof getTier>;
-  onPress: () => void;
-}) {
-  const { t } = useTranslation();
-
-  const nextIdx   = TIER_THRESHOLDS.findIndex((th) => th > points);
-  const nextTh    = TIER_THRESHOLDS[nextIdx] ?? Infinity;
-  const prevTh    = nextIdx > 0 ? TIER_THRESHOLDS[nextIdx - 1] : 0;
-  const progress  = nextTh === Infinity ? 1 : (points - prevTh) / (nextTh - prevTh);
-  const isMaxTier = nextTh === Infinity;
-
-  const scale    = useSharedValue(1);
-  const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
-
-  const handleIn  = useCallback(() => { scale.value = withSpring(0.98, SPRING_PRESS); }, [scale]);
-  const handleOut = useCallback(() => { scale.value = withSpring(1,   SPRING_PRESS); }, [scale]);
-
-  return (
-    <View style={lc.outer}>
-      <Pressable
-        onPress={onPress}
-        onPressIn={handleIn}
-        onPressOut={handleOut}
-        accessibilityRole="button"
-        accessibilityLabel={t("profile.loyaltyCard")}>
-        <Animated.View style={[lc.card, animStyle]}>
-
-          {/* Tier identity stripe at top — flat colour, no gradient */}
-          <View style={[lc.stripe, { backgroundColor: tier.color }]} />
-
-          <View style={lc.content}>
-            {/* Main row: icon well · tier text · spacer · points · chevron */}
-            <View style={[lc.mainRow, { flexDirection: flexRow(IS_RTL) }]}>
-              <View style={[lc.iconWell, { backgroundColor: `${tier.color}18`, borderColor: `${tier.color}28` }]}>
-                <Ionicons name={tier.icon} size={26} color={tier.color} />
-              </View>
-
-              <View style={lc.tierBlock}>
-                <UIText style={[lc.loyaltyEyebrow, { textAlign: TEXT_START }]}>
-                  {t("profile.loyaltyCard")}
-                </UIText>
-                <UIText style={[lc.tierName, { color: tier.color, textAlign: TEXT_START }]}>
-                  {t(tier.nameKey)}
-                </UIText>
-              </View>
-
-              <View style={lc.pointsBlock}>
-                <UIText style={[lc.pointsNum, { color: tier.color }]}>
-                  {points.toLocaleString()}
-                </UIText>
-                <UIText style={lc.pointsUnit}>{t("profile.pointsUnit")}</UIText>
-              </View>
-
-              <Ionicons name={FORWARD_CHEVRON} size={15} color={kit.color.inkFaint} />
-            </View>
-
-            {/* Progress track — flat fill, no gradient */}
-            <View style={lc.track}>
-              <View
-                style={[
-                  lc.fill,
-                  {
-                    width: `${Math.min(Math.max(progress, 0.02) * 100, 100)}%` as any,
-                    backgroundColor: tier.color,
-                  },
-                ]}
-              />
-            </View>
-
-            {/* Progress label */}
-            <UIText style={[lc.sub, { textAlign: TEXT_START }]}>
-              {isMaxTier
-                ? t("profile.tier.platinum")
-                : `${points.toLocaleString()} / ${nextTh.toLocaleString()} ${t("profile.pointsUnit")}`}
-            </UIText>
-          </View>
-
-        </Animated.View>
-      </Pressable>
-    </View>
-  );
-});
 
 // ─── ProfileScreen ────────────────────────────────────────────────────────────
 
 export default function ProfileScreen() {
+  const gesture = useTabSwipeGesture("profile");
   const router  = useRouter();
   const insets  = useSafeAreaInsets();
   const { t }                     = useTranslation();
@@ -267,21 +169,12 @@ export default function ProfileScreen() {
   const wishlistCount = useWishlistStore((s) => s.items.length);
   const orders        = useOrderStore((s) => s.orders);
   const [signingOut, setSigningOut] = useState(false);
-  const loyaltyBalanceQuery         = useLoyaltyBalance(!!user?.id);
 
-  const { orderCount, loyaltyPoints, tier, lastOrder } = useMemo(() => {
-    const realBalance = loyaltyBalanceQuery.data?.balance;
-    const spent       = orders.reduce((sum: number, o: { total: number }) => sum + o.total, 0);
-    const pts         = realBalance ?? Math.floor(spent / 10);
-    return {
-      orderCount:    orders.length,
-      loyaltyPoints: pts,
-      tier:          getTier(pts),
-      lastOrder:     orders[0] ?? null,
-    };
-  }, [orders, loyaltyBalanceQuery.data?.balance]);
+  const { orderCount, lastOrder } = useMemo(() => ({
+    orderCount: orders.length,
+    lastOrder:  orders[0] ?? null,
+  }), [orders]);
 
-  const goLoyalty       = useCallback(() => router.push("/loyalty"),              [router]);
   const goEditProfile   = useCallback(() => router.push("/edit-profile"),         [router]);
   const goSecurity      = useCallback(() => router.push("/change-password"),      [router]);
   const goNotifications = useCallback(() => router.push("/notifications"),        [router]);
@@ -306,6 +199,7 @@ export default function ProfileScreen() {
   }, [signOut]);
 
   return (
+    <GestureDetector gesture={gesture}>
     <View style={s.screen}>
       <ScrollView
         contentContainerStyle={[s.scroll, { paddingBottom: theme.layout.tabBarHeight + 32 }]}
@@ -315,8 +209,6 @@ export default function ProfileScreen() {
         {user ? (
           <ProfileAuthHero
             user={user}
-            tier={tier}
-            loyaltyPoints={loyaltyPoints}
             orderCount={orderCount}
             wishlistCount={wishlistCount}
             cartCount={cartCount}
@@ -325,11 +217,6 @@ export default function ProfileScreen() {
           />
         ) : (
           <ProfileGuestHero insetsTop={insets.top} />
-        )}
-
-        {/* ── Loyalty progress card ── */}
-        {user && (
-          <LoyaltySummaryCard points={loyaltyPoints} tier={tier} onPress={goLoyalty} />
         )}
 
         {/* ── Settings ── */}
@@ -414,22 +301,31 @@ export default function ProfileScreen() {
               disabled={signingOut}
               accessibilityRole="button"
               accessibilityLabel={t("profile.logout")}
-              style={({ pressed }) => [s.dangerCard, pressed && s.dangerCardPressed]}>
-              {/* Leading cluster: icon + label */}
-              <View style={s.dangerLeading}>
-                <View style={s.dangerIconWell}>
-                  <Ionicons name="log-out-outline" size={20} color={kit.color.danger} />
+              style={s.dangerCard}>
+              {({ pressed }) => (
+                <View style={[s.dangerCardInner, pressed && s.dangerCardPressed]}>
+                  {/* Leading cluster: icon + label/subtitle stack */}
+                  <View style={s.dangerLeading}>
+                    <View style={s.dangerIconWell}>
+                      <Ionicons name="log-out-outline" size={20} color={kit.color.danger} />
+                    </View>
+                    <View style={s.dangerTextStack}>
+                      <UIText style={s.dangerLabel} numberOfLines={1}>
+                        {signingOut ? t("common.loading") : t("profile.logout")}
+                      </UIText>
+                      <UIText style={s.dangerSubtitle} numberOfLines={1}>
+                        {t("profile.logoutSubtitle")}
+                      </UIText>
+                    </View>
+                  </View>
+                  {/* Trailing chevron — pinned to the row's end edge */}
+                  <Ionicons
+                    name={FORWARD_CHEVRON}
+                    size={16}
+                    color="rgba(179,38,30,0.55)"
+                  />
                 </View>
-                <UIText style={s.dangerLabel} numberOfLines={1}>
-                  {signingOut ? t("common.loading") : t("profile.logout")}
-                </UIText>
-              </View>
-              {/* Trailing chevron — pinned to the row's end edge */}
-              <Ionicons
-                name={FORWARD_CHEVRON}
-                size={16}
-                color="rgba(179,38,30,0.55)"
-              />
+              )}
             </Pressable>
           </View>
         )}
@@ -446,6 +342,7 @@ export default function ProfileScreen() {
 
       </ScrollView>
     </View>
+    </GestureDetector>
   );
 }
 
@@ -557,98 +454,6 @@ const mr = StyleSheet.create({
   },
 });
 
-// ─── LoyaltySummaryCard styles ────────────────────────────────────────────────
-
-const lc = StyleSheet.create({
-  outer: {
-    paddingHorizontal: theme.layout.pagePaddingH,
-    marginTop:         22,
-  },
-  card: {
-    backgroundColor: kit.color.surface,
-    borderRadius:    kit.radius.xl,
-    borderWidth:     1,
-    borderColor:     kit.color.line,
-    overflow:        "hidden",
-    ...kit.shadow.floating,
-  },
-  stripe: {
-    height: 4,
-    width:  "100%",
-  },
-  content: {
-    padding: 18,
-    gap:     14,
-  },
-  mainRow: {
-    alignItems: "center",
-    gap:        14,
-  },
-  iconWell: {
-    width:          56,
-    height:         56,
-    borderRadius:   18,
-    borderWidth:    1,
-    alignItems:     "center",
-    justifyContent: "center",
-    flexShrink:     0,
-  },
-  tierBlock: {
-    flex: 1,
-    gap:  3,
-  },
-  loyaltyEyebrow: {
-    fontFamily:         theme.fonts.bold,
-    fontSize:           10,
-    lineHeight:         14,
-    color:              kit.color.inkFaint,
-    letterSpacing:      0.5,
-    includeFontPadding: false,
-  },
-  tierName: {
-    fontFamily:         theme.fonts.black,
-    fontSize:           18,
-    lineHeight:         24,
-    letterSpacing:      -0.3,
-    includeFontPadding: false,
-  },
-  pointsBlock: {
-    alignItems: IS_RTL ? "flex-start" : "flex-end",
-    gap:        1,
-    flexShrink: 0,
-  },
-  pointsNum: {
-    fontFamily:         theme.fonts.black,
-    fontSize:           26,
-    lineHeight:         32,
-    letterSpacing:      -1,
-    includeFontPadding: false,
-  },
-  pointsUnit: {
-    fontFamily:         theme.fonts.regular,
-    fontSize:           10,
-    lineHeight:         14,
-    color:              kit.color.inkFaint,
-    includeFontPadding: false,
-  },
-  track: {
-    height:          7,
-    borderRadius:    4,
-    backgroundColor: kit.color.well,
-    overflow:        "hidden",
-  },
-  fill: {
-    height:       7,
-    borderRadius: 4,
-  },
-  sub: {
-    fontFamily:         theme.fonts.regular,
-    fontSize:           11,
-    lineHeight:         16,
-    color:              kit.color.inkFaint,
-    includeFontPadding: false,
-  },
-});
 
 // ─── Screen styles ────────────────────────────────────────────────────────────
 
@@ -678,8 +483,15 @@ const s = StyleSheet.create({
     marginTop:         kit.sp(5),
   },
   // Sign-out: explicit row layout, justify space-between.
-  // Leading cluster = icon + label; trailing = chevron.
+  // Leading cluster = icon + label/subtitle stack; trailing = chevron.
+  // dangerCard is the bare Pressable — visual styling lives on dangerCardInner
+  // (a plain View) so the Pressable's own style prop never needs a gap-bearing
+  // function-computed array, which has been unreliable in this RN/Fabric setup.
   dangerCard: {
+    borderRadius: kit.radius.lg,
+    overflow:     "hidden",
+  },
+  dangerCardInner: {
     flexDirection:     flexRow(IS_RTL),
     alignItems:        "center",
     justifyContent:    "space-between",
@@ -714,13 +526,24 @@ const s = StyleSheet.create({
     justifyContent:  "center",
     flexShrink:      0,
   },
+  dangerTextStack: {
+    flex: 1,
+    gap:  2,
+  },
   dangerLabel: {
-    flex:               1,
     fontFamily:         theme.fonts.extrabold,
     fontSize:           14,
     lineHeight:         20,
     letterSpacing:      -0.1,
     color:              kit.color.danger,
+    textAlign:          TEXT_START,
+    includeFontPadding: false,
+  },
+  dangerSubtitle: {
+    fontFamily:         theme.fonts.regular,
+    fontSize:           11.5,
+    lineHeight:         16,
+    color:              "rgba(179,38,30,0.65)",
     textAlign:          TEXT_START,
     includeFontPadding: false,
   },

@@ -13,7 +13,7 @@ import { StyleSheet, type StyleProp, type ViewStyle } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import Animated, { FadeIn, useReducedMotion } from "react-native-reanimated";
-import { theme } from "@/shared/theme";
+import { kit } from "@/shared/kit";
 
 const SIZE: Record<"xs" | "sm" | "md" | "lg" | "xl", number> = {
   xs: 24,
@@ -69,7 +69,7 @@ export function AppLogo({ size = "md", style }: AppLogoProps): React.ReactElemen
         <Ionicons
           name="medkit"
           size={icon}
-          color={theme.colors.brand[700]}
+          color={kit.color.accentDeep}
         />
       ) : (
         <Image

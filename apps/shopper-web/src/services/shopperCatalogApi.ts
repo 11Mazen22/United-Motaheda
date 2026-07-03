@@ -17,6 +17,7 @@ import {
   getCategoryMatchTermsById,
   getStaticCategoryList,
   resolveCategory,
+  FALLBACK_CATEGORY_ID,
   type CatalogSnapshot,
   type CatalogProduct,
   type CatalogCategory,
@@ -652,42 +653,48 @@ async function fetchDbCategoriesViaRpc(): Promise<CatalogCategory[] | null> {
       in_stock_count:   number;
     }>;
 
-    // Build a CatalogCategory per DB row. Match each DB category name against
-    // seed aliases to inherit the seed's imageUrl, theme, icon, emoji, and
-    // descriptions — so categories rendered from the live DB look identical to
-    // those coming from the static seed list.
-    return rows
-      .map((row): CatalogCategory | null => {
-        const dbName = (row.category_name ?? "").trim();
-        if (!dbName) return null;
-        const dbNameEn = (row.category_name_en ?? "").trim() || dbName;
+    // Build a CatalogCategory per DB row, normalising seeded categories to their
+    // stable kebab-case IDs. This ensures the web category URLs and product
+    // routing remain consistent even when the DB stores the live category names
+    // as native Arabic or variant English labels.
+    const categoriesMap = new Map<string, CatalogCategory>();
 
-        // Resolve against seed aliases — falls back to "general-healthcare" seed.
-        const seed = resolveCategory(dbName, dbNameEn, "", "");
+    for (const row of rows) {
+      const dbName = (row.category_name ?? "").trim();
+      if (!dbName) continue;
+      const dbNameEn = (row.category_name_en ?? "").trim() || dbName;
 
-        // Use clean seed names for display. If no seed matched (general-healthcare
-        // fallback), strip emoji from the raw DB string instead.
-        const isGeneric = seed.id === "general-healthcare";
-        const displayAr = isGeneric ? stripEmoji(dbName)   : seed.names.ar;
-        const displayEn = isGeneric ? stripEmoji(dbNameEn) : seed.names.en;
+      const seed = resolveCategory(dbName, dbNameEn, "", "");
+      const categoryId = seed.id !== FALLBACK_CATEGORY_ID ? seed.id : dbName;
+      const displayAr = seed.id !== FALLBACK_CATEGORY_ID ? seed.names.ar : stripEmoji(dbName);
+      const displayEn = seed.id !== FALLBACK_CATEGORY_ID ? seed.names.en : stripEmoji(dbNameEn);
 
-        return {
-          id:            dbName,
-          name:          displayAr,
-          nameEn:        displayEn,
-          icon:          seed.icon,
-          emoji:         seed.emoji,
-          count:         Number(row.product_count) || 0,
-          inStockCount:  Number(row.in_stock_count) || 0,
-          descAr:        seed.desc.ar,
-          descEn:        seed.desc.en,
-          theme:         seed.theme,
-          imageUrl:      seed.imageUrl,
-          imagePosition: seed.imagePosition,
-        };
-      })
-      .filter((c): c is CatalogCategory => c !== null)
-      .sort((a, b) => (b.count - a.count) || a.nameEn.localeCompare(b.nameEn, "en"));
+      const existing = categoriesMap.get(categoryId);
+      if (existing) {
+        existing.count += Number(row.product_count) || 0;
+        existing.inStockCount += Number(row.in_stock_count) || 0;
+        continue;
+      }
+
+      categoriesMap.set(categoryId, {
+        id:            categoryId,
+        name:          displayAr,
+        nameEn:        displayEn,
+        icon:          seed.icon,
+        emoji:         seed.emoji,
+        count:         Number(row.product_count) || 0,
+        inStockCount:  Number(row.in_stock_count) || 0,
+        descAr:        seed.desc.ar,
+        descEn:        seed.desc.en,
+        theme:         seed.theme,
+        imageUrl:      seed.imageUrl,
+        imagePosition: seed.imagePosition,
+      });
+    }
+
+    return Array.from(categoriesMap.values()).sort(
+      (a, b) => (b.count - a.count) || a.nameEn.localeCompare(b.nameEn, "en"),
+    );
   } catch {
     return null;
   }

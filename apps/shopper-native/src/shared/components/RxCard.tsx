@@ -96,68 +96,72 @@ export const RxCard = memo(
           onPress={handlePress}
           accessibilityRole="button"
           accessibilityLabel={`${rx.name} — ${label}`}
-          style={({ pressed }) => [s.activeCard, pressed && { opacity: 0.95 }]}>
+          style={s.activeCardTouchable}>
+          {({ pressed }) => (
+            <View style={[s.activeCard, pressed && s.activeCardPressed]}>
 
-          {/* 4px identity stripe */}
-          <View style={[s.stripe, { backgroundColor: color }]} />
+              {/* 4px identity stripe */}
+              <View style={[s.stripe, { backgroundColor: color }]} />
 
-          <View style={s.activeBody}>
-            {/* Top: icon tile + name + status pill */}
-            <View style={[s.activeTopRow, { flexDirection: flexRow(IS_RTL) }]}>
-              <View style={[s.activeTile, { backgroundColor: tint }]}>
-                <Ionicons name="medkit" size={22} color={color} />
-              </View>
-              <View style={s.flex1}>
-                <Text
-                  variant="body"
-                  weight="bold"
-                  numberOfLines={1}
-                  style={[s.activeName, { textAlign: TEXT_START }]}>
-                  {rx.name}
-                </Text>
-                <Text
-                  variant="caption"
-                  numberOfLines={1}
-                  style={[s.doseText, { textAlign: TEXT_START }]}>
-                  {rx.dose}
-                </Text>
-              </View>
-              {/* Inline status pill */}
-              <View style={[s.statusPill, { backgroundColor: tint }]}>
-                <View style={[s.statusDot, { backgroundColor: color }]} />
-                <Text style={[s.statusPillText, { color }]} numberOfLines={1} maxFontSizeMultiplier={1.2}>
-                  {label}
-                </Text>
+              <View style={s.activeBody}>
+                {/* Top: icon tile + name + status pill */}
+                <View style={[s.activeTopRow, { flexDirection: flexRow(IS_RTL) }]}>
+                  <View style={[s.activeTile, { backgroundColor: tint }]}>
+                    <Ionicons name="medkit" size={22} color={color} />
+                  </View>
+                  <View style={s.flex1}>
+                    <Text
+                      variant="body"
+                      weight="bold"
+                      numberOfLines={1}
+                      style={[s.activeName, { textAlign: TEXT_START }]}>
+                      {rx.name}
+                    </Text>
+                    <Text
+                      variant="caption"
+                      numberOfLines={1}
+                      style={[s.doseText, { textAlign: TEXT_START }]}>
+                      {rx.dose}
+                    </Text>
+                  </View>
+                  {/* Inline status pill */}
+                  <View style={[s.statusPill, { backgroundColor: tint }]}>
+                    <View style={[s.statusDot, { backgroundColor: color }]} />
+                    <Text style={[s.statusPillText, { color }]} numberOfLines={1} maxFontSizeMultiplier={1.2}>
+                      {label}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Divider */}
+                <View style={s.activeDivider} />
+
+                {/* Bottom: next refill date + CTA */}
+                <View style={[s.activeMetaRow, { flexDirection: flexRow(IS_RTL) }]}>
+                  <View>
+                    <Text
+                      variant="eyebrow"
+                      style={[s.nextRefillEyebrow, { textAlign: TEXT_START }]}>
+                      {t("rx.nextRefill")}
+                    </Text>
+                    <Text
+                      variant="body-sm"
+                      weight="bold"
+                      style={[s.nextRefillValue, { textAlign: TEXT_START }]}>
+                      {rx.nextRefill}
+                    </Text>
+                  </View>
+                  <Button
+                    variant={refillVariant}
+                    size="sm"
+                    disabled={isExpired}
+                    label={refillLabel}
+                    onPress={handleRefill}
+                  />
+                </View>
               </View>
             </View>
-
-            {/* Divider */}
-            <View style={s.activeDivider} />
-
-            {/* Bottom: next refill date + CTA */}
-            <View style={[s.activeMetaRow, { flexDirection: flexRow(IS_RTL) }]}>
-              <View>
-                <Text
-                  variant="eyebrow"
-                  style={[s.nextRefillEyebrow, { textAlign: TEXT_START }]}>
-                  {t("rx.nextRefill")}
-                </Text>
-                <Text
-                  variant="body-sm"
-                  weight="bold"
-                  style={[s.nextRefillValue, { textAlign: TEXT_START }]}>
-                  {rx.nextRefill}
-                </Text>
-              </View>
-              <Button
-                variant={refillVariant}
-                size="sm"
-                disabled={isExpired}
-                label={refillLabel}
-                onPress={handleRefill}
-              />
-            </View>
-          </View>
+          )}
         </Pressable>
       );
     }
@@ -168,48 +172,53 @@ export const RxCard = memo(
         onPress={handlePress}
         accessibilityRole="button"
         accessibilityLabel={`${rx.name} — ${label}`}
-        style={({ pressed }) => [
-          s.listCard,
-          { flexDirection: flexRow(IS_RTL), borderStartColor: color },
-          pressed && { opacity: 0.92 },
-        ]}>
+        style={s.listCardOuter}>
+        {({ pressed }) => (
+          <View
+            style={[
+              s.listCard,
+              { flexDirection: flexRow(IS_RTL), borderStartColor: color },
+              pressed && s.listCardPressed,
+            ]}>
 
-        {/* Status icon tile */}
-        <View style={[s.listTile, { backgroundColor: tint }]}>
-          <Ionicons name="medkit-outline" size={18} color={color} />
-        </View>
+            {/* Status icon tile */}
+            <View style={[s.listTile, { backgroundColor: tint }]}>
+              <Ionicons name="medkit-outline" size={18} color={color} />
+            </View>
 
-        {/* Text block */}
-        <View style={s.listContent}>
-          <Text
-            variant="body"
-            weight="bold"
-            numberOfLines={1}
-            style={{ textAlign: TEXT_START, color: isExpired ? kit.color.inkFaint : kit.color.ink }}>
-            {rx.name}
-          </Text>
-          <Text
-            variant="caption"
-            numberOfLines={1}
-            style={{ textAlign: TEXT_START, color: kit.color.inkSoft, marginTop: 2 }}>
-            {rx.dose} · {rx.doctor}
-          </Text>
-          <Text
-            style={[s.listDate, { textAlign: TEXT_START }]}
-            numberOfLines={1}
-            maxFontSizeMultiplier={1.2}>
-            {rx.nextRefill}
-          </Text>
-        </View>
+            {/* Text block */}
+            <View style={s.listContent}>
+              <Text
+                variant="body"
+                weight="bold"
+                numberOfLines={1}
+                style={{ textAlign: TEXT_START, color: isExpired ? kit.color.inkFaint : kit.color.ink }}>
+                {rx.name}
+              </Text>
+              <Text
+                variant="caption"
+                numberOfLines={1}
+                style={{ textAlign: TEXT_START, color: kit.color.inkSoft, marginTop: 2 }}>
+                {rx.dose} · {rx.doctor}
+              </Text>
+              <Text
+                style={[s.listDate, { textAlign: TEXT_START }]}
+                numberOfLines={1}
+                maxFontSizeMultiplier={1.2}>
+                {rx.nextRefill}
+              </Text>
+            </View>
 
-        {/* Trailing refill button */}
-        <Button
-          size="sm"
-          variant={refillVariant}
-          disabled={isExpired}
-          label={refillLabel}
-          onPress={handleRefill}
-        />
+            {/* Trailing refill button */}
+            <Button
+              size="sm"
+              variant={refillVariant}
+              disabled={isExpired}
+              label={refillLabel}
+              onPress={handleRefill}
+            />
+          </View>
+        )}
       </Pressable>
     );
   },
@@ -224,6 +233,9 @@ const s = StyleSheet.create({
   flex1: { flex: 1 },
 
   // ── Active variant ─────────────────────────────────────────────────────────
+  activeCardTouchable: {
+    borderRadius: kit.radius.lg,
+  },
   activeCard: {
     backgroundColor: kit.color.surface,
     borderRadius:    kit.radius.lg,
@@ -231,6 +243,9 @@ const s = StyleSheet.create({
     borderColor:     kit.color.line,
     overflow:        "hidden",
     ...kit.shadow.raised,
+  },
+  activeCardPressed: {
+    opacity: 0.95,
   },
   stripe: {
     height: 4,
@@ -313,6 +328,14 @@ const s = StyleSheet.create({
   },
 
   // ── List variant ───────────────────────────────────────────────────────────
+  // Outer Pressable: bare container only (no gap/flexDirection — a function-
+  // style Pressable + gap combo corrupts layout on this app's RN/Fabric setup).
+  listCardOuter: {
+    borderRadius: kit.radius.lg,
+    overflow:     "hidden",
+    ...kit.shadow.raised,
+  },
+  // Inner View: all row layout (gap/flexDirection/padding) lives here instead.
   listCard: {
     alignItems:        "center",
     gap:               12,
@@ -325,8 +348,9 @@ const s = StyleSheet.create({
     borderColor:       kit.color.line,
     borderStartWidth:  3,
     // borderStartColor set dynamically above
-    overflow:          "hidden",
-    ...kit.shadow.raised,
+  },
+  listCardPressed: {
+    opacity: 0.92,
   },
   listTile: {
     width:          44,

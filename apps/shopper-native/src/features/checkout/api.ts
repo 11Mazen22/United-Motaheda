@@ -105,17 +105,10 @@ async function ensureUserProfile(command: CheckoutSubmitCommand): Promise<void> 
   ]);
 
   if (upsertError) {
-    if (__DEV__) console.error("[checkout] ensureUserProfile upsert failed:", upsertError);
-    // Surface a specific error instead of falling through to the Edge
-    // Function's generic 403. The caller's catch block routes "AUTH" codes
-    // to the user-facing error banner.
+    if (__DEV__) console.error("[checkout] ensureUserProfile upsert failed:", upsertError.message);
     throw new CheckoutRequestError(
-      "تعذّر تهيئة ملفك الشخصي. حاول مجدداً أو تواصل مع الدعم.\n" +
-        `Could not initialize your profile: ${upsertError.message}`,
-      [],
-      false,
-      "AUTH",
-      false,
+      "تعذّر تهيئة ملفك الشخصي. حاول مجدداً أو تواصل مع الدعم.",
+      [], false, "AUTH", false,
     );
   }
 }

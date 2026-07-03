@@ -18,8 +18,10 @@
  *   expo-linking      (already in Expo SDK)
  */
 
+import { Platform }      from "react-native";
 import * as Linking      from "expo-linking";
 import * as WebBrowser   from "expo-web-browser";
+import { router }        from "expo-router";
 import { supabase }      from "@/lib/supabase";
 import type { Provider } from "@supabase/supabase-js";
 
@@ -69,8 +71,18 @@ export async function signInWithProvider(
   if (result.type !== "success") return "error";
 
   // result.url = shopper://auth-callback?code=xxx&...
-  // auth-callback.tsx is already registered as a route and will handle
-  // the code exchange automatically when the deep link fires.
-  // Nothing more to do here — Expo Router processes the URL.
+  // On iOS, ASWebAuthenticationSession fires the URL through the OS URL-scheme
+  // handler, which Expo Router picks up automatically via Linking.addEventListener.
+  // On Android, Chrome Custom Tabs intercept the redirect internally and return it
+  // as result.url without firing a system intent — so Linking.addEventListener
+  // never fires. We must navigate to /auth-callback manually on Android.
+  if (Platform.OS === "android" && result.url) {
+    const parsed = Linking.parse(result.url);
+    const code = typeof parsed.queryParams?.code === "string" ? parsed.queryParams.code : undefined;
+    if (code) {
+      router.replace({ pathname: "/auth-callback", params: { code } });
+    }
+  }
+
   return "success";
 }

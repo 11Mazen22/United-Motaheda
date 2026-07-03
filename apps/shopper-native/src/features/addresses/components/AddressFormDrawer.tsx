@@ -36,6 +36,7 @@ import { ADDRESS_LABELS } from "../types";
 import type { Address, AddressFormData } from "../types";
 import { SUPPORTED_GOVERNORATE } from "@/features/delivery/constants";
 import { theme } from "@/shared/theme";
+import { kit } from "@/shared/kit";
 import { flexRow, isRtl, textAlignStart, BACK_ARROW, FORWARD_ARROW } from "@/utils/layout";
 
 const _isRtl = isRtl();
@@ -423,7 +424,7 @@ export function AddressFormDrawer({
                       isActive
                         ? "#fff"
                         : isCompleted
-                        ? theme.colors.brand[600]
+                        ? kit.color.accentDeep
                         : theme.colors.slate[400]
                     }
                   />
@@ -651,7 +652,7 @@ function StepContent({
                       pressed && { opacity: 0.88, transform: [{ scale: 0.97 }] },
                     ]}
                     android_ripple={{
-                      color: theme.colors.brand[100],
+                      color: kit.color.accentTint,
                       borderless: false,
                       radius: 16,
                     }}
@@ -660,7 +661,7 @@ function StepContent({
                       name={l.icon as IoniconsName}
                       size={18}
                       color={
-                        active ? theme.colors.brand[700] : theme.colors.slate[400]
+                        active ? kit.color.accentDeep : theme.colors.slate[400]
                       }
                     />
                     <UIText
@@ -676,7 +677,7 @@ function StepContent({
                         <Ionicons
                           name="checkmark"
                           size={12}
-                          color={theme.colors.brand[700]}
+                          color={kit.color.accentDeep}
                         />
                       </View>
                     )}
@@ -824,7 +825,7 @@ function StepContent({
               <Ionicons
                 name="navigate-outline"
                 size={12}
-                color={theme.colors.brand[600]}
+                color={kit.color.accentDeep}
               />
               <UIText style={styles.mapHintText}>
                 {t("addressForm.locationNote")}
@@ -868,7 +869,7 @@ function StepContent({
               pressed && { opacity: 0.92, transform: [{ scale: 0.99 }] },
             ]}
             android_ripple={{
-              color: theme.colors.brand[100],
+              color: kit.color.accentTint,
               borderless: false,
               radius: 16,
             }}
@@ -880,7 +881,7 @@ function StepContent({
               size={22}
               color={
                 form.is_default
-                  ? theme.colors.brand[600]
+                  ? kit.color.accentDeep
                   : theme.colors.slate[300]
               }
             />
@@ -1067,18 +1068,17 @@ const styles = StyleSheet.create({
     gap: theme.spacing.xs,
   },
   stepPillActive: {
-    backgroundColor: theme.colors.brand[600],
-    borderColor: theme.colors.brand[600],
-    shadowColor: theme.colors.brand[600],
+    backgroundColor: kit.color.accentDeep,
+    borderColor: kit.color.accentDeep,
+    shadowColor: kit.color.accentDeep,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
     elevation: 4,
-    boxShadow: "0px 2px 4px rgba(10,154,140,0.30)",
   },
   stepPillCompleted: {
-    backgroundColor: theme.colors.brand[50],
-    borderColor: theme.colors.brand[200],
+    backgroundColor: kit.color.accentTint,
+    borderColor: "rgba(14,126,116,0.25)",
   },
   stepPillText: {
     fontSize: 10,
@@ -1089,7 +1089,7 @@ const styles = StyleSheet.create({
     color: "#fff",
   },
   stepPillTextCompleted: {
-    color: theme.colors.brand[700],
+    color: kit.color.accentDeep,
   },
 
   // Progress bar
@@ -1109,13 +1109,13 @@ const styles = StyleSheet.create({
   },
   progressFill: {
     height: "100%",
-    backgroundColor: theme.colors.brand[600],
+    backgroundColor: kit.color.accentDeep,
     borderRadius: 2,
   },
   progressText: {
     fontSize: 10,
     fontFamily: theme.fonts.bold,
-    color: theme.colors.brand[700],
+    color: kit.color.accentDeep,
   },
 
   scrollContent: {
@@ -1158,7 +1158,7 @@ const styles = StyleSheet.create({
   mapHintText: {
     fontSize: 11,
     fontFamily: theme.fonts.semibold,
-    color: theme.colors.brand[600],
+    color: kit.color.accentDeep,
   },
 
   fieldGroup: {
@@ -1198,8 +1198,8 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
   labelChipActive: {
-    backgroundColor: theme.colors.brand[50],
-    borderColor: theme.colors.brand[300],
+    backgroundColor: kit.color.accentTint,
+    borderColor: "rgba(14,126,116,0.30)",
     paddingStart: 32, // logical start — make room for checkmark in both LTR and RTL
   },
   labelChipText: {
@@ -1208,7 +1208,7 @@ const styles = StyleSheet.create({
     color: theme.colors.slate[500],
   },
   labelChipTextActive: {
-    color: theme.colors.brand[700],
+    color: kit.color.accentDeep,
     fontFamily: theme.fonts.black,
   },
   activeIndicator: {
@@ -1228,8 +1228,8 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   toggleCardActive: {
-    backgroundColor: theme.colors.brand[50],
-    borderColor: theme.colors.brand[200],
+    backgroundColor: kit.color.accentTint,
+    borderColor: "rgba(14,126,116,0.25)",
   },
   toggleTitle: {
     fontSize: 13,
@@ -1304,14 +1304,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing[3],
     paddingVertical: theme.spacing.md,
     borderRadius: 14,
-    backgroundColor: theme.colors.brand[600],
+    backgroundColor: kit.color.accentDeep,
     overflow: "hidden",
-    shadowColor: theme.colors.brand[600],
+    shadowColor: kit.color.accentDeep,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
     elevation: 4,
-    boxShadow: "0px 2px 4px rgba(10,154,140,0.30)",
   },
   navBtnPrimaryText: {
     fontSize: 13,
@@ -1323,17 +1322,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: theme.spacing.sm,
-    backgroundColor: theme.colors.brand[600],
+    backgroundColor: kit.color.accentDeep,
     paddingVertical: theme.spacing.lg,
     paddingHorizontal: theme.spacing[3],
     borderRadius: 18,
     overflow: "hidden",
-    shadowColor: theme.colors.brand[600],
+    shadowColor: kit.color.accentDeep,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 6,
     elevation: 5,
-    boxShadow: "0px 4px 6px rgba(10,154,140,0.30)",
   },
   submitText: {
     fontSize: 15,
@@ -1368,7 +1366,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.18,
     shadowRadius: 24,
     elevation: 12,
-    boxShadow: "0px 8px 24px rgba(0,0,0,0.18)",
   },
   discardIconWrap: {
     width: 64,
@@ -1433,7 +1430,7 @@ const fieldStyles = StyleSheet.create({
   floatingLabelActive: {
     opacity: 1,
     transform: [{ translateY: 0 }, { scale: 1 }],
-    color: theme.colors.brand[600],
+    color: kit.color.accentDeep,
     fontFamily: theme.fonts.black,
   },
   label: {

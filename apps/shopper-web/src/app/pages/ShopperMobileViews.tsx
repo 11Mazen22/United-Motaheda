@@ -63,6 +63,7 @@ import {
   ShopperSurface,
 } from "../components/ShopperPrimitives";
 import { getLocalizedCategoryName, getLocalizedProductName } from "../localization";
+import { resolveCanonicalCategorySegment } from "../seo";
 import { cn } from "../components/UI";
 import { useDebouncedValue } from "../hooks/useDebouncedValue";
 import { useCatalogCategorySearch } from "../hooks/useCatalogCategorySearch";
@@ -858,6 +859,7 @@ export function MobileCategoryDetailsView() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { lang } = useLanguage();
+  const canonicalId = id ? resolveCanonicalCategorySegment(id) : undefined;
   const {
     categories,
     categoriesById,
@@ -878,19 +880,24 @@ export function MobileCategoryDetailsView() {
   const [filterOpen, setFilterOpen] = useState(false);
   const [onlyInStock, setOnlyInStock] = useState(false);
   const debouncedSearch = useDebouncedValue(searchQuery, 180);
-  const category = id ? categoriesById[id] : undefined;
+  const category = canonicalId ? categoriesById[canonicalId] : undefined;
+
+  useEffect(() => {
+    if (!id || !canonicalId || canonicalId === id) return;
+    navigate(`/categories/${canonicalId}`, { replace: true });
+  }, [canonicalId, id, navigate]);
 
   // Server-side filter only needed before full catalog loads; afterwards the
   // hook derives the category slice directly from the in-memory allProducts.
   useEffect(() => {
-    if (id && !isFullCatalogReady) void filterByCategory(id);
-  }, [id, isFullCatalogReady, filterByCategory]);
+    if (canonicalId && !isFullCatalogReady) void filterByCategory(canonicalId);
+  }, [canonicalId, isFullCatalogReady, filterByCategory]);
 
   useEffect(() => {
-    if (!id) return;
+    if (!canonicalId) return;
 
     const filters = {
-      categoryId: id,
+      categoryId: canonicalId,
       onlyInStock: onlyInStock ? true : undefined,
       sortBy: sortBy !== "relevant" ? sortBy : undefined,
     };
@@ -898,7 +905,7 @@ export function MobileCategoryDetailsView() {
     if (debouncedSearch || filters.onlyInStock !== undefined || filters.sortBy !== undefined) {
       void search(debouncedSearch, filters);
     }
-  }, [id, debouncedSearch, onlyInStock, sortBy, search]);
+  }, [canonicalId, debouncedSearch, onlyInStock, sortBy, search]);
 
   if (!category) {
     return (

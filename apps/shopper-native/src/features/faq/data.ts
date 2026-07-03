@@ -1,4 +1,5 @@
 import { theme } from "@/shared/theme";
+import { kit } from "@/shared/kit";
 
 export interface FAQItem {
   id: string;
@@ -18,7 +19,7 @@ export interface FAQCategoryConfig {
 }
 
 export const FAQ_CATEGORIES: FAQCategoryConfig[] = [
-  { key: "orders",   label: "الطلبات",     icon: "bag-handle-outline",   color: theme.colors.brand[600], bg: "#ECFEFF" },
+  { key: "orders",   label: "الطلبات",     icon: "bag-handle-outline",   color: kit.color.accent, bg: "#ECFEFF" },
   { key: "delivery", label: "التوصيل",     icon: "bicycle-outline",      color: "#7C3AED", bg: "#FAF5FF" },
   { key: "payment",  label: "الدفع",       icon: "card-outline",         color: theme.colors.amber[600], bg: "#FFFBEB" },
   { key: "returns",  label: "الاسترجاع",   icon: "refresh-outline",      color: theme.colors.red[600], bg: "#FFF1F2" },

@@ -58,7 +58,7 @@ export default function PrivacyScreen() {
         {/* Last updated */}
         <Animated.View entering={FadeInDown.duration(300)} style={styles.updatedBanner}>
           <Ionicons name="calendar-outline" size={15} color={kit.color.accentDeep} />
-          <UIText style={styles.updatedText}>{t("privacy.lastUpdated")}</UIText>
+          <UIText style={styles.updatedText}>{t("privacy.lastUpdated", { date: "2025" })}</UIText>
         </Animated.View>
 
         {/* Intro */}

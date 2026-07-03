@@ -14,8 +14,9 @@
  * Removed: PromoBanner, QuickActions, TrustStrip — absorbed into HomeHero
  * and SavingsStrip. Single source of identity, no duplicated trust messaging.
  *
- * Arrival overlay architecture unchanged: the page renders fully on first
- * mount and the cinematic ArrivalOverlay sits above until it dissolves.
+ * Arrival overlay: relocated to (tabs)/_layout.tsx so the cinematic sequence
+ * covers the bottom tab bar too, not just this screen's own content — see
+ * that file's header comment for details.
  */
 
 import React, {
@@ -29,6 +30,7 @@ import {
   StyleSheet,
   View,
 } from "react-native";
+import { GestureDetector }                from "react-native-gesture-handler";
 import { useSafeAreaInsets }              from "react-native-safe-area-context";
 import { useRouter }                      from "expo-router";
 import { useTranslation }                 from "react-i18next";
@@ -55,20 +57,17 @@ import { FlashSaleSection }       from "../../src/features/home/components/Flash
 import { RecentlyViewedCarousel } from "../../src/features/home/components/RecentlyViewedCarousel";
 import { DailyEdit }              from "../../src/features/home/components/DailyEdit";
 import { SavingsStrip }           from "../../src/features/home/components/SavingsStrip";
-import { ArrivalOverlay }         from "../../src/features/home/components/ArrivalOverlay";
 
 // ─── Theme ───────────────────────────────────────────────────────────────────
 import { kit } from "../../src/shared/kit";
-
-// ─── Module-level arrival guard ───────────────────────────────────────────────
-// Resets on each cold launch (JS reload); persists across in-app navigations.
-let arrivalComplete = false;
+import { useTabSwipeGesture } from "../../src/shared/navigation/useTabSwipeGesture";
 
 const CANVAS = kit.color.canvas;
 
 // ─── HomeScreen ──────────────────────────────────────────────────────────────
 
 export default function HomeScreen() {
+  const gesture   = useTabSwipeGesture("index");
   const insets    = useSafeAreaInsets();
   const router    = useRouter();
   const { i18n }  = useTranslation();
@@ -77,14 +76,6 @@ export default function HomeScreen() {
   const qc        = useQueryClient();
 
   const lang = (i18n.language === "en" ? "en" : "ar") as "ar" | "en";
-
-  // ── Arrival overlay ───────────────────────────────────────────────────────
-  const [showArrival, setShowArrival] = useState(!arrivalComplete);
-
-  const handleArrivalComplete = useCallback(() => {
-    arrivalComplete = true;
-    setShowArrival(false);
-  }, []);
 
   // ── Lazy below-fold ───────────────────────────────────────────────────────
   const [belowFold, setBelowFold] = useState(false);
@@ -121,7 +112,6 @@ export default function HomeScreen() {
   const goAllCats    = useCallback(() => router.push("/(tabs)/products"     ), [router]);
   const goOffers     = useCallback(() => router.push("/offers"         as any), [router]);
   const goScanRx     = useCallback(() => router.push("/prescriptions/scan" as any), [router]);
-  const goLoyalty    = useCallback(() => router.push("/loyalty"        as any), [router]);
 
   const goCategory = useCallback(
     (id: string) =>
@@ -151,6 +141,7 @@ export default function HomeScreen() {
   // ─── Render ───────────────────────────────────────────────────────────────
 
   return (
+    <GestureDetector gesture={gesture}>
     <View style={s.root}>
       <StatusBar barStyle="dark-content" backgroundColor={CANVAS} />
 
@@ -184,7 +175,6 @@ export default function HomeScreen() {
         <HomeHero
           onScanRx={goScanRx}
           onDeals={goSearch}
-          onLoyalty={goLoyalty}
         />
 
         {/* 2. Anticipatory care (authed only — renders null otherwise) */}
@@ -224,15 +214,8 @@ export default function HomeScreen() {
 
         <View style={{ height: Math.max(insets.bottom, 16) + 72 }} />
       </ScrollView>
-
-      {/* Cinematic arrival — sits above everything, dissolves to reveal the app */}
-      {showArrival && (
-        <ArrivalOverlay
-          topInset={insets.top}
-          onComplete={handleArrivalComplete}
-        />
-      )}
     </View>
+    </GestureDetector>
   );
 }
 

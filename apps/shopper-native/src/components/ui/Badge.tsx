@@ -2,6 +2,7 @@
 import { View } from "react-native";
 import { Text as UIText } from "@/shared/ui";
 import { theme } from "@/shared/theme";
+import { kit } from "@/shared/kit";
 import { flexRow, isRtl } from "@/utils/layout";
 
 type Variant = "brand" | "success" | "warning" | "error" | "neutral" | "purple" | "info";
@@ -15,7 +16,7 @@ interface BadgeProps {
 }
 
 const CONFIGS: Record<Variant, { bg: string; text: string; dot: string }> = {
-  brand:   { bg: theme.colors.brand[50],       text: theme.colors.brand[700],    dot: theme.colors.brand[500]   },
+  brand:   { bg: kit.color.accentTint,       text: kit.color.accentDeep,    dot: kit.color.accent   },
   success: { bg: theme.colors.success.bg,      text: theme.colors.success.text,  dot: theme.colors.success.base },
   warning: { bg: theme.colors.warning.bg,      text: theme.colors.warning.text,  dot: theme.colors.warning.base },
   error:   { bg: theme.colors.error.bg,        text: theme.colors.error.text,    dot: theme.colors.error.base   },

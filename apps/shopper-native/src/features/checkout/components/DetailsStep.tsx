@@ -66,7 +66,7 @@ export const DetailsStep = React.memo(function DetailsStep({
 }: DetailsStepProps) {
   const { t, i18n } = useTranslation();
   const hasSavedAccount = Boolean(user?.name || savedProfilePhone);
-  const sep = i18n.language.startsWith("en") ? ", " : "ØŒ ";
+  const sep = i18n.language.startsWith("en") ? ", " : "، ";
 
   const addressSummary = defaultAddress
     ? [
@@ -150,11 +150,11 @@ export const DetailsStep = React.memo(function DetailsStep({
           </View>
           <View style={s.metaRow}>
             <UIText style={s.metaLabel}>{t("auth.name")}</UIText>
-            <UIText style={s.metaValue}>{user?.name ?? "â€”"}</UIText>
+            <UIText style={s.metaValue}>{user?.name ?? "-"}</UIText>
           </View>
           <View style={s.metaRow}>
             <UIText style={s.metaLabel}>{t("auth.phone")}</UIText>
-            <UIText style={s.metaValue}>{savedProfilePhone ?? "â€”"}</UIText>
+            <UIText style={s.metaValue}>{savedProfilePhone ?? "-"}</UIText>
           </View>
           <UIText style={s.savedHelp}>
             {useAccountProfile

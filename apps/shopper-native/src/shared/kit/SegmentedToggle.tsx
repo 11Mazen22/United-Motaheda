@@ -76,12 +76,7 @@ function SegmentedToggleInner<T extends string>({
             accessibilityState={{ selected: active, disabled }}
             accessibilityLabel={opt.label}
             disabled={disabled}
-            style={({ pressed }) => [
-              s.segment,
-              { height },
-              active && s.segmentActive,
-              !active && pressed && s.segmentPressed,
-            ]}>
+            style={[s.segment, { height }, active ? s.segmentActive : null]}>
             {opt.icon && (
               <Ionicons
                 name={opt.icon}
@@ -132,9 +127,6 @@ const s = StyleSheet.create({
   segmentActive: {
     backgroundColor: kit.color.ink,
     ...kit.shadow.raised,
-  },
-  segmentPressed: {
-    backgroundColor: "rgba(15, 23, 42, 0.04)",
   },
   label: {
     fontFamily:         theme.fonts.black,

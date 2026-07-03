@@ -17,6 +17,7 @@
  */
 import React, { memo, useCallback } from "react";
 import { Platform, Pressable, StyleSheet, View } from "react-native";
+import { Image } from "expo-image";
 import { kit } from "@/shared/kit";
 import { Ionicons } from "@expo/vector-icons";
 import Animated, {
@@ -34,16 +35,10 @@ import { styles, HERO_GLASS, PROFILE } from "./profile.styles";
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>["name"];
 
-interface TierInfo {
-  nameKey: string;
-  color:   string;
-  ring:    [string, string];
-  icon:    IoniconsName;
-}
-
 interface HeroUser {
-  name?:  string | null;
-  email:  string;
+  name?:      string | null;
+  email:      string;
+  avatarUrl?: string;
 }
 
 interface LastOrder {
@@ -54,8 +49,6 @@ interface LastOrder {
 
 interface ProfileAuthHeroProps {
   user:          HeroUser;
-  tier:          TierInfo;
-  loyaltyPoints: number;
   orderCount:    number;
   wishlistCount: number;
   cartCount:     number;
@@ -172,10 +165,10 @@ const QUICK_ACTIONS = [
     route:    "/favorites",
   },
   {
-    icon:     "diamond-outline" as IoniconsName,
-    labelKey: "profile.loyaltyCard",
+    icon:     "pricetag-outline" as IoniconsName,
+    labelKey: "profile.offers",
     grad:     [PROFILE.loyaltyViolet, PROFILE.loyaltyPurple] as const,
-    route:    "/loyalty",
+    route:    "/offers",
   },
   {
     icon:     "location-outline" as IoniconsName,
@@ -189,8 +182,6 @@ const QUICK_ACTIONS = [
 
 export const ProfileAuthHero = memo(function ProfileAuthHero({
   user,
-  tier,
-  loyaltyPoints,
   orderCount,
   wishlistCount,
   cartCount,
@@ -206,7 +197,6 @@ export const ProfileAuthHero = memo(function ProfileAuthHero({
   const goSettings = useCallback(() => router.push("/notifications"),  [router]);
   const goOrders   = useCallback(() => router.push("/orders"),         [router]);
   const goWishlist = useCallback(() => router.push("/favorites"),      [router]);
-  const goLoyalty  = useCallback(() => router.push("/loyalty"),        [router]);
 
   // Single stable handler passed to every QuickActionTile
   const goRoute = useCallback(
@@ -260,20 +250,25 @@ export const ProfileAuthHero = memo(function ProfileAuthHero({
           {/* Avatar column */}
           <View style={styles.avatarContainer}>
             {/*
-              avatarRing: subtle white hairline ring rendered behind the tier
-              glow — adds perceived depth without competing with the tier colour.
-              Must be first child so it sits behind the gradient glow.
+              avatarRing: subtle white hairline ring rendered behind the glow —
+              adds perceived depth. Must be first child so it sits behind it.
             */}
             <View style={styles.avatarRing} />
-            <View style={[styles.avatarGlow, { backgroundColor: tier.ring[0] }]} />
-            <View style={styles.avatar}>
-              <UIText style={styles.avatarLetter}>
-                {(user.name ?? user.email)?.[0]?.toUpperCase() ?? "U"}
-              </UIText>
-            </View>
-            <View style={[styles.tierBadge, { backgroundColor: tier.color }]}>
-              <Ionicons name={tier.icon} size={11} color={kit.color.onInk} />
-            </View>
+            <View style={[styles.avatarGlow, { backgroundColor: kit.color.accent }]} />
+            {user.avatarUrl ? (
+              <Image
+                source={{ uri: user.avatarUrl }}
+                style={styles.avatar}
+                contentFit="cover"
+                transition={150}
+              />
+            ) : (
+              <View style={styles.avatar}>
+                <UIText style={styles.avatarLetter}>
+                  {(user.name ?? user.email)?.[0]?.toUpperCase() ?? "U"}
+                </UIText>
+              </View>
+            )}
           </View>
 
           {/* Identity column — name, email, tier chip stacked beside avatar */}
@@ -286,21 +281,6 @@ export const ProfileAuthHero = memo(function ProfileAuthHero({
                 {user.email}
               </UIText>
             </View>
-
-            <Pressable onPress={goLoyalty} style={styles.tierChip}>
-              <Ionicons name={tier.icon} size={12} color={tier.color} />
-              <UIText variant="caption" weight="bold" style={styles.tierChipLabelNew}>
-                {t("profile.memberTier", { tier: t(tier.nameKey) })}
-              </UIText>
-              <View style={styles.pointsChip}>
-                <UIText variant="caption" weight="black" style={styles.pointsChipTextNew}>
-                  {loyaltyPoints}
-                </UIText>
-                <UIText variant="eyebrow" style={styles.pointsChipUnitNew}>
-                  {t("profile.pointsUnit")}
-                </UIText>
-              </View>
-            </Pressable>
           </View>
         </View>
       </View>
@@ -324,14 +304,6 @@ export const ProfileAuthHero = memo(function ProfileAuthHero({
         />
         <View style={styles.statDivider} />
         <StatPill
-          value={loyaltyPoints}
-          label={t("profile.statPoints")}
-          icon="diamond-outline"
-          accent={PROFILE.loyaltyPurple}
-          onPress={goLoyalty}
-        />
-        <View style={styles.statDivider} />
-        <StatPill
           value={cartCount}
           label={t("profile.statCart")}
           icon="cart-outline"
@@ -343,30 +315,36 @@ export const ProfileAuthHero = memo(function ProfileAuthHero({
       {/* Last order quick-peek */}
       {lastOrder && (
         <View style={styles.quickCardWrap}>
-          <Pressable
-            onPress={goOrders}
-            style={({ pressed }) => [styles.quickCard, pressed && { opacity: 0.88 }]}>
-            {/*
-              quickCardIcon: LinearGradient background instead of flat brand.lighter
-              — adds more visual depth and premium feel to the icon container.
-            */}
-            <View style={[styles.quickCardIcon, { backgroundColor: kit.color.accentTint }]}>
-              <Ionicons name="bag-handle" size={17} color={kit.color.accentDeep} />
-            </View>
-            <View style={lo.info}>
-              <View style={lo.nameRow}>
-                <UIText variant="body-sm" weight="bold" align="right">
-                  {t("profile.lastOrderCard")}
-                </UIText>
-                <View style={styles.statusDot} />
+          {/* Bare Pressable — visual row layout (incl. `gap`) lives on the
+              inner View via function-as-children. A raw Pressable whose own
+              function-computed `style` mixes `gap` + row flexDirection has
+              caused real layout corruption elsewhere in this app. */}
+          <Pressable onPress={goOrders} style={lo.touchable}>
+            {({ pressed }) => (
+              <View style={[styles.quickCard, pressed && lo.pressed]}>
+                {/*
+                  quickCardIcon: LinearGradient background instead of flat brand.lighter
+                  — adds more visual depth and premium feel to the icon container.
+                */}
+                <View style={[styles.quickCardIcon, { backgroundColor: kit.color.accentTint }]}>
+                  <Ionicons name="bag-handle" size={17} color={kit.color.accentDeep} />
+                </View>
+                <View style={lo.info}>
+                  <View style={lo.nameRow}>
+                    <UIText variant="body-sm" weight="bold" align="right">
+                      {t("profile.lastOrderCard")}
+                    </UIText>
+                    <View style={styles.statusDot} />
+                  </View>
+                  <UIText variant="caption" color="tertiary" align="right" style={styles.quickCardSubNew}>
+                    #{lastOrder.id.slice(-6)}{"  "}•{"  "}
+                    {t("orders.items", { count: lastOrder.items.length })}{"  "}•{"  "}
+                    {lastOrder.total.toFixed(0)} {t("common.currency")}
+                  </UIText>
+                </View>
+                <Ionicons name={FORWARD_CHEVRON} size={14} color={kit.color.inkFaint} />
               </View>
-              <UIText variant="caption" color="tertiary" align="right" style={styles.quickCardSubNew}>
-                #{lastOrder.id.slice(-6)}{"  "}•{"  "}
-                {t("orders.items", { count: lastOrder.items.length })}{"  "}•{"  "}
-                {lastOrder.total.toFixed(0)} {t("common.currency")}
-              </UIText>
-            </View>
-            <Ionicons name={FORWARD_CHEVRON} size={14} color={kit.color.inkFaint} />
+            )}
           </Pressable>
         </View>
       )}
@@ -421,6 +399,8 @@ const tb = StyleSheet.create({
 
 // Last-order info block
 const lo = StyleSheet.create({
-  info:    { flex: 1 },
-  nameRow: { flexDirection: flexRow(isRtl()), alignItems: "center", gap: 6 },
+  touchable: { borderRadius: 16 },
+  pressed:   { opacity: 0.88 },
+  info:      { flex: 1 },
+  nameRow:   { flexDirection: flexRow(isRtl()), alignItems: "center", gap: 6 },
 });

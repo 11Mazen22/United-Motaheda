@@ -23,6 +23,7 @@ import { useCartStore, selectPricing, selectItemCount } from "@/stores/cart";
 import { useDeliveryContext } from "@/features/delivery";
 import { Text as UIText } from "@/shared/ui";
 import { theme } from "@/shared/theme";
+import { kit } from "@/shared/kit";
 import { formatPrice } from "@/utils/format";
 import { flexRow, isRtl, FORWARD_ARROW } from "@/utils/layout";
 import type { CartItem } from "@/stores/cart";
@@ -91,7 +92,7 @@ export const CartDrawer = forwardRef<CartDrawerRef>(function CartDrawer(_, ref) 
         <View style={styles.header}>
           <View style={styles.headerLeft}>
             <View style={styles.bagIcon}>
-              <Ionicons name="bag-handle" size={16} color={theme.colors.brand[700]} />
+              <Ionicons name="bag-handle" size={16} color={kit.color.accentDeep} />
             </View>
             <View>
               <UIText variant="eyebrow" color="tertiary" align="right">
@@ -236,7 +237,7 @@ function CartDrawerRow({
               accessibilityRole="button"
               accessibilityLabel={t("common.decrement")}
               style={styles.qtyBtn}>
-              <Ionicons name="remove" size={14} color={theme.colors.brand[700]} />
+              <Ionicons name="remove" size={14} color={kit.color.accentDeep} />
             </Pressable>
             <UIText variant="body-sm" weight="black" style={styles.qtyValueNew}>
               {item.quantity}
@@ -246,7 +247,7 @@ function CartDrawerRow({
               accessibilityRole="button"
               accessibilityLabel={t("common.increment")}
               style={styles.qtyBtn}>
-              <Ionicons name="add" size={14} color={theme.colors.brand[700]} />
+              <Ionicons name="add" size={14} color={kit.color.accentDeep} />
             </Pressable>
           </View>
           <Pressable
@@ -270,7 +271,7 @@ function EmptyCartBody() {
   return (
     <View style={styles.emptyWrap}>
       <View style={styles.emptyIcon}>
-        <Ionicons name="bag-outline" size={34} color={theme.colors.brand[700]} />
+        <Ionicons name="bag-outline" size={34} color={kit.color.accentDeep} />
       </View>
       <UIText variant="sheet-title" align="center" style={styles.emptyTitleNew}>
         {t("cart.emptyTitle")}
@@ -375,7 +376,7 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   rowPriceNew: {
-    color:         theme.colors.brand[700],
+    color:         kit.color.accentDeep,
     letterSpacing: -0.3,
     marginTop:     2,
   },
@@ -447,7 +448,7 @@ const styles = StyleSheet.create({
     marginTop:     1,
   },
   grandTotalValue: {
-    color:         theme.colors.brand[700],
+    color:         kit.color.accentDeep,
     letterSpacing: -0.5,
   },
 
@@ -471,7 +472,7 @@ const styles = StyleSheet.create({
     flex:            1.4,
     paddingVertical: 14,
     borderRadius:    14,
-    backgroundColor: theme.colors.brand[700],
+    backgroundColor: kit.color.accentDeep,
     flexDirection:   flexRow(isRtl()),
     alignItems:      "center",
     justifyContent:  "center",

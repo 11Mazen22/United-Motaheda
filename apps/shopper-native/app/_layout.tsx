@@ -35,8 +35,6 @@ import { LanguageProvider } from "@/i18n/LanguageProvider";
 import "@/i18n";
 import { useTranslation } from "react-i18next";
 import { useCartStore } from "@/stores/cart";
-// Side-effect import: registers loyalty op handlers with the offline queue.
-import "@/features/loyalty/offlineHandlers";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -158,14 +156,6 @@ export default function RootLayout() {
               <Stack.Screen name="notification-preferences" options={{ headerShown: false, animation: "slide_from_right" }} />
               <Stack.Screen name="payment"                options={{ headerShown: false, animation: "slide_from_right" }} />
               <Stack.Screen name="faq"                    options={{ headerShown: false, animation: "slide_from_right" }} />
-              <Stack.Screen name="loyalty"             options={{ headerShown: false, animation: "slide_from_right" }} />
-              <Stack.Screen name="wallet"              options={{ headerShown: false, animation: "slide_from_right" }} />
-              <Stack.Screen name="coupons"             options={{ headerShown: false, animation: "slide_from_right" }} />
-              <Stack.Screen name="gifts"               options={{ headerShown: false, animation: "slide_from_right" }} />
-              <Stack.Screen name="loyalty-history"     options={{ headerShown: false, animation: "slide_from_right" }} />
-              <Stack.Screen name="tiers"               options={{ headerShown: false, animation: "slide_from_right" }} />
-              <Stack.Screen name="campaigns"           options={{ headerShown: false, animation: "slide_from_right" }} />
-              <Stack.Screen name="redemption-history"  options={{ headerShown: false, animation: "slide_from_right" }} />
               <Stack.Screen name="deals"               options={{ headerShown: false, animation: "slide_from_bottom" }} />
               <Stack.Screen name="featured"            options={{ headerShown: false, animation: "slide_from_bottom" }} />
               <Stack.Screen name="reset-password"         options={{ headerShown: false }} />
@@ -174,7 +164,6 @@ export default function RootLayout() {
               <Stack.Screen name="terms"                  options={{ headerShown: false, animation: "slide_from_right" }} />
               <Stack.Screen name="prescriptions"          options={{ headerShown: false, animation: "slide_from_right" }} />
               <Stack.Screen name="order/[id]"            options={{ headerShown: false, animation: "slide_from_right" }} />
-              <Stack.Screen name="invite"                options={{ headerShown: false, animation: "slide_from_right" }} />
               {__DEV__ && (
                 <Stack.Screen name="__preview/components" options={{ headerShown: false, animation: "slide_from_right" }} />
               )}

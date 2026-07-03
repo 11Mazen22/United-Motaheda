@@ -1,22 +1,26 @@
 /**
  * HomeHero — Tier-1 personalised hero card (2026 reimagining).
  *
- * Single above-the-fold focal point that replaces the old PromoBanner +
- * QuickActions + TrustStrip triple. One clear hierarchy:
+ * V2 (premium layout pass): two visually layered zones instead of one flat
+ * stack — a tinted identity zone (greeting + reserved media tile + status)
+ * over a plain-surface action zone. The former circular "seal" is now a
+ * squared, reserved media tile: it carries the trust icon today and can be
+ * swapped for real promotional art later without touching layout.
  *
  *   ┌───────────────────────────────────────────┐
- *   │  ▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔ (accent rail)        │
- *   │  EYEBROW (live status)                    │
- *   │  Greeting line, name              [seal]  │
- *   │  Status row: orders · rx · points         │
- *   │  ───────── hairline ──────────            │
- *   │  ⌬ Scan Rx     ☷ Deals     ☎ Pharmacist  │
+ *   │  ░░ tinted identity zone ░░                │
+ *   │  EYEBROW              ┌──────────┐         │
+ *   │  Greeting, name       │  media   │         │
+ *   │  Status pill(s)       │  tile    │         │
+ *   │                       └──────────┘         │
+ *   │  ───────── hairline ──────────             │
+ *   │  ⌬ Scan Rx (primary pill)                  │
+ *   │  ⌗ Explore (ghost link)                    │
  *   └───────────────────────────────────────────┘
  *
- * For guests the status row collapses into a single value-prop line and the
- * loyalty pill is replaced by a "Sign in to save" affordance.
+ * For guests the status row collapses into a single value-prop line.
  *
- * Motion: breathing seal halo on a 3 s sine, gated on useReducedMotion.
+ * Motion: breathing media-tile halo on a 3 s sine, gated on useReducedMotion.
  * Single floating shadow tier; nothing else on the page is allowed to feel
  * as heavy as this card.
  */
@@ -26,6 +30,7 @@ import { Platform, Pressable, StyleSheet, View } from "react-native";
 import { useScreenLayout } from "@/utils/responsive";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import { LinearGradient } from "expo-linear-gradient";
 import Animated, {
   cancelAnimation,
   Easing,
@@ -40,7 +45,6 @@ import { Text as UIText } from "@/shared/ui";
 import { theme } from "@/shared/theme";
 import { kit } from "@/shared/kit";
 import { flexRow, isRtl, textAlignStart, FORWARD_CHEVRON } from "@/utils/layout";
-import { useLoyaltyBalance } from "@/features/loyalty/hooks/useLoyaltyBalance";
 import { useAuth } from "@/features/auth";
 import { useOrders } from "@/features/orders/hooks/useOrders";
 import { usePrescriptions } from "@/features/prescriptions/hooks/usePrescriptions";
@@ -61,9 +65,8 @@ function greetingFor(now: Date, t: TFunction): string {
 // ─── Props ───────────────────────────────────────────────────────────────────
 
 interface HomeHeroProps {
-  onScanRx:   () => void;
-  onDeals:    () => void;
-  onLoyalty?: () => void;
+  onScanRx: () => void;
+  onDeals:  () => void;
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
@@ -71,7 +74,6 @@ interface HomeHeroProps {
 export const HomeHero = memo(function HomeHero({
   onScanRx,
   onDeals,
-  onLoyalty,
 }: HomeHeroProps) {
   const { t }             = useTranslation();
   const reduced           = useReducedMotion() ?? false;
@@ -81,7 +83,6 @@ export const HomeHero = memo(function HomeHero({
   const userName = user?.name ?? null;
 
   // Own data subscriptions — parent never re-renders for these
-  const { data: loyalty } = useLoyaltyBalance(isAuthed);
   const { data: orders } = useOrders(user?.id);
   const prescriptions = usePrescriptions();
 
@@ -141,14 +142,6 @@ export const HomeHero = memo(function HomeHero({
         tone: kit.color.warn,
       });
     }
-    if (loyalty?.balance != null && loyalty.balance > 0) {
-      items.push({
-        kind: "points",
-        label: `${loyalty.balance.toLocaleString()} ${t("home.heroPoints")}`,
-        icon: "sparkles",
-        tone: kit.color.accentDeep,
-      });
-    }
     if (items.length === 0) {
       items.push({
         kind: "calm",
@@ -158,72 +151,74 @@ export const HomeHero = memo(function HomeHero({
       });
     }
     return items;
-  }, [isAuthed, activeOrders, readyRx, loyalty?.balance, t]);
+  }, [isAuthed, activeOrders, readyRx, t]);
 
   const sealLabel = t("home.heroSealLabel");
 
   return (
     <View style={[s.wrap, { paddingHorizontal: pagePad }]}>
       <View style={s.card}>
-        {/* Accent rail (top hairline highlight) */}
-        <View style={s.rail} />
 
-        {/* ── Top row: greeting stack + seal ──────────────────────────── */}
-        <View style={s.topRow}>
-          <View style={s.greetStack}>
-            <UIText style={s.eyebrow} numberOfLines={1}>
-              {greeting}
-            </UIText>
-            <UIText style={s.displayName} numberOfLines={1}>
-              {displayName}
-            </UIText>
+        {/* ── Identity zone: tinted wash, greeting + reserved media tile ── */}
+        <LinearGradient
+          colors={[kit.color.accentTint, kit.color.surface]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0, y: 1 }}
+          style={s.identityZone}>
+
+          <View style={s.topRow}>
+            <View style={s.greetStack}>
+              <UIText style={s.eyebrow} numberOfLines={1}>
+                {greeting}
+              </UIText>
+              <UIText style={s.displayName} numberOfLines={1}>
+                {displayName}
+              </UIText>
+            </View>
+
+            {/* Reserved media tile — trust icon today, swappable for a
+                promotional illustration/image later without re-layout. */}
+            <View accessibilityLabel={sealLabel} style={s.mediaTile}>
+              <Animated.View style={[s.mediaTileHalo, haloStyle]} pointerEvents="none" />
+              <View style={s.mediaTileInner}>
+                <Ionicons name="shield-checkmark" size={26} color={kit.color.accentDeep} />
+              </View>
+            </View>
           </View>
 
-          <Pressable
-            onPress={isAuthed && onLoyalty ? onLoyalty : undefined}
-            accessibilityRole={isAuthed && onLoyalty ? "button" : undefined}
-            accessibilityLabel={sealLabel}
-            hitSlop={8}
-            style={s.sealWrap}>
-            <Animated.View style={[s.sealHalo, haloStyle]} pointerEvents="none" />
-            <View style={s.sealInner}>
-              <Ionicons name="shield-checkmark" size={22} color={kit.color.accentDeep} />
-            </View>
-          </Pressable>
-        </View>
-
-        {/* ── Status row ──────────────────────────────────────────────── */}
-        {statusItems.length > 0 && (
-          <View style={s.statusWrap}>
-            {statusItems.map((item, i) => {
-              if (item.kind === "guest") {
+          {/* ── Status row ──────────────────────────────────────────── */}
+          {statusItems.length > 0 && (
+            <View style={s.statusWrap}>
+              {statusItems.map((item, i) => {
+                if (item.kind === "guest") {
+                  return (
+                    <View key={i} style={s.statusGuest}>
+                      <UIText style={s.statusGuestText} numberOfLines={2}>
+                        {item.label}
+                      </UIText>
+                    </View>
+                  );
+                }
                 return (
-                  <View key={i} style={s.statusGuest}>
-                    <UIText style={s.statusGuestText} numberOfLines={2}>
+                  <View
+                    key={`${item.kind}-${i}`}
+                    style={[s.statusPill, { backgroundColor: item.tone + "16" }]}>
+                    <Ionicons name={item.icon} size={13} color={item.tone} />
+                    <UIText style={[s.statusPillText, { color: item.tone }]} numberOfLines={1}>
                       {item.label}
                     </UIText>
                   </View>
                 );
-              }
-              return (
-                <View
-                  key={`${item.kind}-${i}`}
-                  style={[s.statusPill, { backgroundColor: item.tone + "12" }]}>
-                  <Ionicons name={item.icon} size={13} color={item.tone} />
-                  <UIText style={[s.statusPillText, { color: item.tone }]} numberOfLines={1}>
-                    {item.label}
-                  </UIText>
-                </View>
-              );
-            })}
-          </View>
-        )}
+              })}
+            </View>
+          )}
+        </LinearGradient>
 
         {/* ── Divider ─────────────────────────────────────────────────── */}
         <View style={s.divider} />
 
         {/* ── Actions: one strong primary, one quiet secondary ────────── */}
-        <View style={s.actionsRow}>
+        <View style={s.actionsZone}>
           {/* Primary CTA — full-width pill, claims the visual weight */}
           <PrimaryAction
             icon="scan-outline"
@@ -261,19 +256,23 @@ const PrimaryAction = memo(function PrimaryAction({ icon, label, onPress }: Acti
       onPress={handlePress}
       accessibilityRole="button"
       accessibilityLabel={label}
-      style={({ pressed }) => [s.primaryBtn, pressed && s.primaryBtnPressed]}>
-      <View style={s.primaryLeft}>
-        <View style={s.primaryIcon}>
-          <Ionicons name={icon} size={18} color={kit.color.accentDeep} />
+      style={s.primaryTouchable}>
+      {({ pressed }) => (
+        <View style={[s.primaryBtn, pressed && s.primaryBtnPressed]}>
+          <View style={s.primaryLeft}>
+            <View style={s.primaryIcon}>
+              <Ionicons name={icon} size={18} color={kit.color.accentDeep} />
+            </View>
+            <UIText style={s.primaryLabel} numberOfLines={1}>{label}</UIText>
+          </View>
+          <Ionicons
+            name={FORWARD_CHEVRON}
+            size={18}
+            color={kit.color.onAccent}
+            style={s.primaryChevron}
+          />
         </View>
-        <UIText style={s.primaryLabel} numberOfLines={1}>{label}</UIText>
-      </View>
-      <Ionicons
-        name={FORWARD_CHEVRON}
-        size={18}
-        color={kit.color.onAccent}
-        style={s.primaryChevron}
-      />
+      )}
     </Pressable>
   );
 });
@@ -292,10 +291,14 @@ const SecondaryAction = memo(function SecondaryAction({ icon, label, onPress }: 
       accessibilityRole="button"
       accessibilityLabel={label}
       hitSlop={8}
-      style={({ pressed }) => [s.secondaryBtn, pressed && s.secondaryBtnPressed]}>
-      <Ionicons name={icon} size={16} color={kit.color.accentDeep} />
-      <UIText style={s.secondaryLabel} numberOfLines={1}>{label}</UIText>
-      <Ionicons name={FORWARD_CHEVRON} size={14} color={kit.color.inkFaint} />
+      style={s.secondaryTouchable}>
+      {({ pressed }) => (
+        <View style={[s.secondaryBtn, pressed && s.secondaryBtnPressed]}>
+          <Ionicons name={icon} size={16} color={kit.color.accentDeep} />
+          <UIText style={s.secondaryLabel} numberOfLines={1}>{label}</UIText>
+          <Ionicons name={FORWARD_CHEVRON} size={14} color={kit.color.inkFaint} />
+        </View>
+      )}
     </Pressable>
   );
 });
@@ -311,29 +314,23 @@ const s = StyleSheet.create({
 
   // The hero card itself — only floating-shadow surface on the page
   card: {
-    backgroundColor:   kit.color.surface,
-    borderRadius:      kit.radius.xl,
-    borderWidth:       1,
-    borderColor:       kit.color.line,
+    backgroundColor: kit.color.surface,
+    borderRadius:    kit.radius.xl,
+    borderWidth:     1,
+    borderColor:     kit.color.line,
+    overflow:        "hidden",
+    ...kit.shadow.floating,
+  },
+
+  // Identity zone — tinted gradient wash, houses greeting + media tile + status
+  identityZone: {
     paddingTop:        kit.sp(6),
     paddingBottom:     kit.sp(5),
     paddingHorizontal: kit.sp(5),
     gap:               kit.sp(4),
-    overflow:          "hidden",
-    ...kit.shadow.floating,
   },
 
-  // Top accent rail
-  rail: {
-    position:        "absolute",
-    top:             0,
-    left:            0,
-    right:           0,
-    height:          4,
-    backgroundColor: kit.color.accentDeep,
-  },
-
-  // ── Top row: greeting + seal ───────────────────────────────────────
+  // ── Top row: greeting + reserved media tile ────────────────────────
   topRow: {
     flexDirection:  flexRow(IS_RTL),
     alignItems:     "center",
@@ -364,26 +361,27 @@ const s = StyleSheet.create({
     includeFontPadding: false,
   },
 
-  // Trust seal — compact circular badge with breathing halo. No more text
-  // label below — the icon is universally legible and the previous label
-  // was forcing the seal to dictate the topRow's vertical alignment.
-  sealWrap: {
-    width:          52,
-    height:         52,
+  // Reserved media tile — squared (not circular) so it reads as an image
+  // slot, not just a badge. Carries the trust icon today; swap the inner
+  // Ionicons for a real illustration/promo image later, layout untouched.
+  mediaTile: {
+    width:          68,
+    height:         68,
     alignItems:     "center",
     justifyContent: "center",
+    flexShrink:     0,
   },
-  sealHalo: {
+  mediaTileHalo: {
     position:        "absolute",
-    width:           56,
-    height:          56,
-    borderRadius:    28,
+    width:           68,
+    height:          68,
+    borderRadius:    kit.radius.lg,
     backgroundColor: kit.color.accentTint,
   },
-  sealInner: {
-    width:           46,
-    height:          46,
-    borderRadius:    23,
+  mediaTileInner: {
+    width:           56,
+    height:          56,
+    borderRadius:    14,
     backgroundColor: kit.color.surface,
     alignItems:      "center",
     justifyContent:  "center",
@@ -422,15 +420,31 @@ const s = StyleSheet.create({
   },
 
   divider: {
-    height:          StyleSheet.hairlineWidth,
-    backgroundColor: kit.color.line,
+    height:           StyleSheet.hairlineWidth,
+    backgroundColor:  kit.color.line,
+    marginHorizontal: kit.sp(5),
   },
 
   // ── Actions ───────────────────────────────────────────────────────
   // One vertical stack: strong primary pill on top, ghost secondary below.
   // No more sibling chips fighting for equal width.
-  actionsRow: {
-    gap: 10,
+  actionsZone: {
+    paddingHorizontal: kit.sp(5),
+    paddingTop:        kit.sp(4),
+    paddingBottom:     kit.sp(5),
+    gap:               10,
+  },
+
+  // Touchable wrappers carry only sizing — visual styling (incl. `gap`)
+  // lives on the plain View inside via function-as-children. A raw
+  // Pressable whose own function-computed `style` mixes `gap` + row
+  // flexDirection has caused real layout corruption elsewhere in this
+  // app (see SearchModeCard/ConcernTile) — this pattern sidesteps it.
+  primaryTouchable: {
+    borderRadius: kit.radius.pill,
+  },
+  secondaryTouchable: {
+    borderRadius: kit.radius.pill,
   },
 
   // Primary — filled accent pill, full width, internal left-cluster + chevron

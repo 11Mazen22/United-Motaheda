@@ -1,4 +1,4 @@
-﻿// ─────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
 //  Layout.tsx — United Pharmacies · Root Shell
 //  Handles: routing, SEO metadata, scroll management, header, footer, overlays
 // ─────────────────────────────────────────────────────────────────────────────
@@ -53,6 +53,7 @@ import { resolveSiteSearchSubmitPath, SiteSearchField } from "./components/SiteS
 import { cn } from "./components/UI";
 import { useIsShopperShell } from "./components/ui/use-mobile";
 import { getLocalizedCategoryName } from "./localization";
+import { getCanonicalPath, getSiteUrl, shouldNoindexRoute } from "./seo";
 import {
   getDeliveryWindowCompactLabel,
   getServiceHoursLabel,
@@ -248,16 +249,18 @@ function RouteMetaManager() {
     const meta = getRouteMeta(location.pathname, lang);
     const siteName = lang === "ar" ? BRAND_NAME_AR : BRAND_NAME_EN;
     const title = meta.title === siteName ? siteName : `${meta.title} | ${siteName}`;
-    const origin = window.location.origin;
-    const absoluteUrl = `${origin}${location.pathname}${location.search}`;
-    const absoluteImageUrl = new URL(images.logo, origin).toString();
+    const siteUrl = getSiteUrl();
+    const canonicalPath = getCanonicalPath(location.pathname);
+    const canonicalUrl = `${siteUrl}${canonicalPath}`;
+    const absoluteImageUrl = new URL(images.logo, siteUrl).toString();
+    const routeIsNoindex = shouldNoindexRoute(location.pathname, location.search);
 
     // ── Standard meta ──────────────────────────────────────────────────────
     document.title = title;
     upsertMetaTag({ name: "description" }, meta.description);
     upsertMetaTag({ property: "og:title" }, title);
     upsertMetaTag({ property: "og:description" }, meta.description);
-    upsertMetaTag({ property: "og:url" }, absoluteUrl);
+    upsertMetaTag({ property: "og:url" }, canonicalUrl);
     upsertMetaTag({ property: "og:type" }, "website");
     upsertMetaTag({ property: "og:site_name" }, siteName);
     upsertMetaTag({ property: "og:locale" }, lang === "ar" ? "ar_EG" : "en_US");
@@ -268,17 +271,18 @@ function RouteMetaManager() {
     upsertMetaTag({ name: "twitter:image" }, absoluteImageUrl);
     upsertMetaTag({ name: "theme-color" }, "#0f766e");
     upsertMetaTag({ name: "apple-mobile-web-app-title" }, siteName);
-    upsertLinkTag("canonical", absoluteUrl);
+    upsertMetaTag({ name: "robots" }, routeIsNoindex ? "noindex,follow" : "index,follow");
+    upsertLinkTag("canonical", canonicalUrl);
 
     // ── JSON-LD structured data ────────────────────────────────────────────
     // Organization — present on every page
     upsertScriptJsonLd("org", {
       "@context": "https://schema.org",
       "@type": ["Organization", "Pharmacy"],
-      "@id": `${origin}/#organization`,
+      "@id": `${siteUrl}/#organization`,
       "name": BRAND_NAME_EN,
       "alternateName": BRAND_NAME_AR,
-      "url": origin,
+      "url": siteUrl,
       "logo": {
         "@type": "ImageObject",
         "url": absoluteImageUrl,
@@ -298,15 +302,15 @@ function RouteMetaManager() {
       upsertScriptJsonLd("website", {
         "@context": "https://schema.org",
         "@type": "WebSite",
-        "@id": `${origin}/#website`,
+        "@id": `${siteUrl}/#website`,
         "name": BRAND_NAME_EN,
         "alternateName": BRAND_NAME_AR,
-        "url": origin,
+        "url": siteUrl,
         "potentialAction": {
           "@type": "SearchAction",
           "target": {
             "@type": "EntryPoint",
-            "urlTemplate": `${origin}/products?search={search_term_string}`,
+            "urlTemplate": `${siteUrl}/products?search={search_term_string}`,
           },
           "query-input": "required name=search_term_string",
         },
@@ -319,9 +323,9 @@ function RouteMetaManager() {
         "@context": "https://schema.org",
         "@type": "BreadcrumbList",
         "itemListElement": [
-          { "@type": "ListItem", "position": 1, "name": BRAND_NAME_EN, "item": origin },
-          { "@type": "ListItem", "position": 2, "name": "Products", "item": `${origin}/products` },
-          { "@type": "ListItem", "position": 3, "name": "Product Details", "item": absoluteUrl },
+          { "@type": "ListItem", "position": 1, "name": BRAND_NAME_EN, "item": siteUrl },
+          { "@type": "ListItem", "position": 2, "name": "Products", "item": `${siteUrl}/products` },
+          { "@type": "ListItem", "position": 3, "name": "Product Details", "item": canonicalUrl },
         ],
       });
     } else if (location.pathname.startsWith("/categories/") && location.pathname.length > "/categories/".length) {
@@ -329,9 +333,9 @@ function RouteMetaManager() {
         "@context": "https://schema.org",
         "@type": "BreadcrumbList",
         "itemListElement": [
-          { "@type": "ListItem", "position": 1, "name": BRAND_NAME_EN, "item": origin },
-          { "@type": "ListItem", "position": 2, "name": "Categories", "item": `${origin}/categories` },
-          { "@type": "ListItem", "position": 3, "name": "Category", "item": absoluteUrl },
+          { "@type": "ListItem", "position": 1, "name": BRAND_NAME_EN, "item": siteUrl },
+          { "@type": "ListItem", "position": 2, "name": "Categories", "item": `${siteUrl}/categories` },
+          { "@type": "ListItem", "position": 3, "name": "Category", "item": canonicalUrl },
         ],
       });
     }

@@ -13,7 +13,7 @@
 import { useCallback } from "react";
 import { useMutation, useQueryClient, type UseMutationResult } from "@tanstack/react-query";
 import { reserveInventory, type ReserveArgs } from "../api/inventoryApi";
-import { newIdempotencyKey } from "@/features/loyalty/api/idempotency"; // reuse the same UUID-v4 helper
+import { newIdempotencyKey } from "@/lib/idempotency";
 import { inventoryKeys } from "../api/queryKeys";
 import type { ReserveResponse, ReservationKind } from "../types";
 

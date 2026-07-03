@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import { useMutation, useQueryClient, type UseMutationResult } from "@tanstack/react-query";
 import { releaseInventory } from "../api/inventoryApi";
-import { newIdempotencyKey } from "@/features/loyalty/api/idempotency";
+import { newIdempotencyKey } from "@/lib/idempotency";
 import { inventoryKeys } from "../api/queryKeys";
 import type { ReleaseResponse } from "../types";
 

@@ -60,13 +60,25 @@ export default function EditProfileScreen() {
   // Load current user values from auth metadata once on mount.
   // Intentionally empty deps — we only want to read the initial values.
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user: u } }) => {
-      if (!mountedRef.current) return;
-      setName(u?.user_metadata?.name  ?? "");
-      setPhone(u?.user_metadata?.phone ?? "");
-      setEmail(u?.email ?? "");
-      setPhase("form");
-    });
+    supabase.auth.getUser()
+      .then(({ data: { user: u } }) => {
+        if (!mountedRef.current) return;
+        setName(u?.user_metadata?.name  ?? "");
+        setPhone(u?.user_metadata?.phone ?? "");
+        setEmail(u?.email ?? "");
+        setPhase("form");
+      })
+      .catch((e) => {
+        // Without this catch, a rejected getUser() (network drop, expired
+        // session) would leave `phase` stuck at "loading" forever — an
+        // infinite spinner with no way out. Fall through to the form so the
+        // existing error banner can surface the problem and the user can retry.
+        if (!mountedRef.current) return;
+        if (__DEV__) console.warn("[edit-profile] getUser failed:", e);
+        captureError(e, { surface: "edit-profile-load" });
+        setError(getAuthError(e, i18n.language));
+        setPhase("form");
+      });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSave = useCallback(async () => {

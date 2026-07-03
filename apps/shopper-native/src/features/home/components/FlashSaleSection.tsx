@@ -1,14 +1,12 @@
 import React, { memo, useCallback } from "react";
-import { Platform, Pressable, StyleSheet, View } from "react-native";
+import { Platform, StyleSheet, View } from "react-native";
 import { FlashList } from "@shopify/flash-list";
-import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useTranslation } from "react-i18next";
 import { LinearGradient } from "expo-linear-gradient";
 import { Text as UIText } from "@/shared/ui";
-import { theme } from "@/shared/theme";
-import { flexRow, isRtl, FORWARD_CHEVRON } from "@/utils/layout";
-import { kit } from "@/shared/kit";
+import { FORWARD_CHEVRON } from "@/utils/layout";
+import { kit, Button } from "@/shared/kit";
 import { useScreenLayout } from "@/utils/responsive";
 import { ProductCard } from "@/components/ProductCard";
 import { HomeSectionHeader } from "./HomeSectionHeader";
@@ -77,34 +75,8 @@ const FlashSaleItem = memo(function FlashSaleItem({
 
 const va = StyleSheet.create({
   wrap: {
-    paddingTop:    8,
-    paddingBottom: 6,
-  },
-  btn: {
-    borderRadius: kit.radius.pill,
-    overflow:     "hidden",
-  },
-  btnPressed: {
-    opacity: 0.9,
-    transform: [{ scale: 0.97 }],
-  },
-  btnInner: {
-    flexDirection:   flexRow(isRtl()),
-    alignItems:      "center",
-    justifyContent:  "center",
-    gap:             10,
-    height:          52,
-    borderRadius:    kit.radius.pill,
-    paddingHorizontal: 20,
-  },
-  text: {
-    fontFamily: theme.fonts.bold,
-    fontSize: 14, 
-    lineHeight: 21,
-    color: "#fff",
-    includeFontPadding: false,
-    fontWeight: "700",
-    letterSpacing: 0.5,
+    paddingTop:    kit.sp(2),
+    paddingBottom: kit.sp(1),
   },
 });
 
@@ -163,24 +135,18 @@ export const FlashSaleSection = memo(function FlashSaleSection({
         />
       </View>
 
-      {/* ── "View All Deals" CTA — animated gradient button ── */}
+      {/* ── "View All Deals" CTA — shared design-system Button ── */}
       {onViewAll && (
         <View style={[va.wrap, { paddingHorizontal: pagePad }]}>
-          <Pressable
+          <Button
+            variant="secondary"
+            size="lg"
+            full
+            label={t("home.viewAll")}
+            icon={FORWARD_CHEVRON}
+            iconEnd
             onPress={handleViewAll}
-            accessibilityRole="button"
-            style={({ pressed }) => [va.btn, pressed && va.btnPressed]}>
-            <LinearGradient
-              colors={[kit.color.accent, kit.color.accentDeep]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={va.btnInner}
-            >
-              <Ionicons name="flash" size={18} color="#fff" />
-              <UIText style={va.text}>{t("home.viewAll")}</UIText>
-              <Ionicons name={FORWARD_CHEVRON} size={18} color="#fff" />
-            </LinearGradient>
-          </Pressable>
+          />
         </View>
       )}
     </View>

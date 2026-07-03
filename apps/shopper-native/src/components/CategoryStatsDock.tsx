@@ -19,6 +19,7 @@ import { useTranslation } from "react-i18next";
 import { fetchCatalogStats } from "@/services/productsApi";
 import type { CatalogStats } from "@/services/productsApi";
 import { theme } from "@/shared/theme";
+import { kit } from "@/shared/kit";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>["name"];
@@ -181,8 +182,8 @@ export function CategoryStatsDock({ categoriesCount }: CategoryStatsDockProps) {
       icon: "grid-outline",
       value: catCount,
       label: t("products.statCategories"),
-      accent: theme.colors.brand[600],
-      bg: theme.colors.brand[50],
+      accent: kit.color.accent,
+      bg: kit.color.accentTint,
       isNumeric: true,
     },
     {

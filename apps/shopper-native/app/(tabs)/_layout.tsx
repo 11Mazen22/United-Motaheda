@@ -6,9 +6,15 @@
  *   • Active tab: filled ink pill (#0A1220) + mint icon (#2DD4C0) + white label
  *   • Inactive tab: outline icon + ink/35 label — no shapes, no backgrounds
  *   • ONE accent across all tabs; wayfinding via icon + weight, not hue
+ *
+ * Arrival overlay: the cinematic Home intro (ArrivalOverlay) is mounted here,
+ * above the whole <Tabs> tree, rather than inside the Home screen itself —
+ * so its opaque canvas covers the bottom tab bar too, not just Home's own
+ * content. It dissolves once, revealing tab bar + content together in the
+ * same cross-fade. Plays once per cold launch (module-level flag).
  */
 
-import React, { useCallback, useEffect } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Platform, Pressable, StyleSheet, View, useWindowDimensions } from "react-native";
 import { Tabs } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -28,6 +34,10 @@ import { useAuth } from "@/features/auth";
 import { theme } from "@/shared/theme";
 import { kit } from "@/shared/kit";
 import { Text as UIText } from "@/shared/ui";
+import { ArrivalOverlay } from "@/features/home/components/ArrivalOverlay";
+
+// Resets on each cold launch (JS reload); persists across in-app navigations.
+let arrivalComplete = false;
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>["name"];
 
@@ -207,24 +217,42 @@ function BottomTabBar({ state, navigation }: BottomTabBarProps) {
 // ─── Layout ───────────────────────────────────────────────────────────────────
 
 export default function TabLayout() {
+  const insets = useSafeAreaInsets();
+  const [showArrival, setShowArrival] = useState(!arrivalComplete);
+
+  const handleArrivalComplete = useCallback(() => {
+    arrivalComplete = true;
+    setShowArrival(false);
+  }, []);
+
   return (
-    <Tabs
-      tabBar={(props) => <BottomTabBar {...props} />}
-      screenOptions={{ headerShown: false }}>
-      <Tabs.Screen name="index"    />
-      <Tabs.Screen name="meds"     />
-      <Tabs.Screen name="products" />
-      <Tabs.Screen name="orders"   />
-      <Tabs.Screen name="profile"  />
-      <Tabs.Screen name="cart"   options={{ href: null }} />
-      <Tabs.Screen name="search" options={{ href: null }} />
-    </Tabs>
+    <View style={{ flex: 1 }}>
+      <Tabs
+        tabBar={(props) => <BottomTabBar {...props} />}
+        screenOptions={{ headerShown: false }}>
+        <Tabs.Screen name="index"    />
+        <Tabs.Screen name="meds"     />
+        <Tabs.Screen name="products" />
+        <Tabs.Screen name="orders"   />
+        <Tabs.Screen name="profile"  />
+        <Tabs.Screen name="cart"   options={{ href: null }} />
+        <Tabs.Screen name="search" options={{ href: null }} />
+      </Tabs>
+
+      {/* Cinematic arrival — sits above tab bar + content, dissolves once */}
+      {showArrival && (
+        <ArrivalOverlay
+          topInset={insets.top}
+          onComplete={handleArrivalComplete}
+        />
+      )}
+    </View>
   );
 }
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
-const BAR_H = 62;
+const BAR_H = 68;
 
 const styles = StyleSheet.create({
 

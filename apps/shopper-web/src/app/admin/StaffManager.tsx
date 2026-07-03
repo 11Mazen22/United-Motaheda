@@ -464,6 +464,8 @@ export default function StaffManager() {
         const { data, error: fetchError } = await supabase
           .from("profiles")
           .select("*")
+          .neq("role", "customer")
+          .neq("status", "Inactive")
           .order("created_at", { ascending: false });
 
         if (fetchError) throw fetchError;

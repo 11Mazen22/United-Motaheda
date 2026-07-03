@@ -209,34 +209,33 @@ const SuggRow = React.memo(function SuggRow({
   const handlePress = useCallback(() => onPress(product), [onPress, product]);
   return (
     <Animated.View entering={FadeInDown.delay(Math.min(index, 8) * 20).duration(180)}>
-      <Pressable
-        onPress={handlePress}
-        style={({ pressed }) => [
-          s.suggRow,
-          (pressed || selected) && { backgroundColor: kit.color.well },
-        ]}>
-        <View style={s.suggThumb}>
-          {product.imageUrl ? (
-            <Image
-              source={{ uri: product.imageUrl }}
-              style={{ width: "100%", height: "100%" }}
-              contentFit="contain"
-              transition={80}
-            />
-          ) : (
-            <Ionicons name="medkit-outline" size={14} color={kit.color.inkFaint} />
-          )}
-        </View>
-        <View style={{ flex: 1 }}>
-          <Hl text={name} q={query} qAlt={queryResolved} style={s.suggName} lines={1} />
-          <UIText style={s.suggCat} numberOfLines={1}>{product.categoryName}</UIText>
-        </View>
-        {!product.inStock ? (
-          <View style={s.suggOos}>
-            <UIText style={s.suggOosText}>{t("common.outOfStock")}</UIText>
+      <Pressable onPress={handlePress} style={s.suggRowTouchable}>
+        {({ pressed }) => (
+          <View style={[s.suggRow, (pressed || selected) && s.suggRowActive]}>
+            <View style={s.suggThumb}>
+              {product.imageUrl ? (
+                <Image
+                  source={{ uri: product.imageUrl }}
+                  style={{ width: "100%", height: "100%" }}
+                  contentFit="contain"
+                  transition={80}
+                />
+              ) : (
+                <Ionicons name="medkit-outline" size={14} color={kit.color.inkFaint} />
+              )}
+            </View>
+            <View style={{ flex: 1 }}>
+              <Hl text={name} q={query} qAlt={queryResolved} style={s.suggName} lines={1} />
+              <UIText style={s.suggCat} numberOfLines={1}>{product.categoryName}</UIText>
+            </View>
+            {!product.inStock ? (
+              <View style={s.suggOos}>
+                <UIText style={s.suggOosText}>{t("common.outOfStock")}</UIText>
+              </View>
+            ) : (
+              <UIText style={s.suggPrice}>{formatPrice(product.price)}</UIText>
+            )}
           </View>
-        ) : (
-          <UIText style={s.suggPrice}>{formatPrice(product.price)}</UIText>
         )}
       </Pressable>
     </Animated.View>
@@ -267,33 +266,39 @@ const SearchModeCard = React.memo(function SearchModeCard({
       onPress={handlePress}
       accessibilityRole="button"
       accessibilityLabel={label}
-      style={({ pressed }) => [
-        s.modeCard,
-        primary && s.modeCardPrimary,
-        pressed && (primary ? s.modeCardPrimaryPressed : s.modeCardPressed),
-      ]}>
-      <View style={[s.modeIconWrap, primary && s.modeIconWrapPrimary]}>
-        <Ionicons
-          name={icon}
-          size={22}
-          color={primary ? kit.color.onAccent : kit.color.accentDeep}
-        />
-      </View>
-      <UIText
-        numberOfLines={1}
-        style={[s.modeLabel, primary && s.modeLabelPrimary]}>
-        {label}
-      </UIText>
-      <UIText
-        numberOfLines={1}
-        style={[s.modeSub, primary && s.modeSubPrimary]}>
-        {sub}
-      </UIText>
+      style={s.modeCardTouchable}>
+      {({ pressed }) => (
+        <View style={[
+          s.modeCard,
+          primary && s.modeCardPrimary,
+          pressed && (primary ? s.modeCardPrimaryPressed : s.modeCardPressed),
+        ]}>
+          <View style={[s.modeIconWrap, primary && s.modeIconWrapPrimary]}>
+            <Ionicons
+              name={icon}
+              size={24}
+              color={primary ? kit.color.onAccent : kit.color.accentDeep}
+            />
+          </View>
+          <UIText
+            numberOfLines={1}
+            style={[s.modeLabel, primary && s.modeLabelPrimary]}>
+            {label}
+          </UIText>
+          <UIText
+            numberOfLines={1}
+            style={[s.modeSub, primary && s.modeSubPrimary]}>
+            {sub}
+          </UIText>
+        </View>
+      )}
     </Pressable>
   );
 });
 
-/** ConcernTile — thematic 2-col tile that quick-searches for the concern term. */
+/** ConcernTile — thematic tile that quick-searches for the concern term.
+ *  Icon-above-label card, wrapped 3-per-row (not a chevron list row) —
+ *  matches the "Browse by concern" reference layout. */
 const ConcernTile = React.memo(function ConcernTile({
   icon, label, tint, tone, onPress,
 }: {
@@ -304,7 +309,10 @@ const ConcernTile = React.memo(function ConcernTile({
   onPress: () => void;
 }) {
   const { pagePad, width } = useScreenLayout();
-  const concernW = Math.floor((width - pagePad * 2 - 10) / 2);
+  // Gutter budget must match concernGrid's actual `gap: 10` (2 gaps between
+  // 3 columns) — using a mismatched constant here caused the row width to
+  // overflow by a few px and silently wrap down to 2 columns on-device.
+  const concernW = Math.floor((width - pagePad * 2 - 10 * 2) / 3);
 
   const handlePress = useCallback(() => {
     if (Platform.OS !== "web") Haptics.selectionAsync().catch(() => {});
@@ -316,14 +324,15 @@ const ConcernTile = React.memo(function ConcernTile({
       onPress={handlePress}
       accessibilityRole="button"
       accessibilityLabel={label}
-      style={({ pressed }) => [s.concernTile, { width: concernW }, pressed && { opacity: 0.85 }]}>
-      <View style={[s.concernIconWrap, { backgroundColor: tint }]}>
-        <Ionicons name={icon} size={20} color={tone} />
-      </View>
-      <View style={s.concernBody}>
-        <UIText style={s.concernLabel} numberOfLines={1}>{label}</UIText>
-      </View>
-      <Ionicons name={FORWARD_CHEVRON} size={14} color={kit.color.lineStrong} />
+      style={[s.concernTileTouchable, { width: concernW }]}>
+      {({ pressed }) => (
+        <View style={[s.concernTile, pressed && s.concernTilePressed]}>
+          <View style={[s.concernIconWrap, { backgroundColor: tint }]}>
+            <Ionicons name={icon} size={22} color={tone} />
+          </View>
+          <UIText style={s.concernLabel} numberOfLines={1}>{label}</UIText>
+        </View>
+      )}
     </Pressable>
   );
 });
@@ -791,9 +800,13 @@ export default function SearchScreen() {
                       key={term}
                       onPress={() => quickSearch(term)}
                       accessibilityRole="button"
-                      style={({ pressed }) => [s.recentChip, pressed && s.chipPressed]}>
-                      <Ionicons name="search-outline" size={11} color={kit.color.inkFaint} />
-                      <UIText style={s.recentChipText}>{term}</UIText>
+                      style={s.chipTouchable}>
+                      {({ pressed }) => (
+                        <View style={[s.recentChip, pressed && s.chipPressed]}>
+                          <Ionicons name="search-outline" size={11} color={kit.color.inkFaint} />
+                          <UIText style={s.recentChipText}>{term}</UIText>
+                        </View>
+                      )}
                     </Pressable>
                   ))}
                 </View>
@@ -845,14 +858,18 @@ export default function SearchScreen() {
                       key={term}
                       onPress={() => quickSearch(term)}
                       accessibilityRole="button"
-                      style={({ pressed }) => [s.trendPill, pressed && s.trendPillPressed]}>
-                      <View style={[s.trendRankBadge, { backgroundColor: rankBg }]}>
-                        <UIText style={[s.trendRank, { color: rankColor }]}>
-                          {String(i + 1).padStart(2, "0")}
-                        </UIText>
-                      </View>
-                      <UIText style={s.trendTerm} numberOfLines={1}>{term}</UIText>
-                      <Ionicons name={FORWARD_CHEVRON} size={14} color={kit.color.lineStrong} />
+                      style={s.trendPillTouchable}>
+                      {({ pressed }) => (
+                        <View style={[s.trendPill, pressed && s.trendPillPressed]}>
+                          <View style={[s.trendRankBadge, { backgroundColor: rankBg }]}>
+                            <UIText style={[s.trendRank, { color: rankColor }]}>
+                              {String(i + 1).padStart(2, "0")}
+                            </UIText>
+                          </View>
+                          <UIText style={s.trendTerm} numberOfLines={1}>{term}</UIText>
+                          <Ionicons name={FORWARD_CHEVRON} size={14} color={kit.color.lineStrong} />
+                        </View>
+                      )}
                     </Pressable>
                   );
                 })}
@@ -877,14 +894,18 @@ export default function SearchScreen() {
                       key={cat.id}
                       onPress={() => router.push({ pathname: "/category/[id]", params: { id: cat.id } })}
                       accessibilityRole="button"
-                      style={({ pressed }) => [s.catCell, { width: catW }, pressed && { opacity: 0.72 }]}>
-                      <View style={s.catCellIcon}>
-                        <Ionicons name={getCategoryIcon(cat.name)} size={26} color={kit.color.accentDeep} />
-                      </View>
-                      <UIText style={s.catCellName} numberOfLines={2}>{catLabel(cat)}</UIText>
-                      {cat.count > 0 && (
-                        <View style={s.catCellCountBadge}>
-                          <UIText style={s.catCellCount}>{cat.count}+</UIText>
+                      style={[s.catCellTouchable, { width: catW }]}>
+                      {({ pressed }) => (
+                        <View style={[s.catCell, pressed && s.catCellPressed]}>
+                          <View style={s.catCellIcon}>
+                            <Ionicons name={getCategoryIcon(cat.name)} size={26} color={kit.color.accentDeep} />
+                          </View>
+                          <UIText style={s.catCellName} numberOfLines={2}>{catLabel(cat)}</UIText>
+                          {cat.count > 0 && (
+                            <View style={s.catCellCountBadge}>
+                              <UIText style={s.catCellCount}>{cat.count}+</UIText>
+                            </View>
+                          )}
                         </View>
                       )}
                     </Pressable>
@@ -969,9 +990,13 @@ export default function SearchScreen() {
                             key={m.termKey}
                             onPress={() => quickSearch(term)}
                             accessibilityRole="button"
-                            style={({ pressed }) => [s.recentChip, pressed && s.chipPressed]}>
-                            <Ionicons name={m.icon} size={11} color={m.color} />
-                            <UIText style={s.recentChipText}>{term}</UIText>
+                            style={s.chipTouchable}>
+                            {({ pressed }) => (
+                              <View style={[s.recentChip, pressed && s.chipPressed]}>
+                                <Ionicons name={m.icon} size={11} color={m.color} />
+                                <UIText style={s.recentChipText}>{term}</UIText>
+                              </View>
+                            )}
                           </Pressable>
                         );
                       })}
@@ -1033,11 +1058,15 @@ export default function SearchScreen() {
                 <Pressable
                   onPress={() => submit()}
                   accessibilityRole="button"
-                  style={({ pressed }) => [s.suggShowAll, pressed && { opacity: 0.85 }]}>
-                  <Ionicons name="search" size={13} color={kit.color.accentDeep} />
-                  <UIText style={s.suggShowAllText}>
-                    {t("search.showAll", { query: debouncedQ })}
-                  </UIText>
+                  style={s.suggShowAllTouchable}>
+                  {({ pressed }) => (
+                    <View style={[s.suggShowAll, pressed && s.suggShowAllPressed]}>
+                      <Ionicons name="search" size={13} color={kit.color.accentDeep} />
+                      <UIText style={s.suggShowAllText}>
+                        {t("search.showAll", { query: debouncedQ })}
+                      </UIText>
+                    </View>
+                  )}
                 </Pressable>
               )}
             </View>
@@ -1390,23 +1419,30 @@ const s = StyleSheet.create({
     includeFontPadding: false,
   },
 
-  // ── SearchModes (3 large cards) ────────────────────────────────────────────
+  // ── SearchModes (2 large "Start Here" cards) ───────────────────────────────
   modeRow: {
     flexDirection: flexRow(IS_RTL),
     gap:           10,
+  },
+  // Touchable wrapper: only sizing/radius — see comment on concernTileTouchable
+  // for why visual styling (gap, background, border) lives on the plain View
+  // inside instead of on the Pressable's own style.
+  modeCardTouchable: {
+    flex:         1,
+    borderRadius: kit.radius.lg,
   },
   modeCard: {
     flex:              1,
     alignItems:        "center",
     justifyContent:    "center",
-    gap:               6,
-    paddingVertical:   16,
-    paddingHorizontal: 8,
+    gap:               8,
+    paddingVertical:   20,
+    paddingHorizontal: 10,
     borderRadius:      kit.radius.lg,
     backgroundColor:   kit.color.surface,
     borderWidth:       1,
     borderColor:       kit.color.line,
-    minHeight:         110,
+    minHeight:         128,
     ...kit.shadow.raised,
   },
   modeCardPressed: {
@@ -1454,6 +1490,9 @@ const s = StyleSheet.create({
     flexWrap:      "wrap",
     gap:           8,
   },
+  chipTouchable: {
+    borderRadius: kit.radius.pill,
+  },
   recentChip: {
     flexDirection:     flexRow(IS_RTL),
     alignItems:        "center",
@@ -1480,39 +1519,46 @@ const s = StyleSheet.create({
     flexWrap:      "wrap",
     gap:           10,
   },
+  // Touchable wrapper carries only sizing — visual styling lives on the plain
+  // View inside (see SearchModeCard comment for why: gap + row on a raw
+  // Pressable's own function-computed style has been unreliable here).
+  concernTileTouchable: {
+    borderRadius: kit.radius.lg,
+  },
   concernTile: {
-    flexDirection:     flexRow(IS_RTL),
     alignItems:        "center",
-    gap:               12,
-    paddingHorizontal: 14,
-    paddingVertical:   12,
+    justifyContent:    "center",
+    gap:               8,
+    paddingHorizontal: 8,
+    paddingVertical:   16,
     backgroundColor:   kit.color.surface,
     borderRadius:      kit.radius.lg,
     borderWidth:       1,
     borderColor:       kit.color.line,
     ...kit.shadow.raised,
   },
+  concernTilePressed: {
+    backgroundColor: kit.color.well,
+  },
   concernIconWrap: {
-    width:          40,
-    height:         40,
-    borderRadius:   12,
+    width:          48,
+    height:         48,
+    borderRadius:   16,
     alignItems:     "center",
     justifyContent: "center",
   },
-  concernBody: {
-    flex: 1,
-  },
   concernLabel: {
     fontFamily:         theme.fonts.black,
-    fontSize:           13,
-    lineHeight:         18,
+    fontSize:           12,
+    lineHeight:         16,
     color:              kit.color.ink,
-    textAlign:          TEXT_START,
+    textAlign:          "center",
     includeFontPadding: false,
   },
 
   // ── Trending ranked list ───────────────────────────────────────────────────
   trendList: { gap: 8 },
+  trendPillTouchable: { borderRadius: 16 },
   trendPill: {
     flexDirection:     flexRow(IS_RTL),
     alignItems:        "center",
@@ -1557,6 +1603,9 @@ const s = StyleSheet.create({
     flexWrap:      "wrap",
     gap:           8,
   },
+  catCellTouchable: {
+    borderRadius: 18,
+  },
   catCell: {
     alignItems:        "center",
     justifyContent:    "center",
@@ -1568,6 +1617,9 @@ const s = StyleSheet.create({
     borderWidth:       1,
     borderColor:       kit.color.line,
     ...kit.shadow.raised,
+  },
+  catCellPressed: {
+    opacity: 0.72,
   },
   catCellIcon: {
     width:           54,
@@ -1702,6 +1754,10 @@ const s = StyleSheet.create({
     letterSpacing:      1.0,
     includeFontPadding: false,
   },
+  // Touchable wrapper carries no gap/flexDirection — see SearchModeCard
+  // comment for why a raw Pressable's own function-computed style must
+  // not mix those with `gap`.
+  suggRowTouchable: {},
   suggRow: {
     flexDirection:     flexRow(IS_RTL),
     alignItems:        "center",
@@ -1710,6 +1766,9 @@ const s = StyleSheet.create({
     paddingVertical:   10,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: kit.color.line,
+  },
+  suggRowActive: {
+    backgroundColor: kit.color.well,
   },
   suggThumb: {
     width: 40, height: 40, borderRadius: 12,
@@ -1767,6 +1826,7 @@ const s = StyleSheet.create({
     textAlign:          "center",
     includeFontPadding: false,
   },
+  suggShowAllTouchable: {},
   suggShowAll: {
     flexDirection:   flexRow(IS_RTL),
     alignItems:      "center",
@@ -1774,6 +1834,9 @@ const s = StyleSheet.create({
     gap:             8,
     paddingVertical: 14,
     backgroundColor: kit.color.accentTint,
+  },
+  suggShowAllPressed: {
+    opacity: 0.85,
   },
   suggShowAllText: {
     fontFamily:         theme.fonts.black,

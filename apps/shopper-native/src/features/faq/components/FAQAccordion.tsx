@@ -14,6 +14,7 @@ import Animated, {
   Easing,
 } from "react-native-reanimated";
 import { theme } from "@/shared/theme";
+import { kit } from "@/shared/kit";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
 import type { FAQItem } from "../data";
 import { FAQ_CATEGORIES } from "../data";
@@ -76,7 +77,7 @@ export const FAQAccordion = memo(function FAQAccordion({
             <Ionicons
               name="chevron-down"
               size={14}
-              color={expanded ? theme.colors.brand[600] : theme.colors.slate[400]}
+              color={expanded ? kit.color.accent : theme.colors.slate[400]}
             />
           </Animated.View>
         </View>
@@ -109,7 +110,7 @@ const styles = StyleSheet.create({
     ...theme.shadow.xs,
   },
   cardExpanded: {
-    borderColor: theme.colors.brand[100],
+    borderColor: kit.color.accentTint,
     ...theme.shadow.sm,
   },
   questionRow: {
@@ -132,7 +133,7 @@ const styles = StyleSheet.create({
     lineHeight: 22,                        // generous rhythm
   },
   questionExpanded: {
-    color: theme.colors.brand[700],        // accent tint when open
+    color: kit.color.accentDeep,        // accent tint when open
   },
   chevronWrap: {
     width: 28,
@@ -143,7 +144,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   chevronWrapExpanded: {
-    backgroundColor: theme.colors.brand[50],
+    backgroundColor: kit.color.accentTint,
   },
   answerWrap: {
     marginTop: 12,

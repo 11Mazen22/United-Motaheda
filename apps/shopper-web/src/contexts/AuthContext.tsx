@@ -316,12 +316,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // timeout). If profile fetch failed, the background retry in resolveUser will
           // update user state (role) once Supabase becomes reachable.
           finalize();
-        } else if (
-          event === "SIGNED_IN" ||
-          event === "TOKEN_REFRESHED" ||
-          event === "USER_UPDATED"
-        ) {
+        } else if (event === "SIGNED_IN" || event === "USER_UPDATED") {
           await resolveUser(currentSession?.user ?? null, currentSession ?? null);
+        } else if (event === "TOKEN_REFRESHED") {
+          // Token refresh only rotates the JWT — the profile row is unchanged.
+          // Re-fetching would hit Supabase on every hourly token cycle and
+          // produce spurious timeout warnings when Supabase cold-starts.
+          // If no profile is loaded yet (e.g. first cold boot), fetch it now.
+          if (!userRef.current && currentSession?.user) {
+            await resolveUser(currentSession.user, currentSession);
+          }
         } else if (event === "SIGNED_OUT") {
           authUserRef.current = null;
           setUser(null);

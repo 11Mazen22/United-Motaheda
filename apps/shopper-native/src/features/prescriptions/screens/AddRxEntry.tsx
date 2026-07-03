@@ -58,44 +58,49 @@ function EntryCard({ option }: { option: EntryOption }): React.ReactElement {
       accessibilityRole="button"
       accessibilityLabel={option.title}
       accessibilityState={{ disabled: option.comingSoon }}
-      style={({ pressed }) => [
-        s.card,
-        pressed && s.cardPressed,
-        option.comingSoon && s.cardMuted,
-      ]}>
+      style={s.cardOuter}>
+      {({ pressed }) => (
+        <View
+          style={[
+            s.card,
+            pressed && s.cardPressed,
+            option.comingSoon && s.cardMuted,
+          ]}>
 
-      {/* Icon tile — flush with the card's start edge */}
-      <View style={[s.iconTile, { backgroundColor: option.bg }]}>
-        <Ionicons name={option.icon} size={24} color={option.tint} />
-      </View>
+          {/* Icon tile — flush with the card's start edge */}
+          <View style={[s.iconTile, { backgroundColor: option.bg }]}>
+            <Ionicons name={option.icon} size={24} color={option.tint} />
+          </View>
 
-      {/* Center column: title + coming-soon pill + description */}
-      <View style={s.cardBody}>
-        <View style={s.cardTitleRow}>
-          <Text weight="black" style={s.cardTitle} numberOfLines={1}>
-            {option.title}
-          </Text>
-          {option.comingSoon && (
-            <View style={s.comingSoonBadge}>
-              <Text weight="black" style={s.comingSoonText}>
-                {t("prescriptions.comingSoon")}
+          {/* Center column: title + coming-soon pill + description */}
+          <View style={s.cardBody}>
+            <View style={s.cardTitleRow}>
+              <Text weight="black" style={s.cardTitle} numberOfLines={1}>
+                {option.title}
               </Text>
+              {option.comingSoon && (
+                <View style={s.comingSoonBadge}>
+                  <Text weight="black" style={s.comingSoonText}>
+                    {t("prescriptions.comingSoon")}
+                  </Text>
+                </View>
+              )}
             </View>
-          )}
-        </View>
-        <Text style={s.cardDesc} numberOfLines={2}>
-          {option.description}
-        </Text>
-      </View>
+            <Text style={s.cardDesc} numberOfLines={2}>
+              {option.description}
+            </Text>
+          </View>
 
-      {/* Trailing chevron — flips via FORWARD_CHEVRON on RTL */}
-      <View style={s.chevronWell}>
-        <Ionicons
-          name={FORWARD_CHEVRON}
-          size={16}
-          color={option.comingSoon ? kit.color.inkFaint : kit.color.inkSoft}
-        />
-      </View>
+          {/* Trailing chevron — flips via FORWARD_CHEVRON on RTL */}
+          <View style={s.chevronWell}>
+            <Ionicons
+              name={FORWARD_CHEVRON}
+              size={16}
+              color={option.comingSoon ? kit.color.inkFaint : kit.color.inkSoft}
+            />
+          </View>
+        </View>
+      )}
     </Pressable>
   );
 }
@@ -164,8 +169,12 @@ export function AddRxEntry(): React.ReactElement {
             hitSlop={10}
             accessibilityRole="button"
             accessibilityLabel={t("common.back")}
-            style={({ pressed }) => [s.backBtn, pressed && s.backBtnPressed]}>
-            <Ionicons name={BACK_CHEVRON} size={20} color={kit.color.ink} />
+            style={s.backBtnTouchable}>
+            {({ pressed }) => (
+              <View style={[s.backBtn, pressed && s.backBtnPressed]}>
+                <Ionicons name={BACK_CHEVRON} size={20} color={kit.color.ink} />
+              </View>
+            )}
           </Pressable>
 
           {/* Spacer keeps the back button hugging the start edge */}
@@ -251,7 +260,14 @@ const s = StyleSheet.create({
   navRow: {
     flexDirection: flexRow(IS_RTL),
     alignItems:    "center",
-    minHeight:     36,
+    minHeight:     38,
+  },
+  // Bare touchable — see cardOuter comment above: a raw Pressable's own
+  // function-computed `style` has proven unreliable in this app's RN/Fabric
+  // setup (observed losing sizing/background/border entirely in some
+  // cases). Visual styling lives on the inner View instead.
+  backBtnTouchable: {
+    borderRadius: 14,
   },
   backBtn: {
     width:           38,
@@ -318,6 +334,13 @@ const s = StyleSheet.create({
   },
 
   // ── Entry card ──────────────────────────────────────────────────────────
+  // Outer Pressable: bare — no gap/flexDirection (function-style Pressable +
+  // gap corrupts layout on this app's RN/Fabric setup). Radius kept so the
+  // touch ripple/highlight matches the card's rounded shape.
+  cardOuter: {
+    borderRadius: kit.radius.lg,
+  },
+  // Inner View: all row layout + visuals live here instead.
   card: {
     flexDirection:     flexRow(IS_RTL),
     alignItems:        "center",

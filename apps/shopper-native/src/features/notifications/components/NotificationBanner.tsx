@@ -17,6 +17,7 @@ import { useTranslation } from "react-i18next";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
 import { useBannerStore } from "../banner-store";
 import { theme } from "@/shared/theme";
+import { kit } from "@/shared/kit";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -31,7 +32,7 @@ const TYPE_META: Record<string, {
   gradient: [string, string];
   labelKey: string;
 }> = {
-  order:  { icon: "bag-check-outline",    color: theme.colors.brand[600],       bg: theme.colors.brand[50],    gradient: [theme.colors.brand[700],     theme.colors.brand[500]],     labelKey: "notification.order"  },
+  order:  { icon: "bag-check-outline",    color: kit.color.accent,       bg: kit.color.accentTint,    gradient: [kit.color.accentDeep,     kit.color.accent],     labelKey: "notification.order"  },
   offer:  { icon: "pricetag-outline",     color: theme.colors.warning.strong,   bg: theme.colors.warning.bg,   gradient: [theme.colors.warning.strong, theme.colors.amber[400]],     labelKey: "notification.offer"  },
   health: { icon: "heart-circle-outline", color: theme.colors.success.strong,   bg: theme.colors.success.bg,   gradient: [theme.colors.success.strong, theme.colors.green[400]],     labelKey: "notification.health" },
   system: { icon: "sparkles-outline",     color: theme.colors.purple[600],      bg: theme.colors.purple[50],   gradient: [theme.colors.purple[700],    theme.colors.purple[500]],     labelKey: "notification.system" },

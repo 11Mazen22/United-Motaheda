@@ -1,7 +1,29 @@
 import { defineConfig } from "vite";
 import path from "path";
+import { pathToFileURL } from "url";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
+
+function sitemapBuildPlugin() {
+  let outDir = path.resolve(__dirname, "dist");
+
+  return {
+    name: "sitemap-build-plugin",
+    apply: "build" as const,
+    configResolved(config: { root: string; build: { outDir: string } }) {
+      outDir = path.resolve(config.root, config.build.outDir);
+    },
+    async closeBundle() {
+      const helperPath = pathToFileURL(
+        path.resolve(__dirname, "./scripts/generate-sitemaps.mjs"),
+      ).href;
+      const { generateSitemapFiles } = (await import(helperPath)) as {
+        generateSitemapFiles: (outputDir?: string) => Promise<unknown>;
+      };
+      await generateSitemapFiles(outDir);
+    },
+  };
+}
 
 export default defineConfig({
   // Serve root assets/web/ as static public files (favicons, PWA icons, manifest)
@@ -11,6 +33,7 @@ export default defineConfig({
     // Tailwind is not being actively used – do not remove them
     react(),
     tailwindcss(),
+    sitemapBuildPlugin(),
   ],
   resolve: {
     alias: {

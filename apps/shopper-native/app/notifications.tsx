@@ -153,6 +153,7 @@ export default function NotificationsScreen() {
     items: notifications,
     unreadCount,
     isLoading: loading,
+    isError,
     isFetchingNextPage,
     hasNextPage,
     fetchNextPage,
@@ -259,6 +260,16 @@ export default function NotificationsScreen() {
       {/* ── List ── */}
       {loading && notifications.length === 0 ? (
         <NotificationsSkeleton insetsBottom={insets.bottom} />
+      ) : isError && notifications.length === 0 ? (
+        <View style={{ paddingTop: 60 }}>
+          <EmptyState
+            icon="wifi-outline"
+            title={t("errors.network").split(".")[0]}
+            description={t("errors.network")}
+            actionLabel={t("common.retry")}
+            onAction={() => refetch()}
+          />
+        </View>
       ) : (
         <FlatList
           data={filtered}

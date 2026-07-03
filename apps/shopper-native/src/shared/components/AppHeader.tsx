@@ -25,6 +25,8 @@ import { flexRow, isRtl, textAlignStart, BACK_ARROW } from "@/utils/layout";
 import { useCartStore } from "@/stores/cart";
 import { theme } from "@/shared/theme";
 
+const IS_RTL = isRtl();
+
 export type AppHeaderVariant = "default" | "hero";
 
 export interface AppHeaderProps {
@@ -163,7 +165,9 @@ const styles = StyleSheet.create({
   badge: {
     position:          "absolute",
     top:               6,
-    left:              4,
+    // RTL: badge on right edge; LTR: badge on left edge (matches ProductCard's
+    // top-start badge convention — mirrors instead of double-flipping in RTL).
+    ...(IS_RTL ? { right: 4 } : { left: 4 }),
     minWidth:          18,
     height:            18,
     paddingHorizontal: 4,

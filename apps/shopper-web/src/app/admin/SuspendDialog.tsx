@@ -3,6 +3,7 @@ import { AlertTriangle, Calendar, FileText, Loader2, ShieldOff, X } from "lucide
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "../components/ui/dialog";
@@ -117,9 +118,9 @@ export default function SuspendDialog({
               <DialogTitle className="text-lg font-black text-slate-900">
                 {isArabic ? "تعليق الحساب" : "Suspend Account"}
               </DialogTitle>
-              <p className="mt-0.5 text-sm text-slate-500">
+              <DialogDescription className="mt-0.5 text-sm text-slate-500">
                 {user.fullName} · <span dir="ltr">{user.email}</span>
-              </p>
+              </DialogDescription>
             </div>
           </div>
         </DialogHeader>

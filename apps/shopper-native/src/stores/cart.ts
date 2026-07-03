@@ -46,7 +46,7 @@ import {
   reserveInventory,
   validateInventory,
 } from "@/features/inventory";
-import { newIdempotencyKey } from "@/features/loyalty/api/idempotency";
+import { newIdempotencyKey } from "@/lib/idempotency";
 
 export interface CartItem {
   productId:      string;

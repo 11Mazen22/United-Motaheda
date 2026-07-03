@@ -31,6 +31,7 @@ import Animated, {
 import { useTranslation } from "react-i18next";
 import { geocodeAddress } from "@/lib/geocoding";
 import { theme } from "@/shared/theme";
+import { kit } from "@/shared/kit";
 import { flexRow, isRtl } from "@/utils/layout";
 
 const GEOAPIFY_KEY = "c6beba954a794cb49263d1679e4bc8bf";
@@ -109,14 +110,14 @@ function MapPlaceholder({ height }: { height: number }) {
       <View style={styles.pinStack}>
         <View style={styles.pinRing} />
         <View style={styles.pinCircle}>
-          <Ionicons name="location" size={22} color={theme.colors.brand[600]} />
+          <Ionicons name="location" size={22} color={kit.color.accentDeep} />
         </View>
         <View style={styles.pinShadow} />
       </View>
 
       {/* Label */}
       <View style={styles.placeholderLabel}>
-        <Ionicons name="navigate-circle-outline" size={14} color={theme.colors.brand[600]} />
+        <Ionicons name="navigate-circle-outline" size={14} color={kit.color.accentDeep} />
         <UIText style={styles.placeholderText}>
           {t("addressForm.mapPlaceholderHint")}
         </UIText>
@@ -142,8 +143,6 @@ export function AddressMapPlaceholder({
   const [loading, setLoading]   = useState(false);
   const [imgError, setImgError] = useState(false);
   const [geoFailed, setGeoFailed] = useState(false);
-  const [retryKey, setRetryKey]   = useState(0);
-
   // Auto-geocode from hint when no coords are supplied
   useEffect(() => {
     if (coords) return;
@@ -169,32 +168,19 @@ export function AddressMapPlaceholder({
     });
 
     return () => { cancelled = true; };
-  // retryKey triggers a fresh attempt when the user taps retry
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [addressHint?.street, addressHint?.district, addressHint?.city, retryKey]);
+  }, [addressHint?.street, addressHint?.district, addressHint?.city]);
 
   if (!coords) {
     if (loading) {
       return (
         <View style={[styles.loadingBox, { height }]}>
-          <ActivityIndicator color={theme.colors.brand[600]} />
+          <ActivityIndicator color={kit.color.accentDeep} />
           <UIText style={styles.loadingText}>{t("addressForm.locating")}</UIText>
         </View>
       );
     }
     if (geoFailed) {
-      return (
-        <View style={[styles.loadingBox, { height }]}>
-          <Ionicons name="location-outline" size={22} color={theme.colors.brand[300]} />
-          <UIText style={styles.loadingText}>{t("addressForm.mapPlaceholderHint")}</UIText>
-          <Pressable
-            onPress={() => setRetryKey((k) => k + 1)}
-            style={styles.retryBtn}>
-            <Ionicons name="refresh-outline" size={13} color={theme.colors.brand[700]} />
-            <UIText style={styles.retryText}>{t("common.retry")}</UIText>
-          </Pressable>
-        </View>
-      );
+      return <MapPlaceholder height={height} />;
     }
     return <MapPlaceholder height={height} />;
   }
@@ -217,7 +203,7 @@ export function AddressMapPlaceholder({
       {/* Coordinate badge */}
       {!compact && (
         <View style={styles.coordBadge}>
-          <Ionicons name="navigate" size={10} color={theme.colors.brand[600]} />
+          <Ionicons name="navigate" size={10} color={kit.color.accentDeep} />
           <UIText style={styles.coordText}>
             {coords.lat.toFixed(5)}, {coords.lng.toFixed(5)}
           </UIText>
@@ -230,7 +216,7 @@ export function AddressMapPlaceholder({
         onPress={() => openInMaps(coords.lat, coords.lng)}
         hitSlop={8}
       >
-        <Ionicons name="map-outline" size={13} color={theme.colors.brand[700]} />
+        <Ionicons name="map-outline" size={13} color={kit.color.accentDeep} />
         <UIText style={styles.openMapsText}>{t("addressForm.openInMaps")}</UIText>
       </Pressable>
 
@@ -269,24 +255,6 @@ const styles = StyleSheet.create({
     fontFamily: theme.fonts.semibold,
     color:      theme.colors.text.tertiary,
   },
-  retryBtn: {
-    flexDirection:     "row",
-    alignItems:        "center",
-    gap:               5,
-    marginTop:         4,
-    paddingHorizontal: 14,
-    paddingVertical:   7,
-    borderRadius:      20,
-    backgroundColor:   theme.colors.brand[50],
-    borderWidth:       1,
-    borderColor:       theme.colors.brand[200],
-  },
-  retryText: {
-    fontSize:   11,
-    fontFamily: theme.fonts.bold,
-    color:      theme.colors.brand[700],
-  },
-
   // ── Placeholder ──
   placeholder: {
     borderRadius:   16,
@@ -333,13 +301,13 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     alignItems:      "center",
     justifyContent:  "center",
-    shadowColor:     theme.colors.brand[600],
+    shadowColor:     kit.color.accentDeep,
     shadowOffset:    { width: 0, height: 4 },
     shadowOpacity:   0.2,
     shadowRadius:    8,
     elevation:       6,
     borderWidth:     2,
-    borderColor:     theme.colors.brand[100],
+    borderColor:     "rgba(14,126,116,0.20)",
   },
   pinShadow: {
     width:           18,
@@ -409,7 +377,7 @@ const styles = StyleSheet.create({
   openMapsText: {
     fontSize:   11,
     fontFamily: theme.fonts.bold,
-    color:      theme.colors.brand[700],
+    color:      kit.color.accentDeep,
   },
   verifiedBadge: {
     position:          "absolute",
