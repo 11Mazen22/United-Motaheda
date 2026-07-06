@@ -484,7 +484,7 @@ export default function OnboardingScreen() {
           <View style={chrome.brandMark}>
             <AppLogo size="sm" />
           </View>
-          <UIText style={chrome.brandName}>United Pharmacy</UIText>
+          <UIText style={chrome.brandName}>{t("common.appName")}</UIText>
         </View>
 
         <PressableScale

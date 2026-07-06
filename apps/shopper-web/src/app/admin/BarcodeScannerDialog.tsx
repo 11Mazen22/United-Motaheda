@@ -11,6 +11,7 @@ import {
   QrCodeIcon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
+import { BrowserMultiFormatReader, type IScannerControls } from "@zxing/browser";
 import { cn } from "../components/UI";
 
 interface Props {
@@ -28,6 +29,7 @@ export default function BarcodeScannerDialog({ open, productId, onClose, onCaptu
   const [error, setError] = useState("");
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const controlsRef = useRef<IScannerControls | null>(null);
 
   const startCamera = useCallback(async () => {
     setError("");
@@ -37,16 +39,23 @@ export default function BarcodeScannerDialog({ open, productId, onClose, onCaptu
         video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } },
       });
       streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
-      }
-      // Mock successful scan after 3 seconds
-      setTimeout(() => {
-        const mockBarcode = `UP-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-        setBarcode(mockBarcode);
-        setScanning(false);
-      }, 3000);
+      if (!videoRef.current) return;
+      videoRef.current.srcObject = stream;
+      await videoRef.current.play();
+
+      // Real barcode decoding — continuously analyzes video frames until a
+      // barcode is found. A per-frame `error` (typically NotFoundException)
+      // fires on almost every frame where nothing was detected yet; that is
+      // expected scanning noise, not a failure, so it's silently ignored.
+      const reader = new BrowserMultiFormatReader();
+      const controls = await reader.decodeFromStream(stream, videoRef.current, (result) => {
+        if (result) {
+          setBarcode(result.getText());
+          setScanning(false);
+          controlsRef.current?.stop();
+        }
+      });
+      controlsRef.current = controls;
     } catch (e) {
       setError(lang === "ar" ? "لا يمكن الوصول للكاميرا" : "Cannot access camera");
       setScanning(false);
@@ -54,6 +63,8 @@ export default function BarcodeScannerDialog({ open, productId, onClose, onCaptu
   }, [lang]);
 
   const stopCamera = useCallback(() => {
+    controlsRef.current?.stop();
+    controlsRef.current = null;
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((track) => track.stop());
       streamRef.current = null;

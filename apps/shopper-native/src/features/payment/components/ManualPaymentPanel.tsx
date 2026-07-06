@@ -63,9 +63,13 @@ export const ManualPaymentPanel = memo(function ManualPaymentPanel({
           onPress={copyNumber}
           accessibilityRole="button"
           accessibilityLabel={t("payment.copyWalletA11y")}
-          style={({ pressed }) => [styles.copyBtn, pressed && { opacity: 0.85 }]}>
-          <Ionicons name="copy-outline" size={18} color="#fff" />
-          <UIText style={styles.copyBtnText}>{t("payment.copyNumber")}</UIText>
+          style={styles.copyBtnTouchable}>
+          {({ pressed }) => (
+            <View style={[styles.copyBtn, pressed && styles.copyBtnPressed]}>
+              <Ionicons name="copy-outline" size={18} color="#fff" />
+              <UIText style={styles.copyBtnText}>{t("payment.copyNumber")}</UIText>
+            </View>
+          )}
         </Pressable>
       </View>
 
@@ -73,7 +77,7 @@ export const ManualPaymentPanel = memo(function ManualPaymentPanel({
         label={t("payment.senderReference")}
         value={transferNumber}
         onChangeText={onTransferNumberChange}
-        placeholder="01XXXXXXXXX أو InstaPay handle"
+        placeholder={t("payment.senderReferencePlaceholder")}
         keyboardType="default"
         autoCapitalize="none"
         error={error && !transferNumber.trim() ? error : undefined}
@@ -83,18 +87,25 @@ export const ManualPaymentPanel = memo(function ManualPaymentPanel({
       <Pressable
         onPress={onPickReceipt}
         disabled={uploading}
-        style={({ pressed }) => [
-          styles.uploadBox,
-          receiptUri && styles.uploadBoxFilled,
-          pressed && { opacity: 0.9 },
-          uploading && { opacity: 0.6 },
-        ]}>
-        {receiptUri ? (
-          <Image source={{ uri: receiptUri }} style={styles.preview} resizeMode="cover" />
-        ) : (
-          <View style={styles.uploadPlaceholder}>
-            <Ionicons name="image-outline" size={32} color={theme.colors.slate[400]} />
-            <UIText style={styles.uploadPlaceholderText}>{t("payment.pickReceipt")}</UIText>
+        accessibilityRole="button"
+        accessibilityLabel={t("payment.pickReceipt")}
+        style={styles.uploadBoxTouchable}>
+        {({ pressed }) => (
+          <View
+            style={[
+              styles.uploadBox,
+              receiptUri && styles.uploadBoxFilled,
+              pressed && styles.uploadBoxPressed,
+              uploading && styles.uploadBoxDisabled,
+            ]}>
+            {receiptUri ? (
+              <Image source={{ uri: receiptUri }} style={styles.preview} resizeMode="cover" />
+            ) : (
+              <View style={styles.uploadPlaceholder}>
+                <Ionicons name="image-outline" size={32} color={theme.colors.slate[400]} />
+                <UIText style={styles.uploadPlaceholderText}>{t("payment.pickReceipt")}</UIText>
+              </View>
+            )}
           </View>
         )}
       </Pressable>
@@ -130,6 +141,9 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     textAlign: "center",
   },
+  copyBtnTouchable: {
+    borderRadius: 12,
+  },
   copyBtn: {
     flexDirection: flexRow(isRtl()),
     alignItems: "center",
@@ -138,6 +152,9 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 12,
     backgroundColor: kit.color.accentDeep,
+  },
+  copyBtnPressed: {
+    opacity: 0.85,
   },
   copyBtnText: {
     fontSize: 13,
@@ -150,6 +167,9 @@ const styles = StyleSheet.create({
     color: theme.colors.text.secondary,
     textAlign: textAlignStart(isRtl()),
   },
+  uploadBoxTouchable: {
+    borderRadius: 14,
+  },
   uploadBox: {
     minHeight: 160,
     borderRadius: 14,
@@ -161,6 +181,12 @@ const styles = StyleSheet.create({
   },
   uploadBoxFilled: {
     borderStyle: "solid",
+  },
+  uploadBoxPressed: {
+    opacity: 0.9,
+  },
+  uploadBoxDisabled: {
+    opacity: 0.6,
   },
   uploadPlaceholder: {
     flex: 1,

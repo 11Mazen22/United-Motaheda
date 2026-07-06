@@ -111,10 +111,14 @@ export default function OrderDetailScreen(): React.ReactElement {
           <UIText variant="body" color="muted" align="center" style={{ marginTop: theme.spacing.sm }}>
             {t("orders.loadErrorDesc")}
           </UIText>
-          <Pressable onPress={handleRefresh} style={({ pressed }) => [styles.retryBtn, pressed && styles.retryBtnPressed]}>
-            <UIText variant="body-sm" weight="bold" style={{ color: kit.color.accentDeep }}>
-              {t("common.retry")}
-            </UIText>
+          <Pressable onPress={handleRefresh} style={styles.retryBtnTouchable} accessibilityRole="button">
+            {({ pressed }) => (
+              <View style={[styles.retryBtn, pressed && styles.retryBtnPressed]}>
+                <UIText variant="body-sm" weight="bold" style={{ color: kit.color.accentDeep }}>
+                  {t("common.retry")}
+                </UIText>
+              </View>
+            )}
           </Pressable>
         </View>
       </View>
@@ -218,29 +222,33 @@ export default function OrderDetailScreen(): React.ReactElement {
             {order.items.map((item) => (
               <Pressable
                 key={item.productId}
-                style={({ pressed }) => [styles.itemCard, pressed && styles.itemCardPressed]}
+                style={styles.itemCardTouchable}
                 onPress={() => router.push(`/product/${item.productId}`)}
                 accessibilityRole="button"
                 accessibilityLabel={item.name}>
-                {item.imageUrl ? (
-                  <SafeImage source={{ uri: item.imageUrl }} style={styles.itemImage} contentFit="contain" />
-                ) : (
-                  <View style={[styles.itemImage, styles.itemImagePlaceholder]}>
-                    <Ionicons name="medkit-outline" size={22} color={kit.color.inkFaint} />
+                {({ pressed }) => (
+                  <View style={[styles.itemCard, pressed && styles.itemCardPressed]}>
+                    {item.imageUrl ? (
+                      <SafeImage source={{ uri: item.imageUrl }} style={styles.itemImage} contentFit="contain" />
+                    ) : (
+                      <View style={[styles.itemImage, styles.itemImagePlaceholder]}>
+                        <Ionicons name="medkit-outline" size={22} color={kit.color.inkFaint} />
+                      </View>
+                    )}
+                    <View style={{ flex: 1 }}>
+                      <UIText variant="body-sm" weight="bold" style={styles.itemTitle} numberOfLines={2}>
+                        {item.name || t("orders.noItems")}
+                      </UIText>
+                      <View style={styles.itemMeta}>
+                        <UIText variant="caption" color="secondary">{t("orders.qty", { count: item.quantity })}</UIText>
+                        <UIText variant="caption" weight="bold" style={[styles.itemPrice, { color: kit.color.accentDeep }]}>
+                          {formatPrice(item.price)}
+                        </UIText>
+                      </View>
+                    </View>
+                    <Ionicons name={FORWARD_CHEVRON} size={14} color={kit.color.inkFaint} />
                   </View>
                 )}
-                <View style={{ flex: 1 }}>
-                  <UIText variant="body-sm" weight="bold" style={styles.itemTitle} numberOfLines={2}>
-                    {item.name || t("orders.noItems")}
-                  </UIText>
-                  <View style={styles.itemMeta}>
-                    <UIText variant="caption" color="secondary">{t("orders.qty", { count: item.quantity })}</UIText>
-                    <UIText variant="caption" weight="bold" style={[styles.itemPrice, { color: kit.color.accentDeep }]}>
-                      {formatPrice(item.price)}
-                    </UIText>
-                  </View>
-                </View>
-                <Ionicons name={FORWARD_CHEVRON} size={14} color={kit.color.inkFaint} />
               </Pressable>
             ))}
           </DetailSection>

@@ -117,6 +117,261 @@ const EMPTY_FORM: ProductFormState = {
 
 const ITEMS_PER_PAGE = 15;
 
+// ─── CSV import ───────────────────────────────────────────────────────────────
+
+/**
+ * CSV column order (header row required, case-insensitive, order-independent):
+ *   code, barcode, name, name_ar, category, price, stock, is_sale, original_price
+ *
+ * - code: optional — auto-generated (PROD-<timestamp>) when blank.
+ * - barcode: optional.
+ * - name: required — English product name.
+ * - name_ar: optional — Arabic product name.
+ * - category: required — matched against an existing category by id, English
+ *   name, or Arabic name (case-insensitive).
+ * - price: required — non-negative number.
+ * - stock: optional — non-negative integer, defaults to 0.
+ * - is_sale: optional — true/false/1/0/yes/no, defaults to false.
+ * - original_price: optional — required (non-negative number) when is_sale is true.
+ */
+const CSV_TEMPLATE_HEADERS = [
+  "code",
+  "barcode",
+  "name",
+  "name_ar",
+  "category",
+  "price",
+  "stock",
+  "is_sale",
+  "original_price",
+] as const;
+
+interface CsvRowError {
+  row: number;
+  message: string;
+}
+
+interface ParsedCsvRow {
+  row: number;
+  payload: ProductMutationPayload;
+}
+
+/** Splits a single CSV record's raw text into fields, honoring quoted values
+ * (RFC4180-style: double-quote wrapping, "" as an escaped quote, commas and
+ * newlines allowed inside quotes). */
+function parseCsvText(text: string): string[][] {
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let field = "";
+  let inQuotes = false;
+  let i = 0;
+  const len = text.length;
+
+  const pushField = () => { row.push(field); field = ""; };
+  const pushRow = () => { pushField(); rows.push(row); row = []; };
+
+  while (i < len) {
+    const char = text[i];
+
+    if (inQuotes) {
+      if (char === '"') {
+        if (text[i + 1] === '"') { field += '"'; i += 2; continue; }
+        inQuotes = false; i += 1; continue;
+      }
+      field += char; i += 1; continue;
+    }
+
+    if (char === '"') { inQuotes = true; i += 1; continue; }
+    if (char === ",") { pushField(); i += 1; continue; }
+    if (char === "\r") { i += 1; continue; }
+    if (char === "\n") { pushRow(); i += 1; continue; }
+    field += char; i += 1;
+  }
+
+  // Flush trailing field/row (file may or may not end with a newline).
+  if (field.length > 0 || row.length > 0) pushRow();
+
+  // Drop fully blank trailing rows (common with trailing newlines).
+  return rows.filter((r) => r.some((cell) => cell.trim() !== ""));
+}
+
+function parseBooleanCell(value: string): boolean {
+  const v = value.trim().toLowerCase();
+  return v === "true" || v === "1" || v === "yes" || v === "y";
+}
+
+/** Parses raw CSV text into validated product payloads, matching the exact
+ * shape sent by the single-product create/edit form. Returns both the valid
+ * rows (ready to insert) and a list of per-row errors for anything invalid. */
+function parseProductCsv(
+  text: string,
+  categories: Array<{ id: string; name: string; nameEn?: string }>,
+  lang: Language,
+): { rows: ParsedCsvRow[]; errors: CsvRowError[] } {
+  const records = parseCsvText(text);
+  const errors: CsvRowError[] = [];
+  const rows: ParsedCsvRow[] = [];
+
+  if (records.length === 0) {
+    errors.push({
+      row: 0,
+      message: lang === "ar" ? "الملف فارغ." : "The file is empty.",
+    });
+    return { rows, errors };
+  }
+
+  const header = records[0].map((h) => h.trim().toLowerCase());
+  const colIndex = (col: string) => header.indexOf(col);
+
+  const requiredCols = ["name", "category", "price"];
+  const missingCols = requiredCols.filter((c) => colIndex(c) === -1);
+  if (missingCols.length > 0) {
+    errors.push({
+      row: 0,
+      message:
+        lang === "ar"
+          ? `أعمدة مفقودة في الرأس: ${missingCols.join(", ")}`
+          : `Missing required column(s) in header: ${missingCols.join(", ")}`,
+    });
+    return { rows, errors };
+  }
+
+  const idxCode = colIndex("code");
+  const idxBarcode = colIndex("barcode");
+  const idxName = colIndex("name");
+  const idxNameAr = colIndex("name_ar");
+  const idxCategory = colIndex("category");
+  const idxPrice = colIndex("price");
+  const idxStock = colIndex("stock");
+  const idxIsSale = colIndex("is_sale");
+  const idxOriginalPrice = colIndex("original_price");
+
+  const cell = (record: string[], idx: number) => (idx === -1 ? "" : (record[idx] ?? "").trim());
+
+  for (let r = 1; r < records.length; r += 1) {
+    const record = records[r];
+    const rowNumber = r + 1; // 1-based, including header row, matches spreadsheet row numbers
+    const rowErrors: string[] = [];
+
+    const name = cell(record, idxName);
+    const categoryRaw = cell(record, idxCategory);
+    const priceRaw = cell(record, idxPrice);
+
+    if (!name) {
+      rowErrors.push(lang === "ar" ? "الاسم مفقود" : "missing 'name'");
+    }
+    if (!categoryRaw) {
+      rowErrors.push(lang === "ar" ? "القسم مفقود" : "missing 'category'");
+    }
+    if (!priceRaw) {
+      rowErrors.push(lang === "ar" ? "السعر مفقود" : "missing 'price'");
+    }
+
+    const price = Number(priceRaw);
+    if (priceRaw && (Number.isNaN(price) || price < 0)) {
+      rowErrors.push(lang === "ar" ? "السعر غير صالح" : "invalid 'price'");
+    }
+
+    const stockRaw = cell(record, idxStock);
+    const stock = stockRaw ? Number(stockRaw) : 0;
+    if (stockRaw && (Number.isNaN(stock) || stock < 0)) {
+      rowErrors.push(lang === "ar" ? "المخزون غير صالح" : "invalid 'stock'");
+    }
+
+    let category: { id: string; name: string; nameEn?: string } | undefined;
+    if (categoryRaw) {
+      const needle = categoryRaw.toLowerCase();
+      category = categories.find(
+        (c) =>
+          c.id.toLowerCase() === needle ||
+          c.name.toLowerCase() === needle ||
+          (c.nameEn ?? "").toLowerCase() === needle,
+      );
+      if (!category) {
+        rowErrors.push(
+          lang === "ar"
+            ? `القسم غير معروف: "${categoryRaw}"`
+            : `unknown category: "${categoryRaw}"`,
+        );
+      }
+    }
+
+    const isSale = idxIsSale !== -1 && parseBooleanCell(cell(record, idxIsSale));
+    const originalPriceRaw = cell(record, idxOriginalPrice);
+    let originalPrice: number | null = null;
+    if (originalPriceRaw) {
+      originalPrice = Number(originalPriceRaw);
+      if (Number.isNaN(originalPrice) || originalPrice < 0) {
+        rowErrors.push(
+          lang === "ar" ? "السعر الأصلي غير صالح" : "invalid 'original_price'",
+        );
+        originalPrice = null;
+      }
+    } else if (isSale) {
+      rowErrors.push(
+        lang === "ar"
+          ? "السعر الأصلي مطلوب عند تفعيل العرض"
+          : "missing 'original_price' (required when is_sale is true)",
+      );
+    }
+
+    if (rowErrors.length > 0) {
+      errors.push({
+        row: rowNumber,
+        message:
+          lang === "ar"
+            ? `الصف ${rowNumber}: ${rowErrors.join("، ")}`
+            : `Row ${rowNumber}: ${rowErrors.join(", ")}`,
+      });
+      continue;
+    }
+
+    rows.push({
+      row: rowNumber,
+      payload: {
+        Code: cell(record, idxCode) || `PROD-${Date.now()}-${rowNumber}`,
+        Barcode: cell(record, idxBarcode) || "",
+        Name: name,
+        Name_Ar: cell(record, idxNameAr) || "",
+        Name_En: name,
+        Price: price,
+        Stock: Number.isNaN(stock) ? 0 : stock,
+        Category: category!.id,
+        Category_Name: category!.name,
+        Category_Name_En: category!.nameEn || category!.name,
+        is_sale: isSale,
+        original_price: originalPrice,
+      } satisfies ProductMutationPayload,
+    });
+  }
+
+  return { rows, errors };
+}
+
+function downloadCsvTemplate() {
+  const sampleRow = [
+    "",
+    "6221031503017",
+    "Paracetamol 500mg",
+    "باراسيتامول 500 مجم",
+    "Pain Relief",
+    "25.50",
+    "100",
+    "false",
+    "",
+  ];
+  const csvContent = [CSV_TEMPLATE_HEADERS.join(","), sampleRow.join(",")].join("\r\n");
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "product-import-template.csv";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function stockLabel(stock: number, lang: Language): string {
@@ -526,13 +781,56 @@ export default function ProductManager() {
     setCsvImporting(true);
     setError("");
     try {
-      // TODO: Parse CSV file and convert to BulkProductPayload[]
-      await file.text();
-      toast.info(
-        lang === "ar"
-          ? "ميزة استيراد CSV قيد الإنشاء."
-          : "CSV import feature coming soon.",
-      );
+      const text = await file.text();
+      const { rows, errors } = parseProductCsv(text, categories, lang);
+
+      if (rows.length === 0) {
+        const detail = errors.map((er) => er.message).join(" | ");
+        const msg = lang === "ar"
+          ? `لم يتم استيراد أي منتج. ${detail}`
+          : `No products were imported. ${detail}`;
+        setError(msg);
+        toast.error(msg);
+        return;
+      }
+
+      const imported: AdminProduct[] = [];
+      const failures: CsvRowError[] = [...errors];
+
+      for (const { row, payload } of rows) {
+        try {
+          const created = await createAdminProduct(payload);
+          imported.push(created);
+        } catch (err: unknown) {
+          const detail = handleApiError(err, "Insert failed");
+          failures.push({
+            row,
+            message: lang === "ar" ? `الصف ${row}: ${detail}` : `Row ${row}: ${detail}`,
+          });
+        }
+      }
+
+      if (imported.length > 0) {
+        setProducts((prev) => {
+          const importedIds = new Set(imported.map((p) => p.id));
+          return [...imported, ...prev.filter((p) => !importedIds.has(p.id))];
+        });
+      }
+
+      const total = rows.length + errors.length;
+      if (failures.length === 0) {
+        showSuccessToast(
+          lang === "ar"
+            ? `تم استيراد ${imported.length} من ${total} منتجًا بنجاح.`
+            : `Imported ${imported.length} of ${total} products successfully.`,
+        );
+      } else {
+        const summary = lang === "ar"
+          ? `تم استيراد ${imported.length} من ${total} منتجًا (${failures.length} صفوف بها أخطاء).`
+          : `Imported ${imported.length} of ${total} products (${failures.length} row${failures.length === 1 ? "" : "s"} had errors).`;
+        setError(`${summary} ${failures.map((f) => f.message).join(" | ")}`);
+        toast.error(summary);
+      }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Import failed.";
       setError(msg);
@@ -541,7 +839,7 @@ export default function ProductManager() {
       setCsvImporting(false);
       if (csvRef.current) csvRef.current.value = "";
     }
-  }, [lang]);
+  }, [categories, lang]);
 
   // Guard
   if (!canManageProducts) return <AdminUnauthorized lang={lang} />;
@@ -612,6 +910,13 @@ export default function ProductManager() {
                   )}
                   {lang === "ar" ? "استيراد CSV" : "Import CSV"}
                 </label>
+                <button
+                  type="button"
+                  onClick={downloadCsvTemplate}
+                  className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-50"
+                >
+                  {lang === "ar" ? "تحميل نموذج CSV" : "Download CSV template"}
+                </button>
               </>
             )}
             <button
@@ -645,6 +950,13 @@ export default function ProductManager() {
       >
         {/* Filters */}
         <div className="border-b border-slate-100 px-4 py-3">
+          {canBulkImport && (
+            <p className="mb-3 rounded-lg border border-slate-100 bg-slate-50/80 px-3 py-2 text-xs font-medium text-slate-500">
+              {lang === "ar"
+                ? "تنسيق CSV: code, barcode, name, name_ar, category, price, stock, is_sale, original_price (الاسم والقسم والسعر مطلوبة، والقسم يجب أن يطابق قسماً موجوداً بالاسم أو المعرف)."
+                : "CSV format: code, barcode, name, name_ar, category, price, stock, is_sale, original_price — name, category, and price are required; category must match an existing category by id or name."}
+            </p>
+          )}
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <AdminSearchField
               value={search}

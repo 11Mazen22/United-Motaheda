@@ -7,6 +7,7 @@ import {
   type OrderLifecycleStatus,
 } from "../app/orders";
 import { getSupabaseClient } from "../lib/supabaseClient";
+import { notifyDriverAssigned, notifyOrderStatusChange } from "./orderNotificationsApi";
 
 export type LogisticsRole = "manager" | "pharmacist" | "driver" | "admin" | "customer";
 export type LogisticsOrderStatus = OrderLifecycleStatus;
@@ -373,6 +374,10 @@ export async function assignDriver(orderId: string, driverId: string | null) {
     throw new Error("Driver did not persist; the database returned the previous value.");
   }
 
+  if (driverId) {
+    notifyDriverAssigned(orderId, driverId);
+  }
+
   // Fetch line items and the driver list so the caller can build a
   // ManagedOrder identical to what updateManagedOrderStatus returns.
   let items: Array<{ product_id: string | null; quantity: number | null; product_snapshot?: Record<string, unknown> | null }> = [];
@@ -459,6 +464,8 @@ export async function updateManagedOrderStatus(
   if (normalizeOrderStatus(updatedRow.status) !== normalizedStatus) {
     throw new Error("Status did not persist; the database returned the previous value.");
   }
+
+  notifyOrderStatusChange(orderId, normalizedStatus);
 
   // Step 2: Fetch line items separately (tolerant of order_items missing).
   let items: Array<{ product_id: string | null; quantity: number | null; product_snapshot?: Record<string, unknown> | null }> = [];

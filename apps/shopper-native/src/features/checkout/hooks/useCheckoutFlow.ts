@@ -14,9 +14,11 @@ import { useTranslation } from "react-i18next";
 import * as Haptics from "expo-haptics";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { useCartStore, selectItemCount } from "@/stores/cart";
 import { useOrderStore } from "@/stores/orders";
+import { invalidateOrders } from "@/features/orders";
 import { useCheckoutStore } from "@/stores/checkout";
 import {
   useAuth,
@@ -34,6 +36,8 @@ import { useDeliveryContext, useLocationStore } from "@/features/delivery";
 import {
   pickPaymentReceiptImage,
   uploadPaymentReceipt,
+  ReceiptUploadError,
+  type ReceiptErrorCode,
 } from "@/features/payment";
 
 import {
@@ -55,6 +59,14 @@ import { SUPPORTED_GOVERNORATE } from "@/features/delivery";
 import { paymentLabel } from "../constants";
 
 export type CheckoutStep = "details" | "review" | "success";
+
+const RECEIPT_ERROR_KEYS: Record<ReceiptErrorCode, string> = {
+  permission_denied: "payment.receiptPermissionDenied",
+  sign_in_required:  "payment.receiptSignInRequired",
+  read_failed:       "payment.receiptReadFailed",
+  upload_failed:     "payment.receiptUploadFailed",
+  url_failed:        "payment.receiptUrlFailed",
+};
 
 function buildDefaults(name?: string | null): CheckoutFormSchema {
   return {
@@ -142,6 +154,7 @@ export function useCheckoutFlow(): CheckoutFlowState {
   const lang = i18n.language.startsWith("en") ? ("en" as const) : ("ar" as const);
 
   const { user } = useAuth();
+  const queryClient = useQueryClient();
 
   // ── Cart — granular selectors (one subscription per slice) ──────────
   const items    = useCartStore((s) => s.items);
@@ -347,7 +360,9 @@ export function useCheckoutFlow(): CheckoutFlowState {
           paymentProofUrl = await uploadPaymentReceipt(user.id, receiptUri);
         } catch (err) {
           setManualPaymentError(
-            err instanceof Error ? err.message : t("checkout.uploadReceiptError"),
+            err instanceof ReceiptUploadError
+              ? t(RECEIPT_ERROR_KEYS[err.code])
+              : t("checkout.uploadReceiptError"),
           );
           setSubmitting(false);
           setUploadingReceipt(false);
@@ -403,6 +418,7 @@ export function useCheckoutFlow(): CheckoutFlowState {
       // Inventory commit is best-effort — order is already placed.
       void commitReservations(orderId);
       void refreshOrders(user.id);
+      invalidateOrders(queryClient, user.id);
 
       setPlacedOrderId(orderId);
       clearCart();
@@ -426,6 +442,7 @@ export function useCheckoutFlow(): CheckoutFlowState {
       ensureReservations,
       commitReservations,
       refreshOrders,
+      queryClient,
       clearCart,
       resetCheckout,
     ],
@@ -439,9 +456,9 @@ export function useCheckoutFlow(): CheckoutFlowState {
       return;
     }
     if (!picked.cancelled) {
-      setManualPaymentError(picked.message);
+      setManualPaymentError(t(RECEIPT_ERROR_KEYS[picked.code]));
     }
-  }, [setReceiptUri]);
+  }, [setReceiptUri, t]);
 
   const onSubmit = useCallback(
     async (form: CheckoutFormSchema): Promise<void> => {

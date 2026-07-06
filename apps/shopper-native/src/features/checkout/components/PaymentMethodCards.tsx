@@ -41,46 +41,56 @@ export const PaymentMethodCards = React.memo(function PaymentMethodCards({
           <Pressable
             key={m.id}
             onPress={() => onChange(m.id)}
-            style={[
-              s.card,
-              active && {
-                borderColor:      m.color,
-                borderWidth:      1.5,
-                borderStartWidth: 4,
-                borderStartColor: m.color,
-                backgroundColor:  m.bg + "22",
-              },
-            ]}>
+            accessibilityRole="radio"
+            accessibilityState={{ selected: active }}
+            accessibilityLabel={m.title}
+            style={s.touchable}>
+            {({ pressed }) => (
+              <View
+                style={[
+                  s.card,
+                  active && {
+                    borderColor:      m.color,
+                    borderWidth:      1.5,
+                    borderStartWidth: 4,
+                    borderStartColor: m.color,
+                    backgroundColor:  m.bg,
+                    ...kit.shadow.raised,
+                  },
+                  pressed && s.cardPressed,
+                ]}>
 
-            {/* Recommended badge */}
-            {isRec && (
-              <View style={[s.badge, { backgroundColor: m.bg, borderColor: m.color + "50" }]}>
-                <Ionicons name="star" size={9} color={m.color} />
-                <UIText style={[s.badgeText, { color: m.color }]}>
-                  {t("checkout.methodRecommended")}
-                </UIText>
+                {/* Recommended badge */}
+                {isRec && (
+                  <View style={[s.badge, { backgroundColor: m.bg, borderColor: m.color }]}>
+                    <Ionicons name="star" size={9} color={m.color} />
+                    <UIText style={[s.badgeText, { color: m.color }]}>
+                      {t("checkout.methodRecommended")}
+                    </UIText>
+                  </View>
+                )}
+
+                {/* Main row */}
+                <View style={[s.row, { flexDirection: flexRow(IS_RTL) }]}>
+
+                  {/* Radio circle */}
+                  <View style={[s.check, active && { backgroundColor: m.color, borderColor: m.color }]}>
+                    {active && <Ionicons name="checkmark" size={13} color="#fff" />}
+                  </View>
+
+                  {/* Brand icon tile */}
+                  <View style={[s.iconBox, { backgroundColor: active ? "#fff" : m.bg }]}>
+                    <Ionicons name={m.icon} size={24} color={m.color} />
+                  </View>
+
+                  {/* Label block */}
+                  <View style={s.textBlock}>
+                    <UIText style={[s.title, active && { color: m.color }]}>{m.title}</UIText>
+                    <UIText style={s.sub}>{m.description}</UIText>
+                  </View>
+                </View>
               </View>
             )}
-
-            {/* Main row */}
-            <View style={[s.row, { flexDirection: flexRow(IS_RTL) }]}>
-
-              {/* Radio circle */}
-              <View style={[s.check, active && { backgroundColor: m.color, borderColor: m.color }]}>
-                {active && <Ionicons name="checkmark" size={13} color="#fff" />}
-              </View>
-
-              {/* Brand icon tile */}
-              <View style={[s.iconBox, { backgroundColor: m.bg }]}>
-                <Ionicons name={m.icon} size={24} color={m.color} />
-              </View>
-
-              {/* Label block */}
-              <View style={s.textBlock}>
-                <UIText style={[s.title, active && { color: m.color }]}>{m.title}</UIText>
-                <UIText style={s.sub}>{m.description}</UIText>
-              </View>
-            </View>
           </Pressable>
         );
       })}
@@ -91,12 +101,17 @@ export const PaymentMethodCards = React.memo(function PaymentMethodCards({
 const s = StyleSheet.create({
   wrapper: { gap: 10 },
 
+  touchable: { borderRadius: 16 },
+
   card: {
     borderRadius:    16,
     borderWidth:     1.5,
     borderColor:     kit.color.line,
     backgroundColor: kit.color.surface,
     overflow:        "hidden",
+  },
+  cardPressed: {
+    opacity: 0.92,
   },
 
   badge: {

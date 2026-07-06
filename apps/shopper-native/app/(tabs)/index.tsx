@@ -26,10 +26,10 @@ import React, {
 import {
   RefreshControl,
   ScrollView,
-  StatusBar,
   StyleSheet,
   View,
 } from "react-native";
+import { StatusBar } from "expo-status-bar";
 import { GestureDetector }                from "react-native-gesture-handler";
 import Animated                           from "react-native-reanimated";
 import { useSafeAreaInsets }              from "react-native-safe-area-context";
@@ -62,8 +62,6 @@ import { SavingsStrip }           from "../../src/features/home/components/Savin
 // ─── Theme ───────────────────────────────────────────────────────────────────
 import { kit } from "../../src/shared/kit";
 import { useTabSwipeGesture } from "../../src/shared/navigation/useTabSwipeGesture";
-
-const CANVAS = kit.color.canvas;
 
 // ─── HomeScreen ──────────────────────────────────────────────────────────────
 
@@ -144,7 +142,7 @@ export default function HomeScreen() {
   return (
     <GestureDetector gesture={gesture}>
     <Animated.View style={[s.root, animatedStyle]}>
-      <StatusBar barStyle="dark-content" backgroundColor={CANVAS} />
+      <StatusBar style="dark" />
 
       <DeliveryHeader
         insets={insets}

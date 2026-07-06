@@ -28,6 +28,26 @@ import { flexRow, isRtl, textAlignStart, BACK_CHEVRON } from "@/utils/layout";
 const IS_RTL     = isRtl();
 const TEXT_START = textAlignStart(IS_RTL);
 
+// ─── FavoriteCardSkeleton ─────────────────────────────────────────────────────
+// Mirrors FavoriteCard's row geometry (82×82 image, 14 padding, 16 radius) so
+// the loading → loaded transition doesn't reflow the list.
+const FavoriteCardSkeleton = memo(function FavoriteCardSkeleton() {
+  return (
+    <View style={[s.card, s.skeletonCard, { flexDirection: flexRow(IS_RTL) }]}>
+      <View style={[s.imgBox, s.skeletonBlock]} />
+      <View style={{ flex: 1, gap: 8 }}>
+        <View style={[s.skeletonLine, { width: "40%", height: 9 }]} />
+        <View style={[s.skeletonLine, { width: "85%", height: 13 }]} />
+        <View style={[s.skeletonLine, { width: "35%", height: 15, marginTop: 4 }]} />
+      </View>
+      <View style={s.actions}>
+        <View style={[s.skeletonBlock, { width: 40, height: 40, borderRadius: 13 }]} />
+        <View style={[s.skeletonBlock, { width: 40, height: 40, borderRadius: 13 }]} />
+      </View>
+    </View>
+  );
+});
+
 // ─── FavoriteCard ─────────────────────────────────────────────────────────────
 const FavoriteCard = memo(function FavoriteCard({ product, index }: { product: NativeProduct; index: number }) {
   const router  = useRouter();
@@ -201,7 +221,11 @@ export default function FavoritesScreen() {
         </View>
       )}
 
-      {!isHydrated ? null : items.length === 0 ? (
+      {!isHydrated ? (
+        <View style={{ padding: 20, gap: 12 }}>
+          {[1, 2, 3, 4].map((k) => <FavoriteCardSkeleton key={k} />)}
+        </View>
+      ) : items.length === 0 ? (
         <EmptyState
           icon="heart-outline"
           title={t("wishlist.empty")}
@@ -403,5 +427,17 @@ const s = StyleSheet.create({
   cartBtnDisabled: {
     backgroundColor: kit.color.well,
     borderColor:     kit.color.line,
+  },
+
+  // Skeleton (loading state)
+  skeletonCard: {
+    borderColor: "transparent",
+  },
+  skeletonBlock: {
+    backgroundColor: kit.color.well,
+  },
+  skeletonLine: {
+    borderRadius:    6,
+    backgroundColor: kit.color.well,
   },
 });

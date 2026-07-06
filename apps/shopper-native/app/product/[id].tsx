@@ -17,7 +17,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { fetchProductById } from "@/services/productsApi";
 import { useRecentlyViewedStore } from "@/features/products";
-import { useRelatedProducts } from "@/features/recommendations";
+import { useRelatedProducts, useRecentlyViewedFeed } from "@/features/recommendations";
 import { useScreenTrace } from "@/features/observability";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import Animated, {
@@ -25,6 +25,8 @@ import Animated, {
   FadeIn,
   FadeInDown,
   interpolate,
+  runOnJS,
+  useAnimatedReaction,
   useAnimatedStyle,
   useSharedValue,
   withDelay,
@@ -52,6 +54,10 @@ const IS_RTL     = isRtl();
 const TEXT_START = textAlignStart(IS_RTL);
 const TEXT_END   = textAlignEnd(IS_RTL);
 const SCREEN_W   = Dimensions.get("window").width;
+// Scroll distance over which the sticky header fades from transparent to
+// fully solid — a range, not a single threshold, so the transition reads
+// as gradual rather than a snap.
+const HEADER_FADE_END = 220;
 
 // Trust-first principle: 4 pharmacy-specific confidence signals shown
 // BEFORE the product name — safety before purchase, always.
@@ -63,14 +69,6 @@ const TRUST_ICONS: React.ComponentProps<typeof Ionicons>["name"][] = [
 ];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function deterministicRating(id: string): { value: number; count: number } {
-  const n = id.split("").reduce((s, c) => s + c.charCodeAt(0), 0);
-  return {
-    value: Math.round((3.6 + (n % 14) / 10) * 10) / 10,
-    count: 22 + (n % 170),
-  };
-}
 
 function Stars({ value, size = 14 }: { value: number; size?: number }) {
   return (
@@ -218,6 +216,7 @@ function ClinRow({
 export default function ProductDetailScreen() {
   useScreenTrace("product-detail");
   const { t, i18n } = useTranslation();
+  const lang      = i18n.language === "en" ? "en" as const : "ar" as const;
   const { id }    = useLocalSearchParams<{ id: string }>();
   const router    = useRouter();
   const insets    = useSafeAreaInsets();
@@ -239,9 +238,11 @@ export default function ProductDetailScreen() {
   const sealScale  = useSharedValue(1);
   const hrtScale   = useSharedValue(1);
   const btnScale   = useSharedValue(1);
-  const headerOpac = useSharedValue(0);
-  // Nav button scroll-aware animation: 0 = top state, 1 = scrolled state
-  const navProgress = useSharedValue(0);
+
+  // Whether the sticky header has fully taken over from the floating FABs —
+  // drives pointerEvents on the FAB stack so it can't eat taps meant for the
+  // header's icons once it's invisible (opacity alone doesn't block touches).
+  const [headerActive, setHeaderActive] = useState(false);
 
   // Halo breathes — slow sine cycle, extremely restrained (±6%)
   useEffect(() => {
@@ -286,12 +287,38 @@ export default function ProductDetailScreen() {
 
   const sealAnim  = useAnimatedStyle(() => ({ transform: [{ scale: sealScale.value }] }));
   const btnAnim   = useAnimatedStyle(() => ({ transform: [{ scale: btnScale.value }] }));
-  const stickyHdr = useAnimatedStyle(() => ({ opacity: headerOpac.value }));
 
-  // FAB buttons fade slightly on scroll — no positional rearrangement
-  const fabOpacity = useAnimatedStyle(() => ({
-    opacity: interpolate(navProgress.value, [0, 1], [1, 0.82], "clamp"),
-  }));
+  // Sticky header: opacity and elevation both grow continuously with scroll
+  // position — no threshold snap, so the bar genuinely "gradually becomes
+  // solid" rather than flipping on/off at a fixed point.
+  const stickyHdr = useAnimatedStyle(() => {
+    const progress = interpolate(scrollY.value, [40, HEADER_FADE_END], [0, 1], "clamp");
+    return {
+      opacity:       progress,
+      elevation:     progress * 8,
+      shadowOpacity: progress * 0.12,
+    };
+  });
+
+  // Floating action buttons (back/wishlist/share over the hero image) fully
+  // cross-fade OUT as the sticky header — which carries the same three
+  // actions in a single horizontal row — fades IN. Same range as stickyHdr
+  // so the two states hand off cleanly instead of both being visible at once.
+  const fabOpacity = useAnimatedStyle(() => {
+    const progress = interpolate(scrollY.value, [40, HEADER_FADE_END], [0, 1], "clamp");
+    return { opacity: 1 - progress };
+  });
+
+  // Mirror the crossover point into React state so the FAB stack can go
+  // pointerEvents="none" once invisible — a Reanimated opacity style alone
+  // doesn't stop the (still-mounted) buttons from intercepting touches meant
+  // for the header underneath.
+  useAnimatedReaction(
+    () => scrollY.value >= HEADER_FADE_END,
+    (isActive, prev) => {
+      if (isActive !== prev) runOnJS(setHeaderActive)(isActive);
+    },
+  );
 
   // Wishlist heart: only the press-feedback scale pulse, no translateY
   const hrtAnim = useAnimatedStyle(() => ({
@@ -325,23 +352,21 @@ export default function ProductDetailScreen() {
   const { data: relatedProductsRaw } = useRelatedProducts(product?.id, 8);
   const relatedProducts = (relatedProductsRaw ?? []).slice(0, 6);
 
-  const rating = deterministicRating(id ?? "");
+  // Recently viewed — reuse the same MMKV-backed feed shown on Home, minus
+  // the product currently being viewed (seeing "you're viewing this" in its
+  // own recently-viewed rail would be redundant).
+  const recentlyViewedFeed = useRecentlyViewedFeed();
+  const recentlyViewed = recentlyViewedFeed.filter((p) => p.id !== id).slice(0, 6);
+
+  // Real rating only — never fabricate one. `ratingAvg`/`ratingCount` are
+  // null until the backend actually has review data for this product.
+  const hasRating = product?.ratingAvg != null && (product?.ratingCount ?? 0) > 0;
 
   // ── Callbacks ──────────────────────────────────────────────────────────────
 
   const handleScroll = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const y = e.nativeEvent.contentOffset.y;
-    scrollY.value = y;
-    const target = y > 300 ? 1 : 0;
-    if (headerOpac.value !== target) {
-      headerOpac.value = withTiming(target, { duration: 180 });
-    }
-    // Nav buttons animate after a small scroll (80px) — spring for natural feel
-    const navTarget = y > 80 ? 1 : 0;
-    if (navProgress.value !== navTarget) {
-      navProgress.value = withSpring(navTarget, { damping: 16, stiffness: 120 });
-    }
-  }, [headerOpac, navProgress, scrollY]);
+    scrollY.value = e.nativeEvent.contentOffset.y;
+  }, [scrollY]);
 
   const handleAdd = useCallback(() => {
     if (!product) return;
@@ -393,7 +418,7 @@ export default function ProductDetailScreen() {
     try {
       await Share.share(
         Platform.OS === "android"
-          ? { message: `${name} — ${t("product.shareText", { name })}` }
+          ? { message: t("product.shareText", { name }) }
           : { title: name, message: t("product.shareText", { name }) },
       );
     } catch {}
@@ -404,14 +429,17 @@ export default function ProductDetailScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: kit.color.canvas }}>
 
-      {/* ── Sticky mini-header — fades in after scroll > 300 ── */}
+      {/* ── Sticky mini-header — fades in after scroll, carries all 3 actions
+          (back/wishlist/share) in one horizontal row so nothing collides
+          with the floating FABs below, which fully fade out over the same
+          scroll range (see fabOpacity). ── */}
       <Animated.View
         style={[stickyHdr, {
           position:          "absolute",
           top:               0,
           left:              0,
           right:             0,
-          zIndex:            50,
+          zIndex:            60,
           backgroundColor:   kit.color.surface,
           paddingTop:        insets.top,
           paddingHorizontal: 16,
@@ -420,33 +448,64 @@ export default function ProductDetailScreen() {
           borderBottomColor: kit.color.line,
           ...kit.shadow.raised,
         }]}>
-        <View style={{ flexDirection: flexRow(IS_RTL), alignItems: "center", gap: 12 }}>
+        <View style={{ flexDirection: flexRow(IS_RTL), alignItems: "center", gap: 10 }}>
           <Pressable
             onPress={() => router.back()}
-            style={{
-              width: 38, height: 38, borderRadius: 12,
-              backgroundColor: kit.color.well,
-              alignItems: "center", justifyContent: "center",
-              borderWidth: 1,
-              borderColor: kit.color.line,
-            }}>
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel={t("common.back")}
+            style={hdr.iconBtn}>
             <Ionicons name={BACK_CHEVRON} size={17} color={kit.color.inkSoft} />
           </Pressable>
           <UIText variant="body-sm" weight="bold" align="right" numberOfLines={1} style={{ flex: 1 }}>
             {product?.nameAr ?? product?.name ?? ""}
           </UIText>
+          {product && (
+            <>
+              <Pressable
+                onPress={handleWishlist}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel={inWishlist ? t("product.removeFromWishlist") : t("product.addToWishlist")}
+                style={[hdr.iconBtn, inWishlist && hdr.iconBtnWishlistActive]}>
+                <Ionicons
+                  name={inWishlist ? "heart" : "heart-outline"}
+                  size={17}
+                  color={inWishlist ? "#F43F5E" : kit.color.inkSoft}
+                />
+              </Pressable>
+              <Pressable
+                onPress={handleShare}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel={t("product.shareProduct")}
+                style={hdr.iconBtn}>
+                <Ionicons name="share-outline" size={17} color={kit.color.inkSoft} />
+              </Pressable>
+            </>
+          )}
         </View>
       </Animated.View>
 
-      {/* ── Floating action buttons ── */}
-      <View style={[fab.stack, { top: insets.top + 12 }]}>
+      {/* ── Floating action buttons — over the hero image only; fully
+          cross-fades out (opacity AND pointerEvents) once the sticky header
+          takes over, so the two icon groups can never overlap or both be
+          tappable at once. ── */}
+      <View
+        style={[fab.stack, { top: insets.top + 12 }]}
+        pointerEvents={headerActive ? "none" : "auto"}>
         <Animated.View style={fabOpacity}>
           <Pressable
             onPress={() => router.back()}
+            hitSlop={8}
             accessibilityRole="button"
             accessibilityLabel={t("common.back")}
-            style={({ pressed }) => [fab.btn, pressed && fab.btnPressed]}>
-            <Ionicons name={BACK_CHEVRON} size={18} color={kit.color.inkSoft} />
+            style={fab.btnTouchable}>
+            {({ pressed }) => (
+              <View style={[fab.btn, pressed && fab.btnPressed]}>
+                <Ionicons name={BACK_CHEVRON} size={18} color={kit.color.inkSoft} />
+              </View>
+            )}
           </Pressable>
         </Animated.View>
 
@@ -455,28 +514,38 @@ export default function ProductDetailScreen() {
             <Animated.View style={[fabOpacity, hrtAnim]}>
               <Pressable
                 onPress={handleWishlist}
+                hitSlop={8}
                 accessibilityRole="button"
                 accessibilityLabel={inWishlist ? t("product.removeFromWishlist") : t("product.addToWishlist")}
-                style={({ pressed }) => [
-                  fab.btn,
-                  inWishlist && fab.btnWishlistActive,
-                  pressed && fab.btnPressed,
-                ]}>
-                <Ionicons
-                  name={inWishlist ? "heart" : "heart-outline"}
-                  size={18}
-                  color={inWishlist ? "#F43F5E" : kit.color.inkSoft}
-                />
+                style={fab.btnTouchable}>
+                {({ pressed }) => (
+                  <View style={[
+                    fab.btn,
+                    inWishlist && fab.btnWishlistActive,
+                    pressed && fab.btnPressed,
+                  ]}>
+                    <Ionicons
+                      name={inWishlist ? "heart" : "heart-outline"}
+                      size={18}
+                      color={inWishlist ? "#F43F5E" : kit.color.inkSoft}
+                    />
+                  </View>
+                )}
               </Pressable>
             </Animated.View>
 
             <Animated.View style={fabOpacity}>
               <Pressable
                 onPress={handleShare}
+                hitSlop={8}
                 accessibilityRole="button"
                 accessibilityLabel={t("product.shareProduct")}
-                style={({ pressed }) => [fab.btn, pressed && fab.btnPressed]}>
-                <Ionicons name="share-outline" size={18} color={kit.color.inkSoft} />
+                style={fab.btnTouchable}>
+                {({ pressed }) => (
+                  <View style={[fab.btn, pressed && fab.btnPressed]}>
+                    <Ionicons name="share-outline" size={18} color={kit.color.inkSoft} />
+                  </View>
+                )}
               </Pressable>
             </Animated.View>
           </>
@@ -617,13 +686,15 @@ export default function ProductDetailScreen() {
                   </View>
                 </View>
 
-                <View style={[identity.ratingRow, { flexDirection: flexRow(IS_RTL) }]}>
-                  <Stars value={rating.value} size={14} />
-                  <UIText style={identity.ratingValue}>{rating.value}</UIText>
-                  <UIText style={identity.ratingCount}>
-                    {t("product.ratingCount", { count: rating.count })}
-                  </UIText>
-                </View>
+                {hasRating && (
+                  <View style={[identity.ratingRow, { flexDirection: flexRow(IS_RTL) }]}>
+                    <Stars value={product.ratingAvg!} size={14} />
+                    <UIText style={identity.ratingValue}>{product.ratingAvg}</UIText>
+                    <UIText style={identity.ratingCount}>
+                      {t("product.ratingCount", { count: product.ratingCount! })}
+                    </UIText>
+                  </View>
+                )}
               </Animated.View>
 
               {/* ═══════════════════════════════════════════════════════════
@@ -647,7 +718,7 @@ export default function ProductDetailScreen() {
                     {/* Main current price + currency on a single baseline */}
                     <View style={[action.priceRow, { flexDirection: flexRow(IS_RTL) }]}>
                       <UIText style={action.priceValue}>
-                        {formatPrice(product.price * qty)}
+                        {(product.price * qty).toFixed(2)}
                       </UIText>
                       <UIText style={action.priceCurrency}>
                         {t("common.currency")}
@@ -658,7 +729,7 @@ export default function ProductDetailScreen() {
                     {product.originalPrice && product.originalPrice > product.price && (
                       <View style={[action.priceCompareRow, { flexDirection: flexRow(IS_RTL) }]}>
                         <UIText style={action.priceOriginal} numberOfLines={1}>
-                          {formatPrice(product.originalPrice * qty)} {t("common.currency")}
+                          {(product.originalPrice * qty).toFixed(2)} {t("common.currency")}
                         </UIText>
                         {product.discountPercent && product.discountPercent > 0 && (
                           <View style={action.discountChip}>
@@ -672,7 +743,7 @@ export default function ProductDetailScreen() {
 
                     {qty > 1 && (
                       <UIText style={action.priceUnit}>
-                        {formatPrice(product.price)} {t("common.currency")} × {qty}
+                        {product.price.toFixed(2)} {t("common.currency")} × {qty}
                       </UIText>
                     )}
                   </View>
@@ -795,21 +866,24 @@ export default function ProductDetailScreen() {
                   accessibilityRole="button"
                   accessibilityState={{ expanded: profileExpanded }}
                   accessibilityLabel={profileExpanded ? t("product.clinCollapse") : t("product.clinExpandAll")}
-                  style={({ pressed }) => [
-                    clin.expandBtn,
-                    { flexDirection: flexRow(IS_RTL) },
-                    pressed && clin.expandBtnPressed,
-                  ]}>
-                  <UIText style={clin.expandText}>
-                    {profileExpanded ? t("product.clinCollapse") : t("product.clinExpandAll")}
-                  </UIText>
-                  <View style={clin.expandChevronWell}>
-                    <Ionicons
-                      name={profileExpanded ? "chevron-up" : "chevron-down"}
-                      size={15}
-                      color={kit.color.accentDeep}
-                    />
-                  </View>
+                  style={clin.expandBtnTouchable}>
+                  {({ pressed }) => (
+                    <View style={[
+                      clin.expandBtn,
+                      pressed && clin.expandBtnPressed,
+                    ]}>
+                      <UIText style={clin.expandText}>
+                        {profileExpanded ? t("product.clinCollapse") : t("product.clinExpandAll")}
+                      </UIText>
+                      <View style={clin.expandChevronWell}>
+                        <Ionicons
+                          name={profileExpanded ? "chevron-up" : "chevron-down"}
+                          size={15}
+                          color={kit.color.accentDeep}
+                        />
+                      </View>
+                    </View>
+                  )}
                 </Pressable>
               </Animated.View>
 
@@ -845,7 +919,45 @@ export default function ProductDetailScreen() {
                         style={{ width: 155 }}>
                         <ProductCard
                           product={p}
-                          lang={i18n.language === "en" ? "en" : "ar"}
+                          lang={lang}
+                          onPress={() =>
+                            router.push({ pathname: "/product/[id]", params: { id: p.id } })
+                          }
+                        />
+                      </Animated.View>
+                    ))}
+                  </ScrollView>
+                </Animated.View>
+              )}
+
+              {/* ═══════════════════════════════════════════════════════════
+                  §7  RECENTLY VIEWED — the same trail shown on Home,
+                  minus this product itself.
+              ═══════════════════════════════════════════════════════════ */}
+              {recentlyViewed.length > 0 && (
+                <Animated.View
+                  entering={FadeInDown.duration(380).delay(360).springify().damping(22)}
+                  style={{ gap: 16 }}>
+                  <View style={[rel.header, { flexDirection: flexRow(IS_RTL) }]}>
+                    <View style={rel.headerIcon}>
+                      <Ionicons name="time-outline" size={18} color={kit.color.accentDeep} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <UIText style={rel.title}>{t("home.recentlyViewed")}</UIText>
+                    </View>
+                  </View>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={{ gap: 10, paddingEnd: 20 }}>
+                    {recentlyViewed.map((p, idx) => (
+                      <Animated.View
+                        key={p.id}
+                        entering={FadeIn.duration(240).delay(idx * 40)}
+                        style={{ width: 155 }}>
+                        <ProductCard
+                          product={p}
+                          lang={lang}
                           onPress={() =>
                             router.push({ pathname: "/product/[id]", params: { id: p.id } })
                           }
@@ -880,14 +992,18 @@ export default function ProductDetailScreen() {
               onPress={() => router.push("/(tabs)/cart")}
               accessibilityRole="button"
               accessibilityLabel={t("product.viewCart")}
-              style={({ pressed }) => [
-                cta.viewCart,
-                { flexDirection: flexRow(IS_RTL) },
-                pressed && cta.viewCartPressed,
-              ]}>
-              <Ionicons name="cart-outline" size={14} color={kit.color.accentDeep} />
-              <UIText style={cta.viewCartText}>{t("product.viewCart")}</UIText>
-              <Ionicons name={FORWARD_CHEVRON} size={12} color={kit.color.accentDeep} />
+              style={cta.viewCartTouchable}>
+              {({ pressed }) => (
+                <View style={[
+                  cta.viewCart,
+                  { flexDirection: flexRow(IS_RTL) },
+                  pressed && cta.viewCartPressed,
+                ]}>
+                  <Ionicons name="cart-outline" size={14} color={kit.color.accentDeep} />
+                  <UIText style={cta.viewCartText}>{t("product.viewCart")}</UIText>
+                  <Ionicons name={FORWARD_CHEVRON} size={12} color={kit.color.accentDeep} />
+                </View>
+              )}
             </Pressable>
           )}
           <Animated.View style={btnAnim}>
@@ -896,7 +1012,7 @@ export default function ProductDetailScreen() {
                 inCart
                   ? t("product.inCartAddMore")
                   : product.inStock
-                  ? t("product.addWithPrice", { price: formatPrice(product.price * qty) })
+                  ? t("product.addWithPrice", { price: formatPrice(product.price * qty, lang) })
                   : t("product.unavailable")
               }
               icon={inCart ? "add" : "cart-outline"}
@@ -924,6 +1040,13 @@ const fab = StyleSheet.create({
     gap:        10,
     alignItems: "center",
   },
+  // Bare touchable — a raw Pressable's own function-computed `style` has
+  // proven unreliable on this app's RN/Fabric setup (loses its
+  // background/border/sizing entirely). Visual styling lives on the inner
+  // View via function-as-children instead.
+  btnTouchable: {
+    borderRadius: 22,
+  },
   btn: {
     width:           44,
     height:          44,
@@ -941,6 +1064,24 @@ const fab = StyleSheet.create({
   },
   btnPressed:        { opacity: 0.68, transform: [{ scale: 0.96 }] },
   btnWishlistActive: {
+    backgroundColor: "rgba(254,202,202,0.95)",
+    borderColor:     "rgba(244,63,94,0.16)",
+  },
+});
+
+// ─── Sticky header icon buttons (back / wishlist / share) ─────────────────────
+const hdr = StyleSheet.create({
+  iconBtn: {
+    width:           38,
+    height:          38,
+    borderRadius:    12,
+    backgroundColor: kit.color.well,
+    alignItems:      "center",
+    justifyContent:  "center",
+    borderWidth:     1,
+    borderColor:     kit.color.line,
+  },
+  iconBtnWishlistActive: {
     backgroundColor: "rgba(254,202,202,0.95)",
     borderColor:     "rgba(244,63,94,0.16)",
   },
@@ -1508,7 +1649,13 @@ const clin = StyleSheet.create({
     maxWidth:   "50%",
     textAlign:  TEXT_END,
   },
+  // Bare touchable — a raw Pressable's own function-computed `style` mixing
+  // `gap` + row flexDirection has caused real layout corruption elsewhere in
+  // this app (icon/text collapsing out of row order). Visual styling
+  // (incl. `gap`) lives on the inner View via function-as-children instead.
+  expandBtnTouchable: {},
   expandBtn: {
+    flexDirection:     flexRow(IS_RTL),
     alignItems:        "center",
     justifyContent:    "center",
     gap:               8,
@@ -1602,6 +1749,8 @@ const cta = StyleSheet.create({
     shadowRadius:      18,
     elevation:         8,
   },
+  // Bare touchable — see expandBtnTouchable comment above for why.
+  viewCartTouchable: { alignSelf: "center" },
   // "View cart" link — sits above the primary CTA when item is in cart
   viewCart: {
     alignItems:        "center",

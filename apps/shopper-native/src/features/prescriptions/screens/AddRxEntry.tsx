@@ -15,7 +15,7 @@
  *     BACK_CHEVRON; both flip on I18nManager.isRTL.
  */
 
-import React, { useMemo } from "react";
+import React, { useCallback, useMemo } from "react";
 import { Linking, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -30,6 +30,8 @@ import {
   FORWARD_CHEVRON,
   BACK_CHEVRON,
 } from "@/utils/layout";
+import { useAuth } from "@/features/auth";
+import { createWhatsAppPrescriptionPlaceholder } from "../api";
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>["name"];
 
@@ -113,9 +115,22 @@ const WHATSAPP_RX_URL =
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export function AddRxEntry(): React.ReactElement {
-  const router = useRouter();
-  const insets = useSafeAreaInsets();
-  const { t }  = useTranslation();
+  const router   = useRouter();
+  const insets   = useSafeAreaInsets();
+  const { t }    = useTranslation();
+  const { user } = useAuth();
+
+  // Best-effort staff-visibility record — the actual submission is still a
+  // human WhatsApp conversation, this just means it no longer silently
+  // disappears from the admin queue's view entirely. Never blocks opening
+  // WhatsApp: if the write fails, the customer's WhatsApp flow still works.
+  const handleWhatsApp = useCallback(() => {
+    if (user?.id) {
+      createWhatsAppPrescriptionPlaceholder(user.id, t("prescriptions.whatsappPlaceholderName"))
+        .catch(() => {});
+    }
+    void Linking.openURL(WHATSAPP_RX_URL).catch(() => {});
+  }, [user?.id, t]);
 
   const options: EntryOption[] = useMemo(() => [
     {
@@ -125,7 +140,7 @@ export function AddRxEntry(): React.ReactElement {
       bg:          "#DCFCE7",
       title:       t("prescriptions.addWhatsAppTitle"),
       description: t("prescriptions.addWhatsAppDesc"),
-      onPress:     () => { void Linking.openURL(WHATSAPP_RX_URL).catch(() => {}); },
+      onPress:     handleWhatsApp,
     },
     {
       key:         "manual",
@@ -143,7 +158,6 @@ export function AddRxEntry(): React.ReactElement {
       bg:          kit.color.accentTint,
       title:       t("prescriptions.addScanTitle"),
       description: t("prescriptions.addScanDesc"),
-      comingSoon:  true,
       onPress:     () => router.push("/prescriptions/scan" as never),
     },
     {
@@ -156,7 +170,7 @@ export function AddRxEntry(): React.ReactElement {
       comingSoon:  true,
       onPress:     () => router.push("/prescriptions/transfer" as never),
     },
-  ], [router, t]);
+  ], [router, t, handleWhatsApp]);
 
   return (
     <View style={s.screen}>

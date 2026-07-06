@@ -80,7 +80,7 @@ function CountdownRow() {
 // ─── OffersScreen ─────────────────────────────────────────────────────────────
 
 export default function OffersScreen() {
-  const { t, i18n }          = useTranslation();
+  const { t }                 = useTranslation();
   const router                = useRouter();
   const insets                = useSafeAreaInsets();
   const { isTablet } = useScreenLayout();
@@ -153,16 +153,16 @@ export default function OffersScreen() {
           </View>
           <View style={s.titleBlock}>
             <UIText style={[s.eyebrow, { textAlign: TEXT_START }]}>
-              {i18n.language === "en" ? "LIMITED TIME" : "عروض محدودة"}
+              {t("offers.eyebrow")}
             </UIText>
             <UIText style={[s.title, { textAlign: TEXT_START }]}>
-              {i18n.language === "en" ? "Flash Deals" : "العروض والتخفيضات"}
+              {t("offers.title")}
             </UIText>
             {totalCount > 0 && !isLoading && (
               <View style={[s.countBadge, { flexDirection: flexRow(IS_RTL) }]}>
                 <View style={s.countDot} />
                 <UIText style={s.countText}>
-                  {totalCount} {i18n.language === "en" ? "deals available" : "عرض متاح"}
+                  {totalCount} {t("offers.dealsAvailable")}
                 </UIText>
               </View>
             )}
@@ -224,18 +224,16 @@ export default function OffersScreen() {
       ) : isError ? (
         <EmptyState
           icon="wifi-outline"
-          title={i18n.language === "en" ? "Couldn't load offers" : "تعذّر تحميل العروض"}
-          description={i18n.language === "en" ? "Check your connection and try again." : "تحقق من الاتصال وأعد المحاولة."}
+          title={t("offers.loadError")}
+          description={t("offers.loadErrorDesc")}
           actionLabel={t("category.tryAgain")}
           onAction={refetch}
         />
       ) : products.length === 0 ? (
         <EmptyState
           icon="flash-outline"
-          title={i18n.language === "en" ? "No active deals right now" : "لا توجد عروض نشطة حالياً"}
-          description={i18n.language === "en"
-            ? "Stay tuned — new deals are added regularly."
-            : "ترقّب — تُضاف عروض جديدة بانتظام."}
+          title={t("offers.empty")}
+          description={t("offers.emptyDescription")}
         />
       ) : (
         <ProductGrid

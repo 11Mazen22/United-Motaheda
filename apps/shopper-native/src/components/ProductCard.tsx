@@ -233,79 +233,83 @@ export const ProductCard = memo(function ProductCard({
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={displayName}
-      style={({ pressed }) => [cs.card, style, pressed && cs.cardPressed]}
+      style={cs.cardTouchable}
     >
-      {/* ── Image block ───────────────────────────────── */}
-      <View style={cs.imgWrap}>
-        {product.imageUrl ? (
-          <Image
-            source={{ uri: product.imageUrl }}
-            style={cs.img}
-            placeholder={DEFAULT_BLURHASH}
-            contentFit="cover"
-            transition={180}
-            cachePolicy="memory-disk"
-            accessibilityLabel={displayName}
-          />
-        ) : (
-          <View style={cs.imgPlaceholder}>
-            <Ionicons name="medkit-outline" size={36} color={kit.color.inkFaint} />
-          </View>
-        )}
+      {({ pressed }) => (
+        <View style={[cs.card, style, pressed && cs.cardPressed]}>
+          {/* ── Image block ───────────────────────────────── */}
+          <View style={cs.imgWrap}>
+            {product.imageUrl ? (
+              <Image
+                source={{ uri: product.imageUrl }}
+                style={cs.img}
+                placeholder={DEFAULT_BLURHASH}
+                contentFit="cover"
+                transition={180}
+                cachePolicy="memory-disk"
+                accessibilityLabel={displayName}
+              />
+            ) : (
+              <View style={cs.imgPlaceholder}>
+                <Ionicons name="medkit-outline" size={36} color={kit.color.inkFaint} />
+              </View>
+            )}
 
-        {/* Badge — top-start corner */}
-        {effectiveBadge && (
-          <CardBadgeView
-            type={effectiveBadge}
-            percent={effectiveDiscount ?? undefined}
-          />
-        )}
+            {/* Badge — top-start corner */}
+            {effectiveBadge && (
+              <CardBadgeView
+                type={effectiveBadge}
+                percent={effectiveDiscount ?? undefined}
+              />
+            )}
 
-        {/* Heart — top-end corner */}
-        <HeartButton product={product} />
+            {/* Heart — top-end corner */}
+            <HeartButton product={product} />
 
-        {/* Out-of-stock overlay */}
-        {!product.inStock && (
-          <View style={cs.oosOverlay}>
-            <UIText style={cs.oosText}>{t("product.outOfStock")}</UIText>
-          </View>
-        )}
-      </View>
-
-      {/* ── Info block ────────────────────────────────── */}
-      <View style={cs.info}>
-        {/* Category eyebrow */}
-        {Boolean(product.categoryName) && (
-          <UIText numberOfLines={1} style={cs.category}>
-            {lang === "en" ? (product.categoryNameEn || product.categoryName) : product.categoryName}
-          </UIText>
-        )}
-
-        {/* Name */}
-        <UIText numberOfLines={2} style={cs.name}>
-          {displayName}
-        </UIText>
-
-        {/* Price row + add-to-cart */}
-        <View style={cs.bottomRow}>
-          <View style={cs.priceCol}>
-            <UIText style={cs.price}>
-              {product.price.toLocaleString("ar-EG")}
-              {"  "}
-              <UIText style={cs.currency}>{t("common.currency")}</UIText>
-            </UIText>
-
-            {originalPrice !== null && (
-              <UIText style={cs.original}>
-                {originalPrice.toLocaleString("ar-EG")}
-              </UIText>
+            {/* Out-of-stock overlay */}
+            {!product.inStock && (
+              <View style={cs.oosOverlay}>
+                <UIText style={cs.oosText}>{t("product.outOfStock")}</UIText>
+              </View>
             )}
           </View>
 
-          {/* Add-to-cart only when in stock */}
-          {product.inStock && <AddButton product={product} />}
+          {/* ── Info block ────────────────────────────────── */}
+          <View style={cs.info}>
+            {/* Category eyebrow */}
+            {Boolean(product.categoryName) && (
+              <UIText numberOfLines={1} style={cs.category}>
+                {lang === "en" ? (product.categoryNameEn || product.categoryName) : product.categoryName}
+              </UIText>
+            )}
+
+            {/* Name */}
+            <UIText numberOfLines={2} style={cs.name}>
+              {displayName}
+            </UIText>
+
+            {/* Price row + add-to-cart */}
+            <View style={cs.bottomRow}>
+              <View style={cs.priceCol}>
+                <UIText style={cs.price}>
+                  {product.price.toLocaleString("ar-EG")}
+                  {"  "}
+                  <UIText style={cs.currency}>{t("common.currency")}</UIText>
+                </UIText>
+
+                {originalPrice !== null && (
+                  <UIText style={cs.original}>
+                    {originalPrice.toLocaleString("ar-EG")}
+                  </UIText>
+                )}
+              </View>
+
+              {/* Add-to-cart only when in stock */}
+              {product.inStock && <AddButton product={product} />}
+            </View>
+          </View>
         </View>
-      </View>
+      )}
     </Pressable>
   );
 });
@@ -331,6 +335,14 @@ export const ProductCardSkeleton = memo(function ProductCardSkeleton() {
 
 const cs = StyleSheet.create({
   // ── Card shell ─────────────────────────────────────────────────────────
+  // Touchable wrapper carries only sizing/radius (flex to fill the grid
+  // cell, borderRadius for ripple shape) — visual styling lives on the
+  // plain View inside instead of on the Pressable's own function-computed
+  // style, which is unreliable here.
+  cardTouchable: {
+    flex:         1,
+    borderRadius: kit.radius.card,
+  },
   card: {
     backgroundColor: kit.color.surface,
     borderRadius:    kit.radius.card,

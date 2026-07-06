@@ -212,12 +212,18 @@ export function AddressMapPlaceholder({
 
       {/* Open in Maps button */}
       <Pressable
-        style={styles.openMapsBtn}
+        style={styles.openMapsBtnTouchable}
         onPress={() => openInMaps(coords.lat, coords.lng)}
         hitSlop={8}
+        accessibilityRole="button"
+        accessibilityLabel={t("addressForm.openInMaps")}
       >
-        <Ionicons name="map-outline" size={13} color={kit.color.accentDeep} />
-        <UIText style={styles.openMapsText}>{t("addressForm.openInMaps")}</UIText>
+        {({ pressed }) => (
+          <View style={[styles.openMapsBtn, pressed && styles.openMapsBtnPressed]}>
+            <Ionicons name="map-outline" size={13} color={kit.color.accentDeep} />
+            <UIText style={styles.openMapsText}>{t("addressForm.openInMaps")}</UIText>
+          </View>
+        )}
       </Pressable>
 
       {/* Verified badge */}
@@ -234,7 +240,7 @@ export function AddressMapPlaceholder({
 // ─── Styles ──────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   container: {
-    borderRadius: 16,
+    borderRadius: kit.radius.lg,
     overflow: "hidden",
     position: "relative",
     backgroundColor: theme.colors.slate[100],
@@ -242,7 +248,7 @@ const styles = StyleSheet.create({
 
   // ── Loading ──
   loadingBox: {
-    borderRadius:   16,
+    borderRadius:   kit.radius.lg,
     backgroundColor: theme.colors.slate[50],
     alignItems:     "center",
     justifyContent: "center",
@@ -257,7 +263,7 @@ const styles = StyleSheet.create({
   },
   // ── Placeholder ──
   placeholder: {
-    borderRadius:   16,
+    borderRadius:   kit.radius.lg,
     overflow:       "hidden",
     alignItems:     "center",
     justifyContent: "center",
@@ -355,10 +361,16 @@ const styles = StyleSheet.create({
     fontFamily: theme.fonts.semibold,
     color:      theme.colors.slate[500],
   },
+  // Touchable wrapper carries only positioning/radius — visual styling (row,
+  // gap, background) lives on the plain View inside instead of on the
+  // Pressable's own function-computed style, which is unreliable here.
+  openMapsBtnTouchable: {
+    position:     "absolute",
+    bottom:       10,
+    right:        10,
+    borderRadius: 10,
+  },
   openMapsBtn: {
-    position:          "absolute",
-    bottom:            10,
-    right:             10,
     flexDirection:     flexRow(isRtl()),
     alignItems:        "center",
     gap:               5,
@@ -373,6 +385,9 @@ const styles = StyleSheet.create({
     elevation:         3,
     borderWidth:       1,
     borderColor:       theme.colors.border.brandSoft,
+  },
+  openMapsBtnPressed: {
+    backgroundColor: kit.color.accentTint,
   },
   openMapsText: {
     fontSize:   11,

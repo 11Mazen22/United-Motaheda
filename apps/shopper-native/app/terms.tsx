@@ -63,7 +63,12 @@ export default function TermsScreen() {
     <View style={[styles.screen, { paddingTop: insets.top }]}>
       {/* Header */}
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={10}>
+        <Pressable
+          onPress={() => router.back()}
+          style={styles.backBtn}
+          hitSlop={10}
+          accessibilityRole="button"
+          accessibilityLabel={t("common.back")}>
           <Ionicons name={BACK_CHEVRON} size={18} color={kit.color.inkSoft} />
         </Pressable>
         <UIText style={styles.title}>{t("terms.title")}</UIText>
@@ -153,18 +158,24 @@ export default function TermsScreen() {
               <Ionicons name="logo-whatsapp" size={22} color="#25D366" />
             </View>
             <View style={{ flex: 1, gap: 2 }}>
-              <UIText style={styles.waTitle}>للتواصل مع الدعم</UIText>
-              <UIText style={styles.waSub}>ردود فورية عبر واتساب</UIText>
+              <UIText style={styles.waTitle}>{t("terms.supportTitle")}</UIText>
+              <UIText style={styles.waSub}>{t("terms.supportSubtitle")}</UIText>
             </View>
-            <Pressable style={styles.waBtn} onPress={openWhatsApp}>
-              <UIText style={styles.waBtnText}>ابدأ</UIText>
+            <Pressable
+              style={styles.waBtnTouchable}
+              onPress={openWhatsApp}
+              accessibilityRole="button"
+              accessibilityLabel={t("terms.supportTitle")}>
+              {({ pressed }) => (
+                <View style={[styles.waBtn, pressed && styles.waBtnPressed]}>
+                  <UIText style={styles.waBtnText}>{t("terms.supportStart")}</UIText>
+                </View>
+              )}
             </Pressable>
           </View>
         </Animated.View>
 
-        <UIText style={styles.footer}>
-          الصيدلية المتحدة • مصر • united.pharmacy.eg@gmail.com
-        </UIText>
+        <UIText style={styles.footer}>{t("terms.footer")}</UIText>
       </ScrollView>
     </View>
   );
@@ -250,11 +261,18 @@ const styles = StyleSheet.create({
     fontFamily: theme.fonts.regular,
     color:      kit.color.inkSoft,
   },
+  // Touchable wrapper carries only sizing/radius for the ripple shape — real
+  // visual styling lives on the plain View inside, since the Pressable's own
+  // function-computed style is unreliable on this app's RN/Fabric setup.
+  waBtnTouchable: { borderRadius: 10, flexShrink: 0 },
   waBtn: {
     backgroundColor:   "#25D366",
     borderRadius:      10,
     paddingVertical:   10,
     paddingHorizontal: 18,
+  },
+  waBtnPressed: {
+    backgroundColor: "#1FB859",
   },
   waBtnText: {
     fontSize:   13,

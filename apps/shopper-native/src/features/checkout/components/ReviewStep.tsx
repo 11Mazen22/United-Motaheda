@@ -131,40 +131,50 @@ export const ReviewStep = React.memo(function ReviewStep({
         icon="card-outline"
         delay={110}
         action={{ label: t("checkout.editPayment"), onPress: onEditPayment }}>
-        {methods.map((m) => (
-          <Pressable
-            key={m.id}
-            onPress={() => onPaymentChange(m.id)}
-            style={[
-              s.payOption,
-              paymentMethod === m.id && {
-                borderColor:     m.color,
-                borderWidth:     2,
-                backgroundColor: m.bg + "30",
-              },
-            ]}>
-            <View
+        {methods.map((m) => {
+          const active = paymentMethod === m.id;
+          return (
+            <Pressable
+              key={m.id}
+              onPress={() => onPaymentChange(m.id)}
+              accessibilityRole="radio"
+              accessibilityState={{ selected: active }}
+              accessibilityLabel={m.title}
               style={[
-                s.payRadio,
-                paymentMethod === m.id && { borderColor: m.color },
+                s.payOption,
+                active && {
+                  borderColor:     m.color,
+                  borderWidth:     1.5,
+                  backgroundColor: m.bg,
+                  ...kit.shadow.card,
+                },
               ]}>
-              {paymentMethod === m.id && (
-                <View style={[s.payRadioDot, { backgroundColor: m.color }]} />
-              )}
-            </View>
-            <View style={[s.payIcon, { backgroundColor: m.bg }]}>
-              <Ionicons name={m.icon} size={18} color={m.color} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <UIText style={s.payTitle}>{m.title}</UIText>
-              <UIText style={s.paySub}>{m.description}</UIText>
-            </View>
-          </Pressable>
-        ))}
+              <View
+                style={[
+                  s.payRadio,
+                  active && { borderColor: m.color },
+                ]}>
+                {active && (
+                  <View style={[s.payRadioDot, { backgroundColor: m.color }]} />
+                )}
+              </View>
+              <View style={[s.payIcon, { backgroundColor: active ? "#fff" : m.bg }]}>
+                <Ionicons name={m.icon} size={18} color={m.color} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <UIText style={[s.payTitle, active && { color: m.color }]}>{m.title}</UIText>
+                <UIText style={s.paySub}>{m.description}</UIText>
+              </View>
+            </Pressable>
+          );
+        })}
 
         {paymentMethod === "cod" && (
           <Pressable
             onPress={onTogglePos}
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: requestPos }}
+            accessibilityLabel={t("checkout.posRequest")}
             style={[s.posToggle, requestPos && s.posToggleActive]}>
             <View style={[s.posCheck, requestPos && s.posCheckActive]}>
               {requestPos && <Ionicons name="checkmark" size={11} color="#fff" />}

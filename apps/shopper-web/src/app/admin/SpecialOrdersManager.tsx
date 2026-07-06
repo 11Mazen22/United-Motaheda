@@ -420,7 +420,15 @@ export default function SpecialOrdersManager() {
         />
       </div>
 
-      {!tableMissing && <AdminErrorBanner message={error} />}
+      <AdminErrorBanner
+        message={
+          tableMissing
+            ? lang === "ar"
+              ? "ميزة طلبات النواقص غير متاحة حالياً — جدول البيانات المطلوب غير موجود. هذا ليس معناه عدم وجود طلبات، بل أن الميزة نفسها معطّلة. يرجى التواصل مع الدعم الفني."
+              : "Special orders isn't available right now — the required database table is missing. This does not mean there are no requests; the feature itself is disabled. Please contact technical support."
+            : error
+        }
+      />
 
       <AdminSectionCard
         eyebrow={lang === "ar" ? "طلبات النواقص" : "Special orders"}

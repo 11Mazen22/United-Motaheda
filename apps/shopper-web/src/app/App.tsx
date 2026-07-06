@@ -6,7 +6,7 @@ import Layout from "./layout";
 import { CatalogProvider, useCatalog } from "../contexts/CatalogContext";
 import { CartProvider } from "../contexts/CartContext";
 import { SearchProvider } from "../contexts/SearchContext";
-import { AdminOnly, ManagerAndAbove } from "./admin/AdminRouteProtection";
+import { AdminOnly, ManagerAndAbove, PharmacistAndAbove } from "./admin/AdminRouteProtection";
 import { useAuth } from "../contexts/AuthContext";
 import AppBootstrapOverlay from "./components/AppBootstrapOverlay";
 import { BootstrapBlockingProvider } from "./components/BootstrapBlockingContext";
@@ -20,6 +20,7 @@ const FastProductEntry     = lazy(() => import("./admin/FastProductEntry"));
 const OperationsHub        = lazy(() => import("./admin/OperationsHub"));
 const OrdersManager        = lazy(() => import("./admin/OrdersManager"));
 const OrderTracking        = lazy(() => import("./pages/OrderTracking"));
+const PrescriptionsManager = lazy(() => import("./admin/PrescriptionsManager"));
 const ProductManager       = lazy(() => import("./admin/ProductManager"));
 const SpecialOrdersManager = lazy(() => import("./admin/SpecialOrdersManager"));
 const StaffManager         = lazy(() => import("./admin/StaffManager"));
@@ -141,6 +142,7 @@ function AppShell() {
             <Route path="products/fast-entry" element={withSuspense(<FastProductEntry />)} />
             <Route path="products"            element={withSuspense(<ProductManager />)} />
             <Route path="operations"          element={withSuspense(<ManagerAndAbove><OperationsHub /></ManagerAndAbove>)} />
+            <Route path="prescriptions"       element={withSuspense(<PharmacistAndAbove><PrescriptionsManager /></PharmacistAndAbove>)} />
             <Route path="staff"               element={withSuspense(<AdminOnly><StaffManager /></AdminOnly>)} />
             <Route path="users"               element={withSuspense(<AdminOnly><UsersManager /></AdminOnly>)} />
             <Route path="notifications"       element={withSuspense(<NotificationsManager />)} />

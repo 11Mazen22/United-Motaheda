@@ -30,7 +30,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { setStatusBarHidden } from "expo-status-bar";
 import * as SplashScreen from "expo-splash-screen";
-import { Video, ResizeMode, type AVPlaybackStatus } from "expo-av";
+import { useVideoPlayer, VideoView } from "expo-video";
 import { Ionicons } from "@expo/vector-icons";
 import Animated, {
   Easing,
@@ -167,34 +167,44 @@ function SplashSequenceView({ onExited }: { onExited: () => void }): React.React
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [seq.phase]);
 
-  // ── Video status bridge ──────────────────────────────────────────────────────
-  const handleStatus = (status: AVPlaybackStatus) => {
-    if (status.isLoaded) {
-      seq.notifyVideoLoaded();
-      if (status.didJustFinish) seq.notifyVideoFinished();
-      return;
-    }
-    if ("error" in status && status.error) seq.notifyVideoError();
-  };
+  // ── Video player (expo-video — expo-av is deprecated on this SDK and its
+  // require()'d-asset embedding into the native build is unreliable) ──────────
+  const player = useVideoPlayer(require("../../../assets/splash-video.mp4"), (p) => {
+    p.loop  = false;
+    p.muted = true;
+  });
+
+  // Plays only once the state machine enters the "video" phase — never on
+  // mount — and always seeks to frame 0 first (see notifyVideoLoaded doc).
+  useEffect(() => {
+    if (!seq.videoShouldPlay) return;
+    player.currentTime = 0;
+    player.play();
+  }, [seq.videoShouldPlay, player]);
+
+  useEffect(() => {
+    const statusSub = player.addListener("statusChange", ({ status }) => {
+      if (status === "readyToPlay") seq.notifyVideoLoaded();
+      if (status === "error") seq.notifyVideoError();
+    });
+    const endSub = player.addListener("playToEnd", () => seq.notifyVideoFinished());
+    return () => {
+      statusSub.remove();
+      endSub.remove();
+    };
+  }, [player, seq.notifyVideoLoaded, seq.notifyVideoError, seq.notifyVideoFinished]);
 
   return (
     <Animated.View style={[styles.root, overlayAnim]} onLayout={handleLayout} accessibilityViewIsModal>
 
       {/* Video — under the hold; plays from frame 0 once the machine allows. */}
-      <Video
-        source={require("../../../assets/splash-video.mp4")}
+      <VideoView
+        player={player}
         style={styles.video}
-        resizeMode={ResizeMode.COVER}
-        shouldPlay={seq.videoShouldPlay}
-        positionMillis={0}
-        isLooping={false}
-        isMuted
-        useNativeControls={false}
-        onLoad={seq.notifyVideoLoaded}
-        onReadyForDisplay={seq.notifyVideoLoaded}
-        onPlaybackStatusUpdate={handleStatus}
-        progressUpdateIntervalMillis={250}
-        onError={seq.notifyVideoError}
+        contentFit="cover"
+        nativeControls={false}
+        allowsFullscreen={false}
+        allowsPictureInPicture={false}
       />
 
       {/* Top gradient scrim — over the video, ensures the skip pill is always legible.

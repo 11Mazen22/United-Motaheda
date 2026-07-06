@@ -57,6 +57,8 @@
         "emptyDescription": "تصفح منتجاتنا وأضف ما يعجبك لتجده هنا",
         "emptyAction": "تسوق الآن",
         "removeItem": "إزالة المنتج",
+        "removeItemTitle": "إزالة المنتج",
+        "removeItemMessage": "هل تريد إزالة \"{{name}}\" من سلتك؟",
         "deliveringFrom": "يتم التوصيل من",
         "freeDelivery": "توصيل مجاني!",
         "freeDeliverySubtitle": "طلبك يتجاوز {{threshold}} ج.م",
@@ -156,6 +158,15 @@
         "noInStockProducts": "لا توجد منتجات متوفرة في هذا القسم حالياً",
         "noProductsInCat": "لا توجد منتجات في هذا القسم حالياً",
         "showAll": "عرض الكل"
+    },
+    "offers": {
+        "eyebrow": "عروض محدودة",
+        "title": "العروض والتخفيضات",
+        "dealsAvailable": "عرض متاح",
+        "loadError": "تعذّر تحميل العروض",
+        "loadErrorDesc": "تحقق من الاتصال وأعد المحاولة.",
+        "empty": "لا توجد عروض نشطة حالياً",
+        "emptyDescription": "ترقّب — تُضاف عروض جديدة بانتظام."
     },
     "product": {
         "addToCart": "أضف للسلة",
@@ -318,6 +329,7 @@
         "filters": "فلتر",
         "loading": "جاري تحميل المنتجات…",
         "noProducts": "لا توجد منتجات",
+        "noCategoriesDescription": "لا توجد أقسام متاحة حالياً. يرجى المحاولة لاحقاً.",
         "categoriesCount": "{{count}} قسم",
         "productsCount": "{{count}} منتج",
         "addedToCart": "تمت الإضافة ✓",
@@ -594,6 +606,7 @@
         "copyNumber": "نسخ",
         "walletNumber": "رقم المحفظة",
         "senderReference": "رقم هاتف المرسل أو معرف إنستاباي",
+        "senderReferencePlaceholder": "01XXXXXXXXX أو معرف إنستاباي",
         "uploadReceipt": "لقطة شاشة التحويل",
         "pickReceipt": "اضغط لاختيار صورة الإيصال",
         "title": "طرق الدفع",
@@ -626,7 +639,12 @@
         "copyFailedMsg": "لم نتمكن من نسخ الرقم. انسخه يدوياً.",
         "walletHint": "أرسل المبلغ إلى رقم المحفظة ثم أدخل رقم المرسل وارفق صورة الإيصال.",
         "copyWalletA11y": "نسخ رقم المحفظة",
-        "methodsTitle": "طرق الدفع المتاحة"
+        "methodsTitle": "طرق الدفع المتاحة",
+        "receiptPermissionDenied": "يرجى السماح بالوصول إلى الصور لرفع إيصال التحويل.",
+        "receiptSignInRequired": "يجب تسجيل الدخول لرفع إيصال التحويل.",
+        "receiptReadFailed": "تعذّر قراءة صورة الإيصال.",
+        "receiptUploadFailed": "تعذّر رفع إيصال التحويل.",
+        "receiptUrlFailed": "تعذّر الحصول على رابط الإيصال."
     },
     "branches": {
         "title": "فروعنا",
@@ -890,12 +908,17 @@
     "terms": {
         "title": "الشروط والأحكام",
         "lastUpdated": "آخر تحديث: يناير ٢٠٢٥",
-        "agreeBanner": "باستخدام تطبيق الصيدلية المتحدة فأنت توافق على الشروط والأحكام التالية. يرجى قراءتها بعناية."
+        "agreeBanner": "باستخدام تطبيق الصيدلية المتحدة فأنت توافق على الشروط والأحكام التالية. يرجى قراءتها بعناية.",
+        "supportTitle": "للتواصل مع الدعم",
+        "supportSubtitle": "ردود فورية عبر واتساب",
+        "supportStart": "ابدأ",
+        "footer": "الصيدلية المتحدة • مصر • united.pharmacy.eg@gmail.com"
     },
     "privacy": {
         "title": "سياسة الخصوصية",
         "lastUpdated": "آخر تحديث: يناير ٢٠٢٥",
-        "introBanner": "خصوصيتك أمانة عندنا. تصف هذه الوثيقة كيف تجمع الصيدلية المتحدة بياناتك وتستخدمها وتحميها."
+        "introBanner": "خصوصيتك أمانة عندنا. تصف هذه الوثيقة كيف تجمع الصيدلية المتحدة بياناتك وتستخدمها وتحميها.",
+        "footer": "الصيدلية المتحدة • مصر • united.pharmacy.eg@gmail.com"
     },
     "resetPassword": {
         "titleDefault": "إعادة تعيين كلمة المرور",
@@ -964,7 +987,17 @@
     },
     "prescriptions": {
         "scanTitle": "مسح ملصق الوصفة",
-        "scanSubtitle": "ميزة الكاميرا قيد التطوير",
+        "scanSubtitle": "وجّه الكاميرا نحو الملصق",
+        "scanPermissionTitle": "نحتاج إذن الكاميرا",
+        "scanPermissionBody": "نحتاج إذن الكاميرا لمسح ملصق الوصفة. تتم معالجة الصورة على جهازك فقط — لا نرفعها أو نحفظها أبداً.",
+        "scanPermissionCta": "تفعيل الكاميرا",
+        "scanPermissionSettingsCta": "فتح الإعدادات",
+        "scanGuide": "ضع ملصق الوصفة داخل الإطار",
+        "scanCaptureCta": "التقاط",
+        "scanCaptureHint": "اضغط للالتقاط",
+        "scanProcessing": "جاري قراءة الملصق…",
+        "scanErrorRetry": "تعذّرت القراءة بوضوح — حاول مجدداً",
+        "ocrReviewTitle": "تأكيد البيانات",
         "transferTitle": "نقل من صيدلية أخرى",
         "transferSubtitle": "نموذج النقل قيد التطوير",
         "detailFallback": "وصفة",
@@ -978,6 +1011,7 @@
         "comingSoon": "قريباً",
         "addWhatsAppTitle": "إرسال الوصفة عبر واتساب",
         "addWhatsAppDesc": "أرسل صورة الوصفة وسيضيفها فريق الصيدلية إلى حسابك",
+        "whatsappPlaceholderName": "وصفة تم إرسالها عبر واتساب",
         "addManualTitle": "إدخال رقم الوصفة",
         "addManualDesc": "اكتبه يدوياً من ورقة الوصفة أو الملصق",
         "addScanTitle": "مسح ملصق الوصفة",
@@ -1018,6 +1052,10 @@
         "editTitle": "تعديل الوصفة",
         "editEyebrow": "تحديث البيانات",
         "editSaveCta": "حفظ التغييرات",
+        "reviewPendingTitle": "قيد مراجعة الصيدلي",
+        "reviewPendingBody": "يقوم الصيدلي بمراجعة هذه الوصفة. سنُعلمك فور تأكيدها.",
+        "reviewRejectedTitle": "تحتاج إلى انتباه",
+        "reviewRejectedBody": "تعذّر على فريق الصيدلية تأكيد هذه الوصفة. يرجى التواصل معنا لمعرفة التفاصيل.",
         "editSavedTitle": "تم حفظ التغييرات",
         "editSavedBody": "تم تحديث بيانات الوصفة.",
         "editSaveErrorTitle": "تعذّر حفظ التغييرات",
@@ -1155,7 +1193,9 @@
         "statusExpiring": "حان موعد التجديد",
         "statusExpired": "منتهي",
         "refillLabel": "إعادة الصرف",
-        "nextRefill": "التجديد القادم"
+        "nextRefill": "التجديد القادم",
+        "reviewPending": "قيد المراجعة",
+        "reviewRejected": "مرفوضة"
     },
     "reminder": {
         "snooze": "تأجيل",

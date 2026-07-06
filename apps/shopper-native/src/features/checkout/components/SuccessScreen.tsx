@@ -197,7 +197,7 @@ const s = StyleSheet.create({
     marginBottom: 16,
   },
   orderIdPill: {
-    flexDirection:     "row",
+    flexDirection:     flexRow(IS_RTL),
     alignItems:        "center",
     gap:               6,
     backgroundColor:   kit.color.accentTint,
@@ -276,7 +276,7 @@ const s = StyleSheet.create({
     backgroundColor: kit.color.line,
   },
   etaPill: {
-    flexDirection:     "row",
+    flexDirection:     flexRow(IS_RTL),
     alignItems:        "center",
     gap:               5,
     backgroundColor:   kit.color.accentTint,
@@ -293,7 +293,7 @@ const s = StyleSheet.create({
     includeFontPadding: false,
   },
   statusPill: {
-    flexDirection:     "row",
+    flexDirection:     flexRow(IS_RTL),
     alignItems:        "center",
     gap:               5,
     backgroundColor:   kit.color.successTint,

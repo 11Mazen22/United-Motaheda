@@ -3,7 +3,7 @@
  * method. Not the checkout flow's payment step (which lives in app/checkout).
  */
 
-import React, { useEffect } from "react";
+import React from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { kit } from "@/shared/kit";
@@ -11,7 +11,7 @@ import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 import { useTranslation } from "react-i18next";
-import { PaymentMethodSelector, usePaymentStore, hydratePaymentStore } from "@/features/payment";
+import { PaymentMethodSelector, usePaymentStore } from "@/features/payment";
 import { Text as UIText } from "@/shared/ui";
 import { theme } from "@/shared/theme";
 import { flexRow, isRtl, textAlignStart, BACK_CHEVRON } from "@/utils/layout";
@@ -33,10 +33,11 @@ export default function PaymentScreen() {
   const insets = useSafeAreaInsets();
   const { t }  = useTranslation();
 
-  useEffect(() => {
-    hydratePaymentStore();
-  }, []);
-
+  // Store hydration (anonymous cache + authed server sync) is owned by
+  // PharmacyBootstrap at the root layout — it re-hydrates on every auth
+  // state change. Re-hydrating here with hydratePaymentStore() would force
+  // anonymous mode (userId: null) on every screen visit, clobbering an
+  // already-loaded signed-in user's server preference.
   const selectedLabelKey = usePaymentStore((s) =>
     s.methods.find((m) => m.type === s.selected)?.labelKey ?? ""
   );

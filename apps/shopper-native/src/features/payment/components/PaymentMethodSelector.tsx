@@ -48,10 +48,10 @@ export function PaymentMethodSelector({ compact }: Props) {
 
       {/* Trust footer */}
       {!compact && (
-        <Animated.View entering={FadeInDown.delay(250).duration(250)} style={styles.trustRow}>
-          <Ionicons name="lock-closed" size={12} color={theme.colors.slate[400]} />
+        <Animated.View entering={FadeInDown.delay(250).duration(250)} style={[styles.trustRow, { flexDirection: flexRow(isRtl()) }]}>
+          <Ionicons name="lock-closed" size={12} color={kit.color.inkFaint} />
           <UIText style={styles.trustText}>{t("payment.allTransactionsSecure")}</UIText>
-          <Ionicons name="shield-checkmark" size={12} color={theme.colors.green[500]} />
+          <Ionicons name="shield-checkmark" size={12} color={kit.color.success} />
         </Animated.View>
       )}
     </View>
@@ -76,28 +76,27 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 15,
     fontFamily: theme.fonts.black,
-    color: theme.colors.text.primary,
+    color: kit.color.ink,
     textAlign: textAlignStart(isRtl()),
   },
   headerDesc: {
     fontSize: 11,
     fontFamily: theme.fonts.regular,
-    color: theme.colors.slate[400],
+    color: kit.color.inkFaint,
     textAlign: textAlignStart(isRtl()),
   },
   list: { gap: 10 },
   trustRow: {
-    flexDirection: flexRow(isRtl()),
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
     paddingVertical: 10,
     borderRadius: 12,
-    backgroundColor: theme.colors.slate[50],
+    backgroundColor: kit.color.well,
   },
   trustText: {
     fontSize: 10,
     fontFamily: theme.fonts.semibold,
-    color: theme.colors.slate[400],
+    color: kit.color.inkFaint,
   },
 });

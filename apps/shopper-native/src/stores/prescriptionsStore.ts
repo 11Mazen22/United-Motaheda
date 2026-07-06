@@ -29,6 +29,9 @@ export type RefillStatus   =
   | "delivered"
   | "cancelled";
 
+export type ReviewStatus     = "pending_review" | "approved" | "rejected";
+export type SubmissionSource = "manual" | "scan" | "whatsapp";
+
 export interface Prescription {
   id:            string;
   userId:        string;
@@ -46,6 +49,13 @@ export interface Prescription {
   rxNumber?:     string;
   addedAt:       string;
   updatedAt:     string;
+  /** Staff review workflow — defaults to 'approved' for rows that predate
+   *  this system; every new submission starts at 'pending_review'. */
+  reviewStatus?:      ReviewStatus;
+  submissionSource?:  SubmissionSource;
+  reviewedAt?:        string;
+  adminNotes?:        string;
+  rejectionReason?:   string;
 }
 
 export interface RefillRequest {
@@ -60,6 +70,11 @@ export interface RefillRequest {
   trackingNumber?:  string;
   placedAt:         string;
   eta?:             string;
+  /** Staff review audit trail — status itself (pending/preparing/cancelled)
+   *  already carries the approve/reject workflow, these are supplementary. */
+  reviewedAt?:      string;
+  adminNotes?:      string;
+  rejectionReason?: string;
 }
 
 // ── Store shape ────────────────────────────────────────────────────────────

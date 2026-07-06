@@ -566,8 +566,12 @@ const styles = StyleSheet.create({
   // OTP digit row — LTR-locked: the code is a value, not language content.
   // Reading "1 2 3 4 5 6" left-to-right is the universal OTP convention; an
   // RTL flow would put digit-1 on the right and surprise the user.
+  // NOTE: a hardcoded `flexDirection: "row"` is NOT enough — under forceRTL
+  // (Arabic) a literal "row" already flows right-to-left (see
+  // utils/layout.ts). `flexRow(false)` is this codebase's idiom for
+  // "force LTR regardless of language".
   boxesRow: {
-    flexDirection:  "row",
+    flexDirection:  flexRow(false),
     justifyContent: "center",
     gap:            theme.spacing[1],
     marginTop:      theme.spacing[1],

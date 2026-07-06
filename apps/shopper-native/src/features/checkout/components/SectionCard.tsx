@@ -42,11 +42,15 @@ export const SectionCard = React.memo(function SectionCard({
             hitSlop={6}
             accessibilityRole="button"
             accessibilityLabel={action.label}
-            style={({ pressed }) => [s.actionWrap, pressed && { opacity: 0.78, transform: [{ scale: 0.97 }] }]}>
-            <UIText variant="eyebrow" weight="bold" style={{ color: kit.color.accentDeep }}>
-              {action.label}
-            </UIText>
-            <Ionicons name={FORWARD_CHEVRON} size={11} color={kit.color.accentDeep} />
+            style={s.actionTouchable}>
+            {({ pressed }) => (
+              <View style={[s.actionWrap, pressed && s.actionWrapPressed]}>
+                <UIText variant="eyebrow" weight="bold" style={{ color: kit.color.accentDeep }}>
+                  {action.label}
+                </UIText>
+                <Ionicons name={FORWARD_CHEVRON} size={11} color={kit.color.accentDeep} />
+              </View>
+            )}
           </Pressable>
         )}
       </View>

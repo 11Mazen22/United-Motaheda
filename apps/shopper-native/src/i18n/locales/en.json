@@ -219,6 +219,8 @@
         "emptyDescription": "Browse our products and add what you like",
         "emptyAction": "Shop Now",
         "removeItem": "Remove Item",
+        "removeItemTitle": "Remove Item",
+        "removeItemMessage": "Remove \"{{name}}\" from your cart?",
         "deliveringFrom": "Delivering from",
         "freeDelivery": "Free Delivery!",
         "freeDeliverySubtitle": "Your order exceeds {{threshold}} EGP",
@@ -255,6 +257,15 @@
         "noInStockProducts": "No in-stock products in this category right now",
         "noProductsInCat": "No products in this category right now",
         "showAll": "Show All"
+    },
+    "offers": {
+        "eyebrow": "LIMITED TIME",
+        "title": "Flash Deals",
+        "dealsAvailable": "deals available",
+        "loadError": "Couldn't load offers",
+        "loadErrorDesc": "Check your connection and try again.",
+        "empty": "No active deals right now",
+        "emptyDescription": "Stay tuned — new deals are added regularly."
     },
     "checkout": {
         "title": "Checkout",
@@ -753,13 +764,19 @@
         "copyNumber": "Copy",
         "walletNumber": "Wallet Number",
         "senderReference": "Sender's phone number or InstaPay ID",
+        "senderReferencePlaceholder": "01XXXXXXXXX or InstaPay ID",
         "pickReceipt": "Tap to select receipt photo",
         "copySuccess": "Copied ✓",
         "copySuccessMsg": "Wallet number copied to clipboard.",
         "copyFailed": "Copy Failed",
         "copyFailedMsg": "Could not copy the number. Copy it manually.",
         "walletHint": "Send the amount to the wallet number, then enter the sender's number and upload the receipt screenshot.",
-        "copyWalletA11y": "Copy wallet number"
+        "copyWalletA11y": "Copy wallet number",
+        "receiptPermissionDenied": "Please allow access to your photos to upload the transfer receipt.",
+        "receiptSignInRequired": "You must sign in to upload the transfer receipt.",
+        "receiptReadFailed": "Could not read the receipt image.",
+        "receiptUploadFailed": "Could not upload the transfer receipt.",
+        "receiptUrlFailed": "Could not get a link for the receipt."
     },
     "phoneVerify": {
         "title": "Verify Phone",
@@ -814,7 +831,17 @@
             "pending": "Pending Review"
         },
         "scanTitle": "Scan Prescription Label",
-        "scanSubtitle": "Camera feature is under development",
+        "scanSubtitle": "Point your camera at the label",
+        "scanPermissionTitle": "Camera Access Needed",
+        "scanPermissionBody": "We need camera access to scan your prescription label. The photo is processed on your device only — we never upload or save it.",
+        "scanPermissionCta": "Enable Camera",
+        "scanPermissionSettingsCta": "Open Settings",
+        "scanGuide": "Align the prescription label within the frame",
+        "scanCaptureCta": "Capture",
+        "scanCaptureHint": "Tap to capture",
+        "scanProcessing": "Reading label…",
+        "scanErrorRetry": "Couldn't read that clearly — try again",
+        "ocrReviewTitle": "Confirm Details",
         "transferTitle": "Transfer from Another Pharmacy",
         "transferSubtitle": "Transfer form is under development",
         "detailFallback": "Prescription",
@@ -828,6 +855,7 @@
         "comingSoon": "Soon",
         "addWhatsAppTitle": "Send via WhatsApp",
         "addWhatsAppDesc": "Send a photo and our pharmacy team will add it to your account",
+        "whatsappPlaceholderName": "Prescription sent via WhatsApp",
         "addManualTitle": "Enter prescription number",
         "addManualDesc": "Type it from the bottle label or paper Rx",
         "addScanTitle": "Scan the label",
@@ -868,6 +896,10 @@
         "editTitle": "Edit prescription",
         "editEyebrow": "Update details",
         "editSaveCta": "Save changes",
+        "reviewPendingTitle": "Under Pharmacist Review",
+        "reviewPendingBody": "Your pharmacist is reviewing this prescription. You'll be notified once it's confirmed.",
+        "reviewRejectedTitle": "Needs Attention",
+        "reviewRejectedBody": "Our pharmacy team couldn't confirm this prescription. Please contact us for details.",
         "editSavedTitle": "Changes saved",
         "editSavedBody": "Your prescription has been updated.",
         "editSaveErrorTitle": "Couldn't save changes",
@@ -965,7 +997,8 @@
         "title": "Privacy Policy",
         "eyebrow": "Legal",
         "lastUpdated": "Last updated: January 2025",
-        "introBanner": "Your privacy is our trust. This document describes how United Pharmacy collects, uses, and protects your data."
+        "introBanner": "Your privacy is our trust. This document describes how United Pharmacy collects, uses, and protects your data.",
+        "footer": "United Pharmacy • Egypt • united.pharmacy.eg@gmail.com"
     },
     "product": {
         "addToCart": "Add to Cart",
@@ -1031,6 +1064,7 @@
         "filters": "Filter",
         "loading": "Loading products…",
         "noProducts": "No Products Found",
+        "noCategoriesDescription": "No categories are available right now. Please check back later.",
         "categoriesCount": "{{count}} categories",
         "productsCount": "{{count}} products",
         "addedToCart": "Added ✓",
@@ -1189,7 +1223,9 @@
         "statusExpiring": "Refill Due",
         "statusExpired": "Expired",
         "refillLabel": "Refill",
-        "nextRefill": "Next Refill"
+        "nextRefill": "Next Refill",
+        "reviewPending": "Pending Review",
+        "reviewRejected": "Rejected"
     },
     "search": {
         "eyebrow": "Discover Products",
@@ -1298,7 +1334,11 @@
         "title": "Terms & Conditions",
         "eyebrow": "Legal",
         "lastUpdated": "Last updated: January 2025",
-        "agreeBanner": "By using the United Pharmacy app you agree to the following Terms & Conditions. Please read them carefully."
+        "agreeBanner": "By using the United Pharmacy app you agree to the following Terms & Conditions. Please read them carefully.",
+        "supportTitle": "Contact Support",
+        "supportSubtitle": "Instant replies via WhatsApp",
+        "supportStart": "Start",
+        "footer": "United Pharmacy • Egypt • united.pharmacy.eg@gmail.com"
     },
     "verifyPhone": {
         "title": "Verify Phone",

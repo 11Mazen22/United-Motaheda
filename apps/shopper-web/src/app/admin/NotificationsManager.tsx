@@ -3,13 +3,14 @@
  * Features: templates, realtime live-feed, type analytics, history filter, bulk delete.
  */
 
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import {
   BellAlertIcon,
   BellIcon,
   CheckCircleIcon,
   ClockIcon,
   ExclamationTriangleIcon,
+  MagnifyingGlassIcon,
   MegaphoneIcon,
   PaperAirplaneIcon,
   SignalIcon,
@@ -17,6 +18,7 @@ import {
   TagIcon,
   TrashIcon,
   UserIcon,
+  XMarkIcon,
 } from "@heroicons/react/24/outline";
 import {
   BoltIcon,
@@ -25,6 +27,7 @@ import {
 } from "@heroicons/react/24/solid";
 import { getSupabaseClient } from "../../lib/supabaseClient";
 import { useLanguage } from "../../contexts/LanguageContext";
+import { useDebouncedValue } from "./adminShared";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -40,6 +43,13 @@ interface SentNotification {
   body:       string;
   is_read:    boolean;
   created_at: string;
+}
+
+interface RecipientUser {
+  id:       string;
+  fullName: string;
+  email:    string;
+  phone:    string;
 }
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
@@ -175,6 +185,162 @@ function TypeBreakdown({ sent }: { sent: SentNotification[] }) {
   );
 }
 
+// ─── Recipient avatar ─────────────────────────────────────────────────────────
+
+const AVATAR_COLORS = ["#0E7E74", "#0EA5E9", "#6366F1", "#F59E0B", "#EC4899", "#8B5CF6", "#10B981", "#EF4444"];
+
+function avatarColor(seed: string): string {
+  const hash = seed.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0);
+  return AVATAR_COLORS[hash % AVATAR_COLORS.length];
+}
+
+function RecipientAvatar({ name, email }: { name: string; email: string }) {
+  const display = name || email;
+  const initials = display
+    ? display.split(name ? " " : "@").slice(0, 2).map((w) => w.charAt(0).toUpperCase()).join("").slice(0, 2)
+    : "?";
+  return (
+    <span
+      className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-[10px] font-black text-white"
+      style={{ backgroundColor: avatarColor(display || "?") }}
+    >
+      {initials || "?"}
+    </span>
+  );
+}
+
+// ─── Recipient picker — search users by name/phone/email, multi-select ────────
+
+function UserRecipientPicker({
+  selected,
+  onChange,
+  lang,
+}: {
+  selected: RecipientUser[];
+  onChange: (users: RecipientUser[]) => void;
+  lang: "ar" | "en";
+}) {
+  const [query, setQuery]     = useState("");
+  const debounced              = useDebouncedValue(query, 300);
+  const [results, setResults] = useState<RecipientUser[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [open, setOpen]       = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const term = debounced.trim();
+    if (term.length < 2) { setResults([]); setSearching(false); return; }
+    let cancelled = false;
+    setSearching(true);
+    const like = `%${term}%`;
+    getSupabaseClient()
+      .from("profiles")
+      .select("id, full_name, email, phone")
+      .or(`full_name.ilike.${like},email.ilike.${like},phone.ilike.${like}`)
+      .limit(8)
+      .then(({ data }) => {
+        if (cancelled) return;
+        const selectedIds = new Set(selected.map((s) => s.id));
+        const rows = ((data ?? []) as Array<{ id: string; full_name: string | null; email: string | null; phone: string | null }>)
+          .filter((r) => !selectedIds.has(r.id))
+          .map((r) => ({ id: r.id, fullName: r.full_name ?? "", email: r.email ?? "", phone: r.phone ?? "" }));
+        setResults(rows);
+        setSearching(false);
+      });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debounced]);
+
+  // Close the dropdown on outside click.
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const addUser = (u: RecipientUser) => {
+    onChange([...selected, u]);
+    setQuery("");
+    setResults([]);
+    setOpen(false);
+  };
+  const removeUser = (id: string) => onChange(selected.filter((s) => s.id !== id));
+
+  return (
+    <div ref={containerRef} className="relative">
+      {/* Selected recipient chips */}
+      {selected.length > 0 && (
+        <div className="mb-2 flex flex-wrap gap-1.5">
+          {selected.map((u) => (
+            <span
+              key={u.id}
+              className="inline-flex items-center gap-1.5 rounded-full border border-teal-200 bg-teal-50 py-1 ps-1 pe-2 text-xs font-bold text-teal-800"
+            >
+              <RecipientAvatar name={u.fullName} email={u.email} />
+              <span className="max-w-[140px] truncate">{u.fullName || u.email || u.phone}</span>
+              <button
+                type="button"
+                onClick={() => removeUser(u.id)}
+                className="ms-0.5 inline-flex h-4 w-4 items-center justify-center rounded-full text-teal-600 hover:bg-teal-200"
+                aria-label={lang === "ar" ? "إزالة" : "Remove"}
+              >
+                <XMarkIcon className="h-3 w-3" />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* Search input */}
+      <div className="relative">
+        <MagnifyingGlassIcon className="pointer-events-none absolute inset-y-0 start-3 my-auto h-4 w-4 text-slate-400" />
+        <input
+          type="text"
+          value={query}
+          onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
+          onFocus={() => setOpen(true)}
+          placeholder={lang === "ar" ? "ابحث بالاسم أو الهاتف أو البريد…" : "Search by name, phone, or email…"}
+          className="w-full rounded-xl border border-slate-200 bg-slate-50 ps-9 pe-3 py-2.5 text-sm text-slate-800 placeholder-slate-400 focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-200"
+        />
+      </div>
+
+      {/* Results dropdown */}
+      {open && query.trim().length >= 2 && (
+        <div className="absolute z-20 mt-1.5 w-full overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg">
+          {searching ? (
+            <div className="p-3 text-center text-xs font-semibold text-slate-400">
+              {lang === "ar" ? "جارٍ البحث…" : "Searching…"}
+            </div>
+          ) : results.length === 0 ? (
+            <div className="p-3 text-center text-xs font-semibold text-slate-400">
+              {lang === "ar" ? "لا توجد نتائج" : "No matches found"}
+            </div>
+          ) : (
+            <div className="max-h-56 overflow-y-auto">
+              {results.map((u) => (
+                <button
+                  key={u.id}
+                  type="button"
+                  onClick={() => addUser(u)}
+                  className="flex w-full items-center gap-2.5 px-3 py-2.5 text-start transition-colors hover:bg-slate-50"
+                >
+                  <RecipientAvatar name={u.fullName} email={u.email} />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-bold text-slate-800">{u.fullName || (lang === "ar" ? "بدون اسم" : "Unnamed")}</p>
+                    <p className="truncate text-xs text-slate-400" dir="ltr">{[u.phone, u.email].filter(Boolean).join(" · ")}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Compose form ─────────────────────────────────────────────────────────────
 
 function ComposeCard({
@@ -185,7 +351,7 @@ function ComposeCard({
   const [title,   setTitle]   = useState("");
   const [body,    setBody]    = useState("");
   const [target,  setTarget]  = useState<SendTarget>("all");
-  const [userId,  setUserId]  = useState("");
+  const [recipients, setRecipients] = useState<RecipientUser[]>([]);
   const [sending, setSending] = useState(false);
   const [result,  setResult]  = useState<"ok" | "err" | null>(null);
 
@@ -199,7 +365,7 @@ function ComposeCard({
 
   const handleSend = useCallback(async () => {
     if (!title.trim() || !body.trim()) return;
-    if (target === "user" && !userId.trim()) return;
+    if (target === "user" && recipients.length === 0) return;
     setSending(true);
     setResult(null);
     try {
@@ -300,19 +466,26 @@ function ComposeCard({
           created_at: new Date().toISOString(),
         });
       } else {
-        // ── Single-user path ──────────────────────────────────────────────
+        // ── Selected-recipients path (1 or more) ────────────────────────────
+        const rows = recipients.map((r) => ({
+          user_id: r.id,
+          type,
+          title:   cleanTitle,
+          body:    cleanBody,
+          is_read: false,
+        }));
         const { data, error } = await sb
           .from("notifications")
-          .insert({ user_id: userId.trim(), type, title: cleanTitle, body: cleanBody })
-          .select()
-          .single();
+          .insert(rows)
+          .select();
         if (error) throw error;
-        onSent(data as SentNotification);
+        for (const row of (data ?? []) as SentNotification[]) onSent(row);
       }
 
       setResult("ok");
       setTitle("");
       setBody("");
+      setRecipients([]);
     } catch (err) {
       if (import.meta.env.DEV) {
         console.error("[NotificationsManager] send failed:", err);
@@ -321,9 +494,9 @@ function ComposeCard({
     } finally {
       setSending(false);
     }
-  }, [type, title, body, target, userId, onSent]);
+  }, [type, title, body, target, recipients, onSent]);
 
-  const isValid = title.trim().length > 0 && body.trim().length > 0 && (target === "all" || userId.trim().length > 0);
+  const isValid = title.trim().length > 0 && body.trim().length > 0 && (target === "all" || recipients.length > 0);
   const meta    = TYPE_META[type];
 
   return (
@@ -423,14 +596,9 @@ function ComposeCard({
               ))}
             </div>
             {target === "user" && (
-              <input
-                type="text"
-                value={userId}
-                onChange={(e) => setUserId(e.target.value)}
-                placeholder={lang === "ar" ? "User ID (UUID)…" : "User ID (UUID)…"}
-                dir="ltr"
-                className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 font-mono text-sm text-slate-800 placeholder-slate-400 focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-200"
-              />
+              <div className="mt-2">
+                <UserRecipientPicker selected={recipients} onChange={setRecipients} lang={lang} />
+              </div>
             )}
           </div>
 
@@ -512,7 +680,11 @@ function ComposeCard({
               ? (lang === "ar" ? "جارٍ الإرسال…" : "Sending…")
               : target === "all"
                 ? (lang === "ar" ? "إرسال لجميع المستخدمين" : "Broadcast to all users")
-                : (lang === "ar" ? "إرسال للمستخدم" : "Send to user")}
+                : recipients.length > 0
+                  ? (lang === "ar"
+                    ? `إرسال إلى ${recipients.length} ${recipients.length === 1 ? "مستخدم" : "مستخدمين"}`
+                    : `Send to ${recipients.length} recipient${recipients.length === 1 ? "" : "s"}`)
+                  : (lang === "ar" ? "اختر مستلماً واحداً على الأقل" : "Select at least one recipient")}
           </button>
 
           {result === "ok" && (

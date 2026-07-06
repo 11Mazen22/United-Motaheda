@@ -31,15 +31,13 @@
       "jsEngine": "hermes",
       "permissions": [
         "android.permission.CAMERA",
-        "android.permission.RECORD_AUDIO",
-        "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO"
       ],
       "statusBar": {
         "backgroundColor": "transparent",
         "translucent": true
       },
-      "versionCode": 29
+      "versionCode": 30
     },
     "web": {
       "bundler": "metro",
@@ -63,7 +61,8 @@
         {
           "android": {
             "kotlinVersion": "2.1.21",
-            "newArchEnabled": true
+            "newArchEnabled": true,
+            "enableProguardInReleaseBuilds": true
           },
           "ios": {
             "newArchEnabled": true
@@ -83,7 +82,8 @@
           "photosPermission": "نحتاج الوصول إلى الصور لرفع إيصال التحويل عند الدفع بفودافون كاش أو إنستاباي."
         }
       ],
-      "expo-web-browser"
+      "expo-web-browser",
+      "expo-video"
     ],
     "experiments": {
       "typedRoutes": true

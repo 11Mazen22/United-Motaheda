@@ -55,10 +55,14 @@ function OrdersHeader({
         {showBack ? (
           <Pressable
             onPress={onBack}
-            style={({ pressed }) => [h.backBtn, pressed && { opacity: 0.82, transform: [{ scale: 0.96 }] }]}
+            style={h.backBtnTouchable}
             accessibilityRole="button"
             hitSlop={8}>
-            <Ionicons name={BACK_CHEVRON} size={18} color={kit.color.inkSoft} />
+            {({ pressed }) => (
+              <View style={[h.backBtn, pressed && h.backBtnPressed]}>
+                <Ionicons name={BACK_CHEVRON} size={18} color={kit.color.inkSoft} />
+              </View>
+            )}
           </Pressable>
         ) : null}
 
@@ -276,6 +280,15 @@ const h = StyleSheet.create({
     alignItems: "center",
     gap:        14,
   },
+  // Touchable wrapper carries only sizing/radius — visual styling lives on
+  // the plain View inside instead of on the Pressable's own function-computed
+  // style, which is unreliable under this app's RN/Fabric setup.
+  backBtnTouchable: {
+    width:        40,
+    height:       40,
+    borderRadius: 20,
+    flexShrink:   0,
+  },
   backBtn: {
     width:           40,
     height:          40,
@@ -286,6 +299,10 @@ const h = StyleSheet.create({
     borderWidth:     1,
     borderColor:     kit.color.line,
     flexShrink:      0,
+  },
+  backBtnPressed: {
+    opacity:   0.82,
+    transform: [{ scale: 0.96 }],
   },
   eyebrow: {
     fontFamily:         theme.fonts.bold,

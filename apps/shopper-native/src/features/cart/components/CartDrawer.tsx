@@ -168,22 +168,24 @@ export const CartDrawer = forwardRef<CartDrawerRef>(function CartDrawer(_, ref) 
               </View>
 
               <View style={styles.actions}>
-                <Pressable onPress={handleViewCart} style={({ pressed }) => [
-                  styles.secondaryBtn,
-                  pressed && { opacity: 0.92, transform: [{ scale: 0.985 }] },
-                ]}>
-                  <UIText variant="body-sm" weight="extrabold" color="secondary">
-                    {t("cart.viewCart")}
-                  </UIText>
+                <Pressable onPress={handleViewCart} style={styles.secondaryBtnTouchable}>
+                  {({ pressed }) => (
+                    <View style={[styles.secondaryBtn, pressed && styles.secondaryBtnPressed]}>
+                      <UIText variant="body-sm" weight="extrabold" color="secondary">
+                        {t("cart.viewCart")}
+                      </UIText>
+                    </View>
+                  )}
                 </Pressable>
-                <Pressable onPress={handleCheckout} style={({ pressed }) => [
-                  styles.primaryBtn,
-                  pressed && { opacity: 0.94, transform: [{ scale: 0.985 }] },
-                ]}>
-                  <UIText variant="body-sm" weight="black" color="inverse">
-                    {t("cart.checkoutNow")}
-                  </UIText>
-                  <Ionicons name={FORWARD_ARROW} size={14} color="#fff" />
+                <Pressable onPress={handleCheckout} style={styles.primaryBtnTouchable}>
+                  {({ pressed }) => (
+                    <View style={[styles.primaryBtn, pressed && styles.primaryBtnPressed]}>
+                      <UIText variant="body-sm" weight="black" color="inverse">
+                        {t("cart.checkoutNow")}
+                      </UIText>
+                      <Ionicons name={FORWARD_ARROW} size={14} color="#fff" />
+                    </View>
+                  )}
                 </Pressable>
               </View>
             </View>
@@ -224,7 +226,7 @@ function CartDrawerRow({
 
       <View style={styles.rowContent}>
         <UIText variant="body-sm" weight="bold" align="right" numberOfLines={2} style={styles.rowNameNew}>
-          {product?.name}
+          {product?.nameAr ?? product?.name}
         </UIText>
         <UIText variant="card-title" weight="black" align="right" style={styles.rowPriceNew}>
           {formatPrice(lineTotal)}
@@ -458,8 +460,15 @@ const styles = StyleSheet.create({
     gap:           10,
     marginTop:     16,
   },
+  // Touchable wrappers carry only flex sizing/radius — visual styling lives
+  // on the plain View inside instead of on the Pressable's own
+  // function-computed style, which is unreliable under this app's RN/Fabric
+  // setup.
+  secondaryBtnTouchable: {
+    flex:         1,
+    borderRadius: 14,
+  },
   secondaryBtn: {
-    flex:            1,
     paddingVertical: 14,
     borderRadius:    14,
     backgroundColor: theme.colors.surfaceSunken,
@@ -468,8 +477,15 @@ const styles = StyleSheet.create({
     alignItems:      "center",
     justifyContent:  "center",
   },
+  secondaryBtnPressed: {
+    opacity:   0.92,
+    transform: [{ scale: 0.985 }],
+  },
+  primaryBtnTouchable: {
+    flex:         1.4,
+    borderRadius: 14,
+  },
   primaryBtn: {
-    flex:            1.4,
     paddingVertical: 14,
     borderRadius:    14,
     backgroundColor: kit.color.accentDeep,
@@ -478,6 +494,10 @@ const styles = StyleSheet.create({
     justifyContent:  "center",
     gap:             8,
     ...theme.shadow.brand,
+  },
+  primaryBtnPressed: {
+    opacity:   0.94,
+    transform: [{ scale: 0.985 }],
   },
 
   // ── Empty state — premium ──

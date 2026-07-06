@@ -17,8 +17,8 @@
  *   • The video ALWAYS starts from frame 0 (caller binds `videoShouldPlay` to the
  *     player's shouldPlay, with positionMillis 0) — never mid-stream.
  *   • The overlay can NEVER get stuck: a load timeout skips a broken video, and a
- *     safety timeout force-exits if the player's didJustFinish never arrives
- *     (a known expo-av Android OEM bug).
+ *     safety timeout force-exits if the player's end-of-playback event never
+ *     arrives (some OEM video stacks are known to drop it).
  *
  * All timing is injected, so the values live with the visual constants in the
  * component and the machine stays pure and unit-reviewable.

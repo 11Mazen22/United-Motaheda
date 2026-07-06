@@ -369,10 +369,7 @@ export function AddressFormDrawer({
           <Animated.View entering={FadeIn.duration(200)} style={styles.header}>
             <Pressable
               onPress={handleCloseRequest}
-              style={({ pressed }) => [
-                styles.closeBtn,
-                pressed && { opacity: 0.82, transform: [{ scale: 0.94 }] },
-              ]}
+              style={styles.closeBtnTouchable}
               hitSlop={24}
               pressRetentionOffset={{ top: 18, bottom: 18, left: 18, right: 18 }}
               accessibilityRole="button"
@@ -383,7 +380,11 @@ export function AddressFormDrawer({
                 radius: 18,
               }}
             >
-              <Ionicons name="close" size={18} color={theme.colors.slate[600]} />
+              {({ pressed }) => (
+                <View style={[styles.closeBtn, pressed && styles.closeBtnPressed]}>
+                  <Ionicons name="close" size={18} color={theme.colors.slate[600]} />
+                </View>
+              )}
             </Pressable>
             <View style={styles.headerCenter}>
               <UIText style={styles.headerTitle}>
@@ -410,34 +411,40 @@ export function AddressFormDrawer({
                   accessibilityRole="tab"
                   accessibilityState={{ selected: isActive }}
                   accessibilityLabel={t(step.titleKey)}
-                  style={({ pressed }) => [
-                    styles.stepPill,
-                    isActive && styles.stepPillActive,
-                    isCompleted && styles.stepPillCompleted,
-                    pressed && idx < currentStepIdx && { opacity: 0.86, transform: [{ scale: 0.97 }] },
-                  ]}
+                  style={styles.stepPillTouchable}
                 >
-                  <Ionicons
-                    name={isCompleted ? "checkmark-circle" : step.icon}
-                    size={16}
-                    color={
-                      isActive
-                        ? "#fff"
-                        : isCompleted
-                        ? kit.color.accentDeep
-                        : theme.colors.slate[400]
-                    }
-                  />
-                  <UIText
-                    style={[
-                      styles.stepPillText,
-                      isActive && styles.stepPillTextActive,
-                      isCompleted && styles.stepPillTextCompleted,
-                    ]}
-                    numberOfLines={1}
-                  >
-                    {t(step.titleKey)}
-                  </UIText>
+                  {({ pressed }) => (
+                    <View
+                      style={[
+                        styles.stepPill,
+                        isActive && styles.stepPillActive,
+                        isCompleted && styles.stepPillCompleted,
+                        pressed && idx < currentStepIdx && styles.stepPillPressed,
+                      ]}
+                    >
+                      <Ionicons
+                        name={isCompleted ? "checkmark-circle" : step.icon}
+                        size={16}
+                        color={
+                          isActive
+                            ? "#fff"
+                            : isCompleted
+                            ? kit.color.accentDeep
+                            : theme.colors.slate[400]
+                        }
+                      />
+                      <UIText
+                        style={[
+                          styles.stepPillText,
+                          isActive && styles.stepPillTextActive,
+                          isCompleted && styles.stepPillTextCompleted,
+                        ]}
+                        numberOfLines={1}
+                      >
+                        {t(step.titleKey)}
+                      </UIText>
+                    </View>
+                  )}
                 </Pressable>
               );
             })}
@@ -478,18 +485,19 @@ export function AddressFormDrawer({
                 onPress={goToPreviousStep}
                 accessibilityRole="button"
                 accessibilityLabel={t("common.previous")}
-                style={({ pressed }) => [
-                  styles.navBtn,
-                  pressed && { opacity: 0.86, transform: [{ scale: 0.97 }] },
-                ]}
+                style={styles.navBtnTouchable}
                 android_ripple={{
                   color: theme.colors.slate[200],
                   borderless: false,
                   radius: 14,
                 }}
               >
-                <Ionicons name={BACK_ARROW} size={16} color={theme.colors.slate[600]} />
-                <UIText style={styles.navBtnText}>{t("common.previous")}</UIText>
+                {({ pressed }) => (
+                  <View style={[styles.navBtn, pressed && styles.navBtnPressed]}>
+                    <Ionicons name={BACK_ARROW} size={16} color={theme.colors.slate[600]} />
+                    <UIText style={styles.navBtnText}>{t("common.previous")}</UIText>
+                  </View>
+                )}
               </Pressable>
             )}
             <View style={{ flex: 1 }} />
@@ -498,18 +506,19 @@ export function AddressFormDrawer({
                 onPress={goToNextStep}
                 accessibilityRole="button"
                 accessibilityLabel={t("common.next")}
-                style={({ pressed }) => [
-                  styles.navBtnPrimary,
-                  pressed && { opacity: 0.92, transform: [{ scale: 0.97 }] },
-                ]}
+                style={styles.navBtnPrimaryTouchable}
                 android_ripple={{
                   color: "rgba(255,255,255,0.2)",
                   borderless: false,
                   radius: 14,
                 }}
               >
-                <UIText style={styles.navBtnPrimaryText}>{t("common.next")}</UIText>
-                <Ionicons name={FORWARD_ARROW} size={16} color="#fff" />
+                {({ pressed }) => (
+                  <View style={[styles.navBtnPrimary, pressed && styles.navBtnPrimaryPressed]}>
+                    <UIText style={styles.navBtnPrimaryText}>{t("common.next")}</UIText>
+                    <Ionicons name={FORWARD_ARROW} size={16} color="#fff" />
+                  </View>
+                )}
               </Pressable>
             ) : (
               <Pressable
@@ -518,33 +527,39 @@ export function AddressFormDrawer({
                 accessibilityRole="button"
                 accessibilityLabel={isEdit ? t("addressForm.saveEdit") : t("addressForm.addAddress")}
                 accessibilityState={{ disabled: loading }}
-                style={({ pressed }) => [
-                  styles.submitBtn,
-                  pressed && !loading && { opacity: 0.92, transform: [{ scale: 0.98 }] },
-                  loading && { opacity: 0.7 },
-                ]}
+                style={styles.submitBtnTouchable}
                 android_ripple={{
                   color: "rgba(255,255,255,0.2)",
                   borderless: false,
                   radius: 18,
                 }}
               >
-                {loading ? (
-                  <ActivityIndicator color="#fff" size="small" />
-                ) : (
-                  <Ionicons
-                    name={isEdit ? "checkmark" : "add"}
-                    size={18}
-                    color="#fff"
-                  />
+                {({ pressed }) => (
+                  <View
+                    style={[
+                      styles.submitBtn,
+                      pressed && !loading && styles.submitBtnPressed,
+                      loading && styles.submitBtnLoading,
+                    ]}
+                  >
+                    {loading ? (
+                      <ActivityIndicator color="#fff" size="small" />
+                    ) : (
+                      <Ionicons
+                        name={isEdit ? "checkmark" : "add"}
+                        size={18}
+                        color="#fff"
+                      />
+                    )}
+                    <UIText style={styles.submitText}>
+                      {loading
+                        ? t("addressForm.saving")
+                        : isEdit
+                        ? t("addressForm.saveEdit")
+                        : t("addressForm.addAddress")}
+                    </UIText>
+                  </View>
                 )}
-                <UIText style={styles.submitText}>
-                  {loading
-                    ? t("addressForm.saving")
-                    : isEdit
-                    ? t("addressForm.saveEdit")
-                    : t("addressForm.addAddress")}
-                </UIText>
               </Pressable>
             )}
           </View>
@@ -580,28 +595,30 @@ export function AddressFormDrawer({
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={t("addressForm.confirmDiscardAction")}
-              style={({ pressed }) => [
-                styles.discardDangerBtn,
-                pressed && { backgroundColor: "#D63838", transform: [{ scale: 0.98 }] },
-              ]}
+              style={styles.discardDangerBtnTouchable}
               onPress={() => { setShowDiscard(false); onClose(); }}
             >
-              <UIText style={styles.discardDangerText}>
-                {t("addressForm.confirmDiscardAction")}
-              </UIText>
+              {({ pressed }) => (
+                <View style={[styles.discardDangerBtn, pressed && styles.discardDangerBtnPressed]}>
+                  <UIText style={styles.discardDangerText}>
+                    {t("addressForm.confirmDiscardAction")}
+                  </UIText>
+                </View>
+              )}
             </Pressable>
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={t("addressForm.stayAction")}
-              style={({ pressed }) => [
-                styles.discardCancelBtn,
-                pressed && { opacity: 0.7 },
-              ]}
+              style={styles.discardCancelBtnTouchable}
               onPress={() => setShowDiscard(false)}
             >
-              <UIText style={styles.discardCancelText}>
-                {t("addressForm.stayAction")}
-              </UIText>
+              {({ pressed }) => (
+                <View style={[styles.discardCancelBtn, pressed && styles.discardCancelBtnPressed]}>
+                  <UIText style={styles.discardCancelText}>
+                    {t("addressForm.stayAction")}
+                  </UIText>
+                </View>
+              )}
             </Pressable>
           </Pressable>
         </Pressable>
@@ -646,39 +663,45 @@ function StepContent({
                     accessibilityRole="radio"
                     accessibilityState={{ selected: active }}
                     accessibilityLabel={t(l.labelKey)}
-                    style={({ pressed }) => [
-                      styles.labelChip,
-                      active && styles.labelChipActive,
-                      pressed && { opacity: 0.88, transform: [{ scale: 0.97 }] },
-                    ]}
+                    style={styles.labelChipTouchable}
                     android_ripple={{
                       color: kit.color.accentTint,
                       borderless: false,
                       radius: 16,
                     }}
                   >
-                    <Ionicons
-                      name={l.icon as IoniconsName}
-                      size={18}
-                      color={
-                        active ? kit.color.accentDeep : theme.colors.slate[400]
-                      }
-                    />
-                    <UIText
-                      style={[
-                        styles.labelChipText,
-                        active && styles.labelChipTextActive,
-                      ]}
-                    >
-                      {t(l.labelKey)}
-                    </UIText>
-                    {active && (
-                      <View style={styles.activeIndicator}>
+                    {({ pressed }) => (
+                      <View
+                        style={[
+                          styles.labelChip,
+                          active && styles.labelChipActive,
+                          pressed && styles.labelChipPressed,
+                        ]}
+                      >
                         <Ionicons
-                          name="checkmark"
-                          size={12}
-                          color={kit.color.accentDeep}
+                          name={l.icon as IoniconsName}
+                          size={18}
+                          color={
+                            active ? kit.color.accentDeep : theme.colors.slate[400]
+                          }
                         />
+                        <UIText
+                          style={[
+                            styles.labelChipText,
+                            active && styles.labelChipTextActive,
+                          ]}
+                        >
+                          {t(l.labelKey)}
+                        </UIText>
+                        {active && (
+                          <View style={styles.activeIndicator}>
+                            <Ionicons
+                              name="checkmark"
+                              size={12}
+                              color={kit.color.accentDeep}
+                            />
+                          </View>
+                        )}
                       </View>
                     )}
                   </Pressable>
@@ -863,32 +886,38 @@ function StepContent({
             accessibilityRole="switch"
             accessibilityState={{ checked: form.is_default }}
             accessibilityLabel={t("addressForm.setDefault")}
-            style={({ pressed }) => [
-              styles.toggleCard,
-              form.is_default && styles.toggleCardActive,
-              pressed && { opacity: 0.92, transform: [{ scale: 0.99 }] },
-            ]}
+            style={styles.toggleCardTouchable}
             android_ripple={{
               color: kit.color.accentTint,
               borderless: false,
               radius: 16,
             }}
           >
-            <Ionicons
-              name={
-                form.is_default ? "checkmark-circle" : "ellipse-outline"
-              }
-              size={22}
-              color={
-                form.is_default
-                  ? kit.color.accentDeep
-                  : theme.colors.slate[300]
-              }
-            />
-            <View>
-              <UIText style={styles.toggleTitle}>{t("addressForm.setDefault")}</UIText>
-              <UIText style={styles.toggleDesc}>{t("addressForm.setDefaultDesc")}</UIText>
-            </View>
+            {({ pressed }) => (
+              <View
+                style={[
+                  styles.toggleCard,
+                  form.is_default && styles.toggleCardActive,
+                  pressed && styles.toggleCardPressed,
+                ]}
+              >
+                <Ionicons
+                  name={
+                    form.is_default ? "checkmark-circle" : "ellipse-outline"
+                  }
+                  size={22}
+                  color={
+                    form.is_default
+                      ? kit.color.accentDeep
+                      : theme.colors.slate[300]
+                  }
+                />
+                <View>
+                  <UIText style={styles.toggleTitle}>{t("addressForm.setDefault")}</UIText>
+                  <UIText style={styles.toggleDesc}>{t("addressForm.setDefaultDesc")}</UIText>
+                </View>
+              </View>
+            )}
           </Pressable>
         </Animated.View>
       );
@@ -986,13 +1015,17 @@ function FloatingLabelInput({
           <Pressable
             onPress={() => onChange("")}
             hitSlop={8}
-            style={({ pressed }) => [fieldStyles.clearBtn, pressed && fieldStyles.clearBtnPressed]}
+            style={fieldStyles.clearBtnTouchable}
           >
-            <Ionicons
-              name="close-circle"
-              size={16}
-              color={theme.colors.slate[300]}
-            />
+            {({ pressed }) => (
+              <View style={[fieldStyles.clearBtn, pressed && fieldStyles.clearBtnPressed]}>
+                <Ionicons
+                  name="close-circle"
+                  size={16}
+                  color={theme.colors.slate[300]}
+                />
+              </View>
+            )}
           </Pressable>
         )}
       </View>
@@ -1037,6 +1070,11 @@ const styles = StyleSheet.create({
     color: theme.colors.slate[400],
     textAlign: "center",
   },
+  // Bare touchable — no function-style, just the ripple/press-target shape.
+  // All real visual styling lives on the plain View rendered as its child.
+  closeBtnTouchable: {
+    borderRadius: 12,
+  },
   closeBtn: {
     width: 36,
     height: 36,
@@ -1047,6 +1085,10 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     marginTop: 2,
   },
+  closeBtnPressed: {
+    opacity: 0.82,
+    transform: [{ scale: 0.94 }],
+  },
 
   // Step pills
   stepIndicatorRow: {
@@ -1055,6 +1097,9 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     gap: theme.spacing.sm,
     justifyContent: "center",
+  },
+  stepPillTouchable: {
+    borderRadius: 20,
   },
   stepPill: {
     flexDirection: flexRow(isRtl()),
@@ -1066,6 +1111,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: theme.colors.border.default,
     gap: theme.spacing.xs,
+  },
+  stepPillPressed: {
+    opacity: 0.86,
+    transform: [{ scale: 0.97 }],
   },
   stepPillActive: {
     backgroundColor: kit.color.accentDeep,
@@ -1129,16 +1178,12 @@ const styles = StyleSheet.create({
 
   card: {
     backgroundColor: theme.colors.surface,
-    borderRadius: 20,
+    borderRadius: kit.radius.xl,
     padding: theme.spacing.lg,
     gap: theme.spacing.md,
     borderWidth: 1,
     borderColor: theme.colors.border.default,
-    shadowColor: theme.colors.slate[900],
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 1,
+    ...kit.shadow.card,
   },
   cardTitle: {
     fontSize: 13,
@@ -1184,6 +1229,10 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     gap: 10,
   },
+  labelChipTouchable: {
+    borderRadius: 14,
+    flexGrow: 1,
+  },
   labelChip: {
     flexDirection: flexRow(isRtl()),
     alignItems: "center",
@@ -1195,12 +1244,15 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: theme.colors.border.default,
     overflow: "hidden",
-    flexGrow: 1,
   },
   labelChipActive: {
     backgroundColor: kit.color.accentTint,
     borderColor: "rgba(14,126,116,0.30)",
     paddingStart: 32, // logical start — make room for checkmark in both LTR and RTL
+  },
+  labelChipPressed: {
+    opacity: 0.88,
+    transform: [{ scale: 0.97 }],
   },
   labelChipText: {
     fontSize: 12,
@@ -1216,6 +1268,9 @@ const styles = StyleSheet.create({
     start:    10, // logical start edge — flips automatically in RTL
   },
 
+  toggleCardTouchable: {
+    borderRadius: 20,
+  },
   toggleCard: {
     flexDirection: flexRow(isRtl()),
     alignItems: "center",
@@ -1230,6 +1285,10 @@ const styles = StyleSheet.create({
   toggleCardActive: {
     backgroundColor: kit.color.accentTint,
     borderColor: "rgba(14,126,116,0.25)",
+  },
+  toggleCardPressed: {
+    opacity: 0.92,
+    transform: [{ scale: 0.99 }],
   },
   toggleTitle: {
     fontSize: 13,
@@ -1281,6 +1340,9 @@ const styles = StyleSheet.create({
     borderTopColor: theme.colors.slate[100],
     gap: theme.spacing.md,
   },
+  navBtnTouchable: {
+    borderRadius: 14,
+  },
   navBtn: {
     flexDirection: flexRow(isRtl()),
     alignItems: "center",
@@ -1292,10 +1354,17 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: theme.colors.border.default,
   },
+  navBtnPressed: {
+    opacity: 0.86,
+    transform: [{ scale: 0.97 }],
+  },
   navBtnText: {
     fontSize: 13,
     fontFamily: theme.fonts.bold,
     color: theme.colors.slate[600],
+  },
+  navBtnPrimaryTouchable: {
+    borderRadius: 14,
   },
   navBtnPrimary: {
     flexDirection: flexRow(isRtl()),
@@ -1312,10 +1381,17 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 4,
   },
+  navBtnPrimaryPressed: {
+    opacity: 0.92,
+    transform: [{ scale: 0.97 }],
+  },
   navBtnPrimaryText: {
     fontSize: 13,
     fontFamily: theme.fonts.bold,
     color: "#fff",
+  },
+  submitBtnTouchable: {
+    borderRadius: 18,
   },
   submitBtn: {
     flexDirection: flexRow(isRtl()),
@@ -1332,6 +1408,13 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 6,
     elevation: 5,
+  },
+  submitBtnPressed: {
+    opacity: 0.92,
+    transform: [{ scale: 0.98 }],
+  },
+  submitBtnLoading: {
+    opacity: 0.7,
   },
   submitText: {
     fontSize: 15,
@@ -1389,23 +1472,37 @@ const styles = StyleSheet.create({
     textAlign: "center" as const,
     lineHeight: 22,
   },
+  discardDangerBtnTouchable: {
+    width: "100%",
+    borderRadius: 14,
+    marginTop: 8,
+  },
   discardDangerBtn: {
     width: "100%",
     backgroundColor: "#EF4444",
     borderRadius: 14,
     paddingVertical: 14,
     alignItems: "center",
-    marginTop: 8,
+  },
+  discardDangerBtnPressed: {
+    backgroundColor: "#D63838",
+    transform: [{ scale: 0.98 }],
   },
   discardDangerText: {
     fontSize: 15,
     fontFamily: theme.fonts.bold,
     color: "#fff",
   },
+  discardCancelBtnTouchable: {
+    width: "100%",
+  },
   discardCancelBtn: {
     width: "100%",
     paddingVertical: 12,
     alignItems: "center",
+  },
+  discardCancelBtnPressed: {
+    opacity: 0.7,
   },
   discardCancelText: {
     fontSize: 14,
@@ -1475,6 +1572,9 @@ const fieldStyles = StyleSheet.create({
     fontFamily: theme.fonts.medium,
     color: theme.colors.text.primary,
     paddingVertical: theme.spacing.md,
+  },
+  clearBtnTouchable: {
+    borderRadius: 999,
   },
   clearBtn: {
     padding: 2,

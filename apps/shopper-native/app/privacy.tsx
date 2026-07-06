@@ -44,7 +44,12 @@ export default function PrivacyScreen() {
     <View style={[styles.screen, { paddingTop: insets.top }]}>
       {/* Header */}
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={10}>
+        <Pressable
+          onPress={() => router.back()}
+          style={styles.backBtn}
+          hitSlop={10}
+          accessibilityRole="button"
+          accessibilityLabel={t("common.back")}>
           <Ionicons name={BACK_CHEVRON} size={18} color={kit.color.inkSoft} />
         </Pressable>
         <UIText style={styles.title}>{t("privacy.title")}</UIText>
@@ -136,9 +141,7 @@ export default function PrivacyScreen() {
           {`نحتفظ بحق تعديل هذه السياسة في أي وقت. سنُعلمك بأي تغييرات جوهرية عبر إشعار داخل التطبيق أو البريد الإلكتروني قبل نفاذ التعديل بـ ٧ أيام على الأقل. استمرار استخدامك للتطبيق بعد التعديل يُعدّ قبولاً منك للسياسة المحدّثة.`}
         </Section>
 
-        <UIText style={styles.footer}>
-          الصيدلية المتحدة • مصر • united.pharmacy.eg@gmail.com
-        </UIText>
+        <UIText style={styles.footer}>{t("privacy.footer")}</UIText>
       </ScrollView>
     </View>
   );

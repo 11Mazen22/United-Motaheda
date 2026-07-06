@@ -9,6 +9,7 @@
  */
 
 import { getSupabaseClient } from "../lib/supabaseClient";
+import { notifyOrderStatusChange, notifyPaymentStatusChange } from "./orderNotificationsApi";
 
 // ─── Public types ─────────────────────────────────────────────────────────────
 
@@ -297,6 +298,7 @@ export async function adminUpdateOrderStatus(
     .eq("id", orderId);
 
   if (error) throw error;
+  notifyOrderStatusChange(orderId, status);
 }
 
 /** Mark a manual payment as verified (admin review). */
@@ -307,6 +309,7 @@ export async function adminVerifyPayment(orderId: string): Promise<void> {
     .eq("id", orderId);
 
   if (error) throw error;
+  notifyPaymentStatusChange(orderId, "verified");
 }
 
 /** Reject / flag a payment as failed. */
@@ -323,6 +326,7 @@ export async function adminRejectPayment(
     .eq("id", orderId);
 
   if (error) throw error;
+  notifyPaymentStatusChange(orderId, "rejected", reason);
 }
 
 // ─── Image hydration ──────────────────────────────────────────────────────────

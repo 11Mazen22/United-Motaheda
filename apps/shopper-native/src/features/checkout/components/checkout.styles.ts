@@ -16,6 +16,9 @@ export const headerStyles = StyleSheet.create({
     borderBottomColor: kit.color.line,
     ...kit.shadow.raised,
   },
+  backTouchable: {
+    borderRadius: 20,
+  },
   backBtn: {
     width:           40,
     height:          40,
@@ -26,6 +29,10 @@ export const headerStyles = StyleSheet.create({
     borderWidth:     1,
     borderColor:     kit.color.line,
     ...kit.shadow.raised,
+  },
+  backBtnPressed: {
+    opacity:         0.85,
+    backgroundColor: kit.color.well,
   },
   badge: {
     flexDirection:     flexRow(isRtl()),
@@ -122,6 +129,9 @@ export const sectionStyles = StyleSheet.create({
     alignItems:      "center",
     justifyContent:  "center",
   },
+  actionTouchable: {
+    borderRadius: 999,
+  },
   actionWrap: {
     flexDirection:     flexRow(isRtl()),
     alignItems:        "center",
@@ -132,6 +142,10 @@ export const sectionStyles = StyleSheet.create({
     backgroundColor:   kit.color.accentTint,
     borderWidth:       1,
     borderColor:       kit.color.line,
+  },
+  actionWrapPressed: {
+    opacity:   0.78,
+    transform: [{ scale: 0.97 }],
   },
   body: {
     borderTopWidth:    StyleSheet.hairlineWidth,
@@ -211,9 +225,9 @@ export const ctaStyles = StyleSheet.create({
     flexDirection:     flexRow(isRtl()),
     alignItems:        "center",
     gap:               8,
-    backgroundColor:   "#FEF3C7",
+    backgroundColor:   kit.color.warnTint,
     borderWidth:       1,
-    borderColor:       "#F59E0B40",
+    borderColor:       kit.color.warn,
     borderRadius:      10,
     paddingHorizontal: 12,
     paddingVertical:   10,
@@ -222,7 +236,7 @@ export const ctaStyles = StyleSheet.create({
     flex:       1,
     fontSize:   12,
     fontFamily: theme.fonts.medium,
-    color:      "#92400E",
+    color:      kit.color.warn,
     textAlign:  textAlignStart(isRtl()),
     lineHeight: 18,
   },
@@ -242,9 +256,14 @@ export const summaryStyles = StyleSheet.create({
     marginVertical:  12,
   },
   totalRow: {
-    flexDirection:  flexRow(isRtl()),
-    justifyContent: "space-between",
-    alignItems:     "baseline",
+    flexDirection:     flexRow(isRtl()),
+    justifyContent:    "space-between",
+    alignItems:        "center",
+    backgroundColor:   kit.color.accentTint,
+    borderRadius:      12,
+    paddingHorizontal: 12,
+    paddingVertical:   10,
+    marginTop:         2,
   },
   totalLabel: {
     fontSize:           14,
@@ -254,9 +273,9 @@ export const summaryStyles = StyleSheet.create({
     includeFontPadding: false,
   },
   totalValue: {
-    fontSize:           24,
+    fontSize:           26,
     fontFamily:         theme.fonts.black,
-    color:              kit.color.ink,
+    color:              kit.color.accentDeep,
     letterSpacing:      -0.8,
     includeFontPadding: false,
   },

@@ -198,10 +198,14 @@ export default function AddressesScreen() {
       <Animated.View entering={FadeIn.duration(240)} style={[s.header, { paddingTop: insets.top + 10 }]}>
         <Pressable
           onPress={() => router.back()}
-          style={s.backBtn}
+          style={s.backBtnTouchable}
           accessibilityRole="button"
           accessibilityLabel={t("common.back")}>
-          <Ionicons name={BACK_CHEVRON} size={18} color={kit.color.inkSoft} />
+          {({ pressed }) => (
+            <View style={[s.backBtn, pressed && s.backBtnPressed]}>
+              <Ionicons name={BACK_CHEVRON} size={18} color={kit.color.inkSoft} />
+            </View>
+          )}
         </Pressable>
 
         <View style={s.iconTile}>
@@ -219,11 +223,15 @@ export default function AddressesScreen() {
 
         <Pressable
           onPress={handleAdd}
-          style={s.addBtnHeader}
+          style={s.addBtnHeaderTouchable}
           hitSlop={6}
           accessibilityRole="button"
           accessibilityLabel={t("addresses.addNew")}>
-          <Ionicons name="add" size={20} color={kit.color.accentDeep} />
+          {({ pressed }) => (
+            <View style={[s.addBtnHeader, pressed && s.addBtnHeaderPressed]}>
+              <Ionicons name="add" size={20} color={kit.color.accentDeep} />
+            </View>
+          )}
         </Pressable>
       </Animated.View>
 
@@ -305,17 +313,26 @@ export default function AddressesScreen() {
               entering={FadeInDown.duration(320).delay(addresses.length * 60 + 100)}>
               <Pressable
                 onPress={handleAdd}
-                style={[s.addCardBtn, { flexDirection: flexRow(IS_RTL) }]}
+                style={s.addCardBtnTouchable}
                 accessibilityRole="button"
                 accessibilityLabel={t("addresses.addNew")}>
-                <View style={s.addCardIcon}>
-                  <Ionicons name="add" size={22} color={kit.color.accentDeep} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <UIText style={[s.addCardLabel, { textAlign: TEXT_START }]}>{t("addresses.addNew")}</UIText>
-                  <UIText style={[s.addCardDesc, { textAlign: TEXT_START }]}>{t("addresses.addNewDesc")}</UIText>
-                </View>
-                <Ionicons name={FORWARD_CHEVRON} size={14} color={kit.color.accentDeep} />
+                {({ pressed }) => (
+                  <View
+                    style={[
+                      s.addCardBtn,
+                      { flexDirection: flexRow(IS_RTL) },
+                      pressed && s.addCardBtnPressed,
+                    ]}>
+                    <View style={s.addCardIcon}>
+                      <Ionicons name="add" size={22} color={kit.color.accentDeep} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <UIText style={[s.addCardLabel, { textAlign: TEXT_START }]}>{t("addresses.addNew")}</UIText>
+                      <UIText style={[s.addCardDesc, { textAlign: TEXT_START }]}>{t("addresses.addNewDesc")}</UIText>
+                    </View>
+                    <Ionicons name={FORWARD_CHEVRON} size={14} color={kit.color.accentDeep} />
+                  </View>
+                )}
               </Pressable>
             </Animated.View>
           }
@@ -350,6 +367,13 @@ const s = StyleSheet.create({
     borderBottomColor: kit.color.line,
     ...kit.shadow.raised,
   },
+  // Touchable wrapper carries only sizing/radius — visual styling lives on
+  // the plain View inside instead of on the Pressable's own style, since a
+  // raw Pressable's function-computed style has proven unreliable here.
+  backBtnTouchable: {
+    borderRadius: 20,
+    flexShrink:   0,
+  },
   backBtn: {
     width:           40,
     height:          40,
@@ -360,7 +384,10 @@ const s = StyleSheet.create({
     borderWidth:     1,
     borderColor:     kit.color.line,
     ...kit.shadow.raised,
-    flexShrink:      0,
+  },
+  backBtnPressed: {
+    backgroundColor: kit.color.well,
+    transform:       [{ scale: 0.94 }],
   },
   iconTile: {
     width:           52,
@@ -389,6 +416,10 @@ const s = StyleSheet.create({
     textAlign:          TEXT_START,
     marginTop:          1,
   },
+  addBtnHeaderTouchable: {
+    borderRadius: 13,
+    flexShrink:   0,
+  },
   addBtnHeader: {
     width:           42,
     height:          42,
@@ -399,7 +430,9 @@ const s = StyleSheet.create({
     alignItems:      "center",
     justifyContent:  "center",
     ...kit.shadow.raised,
-    flexShrink:      0,
+  },
+  addBtnHeaderPressed: {
+    transform: [{ scale: 0.93 }],
   },
 
   // Stats chips row
@@ -486,17 +519,24 @@ const s = StyleSheet.create({
   },
 
   // Add address CTA
+  addCardBtnTouchable: {
+    borderRadius: 18,
+    marginTop:    14,
+  },
   addCardBtn: {
     alignItems:      "center",
     gap:             14,
     padding:         16,
-    marginTop:       14,
     borderRadius:    18,
     backgroundColor: kit.color.surface,
     borderWidth:     1.5,
     borderColor:     kit.color.line,
     borderStyle:     "dashed",
     ...kit.shadow.raised,
+  },
+  addCardBtnPressed: {
+    backgroundColor: kit.color.accentTint,
+    borderColor:     "rgba(14,126,116,0.30)",
   },
   addCardIcon: {
     width:           48,

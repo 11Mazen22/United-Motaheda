@@ -5,6 +5,8 @@
 import React, { useCallback, useMemo, useState } from "react";
 import {
   FlatList,
+  Linking,
+  Platform,
   Pressable,
   StyleSheet,
   TextInput,
@@ -16,6 +18,7 @@ import { kit } from "@/shared/kit";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
+import * as Haptics from "expo-haptics";
 import { useTranslation } from "react-i18next";
 import { FAQAccordion, FAQCategoryRail } from "@/features/faq";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -25,6 +28,15 @@ import { flexRow, isRtl, textAlignStart, BACK_CHEVRON, FORWARD_CHEVRON } from "@
 
 const IS_RTL     = isRtl();
 const TEXT_START = textAlignStart(IS_RTL);
+
+const SUPPORT_WA_URL = `https://wa.me/201112343212?text=${encodeURIComponent(
+  "مرحباً، لدي سؤال لم أجد إجابته في صفحة الأسئلة الشائعة."
+)}`;
+
+function openSupportChat() {
+  if (Platform.OS !== "web") Haptics.selectionAsync().catch(() => {});
+  Linking.openURL(SUPPORT_WA_URL).catch(() => {});
+}
 
 export default function FAQScreen() {
   const router  = useRouter();
@@ -150,9 +162,17 @@ export default function FAQScreen() {
         <View style={[s.contactContent, { flexDirection: flexRow(IS_RTL) }]}>
           <Ionicons name="chatbubbles-outline" size={16} color={kit.color.accentDeep} />
           <UIText style={[s.contactText, { textAlign: TEXT_START }]}>{t("faq.notFound")}</UIText>
-          <Pressable style={[s.contactBtn, { flexDirection: flexRow(IS_RTL) }]}>
-            <UIText style={s.contactBtnText}>{t("faq.contactUs")}</UIText>
-            <Ionicons name={FORWARD_CHEVRON} size={12} color={kit.color.accentDeep} />
+          <Pressable
+            onPress={openSupportChat}
+            style={s.contactBtnTouchable}
+            accessibilityRole="button"
+            accessibilityLabel={t("faq.contactUs")}>
+            {({ pressed }) => (
+              <View style={[s.contactBtn, { flexDirection: flexRow(IS_RTL) }, pressed && s.contactBtnPressed]}>
+                <UIText style={s.contactBtnText}>{t("faq.contactUs")}</UIText>
+                <Ionicons name={FORWARD_CHEVRON} size={12} color={kit.color.accentDeep} />
+              </View>
+            )}
           </Pressable>
         </View>
       </Animated.View>
@@ -270,6 +290,10 @@ const s = StyleSheet.create({
     color:              kit.color.inkSoft,
     includeFontPadding: false,
   },
+  // Touchable wrapper carries only sizing/radius for the ripple shape — real
+  // visual styling lives on the plain View inside, since the Pressable's own
+  // function-computed style is unreliable on this app's RN/Fabric setup.
+  contactBtnTouchable: { borderRadius: 10, flexShrink: 0 },
   contactBtn: {
     alignItems:        "center",
     gap:               4,
@@ -280,6 +304,7 @@ const s = StyleSheet.create({
     borderWidth:       1,
     borderColor:       kit.color.line,
   },
+  contactBtnPressed: { backgroundColor: kit.color.line },
   contactBtnText: {
     fontFamily:         theme.fonts.bold,
     fontSize:           11,

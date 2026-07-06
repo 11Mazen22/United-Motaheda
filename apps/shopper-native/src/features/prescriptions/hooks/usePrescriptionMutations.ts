@@ -15,6 +15,7 @@ import {
   updatePrescription,
   deletePrescription,
   type PrescriptionInput,
+  type SubmissionSource,
 } from "../api";
 
 export function usePrescriptionMutations(userId: string | undefined) {
@@ -22,8 +23,9 @@ export function usePrescriptionMutations(userId: string | undefined) {
   const invalidate   = () => queryClient.invalidateQueries({ queryKey: ["prescriptions", userId] });
 
   const create = useMutation({
-    mutationFn: (input: PrescriptionInput) => createPrescription(userId as string, input),
-    onSuccess:  invalidate,
+    mutationFn: (args: { input: PrescriptionInput; source?: SubmissionSource }) =>
+      createPrescription(userId as string, args.input, args.source),
+    onSuccess: invalidate,
   });
 
   const update = useMutation({

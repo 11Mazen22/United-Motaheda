@@ -2,7 +2,11 @@
  * Railway API client — shared NestJS backend
  *
  * Connects the native app to the same Railway server used by the web app,
- * so delivery quotes and orders are 100% consistent across platforms.
+ * for branch listing and delivery-zone quotes.
+ *
+ * Order creation does NOT go through this client — see
+ * src/features/checkout/api.ts, which calls the Supabase `create-order`
+ * Edge Function instead (authenticated, sets orders.user_id correctly).
  *
  * Base URL: https://pharmacyapi-production-e30d.up.railway.app
  */
@@ -45,31 +49,6 @@ export interface RailwayCartItem {
   name:      string;
   quantity:  number;
   unitPrice: number;
-}
-
-export interface RailwayCreateOrderRequest {
-  idempotencyKey:   string;
-  customerName:     string;
-  customerPhone:    string;
-  address:          Record<string, unknown>;
-  note?:            string;
-  coordinates:      { lat: number; lng: number };
-  branchId?:        string;
-  cart:             { items: RailwayCartItem[]; subtotal: number };
-  expectedPricing:  {
-    subtotal:    number;
-    discount:    number;
-    tax:         number;
-    deliveryFee: number;
-    total:       number;
-  };
-  paymentMethod: string;
-}
-
-export interface RailwayCreateOrderResponse {
-  orderId:   string;
-  createdAt: string;
-  status:    string;
 }
 
 // ─── Error class ─────────────────────────────────────────────────────────────
@@ -147,13 +126,6 @@ export const railwayApi = {
     requestedBranchId?: string;
   }) =>
     railwayFetch<RailwayDeliveryQuote>("/delivery/quote", {
-      method: "POST",
-      body:   JSON.stringify(body),
-    }),
-
-  /** Create order via Railway backend. */
-  createOrder: (body: RailwayCreateOrderRequest) =>
-    railwayFetch<RailwayCreateOrderResponse>("/orders", {
       method: "POST",
       body:   JSON.stringify(body),
     }),

@@ -12,6 +12,8 @@ import type {
   RxStatus,
   RefillDelivery,
   RefillStatus,
+  ReviewStatus,
+  SubmissionSource,
 } from "@/stores/prescriptionsStore";
 
 // ── Prescription ───────────────────────────────────────────────────────────
@@ -32,6 +34,11 @@ export interface PrescriptionRow {
   original_pharmacy: string | null;
   added_at:          string;
   updated_at:        string;
+  review_status?:      ReviewStatus;
+  submission_source?:  SubmissionSource;
+  reviewed_at?:        string | null;
+  admin_notes?:        string | null;
+  rejection_reason?:   string | null;
 }
 
 export function rowToPrescription(row: PrescriptionRow): Prescription {
@@ -49,9 +56,14 @@ export function rowToPrescription(row: PrescriptionRow): Prescription {
     schedule:     row.dea_schedule != null
       ? (row.dea_schedule as Prescription["schedule"])
       : undefined,
-    rxNumber:     row.rx_number ?? undefined,
-    addedAt:      row.added_at,
-    updatedAt:    row.updated_at,
+    rxNumber:         row.rx_number ?? undefined,
+    addedAt:          row.added_at,
+    updatedAt:        row.updated_at,
+    reviewStatus:     row.review_status ?? "approved",
+    submissionSource: row.submission_source ?? "manual",
+    reviewedAt:       row.reviewed_at ?? undefined,
+    adminNotes:       row.admin_notes ?? undefined,
+    rejectionReason:  row.rejection_reason ?? undefined,
   };
 }
 
@@ -71,6 +83,9 @@ export interface RefillRequestRow {
   eta:             string | null;
   placed_at:       string;
   delivered_at:    string | null;
+  reviewed_at?:      string | null;
+  admin_notes?:      string | null;
+  rejection_reason?: string | null;
 }
 
 const centsToUnits = (cents: number): number => cents / 100;
@@ -88,5 +103,8 @@ export function rowToRefillRequest(row: RefillRequestRow): RefillRequest {
     insuranceApplied: centsToUnits(row.insurance_cents),
     placedAt:         row.placed_at,
     eta:              row.eta ?? undefined,
+    reviewedAt:       row.reviewed_at ?? undefined,
+    adminNotes:       row.admin_notes ?? undefined,
+    rejectionReason:  row.rejection_reason ?? undefined,
   };
 }

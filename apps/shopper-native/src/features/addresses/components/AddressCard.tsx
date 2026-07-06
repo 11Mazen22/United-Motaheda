@@ -83,22 +83,40 @@ export function AddressCard({ address, onEdit, onDelete, onSetDefault }: Props) 
           {!address.is_default && (
             <Pressable
               onPress={() => { haptic(); onSetDefault(); }}
-              style={styles.actionBtn}>
-              <Ionicons name="star-outline" size={13} color={kit.color.accentDeep} />
-              <UIText style={[styles.actionText, { color: kit.color.accentDeep }]}>{t("address.setDefault")}</UIText>
+              style={styles.actionBtnTouchable}
+              accessibilityRole="button"
+              accessibilityLabel={t("address.setDefault")}>
+              {({ pressed }) => (
+                <View style={[styles.actionBtn, pressed && styles.actionBtnPressed]}>
+                  <Ionicons name="star-outline" size={13} color={kit.color.accentDeep} />
+                  <UIText style={[styles.actionText, { color: kit.color.accentDeep }]}>{t("address.setDefault")}</UIText>
+                </View>
+              )}
             </Pressable>
           )}
           <Pressable
             onPress={() => { haptic(); onEdit(); }}
-            style={styles.actionBtn}>
-            <Ionicons name="create-outline" size={13} color={theme.colors.slate[500]} />
-            <UIText style={styles.actionText}>{t("address.edit")}</UIText>
+            style={styles.actionBtnTouchable}
+            accessibilityRole="button"
+            accessibilityLabel={t("address.edit")}>
+            {({ pressed }) => (
+              <View style={[styles.actionBtn, pressed && styles.actionBtnPressed]}>
+                <Ionicons name="create-outline" size={13} color={kit.color.inkSoft} />
+                <UIText style={styles.actionText}>{t("address.edit")}</UIText>
+              </View>
+            )}
           </Pressable>
           <Pressable
             onPress={() => { haptic(); onDelete(); }}
-            style={styles.actionBtn}>
-            <Ionicons name="trash-outline" size={13} color={theme.colors.red[500]} />
-            <UIText style={[styles.actionText, { color: theme.colors.red[500] }]}>{t("address.delete")}</UIText>
+            style={styles.actionBtnTouchable}
+            accessibilityRole="button"
+            accessibilityLabel={t("address.delete")}>
+            {({ pressed }) => (
+              <View style={[styles.actionBtn, pressed && styles.actionBtnDangerPressed]}>
+                <Ionicons name="trash-outline" size={13} color={kit.color.danger} />
+                <UIText style={[styles.actionText, { color: kit.color.danger }]}>{t("address.delete")}</UIText>
+              </View>
+            )}
           </Pressable>
         </View>
       </View>
@@ -108,20 +126,20 @@ export function AddressCard({ address, onEdit, onDelete, onSetDefault }: Props) 
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: "#fff",
-    borderRadius: 20,
+    backgroundColor: kit.color.surface,
+    borderRadius: kit.radius.xl,
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: theme.colors.border.default,
-    ...theme.shadow.card,
+    borderColor: kit.color.line,
+    ...kit.shadow.raised,
   },
   cardDefault: {
     borderColor: "rgba(14,126,116,0.25)",
     borderWidth: 1.5,
   },
   body: {
-    padding: 14,
-    gap: 8,
+    padding: kit.sp(3.5),
+    gap: kit.sp(2),
   },
   topRow: {
     flexDirection: flexRow(isRtl()),
@@ -135,7 +153,7 @@ const styles = StyleSheet.create({
     backgroundColor: kit.color.accentTint,
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 999,
+    borderRadius: kit.radius.pill,
   },
   labelText: {
     fontSize: 11,
@@ -146,26 +164,26 @@ const styles = StyleSheet.create({
     flexDirection: flexRow(isRtl()),
     alignItems: "center",
     gap: 4,
-    backgroundColor: theme.colors.green[50],
+    backgroundColor: kit.color.successTint,
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: 999,
+    borderRadius: kit.radius.pill,
   },
   defaultText: {
     fontSize: 10,
     fontFamily: theme.fonts.bold,
-    color: theme.colors.green[700],
+    color: kit.color.success,
   },
   recipient: {
     fontSize: 14,
     fontFamily: theme.fonts.black,
-    color: theme.colors.text.primary,
+    color: kit.color.ink,
     textAlign: textAlignStart(isRtl()),
   },
   addressText: {
     fontSize: 12,
     fontFamily: theme.fonts.regular,
-    color: theme.colors.slate[500],
+    color: kit.color.inkSoft,
     textAlign: textAlignStart(isRtl()),
     lineHeight: 18,
   },
@@ -177,7 +195,7 @@ const styles = StyleSheet.create({
   phoneText: {
     fontSize: 11,
     fontFamily: theme.fonts.semibold,
-    color: theme.colors.slate[400],
+    color: kit.color.inkFaint,
   },
   actions: {
     flexDirection: flexRow(isRtl()),
@@ -186,7 +204,14 @@ const styles = StyleSheet.create({
     marginTop: 4,
     paddingTop: 10,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: theme.colors.slate[100],
+    borderTopColor: kit.color.line,
+  },
+  // Touchable wrapper carries only sizing/radius — visual styling (gap,
+  // flexDirection, background) lives on the plain View inside instead of on
+  // the Pressable's own function-computed style, which is unreliable here.
+  actionBtnTouchable: {
+    borderRadius: kit.radius.control,
+    flexShrink: 1,
   },
   actionBtn: {
     flexDirection: flexRow(isRtl()),
@@ -194,12 +219,18 @@ const styles = StyleSheet.create({
     gap: 4,
     paddingHorizontal: 10,
     paddingVertical: 6,
-    borderRadius: 10,
-    backgroundColor: theme.colors.slate[50],
+    borderRadius: kit.radius.control,
+    backgroundColor: kit.color.well,
+  },
+  actionBtnPressed: {
+    backgroundColor: kit.color.accentTint,
+  },
+  actionBtnDangerPressed: {
+    backgroundColor: kit.color.dangerTint,
   },
   actionText: {
     fontSize: 10.5,
     fontFamily: theme.fonts.bold,
-    color: theme.colors.slate[500],
+    color: kit.color.inkSoft,
   },
 });

@@ -28,10 +28,11 @@ export type { RequestRefillInput }      from "./hooks/useRequestRefill";
 export { usePrescriptionMutations }     from "./hooks/usePrescriptionMutations";
 export {
   createPrescription,
+  createWhatsAppPrescriptionPlaceholder,
   updatePrescription,
   deletePrescription,
 }                                        from "./api";
-export type { PrescriptionInput }       from "./api";
+export type { PrescriptionInput, SubmissionSource } from "./api";
 
 export { useDrugInteractionCheck }      from "./hooks/useDrugInteractionCheck";
 export type {

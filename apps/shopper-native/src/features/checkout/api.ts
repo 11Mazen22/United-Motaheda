@@ -1,26 +1,43 @@
 /**
- * Checkout API service — uses the shared Railway backend.
+ * Checkout API service — calls the shared Supabase Edge Function
+ * (`create-order`), the same one the web app uses. Order creation is
+ * authenticated via the caller's Supabase session, so `orders.user_id`
+ * is always set correctly and idempotency-key replay is handled server-side.
  *
- * Both the web and the native app now call the same Railway /orders endpoint,
- * guaranteeing consistent order creation, delivery fee calculation, and
- * zone validation across platforms.
- *
- * Fallback: if Railway is unreachable we re-throw a typed CheckoutRequestError
- * so the AppSheet can show an actionable error to the user.
+ * Delivery quotes / branch lookups still go through the Railway backend
+ * (see @/lib/railwayApi) — only order creation was moved off it, since the
+ * Railway /orders route requires quoteToken/assignmentToken/branchId fields
+ * this app never populated and has no auth guard.
  */
 
+import {
+  FunctionsFetchError,
+  FunctionsHttpError,
+  FunctionsRelayError,
+} from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
-import { railwayApi, RailwayApiError, type RailwayCreateOrderRequest } from "@/lib/railwayApi";
 import { CheckoutRequestError } from "./errors";
 import type {
   CheckoutSubmitCommand,
   CreateOrderResult,
 } from "./types";
 
+const EDGE_FUNCTION_NAME = "create-order";
+const TIMEOUT_MS = 20_000;
+
+interface EdgeFunctionResponse {
+  order: {
+    id: string;
+    created_at: string;
+    status?: string;
+    payment_status?: string;
+    payment_reference?: string | null;
+    idempotent_replay?: boolean;
+  };
+  conflicts: CreateOrderResult["conflicts"];
+}
+
 // Timeout applied to the two Supabase calls inside ensureUserProfile.
-// railwayApi.createOrder() carries its own 15 s AbortController timeout
-// internally (see src/lib/railwayApi.ts), so no separate timeout is needed
-// for the Railway leg of the checkout flow.
 const PROFILE_TIMEOUT_MS = 8_000;
 
 /**
@@ -128,81 +145,84 @@ export async function createCheckoutOrder(
 ): Promise<CreateOrderResult> {
   await ensureUserProfile(command);
 
-  // Build the Railway request payload from the typed CheckoutSubmitCommand.
-  // Field names differ intentionally between the command (domain model) and
-  // the Railway HTTP contract:
-  //   command.cartLines      → cart.items
-  //   command.expectedPricing.shipping → expectedPricing.deliveryFee
-  //   command.payment.method → paymentMethod
-  //
-  // coordinates: not yet part of CheckoutSubmitCommand (the delivery-quote
-  // flow resolves coordinates via GPS/address but doesn't thread them into
-  // the command yet). Cairo centre is the safe fallback for the Railway
-  // branch-routing logic until this field is propagated end-to-end.
-  const railwayPayload: RailwayCreateOrderRequest = {
-    idempotencyKey: command.idempotencyKey,
-    customerName:   command.customer.fullName,
-    customerPhone:  command.customer.phone,
-    address:        command.address as Record<string, unknown>,
-    note:           command.note ?? "",
-    coordinates:    { lat: 30.0444, lng: 31.2357 },
-    branchId:       undefined,
-    cart: {
-      items: command.cartLines.map((line) => ({
-        productId: line.productId,
-        name:      line.name,
-        quantity:  line.quantity,
-        unitPrice: line.unitPrice,
-      })),
-      subtotal: command.expectedPricing.subtotal,
-    },
-    expectedPricing: {
-      subtotal:    command.expectedPricing.subtotal,
-      discount:    command.expectedPricing.discount,
-      tax:         command.expectedPricing.tax,
-      deliveryFee: command.expectedPricing.shipping,
-      total:       command.expectedPricing.total,
-    },
-    paymentMethod: command.payment.method,
-  };
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
   try {
-    const result = await railwayApi.createOrder(railwayPayload);
+    const { data, error } = await supabase.functions.invoke<EdgeFunctionResponse>(
+      EDGE_FUNCTION_NAME,
+      {
+        body:   command,
+        signal: controller.signal,
+      },
+    );
 
-    return {
-      orderId:          result.orderId,
-      createdAt:        result.createdAt,
-      status:           result.status ?? "pending",
-      paymentStatus:    "pending",
-      paymentReference: null,
-      idempotentReplay: false,
-      conflicts:        [],
-    };
-  } catch (error) {
-    if (error instanceof CheckoutRequestError) throw error;
+    clearTimeout(timer);
 
-    if (error instanceof RailwayApiError) {
-      if (error.code === "TIMEOUT") {
-        throw new CheckoutRequestError(
-          "انتهت مهلة الاتصال. تحقق من اتصالك وأعد المحاولة.",
-          [], false, "TIMEOUT", true,
-        );
+    if (error) {
+      if (error instanceof FunctionsHttpError) {
+        const httpStatus = error.context?.status as number | undefined;
+        let message = "تعذر إرسال الطلب حالياً.";
+        try {
+          const body = (await error.context?.json?.()) as { error?: string } | null;
+          if (body?.error) message = body.error;
+        } catch { /* body wasn't JSON — keep the generic message */ }
+
+        if (httpStatus === 401 || httpStatus === 403) {
+          throw new CheckoutRequestError(
+            "انتهت صلاحية جلستك. يرجى تسجيل الدخول مرة أخرى.",
+            [], false, "AUTH", false,
+          );
+        }
+
+        throw new CheckoutRequestError(message, [], false, "FUNCTION_ERROR", false);
       }
-      if (error.code === "NETWORK") {
+
+      if (error instanceof FunctionsRelayError) {
         throw new CheckoutRequestError(
           "تعذر الوصول إلى خدمة الطلبات. تحقق من اتصالك بالإنترنت.",
           [], false, "NETWORK", true,
         );
       }
-      if (error.status === 401 || error.status === 403) {
+
+      if (error instanceof FunctionsFetchError) {
         throw new CheckoutRequestError(
-          "انتهت صلاحية جلستك. يرجى تسجيل الدخول مرة أخرى.",
-          [], false, "AUTH", false,
+          "تعذر الوصول إلى خدمة الطلبات. تحقق من اتصالك بالإنترنت.",
+          [], false, "NETWORK", true,
         );
       }
+
       throw new CheckoutRequestError(
-        error.message ?? "تعذر إرسال الطلب حالياً.",
+        (error as { message?: string }).message ?? "تعذر إرسال الطلب حالياً.",
         [], false, "FUNCTION_ERROR", false,
+      );
+    }
+
+    if (!data?.order?.id || !data?.order?.created_at) {
+      throw new CheckoutRequestError(
+        "استجابة غير مكتملة من خدمة الطلبات. حاول مجدداً.",
+        [], false, "BAD_RESPONSE", false,
+      );
+    }
+
+    return {
+      orderId:          data.order.id,
+      createdAt:        data.order.created_at,
+      status:           data.order.status ?? "pending",
+      paymentStatus:    data.order.payment_status ?? "pending",
+      paymentReference: data.order.payment_reference ?? null,
+      idempotentReplay: data.order.idempotent_replay ?? false,
+      conflicts:        data.conflicts ?? [],
+    };
+  } catch (error) {
+    clearTimeout(timer);
+
+    if (error instanceof CheckoutRequestError) throw error;
+
+    if (error instanceof Error && (error.name === "AbortError" || error.message === "Aborted")) {
+      throw new CheckoutRequestError(
+        "انتهت مهلة الاتصال. تحقق من اتصالك وأعد المحاولة.",
+        [], false, "TIMEOUT", true,
       );
     }
 

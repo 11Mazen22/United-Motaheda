@@ -55,17 +55,21 @@ function ContactRow({ icon, label, value, color, onPress }: ContactRowProps) {
       onPress={handlePress}
       accessibilityRole="button"
       accessibilityLabel={`${label}: ${value}`}
-      style={({ pressed }) => [s.contactRow, { flexDirection: flexRow(IS_RTL) }, pressed && { opacity: 0.75 }]}>
-      <View style={{ flexDirection: flexRow(IS_RTL), alignItems: "center", gap: 12, flex: 1 }}>
-        <View style={[s.contactIcon, { backgroundColor: `${color}14` }]}>
-          <Ionicons name={icon} size={20} color={color} />
+      style={s.contactRowTouchable}>
+      {({ pressed }) => (
+        <View style={[s.contactRow, { flexDirection: flexRow(IS_RTL) }, pressed && s.contactRowPressed]}>
+          <View style={{ flexDirection: flexRow(IS_RTL), alignItems: "center", gap: 12, flex: 1 }}>
+            <View style={[s.contactIcon, { backgroundColor: `${color}14` }]}>
+              <Ionicons name={icon} size={20} color={color} />
+            </View>
+            <View style={{ gap: 2 }}>
+              <UIText style={[s.contactLabel, { textAlign: TEXT_START }]}>{label}</UIText>
+              <UIText style={[s.contactValue, { textAlign: TEXT_START }]}>{value}</UIText>
+            </View>
+          </View>
+          <Ionicons name={FORWARD_CHEVRON} size={16} color={kit.color.inkFaint} />
         </View>
-        <View style={{ gap: 2 }}>
-          <UIText style={[s.contactLabel, { textAlign: TEXT_START }]}>{label}</UIText>
-          <UIText style={[s.contactValue, { textAlign: TEXT_START }]}>{value}</UIText>
-        </View>
-      </View>
-      <Ionicons name={FORWARD_CHEVRON} size={16} color={kit.color.inkFaint} />
+      )}
     </Pressable>
   );
 }
@@ -405,7 +409,13 @@ const s = StyleSheet.create({
     includeFontPadding: false,
   },
 
+  // Touchable wrapper carries no visual styling — the Pressable's own
+  // function-computed style is unreliable on this app's RN/Fabric setup, so
+  // all real visuals (background, layout, pressed state) live on the plain
+  // View inside instead.
+  contactRowTouchable: { borderRadius: 0 },
   contactRow:   { alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 14 },
+  contactRowPressed: { backgroundColor: kit.color.well },
   contactIcon:  { width: 42, height: 42, borderRadius: 13, alignItems: "center", justifyContent: "center" },
   contactLabel: {
     fontFamily:         theme.fonts.semibold,

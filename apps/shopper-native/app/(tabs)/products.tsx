@@ -27,7 +27,7 @@ const TEXT_START = textAlignStart(IS_RTL);
 const GRID_GAP = 12;
 // ─── Stats strip ─────────────────────────────────────────────────────────────
 
-function StatsStrip({ catCount }: { catCount: number }) {
+function StatsStrip({ catCount, loading }: { catCount: number; loading: boolean }) {
   const { t }       = useTranslation();
   const { pagePad } = useScreenLayout();
   const items = [
@@ -45,7 +45,7 @@ function StatsStrip({ catCount }: { catCount: number }) {
           </View>
           <View style={st.textCol}>
             <UIText style={[st.value, { color: item.color, textAlign: TEXT_START }]}>
-              {i === 0 ? String(catCount) : item.value}
+              {i === 0 ? (loading ? "–" : String(catCount)) : item.value}
             </UIText>
             <UIText style={[st.label, { textAlign: TEXT_START }]}>{item.label}</UIText>
           </View>
@@ -202,7 +202,7 @@ export default function ProductsScreen() {
             {/* ════════════════════════════════════════════════ */}
             {/* STATS STRIP                                     */}
             {/* ════════════════════════════════════════════════ */}
-            <StatsStrip catCount={categories.length} />
+            <StatsStrip catCount={categories.length} loading={catsLoading} />
 
             {/* ════════════════════════════════════════════════ */}
             {/* CATEGORIES SECTION                              */}
@@ -229,7 +229,7 @@ export default function ProductsScreen() {
               <EmptyState
                 icon="grid-outline"
                 title={t("products.noProducts")}
-                description={t("products.loading")}
+                description={t("products.noCategoriesDescription")}
               />
             ) : (
               <View style={[s.grid, { paddingHorizontal: pagePad }]}>
@@ -290,6 +290,7 @@ const s = StyleSheet.create({
     borderColor:     kit.color.accentDeep + "22",
     alignItems:      "center",
     justifyContent:  "center",
+    flexShrink:      0,
     ...kit.shadow.raised,
   },
   headerEyebrow: {

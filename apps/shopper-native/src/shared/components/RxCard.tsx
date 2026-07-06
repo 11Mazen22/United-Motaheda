@@ -63,6 +63,24 @@ function statusLabel(rx: Prescription, t: TFunction): string {
   }
 }
 
+/** Staff review workflow badge — only rendered when not yet approved.
+ *  Kept visually distinct (icon + tiny pill) from the medical-lifecycle
+ *  status pill above so the two concepts never blur together. */
+function ReviewBadge({ reviewStatus, t }: { reviewStatus: Prescription["reviewStatus"]; t: TFunction }): React.ReactElement | null {
+  if (!reviewStatus || reviewStatus === "approved") return null;
+  const isRejected = reviewStatus === "rejected";
+  const color = isRejected ? kit.color.danger : kit.color.warn;
+  const tint  = isRejected ? kit.color.dangerTint : kit.color.warnTint;
+  return (
+    <View style={[rb.badge, { backgroundColor: tint, borderColor: color + "33" }]}>
+      <Ionicons name={isRejected ? "close-circle" : "time-outline"} size={10} color={color} />
+      <Text weight="bold" style={[rb.text, { color }]} numberOfLines={1}>
+        {isRejected ? t("rx.reviewRejected") : t("rx.reviewPending")}
+      </Text>
+    </View>
+  );
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 const IS_RTL     = isRtl();
@@ -123,6 +141,7 @@ export const RxCard = memo(
                       style={[s.doseText, { textAlign: TEXT_START }]}>
                       {rx.dose}
                     </Text>
+                    <ReviewBadge reviewStatus={rx.reviewStatus} t={t} />
                   </View>
                   {/* Inline status pill */}
                   <View style={[s.statusPill, { backgroundColor: tint }]}>
@@ -207,6 +226,7 @@ export const RxCard = memo(
                 maxFontSizeMultiplier={1.2}>
                 {rx.nextRefill}
               </Text>
+              <ReviewBadge reviewStatus={rx.reviewStatus} t={t} />
             </View>
 
             {/* Trailing refill button */}
@@ -370,6 +390,26 @@ const s = StyleSheet.create({
     lineHeight:         15,
     color:              kit.color.inkFaint,
     marginTop:          3,
+    includeFontPadding: false,
+  },
+});
+
+// ── Review-status badge ─────────────────────────────────────────────────────
+const rb = StyleSheet.create({
+  badge: {
+    flexDirection:     flexRow(IS_RTL),
+    alignSelf:         "flex-start",
+    alignItems:        "center",
+    gap:               4,
+    marginTop:         4,
+    paddingHorizontal: 7,
+    paddingVertical:   3,
+    borderRadius:      kit.radius.pill,
+    borderWidth:       1,
+  },
+  text: {
+    fontSize:           9,
+    lineHeight:         12,
     includeFontPadding: false,
   },
 });

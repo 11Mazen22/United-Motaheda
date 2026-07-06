@@ -106,10 +106,14 @@ export const DetailsStep = React.memo(function DetailsStep({
               {t("checkout.signInDesc")}
             </UIText>
           </View>
-          <Pressable onPress={onSignIn} style={s.signInBtn} hitSlop={4}>
-            <UIText variant="eyebrow" weight="bold" style={{ color: "#fff" }}>
-              {t("checkout.signInBtn")}
-            </UIText>
+          <Pressable onPress={onSignIn} style={s.signInTouchable} hitSlop={4}>
+            {({ pressed }) => (
+              <View style={[s.signInBtn, pressed && s.signInBtnPressed]}>
+                <UIText variant="eyebrow" weight="bold" style={{ color: "#fff" }}>
+                  {t("checkout.signInBtn")}
+                </UIText>
+              </View>
+            )}
           </Pressable>
         </Animated.View>
       )}
@@ -359,11 +363,15 @@ const s = StyleSheet.create({
     alignItems:      "center",
     justifyContent:  "center",
   },
+  signInTouchable: { borderRadius: 10 },
   signInBtn: {
     backgroundColor:   kit.color.accent,
     borderRadius:      10,
     paddingHorizontal: 12,
     paddingVertical:   8,
+  },
+  signInBtnPressed: {
+    opacity: 0.85,
   },
 
   // Branch warning

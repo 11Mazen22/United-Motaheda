@@ -295,7 +295,7 @@ export function AddRxManual(): React.ReactElement {
   const onSave = useCallback(async () => {
     if (!canSave) return;
     try {
-      const created = await create.mutateAsync({ name: name.trim(), rxNumber });
+      const created = await create.mutateAsync({ input: { name: name.trim(), rxNumber } });
       showSuccessSheet(
         t("prescriptions.manualSavedTitle"),
         t("prescriptions.manualSavedBody"),
@@ -583,9 +583,14 @@ const s = StyleSheet.create({
 
 const d = StyleSheet.create({
   row: {
-    // Always physical "row" (never mirrored) — see the comment where this
+    // Always physical LTR (never mirrored) — see the comment where this
     // style is applied for why numbers must not follow RTL row-reversal.
-    flexDirection:   "row",
+    // A hardcoded `flexDirection: "row"` is NOT LTR-safe: per utils/layout.ts,
+    // under forceRTL (Arabic) a literal "row" already flows right-to-left —
+    // that was the actual bug (active/first box rendered on the right,
+    // digits filled right-to-left in Arabic mode). `flexRow(false)` is this
+    // codebase's own idiom for "force LTR regardless of language".
+    flexDirection:   flexRow(false),
     justifyContent:  "center",
     alignItems:      "center",
     gap:             8,

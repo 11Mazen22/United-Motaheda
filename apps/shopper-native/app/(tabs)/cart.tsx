@@ -83,12 +83,17 @@ const StepBtn = memo(function StepBtn({
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
       accessibilityState={{ disabled }}
-      style={({ pressed }) => [
-        baseStyle,
-        pressed && !disabled && pressStyle,
-        disabled && s.stepBtnDisabled,
-      ]}>
-      <Ionicons name={isPrimary ? "add" : "remove"} size={18} color={glyphColor} />
+      style={s.stepBtnTouchable}>
+      {({ pressed }) => (
+        <View
+          style={[
+            baseStyle,
+            pressed && !disabled && pressStyle,
+            disabled && s.stepBtnDisabled,
+          ]}>
+          <Ionicons name={isPrimary ? "add" : "remove"} size={18} color={glyphColor} />
+        </View>
+      )}
     </Pressable>
   );
 });
@@ -130,9 +135,17 @@ const CartItemCard = memo(function CartItemCard({
   }, [item.productId, item.quantity, removeItem, updateQty]);
 
   const handleRemove = useCallback(() => {
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
-    removeItem(item.productId);
-  }, [item.productId, removeItem]);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    showConfirmSheet(
+      t("cart.removeItemTitle"),
+      t("cart.removeItemMessage", { name }),
+      () => {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
+        removeItem(item.productId);
+      },
+      { confirmLabel: t("cart.removeItem"), danger: true },
+    );
+  }, [item.productId, name, removeItem, t]);
 
   return (
     <Animated.View
@@ -147,8 +160,12 @@ const CartItemCard = memo(function CartItemCard({
           hitSlop={10}
           accessibilityRole="button"
           accessibilityLabel={t("cart.removeItem")}
-          style={({ pressed }) => [s.deleteBtn, pressed && { opacity: 0.82, transform: [{ scale: 0.94 }] }]}>
-          <Ionicons name="trash-outline" size={13} color={kit.color.danger} />
+          style={s.deleteBtnTouchable}>
+          {({ pressed }) => (
+            <View style={[s.deleteBtn, pressed && s.deleteBtnPressed]}>
+              <Ionicons name="trash-outline" size={13} color={kit.color.danger} />
+            </View>
+          )}
         </Pressable>
       </View>
 
@@ -240,10 +257,14 @@ const CartHeader = memo(function CartHeader({
             hitSlop={8}
             accessibilityRole="button"
             accessibilityLabel={t("cart.clearCart")}
-            style={({ pressed }) => [s.clearBtn, pressed && { opacity: 0.85, transform: [{ scale: 0.97 }] }]}
+            style={s.clearBtnTouchable}
             onPress={onClearPress}>
-            <Ionicons name="trash-outline" size={13} color={kit.color.danger} />
-            <UIText style={s.clearText}>{t("common.clear")}</UIText>
+            {({ pressed }) => (
+              <View style={[s.clearBtn, pressed && s.clearBtnPressed]}>
+                <Ionicons name="trash-outline" size={13} color={kit.color.danger} />
+                <UIText style={s.clearText}>{t("common.clear")}</UIText>
+              </View>
+            )}
           </Pressable>
         </View>
       </View>
@@ -496,18 +517,22 @@ export default function CartScreen() {
             accessibilityLabel={t("cart.checkoutBtn", { total: total.toFixed(2) })}
             accessibilityState={{ disabled: !delivery.isDeliverable }}
             hitSlop={6}
-            style={({ pressed }) => [
-              s.checkoutOuter,
-              pressed && delivery.isDeliverable && { opacity: 0.92, transform: [{ scale: 0.98 }] },
-            ]}>
-            <View style={[s.checkoutInner, !delivery.isDeliverable && s.checkoutInnerDisabled]}>
-              <Ionicons name={FORWARD_CHEVRON} size={17} color={kit.color.onInk} />
-              <UIText style={s.checkoutText} numberOfLines={1}>
-                {delivery.isDeliverable
-                  ? t("cart.checkoutBtn", { total: total.toFixed(2) })
-                  : t("cart.outsideDelivery")}
-              </UIText>
-            </View>
+            style={s.checkoutOuter}>
+            {({ pressed }) => (
+              <View
+                style={[
+                  s.checkoutInner,
+                  !delivery.isDeliverable && s.checkoutInnerDisabled,
+                  pressed && delivery.isDeliverable && s.checkoutInnerPressed,
+                ]}>
+                <Ionicons name={FORWARD_CHEVRON} size={17} color={kit.color.onInk} />
+                <UIText style={s.checkoutText} numberOfLines={1}>
+                  {delivery.isDeliverable
+                    ? t("cart.checkoutBtn", { total: total.toFixed(2) })
+                    : t("cart.outsideDelivery")}
+                </UIText>
+              </View>
+            )}
           </Pressable>
         </View>
       </View>

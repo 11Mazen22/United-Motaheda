@@ -224,6 +224,42 @@ export function PrescriptionDetail({ id }: { id: string | undefined }): React.Re
         }}
         showsVerticalScrollIndicator={false}>
 
+        {/* ── Staff review status ──────────────────────────────────── */}
+        {rx.reviewStatus === "pending_review" && (
+          <Animated.View entering={FadeInDown.duration(240)} style={s.reviewBanner}>
+            <View style={[s.reviewBannerRow, { flexDirection: flexRow(IS_RTL) }]}>
+              <View style={s.reviewBannerIconWell}>
+                <Ionicons name="time-outline" size={16} color={kit.color.warn} />
+              </View>
+              <View style={s.reviewBannerText}>
+                <Text weight="black" style={s.reviewBannerTitle}>
+                  {t("prescriptions.reviewPendingTitle")}
+                </Text>
+                <Text style={s.reviewBannerBody}>
+                  {t("prescriptions.reviewPendingBody")}
+                </Text>
+              </View>
+            </View>
+          </Animated.View>
+        )}
+        {rx.reviewStatus === "rejected" && (
+          <Animated.View entering={FadeInDown.duration(240)} style={[s.reviewBanner, s.reviewBannerDanger]}>
+            <View style={[s.reviewBannerRow, { flexDirection: flexRow(IS_RTL) }]}>
+              <View style={[s.reviewBannerIconWell, s.reviewBannerIconWellDanger]}>
+                <Ionicons name="close-circle-outline" size={16} color={kit.color.danger} />
+              </View>
+              <View style={s.reviewBannerText}>
+                <Text weight="black" style={[s.reviewBannerTitle, { color: kit.color.danger }]}>
+                  {t("prescriptions.reviewRejectedTitle")}
+                </Text>
+                <Text style={s.reviewBannerBody}>
+                  {rx.rejectionReason || t("prescriptions.reviewRejectedBody")}
+                </Text>
+              </View>
+            </View>
+          </Animated.View>
+        )}
+
         {/* ── Hero ──────────────────────────────────────────────────── */}
         <Animated.View entering={FadeInDown.duration(280)} style={s.heroCard}>
           <View style={[s.heroStripe, { backgroundColor: color }]} />
@@ -712,6 +748,11 @@ function RefillHistoryRow({
           {label}
         </Text>
         <Text style={h.date} numberOfLines={1}>{dateLabel}</Text>
+        {cancelled && refill.rejectionReason && (
+          <Text style={h.rejectionReason} numberOfLines={2}>
+            {refill.rejectionReason}
+          </Text>
+        )}
       </View>
       {refill.total > 0 && (
         <Text weight="black" style={h.total} numberOfLines={1}>
@@ -1025,6 +1066,54 @@ const s = StyleSheet.create({
     includeFontPadding: false,
   },
 
+  // ── Staff review banner ─────────────────────────────────────────────────
+  reviewBanner: {
+    backgroundColor: kit.color.warnTint,
+    borderRadius:    kit.radius.lg,
+    borderWidth:     1,
+    borderColor:     "rgba(245,158,11,0.32)",
+    padding:         14,
+  },
+  reviewBannerDanger: {
+    backgroundColor: kit.color.dangerTint,
+    borderColor:     "rgba(239,68,68,0.28)",
+  },
+  reviewBannerRow: {
+    alignItems: "flex-start",
+    gap:        12,
+  },
+  reviewBannerIconWell: {
+    width:           32,
+    height:          32,
+    borderRadius:    11,
+    backgroundColor: "rgba(245,158,11,0.18)",
+    alignItems:      "center",
+    justifyContent:  "center",
+    flexShrink:      0,
+  },
+  reviewBannerIconWellDanger: {
+    backgroundColor: "rgba(239,68,68,0.16)",
+  },
+  reviewBannerText: {
+    flex: 1,
+    gap:  3,
+  },
+  reviewBannerTitle: {
+    fontSize:           12,
+    lineHeight:         17,
+    color:              kit.color.warn,
+    letterSpacing:      0.2,
+    textAlign:          TEXT_START,
+    includeFontPadding: false,
+  },
+  reviewBannerBody: {
+    fontSize:           13,
+    lineHeight:         20,
+    color:              kit.color.inkSoft,
+    textAlign:          TEXT_START,
+    includeFontPadding: false,
+  },
+
   // ── Safety card ───────────────────────────────────────────────────────
   safetyCard: {
     backgroundColor: kit.color.accentTint,
@@ -1269,6 +1358,14 @@ const h = StyleSheet.create({
     lineHeight:         15,
     color:              kit.color.inkFaint,
     textAlign:          TEXT_START,
+    includeFontPadding: false,
+  },
+  rejectionReason: {
+    fontSize:           11,
+    lineHeight:         16,
+    color:              kit.color.danger,
+    textAlign:          TEXT_START,
+    marginTop:          2,
     includeFontPadding: false,
   },
   total: {

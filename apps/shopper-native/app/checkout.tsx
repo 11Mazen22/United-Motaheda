@@ -16,9 +16,9 @@ import {
   Platform,
   Pressable,
   ScrollView,
-  StatusBar,
   View,
 } from "react-native";
+import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -154,7 +154,7 @@ function CheckoutScreen() {
       style={{ flex: 1, backgroundColor: kit.color.canvas }}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
       keyboardVerticalOffset={Platform.OS === "ios" ? insets.top + 56 : 0}>
-      <StatusBar barStyle="dark-content" backgroundColor={kit.color.canvas} />
+      <StatusBar style="dark" />
 
       {/* Auth gate — intercepts unauthenticated order attempts */}
       <AuthGateModal
@@ -168,8 +168,12 @@ function CheckoutScreen() {
 
       {/* Header */}
       <View style={[hs.root, { paddingTop: insets.top + 10 }]}>
-        <Pressable style={hs.backBtn} onPress={() => router.back()} hitSlop={8}>
-          <Ionicons name={BACK_CHEVRON} size={18} color={kit.color.inkSoft} />
+        <Pressable style={hs.backTouchable} onPress={() => router.back()} hitSlop={8}>
+          {({ pressed }) => (
+            <View style={[hs.backBtn, pressed && hs.backBtnPressed]}>
+              <Ionicons name={BACK_CHEVRON} size={18} color={kit.color.inkSoft} />
+            </View>
+          )}
         </Pressable>
         <View style={{ flex: 1 }}>
           <UIText variant="card-title" align={TEXT_START}>
@@ -315,7 +319,7 @@ function CheckoutScreen() {
 
         {blockingReason && (
           <Animated.View entering={FadeInDown.duration(200)} style={cs.blockBanner}>
-            <Ionicons name="warning-outline" size={14} color="#D97706" />
+            <Ionicons name="warning-outline" size={14} color={kit.color.warn} />
             <UIText style={cs.blockBannerText}>{blockingReason}</UIText>
           </Animated.View>
         )}

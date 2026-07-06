@@ -18,8 +18,8 @@ export const StepPill = React.memo(function StepPill({
   active,
   done,
 }: StepPillProps) {
-  const numBg       = done ? kit.color.accent : active ? kit.color.ink : kit.color.lineStrong;
-  const pillBg      = done ? kit.color.successTint : "transparent";
+  const numBg       = done ? kit.color.success : active ? kit.color.ink : kit.color.lineStrong;
+  const pillBg      = done ? kit.color.successTint : active ? kit.color.well : "transparent";
   const pillBorder  = done ? kit.color.success : active ? kit.color.ink : kit.color.line;
   const labelColor  = done ? kit.color.success : active ? kit.color.ink : kit.color.inkFaint;
 

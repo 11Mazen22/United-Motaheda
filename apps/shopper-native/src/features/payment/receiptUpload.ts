@@ -6,19 +6,32 @@ import * as ImagePicker from "expo-image-picker";
 import { supabase } from "@/lib/supabase";
 import { RECEIPTS_BUCKET } from "./constants";
 
+export type ReceiptErrorCode =
+  | "permission_denied"
+  | "sign_in_required"
+  | "read_failed"
+  | "upload_failed"
+  | "url_failed";
+
+/** Thrown by uploadPaymentReceipt with a stable code — callers translate via i18n. */
+export class ReceiptUploadError extends Error {
+  code: ReceiptErrorCode;
+  constructor(code: ReceiptErrorCode, message?: string) {
+    super(message ?? code);
+    this.name = "ReceiptUploadError";
+    this.code = code;
+  }
+}
+
 export type PickReceiptResult =
   | { ok: true; localUri: string }
   | { ok: false; cancelled: true }
-  | { ok: false; cancelled: false; message: string };
+  | { ok: false; cancelled: false; code: ReceiptErrorCode };
 
 export async function pickPaymentReceiptImage(): Promise<PickReceiptResult> {
   const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
   if (!permission.granted) {
-    return {
-      ok:      false,
-      cancelled: false,
-      message: "يرجى السماح بالوصول إلى الصور لرفع إيصال التحويل.",
-    };
+    return { ok: false, cancelled: false, code: "permission_denied" };
   }
 
   const result = await ImagePicker.launchImageLibraryAsync({
@@ -57,7 +70,7 @@ export async function uploadPaymentReceipt(
   localUri: string,
 ): Promise<string> {
   if (!userId) {
-    throw new Error("يجب تسجيل الدخول لرفع إيصال التحويل.");
+    throw new ReceiptUploadError("sign_in_required");
   }
 
   const mime = mimeForUri(localUri);
@@ -66,7 +79,7 @@ export async function uploadPaymentReceipt(
 
   const response = await fetch(localUri);
   if (!response.ok) {
-    throw new Error("تعذّر قراءة صورة الإيصال.");
+    throw new ReceiptUploadError("read_failed");
   }
   const blob = await response.blob();
 
@@ -75,12 +88,12 @@ export async function uploadPaymentReceipt(
     .upload(path, blob, { contentType: mime, upsert: false });
 
   if (error) {
-    throw new Error(error.message || "تعذّر رفع إيصال التحويل.");
+    throw new ReceiptUploadError("upload_failed", error.message);
   }
 
   const { data } = supabase.storage.from(RECEIPTS_BUCKET).getPublicUrl(path);
   if (!data.publicUrl) {
-    throw new Error("تعذّر الحصول على رابط الإيصال.");
+    throw new ReceiptUploadError("url_failed");
   }
   return data.publicUrl;
 }

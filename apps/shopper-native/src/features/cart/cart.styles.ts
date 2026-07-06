@@ -92,6 +92,12 @@ export const s = StyleSheet.create({
     color:              kit.color.accentDeep,
     includeFontPadding: false,
   },
+  // Touchable wrapper carries only sizing/radius — visual styling lives on
+  // the plain View inside instead of on the Pressable's own function-computed
+  // style, which is unreliable under this app's RN/Fabric setup.
+  clearBtnTouchable: {
+    borderRadius: kit.radius.pill,
+  },
   clearBtn: {
     flexDirection:     flexRow(IS_RTL),
     alignItems:        "center",
@@ -102,6 +108,10 @@ export const s = StyleSheet.create({
     backgroundColor:   kit.color.dangerTint,
     borderWidth:       1,
     borderColor:       "rgba(179,38,30,0.18)",
+  },
+  clearBtnPressed: {
+    opacity:   0.85,
+    transform: [{ scale: 0.97 }],
   },
   clearText: {
     fontFamily:         theme.fonts.bold,
@@ -317,6 +327,9 @@ export const s = StyleSheet.create({
     includeFontPadding: false,
     letterSpacing:      0.3,
   },
+  deleteBtnTouchable: {
+    borderRadius: 10,
+  },
   deleteBtn: {
     width:           32,
     height:          32,
@@ -326,6 +339,10 @@ export const s = StyleSheet.create({
     borderColor:     "rgba(179,38,30,0.18)",
     alignItems:      "center",
     justifyContent:  "center",
+  },
+  deleteBtnPressed: {
+    opacity:   0.82,
+    transform: [{ scale: 0.94 }],
   },
   cardMidRow: {
     flexDirection: flexRow(IS_RTL),
@@ -404,6 +421,15 @@ export const s = StyleSheet.create({
     borderWidth:     1,
     borderColor:     kit.color.line,
     padding:         3,
+  },
+  // Touchable wrapper carries only sizing/radius for both stepper variants —
+  // visual styling (bg, border, glyph) lives on the plain View inside instead
+  // of on the Pressable's own function-computed style, which is unreliable
+  // under this app's RN/Fabric setup.
+  stepBtnTouchable: {
+    width:        36,
+    height:       36,
+    borderRadius: 9,
   },
   // Decrement — neutral surface chip
   stepBtn: {
@@ -588,6 +614,10 @@ export const s = StyleSheet.create({
   },
   checkoutInnerDisabled: {
     backgroundColor: kit.color.inkFaint,
+  },
+  checkoutInnerPressed: {
+    opacity:   0.92,
+    transform: [{ scale: 0.98 }],
   },
   checkoutText: {
     fontFamily:         theme.fonts.black,

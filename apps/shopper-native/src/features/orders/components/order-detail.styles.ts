@@ -148,6 +148,13 @@ export const styles = StyleSheet.create({
   },
 
   // Item cards
+  // Touchable wrapper carries only sizing/radius — visual styling (flex
+  // direction, background, border) lives on the plain View inside instead of
+  // on the Pressable's own function-computed style, which is unreliable
+  // under this app's RN/Fabric setup.
+  itemCardTouchable: {
+    borderRadius: 14,
+  },
   itemCard: {
     flexDirection:   flexRow(isRtl()),
     alignItems:      "center",
@@ -299,8 +306,11 @@ export const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing[4],
     paddingBottom:     80,
   },
+  retryBtnTouchable: {
+    marginTop:    theme.spacing[2.5],
+    borderRadius: 12,
+  },
   retryBtn: {
-    marginTop:         theme.spacing[2.5],
     paddingHorizontal: theme.spacing[3],
     paddingVertical:   theme.spacing.md,
     borderRadius:      12,
