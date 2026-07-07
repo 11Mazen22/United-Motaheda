@@ -27,7 +27,9 @@
     "ts-loader": "^9.5.0",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
-    "typescript": "^5.8.0"
+    "typescript": "^5.8.0",
+    "webpack": "^5.107.2",
+    "webpack-node-externals": "^3.0.0"
   },
   "prisma": {
     "schema": "prisma/schema.prisma",
