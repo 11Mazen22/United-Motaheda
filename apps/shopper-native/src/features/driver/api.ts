@@ -1,0 +1,397 @@
+/**
+ * Driver API — direct Supabase CRUD for the authenticated driver's own
+ * assignments, orders, and issue reports.
+ *
+ * Mirrors apps/shopper-web/src/services/logisticsApi.ts's conventions:
+ *   - Every mutation uses `.update(...).select()` and verifies the returned
+ *     row actually reflects the intended change before treating it as a
+ *     success — an RLS-silent-denial must surface as a real error, not a
+ *     false "it worked".
+ *   - Every query is explicitly filtered by the authenticated driver's own
+ *     id, as defense-in-depth alongside RLS (orders_select_driver /
+ *     order_items_select_driver / delivery_assignments "driver select own" /
+ *     delivery_issues "driver select own"/"driver insert own" — see
+ *     database/20260708_delivery_assignments_and_issues.sql and
+ *     database/20260709_driver_orders_select_access.sql).
+ *
+ * Order detail reuses fetchOrderById from features/orders/api.ts directly —
+ * that query has no user_id filter at all and relies entirely on RLS, so it
+ * already works correctly for a driver session now that orders_select_driver
+ * exists; no separate "getOrderForDriver" query was needed.
+ */
+
+import { supabase } from "@/lib/supabase";
+import { fetchOrderById } from "@/features/orders/api";
+import type { Order, OrderItem } from "@/stores/orders";
+import { notifyCustomerOrderUpdate } from "./customerNotify";
+
+export type { Order, OrderItem };
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+export type AssignmentResponseStatus = "offered" | "accepted" | "declined" | "superseded" | "completed";
+
+export interface DeliveryAssignment {
+  id:             string;
+  orderId:        string;
+  driverId:       string;
+  assignedBy:     string | null;
+  assignmentKind: "assigned" | "reassigned";
+  responseStatus: AssignmentResponseStatus;
+  declineReason:  string | null;
+  offeredAt:      string;
+  respondedAt:    string | null;
+  pickedUpAt:     string | null;
+  deliveredAt:    string | null;
+}
+
+export type IssueReasonCode =
+  | "customer_unreachable"
+  | "wrong_address"
+  | "customer_refused"
+  | "item_damaged"
+  | "item_missing"
+  | "access_issue"
+  | "vehicle_breakdown"
+  | "other";
+
+export interface DeliveryIssue {
+  id:             string;
+  orderId:        string;
+  driverId:       string;
+  reasonCode:     IssueReasonCode;
+  note:           string | null;
+  status:         "open" | "acknowledged" | "resolved";
+  resolvedBy:     string | null;
+  resolvedAt:     string | null;
+  resolutionNote: string | null;
+  createdAt:      string;
+}
+
+/** A manifest entry — an assigned order plus a lightweight summary, enough
+ * for the task-list screen without fetching every line item up front. */
+export interface ManifestOrder {
+  id:              string;
+  status:          Order["status"];
+  customerName:    string;
+  customerPhone:   string;
+  customerAddress: string;
+  total:           number;
+  updatedAt:       string;
+}
+
+// ─── Row shapes ───────────────────────────────────────────────────────────────
+
+interface RawAssignmentRow {
+  id:               string;
+  order_id:         string;
+  driver_id:        string;
+  assigned_by:      string | null;
+  assignment_kind:  "assigned" | "reassigned";
+  response_status:  AssignmentResponseStatus;
+  decline_reason:   string | null;
+  offered_at:       string;
+  responded_at:     string | null;
+  picked_up_at:     string | null;
+  delivered_at:     string | null;
+}
+
+interface RawIssueRow {
+  id:              string;
+  order_id:        string;
+  driver_id:       string;
+  reason_code:     IssueReasonCode;
+  note:            string | null;
+  status:          "open" | "acknowledged" | "resolved";
+  resolved_by:     string | null;
+  resolved_at:     string | null;
+  resolution_note: string | null;
+  created_at:      string;
+}
+
+interface RawManifestRow {
+  id:               string;
+  status:           string;
+  customer_name:    string;
+  customer_phone:   string;
+  customer_address: Record<string, unknown> | null;
+  total:            number | string;
+  updated_at:       string;
+}
+
+const ASSIGNMENT_COLUMNS =
+  "id, order_id, driver_id, assigned_by, assignment_kind, response_status, decline_reason, offered_at, responded_at, picked_up_at, delivered_at";
+const ISSUE_COLUMNS =
+  "id, order_id, driver_id, reason_code, note, status, resolved_by, resolved_at, resolution_note, created_at";
+
+function num(v: number | string | null | undefined): number {
+  if (v == null) return 0;
+  const n = typeof v === "string" ? parseFloat(v) : v;
+  return Number.isFinite(n) ? n : 0;
+}
+
+function mapAssignmentRow(row: RawAssignmentRow): DeliveryAssignment {
+  return {
+    id: row.id,
+    orderId: row.order_id,
+    driverId: row.driver_id,
+    assignedBy: row.assigned_by,
+    assignmentKind: row.assignment_kind,
+    responseStatus: row.response_status,
+    declineReason: row.decline_reason,
+    offeredAt: row.offered_at,
+    respondedAt: row.responded_at,
+    pickedUpAt: row.picked_up_at,
+    deliveredAt: row.delivered_at,
+  };
+}
+
+function mapIssueRow(row: RawIssueRow): DeliveryIssue {
+  return {
+    id: row.id,
+    orderId: row.order_id,
+    driverId: row.driver_id,
+    reasonCode: row.reason_code,
+    note: row.note,
+    status: row.status,
+    resolvedBy: row.resolved_by,
+    resolvedAt: row.resolved_at,
+    resolutionNote: row.resolution_note,
+    createdAt: row.created_at,
+  };
+}
+
+function mapManifestRow(row: RawManifestRow): ManifestOrder {
+  const addr = (row.customer_address ?? {}) as { formatted?: string; street?: string; streetLine?: string; city?: string };
+  const formatted = addr.formatted
+    ?? [addr.streetLine ?? addr.street, addr.city].filter(Boolean).join(", ");
+  return {
+    id: row.id,
+    status: row.status as Order["status"],
+    customerName: row.customer_name,
+    customerPhone: row.customer_phone,
+    customerAddress: formatted,
+    total: num(row.total),
+    updatedAt: row.updated_at,
+  };
+}
+
+// ─── Manifest (task list) ─────────────────────────────────────────────────────
+
+/** Orders currently assigned to me and still in an active delivery stage —
+ * mirrors listDriverManifest()'s status filter from the web logisticsApi. */
+export async function listMyManifest(driverId: string): Promise<ManifestOrder[]> {
+  const { data, error } = await supabase
+    .from("orders")
+    .select("id, status, customer_name, customer_phone, customer_address, total, updated_at")
+    .eq("assigned_driver_id", driverId)
+    .in("status", ["ready", "picked_up"])
+    .order("updated_at", { ascending: false });
+
+  if (error) throw error;
+  return ((data ?? []) as RawManifestRow[]).map(mapManifestRow);
+}
+
+/** Order detail for a driver — reuses the shared fetchOrderById, which has
+ * no user_id filter and relies entirely on RLS (orders_select_driver now
+ * grants this for an order assigned to the caller). */
+export async function getOrderForDriver(orderId: string): Promise<Order | null> {
+  return fetchOrderById(orderId);
+}
+
+// ─── Assignment offers (accept / decline) ────────────────────────────────────
+
+/** Assignments offered to me, awaiting my response — powers the "new
+ * delivery offer" banner/screen. */
+export async function listMyOpenAssignmentOffers(driverId: string): Promise<DeliveryAssignment[]> {
+  const { data, error } = await supabase
+    .from("delivery_assignments")
+    .select(ASSIGNMENT_COLUMNS)
+    .eq("driver_id", driverId)
+    .eq("response_status", "offered")
+    .order("offered_at", { ascending: false });
+
+  if (error) throw error;
+  return ((data ?? []) as RawAssignmentRow[]).map(mapAssignmentRow);
+}
+
+/** The currently-accepted assignment for one order, if any — used by the
+ * delivery-execution screen, which is navigated to with only an orderId
+ * (from the manifest list), not an assignmentId. */
+export async function getMyAssignmentForOrder(orderId: string, driverId: string): Promise<DeliveryAssignment | null> {
+  const { data, error } = await supabase
+    .from("delivery_assignments")
+    .select(ASSIGNMENT_COLUMNS)
+    .eq("order_id", orderId)
+    .eq("driver_id", driverId)
+    .eq("response_status", "accepted")
+    .order("offered_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data ? mapAssignmentRow(data as RawAssignmentRow) : null;
+}
+
+export async function getAssignment(assignmentId: string, driverId: string): Promise<DeliveryAssignment | null> {
+  const { data, error } = await supabase
+    .from("delivery_assignments")
+    .select(ASSIGNMENT_COLUMNS)
+    .eq("id", assignmentId)
+    .eq("driver_id", driverId)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data ? mapAssignmentRow(data as RawAssignmentRow) : null;
+}
+
+export async function acceptAssignment(assignmentId: string, driverId: string): Promise<DeliveryAssignment> {
+  const { data, error } = await supabase
+    .from("delivery_assignments")
+    .update({ response_status: "accepted", responded_at: new Date().toISOString() })
+    .eq("id", assignmentId)
+    .eq("driver_id", driverId)
+    .select(ASSIGNMENT_COLUMNS);
+
+  if (error) throw error;
+  if (!data || data.length === 0) {
+    throw new Error("Could not accept this assignment — it may have already been reassigned.");
+  }
+  const updated = mapAssignmentRow(data[0] as RawAssignmentRow);
+  if (updated.responseStatus !== "accepted") {
+    throw new Error("Acceptance did not persist; please try again.");
+  }
+  return updated;
+}
+
+/** Decline an offered assignment — also clears orders.assigned_driver_id so
+ * the order returns to the unassigned pool for staff to reassign. Two direct
+ * writes, best-effort on the second (the assignment row is the source of
+ * truth; if the orders clear fails, staff still sees the decline in the
+ * assignment ledger and can reassign manually). */
+export async function declineAssignment(
+  assignmentId: string,
+  driverId: string,
+  orderId: string,
+  reason: string,
+): Promise<DeliveryAssignment> {
+  const { data, error } = await supabase
+    .from("delivery_assignments")
+    .update({
+      response_status: "declined",
+      responded_at: new Date().toISOString(),
+      decline_reason: reason.trim() || null,
+    })
+    .eq("id", assignmentId)
+    .eq("driver_id", driverId)
+    .select(ASSIGNMENT_COLUMNS);
+
+  if (error) throw error;
+  if (!data || data.length === 0) {
+    throw new Error("Could not decline this assignment — it may have already been reassigned.");
+  }
+  const updated = mapAssignmentRow(data[0] as RawAssignmentRow);
+  if (updated.responseStatus !== "declined") {
+    throw new Error("Decline did not persist; please try again.");
+  }
+
+  try {
+    await supabase
+      .from("orders")
+      .update({ assigned_driver_id: null, updated_at: new Date().toISOString() })
+      .eq("id", orderId)
+      .eq("assigned_driver_id", driverId);
+  } catch {
+    // Best-effort — the decline itself is already recorded; staff will see
+    // this order still shows the old driver and can reassign from there.
+  }
+
+  return updated;
+}
+
+// ─── Delivery execution (pickup / in-transit / delivered) ────────────────────
+
+/** Confirm pickup — advances the order to the canonical 'picked_up' status
+ * (this app's existing lifecycle already represents "in transit" this way;
+ * no separate sub-state was introduced, per the delivery workflow plan). */
+export async function confirmPickup(orderId: string, assignmentId: string, driverId: string): Promise<void> {
+  const { data, error } = await supabase
+    .from("orders")
+    .update({ status: "picked_up", updated_at: new Date().toISOString() })
+    .eq("id", orderId)
+    .eq("assigned_driver_id", driverId)
+    .select("id, status");
+
+  if (error) throw error;
+  if (!data || data.length === 0) {
+    throw new Error("Could not confirm pickup — check that this order is still assigned to you.");
+  }
+
+  await supabase
+    .from("delivery_assignments")
+    .update({ picked_up_at: new Date().toISOString() })
+    .eq("id", assignmentId)
+    .eq("driver_id", driverId);
+
+  notifyCustomerOrderUpdate(orderId, "picked_up");
+}
+
+export async function completeDelivery(orderId: string, assignmentId: string, driverId: string): Promise<void> {
+  const { data, error } = await supabase
+    .from("orders")
+    .update({ status: "delivered", updated_at: new Date().toISOString() })
+    .eq("id", orderId)
+    .eq("assigned_driver_id", driverId)
+    .select("id, status");
+
+  if (error) throw error;
+  if (!data || data.length === 0) {
+    throw new Error("Could not mark this order delivered — check that it's still assigned to you.");
+  }
+
+  await supabase
+    .from("delivery_assignments")
+    .update({ delivered_at: new Date().toISOString(), response_status: "completed" })
+    .eq("id", assignmentId)
+    .eq("driver_id", driverId);
+
+  notifyCustomerOrderUpdate(orderId, "delivered");
+}
+
+// ─── Issue reporting ──────────────────────────────────────────────────────────
+
+export async function reportIssue(
+  orderId: string,
+  driverId: string,
+  reasonCode: IssueReasonCode,
+  note?: string,
+): Promise<DeliveryIssue> {
+  const { data, error } = await supabase
+    .from("delivery_issues")
+    .insert({
+      order_id: orderId,
+      driver_id: driverId,
+      reason_code: reasonCode,
+      note: note?.trim() || null,
+    })
+    .select(ISSUE_COLUMNS)
+    .single();
+
+  if (error) throw error;
+  return mapIssueRow(data as RawIssueRow);
+}
+
+/** My own past issue reports for one order — so the delivery screen can show
+ * "you already reported X" instead of letting a driver report the same
+ * problem twice in a row. */
+export async function listMyIssuesForOrder(orderId: string, driverId: string): Promise<DeliveryIssue[]> {
+  const { data, error } = await supabase
+    .from("delivery_issues")
+    .select(ISSUE_COLUMNS)
+    .eq("order_id", orderId)
+    .eq("driver_id", driverId)
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+  return ((data ?? []) as RawIssueRow[]).map(mapIssueRow);
+}

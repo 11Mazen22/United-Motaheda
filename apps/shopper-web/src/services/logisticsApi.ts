@@ -7,7 +7,7 @@ import {
   type OrderLifecycleStatus,
 } from "../app/orders";
 import { getSupabaseClient } from "../lib/supabaseClient";
-import { notifyDriverAssigned, notifyOrderStatusChange } from "./orderNotificationsApi";
+import { notifyDriverAssigned, notifyDriverUnassigned, notifyIssueResolved, notifyOrderStatusChange } from "./orderNotificationsApi";
 
 export type LogisticsRole = "manager" | "pharmacist" | "driver" | "admin" | "customer";
 export type LogisticsOrderStatus = OrderLifecycleStatus;
@@ -348,7 +348,7 @@ export async function listIntegrationEvents() {
   return data ?? [];
 }
 
-export async function assignDriver(orderId: string, driverId: string | null) {
+export async function assignDriver(orderId: string, driverId: string | null, staffId?: string) {
   const supabase = getSupabaseClient();
 
   // Previously this called the `assign-driver` Edge Function, which often
@@ -386,6 +386,22 @@ export async function assignDriver(orderId: string, driverId: string | null) {
   }
 
   if (driverId) {
+    // First-time assignment: create the offered assignment-ledger row so
+    // the driver sees this as a real accept/decline offer (not just an
+    // order that silently appeared in their manifest) and staff gets an
+    // elapsed-time badge. reassignDriver() does the equivalent insert for
+    // every LATER reassignment — this covers the first one, which used to
+    // create no ledger row at all.
+    const { error: assignmentError } = await supabase.from("delivery_assignments").insert({
+      order_id: orderId,
+      driver_id: driverId,
+      assigned_by: staffId ?? null,
+      assignment_kind: "assigned",
+      response_status: "offered",
+    });
+    if (assignmentError) {
+      console.error("[logisticsApi] assignDriver: delivery_assignments insert failed:", assignmentError.message);
+    }
     notifyDriverAssigned(orderId, driverId);
   }
 
@@ -650,4 +666,254 @@ export async function fetchTrackingSnapshot(orderId: string, token: string): Pro
 
     throw error instanceof Error ? error : new Error("Unable to load tracking details.");
   }
+}
+
+// ─── Delivery workflow: assignment ledger + issue reports ────────────────────
+// See database/20260708_delivery_assignments_and_issues.sql. orders.assigned_
+// driver_id stays the fast "current driver" pointer (unchanged); these tables
+// are the audit trail + driver-reported-problem layer behind it.
+
+export type AssignmentResponseStatus = "offered" | "accepted" | "declined" | "superseded" | "completed";
+export type AssignmentKind = "assigned" | "reassigned";
+
+export type DeliveryAssignment = {
+  id: string;
+  orderId: string;
+  driverId: string;
+  assignedBy: string | null;
+  assignmentKind: AssignmentKind;
+  responseStatus: AssignmentResponseStatus;
+  declineReason: string | null;
+  offeredAt: string;
+  respondedAt: string | null;
+  pickedUpAt: string | null;
+  deliveredAt: string | null;
+};
+
+export type DeliveryIssueStatus = "open" | "acknowledged" | "resolved";
+
+export type DeliveryIssue = {
+  id: string;
+  orderId: string;
+  driverId: string;
+  reasonCode: string;
+  note: string | null;
+  status: DeliveryIssueStatus;
+  resolvedBy: string | null;
+  resolvedAt: string | null;
+  resolutionNote: string | null;
+  createdAt: string;
+};
+
+interface RawAssignmentRow {
+  id: string;
+  order_id: string;
+  driver_id: string;
+  assigned_by: string | null;
+  assignment_kind: AssignmentKind;
+  response_status: AssignmentResponseStatus;
+  decline_reason: string | null;
+  offered_at: string;
+  responded_at: string | null;
+  picked_up_at: string | null;
+  delivered_at: string | null;
+}
+
+interface RawIssueRow {
+  id: string;
+  order_id: string;
+  driver_id: string;
+  reason_code: string;
+  note: string | null;
+  status: DeliveryIssueStatus;
+  resolved_by: string | null;
+  resolved_at: string | null;
+  resolution_note: string | null;
+  created_at: string;
+}
+
+function mapAssignmentRow(row: RawAssignmentRow): DeliveryAssignment {
+  return {
+    id: row.id,
+    orderId: row.order_id,
+    driverId: row.driver_id,
+    assignedBy: row.assigned_by,
+    assignmentKind: row.assignment_kind,
+    responseStatus: row.response_status,
+    declineReason: row.decline_reason,
+    offeredAt: row.offered_at,
+    respondedAt: row.responded_at,
+    pickedUpAt: row.picked_up_at,
+    deliveredAt: row.delivered_at,
+  };
+}
+
+function mapIssueRow(row: RawIssueRow): DeliveryIssue {
+  return {
+    id: row.id,
+    orderId: row.order_id,
+    driverId: row.driver_id,
+    reasonCode: row.reason_code,
+    note: row.note,
+    status: row.status,
+    resolvedBy: row.resolved_by,
+    resolvedAt: row.resolved_at,
+    resolutionNote: row.resolution_note,
+    createdAt: row.created_at,
+  };
+}
+
+const ASSIGNMENT_COLUMNS =
+  "id, order_id, driver_id, assigned_by, assignment_kind, response_status, decline_reason, offered_at, responded_at, picked_up_at, delivered_at";
+const ISSUE_COLUMNS =
+  "id, order_id, driver_id, reason_code, note, status, resolved_by, resolved_at, resolution_note, created_at";
+
+/**
+ * Reassign an order to a different driver — supersedes the current open
+ * assignment row (if any), inserts a new 'reassigned' row, and updates
+ * orders.assigned_driver_id via the same direct-write-with-.select()
+ * verification idiom as assignDriver(), for the same reason: an Edge
+ * Function or RPC could silently no-op under RLS, this can't.
+ */
+export async function reassignDriver(
+  orderId: string,
+  newDriverId: string,
+  staffId: string,
+): Promise<ManagedOrder> {
+  const supabase = getSupabaseClient();
+
+  const previousOrder = await supabase
+    .from("orders")
+    .select("assigned_driver_id")
+    .eq("id", orderId)
+    .maybeSingle();
+  const previousDriverId = (previousOrder.data as { assigned_driver_id: string | null } | null)?.assigned_driver_id ?? null;
+
+  // Supersede the currently-open assignment row, if one exists.
+  await supabase
+    .from("delivery_assignments")
+    .update({ response_status: "superseded", superseded_at: new Date().toISOString() })
+    .eq("order_id", orderId)
+    .in("response_status", ["offered", "accepted"]);
+
+  const { error: insertError } = await supabase.from("delivery_assignments").insert({
+    order_id: orderId,
+    driver_id: newDriverId,
+    assigned_by: staffId,
+    assignment_kind: "reassigned",
+    response_status: "offered",
+  });
+  if (insertError) {
+    throw new Error(insertError.message);
+  }
+
+  const { data, error } = await supabase
+    .from("orders")
+    .update({ assigned_driver_id: newDriverId, updated_at: new Date().toISOString() })
+    .eq("id", orderId)
+    .select(
+      "id, external_ref, customer_name, customer_phone, customer_address, customer_lat, customer_lng, status, assigned_driver_id, updated_at, created_at, note, total, qr_token",
+    );
+
+  if (error) {
+    throw new Error(error.message);
+  }
+  if (!data || data.length === 0) {
+    throw new Error("Reassignment was not applied. Check that your role can update orders (RLS).");
+  }
+
+  const updatedRow = data[0] as RawOpsOrderRow;
+  if ((updatedRow.assigned_driver_id ?? null) !== newDriverId) {
+    throw new Error("Driver did not persist; the database returned the previous value.");
+  }
+
+  notifyDriverAssigned(orderId, newDriverId);
+  if (previousDriverId && previousDriverId !== newDriverId) {
+    notifyDriverUnassigned(orderId, previousDriverId);
+  }
+
+  let items: Array<{ product_id: string | null; quantity: number | null; product_snapshot?: Record<string, unknown> | null }> = [];
+  try {
+    const { data: itemsData } = await supabase
+      .from("order_items")
+      .select("product_id, quantity, product_snapshot")
+      .eq("order_id", orderId);
+    items = itemsData ?? [];
+  } catch {
+    items = [];
+  }
+
+  const drivers = await listDrivers();
+  const driversById = new Map(drivers.map((d) => [d.id, d]));
+  const orderWithItems = { ...updatedRow, order_items: items } as RawOpsOrderRow;
+  return mapToManagedOrder(mapRawOrderRow(orderWithItems), driversById);
+}
+
+/** Full assignment history for one order (offer → accept/decline →
+ * reassignment chain), newest first — for an order-detail audit view. */
+export async function listAssignmentHistory(orderId: string): Promise<DeliveryAssignment[]> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase
+    .from("delivery_assignments")
+    .select(ASSIGNMENT_COLUMNS)
+    .eq("order_id", orderId)
+    .order("created_at", { ascending: false });
+
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as RawAssignmentRow[]).map(mapAssignmentRow);
+}
+
+/** Every currently-open assignment (offered or accepted) across all orders —
+ * ONE query powering every elapsed-time badge in the Ops Hub, not N+1. */
+export async function listOpenAssignments(): Promise<DeliveryAssignment[]> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase
+    .from("delivery_assignments")
+    .select(ASSIGNMENT_COLUMNS)
+    .in("response_status", ["offered", "accepted"])
+    .order("offered_at", { ascending: true });
+
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as RawAssignmentRow[]).map(mapAssignmentRow);
+}
+
+/** Open (unresolved) delivery issues for the Ops Hub's issues panel. */
+export async function listOpenIssues(): Promise<DeliveryIssue[]> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase
+    .from("delivery_issues")
+    .select(ISSUE_COLUMNS)
+    .in("status", ["open", "acknowledged"])
+    .order("created_at", { ascending: false });
+
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as RawIssueRow[]).map(mapIssueRow);
+}
+
+/** Mark a delivery issue resolved and notify the reporting driver. */
+export async function resolveIssue(
+  issueId: string,
+  staffId: string,
+  resolutionNote?: string,
+): Promise<DeliveryIssue> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase
+    .from("delivery_issues")
+    .update({
+      status: "resolved",
+      resolved_by: staffId,
+      resolved_at: new Date().toISOString(),
+      resolution_note: resolutionNote ?? null,
+    })
+    .eq("id", issueId)
+    .select(ISSUE_COLUMNS);
+
+  if (error) throw new Error(error.message);
+  if (!data || data.length === 0) {
+    throw new Error("Issue resolution was not applied. Check that your role can update delivery_issues (RLS).");
+  }
+
+  const resolved = mapIssueRow(data[0] as RawIssueRow);
+  notifyIssueResolved(resolved.orderId, resolved.driverId);
+  return resolved;
 }

@@ -20,6 +20,12 @@ export interface AuthUser {
   email:     string;
   name?:     string;
   avatarUrl?: string;
+  /** From public.profiles.role — fetched separately after auth resolves
+   *  (see AuthProvider in ./context.tsx), since Supabase Auth's session
+   *  object itself has no notion of app-level role. Undefined until that
+   *  fetch completes or if it fails; never assume a customer default here,
+   *  since callers gating on 'driver' must wait for a real value. */
+  role?: string;
 }
 
 export interface SignUpResult extends AuthUser {

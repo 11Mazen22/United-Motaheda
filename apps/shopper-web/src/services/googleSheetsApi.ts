@@ -10,8 +10,17 @@ import {
   assignDriver as assignManagedOrderDriver,
   listManagedOrders,
   updateManagedOrderStatus,
+  reassignDriver,
+  listAssignmentHistory,
+  listOpenAssignments,
+  listOpenIssues,
+  resolveIssue,
   type ManagedOrder,
+  type DeliveryAssignment,
+  type DeliveryIssue,
 } from "./logisticsApi";
+
+export type { DeliveryAssignment, DeliveryIssue };
 import { normalizeTextEncoding, repairTextEncoding } from "../utils/textEncoding";
 import {
   clearStoredAuthSession,
@@ -150,6 +159,12 @@ export type AdminOrder = {
   requestPosMachine: boolean;
   assignedDriver?: string;
   assignedDriverId?: string;
+  /** From delivery_assignments — the current open (offered/accepted) row for
+   * this order, if any. Populated by OperationsHub after fetching
+   * getOpenAssignments() separately; absent here means no open assignment
+   * exists (order is unassigned, or the assignment was already completed). */
+  assignmentStatus?: "offered" | "accepted";
+  assignmentOfferedAt?: string;
 };
 
 export type ProductMutationPayload = {
@@ -1224,13 +1239,46 @@ export async function updateOrderStatus(orderId: string, status: OrderStatus) {
   return normalizedOrder;
 }
 
-export async function assignOrderDriver(orderId: string, driverId: string | null) {
-  const updatedOrder = await assignManagedOrderDriver(orderId.trim(), driverId);
+export async function assignOrderDriver(orderId: string, driverId: string | null, staffId?: string) {
+  const updatedOrder = await assignManagedOrderDriver(orderId.trim(), driverId, staffId);
   const normalizedOrder = mapManagedOrderToAdminOrder(updatedOrder);
   applyAdminOrderCacheUpdate(normalizedOrder);
   invalidateRequestCache(["get_dashboard_stats"]);
 
   return normalizedOrder;
+}
+
+// ─── Delivery workflow: reassignment, assignment history, issues ────────────
+// Thin re-export wrappers, same shape as updateOrderStatus/assignOrderDriver
+// above, so OperationsHub.tsx keeps importing everything from this one file.
+
+export async function reassignOrderDriver(orderId: string, driverId: string, staffId: string) {
+  const updatedOrder = await reassignDriver(orderId.trim(), driverId, staffId);
+  const normalizedOrder = mapManagedOrderToAdminOrder(updatedOrder);
+  applyAdminOrderCacheUpdate(normalizedOrder);
+  invalidateRequestCache(["get_dashboard_stats"]);
+
+  return normalizedOrder;
+}
+
+export async function getAssignmentHistory(orderId: string): Promise<DeliveryAssignment[]> {
+  return listAssignmentHistory(orderId);
+}
+
+export async function getOpenAssignments(): Promise<DeliveryAssignment[]> {
+  return listOpenAssignments();
+}
+
+export async function getOpenIssues(): Promise<DeliveryIssue[]> {
+  return listOpenIssues();
+}
+
+export async function resolveDeliveryIssue(
+  issueId: string,
+  staffId: string,
+  resolutionNote?: string,
+): Promise<DeliveryIssue> {
+  return resolveIssue(issueId, staffId, resolutionNote);
 }
 
 export async function getStaff(force = false) {

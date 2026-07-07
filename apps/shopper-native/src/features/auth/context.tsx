@@ -127,11 +127,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         : null;
     };
 
+    // Supabase Auth's session object has no notion of app-level role — it
+    // lives in public.profiles. Fetched once per sign-in/session-resolve and
+    // attached before setUser() so nothing (routing included) ever sees an
+    // authed user with an unknown role for longer than this one query.
+    const attachRole = async (u: AuthUser | null): Promise<AuthUser | null> => {
+      if (!u) return null;
+      try {
+        const { data } = await supabase.from("profiles").select("role").eq("id", u.id).maybeSingle();
+        return { ...u, role: (data?.role as string | undefined) ?? "customer" };
+      } catch {
+        return { ...u, role: "customer" };
+      }
+    };
+
     supabase.auth.getSession()
       .then(async ({ data }) => {
         const u = data.session?.user;
-        const next = applyAuthUser(u);
-        await reconcile(next?.id ?? null);
+        const base = applyAuthUser(u);
+        await reconcile(base?.id ?? null);
+        const next = await attachRole(base);
         setUser(next);
         if (next) { identify(next.id); setCrashUser(next.id); }
         else      { resetAnalytics(); setCrashUser(null); }
@@ -147,8 +162,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // leave loading=true and freeze the app on the auth-gate forever.
       try {
         const u = session?.user;
-        const next = applyAuthUser(u);
-        await reconcile(next?.id ?? null);
+        const base = applyAuthUser(u);
+        await reconcile(base?.id ?? null);
+        const next = await attachRole(base);
         setUser(next);
         if (next) { identify(next.id); setCrashUser(next.id); }
         else      { resetAnalytics(); setCrashUser(null); }

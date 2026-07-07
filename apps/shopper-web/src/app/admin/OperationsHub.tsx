@@ -17,6 +17,8 @@ import {
   ArrowPathIcon,
   CheckCircleIcon,
   ClipboardDocumentListIcon,
+  ClockIcon,
+  ExclamationTriangleIcon,
   MagnifyingGlassIcon,
   TruckIcon,
   UserCircleIcon,
@@ -27,11 +29,18 @@ import { useLanguage } from "../../contexts/LanguageContext";
 import {
   type AdminOrder,
   type StaffMember,
+  type DeliveryAssignment,
+  type DeliveryIssue,
   assignOrderDriver,
   getAdminOrders,
   getStaff,
+  getOpenAssignments,
+  getOpenIssues,
+  reassignOrderDriver,
+  resolveDeliveryIssue,
   updateOrderStatus,
 } from "../../services/googleSheetsApi";
+import { subscribeToOperationsBoard } from "../../services/logisticsRealtime";
 import { cn } from "../components/UI";
 import {
   AdminEmptyState,
@@ -86,6 +95,68 @@ function formatDate(value: string, lang: Language): string {
     dateStyle: "short", timeStyle: "short",
   }).format(d);
 }
+
+// ─── Delivery workflow: assignment status + issues ────────────────────────────
+
+const ISSUE_REASON_LABELS: Record<string, [string, string]> = {
+  customer_unreachable: ["تعذّر الوصول للعميل", "Customer unreachable"],
+  wrong_address:        ["عنوان غير صحيح",       "Wrong address"],
+  customer_refused:     ["رفض العميل الاستلام",  "Customer refused"],
+  item_damaged:         ["المنتج تالف",           "Item damaged"],
+  item_missing:         ["منتج مفقود",            "Item missing"],
+  access_issue:         ["تعذّر الوصول للموقع",    "Access issue"],
+  vehicle_breakdown:    ["عطل في المركبة",         "Vehicle breakdown"],
+  other:                ["أخرى",                  "Other"],
+};
+
+function getIssueReasonLabel(reasonCode: string, lang: Language): string {
+  const entry = ISSUE_REASON_LABELS[reasonCode];
+  if (!entry) return reasonCode;
+  return lang === "ar" ? entry[0] : entry[1];
+}
+
+function getAssignmentStatusLabel(status: "offered" | "accepted", lang: Language): string {
+  if (status === "accepted") return lang === "ar" ? "قبل السائق" : "Accepted";
+  return lang === "ar" ? "بانتظار الرد" : "Awaiting response";
+}
+
+/** Minutes elapsed since an assignment was offered, color-escalating the
+ * longer it sits unresolved — a purely visual signal for manual staff
+ * reassignment (this app deliberately has no automatic reassignment timer). */
+const AssignmentAgeBadge = memo(function AssignmentAgeBadge({
+  status,
+  offeredAt,
+  lang,
+  nowTick,
+}: {
+  status: "offered" | "accepted";
+  offeredAt: string;
+  lang: Language;
+  nowTick: number;
+}) {
+  const offered = new Date(offeredAt).getTime();
+  const minutes = Number.isNaN(offered) ? 0 : Math.max(0, Math.round((nowTick - offered) / 60_000));
+  const ageLabel = minutes < 60
+    ? (lang === "ar" ? `منذ ${minutes} د` : `${minutes}m ago`)
+    : (lang === "ar" ? `منذ ${Math.round(minutes / 60)} س` : `${Math.round(minutes / 60)}h ago`);
+
+  // Only "offered" (awaiting a response) escalates in urgency — an
+  // "accepted" assignment isn't stuck waiting on anyone, so it stays neutral.
+  const tone = status === "accepted"
+    ? "border-sky-200 bg-sky-50 text-sky-700"
+    : minutes < 15
+      ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+      : minutes < 45
+        ? "border-amber-200 bg-amber-50 text-amber-700"
+        : "border-rose-200 bg-rose-50 text-rose-700 animate-pulse";
+
+  return (
+    <span className={cn("inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] font-semibold", tone)}>
+      <ClockIcon className="h-3 w-3" />
+      {getAssignmentStatusLabel(status, lang)} · {ageLabel}
+    </span>
+  );
+});
 
 // ─── DriverSelect component ───────────────────────────────────────────────────
 
@@ -162,6 +233,7 @@ const OrderRow = memo(function OrderRow({
   drivers,
   lang,
   updatingId,
+  nowTick,
   onStatusChange,
   onDriverAssign,
 }: {
@@ -169,6 +241,7 @@ const OrderRow = memo(function OrderRow({
   drivers: StaffMember[];
   lang: Language;
   updatingId: string;
+  nowTick: number;
   onStatusChange: (order: AdminOrder, next: OrderStatus) => void;
   onDriverAssign: (orderId: string, driverId: string) => void;
 }) {
@@ -199,6 +272,16 @@ const OrderRow = memo(function OrderRow({
           disabled={busy}
           onChange={onDriverAssign}
         />
+        {order.assignmentStatus && order.assignmentOfferedAt && (
+          <div className="mt-1.5">
+            <AssignmentAgeBadge
+              status={order.assignmentStatus}
+              offeredAt={order.assignmentOfferedAt}
+              lang={lang}
+              nowTick={nowTick}
+            />
+          </div>
+        )}
       </td>
       <td className="px-4 py-3">
         <div className="flex items-center gap-2">
@@ -233,6 +316,7 @@ const OrderCard = memo(function OrderCard({
   drivers,
   lang,
   updatingId,
+  nowTick,
   onStatusChange,
   onDriverAssign,
 }: {
@@ -240,6 +324,7 @@ const OrderCard = memo(function OrderCard({
   drivers: StaffMember[];
   lang: Language;
   updatingId: string;
+  nowTick: number;
   onStatusChange: (order: AdminOrder, next: OrderStatus) => void;
   onDriverAssign: (orderId: string, driverId: string) => void;
 }) {
@@ -283,6 +368,16 @@ const OrderCard = memo(function OrderCard({
               disabled={busy}
               onChange={onDriverAssign}
             />
+            {order.assignmentStatus && order.assignmentOfferedAt && (
+              <div className="mt-1.5">
+                <AssignmentAgeBadge
+                  status={order.assignmentStatus}
+                  offeredAt={order.assignmentOfferedAt}
+                  lang={lang}
+                  nowTick={nowTick}
+                />
+              </div>
+            )}
           </div>
           <div>
             <p className="mb-1.5 text-[9px] font-black uppercase tracking-[0.18em] text-slate-400">
@@ -325,20 +420,53 @@ export default function OperationsHub() {
   const [activeTab, setActiveTab] = useState<TabKey>("all");
   const [driverFilter, setDriverFilter] = useState("all");
   const [searchText, setSearchText] = useState("");
+  const [openIssues, setOpenIssues] = useState<DeliveryIssue[]>([]);
+  const [resolvingIssueId, setResolvingIssueId] = useState("");
+  const [expandedIssueId, setExpandedIssueId] = useState("");
+  const [issueNoteDrafts, setIssueNoteDrafts] = useState<Record<string, string>>({});
+  const [nowTick, setNowTick] = useState(() => Date.now());
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Merges the current open (offered/accepted) delivery_assignments row for
+  // each order onto that order's AdminOrder record, so the elapsed-time
+  // badge can render without a second per-order lookup anywhere downstream.
+  const mergeAssignments = useCallback((baseOrders: AdminOrder[], assignments: DeliveryAssignment[]): AdminOrder[] => {
+    const byOrderId = new Map<string, DeliveryAssignment>();
+    for (const a of assignments) {
+      // If more than one open row somehow exists for an order, keep the
+      // most recently offered one — that's the one actually in play.
+      const existing = byOrderId.get(a.orderId);
+      if (!existing || new Date(a.offeredAt) > new Date(existing.offeredAt)) {
+        byOrderId.set(a.orderId, a);
+      }
+    }
+    return baseOrders.map((order) => {
+      const assignment = byOrderId.get(order.id);
+      if (!assignment) return order;
+      return {
+        ...order,
+        assignmentStatus: assignment.responseStatus === "accepted" ? "accepted" : "offered",
+        assignmentOfferedAt: assignment.offeredAt,
+      };
+    });
+  }, []);
 
   const loadData = useCallback(async (force = false, silent = false) => {
     if (!silent) setRefreshing(true);
     setError("");
     try {
-      const [ordersData, staffData] = await Promise.all([
+      const [ordersData, staffData, assignmentsData, issuesData] = await Promise.all([
         getAdminOrders(force),
         getStaff(force),
+        getOpenAssignments().catch(() => [] as DeliveryAssignment[]),
+        getOpenIssues().catch(() => [] as DeliveryIssue[]),
       ]);
       const driverList = staffData.filter((m) => m.role === "driver" && m.status === "Active");
       startTransition(() => {
-        setOrders(ordersData);
+        setOrders(mergeAssignments(ordersData, assignmentsData));
         setDrivers(driverList);
+        setOpenIssues(issuesData);
         setLoading(false);
         setRefreshing(false);
       });
@@ -348,12 +476,31 @@ export default function OperationsHub() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [mergeAssignments]);
 
   useEffect(() => {
     void loadData(false, false);
     pollingRef.current = setInterval(() => { void loadData(true, true); }, 60_000);
-    return () => { if (pollingRef.current) clearInterval(pollingRef.current); };
+    // Separate, lighter-weight tick just to re-render elapsed-time badges —
+    // no network call, so this can run more often than the data poll.
+    tickRef.current = setInterval(() => setNowTick(Date.now()), 30_000);
+
+    // Realtime layer: an order/assignment/issue change anywhere triggers an
+    // immediate silent refresh instead of waiting for the next 60s poll.
+    // Debounced — a single reassignment writes 2-3 rows in quick succession,
+    // and this shouldn't fire a burst of refetches for one user action.
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+    const unsubscribe = subscribeToOperationsBoard(() => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => { void loadData(true, true); }, 600);
+    });
+
+    return () => {
+      if (pollingRef.current) clearInterval(pollingRef.current);
+      if (tickRef.current) clearInterval(tickRef.current);
+      if (debounceTimer) clearTimeout(debounceTimer);
+      unsubscribe();
+    };
   }, [loadData]);
 
   const handleStatusChange = useCallback(async (order: AdminOrder, next: OrderStatus) => {
@@ -390,20 +537,40 @@ export default function OperationsHub() {
     if (prev === driverId) return;
     setUpdatingId(orderId);
     const driver = drivers.find((d) => d.id === driverId);
+
+    // If there's already an open (offered/accepted) assignment for this
+    // order, this is a REASSIGNMENT, not a first-time assignment — route
+    // through reassignDriver so the prior driver gets notified and the
+    // assignment ledger records the supersede, instead of silently
+    // overwriting assigned_driver_id with no trace of the change.
+    const isReassignment = Boolean(previousOrder.assignmentStatus) && Boolean(prev) && Boolean(driverId);
+
     startTransition(() => {
       setOrders((cur) => cur.map((o) =>
         o.id === orderId
-          ? { ...o, assignedDriverId: driverId || undefined, assignedDriver: driver?.fullName ?? undefined }
+          ? {
+              ...o,
+              assignedDriverId: driverId || undefined,
+              assignedDriver: driver?.fullName ?? undefined,
+              assignmentStatus: driverId ? "offered" : undefined,
+              assignmentOfferedAt: driverId ? new Date().toISOString() : undefined,
+            }
           : o,
       ));
     });
     try {
-      const updatedOrder = await assignOrderDriver(orderId, driverId || null);
+      const updatedOrder = isReassignment && user?.id
+        ? await reassignOrderDriver(orderId, driverId, user.id)
+        : await assignOrderDriver(orderId, driverId || null, user?.id);
       startTransition(() => {
-        setOrders((cur) => cur.map((o) => o.id === updatedOrder.id ? updatedOrder : o));
+        setOrders((cur) => cur.map((o) => o.id === updatedOrder.id
+          ? { ...updatedOrder, assignmentStatus: driverId ? "offered" : undefined, assignmentOfferedAt: driverId ? new Date().toISOString() : undefined }
+          : o));
       });
       toast.success(driver
-        ? lang === "ar" ? `تم تعيين ${driver.fullName} كسائق.` : `Driver ${driver.fullName} assigned.`
+        ? (isReassignment
+            ? (lang === "ar" ? `تمت إعادة الإسناد إلى ${driver.fullName}.` : `Reassigned to ${driver.fullName}.`)
+            : (lang === "ar" ? `تم تعيين ${driver.fullName} كسائق.` : `Driver ${driver.fullName} assigned.`))
         : lang === "ar" ? "تم إلغاء تعيين السائق." : "Driver unassigned.");
     } catch {
       startTransition(() => {
@@ -415,7 +582,24 @@ export default function OperationsHub() {
     } finally {
       setUpdatingId("");
     }
-  }, [drivers, lang, orders]);
+  }, [drivers, lang, orders, user?.id]);
+
+  const handleResolveIssue = useCallback(async (issueId: string) => {
+    if (!user?.id) return;
+    setResolvingIssueId(issueId);
+    try {
+      await resolveDeliveryIssue(issueId, user.id, issueNoteDrafts[issueId]?.trim() || undefined);
+      startTransition(() => {
+        setOpenIssues((cur) => cur.filter((i) => i.id !== issueId));
+      });
+      setExpandedIssueId("");
+      toast.success(lang === "ar" ? "تم تحديد المشكلة كمحلولة" : "Issue marked resolved");
+    } catch {
+      toast.error(lang === "ar" ? "فشل تحديث المشكلة" : "Failed to resolve issue");
+    } finally {
+      setResolvingIssueId("");
+    }
+  }, [issueNoteDrafts, lang, user?.id]);
 
   const filteredOrders = useMemo(() => {
     return orders.filter((o) => {
@@ -587,6 +771,7 @@ export default function OperationsHub() {
                     drivers={drivers}
                     lang={lang}
                     updatingId={updatingId}
+                    nowTick={nowTick}
                     onStatusChange={handleStatusChange}
                     onDriverAssign={handleDriverAssign}
                   />
@@ -613,6 +798,7 @@ export default function OperationsHub() {
                             drivers={drivers}
                             lang={lang}
                             updatingId={updatingId}
+                            nowTick={nowTick}
                             onStatusChange={handleStatusChange}
                             onDriverAssign={handleDriverAssign}
                           />
@@ -662,6 +848,112 @@ export default function OperationsHub() {
                 );
               })}
             </div>
+          </div>
+        )}
+      </AdminSectionCard>
+
+      <AdminSectionCard
+        eyebrow={lang === "ar" ? "مشاكل التوصيل" : "Delivery issues"}
+        title={lang === "ar" ? "مشاكل بلّغ عنها السائقون" : "Driver-reported issues"}
+        description={lang === "ar"
+          ? "مشاكل تحتاج مراجعة فريق العمليات — عنوان خاطئ، تعذّر الوصول للعميل، منتج تالف، وغيرها."
+          : "Problems that need operations attention — wrong address, unreachable customer, damaged item, and similar."}
+        bodyClassName="space-y-3 px-4 py-4"
+      >
+        {loading ? (
+          <AdminTableSkeleton rows={2} />
+        ) : openIssues.length === 0 ? (
+          <AdminEmptyState
+            title={lang === "ar" ? "لا توجد مشاكل مفتوحة" : "No open issues"}
+            description={lang === "ar" ? "كل التوصيلات تسير دون مشاكل مُبلَّغ عنها." : "All deliveries are proceeding without any reported problems."}
+          />
+        ) : (
+          <div className="space-y-2.5">
+            {openIssues.map((issue) => {
+              const driver = drivers.find((d) => d.id === issue.driverId);
+              const order = orders.find((o) => o.id === issue.orderId);
+              const reportedMinutesAgo = Math.max(0, Math.round((nowTick - new Date(issue.createdAt).getTime()) / 60_000));
+              const ageLabel = reportedMinutesAgo < 60
+                ? (lang === "ar" ? `منذ ${reportedMinutesAgo} د` : `${reportedMinutesAgo}m ago`)
+                : (lang === "ar" ? `منذ ${Math.round(reportedMinutesAgo / 60)} س` : `${Math.round(reportedMinutesAgo / 60)}h ago`);
+              const expanded = expandedIssueId === issue.id;
+              const resolving = resolvingIssueId === issue.id;
+
+              return (
+                <div
+                  key={issue.id}
+                  className="rounded-xl border border-rose-100 bg-rose-50/40 p-3.5"
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="inline-flex items-center gap-1.5 rounded-md border border-rose-200 bg-white px-2.5 py-1 text-xs font-bold text-rose-700">
+                          <ExclamationTriangleIcon className="h-3.5 w-3.5" />
+                          {getIssueReasonLabel(issue.reasonCode, lang)}
+                        </span>
+                        <span className="text-xs font-medium text-slate-400">{ageLabel}</span>
+                      </div>
+                      <p className="mt-1.5 text-sm font-medium text-slate-700" dir="ltr">
+                        {lang === "ar" ? "الطلب: " : "Order: "}{issue.orderId}
+                      </p>
+                      <p className="mt-0.5 text-xs text-slate-500">
+                        {lang === "ar" ? "السائق: " : "Driver: "}
+                        {driver?.fullName || driver?.username || issue.driverId}
+                        {order?.customerName ? ` · ${order.customerName}` : ""}
+                      </p>
+                      {issue.note && (
+                        <p className="mt-1.5 rounded-md bg-white/70 px-2.5 py-1.5 text-xs text-slate-600">
+                          {issue.note}
+                        </p>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setExpandedIssueId(expanded ? "" : issue.id)}
+                      disabled={resolving}
+                      className="inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-md border border-emerald-200 bg-white px-3 text-xs font-bold text-emerald-700 transition-colors hover:bg-emerald-50 disabled:opacity-50"
+                    >
+                      <CheckCircleIcon className="h-3.5 w-3.5" />
+                      {lang === "ar" ? "حل المشكلة" : "Resolve"}
+                    </button>
+                  </div>
+
+                  {expanded && (
+                    <div className="mt-3 border-t border-rose-100 pt-3">
+                      <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                        {lang === "ar" ? "ملاحظة الحل (اختياري)" : "Resolution note (optional)"}
+                      </label>
+                      <textarea
+                        value={issueNoteDrafts[issue.id] ?? ""}
+                        onChange={(e) => setIssueNoteDrafts((cur) => ({ ...cur, [issue.id]: e.target.value }))}
+                        rows={2}
+                        placeholder={lang === "ar" ? "مثال: تواصلنا مع العميل وتم تحديد موعد جديد." : "e.g. Contacted the customer and rescheduled."}
+                        className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-teal-400 focus:ring-2 focus:ring-teal-500/10"
+                      />
+                      <div className="mt-2 flex justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setExpandedIssueId("")}
+                          disabled={resolving}
+                          className="inline-flex h-8 items-center justify-center rounded-md border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-50 disabled:opacity-50"
+                        >
+                          {lang === "ar" ? "إلغاء" : "Cancel"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void handleResolveIssue(issue.id)}
+                          disabled={resolving}
+                          className="inline-flex h-8 items-center justify-center gap-1.5 rounded-md bg-emerald-600 px-3 text-xs font-bold text-white transition-colors hover:bg-emerald-700 disabled:opacity-60"
+                        >
+                          {resolving && <ArrowPathIcon className="h-3.5 w-3.5 animate-spin" />}
+                          {lang === "ar" ? "تأكيد الحل" : "Confirm resolved"}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </AdminSectionCard>

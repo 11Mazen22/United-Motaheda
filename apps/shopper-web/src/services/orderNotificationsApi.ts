@@ -158,11 +158,62 @@ export function notifyDriverAssigned(orderId: string, driverId: string): void {
         userId: driverId,
         title: "تم تعيين طلب جديد لك",
         body: "تم تعيينك لتوصيل طلب جديد. راجع قائمة المهام الخاصة بك.",
-        actionUrl: "/driver",
+        // Native app route group (app/(driver)/) — the richer driver
+        // experience drivers actually use day-to-day; expo-router resolves
+        // this route-group path the same way Redirect href="/(tabs)" does
+        // elsewhere in that app. The legacy web driver tool at /driver has
+        // no notification bell of its own, so nothing there consumes this.
+        actionUrl: "/(driver)",
         data: { kind: "driver_assignment", orderId },
       });
     } catch (err) {
       console.error("[orderNotificationsApi] notifyDriverAssigned failed:", err);
+    }
+  })();
+}
+
+/** Best-effort: notify a driver that an order they had (or were offered) has
+ * been reassigned to someone else — fires when staff manually reassigns. */
+export function notifyDriverUnassigned(orderId: string, previousDriverId: string): void {
+  void (async () => {
+    try {
+      await insertNotification({
+        userId: previousDriverId,
+        title: "تم سحب طلب منك",
+        body: "تم إسناد هذا الطلب لسائق آخر. يمكنك متابعة باقي مهامك.",
+        // Native app route group (app/(driver)/) — the richer driver
+        // experience drivers actually use day-to-day; expo-router resolves
+        // this route-group path the same way Redirect href="/(tabs)" does
+        // elsewhere in that app. The legacy web driver tool at /driver has
+        // no notification bell of its own, so nothing there consumes this.
+        actionUrl: "/(driver)",
+        data: { kind: "driver_unassigned", orderId },
+      });
+    } catch (err) {
+      console.error("[orderNotificationsApi] notifyDriverUnassigned failed:", err);
+    }
+  })();
+}
+
+/** Best-effort: notify a driver that staff reviewed the delivery issue they
+ * reported. */
+export function notifyIssueResolved(orderId: string, driverId: string): void {
+  void (async () => {
+    try {
+      await insertNotification({
+        userId: driverId,
+        title: "تم مراجعة المشكلة المُبلغ عنها",
+        body: "راجع فريق العمليات مشكلتك الخاصة بالطلب. تحقق من التفاصيل.",
+        // Native app route group (app/(driver)/) — the richer driver
+        // experience drivers actually use day-to-day; expo-router resolves
+        // this route-group path the same way Redirect href="/(tabs)" does
+        // elsewhere in that app. The legacy web driver tool at /driver has
+        // no notification bell of its own, so nothing there consumes this.
+        actionUrl: "/(driver)",
+        data: { kind: "issue_resolved", orderId },
+      });
+    } catch (err) {
+      console.error("[orderNotificationsApi] notifyIssueResolved failed:", err);
     }
   })();
 }
