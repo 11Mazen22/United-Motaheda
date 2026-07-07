@@ -7,7 +7,17 @@
  *  • Sync metadata for stale/offline UI states
  *  • Queue storage for future offline-safe order mutations
  *  • Backward-compatible helpers already consumed by shopper pages
+ *
+ * OrderLifecycleStatus / normalizeOrderStatus are re-exports of the single
+ * canonical order-status module (packages/contracts/src/orderStatus.ts) —
+ * kept under their original names here so existing importers across this
+ * app don't need to change. See that file for the full lifecycle doc.
  */
+
+import {
+  type CanonicalOrderStatus,
+  normalizeOrderStatus as normalizeCanonicalStatus,
+} from "@pharmacy/contracts";
 
 const ORDER_HISTORY_KEY = "united-pharmacies-orders-v2";
 const ORDER_CACHE_META_KEY = "united-pharmacies-orders-meta-v2";
@@ -16,14 +26,7 @@ const ORDER_MUTATION_QUEUE_KEY = "united-pharmacies-order-mutations-v1";
 const MAX_STORED_ORDERS = 75;
 const CACHE_TTL_MS = 5 * 60 * 1000;
 
-export type OrderLifecycleStatus =
-  | "pending"
-  | "confirmed"
-  | "preparing"
-  | "ready"
-  | "picked_up"
-  | "delivered"
-  | "cancelled";
+export type OrderLifecycleStatus = CanonicalOrderStatus;
 
 export type OrderSource = "remote" | "local_pending" | "queued_mutation";
 export type OrderSyncState = "synced" | "stale" | "saving" | "queued" | "failed";
@@ -172,50 +175,7 @@ function normalizeStoredItem(value: unknown): StoredOrderItem | null {
 }
 
 export function normalizeOrderStatus(value: unknown): OrderLifecycleStatus {
-  const normalized = String(value ?? "")
-    .trim()
-    .toLowerCase()
-    .replace(/\s+/g, "_");
-
-  // Database enum values: pending, confirmed, preparing, ready, picked_up, delivered, cancelled
-  if (
-    normalized === "pending"
-    || normalized === "confirmed"
-    || normalized === "preparing"
-    || normalized === "ready"
-    || normalized === "picked_up"
-    || normalized === "delivered"
-    || normalized === "cancelled"
-  ) {
-    return normalized;
-  }
-
-  // Legacy mappings for backward compatibility
-  if (normalized === "processing" || normalized === "verified") {
-    return "preparing";
-  }
-
-  if (normalized === "packed" || normalized === "ready_for_dispatch") {
-    return "ready";
-  }
-
-  if (normalized === "out_for_delivery" || normalized === "outfordelivery") {
-    return "picked_up";
-  }
-
-  if (normalized === "failed_delivery" || normalized === "faileddelivery") {
-    return "delivered"; // or could be cancelled depending on business logic
-  }
-
-  if (normalized === "returned") {
-    return "cancelled";
-  }
-
-  if (normalized === "canceled") {
-    return "cancelled";
-  }
-
-  return "pending";
+  return normalizeCanonicalStatus(typeof value === "string" ? value : String(value ?? ""));
 }
 
 function normalizeSource(value: unknown): OrderSource {

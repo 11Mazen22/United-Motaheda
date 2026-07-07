@@ -10,16 +10,15 @@
 
 import { getSupabaseClient } from "../lib/supabaseClient";
 import { notifyOrderStatusChange, notifyPaymentStatusChange } from "./orderNotificationsApi";
+import type { OrderStatus as AdminOrderStatus } from "@pharmacy/contracts";
 
 // ─── Public types ─────────────────────────────────────────────────────────────
 
-export type AdminOrderStatus =
-  | "pending"
-  | "pending_payment"
-  | "processing"
-  | "shipped"
-  | "delivered"
-  | "cancelled";
+// Canonical definition + lifecycle doc lives in @pharmacy/contracts
+// (packages/contracts/src/orderStatus.ts). "processing" and "shipped" are
+// legacy synonyms of "preparing"/"picked_up" — still valid to read (the DB
+// enum accepts both), but new code should write the canonical spelling.
+export type { AdminOrderStatus };
 
 export type AdminPaymentStatus =
   | "pending"

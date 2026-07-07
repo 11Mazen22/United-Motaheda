@@ -3,4 +3,4 @@ export { apiResponseSchema, ApiErrorSchema, type ApiError, type ApiResponseType 
 export * from "./geo";
 export * from "./branch";
 export * from "./delivery";
-export * from "./order";
+export * from "./orderStatus";

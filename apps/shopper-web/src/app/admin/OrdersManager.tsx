@@ -28,6 +28,7 @@ import {
   type AdminOrder as LegacyAdminOrder,
   type OrderStatus as ApiOrderStatus,
 } from "../../services/googleSheetsApi";
+import { normalizeOrderStatus as normalizeCanonicalStatus } from "@pharmacy/contracts";
 import {
   fetchAdminOrders,
   adminUpdateOrderStatus,
@@ -73,12 +74,19 @@ function supabaseToAdminOrder(o: SupabaseAdminOrder): AdminOrder {
       ? addr.formatted
       : [addr?.streetLine, addr?.city].filter(Boolean).join(", ");
 
-  // Map new lowercase statuses to the legacy capitalized enum.
+  // Map every canonical DB status (see @pharmacy/contracts orderStatus.ts)
+  // to the 5-bucket legacy Title-Case enum this screen displays. Buckets
+  // confirmed/ready alongside their adjacent stage so nothing silently
+  // falls back to "Pending" just because this screen predates them.
   const statusMap: Record<string, OrderStatus> = {
     pending:         "Pending",
     pending_payment: "Pending",
+    confirmed:       "Pending",
     processing:      "Processing",
+    preparing:       "Processing",
+    ready:           "Out for Delivery",
     shipped:         "Out for Delivery",
+    picked_up:       "Out for Delivery",
     delivered:       "Delivered",
     cancelled:       "Cancelled",
   };
@@ -93,7 +101,7 @@ function supabaseToAdminOrder(o: SupabaseAdminOrder): AdminOrder {
     address:         formattedAddress,
     note:            o.note,
     orderDate:       o.createdAt,
-    status:          statusMap[o.status] ?? "Pending",
+    status:          statusMap[normalizeCanonicalStatus(o.status)] ?? "Pending",
     paymentMethod:   o.paymentMethod ?? "cod",
     paymentLabel:    getPaymentLabel(o.paymentMethod),
     requestPosMachine: false,
@@ -680,13 +688,16 @@ export default function OrdersManager() {
   const handleStatusChange = useCallback(async (order: AdminOrder, nextStatus: OrderStatus) => {
     if (order.status === nextStatus || pendingById[order.id]) return;
 
-    // Map legacy capitalized status → new lowercase for Supabase
+    // Map legacy capitalized UI status → canonical DB status. Targets the
+    // same spellings as the Operations Hub (mapLegacyToCanonicalOrderStatus
+    // in googleSheetsApi.ts) so both admin screens write identical values
+    // for the same action instead of two different strings for one state.
     const statusMapReverse: Record<OrderStatus, string> = {
-      Pending:           "pending",
-      Processing:        "processing",
-      "Out for Delivery":"shipped",
-      Delivered:         "delivered",
-      Cancelled:         "cancelled",
+      Pending:            "pending",
+      Processing:         "preparing",
+      "Out for Delivery": "picked_up",
+      Delivered:          "delivered",
+      Cancelled:          "cancelled",
     };
     const supabaseStatus = statusMapReverse[nextStatus] as import("../../services/adminOrdersApi").AdminOrderStatus;
 

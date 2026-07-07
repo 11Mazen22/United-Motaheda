@@ -29,11 +29,21 @@ export interface OrderItem {
   imageUrl?: string;
 }
 
+// Full canonical set (see packages/contracts/src/orderStatus.ts for the
+// shared lifecycle doc — not imported directly here to avoid wiring this
+// Expo app into the npm workspace's Metro resolution). "processing" and
+// "shipped" are legacy synonyms of "preparing"/"picked_up" still present in
+// historical rows; "confirmed"/"preparing"/"ready"/"picked_up" are written
+// by the web admin's Operations Hub and must render correctly here too.
 export type OrderStatus =
   | "pending"
   | "pending_payment"
+  | "confirmed"
   | "processing"
+  | "preparing"
+  | "ready"
   | "shipped"
+  | "picked_up"
   | "delivered"
   | "cancelled";
 

@@ -46,8 +46,12 @@ export const STATUS_META: Record<
 > = {
   pending:         { labelKey: "orders.pending",        variant: "warning", icon: "time-outline",             dot: kit.color.warn          },
   pending_payment: { labelKey: "orders.pendingPayment", variant: "warning", icon: "card-outline",             dot: kit.color.warn          },
+  confirmed:       { labelKey: "orders.pending",        variant: "warning", icon: "checkmark-circle-outline", dot: kit.color.warn          },
   processing:      { labelKey: "orders.processing",     variant: "brand",   icon: "refresh-outline",          dot: kit.color.accent        },
+  preparing:       { labelKey: "orders.processing",     variant: "brand",   icon: "refresh-outline",          dot: kit.color.accent        },
+  ready:           { labelKey: "orders.shipped",        variant: "brand",   icon: "cube-outline",             dot: kit.color.accent        },
   shipped:         { labelKey: "orders.shipped",        variant: "brand",   icon: "car-outline",              dot: kit.color.accent        },
+  picked_up:       { labelKey: "orders.shipped",        variant: "brand",   icon: "car-outline",              dot: kit.color.accent        },
   delivered:       { labelKey: "orders.delivered",      variant: "success", icon: "checkmark-circle-outline", dot: kit.color.success       },
   cancelled:       { labelKey: "orders.cancelled",      variant: "error",   icon: "close-circle-outline",     dot: kit.color.danger        },
 };
@@ -85,10 +89,10 @@ type StepDef = {
 };
 
 const TIMELINE_STEPS: StepDef[] = [
-  { status: "pending",    icon: "time-outline",             match: ["pending", "pending_payment"] },
-  { status: "processing", icon: "refresh-outline",          match: ["processing"]                 },
-  { status: "shipped",    icon: "car-outline",              match: ["shipped"]                    },
-  { status: "delivered",  icon: "checkmark-circle-outline", match: ["delivered"]                  },
+  { status: "pending",    icon: "time-outline",             match: ["pending", "pending_payment", "confirmed"] },
+  { status: "processing", icon: "refresh-outline",          match: ["processing", "preparing"]                 },
+  { status: "shipped",    icon: "car-outline",              match: ["shipped", "ready", "picked_up"]           },
+  { status: "delivered",  icon: "checkmark-circle-outline", match: ["delivered"]                               },
 ];
 
 const EMERALD = kit.color.success;

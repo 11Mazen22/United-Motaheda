@@ -264,24 +264,35 @@ export async function listOpsOrders() {
 
   const orders = (data ?? []) as RawOpsOrderRow[];
 
-  // Fetch line items per order, but tolerate the order_items table being
-  // unavailable (404/400 from PostgREST when the table doesn't exist or RLS
-  // blocks selects). Without this fallback the whole ops board fails with
-  // "Failed to load orders" even though the orders rows themselves are fine.
-  const ordersWithItems = await Promise.all(
-    orders.map(async (order) => {
-      try {
-        const { data: items, error: itemsErr } = await supabase
-          .from("order_items")
-          .select("product_id, quantity, product_snapshot")
-          .eq("order_id", order.id);
-        if (itemsErr) return { ...order, order_items: [] };
-        return { ...order, order_items: items ?? [] };
-      } catch {
-        return { ...order, order_items: [] };
+  // Fetch line items for every order in ONE batched query (not one query per
+  // order — that was a real N+1: up to 120 round-trips per board load).
+  // Still tolerant of the order_items table being unavailable (404/400 from
+  // PostgREST when the table doesn't exist or RLS blocks selects) — without
+  // this fallback the whole ops board would fail even though the orders
+  // rows themselves are fine.
+  const itemsByOrderId = new Map<string, RawOpsOrderRow["order_items"]>();
+  if (orders.length > 0) {
+    try {
+      const { data: items, error: itemsErr } = await supabase
+        .from("order_items")
+        .select("order_id, product_id, quantity, product_snapshot")
+        .in("order_id", orders.map((o) => o.id));
+      if (!itemsErr) {
+        for (const item of (items ?? []) as Array<{ order_id: string } & NonNullable<RawOpsOrderRow["order_items"]>[number]>) {
+          const list = itemsByOrderId.get(item.order_id) ?? [];
+          list.push(item);
+          itemsByOrderId.set(item.order_id, list);
+        }
       }
-    }),
-  );
+    } catch {
+      // order_items unavailable — orders still render, just without line items.
+    }
+  }
+
+  const ordersWithItems = orders.map((order) => ({
+    ...order,
+    order_items: itemsByOrderId.get(order.id) ?? [],
+  }));
 
   return ordersWithItems.map(mapRawOrderRow);
 }
@@ -500,16 +511,25 @@ export async function listDriverManifest(driverId: string) {
 
   const orders = (data ?? []) as RawOpsOrderRow[];
 
-  // Fetch order items separately for each order
-  const ordersWithItems = await Promise.all(
-    orders.map(async (order) => {
-      const { data: items } = await supabase
-        .from("order_items")
-        .select("product_id, quantity, product_snapshot")
-        .eq("order_id", order.id);
-      return { ...order, order_items: items ?? [] };
-    }),
-  );
+  // Fetch order items for every order in ONE batched query (not one query
+  // per order in the driver's manifest).
+  const itemsByOrderId = new Map<string, RawOpsOrderRow["order_items"]>();
+  if (orders.length > 0) {
+    const { data: items } = await supabase
+      .from("order_items")
+      .select("order_id, product_id, quantity, product_snapshot")
+      .in("order_id", orders.map((o) => o.id));
+    for (const item of (items ?? []) as Array<{ order_id: string } & NonNullable<RawOpsOrderRow["order_items"]>[number]>) {
+      const list = itemsByOrderId.get(item.order_id) ?? [];
+      list.push(item);
+      itemsByOrderId.set(item.order_id, list);
+    }
+  }
+
+  const ordersWithItems = orders.map((order) => ({
+    ...order,
+    order_items: itemsByOrderId.get(order.id) ?? [],
+  }));
 
   return ordersWithItems.map((row) => {
     const mapped = mapRawOrderRow(row);
