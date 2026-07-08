@@ -24,6 +24,7 @@ import {
   getPasswordStrength,
   type RegisterFormValues,
 } from "./authSchemas";
+import { AuthDivider, GoogleButton } from "./GoogleButton";
 
 const TEAL = "#0E7E74";
 
@@ -93,6 +94,10 @@ export default function RegisterForm({ from = "" }: RegisterFormProps) {
 
   return (
     <form onSubmit={onSubmit} className="space-y-4">
+
+      {/* Google sign-in */}
+      <GoogleButton label={isArabic ? "المتابعة باستخدام Google" : "Continue with Google"} />
+      <AuthDivider label={isArabic ? "أو بالبريد الإلكتروني" : "or with email"} />
 
       {/* Root error */}
       {rootError && (

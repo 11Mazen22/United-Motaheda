@@ -678,11 +678,24 @@ export default function StaffManager() {
       });
       try {
         const supabase = getSupabaseClient();
-        const { error: e } = await supabase
+        // .select() + verify is required here, not optional: without it, a
+        // silently-blocked update (RLS, or the profiles_guard_role_status
+        // trigger deciding the caller isn't a manager) returns no error and
+        // zero rows changed — PostgREST treats "matched nothing" as success.
+        // The toast would say "promoted to Driver" while the row never
+        // changed, which is exactly how this account ended up stuck on
+        // "customer" despite going through this exact flow. Same idiom
+        // logisticsApi.ts's updateManagedOrderStatus already uses.
+        const { data, error: e } = await supabase
           .from("profiles")
           .update({ role: nextRole })
-          .eq("id", member.id);
+          .eq("id", member.id)
+          .select("id, role")
+          .maybeSingle();
         if (e) throw e;
+        if (!data || data.role !== nextRole) {
+          throw new Error("Role update did not persist");
+        }
         toast.success(
           lang === "ar"
             ? `تم تعيين ${member.fullName || "المستخدم"} كـ${getRoleLabel(nextRole, lang)}`

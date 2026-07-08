@@ -32,6 +32,7 @@ const About                = lazy(() => import("./pages/About"));
 const Cart                 = lazy(() => import("./pages/Cart"));
 const Categories           = lazy(() => import("./pages/Categories"));
 const CategoryDetails      = lazy(() => import("./pages/CategoryDetails"));
+const AuthCallback          = lazy(() => import("./pages/AuthCallback"));
 const Checkout             = lazy(() => import("./pages/Checkout"));
 const Contact              = lazy(() => import("./pages/Contact"));
 const Favorites            = lazy(() => import("./pages/Favorites"));
@@ -106,6 +107,7 @@ function AppShell() {
         {/* ── Catalog-independent routes (no product fetch) ── */}
         <Route path="/login"            element={withSuspense(<Login />)} />
         <Route path="/register"         element={withSuspense(<Register />)} />
+        <Route path="/auth/callback"    element={withSuspense(<AuthCallback />)} />
         <Route path="/suspended"        element={withSuspense(<SuspendedPage />)} />
         <Route path="/suspension-info"  element={withSuspense(<SuspensionLearnMore />)} />
         <Route path="/track/:orderId" element={withSuspense(<OrderTracking />)} />

@@ -16,6 +16,7 @@
  */
 
 import { getSupabaseClient } from "../lib/supabaseClient";
+import { sendExpoPushToUser } from "./pushNotifications";
 
 type OrderNotifBucket = "confirmed" | "preparing" | "out_for_delivery" | "delivered" | "cancelled";
 
@@ -79,18 +80,44 @@ async function insertNotification(params: {
   actionUrl: string;
   data: Record<string, unknown>;
 }): Promise<void> {
-  const { error } = await getSupabaseClient().from("notifications").insert({
-    user_id: params.userId,
-    type: "order",
-    category: "order_updates",
-    title: params.title,
-    body: params.body,
-    data: params.data,
-    action_url: params.actionUrl,
-    is_read: false,
-  });
+  const { data: inserted, error } = await getSupabaseClient()
+    .from("notifications")
+    .insert({
+      user_id: params.userId,
+      type: "order",
+      category: "order_updates",
+      title: params.title,
+      body: params.body,
+      data: params.data,
+      action_url: params.actionUrl,
+      is_read: false,
+    })
+    .select("id")
+    .single();
   if (error) {
     console.error("[orderNotificationsApi] notification insert failed:", error.message);
+  }
+
+  // Forward to the OS notification tray. This used to only happen for
+  // admin-composed broadcasts (NotificationsManager) — every automated
+  // trigger below only wrote a DB row, invisible unless the app was already
+  // open. Routing all of them through this one shared insertNotification()
+  // chokepoint means fixing it here covers all six call sites at once.
+  //
+  // notification_id rides along so the native tap handler can mark this
+  // exact row read without an extra round-trip to look it up.
+  try {
+    await sendExpoPushToUser(params.userId, {
+      title: params.title,
+      body: params.body,
+      data: {
+        ...params.data,
+        action_url: params.actionUrl,
+        notification_id: (inserted as { id?: string } | null)?.id,
+      },
+    });
+  } catch (err) {
+    console.error("[orderNotificationsApi] push forward failed:", err);
   }
 }
 

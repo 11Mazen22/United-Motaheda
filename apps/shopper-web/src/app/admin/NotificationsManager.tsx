@@ -27,6 +27,7 @@ import {
 } from "@heroicons/react/24/solid";
 import { getSupabaseClient } from "../../lib/supabaseClient";
 import { useLanguage } from "../../contexts/LanguageContext";
+import { sendExpoPushToAll, sendExpoPushToUser } from "../../services/pushNotifications";
 import { useDebouncedValue } from "./adminShared";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -387,8 +388,8 @@ function ComposeCard({
         //      listens for INSERTs on this table, so each device that has the
         //      app open lights up instantly.
         //   3. Best-effort: also push to every registered Expo device token
-        //      (so closed apps wake up). Failures here don't block the in-app
-        //      delivery — they just mean push couldn't reach offline devices.
+        //      (so closed apps wake up), via the same shared helper every
+        //      automated order/driver notification uses — see pushNotifications.ts.
         const { data: profiles, error: pErr } = await sb
           .from("profiles")
           .select("id");
@@ -419,42 +420,7 @@ function ComposeCard({
           if (insErr) throw insErr;
         }
 
-        // Best-effort: forward to Expo Push so devices wake up when the app
-        // isn't open. We collect every registered token and POST them to the
-        // Expo push gateway in batches of 100 (Expo's per-call cap).
-        void (async () => {
-          try {
-            const { data: tokenRows } = await sb
-              .from("notification_tokens")
-              .select("expo_push_token");
-            const tokens = (tokenRows ?? [])
-              .map((r) => (r as { expo_push_token?: string }).expo_push_token)
-              .filter((t): t is string => typeof t === "string" && t.length > 0);
-
-            const PUSH_CHUNK = 100;
-            for (let i = 0; i < tokens.length; i += PUSH_CHUNK) {
-              const batch = tokens.slice(i, i + PUSH_CHUNK).map((to) => ({
-                to,
-                sound:    "default",
-                title:    cleanTitle,
-                body:     cleanBody,
-                data:     { type },
-                priority: "high",
-              }));
-              await fetch("https://exp.host/--/api/v2/push/send", {
-                method:  "POST",
-                headers: {
-                  "Accept":           "application/json",
-                  "Accept-Encoding":  "gzip, deflate",
-                  "Content-Type":     "application/json",
-                },
-                body: JSON.stringify(batch),
-              });
-            }
-          } catch {
-            // Best-effort. In-app realtime delivery already succeeded above.
-          }
-        })();
+        void sendExpoPushToAll({ title: cleanTitle, body: cleanBody, data: { type } });
 
         onSent({
           id:         Date.now().toString(),
@@ -479,7 +445,22 @@ function ComposeCard({
           .insert(rows)
           .select();
         if (error) throw error;
-        for (const row of (data ?? []) as SentNotification[]) onSent(row);
+        const insertedRows = (data ?? []) as SentNotification[];
+        for (const row of insertedRows) onSent(row);
+
+        // This branch previously had no push forwarding at all — a specific
+        // recipient only saw the notification if they had the app open.
+        // notification_id rides along (matched by user_id, not array position —
+        // Postgres doesn't guarantee a bulk insert's RETURNING order matches
+        // the input order) so tapping the push can mark that exact row read.
+        const idByUser = new Map(insertedRows.map((row) => [row.user_id, row.id]));
+        for (const r of recipients) {
+          void sendExpoPushToUser(r.id, {
+            title: cleanTitle,
+            body: cleanBody,
+            data: { type, notification_id: idByUser.get(r.id) },
+          });
+        }
       }
 
       setResult("ok");

@@ -115,6 +115,7 @@ interface AuthContextValue {
   loading: boolean;
   login: (credentials: LoginCredentials) => Promise<LoginResult>;
   register: (payload: RegisterPayload) => Promise<RegisterResult>;
+  loginWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   isAdmin: boolean;
@@ -483,6 +484,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  // Google OAuth: this navigates the browser away to Google's consent screen
+  // and never returns a value here — there's nothing to await. Supabase's web
+  // client has detectSessionInUrl:true (the RN app explicitly turns this off
+  // and hand-rolls the exchange instead, since RN has no window.location for
+  // it to inspect), so when Google redirects back to redirectTo, the client
+  // auto-exchanges the code and fires onAuthStateChange(SIGNED_IN) on its own —
+  // the existing listener above resolves the profile exactly like it does for
+  // any other sign-in. /auth/callback just gives that moment a branded, waiting
+  // screen instead of a blank flash, and is where the suspended/inactive check
+  // (done inline in login() above for the password path) runs for this path.
+  const loginWithGoogle = useCallback(async (): Promise<void> => {
+    const supabase = getSupabaseClient();
+    const redirectTo = `${window.location.origin}/auth/callback`;
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo },
+    });
+    if (error) throw error;
+  }, []);
+
   const isAdmin = user?.role === "admin";
   const isManager = user?.role === "manager" || user?.role === "admin";
   const isPharmacist = user?.role === "pharmacist";
@@ -496,6 +517,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       loading,
       login,
       register,
+      loginWithGoogle,
       signOut,
       refreshProfile,
       isAdmin,
@@ -510,6 +532,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       loading,
       login,
       register,
+      loginWithGoogle,
       signOut,
       refreshProfile,
       isAdmin,
