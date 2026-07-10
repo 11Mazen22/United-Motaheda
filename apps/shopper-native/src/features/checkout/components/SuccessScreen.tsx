@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect } from "react";
-import { Platform, Pressable, StyleSheet, View } from "react-native";
+import { Platform, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import Animated, {
   Easing,
   FadeIn,
@@ -91,7 +91,11 @@ export const SuccessScreen = React.memo(function SuccessScreen({
   }, [shortId, t]);
 
   return (
-    <View style={[s.screen, { paddingTop: insets.top + 28 }]}>
+    <View style={s.screen}>
+      <ScrollView
+        style={s.scroll}
+        contentContainerStyle={[s.scrollContent, { paddingTop: insets.top + 28 }]}
+        showsVerticalScrollIndicator={false}>
 
       {/* ── Hero icon — pulse ring + outer ring + inner tile ── */}
       <View style={s.iconWrap}>
@@ -198,8 +202,12 @@ export const SuccessScreen = React.memo(function SuccessScreen({
           <UIText style={s.trustText}>{t("checkout.secure")}</UIText>
         </View>
       </Animated.View>
+      </ScrollView>
 
-      {/* ── Actions ── */}
+      {/* ── Actions — sits outside the scroll area so it never scrolls out of
+           reach, and reserves its own bottom safe-area padding instead of the
+           old `marginTop: "auto"` push, which had nothing to push against
+           once content could no longer be guaranteed to fit one screen. ── */}
       <Animated.View
         entering={FadeInUp.delay(400).duration(400)}
         style={[s.actions, { paddingBottom: insets.bottom + 20 }]}>
@@ -227,8 +235,14 @@ const s = StyleSheet.create({
   screen: {
     flex:              1,
     backgroundColor:   kit.color.canvas,
-    alignItems:        "center",
     paddingHorizontal: 24,
+  },
+  scroll: {
+    flex:      1,
+    alignSelf: "stretch",
+  },
+  scrollContent: {
+    alignItems: "center",
   },
 
   // ── Hero icon ──────────────────────────────────────────────────────────────
@@ -443,8 +457,7 @@ const s = StyleSheet.create({
 
   // ── Actions ────────────────────────────────────────────────────────────────
   actions: {
-    marginTop:         "auto",
-    alignSelf:         "stretch",
-    gap:               10,
+    alignSelf: "stretch",
+    gap:       10,
   },
 });

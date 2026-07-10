@@ -2,7 +2,7 @@
 import { Platform, Pressable, StyleSheet, View } from "react-native";
 import { Text as UIText } from "@/shared/ui";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useRouter, useSegments } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import Animated, {
@@ -44,10 +44,27 @@ const TYPE_META: Record<string, {
 
 // ─── Banner ───────────────────────────────────────────────────────────────────
 
+// The driver section ((driver) screens) renders its own header — eyebrow +
+// greeting + logout button — directly under the safe area with no shared
+// header component the banner can measure. Those headers run ~70-80px tall,
+// which collided with this banner's old fixed `insets.top + 8` position
+// (verified against DriverManifest.tsx's header, the tallest of the five
+// (driver) screens). Non-driver screens don't put content flush under the
+// safe area this way, so they keep the original tight offset.
+const DRIVER_HEADER_CLEARANCE = 88;
+
 export function NotificationBanner() {
   const { t }         = useTranslation();
   const router        = useRouter();
   const insets        = useSafeAreaInsets();
+  // useSegments() preserves raw route-group folder names (e.g. "(driver)")
+  // exactly as they appear on disk — unlike usePathname(), which normalizes
+  // them out of the resolved URL. Its default typed overload infers a union
+  // of every known route LEAF name app-wide, which "(driver)" (a group, not
+  // a leaf) doesn't belong to, so the comparison below needs the untyped
+  // array shape, not the strict per-route literal type.
+  const segments      = useSegments() as readonly string[];
+  const isDriverRoute = segments[0] === "(driver)";
   const banner        = useBannerStore((s) => s.banner);
   const dismissBanner = useBannerStore((s) => s.dismissBanner);
   const timerRef      = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -117,7 +134,11 @@ export function NotificationBanner() {
 
   return (
     <Animated.View
-      style={[styles.container, { top: insets.top + 8, pointerEvents: "box-none" }, containerAnim]}
+      style={[
+        styles.container,
+        { top: insets.top + (isDriverRoute ? DRIVER_HEADER_CLEARANCE : 8), pointerEvents: "box-none" },
+        containerAnim,
+      ]}
     >
 
       <Pressable
