@@ -33,13 +33,13 @@ import {
   type DeliveryIssue,
   assignOrderDriver,
   getAdminOrders,
-  getStaff,
   getOpenAssignments,
   getOpenIssues,
   reassignOrderDriver,
   resolveDeliveryIssue,
   updateOrderStatus,
 } from "../../services/googleSheetsApi";
+import { getSupabaseStaff } from "../../services/adminDashboardApi";
 import { subscribeToOperationsBoard } from "../../services/logisticsRealtime";
 import { cn } from "../components/UI";
 import {
@@ -458,7 +458,7 @@ export default function OperationsHub() {
     try {
       const [ordersData, staffData, assignmentsData, issuesData] = await Promise.all([
         getAdminOrders(force),
-        getStaff(force),
+        getSupabaseStaff(),
         getOpenAssignments().catch(() => [] as DeliveryAssignment[]),
         getOpenIssues().catch(() => [] as DeliveryIssue[]),
       ]);

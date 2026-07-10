@@ -1,11 +1,11 @@
 import React, { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  FlatList,
   Platform,
   Pressable,
   RefreshControl,
   ScrollView,
+  SectionList,
   StyleSheet,
   View,
 } from "react-native";
@@ -16,7 +16,8 @@ import { PressableScale } from "@/shared/motion";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
-import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
+import Animated, { FadeIn, FadeInDown, interpolate, type SharedValue, useAnimatedStyle } from "react-native-reanimated";
+import ReanimatedSwipeable from "react-native-gesture-handler/ReanimatedSwipeable";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/features/auth";
 import { useNotifications, type AppNotification, type NotifType } from "@/features/notifications";
@@ -69,6 +70,50 @@ function timeAgo(dateStr: string, t: (k: string, opts?: Record<string, unknown>)
   return w === 1 ? t("notifications.timeWeekAgo") : t("notifications.timeWeeksAgo", { count: w });
 }
 
+// ─── Date grouping ────────────────────────────────────────────────────────────
+interface NotifSection {
+  key:   "today" | "yesterday" | "week" | "earlier";
+  title: string;
+  data:  AppNotification[];
+}
+
+function groupByDate(
+  items: AppNotification[],
+  t: (k: string) => string,
+): NotifSection[] {
+  const startOfDay  = (offset: number) => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() - offset);
+    return d.getTime();
+  };
+  const todayStart     = startOfDay(0);
+  const yesterdayStart = startOfDay(1);
+  const weekStart      = startOfDay(7);
+
+  const buckets: Record<NotifSection["key"], AppNotification[]> = {
+    today: [], yesterday: [], week: [], earlier: [],
+  };
+  for (const item of items) {
+    const t0 = new Date(item.createdAt).getTime();
+    if (t0 >= todayStart)          buckets.today.push(item);
+    else if (t0 >= yesterdayStart) buckets.yesterday.push(item);
+    else if (t0 >= weekStart)      buckets.week.push(item);
+    else                           buckets.earlier.push(item);
+  }
+
+  const labels: Record<NotifSection["key"], string> = {
+    today:     t("notifications.sectionToday"),
+    yesterday: t("notifications.sectionYesterday"),
+    week:      t("notifications.sectionThisWeek"),
+    earlier:   t("notifications.sectionEarlier"),
+  };
+
+  return (Object.keys(buckets) as NotifSection["key"][])
+    .filter((key) => buckets[key].length > 0)
+    .map((key) => ({ key, title: labels[key], data: buckets[key] }));
+}
+
 // ─── Skeleton list ────────────────────────────────────────────────────────────
 function NotificationsSkeleton({ insetsBottom }: { insetsBottom: number }) {
   return (
@@ -96,13 +141,38 @@ function NotificationsSkeleton({ insetsBottom }: { insetsBottom: number }) {
   );
 }
 
+// ─── Swipe-to-delete action ───────────────────────────────────────────────────
+function DeleteAction({
+  progress, onPress,
+}: { progress: SharedValue<number>; onPress: () => void }) {
+  const { t } = useTranslation();
+  const style = useAnimatedStyle(() => ({
+    transform: [{ scale: interpolate(progress.value, [0, 1], [0.7, 1], "clamp") }],
+    opacity:   interpolate(progress.value, [0, 1], [0, 1], "clamp"),
+  }));
+  return (
+    <View style={s.deleteActionWrap}>
+      <Animated.View style={style}>
+        <Pressable
+          onPress={onPress}
+          style={s.deleteActionBtn}
+          accessibilityRole="button"
+          accessibilityLabel={t("notifications.deleteAction")}>
+          <Ionicons name="trash-outline" size={20} color="#fff" />
+        </Pressable>
+      </Animated.View>
+    </View>
+  );
+}
+
 // ─── Notification row ─────────────────────────────────────────────────────────
 const NotificationRow = React.memo(function NotificationRow({
-  item, onPress,
-}: { item: AppNotification; onPress: () => void }) {
+  item, onPress, onDelete,
+}: { item: AppNotification; onPress: () => void; onDelete: () => void }) {
   const { t } = useTranslation();
   const cfg   = TYPE_CONFIG[item.type] ?? TYPE_CONFIG.system;
-  return (
+
+  const card = (
     <PressableScale
       onPress={onPress}
       scaleTo={0.985}
@@ -140,6 +210,28 @@ const NotificationRow = React.memo(function NotificationRow({
       </View>
     </PressableScale>
   );
+
+  const handleDelete = useCallback(() => {
+    if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
+    onDelete();
+  }, [onDelete]);
+
+  const renderAction = useCallback(
+    (progress: SharedValue<number>) => <DeleteAction progress={progress} onPress={handleDelete} />,
+    [handleDelete],
+  );
+
+  return (
+    <ReanimatedSwipeable
+      friction={2}
+      rightThreshold={40}
+      overshootRight={false}
+      overshootLeft={false}
+      renderRightActions={IS_RTL ? undefined : renderAction}
+      renderLeftActions={IS_RTL ? renderAction : undefined}>
+      {card}
+    </ReanimatedSwipeable>
+  );
 });
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
@@ -160,6 +252,7 @@ export default function NotificationsScreen() {
     refetch,
     markRead,
     markAllRead,
+    dismiss,
   } = useNotifications(user?.id);
 
   const [filter, setFilter] = useState<Filter>("all");
@@ -168,6 +261,8 @@ export default function NotificationsScreen() {
     if (filter === "all") return notifications;
     return notifications.filter((n) => n.type === filter);
   }, [notifications, filter]);
+
+  const sections = useMemo(() => groupByDate(filtered, t), [filtered, t]);
 
   const handleMarkAllRead = useCallback(() => {
     if (!user?.id) return;
@@ -187,9 +282,17 @@ export default function NotificationsScreen() {
 
   const renderItem = useCallback(({ item, index }: { item: AppNotification; index: number }) => (
     <Animated.View entering={FadeInDown.delay(Math.min(index, 8) * 30).duration(200)}>
-      <NotificationRow item={item} onPress={() => handleNotifPress(item)} />
+      <NotificationRow
+        item={item}
+        onPress={() => handleNotifPress(item)}
+        onDelete={() => dismiss(item.id)}
+      />
     </Animated.View>
-  ), [handleNotifPress]);
+  ), [handleNotifPress, dismiss]);
+
+  const renderSectionHeader = useCallback(({ section }: { section: NotifSection }) => (
+    <UIText style={[s.sectionHeader, { textAlign: TEXT_START }]}>{section.title}</UIText>
+  ), []);
 
   const keyExtractor = useCallback((item: AppNotification) => item.id, []);
 
@@ -271,10 +374,12 @@ export default function NotificationsScreen() {
           />
         </View>
       ) : (
-        <FlatList
-          data={filtered}
+        <SectionList
+          sections={sections}
           keyExtractor={keyExtractor}
           renderItem={renderItem}
+          renderSectionHeader={renderSectionHeader}
+          stickySectionHeadersEnabled={false}
           contentContainerStyle={[
             s.listContent,
             { paddingBottom: insets.bottom + 40 },
@@ -438,6 +543,28 @@ const s = StyleSheet.create({
   listContent: {
     paddingHorizontal: 16,
     paddingTop:        12,
+  },
+  sectionHeader: {
+    fontSize:           11,
+    fontFamily:         theme.fonts.black,
+    letterSpacing:      0.4,
+    textTransform:      "uppercase",
+    color:              kit.color.inkFaint,
+    paddingTop:         14,
+    paddingBottom:      8,
+  },
+  deleteActionWrap: {
+    width:          72,
+    alignItems:     "center",
+    justifyContent: "center",
+  },
+  deleteActionBtn: {
+    width:           48,
+    height:          48,
+    borderRadius:    14,
+    backgroundColor: kit.color.danger,
+    alignItems:      "center",
+    justifyContent:  "center",
   },
   notifCard: {
     flexDirection:     flexRow(IS_RTL),

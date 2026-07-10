@@ -46,6 +46,7 @@ export default function FAQScreen() {
   const [query,       setQuery]       = useState("");
   const [selectedCat, setSelectedCat] = useState<FAQCategory | "all">("all");
   const [expandedId,  setExpandedId]  = useState<string | null>(null);
+  const [barHeight,   setBarHeight]   = useState(100);
 
   const counts = useMemo(() => {
     const c = { all: FAQ_DATA.length } as Record<FAQCategory | "all", number>;
@@ -133,7 +134,7 @@ export default function FAQScreen() {
         data={filtered}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
-        contentContainerStyle={s.list}
+        contentContainerStyle={[s.list, { paddingBottom: barHeight + 20 }]}
         showsVerticalScrollIndicator={false}
         ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
         ListHeaderComponent={
@@ -158,7 +159,10 @@ export default function FAQScreen() {
       />
 
       {/* ── Contact CTA bar ── */}
-      <Animated.View entering={FadeInDown.duration(300)} style={[s.contactBar, { paddingBottom: insets.bottom + 12 }]}>
+      <Animated.View
+        entering={FadeInDown.duration(300)}
+        onLayout={(e) => setBarHeight(e.nativeEvent.layout.height)}
+        style={[s.contactBar, { paddingBottom: insets.bottom + 12 }]}>
         <View style={[s.contactContent, { flexDirection: flexRow(IS_RTL) }]}>
           <Ionicons name="chatbubbles-outline" size={16} color={kit.color.accentDeep} />
           <UIText style={[s.contactText, { textAlign: TEXT_START }]}>{t("faq.notFound")}</UIText>
@@ -261,7 +265,7 @@ const s = StyleSheet.create({
     backgroundColor:   kit.color.canvas,
   },
 
-  list:       { padding: 20, paddingBottom: 100 },
+  list:       { padding: 20 },
   resultCount: { marginBottom: 12 },
   resultCountText: {
     fontFamily:         theme.fonts.semibold,

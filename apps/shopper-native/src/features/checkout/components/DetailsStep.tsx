@@ -19,7 +19,7 @@ import { type Address } from "@/features/addresses";
 import { type CheckoutFormSchema } from "../schema";
 import { type CheckoutPaymentMethod } from "../constants";
 import { SectionCard } from "./SectionCard";
-import { PaymentMethodCards } from "./PaymentMethodCards";
+import { PaymentOptionsList } from "./PaymentOptionsList";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
 
 const IS_RTL     = isRtl();
@@ -328,10 +328,10 @@ export const DetailsStep = React.memo(function DetailsStep({
 
       {/* Payment */}
       <SectionCard title={t("checkout.paymentSection")} icon="card-outline" delay={160}>
-        <PaymentMethodCards
+        <PaymentOptionsList
           selected={paymentMethod}
-          subtotal={subtotal}
           onChange={onPaymentChange}
+          recommended={subtotal >= 500 ? "instapay" : null}
         />
       </SectionCard>
     </Animated.View>

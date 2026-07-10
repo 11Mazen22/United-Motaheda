@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "970945127342",
+    "project_id": "united-pharmacies",
+    "storage_bucket": "united-pharmacies.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:970945127342:android:cf1b2ee07ae0baa9dbde3f",
+        "android_client_info": {
+          "package_name": "com.unitedpharmacy.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD-rnMTGlCnuhQEJBIZues0sfKDmU99sgk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

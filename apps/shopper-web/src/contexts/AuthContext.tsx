@@ -44,8 +44,10 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import type { Session, User as SupabaseUser } from "@supabase/supabase-js";
+import type { RealtimeChannel, Session, User as SupabaseUser } from "@supabase/supabase-js";
+import { toast } from "sonner";
 import { getSupabaseClient } from "../lib/supabaseClient";
+import { useLanguage } from "./LanguageContext";
 
 // ─── Domain types ─────────────────────────────────────────────────────────────
 export type StaffRole = "admin" | "manager" | "pharmacist" | "driver";
@@ -214,6 +216,7 @@ function buildProfile(
 
 // ─── Provider ─────────────────────────────────────────────────────────────────
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const { lang } = useLanguage();
   const [user, setUser] = useState<UserProfile | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
@@ -344,6 +347,138 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       subscription.unsubscribe();
     };
   }, [resolveUser]);
+
+  // ── Live role/status propagation ───────────────────────────────────────────
+  // If profiles.role/status changes while this user has an open session (an
+  // admin promotes/demotes them, or suspends/deactivates them), nothing above
+  // refetches it until the next sign-in or the ~hourly TOKEN_REFRESHED event —
+  // this app's own history of role-related bugs (see file header) is exactly
+  // this class of staleness. Subscribes to UPDATEs on this user's own row and
+  // reacts immediately: a role change refreshes `user` via refreshProfile()
+  // (already correct and previously dead code) — that alone is enough to
+  // cascade through AdminRouteProtection/AdminLayout/AdminSidebar, none of
+  // which cache role, confirmed by direct read. A status flip to
+  // Suspended/Inactive forces a sign-out + redirect, closing a separate real
+  // gap: suspension today is only checked at login time, so an already-open
+  // session for a user suspended mid-session previously kept working
+  // indefinitely. Mirrors shopper-native's notifications/realtime.ts
+  // retry-on-CHANNEL_ERROR/TIMED_OUT pattern — this is web's first realtime
+  // subscription built with that safeguard (logisticsRealtime.ts's bare
+  // .subscribe() is not; role/status is too safety-critical to skip it).
+  //
+  // Uses window.location for navigation rather than useNavigate(): AuthProvider
+  // is mounted above <BrowserRouter> in main.tsx, so router context isn't
+  // available here. The hard reload is also the right call for a forced
+  // sign-out — no stale component state should survive it.
+  // Placeholder initial values only — signOut is declared later in this same
+  // function body (useCallback further down). The sync effect that assigns
+  // the real functions lives right after signOut's declaration further below,
+  // NOT here: a useEffect's dependency array is a plain array literal
+  // evaluated eagerly at the call site during render (unlike the deferred
+  // callback body), so putting `signOut` in that array here would still be a
+  // genuine temporal-dead-zone ReferenceError on every render, even though
+  // the callback itself only runs after the full render commits.
+  const refreshProfileRef = useRef<() => Promise<void>>(async () => {});
+  const signOutRef = useRef<() => Promise<void>>(async () => {});
+
+  useEffect(() => {
+    const userId = user?.id;
+    if (!userId) return;
+
+    const supabase = getSupabaseClient();
+    let current: RealtimeChannel | null = null;
+    let stopped = false;
+
+    const handleForcedSignOut = async (nextStatus: UserStatus) => {
+      if (nextStatus === "Suspended") {
+        try {
+          const { data } = await supabase
+            .from("user_suspensions")
+            .select("reason_codes, admin_notes, duration_type, expires_at, created_at")
+            .eq("user_id", userId)
+            .eq("is_active", true)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (data) {
+            sessionStorage.setItem(
+              "pending_suspension_detail",
+              JSON.stringify({
+                suspendedAt: data.created_at,
+                durationType: data.duration_type,
+                expiresAt: data.expires_at,
+                reasonCodes: data.reason_codes,
+                adminNotes: data.admin_notes,
+              }),
+            );
+          }
+        } catch {
+          // best-effort — SuspendedPage's generic fallback covers a miss here
+        }
+        toast.error(
+          lang === "ar"
+            ? "تم تعليق حسابك. سيتم تسجيل خروجك الآن."
+            : "Your account has been suspended. You're being signed out.",
+        );
+        await signOutRef.current();
+        window.location.href = "/suspended";
+      } else {
+        toast.error(
+          lang === "ar"
+            ? "تم إيقاف حسابك. سيتم تسجيل خروجك الآن."
+            : "Your account has been deactivated. You're being signed out.",
+        );
+        await signOutRef.current();
+        window.location.href = "/login";
+      }
+    };
+
+    const join = (attempt: number) => {
+      if (stopped) return;
+      const channel = supabase
+        .channel(`profile-${userId}`)
+        .on(
+          "postgres_changes",
+          { event: "UPDATE", schema: "public", table: "profiles", filter: `id=eq.${userId}` },
+          (payload) => {
+            const next = payload.new as { role?: unknown; status?: unknown };
+            const nextStatus = parseStatus(next.status);
+            if (nextStatus !== "Active") {
+              void handleForcedSignOut(nextStatus);
+              return;
+            }
+            const nextRole = parseRole(next.role);
+            if (userRef.current && nextRole !== userRef.current.role) {
+              void refreshProfileRef.current();
+              toast.success(
+                lang === "ar"
+                  ? `تم تحديث صلاحيتك. الدور الحالي: ${nextRole}`
+                  : `Your role has been updated to ${nextRole}.`,
+              );
+            }
+          },
+        )
+        .subscribe((status, err) => {
+          if (stopped) return;
+          if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+            if (import.meta.env.DEV) {
+              console.warn(`[AuthContext/realtime] channel ${status}, retrying:`, err?.message);
+            }
+            supabase.removeChannel(channel);
+            const delay = Math.min(30_000, 1_000 * 2 ** attempt);
+            setTimeout(() => join(attempt + 1), delay);
+          }
+        });
+      current = channel;
+    };
+
+    join(0);
+
+    return () => {
+      stopped = true;
+      if (current) supabase.removeChannel(current);
+    };
+  }, [user?.id, lang]);
 
   // ── UI-friendly actions ────────────────────────────────────────────────────
   const login = useCallback(
@@ -483,6 +618,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(null);
     }
   }, []);
+
+  // Keeps refreshProfileRef/signOutRef (declared earlier, above the realtime
+  // propagation effect) pointed at the latest closures. Placed here, after
+  // both functions are declared, because the dependency array below is
+  // evaluated eagerly during render — not deferred like the callback body.
+  useEffect(() => {
+    refreshProfileRef.current = refreshProfile;
+    signOutRef.current = signOut;
+  }, [refreshProfile, signOut]);
 
   // Google OAuth: this navigates the browser away to Google's consent screen
   // and never returns a value here — there's nothing to await. Supabase's web

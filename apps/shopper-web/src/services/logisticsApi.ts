@@ -12,11 +12,6 @@ import { notifyDriverAssigned, notifyDriverUnassigned, notifyIssueResolved, noti
 export type LogisticsRole = "manager" | "pharmacist" | "driver" | "admin" | "customer";
 export type LogisticsOrderStatus = OrderLifecycleStatus;
 
-export type PermissionResolution = {
-  permission_key: string;
-  allowed: boolean;
-};
-
 export type LogisticsProfile = {
   id: string;
   full_name: string;
@@ -231,23 +226,6 @@ function mapToManagedOrder(
   };
 }
 
-export async function resolvePermissions() {
-  const supabase = getSupabaseClient();
-  const { data, error } = await supabase.functions.invoke("resolve-permissions");
-
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  return (data ?? {
-    profile: null,
-    permissions: [],
-  }) as {
-    profile: LogisticsProfile | null;
-    permissions: PermissionResolution[];
-  };
-}
-
 export async function listOpsOrders() {
   const supabase = getSupabaseClient();
   const { data, error } = await supabase
@@ -316,21 +294,6 @@ export async function listDrivers() {
     role: driver.role,
     is_active: driver.status ? driver.status === "Active" : true,
   }));
-}
-
-export async function listRoleTemplates() {
-  const supabase = getSupabaseClient();
-  const { data, error } = await supabase
-    .from("role_templates")
-    .select("role, permission_key, allowed")
-    .order("role", { ascending: true })
-    .order("permission_key", { ascending: true });
-
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  return data ?? [];
 }
 
 export async function listIntegrationEvents() {

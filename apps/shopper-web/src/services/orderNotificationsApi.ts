@@ -80,23 +80,33 @@ async function insertNotification(params: {
   actionUrl: string;
   data: Record<string, unknown>;
 }): Promise<void> {
-  const { data: inserted, error } = await getSupabaseClient()
-    .from("notifications")
-    .insert({
-      user_id: params.userId,
-      type: "order",
-      category: "order_updates",
-      title: params.title,
-      body: params.body,
-      data: params.data,
-      action_url: params.actionUrl,
-      is_read: false,
-    })
-    .select("id")
-    .single();
+  // Routes through a SECURITY DEFINER RPC rather than a plain client-side
+  // .insert() — every caller here is staff (admin/manager) writing a
+  // notification for a DIFFERENT user (the customer or driver), and the
+  // raw RLS policy meant to allow that ("Admins can insert notifications
+  // for any user") does not fire correctly in practice: its in-policy
+  // EXISTS subquery against profiles is evaluated under the caller's own
+  // (non-bypassing) context and was confirmed, via direct simulation, to
+  // reject the insert even for a genuine admin. insert_staff_notification
+  // (database/20260710_fix_staff_notification_insert.sql) sidesteps this
+  // by checking permission via the already-proven public.is_manager() and
+  // performing the insert as the function owner.
+  const { data: notificationId, error } = await getSupabaseClient().rpc(
+    "insert_staff_notification",
+    {
+      p_user_id: params.userId,
+      p_type: "order",
+      p_category: "order_updates",
+      p_title: params.title,
+      p_body: params.body,
+      p_data: params.data,
+      p_action_url: params.actionUrl,
+    },
+  );
   if (error) {
     console.error("[orderNotificationsApi] notification insert failed:", error.message);
   }
+  const inserted = notificationId ? { id: notificationId as string } : null;
 
   // Forward to the OS notification tray. This used to only happen for
   // admin-composed broadcasts (NotificationsManager) — every automated

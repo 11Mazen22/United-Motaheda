@@ -24,7 +24,23 @@ export default function SuspendedPage() {
   const isArabic = lang === "ar";
   const navigate = useNavigate();
   const location = useLocation();
-  const state = (location.state as SuspensionPageState | null) ?? null;
+  // Normal path: React Router navigation state, set by the interactive
+  // login()/AccountSuspendedError flow. Fallback: sessionStorage, set by
+  // AuthContext's realtime listener when a session gets suspended live
+  // mid-visit — that path uses a hard window.location redirect (the
+  // AuthProvider sits above BrowserRouter, so no navigate() is available
+  // there), which can't carry React Router state directly.
+  const state = ((): SuspensionPageState | null => {
+    if (location.state) return location.state as SuspensionPageState;
+    try {
+      const raw = sessionStorage.getItem("pending_suspension_detail");
+      if (!raw) return null;
+      sessionStorage.removeItem("pending_suspension_detail");
+      return JSON.parse(raw) as SuspensionPageState;
+    } catch {
+      return null;
+    }
+  })();
 
   /* ── No state: generic fallback ── */
   if (!state) {

@@ -37,8 +37,10 @@ export const PAYMENT_METHOD_CONFIGS: ReadonlyArray<{
     titleKey: "checkout.methodVodafoneTitle",
     descKey:  "checkout.methodVodafoneDesc",
     icon:     "wallet-outline",
-    color:    kit.color.danger,
-    bg:       kit.color.dangerTint,
+    // Vodafone's brand red, kept distinct from `kit.color.danger` so a
+    // selected card doesn't read as an error state.
+    color:    "#C11F30",
+    bg:       "#FBEAEC",
   },
 ];
 

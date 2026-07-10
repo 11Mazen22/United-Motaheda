@@ -72,6 +72,7 @@ export function PrescriptionsList(): React.ReactElement {
 
   const [showExpired, setShowExpired] = useState(false);
   const [filter, setFilter]           = useState<RxFilter>("all");
+  const [ctaHeight, setCtaHeight]     = useState(96);
 
   const { active, expired } = useMemo(() => {
     const expiredList = all.filter((p) => p.status === "expired");
@@ -342,7 +343,7 @@ export function PrescriptionsList(): React.ReactElement {
         contentContainerStyle={{
           paddingHorizontal: 20,
           paddingTop:        14,
-          paddingBottom:     insets.bottom + 96,
+          paddingBottom:     ctaHeight + 20,
         }}
         refreshControl={
           <RefreshControl
@@ -356,7 +357,9 @@ export function PrescriptionsList(): React.ReactElement {
       />
 
       {/* Sticky CTA */}
-      <View style={[s.ctaBar, { paddingBottom: Math.max(insets.bottom, 8) + 4 }]}>
+      <View
+        onLayout={(e) => setCtaHeight(e.nativeEvent.layout.height)}
+        style={[s.ctaBar, { paddingBottom: Math.max(insets.bottom, 8) + 4 }]}>
         <Button
           variant="primary"
           full

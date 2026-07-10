@@ -58,7 +58,35 @@ export default function AuthCallbackScreen() {
         setError(t("authCallback.invalidLink"));
         return;
       }
-      let { data, error: exErr } = await supabase.auth.exchangeCodeForSession(code);
+
+      // Bounded defense-in-depth: exchangeCodeForSession() internally waits for
+      // every onAuthStateChange listener to settle before its own promise
+      // resolves (see AuthProvider's attachRole comment for the incident this
+      // guards against). Any future listener that forgets to bound its own
+      // async work would otherwise strand this screen on the spinner forever
+      // with no way for the user to recover except force-quitting the app.
+      const TIMEOUT_MS = 12_000;
+      const timeout = new Promise<{ timedOut: true }>((resolve) =>
+        setTimeout(() => resolve({ timedOut: true }), TIMEOUT_MS),
+      );
+      const raced = await Promise.race([
+        supabase.auth.exchangeCodeForSession(code),
+        timeout,
+      ]);
+      if ("timedOut" in raced) {
+        if (__DEV__) console.warn("[auth-callback] exchangeCodeForSession timed out after", TIMEOUT_MS, "ms");
+        // The exchange may still complete in the background and persist a
+        // session even though we stopped waiting — check before declaring
+        // failure so we don't show an error over a login that quietly succeeded.
+        const { data: afterTimeout } = await supabase.auth.getSession();
+        if (afterTimeout.session) {
+          router.replace("/(tabs)");
+          return;
+        }
+        setError(t("authCallback.timeout"));
+        return;
+      }
+      let { data, error: exErr } = raced;
       if (exErr) {
         // This screen is a redundant safety net (see file header) — on Android
         // in particular, both the OS Linking listener in AuthProvider AND this

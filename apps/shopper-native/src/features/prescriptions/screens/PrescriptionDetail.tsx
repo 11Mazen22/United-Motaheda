@@ -113,6 +113,7 @@ export function PrescriptionDetail({ id }: { id: string | undefined }): React.Re
   const inFlight = useMemo(() => activeRefill(refills), [refills]);
 
   const [isEditing, setIsEditing] = useState(false);
+  const [ctaHeight, setCtaHeight] = useState(110);
   const [editName,   setEditName]   = useState("");
   const [editDose,   setEditDose]   = useState("");
   const [editDoctor, setEditDoctor] = useState("");
@@ -219,7 +220,7 @@ export function PrescriptionDetail({ id }: { id: string | undefined }): React.Re
         style={{ flex: 1 }}
         contentContainerStyle={{
           padding:        20,
-          paddingBottom:  insets.bottom + 110,
+          paddingBottom:  ctaHeight + 20,
           gap:            16,
         }}
         showsVerticalScrollIndicator={false}>
@@ -464,7 +465,9 @@ export function PrescriptionDetail({ id }: { id: string | undefined }): React.Re
       </ScrollView>
 
       {/* ── Sticky refill CTA ────────────────────────────────────────── */}
-      <View style={[s.ctaBar, { paddingBottom: Math.max(insets.bottom, 8) + 4 }]}>
+      <View
+        onLayout={(e) => setCtaHeight(e.nativeEvent.layout.height)}
+        style={[s.ctaBar, { paddingBottom: Math.max(insets.bottom, 8) + 4 }]}>
         <Button
           variant="primary"
           full

@@ -19,6 +19,7 @@ import * as Font from "expo-font";
 import { useRouter } from "expo-router";
 import { AuthProvider, useAuth } from "@/features/auth";
 import {
+  markNotificationRead,
   NotificationBanner,
   useNotificationSync,
   usePushNotificationRegistration,
@@ -80,7 +81,12 @@ function PushBootstrap() {
   usePushNotificationRegistration({
     userId: user?.id,
     enabled: !!user?.id,
-    onNotificationTap: (actionUrl) => {
+    onNotificationTap: (actionUrl, data) => {
+      // Mark read on tap so a notification opened from the OS tray (app was
+      // backgrounded or killed) doesn't still show as unread once the user
+      // is back in-app — same as tapping it from the in-app list does.
+      const notificationId = typeof data.notification_id === "string" ? data.notification_id : undefined;
+      if (notificationId) markNotificationRead(notificationId).catch(() => {});
       if (actionUrl) router.push(actionUrl as any);
     },
   });

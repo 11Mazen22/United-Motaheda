@@ -1,5 +1,6 @@
 import * as Linking from "expo-linking";
 import { supabase } from "@/lib/supabase";
+import type { Role } from "./role";
 
 /** Deep link Supabase should send the user back to after they tap the
  *  email-confirmation link. In dev this resolves to an Expo Go / dev-client
@@ -25,7 +26,7 @@ export interface AuthUser {
    *  object itself has no notion of app-level role. Undefined until that
    *  fetch completes or if it fails; never assume a customer default here,
    *  since callers gating on 'driver' must wait for a real value. */
-  role?: string;
+  role?: Role;
 }
 
 export interface SignUpResult extends AuthUser {

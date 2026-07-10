@@ -16,7 +16,6 @@
 
 import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase";
 import { subscribeToNotifications } from "../realtime";
 import { useBannerStore } from "../banner-store";
 
@@ -31,7 +30,7 @@ export function useNotificationSync(userId: string | undefined): void {
       return;
     }
 
-    const channel = subscribeToNotifications(userId, (notif) => {
+    const sub = subscribeToNotifications(userId, (notif) => {
       // Surface as a banner toast
       pushBanner(notif);
 
@@ -40,11 +39,6 @@ export function useNotificationSync(userId: string | undefined): void {
       qc.invalidateQueries({ queryKey: ["notification-unread-count", userId] });
     });
 
-    // removeChannel both unsubscribes AND drops the channel from the
-    // supabase client's tracked list. channel.unsubscribe() alone can leave
-    // a stale entry across userId changes / sign-out cycles.
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => sub.unsubscribe();
   }, [userId, qc, pushBanner, resetBanner]);
 }

@@ -5,36 +5,69 @@
  */
 
 import {
+  ArrowPathIcon,
+  CheckBadgeIcon,
+  ClockIcon,
   ExclamationCircleIcon,
+  ExclamationTriangleIcon,
+  InformationCircleIcon,
+  LockClosedIcon,
+  LockOpenIcon,
   MagnifyingGlassIcon,
+  ShieldCheckIcon,
   ShieldExclamationIcon,
+  TrashIcon,
+  UserPlusIcon,
 } from "@heroicons/react/24/outline";
 import {
   type ComponentType,
   type CSSProperties,
   type ReactNode,
+  useEffect,
   useMemo,
+  useState,
 } from "react";
 import { useNavigate } from "react-router-dom";
 export { useDebouncedValue } from "../hooks/useDebouncedValue";
 import { Skeleton } from "../components/ui/skeleton";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "../components/ui/dialog";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "../components/ui/sheet";
 import { cn } from "../components/UI";
+import type { Role } from "@pharmacy/contracts";
+import {
+  fetchAuditLog,
+  fetchLastSignInBatch,
+  getSuspensionHistory,
+  type AuditLogEntry,
+  type LastSignInInfo,
+} from "../../services/adminUsersApi";
+import { hasRolePermission } from "@pharmacy/contracts";
 
 // ─── Role types & helpers ──────────────────────────────────────────────────────
+// Canonical definition lives in @pharmacy/contracts/src/role.ts — re-exported
+// here as AdminRole/hasPermission so every existing importer in this admin
+// panel keeps working unchanged.
 
-export type AdminRole =
-  | "admin"
-  | "manager"
-  | "pharmacist"
-  | "driver"
-  | "customer";
+export type { Role as AdminRole };
 
 export function hasPermission(
-  userRole: AdminRole | undefined,
-  allowedRoles: AdminRole[],
+  userRole: Role | undefined,
+  allowedRoles: Role[],
 ): boolean {
-  if (!userRole) return false;
-  return allowedRoles.includes(userRole);
+  return hasRolePermission(userRole, allowedRoles);
 }
 
 // ─── AdminUnauthorized ────────────────────────────────────────────────────────
@@ -662,5 +695,455 @@ export function AdminFormField({
         )}
       />
     </div>
+  );
+}
+
+// ─── AdminConfirmDialog ───────────────────────────────────────────────────────
+// Generic confirm shell for every new simple admin action (role change,
+// lock/unlock, reset sessions, activate/deactivate). Does NOT replace
+// SuspendDialog/DeleteUserDialog — those have rich bespoke content (policy
+// picker, duration type) and already work; rewriting them would be pure
+// risk for no gain. This is the target for anything that's just
+// "are you sure?" plus an optional type-to-confirm safeguard.
+
+const CONFIRM_TONE = {
+  danger:  { icon: ExclamationTriangleIcon, iconBg: "bg-rose-100",   iconColor: "text-rose-600",   btn: "bg-rose-600 hover:bg-rose-700" },
+  warning: { icon: ExclamationTriangleIcon, iconBg: "bg-amber-100",  iconColor: "text-amber-600",  btn: "bg-amber-600 hover:bg-amber-700" },
+  info:    { icon: InformationCircleIcon,   iconBg: "bg-teal-100",   iconColor: "text-teal-700",   btn: "bg-teal-600 hover:bg-teal-700" },
+} as const;
+
+export function AdminConfirmDialog({
+  open,
+  onClose,
+  onConfirm,
+  title,
+  description,
+  tone = "info",
+  confirmLabel,
+  cancelLabel,
+  typeToConfirmText,
+  lang = "en",
+}: {
+  open: boolean;
+  onClose: () => void;
+  onConfirm: () => Promise<void> | void;
+  title: string;
+  description: ReactNode;
+  tone?: "danger" | "warning" | "info";
+  confirmLabel?: string;
+  cancelLabel?: string;
+  /** If set, the confirm button stays disabled until the user types this
+   * exact string — mirrors DeleteUserDialog's type-to-confirm safeguard. */
+  typeToConfirmText?: string;
+  lang?: "ar" | "en";
+}) {
+  const isArabic = lang === "ar";
+  const [typed, setTyped] = useState("");
+  const [loading, setLoading] = useState(false);
+  const t = CONFIRM_TONE[tone];
+  const Icon = t.icon;
+
+  useEffect(() => {
+    if (!open) { setTyped(""); setLoading(false); }
+  }, [open]);
+
+  const canConfirm = !typeToConfirmText || typed.trim() === typeToConfirmText;
+
+  const handleConfirm = async () => {
+    setLoading(true);
+    try {
+      await onConfirm();
+      onClose();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && !loading && onClose()}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <div className="flex items-center gap-3">
+            <span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl", t.iconBg)}>
+              <Icon className={cn("h-5 w-5", t.iconColor)} />
+            </span>
+            <DialogTitle className="text-lg font-black text-slate-900">{title}</DialogTitle>
+          </div>
+          <DialogDescription className="pt-2 text-sm text-slate-600">{description}</DialogDescription>
+        </DialogHeader>
+
+        {typeToConfirmText && (
+          <div className="pt-1">
+            <label className="mb-1.5 block text-xs font-semibold text-slate-600">
+              {isArabic
+                ? `اكتب "${typeToConfirmText}" للتأكيد`
+                : `Type "${typeToConfirmText}" to confirm`}
+            </label>
+            <input
+              value={typed}
+              onChange={(e) => setTyped(e.target.value)}
+              className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-800 outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
+              autoComplete="off"
+            />
+          </div>
+        )}
+
+        <DialogFooter className="gap-2 pt-2">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={loading}
+            className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
+          >
+            {cancelLabel ?? (isArabic ? "إلغاء" : "Cancel")}
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleConfirm()}
+            disabled={!canConfirm || loading}
+            className={cn(
+              "inline-flex h-10 items-center gap-2 rounded-xl px-5 text-sm font-bold text-white shadow-sm transition disabled:cursor-not-allowed disabled:opacity-50",
+              t.btn,
+            )}
+          >
+            {loading && (
+              <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+              </svg>
+            )}
+            {confirmLabel ?? (isArabic ? "تأكيد" : "Confirm")}
+          </button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ─── AdminAuditTimeline ───────────────────────────────────────────────────────
+// Renders public.admin_audit_log rows (via fetchAuditLog) — this table was
+// write-only before this redesign; nothing anywhere read it.
+
+const AUDIT_ACTION_META: Record<string, { ar: string; en: string; icon: ComponentType<{ className?: string }>; tone: string }> = {
+  change_role:     { ar: "تغيير الصلاحية",   en: "Role changed",        icon: ShieldCheckIcon,        tone: "text-teal-700 bg-teal-100" },
+  change_status:   { ar: "تغيير الحالة",     en: "Status changed",      icon: ArrowPathIcon,          tone: "text-blue-700 bg-blue-100" },
+  suspend_user:     { ar: "تعليق الحساب",     en: "Account suspended",   icon: ShieldExclamationIcon,  tone: "text-rose-700 bg-rose-100" },
+  unsuspend_user:   { ar: "رفع التعليق",      en: "Suspension removed",  icon: CheckBadgeIcon,         tone: "text-emerald-700 bg-emerald-100" },
+  delete_user:      { ar: "حذف الحساب",       en: "Account deleted",     icon: TrashIcon,              tone: "text-red-700 bg-red-100" },
+  lock_account:     { ar: "قفل الحساب",       en: "Account locked",      icon: LockClosedIcon,         tone: "text-amber-700 bg-amber-100" },
+  unlock_account:   { ar: "فتح قفل الحساب",   en: "Account unlocked",    icon: LockOpenIcon,           tone: "text-emerald-700 bg-emerald-100" },
+  reset_sessions:   { ar: "إعادة تعيين الجلسات", en: "Sessions reset",  icon: ArrowPathIcon,           tone: "text-blue-700 bg-blue-100" },
+  create_staff:     { ar: "إضافة موظف",       en: "Staff created",      icon: UserPlusIcon,           tone: "text-teal-700 bg-teal-100" },
+};
+
+function getAuditActionMeta(action: string) {
+  return (
+    AUDIT_ACTION_META[action] ?? {
+      ar: action, en: action, icon: InformationCircleIcon, tone: "text-slate-700 bg-slate-100",
+    }
+  );
+}
+
+export function AdminAuditTimeline({
+  entries,
+  lang,
+  loading,
+  emptyLabel,
+}: {
+  entries: AuditLogEntry[];
+  lang: "ar" | "en";
+  loading?: boolean;
+  emptyLabel?: string;
+}) {
+  const isArabic = lang === "ar";
+
+  if (loading) return <AdminTableSkeleton rows={3} />;
+
+  if (!entries.length) {
+    return (
+      <AdminEmptyState
+        title={emptyLabel ?? (isArabic ? "لا يوجد سجل بعد" : "No history yet")}
+      />
+    );
+  }
+
+  return (
+    <ol className="space-y-3">
+      {entries.map((entry) => {
+        const meta = getAuditActionMeta(entry.action);
+        const Icon = meta.icon;
+        const details = entry.details;
+        return (
+          <li key={entry.id} className="flex gap-3 rounded-xl border border-slate-100 bg-white p-3">
+            <span className={cn("mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg", meta.tone)}>
+              <Icon className="h-4 w-4" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+                <p className="text-sm font-bold text-slate-800">{isArabic ? meta.ar : meta.en}</p>
+                <div className="flex items-center gap-1 text-[11px] font-medium text-slate-400">
+                  <ClockIcon className="h-3 w-3" />
+                  {new Date(entry.createdAt).toLocaleString(isArabic ? "ar-EG" : "en-GB", {
+                    dateStyle: "medium", timeStyle: "short",
+                  })}
+                </div>
+              </div>
+              <p className="mt-0.5 text-xs text-slate-500">
+                {isArabic ? "بواسطة" : "by"} {entry.adminName}
+              </p>
+              {details && Object.keys(details).length > 0 && (
+                <details className="mt-1.5">
+                  <summary className="cursor-pointer text-[11px] font-semibold text-slate-400 hover:text-slate-600">
+                    {isArabic ? "تفاصيل إضافية" : "Details"}
+                  </summary>
+                  <pre className="mt-1 overflow-x-auto rounded-lg bg-slate-50 p-2 text-[11px] text-slate-600">
+                    {JSON.stringify(details, null, 2)}
+                  </pre>
+                </details>
+              )}
+            </div>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+// ─── AdminBulkActionBar ───────────────────────────────────────────────────────
+// Wires a selection count to real bulk mutations. Deliberately status-only
+// actions (activate/deactivate/suspend/restore) — no bulk role-change, no
+// bulk lock, no bulk delete: high-consequence, low-value complexity for the
+// account volumes this admin panel manages today.
+
+export interface AdminBulkAction {
+  key: string;
+  label: string;
+  icon?: ComponentType<{ className?: string }>;
+  tone?: "default" | "danger";
+  onClick: () => void;
+}
+
+export function AdminBulkActionBar({
+  selectedCount,
+  actions,
+  onClear,
+  lang,
+}: {
+  selectedCount: number;
+  actions: AdminBulkAction[];
+  onClear: () => void;
+  lang: "ar" | "en";
+}) {
+  if (selectedCount <= 0) return null;
+  const isArabic = lang === "ar";
+
+  return (
+    <div className="flex flex-wrap items-center gap-3 border-b border-slate-100 bg-teal-50 px-4 py-2.5 md:px-6">
+      <span className="text-sm font-bold text-teal-700">
+        {isArabic ? `${selectedCount} محدد` : `${selectedCount} selected`}
+      </span>
+      <div className="flex flex-wrap items-center gap-2">
+        {actions.map((a) => {
+          const Icon = a.icon;
+          return (
+            <button
+              key={a.key}
+              type="button"
+              onClick={a.onClick}
+              className={cn(
+                "inline-flex h-8 items-center gap-1.5 rounded-lg border px-3 text-xs font-semibold transition",
+                a.tone === "danger"
+                  ? "border-rose-200 bg-white text-rose-600 hover:bg-rose-50"
+                  : "border-teal-200 bg-white text-teal-700 hover:bg-teal-50",
+              )}
+            >
+              {Icon && <Icon className="h-3.5 w-3.5" />}
+              {a.label}
+            </button>
+          );
+        })}
+        <button
+          type="button"
+          onClick={onClear}
+          className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+        >
+          {isArabic ? "إلغاء التحديد" : "Deselect"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── AdminDetailDrawer ────────────────────────────────────────────────────────
+// Smart side-panel keyed by userId — owns its own fetch of the data the
+// caller's list view doesn't already have (last-sign-in/verification, audit
+// history, suspension history). Both StaffManager and UsersManager render
+// one line each to get the same rich detail view; this is the mechanism
+// that ends duplicated per-page detail logic.
+
+export interface AdminDetailDrawerSummary {
+  id: string;
+  fullName: string;
+  email: string;
+  phone: string;
+  role: string;
+  status: string;
+  createdAt?: string;
+}
+
+export function AdminDetailDrawer({
+  open,
+  onClose,
+  summary,
+  lang,
+  roleLabel,
+  statusBadge,
+  actions,
+}: {
+  open: boolean;
+  onClose: () => void;
+  summary: AdminDetailDrawerSummary | null;
+  lang: "ar" | "en";
+  /** Pre-resolved role label — the caller already owns role-label logic
+   * (StaffManager/UsersManager each have their own canonical-role-aware
+   * label lookup), so this stays presentational rather than re-deriving it. */
+  roleLabel: string;
+  /** Pre-rendered status badge (color/label already resolved by caller). */
+  statusBadge?: ReactNode;
+  /** Row of action buttons (change role, suspend, lock, etc.) — the caller
+   * owns which actions are available and their handlers. */
+  actions?: ReactNode;
+}) {
+  const isArabic = lang === "ar";
+  const [auditEntries, setAuditEntries] = useState<AuditLogEntry[]>([]);
+  const [auditLoading, setAuditLoading] = useState(false);
+  const [lastSignIn, setLastSignIn] = useState<LastSignInInfo | undefined>(undefined);
+  const [suspensionHistory, setSuspensionHistory] = useState<Awaited<ReturnType<typeof getSuspensionHistory>>>([]);
+
+  useEffect(() => {
+    if (!open || !summary?.id) return;
+    let cancelled = false;
+    setAuditLoading(true);
+
+    void (async () => {
+      try {
+        const [auditResult, signInMap, suspensions] = await Promise.all([
+          fetchAuditLog(summary.id, { page: 1, perPage: 10 }),
+          fetchLastSignInBatch([summary.id]),
+          getSuspensionHistory(summary.id).catch(() => []),
+        ]);
+        if (cancelled) return;
+        setAuditEntries(auditResult.entries);
+        setLastSignIn(signInMap.get(summary.id));
+        setSuspensionHistory(suspensions);
+      } catch {
+        // Detail panel is supplementary — a fetch failure here shouldn't
+        // block the rest of the admin page.
+      } finally {
+        if (!cancelled) setAuditLoading(false);
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [open, summary?.id]);
+
+  if (!summary) return null;
+
+  const fmtDate = (iso?: string | null) =>
+    iso
+      ? new Date(iso).toLocaleString(isArabic ? "ar-EG" : "en-GB", { dateStyle: "medium", timeStyle: "short" })
+      : (isArabic ? "لم يسجّل الدخول بعد" : "Never signed in");
+
+  return (
+    <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
+      <SheetContent className="w-full overflow-y-auto sm:max-w-md">
+        <SheetHeader>
+          <div className="flex items-center gap-3">
+            <span
+              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-base font-black text-white shadow-sm"
+              style={{ background: "linear-gradient(135deg, #0E7E74 0%, #0d6b62 100%)" }}
+            >
+              {(summary.fullName || summary.email || "?").slice(0, 1).toUpperCase()}
+            </span>
+            <div className="min-w-0">
+              <SheetTitle className="truncate text-base">{summary.fullName || (isArabic ? "بدون اسم" : "No name")}</SheetTitle>
+              <SheetDescription className="truncate" dir="ltr">{summary.email}</SheetDescription>
+            </div>
+          </div>
+        </SheetHeader>
+
+        <div className="space-y-5 px-4 pb-6">
+          {/* Identity summary */}
+          <div className="grid grid-cols-2 gap-2">
+            <div className="rounded-xl border border-slate-100 bg-slate-50/80 p-3">
+              <p className="text-[10px] font-black uppercase tracking-wide text-slate-400">
+                {isArabic ? "الدور" : "Role"}
+              </p>
+              <p className="mt-1 text-sm font-bold text-slate-800">{roleLabel}</p>
+            </div>
+            <div className="rounded-xl border border-slate-100 bg-slate-50/80 p-3">
+              <p className="text-[10px] font-black uppercase tracking-wide text-slate-400">
+                {isArabic ? "الحالة" : "Status"}
+              </p>
+              <div className="mt-1">{statusBadge}</div>
+            </div>
+            <div className="rounded-xl border border-slate-100 bg-slate-50/80 p-3">
+              <p className="text-[10px] font-black uppercase tracking-wide text-slate-400">
+                {isArabic ? "الهاتف" : "Phone"}
+              </p>
+              <p className="mt-1 text-sm font-bold text-slate-800" dir="ltr">{summary.phone || "—"}</p>
+            </div>
+            <div className="rounded-xl border border-slate-100 bg-slate-50/80 p-3">
+              <p className="text-[10px] font-black uppercase tracking-wide text-slate-400">
+                {isArabic ? "تاريخ الانضمام" : "Joined"}
+              </p>
+              <p className="mt-1 text-sm font-bold text-slate-800">{fmtDate(summary.createdAt)}</p>
+            </div>
+          </div>
+
+          {/* Activity */}
+          <div className="rounded-xl border border-slate-100 bg-slate-50/80 p-3">
+            <p className="text-[10px] font-black uppercase tracking-wide text-slate-400">
+              {isArabic ? "آخر نشاط" : "Activity"}
+            </p>
+            <p className="mt-1 text-sm font-bold text-slate-800">{fmtDate(lastSignIn?.lastSignInAt)}</p>
+            <p className="mt-1 text-xs text-slate-500">
+              {lastSignIn?.emailConfirmedAt
+                ? (isArabic ? "البريد الإلكتروني موثّق" : "Email verified")
+                : (isArabic ? "البريد الإلكتروني غير موثّق" : "Email not verified")}
+            </p>
+          </div>
+
+          {/* Actions */}
+          {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
+
+          {/* Suspension history */}
+          {suspensionHistory.length > 0 && (
+            <div>
+              <p className="mb-2 text-sm font-bold text-slate-800">
+                {isArabic ? "سجل التعليق" : "Suspension history"}
+              </p>
+              <ol className="space-y-2">
+                {suspensionHistory.map((s) => (
+                  <li key={s.id} className="rounded-xl border border-rose-100 bg-rose-50/50 p-3">
+                    <p className="text-xs font-bold text-rose-700">{s.reasonCodes.join(", ")}</p>
+                    <p className="mt-0.5 text-[11px] text-slate-500">{fmtDate(s.suspendedAt)}</p>
+                    {s.adminNotes && <p className="mt-1 text-xs text-slate-600">{s.adminNotes}</p>}
+                  </li>
+                ))}
+              </ol>
+            </div>
+          )}
+
+          {/* Audit history */}
+          <div>
+            <p className="mb-2 text-sm font-bold text-slate-800">
+              {isArabic ? "سجل التدقيق" : "Audit history"}
+            </p>
+            <AdminAuditTimeline entries={auditEntries} lang={lang} loading={auditLoading} />
+          </div>
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 }

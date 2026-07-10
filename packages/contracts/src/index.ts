@@ -4,3 +4,4 @@ export * from "./geo";
 export * from "./branch";
 export * from "./delivery";
 export * from "./orderStatus";
+export * from "./role";

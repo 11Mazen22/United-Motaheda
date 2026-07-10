@@ -1,5 +1,11 @@
 import { type ReactNode } from "react";
 import { Navigate, useLocation } from "react-router-dom";
+import {
+  ADMIN_ONLY_ROLES,
+  MANAGER_AND_ABOVE_ROLES,
+  PHARMACIST_AND_ABOVE_ROLES,
+  STAFF_ROLES_LIST,
+} from "@pharmacy/contracts";
 import { useAuth } from "../../contexts/AuthContext";
 import { useLanguage } from "../../contexts/LanguageContext";
 import { type AdminRole, AdminUnauthorized, hasPermission } from "./adminShared";
@@ -48,19 +54,19 @@ export default function AdminRouteProtection({
 // ─── Convenience wrappers ─────────────────────────────────────────────────────
 
 export function AdminOnly({ children }: { children: ReactNode }) {
-  return <AdminRouteProtection allowedRoles={["admin"]}>{children}</AdminRouteProtection>;
+  return <AdminRouteProtection allowedRoles={[...ADMIN_ONLY_ROLES]}>{children}</AdminRouteProtection>;
 }
 
 export function ManagerAndAbove({ children }: { children: ReactNode }) {
-  return <AdminRouteProtection allowedRoles={["admin", "manager"]}>{children}</AdminRouteProtection>;
+  return <AdminRouteProtection allowedRoles={[...MANAGER_AND_ABOVE_ROLES]}>{children}</AdminRouteProtection>;
 }
 
 export function PharmacistAndAbove({ children }: { children: ReactNode }) {
-  return <AdminRouteProtection allowedRoles={["admin", "manager", "pharmacist"]}>{children}</AdminRouteProtection>;
+  return <AdminRouteProtection allowedRoles={[...PHARMACIST_AND_ABOVE_ROLES]}>{children}</AdminRouteProtection>;
 }
 
 export function StaffOnly({ children }: { children: ReactNode }) {
-  return <AdminRouteProtection allowedRoles={["admin", "manager", "pharmacist", "driver"]}>{children}</AdminRouteProtection>;
+  return <AdminRouteProtection allowedRoles={[...STAFF_ROLES_LIST]}>{children}</AdminRouteProtection>;
 }
 
 export function DriverOnly({ children }: { children: ReactNode }) {

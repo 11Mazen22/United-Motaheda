@@ -179,6 +179,23 @@ export async function registerPushToken(input: {
   if (error && __DEV__) console.warn("[notifications] registerPushToken failed:", error.message);
 }
 
+/**
+ * Removes every push-token row for a user, called on sign-out.
+ *
+ * Without this, a device's token row stays attached to the signed-out user
+ * indefinitely. If a different account later signs in on the same physical
+ * device, both rows would point at the same token (registerPushToken's
+ * upsert key is (user_id, expo_push_token) — a composite key, so the new
+ * user's row doesn't overwrite the old one) and the signed-out account
+ * could still receive pushes on a device it no longer controls.
+ */
+export async function unregisterAllPushTokensForUser(userId: string): Promise<void> {
+  await supabase
+    .from("notification_tokens")
+    .delete()
+    .eq("user_id", userId);
+}
+
 export async function unregisterPushToken(userId: string, token: string): Promise<void> {
   await supabase
     .from("notification_tokens")

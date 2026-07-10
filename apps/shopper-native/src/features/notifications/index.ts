@@ -17,6 +17,7 @@ export {
   updateNotificationPreferences,
   registerPushToken,
   unregisterPushToken,
+  unregisterAllPushTokensForUser,
 } from "./api";
 
 // ─── Realtime primitive (low-level — most code should use hooks) ──────────

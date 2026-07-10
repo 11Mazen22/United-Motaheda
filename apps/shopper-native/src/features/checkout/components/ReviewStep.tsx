@@ -16,10 +16,11 @@ import { formatPrice } from "@/utils/format";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
 
 import { type CheckoutFormSchema } from "../schema";
-import { type CheckoutPaymentMethod, PAYMENT_METHOD_CONFIGS } from "../constants";
+import { type CheckoutPaymentMethod } from "../constants";
 import { type CheckoutPricing } from "../types";
 import { SectionCard } from "./SectionCard";
 import { SummaryRow } from "./SummaryRow";
+import { PaymentOptionsList } from "./PaymentOptionsList";
 import { summaryStyles, errorStyles } from "./checkout.styles";
 
 interface ReviewStepProps {
@@ -69,12 +70,6 @@ export const ReviewStep = React.memo(function ReviewStep({
 }: ReviewStepProps) {
   const { t, i18n } = useTranslation();
   const sep = i18n.language.startsWith("en") ? ", " : "، ";
-
-  const methods = PAYMENT_METHOD_CONFIGS.map((cfg) => ({
-    ...cfg,
-    title:       t(cfg.titleKey),
-    description: t(cfg.descKey),
-  }));
 
   return (
     <Animated.View entering={FadeIn.duration(220)}>
@@ -131,43 +126,7 @@ export const ReviewStep = React.memo(function ReviewStep({
         icon="card-outline"
         delay={110}
         action={{ label: t("checkout.editPayment"), onPress: onEditPayment }}>
-        {methods.map((m) => {
-          const active = paymentMethod === m.id;
-          return (
-            <Pressable
-              key={m.id}
-              onPress={() => onPaymentChange(m.id)}
-              accessibilityRole="radio"
-              accessibilityState={{ selected: active }}
-              accessibilityLabel={m.title}
-              style={[
-                s.payOption,
-                active && {
-                  borderColor:     m.color,
-                  borderWidth:     1.5,
-                  backgroundColor: m.bg,
-                  ...kit.shadow.card,
-                },
-              ]}>
-              <View
-                style={[
-                  s.payRadio,
-                  active && { borderColor: m.color },
-                ]}>
-                {active && (
-                  <View style={[s.payRadioDot, { backgroundColor: m.color }]} />
-                )}
-              </View>
-              <View style={[s.payIcon, { backgroundColor: active ? "#fff" : m.bg }]}>
-                <Ionicons name={m.icon} size={18} color={m.color} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <UIText style={[s.payTitle, active && { color: m.color }]}>{m.title}</UIText>
-                <UIText style={s.paySub}>{m.description}</UIText>
-              </View>
-            </Pressable>
-          );
-        })}
+        <PaymentOptionsList selected={paymentMethod} onChange={onPaymentChange} />
 
         {paymentMethod === "cod" && (
           <Pressable
@@ -198,14 +157,14 @@ export const ReviewStep = React.memo(function ReviewStep({
 
         {/* Coming-soon placeholder */}
         <View style={s.comingSoon}>
-          <View style={[s.payIcon, { backgroundColor: kit.color.well }]}>
+          <View style={[s.comingSoonIcon, { backgroundColor: kit.color.well }]}>
             <Ionicons name="link-outline" size={16} color={kit.color.inkFaint} />
           </View>
           <View style={{ flex: 1 }}>
-            <UIText style={[s.payTitle, { color: kit.color.inkFaint }]}>
+            <UIText style={[s.comingSoonTitle, { color: kit.color.inkFaint }]}>
               {t("checkout.paymentLink")}
             </UIText>
-            <UIText style={s.paySub}>{t("checkout.methodComingSoon")}</UIText>
+            <UIText style={s.comingSoonSub}>{t("checkout.methodComingSoon")}</UIText>
           </View>
         </View>
       </SectionCard>
@@ -334,47 +293,6 @@ const s = StyleSheet.create({
     color:      kit.color.accentDeep,
   },
 
-  // Payment options (compact radio list)
-  payOption: {
-    flexDirection:  flexRow(isRtl()),
-    alignItems:     "center",
-    gap:            10,
-    padding:        12,
-    borderRadius:   14,
-    backgroundColor: "#fff",
-    borderWidth:    1.5,
-    borderColor:    kit.color.line,
-  },
-  payRadio: {
-    width:          18,
-    height:         18,
-    borderRadius:   9,
-    borderWidth:    2,
-    borderColor:    kit.color.inkFaint,
-    alignItems:     "center",
-    justifyContent: "center",
-  },
-  payRadioDot: { width: 8, height: 8, borderRadius: 4 },
-  payIcon: {
-    width:          36,
-    height:         36,
-    borderRadius:   10,
-    alignItems:     "center",
-    justifyContent: "center",
-  },
-  payTitle: {
-    fontSize:   12,
-    fontFamily: theme.fonts.bold,
-    color:      kit.color.ink,
-    textAlign:  textAlignStart(isRtl()),
-  },
-  paySub: {
-    fontSize:   10,
-    fontFamily: theme.fonts.regular,
-    color:      kit.color.inkFaint,
-    textAlign:  textAlignStart(isRtl()),
-  },
-
   // POS toggle
   posToggle: {
     flexDirection:  flexRow(isRtl()),
@@ -413,6 +331,24 @@ const s = StyleSheet.create({
   },
 
   // Coming-soon payment placeholder
+  comingSoonIcon: {
+    width:          36,
+    height:         36,
+    borderRadius:   10,
+    alignItems:     "center",
+    justifyContent: "center",
+  },
+  comingSoonTitle: {
+    fontSize:   12,
+    fontFamily: theme.fonts.bold,
+    textAlign:  textAlignStart(isRtl()),
+  },
+  comingSoonSub: {
+    fontSize:   10,
+    fontFamily: theme.fonts.regular,
+    color:      kit.color.inkFaint,
+    textAlign:  textAlignStart(isRtl()),
+  },
   comingSoon: {
     flexDirection:  flexRow(isRtl()),
     alignItems:     "center",

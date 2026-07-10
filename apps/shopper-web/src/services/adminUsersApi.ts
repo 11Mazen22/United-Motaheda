@@ -1,11 +1,12 @@
 import { getSupabaseClient } from "../lib/supabaseClient";
+import type { Role } from "@pharmacy/contracts";
 
 export interface AdminUser {
   id: string;
   email: string;
   fullName: string;
   phone: string;
-  role: 'admin' | 'manager' | 'pharmacist' | 'driver' | 'customer';
+  role: Role;
   status: 'Active' | 'Inactive' | 'Suspended';
   createdAt: string;
   suspensionInfo?: ActiveSuspensionInfo;
@@ -25,7 +26,7 @@ export interface FetchUsersOptions {
   perPage?: number;
   search?: string;
   statusFilter?: 'all' | 'Active' | 'Inactive' | 'Suspended';
-  roleFilter?: 'all' | 'customer' | 'admin' | 'manager' | 'pharmacist' | 'driver';
+  roleFilter?: 'all' | Role | Role[];
   sortBy?: 'full_name' | 'email' | 'created_at' | 'status' | 'role';
   sortDir?: 'asc' | 'desc';
 }
@@ -113,7 +114,8 @@ function applyProfileFilters(q: any, options: FetchUsersOptions): any {
     q = q.neq('status', 'Inactive');
   }
   if (roleFilter && roleFilter !== 'all') {
-    q = q.eq('role', roleFilter);
+    if (Array.isArray(roleFilter)) q = q.in('role', roleFilter);
+    else q = q.eq('role', roleFilter);
   }
   return q;
 }
@@ -336,4 +338,230 @@ export async function logAdminAction(
   } catch {
     // Audit log failure must not interrupt the main operation.
   }
+}
+
+// ─── Role / status changes (consolidated — used by both StaffManager and
+// UsersManager, closing the arbitrary split where only one page could
+// change role and only the other could suspend/delete the same profiles
+// row) ───────────────────────────────────────────────────────────────────
+
+export async function changeUserRole(
+  userId: string,
+  nextRole: Role,
+  adminId: string,
+  adminEmail?: string,
+): Promise<void> {
+  const supabase = getSupabaseClient();
+
+  const { data: before } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', userId)
+    .maybeSingle();
+  const fromRole = before?.role as string | undefined;
+
+  // .select() + verify is required here, not optional — see
+  // StaffManager.tsx's original handleRoleChange for the incident this
+  // idiom was born from: a silently-blocked update (RLS, or the
+  // profiles_guard_role_status trigger deciding the caller isn't a
+  // manager) returns no error and zero rows changed, which PostgREST
+  // treats as a successful request.
+  const { data, error } = await supabase
+    .from('profiles')
+    .update({ role: nextRole })
+    .eq('id', userId)
+    .select('id, role')
+    .maybeSingle();
+
+  if (error) throw new Error(`[adminUsersApi.changeUserRole] ${error.message}`);
+  if (!data || data.role !== nextRole) {
+    throw new Error('Role update did not persist.');
+  }
+
+  await logAdminAction(adminId, 'change_role', userId, { fromRole, toRole: nextRole, adminEmail });
+}
+
+export async function changeUserStatus(
+  userId: string,
+  nextStatus: 'Active' | 'Inactive' | 'Suspended',
+  adminId: string,
+  adminEmail?: string,
+): Promise<void> {
+  const supabase = getSupabaseClient();
+
+  const { data: before } = await supabase
+    .from('profiles')
+    .select('status')
+    .eq('id', userId)
+    .maybeSingle();
+  const fromStatus = before?.status as string | undefined;
+
+  const { data, error } = await supabase
+    .from('profiles')
+    .update({ status: nextStatus })
+    .eq('id', userId)
+    .select('id, status')
+    .maybeSingle();
+
+  if (error) throw new Error(`[adminUsersApi.changeUserStatus] ${error.message}`);
+  if (!data || data.status !== nextStatus) {
+    throw new Error('Status update did not persist.');
+  }
+
+  await logAdminAction(adminId, 'change_status', userId, { fromStatus, toStatus: nextStatus, adminEmail });
+}
+
+// ─── Lock / unlock / reset sessions — thin wrappers over the
+// admin-privileged-actions Edge Function (the client never holds the
+// service-role key these need) ───────────────────────────────────────────
+
+async function invokePrivilegedAction(action: string, params: Record<string, unknown>): Promise<void> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase.functions.invoke('admin-privileged-actions', {
+    body: { action, ...params },
+  });
+  if (error) throw new Error(error.message ?? `Failed to perform ${action}.`);
+  if (!data?.success) throw new Error(data?.error ?? `Failed to perform ${action}.`);
+}
+
+export async function lockAccount(userId: string, adminId: string, adminEmail?: string): Promise<void> {
+  await invokePrivilegedAction('set_account_lock', { userId, locked: true });
+  await logAdminAction(adminId, 'lock_account', userId, { adminEmail });
+}
+
+export async function unlockAccount(userId: string, adminId: string, adminEmail?: string): Promise<void> {
+  await invokePrivilegedAction('set_account_lock', { userId, locked: false });
+  await logAdminAction(adminId, 'unlock_account', userId, { adminEmail });
+}
+
+export async function resetUserSessions(userId: string, adminId: string, adminEmail?: string): Promise<void> {
+  await invokePrivilegedAction('reset_sessions', { userId });
+  await logAdminAction(adminId, 'reset_sessions', userId, { adminEmail });
+}
+
+// ─── Audit log ────────────────────────────────────────────────────────────
+
+export interface AuditLogEntry {
+  id: string;
+  adminId: string;
+  adminName: string;
+  action: string;
+  targetUserId: string | null;
+  details: Record<string, unknown> | null;
+  createdAt: string;
+}
+
+export interface FetchAuditLogResult {
+  entries: AuditLogEntry[];
+  total: number;
+  page: number;
+  totalPages: number;
+}
+
+/** Reads public.admin_audit_log — real table, was write-only (nothing read
+ * it) before this redesign. Pass targetUserId for one account's history
+ * (used by AdminDetailDrawer), omit it for the platform-wide log. Resolves
+ * admin_id -> display name via one batched profiles lookup per page, not
+ * per row. */
+export async function fetchAuditLog(
+  targetUserId?: string,
+  options: { page?: number; perPage?: number } = {},
+): Promise<FetchAuditLogResult> {
+  const supabase = getSupabaseClient();
+  const page = options.page ?? 1;
+  const perPage = options.perPage ?? 20;
+  const offset = (page - 1) * perPage;
+
+  let query = supabase
+    .from('admin_audit_log')
+    .select('id, admin_id, action, target_user_id, details, created_at', { count: 'exact' });
+  if (targetUserId) query = query.eq('target_user_id', targetUserId);
+
+  const { data, error, count } = await query
+    .order('created_at', { ascending: false })
+    .range(offset, offset + perPage - 1);
+
+  if (error) throw new Error(`[adminUsersApi.fetchAuditLog] ${error.message}`);
+
+  const rows = (data ?? []) as Array<{
+    id: string;
+    admin_id: string;
+    action: string;
+    target_user_id: string | null;
+    details: Record<string, unknown> | null;
+    created_at: string;
+  }>;
+
+  const adminIds = Array.from(new Set(rows.map((r) => r.admin_id).filter(Boolean)));
+  const adminNames = new Map<string, string>();
+  if (adminIds.length > 0) {
+    const { data: admins } = await supabase.from('profiles').select('id, full_name').in('id', adminIds);
+    for (const a of (admins ?? []) as Array<{ id: string; full_name: string }>) {
+      adminNames.set(a.id, a.full_name || '—');
+    }
+  }
+
+  const entries: AuditLogEntry[] = rows.map((r) => ({
+    id: r.id,
+    adminId: r.admin_id,
+    adminName: adminNames.get(r.admin_id) ?? '—',
+    action: r.action,
+    targetUserId: r.target_user_id,
+    details: r.details,
+    createdAt: r.created_at,
+  }));
+
+  const total = count ?? 0;
+  return { entries, total, page, totalPages: Math.max(1, Math.ceil(total / perPage)) };
+}
+
+// ─── Status counts + last-sign-in (backed by database/20260710_admin_role_rpcs.sql) ──
+
+export interface ProfileStatusCounts {
+  total: number;
+  active: number;
+  suspended: number;
+  inactive: number;
+}
+
+/** Replaces the old client-side loadCounts() pattern (an unfiltered
+ * select('status') over the whole table, re-run after every mutation) with
+ * one aggregate RPC call. */
+export async function fetchStatusCounts(): Promise<ProfileStatusCounts> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase.rpc('admin_profile_status_counts');
+  if (error) throw new Error(`[adminUsersApi.fetchStatusCounts] ${error.message}`);
+  return (data as ProfileStatusCounts) ?? { total: 0, active: 0, suspended: 0, inactive: 0 };
+}
+
+export interface LastSignInInfo {
+  id: string;
+  lastSignInAt: string | null;
+  emailConfirmedAt: string | null;
+}
+
+/** last_sign_in_at / email_confirmed_at live in auth.users, not
+ * public.profiles, and auth.users isn't exposed to the client directly —
+ * this batches the lookup by id array so a page of N accounts costs one
+ * call, not N. */
+export async function fetchLastSignInBatch(userIds: string[]): Promise<Map<string, LastSignInInfo>> {
+  const result = new Map<string, LastSignInInfo>();
+  if (userIds.length === 0) return result;
+
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase.rpc('admin_get_last_sign_in', { user_ids: userIds });
+  if (error) throw new Error(`[adminUsersApi.fetchLastSignInBatch] ${error.message}`);
+
+  for (const row of (data ?? []) as Array<{
+    id: string;
+    last_sign_in_at: string | null;
+    email_confirmed_at: string | null;
+  }>) {
+    result.set(row.id, {
+      id: row.id,
+      lastSignInAt: row.last_sign_in_at,
+      emailConfirmedAt: row.email_confirmed_at,
+    });
+  }
+  return result;
 }

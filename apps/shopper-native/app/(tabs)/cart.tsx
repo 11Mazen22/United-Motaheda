@@ -528,7 +528,7 @@ export default function CartScreen() {
                 <Ionicons name={FORWARD_CHEVRON} size={17} color={kit.color.onInk} />
                 <UIText style={s.checkoutText} numberOfLines={1}>
                   {delivery.isDeliverable
-                    ? t("cart.checkoutBtn", { total: total.toFixed(2) })
+                    ? t("cart.checkoutBtnShort")
                     : t("cart.outsideDelivery")}
                 </UIText>
               </View>

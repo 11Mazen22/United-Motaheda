@@ -61,6 +61,7 @@ export default function RefillPage(): React.ReactElement {
   const { requestRefill, isPending } = useRequestRefill(user?.id);
 
   const [selected, setSelected] = useState<RefillDelivery>("standard");
+  const [ctaHeight, setCtaHeight] = useState(110);
 
   const DELIVERY_OPTIONS: DeliveryOption[] = useMemo(() => [
     {
@@ -137,7 +138,7 @@ export default function RefillPage(): React.ReactElement {
         style={{ flex: 1 }}
         contentContainerStyle={{
           padding:       20,
-          paddingBottom: insets.bottom + 110,
+          paddingBottom: ctaHeight + 20,
           gap:           18,
         }}
         showsVerticalScrollIndicator={false}>
@@ -210,7 +211,9 @@ export default function RefillPage(): React.ReactElement {
       </ScrollView>
 
       {/* ── Sticky confirm CTA ──────────────────────────────────────── */}
-      <View style={[s.ctaBar, { paddingBottom: Math.max(insets.bottom, 8) + 4 }]}>
+      <View
+        onLayout={(e) => setCtaHeight(e.nativeEvent.layout.height)}
+        style={[s.ctaBar, { paddingBottom: Math.max(insets.bottom, 8) + 4 }]}>
         <View style={s.ctaEyebrowRow}>
           <Text weight="bold" style={s.ctaEyebrow}>
             {t("prescriptions.refillSelected")}

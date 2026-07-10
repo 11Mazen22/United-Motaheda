@@ -28,6 +28,7 @@
         "backgroundColor": "#ffffff"
       },
       "package": "com.unitedpharmacy.app",
+      "googleServicesFile": "./google-services.json",
       "jsEngine": "hermes",
       "permissions": [
         "android.permission.CAMERA",
@@ -37,7 +38,7 @@
         "backgroundColor": "transparent",
         "translucent": true
       },
-      "versionCode": 31
+      "versionCode": 37
     },
     "web": {
       "bundler": "metro",
@@ -83,7 +84,13 @@
         }
       ],
       "expo-web-browser",
-      "expo-video"
+      "expo-video",
+      [
+        "expo-notifications",
+        {
+          "color": "#0E7E74"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

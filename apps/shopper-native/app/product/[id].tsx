@@ -243,6 +243,7 @@ export default function ProductDetailScreen() {
   // drives pointerEvents on the FAB stack so it can't eat taps meant for the
   // header's icons once it's invisible (opacity alone doesn't block touches).
   const [headerActive, setHeaderActive] = useState(false);
+  const [ctaHeight, setCtaHeight]       = useState(124);
 
   // Halo breathes — slow sine cycle, extremely restrained (±6%)
   useEffect(() => {
@@ -556,7 +557,7 @@ export default function ProductDetailScreen() {
         showsVerticalScrollIndicator={false}
         onScroll={handleScroll}
         scrollEventThrottle={16}
-        contentContainerStyle={{ paddingBottom: 124 + insets.bottom }}>
+        contentContainerStyle={{ paddingBottom: ctaHeight + 20 }}>
 
         {/* ═══════════════════════════════════════════════════════════════════
             §1  PRODUCT STAGE — The product as the focal point.
@@ -986,7 +987,9 @@ export default function ProductDetailScreen() {
           floats above the primary CTA. Otherwise the bar is just the
           full-width Add to Cart button. ── */}
       {product && (
-        <View style={[cta.outer, { paddingBottom: insets.bottom + 12 }]}>
+        <View
+          onLayout={(e) => setCtaHeight(e.nativeEvent.layout.height)}
+          style={[cta.outer, { paddingBottom: insets.bottom + 12 }]}>
           {inCart && (
             <Pressable
               onPress={() => router.push("/(tabs)/cart")}

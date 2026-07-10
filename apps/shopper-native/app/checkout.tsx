@@ -10,7 +10,7 @@
  *   - Scroll-to-top side-effect on step change
  */
 
-import React, { useCallback, useEffect, useMemo, useRef } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -74,6 +74,7 @@ function CheckoutScreen() {
   const router   = useRouter();
   const insets   = useSafeAreaInsets();
   const scrollRef = useRef<ScrollView>(null);
+  const [footerHeight, setFooterHeight] = useState(140);
 
   const flow = useCheckoutFlow();
 
@@ -213,7 +214,7 @@ function CheckoutScreen() {
       <ScrollView
         ref={scrollRef}
         style={{ flex: 1 }}
-        contentContainerStyle={{ padding: 16, paddingBottom: 140 }}
+        contentContainerStyle={{ padding: 16, paddingBottom: footerHeight + 20 }}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}>
 
@@ -298,7 +299,9 @@ function CheckoutScreen() {
       </ScrollView>
 
       {/* Sticky CTA bar — handle + value-clustered totals + primary action */}
-      <View style={[cs.root, { paddingBottom: Math.max(insets.bottom, 12) + 4 }]}>
+      <View
+        onLayout={(e) => setFooterHeight(e.nativeEvent.layout.height)}
+        style={[cs.root, { paddingBottom: Math.max(insets.bottom, 12) + 4 }]}>
         <View style={cs.handle} />
         <View style={cs.totals}>
           <View style={cs.priceCluster}>

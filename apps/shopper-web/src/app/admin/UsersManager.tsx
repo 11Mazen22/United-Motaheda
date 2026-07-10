@@ -7,11 +7,15 @@ import {
 } from "react";
 import {
   ArrowDownIcon,
+  ArrowPathIcon,
   ArrowUpIcon,
   ArrowsUpDownIcon,
   CheckBadgeIcon,
   EllipsisVerticalIcon,
   FunnelIcon,
+  LockClosedIcon,
+  LockOpenIcon,
+  ShieldCheckIcon,
   ShieldExclamationIcon,
   TrashIcon,
   UserCircleIcon,
@@ -45,7 +49,11 @@ import { useLanguage } from "../../contexts/LanguageContext";
 import { useAuth } from "../../contexts/AuthContext";
 import { getSupabaseClient } from "../../lib/supabaseClient";
 import { toast } from "sonner";
+import { ROLE_VALUES, ROLE_LABELS, type Role } from "@pharmacy/contracts";
 import {
+  AdminBulkActionBar,
+  AdminConfirmDialog,
+  AdminDetailDrawer,
   AdminEmptyState,
   AdminErrorBanner,
   AdminMetricCard,
@@ -54,11 +62,18 @@ import {
   AdminSectionCard,
   AdminTableSkeleton,
   useDebouncedValue,
+  type AdminDetailDrawerSummary,
 } from "./adminShared";
 import SuspendDialog from "./SuspendDialog";
 import DeleteUserDialog from "./DeleteUserDialog";
 import {
+  changeUserRole,
+  changeUserStatus,
+  fetchStatusCounts,
   fetchUsers,
+  lockAccount,
+  resetUserSessions,
+  unlockAccount,
   unsuspendUser,
   type AdminUser,
   type FetchUsersOptions,
@@ -66,8 +81,9 @@ import {
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type StatusFilter = "all" | "Active" | "Inactive" | "Suspended";
-type RoleFilter = "all" | "customer" | "admin" | "manager" | "pharmacist" | "driver";
+type UserStatus = "Active" | "Inactive" | "Suspended";
+type StatusFilter = "all" | UserStatus;
+type RoleFilter = "all" | Role;
 type SortField = "full_name" | "email" | "created_at" | "status" | "role";
 
 interface UserCounts {
@@ -76,6 +92,15 @@ interface UserCounts {
   suspended: number;
   inactive: number;
 }
+
+// Role/lock/reset go through the generic AdminConfirmDialog (mirrors
+// StaffManager's PendingAction shape). Suspend/unsuspend/delete keep using
+// their existing bespoke dialogs (SuspendDialog/DeleteUserDialog/
+// UnsuspendDialog) — those already have rich content and already work.
+type PendingAction =
+  | { kind: "role"; member: AdminUser; nextRole: Role }
+  | { kind: "lock"; member: AdminUser; locked: boolean }
+  | { kind: "reset"; member: AdminUser };
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -89,12 +114,12 @@ const STATUS_TABS: Array<{ key: StatusFilter; labelAr: string; labelEn: string }
 ];
 
 const ROLE_OPTIONS: Array<{ value: RoleFilter; labelAr: string; labelEn: string }> = [
-  { value: "all",         labelAr: "جميع الأدوار",  labelEn: "All Roles"   },
-  { value: "customer",    labelAr: "عميل",           labelEn: "Customer"    },
-  { value: "admin",       labelAr: "مدير النظام",   labelEn: "Admin"       },
-  { value: "manager",     labelAr: "مشرف",           labelEn: "Manager"     },
-  { value: "pharmacist",  labelAr: "صيدلي",          labelEn: "Pharmacist"  },
-  { value: "driver",      labelAr: "سائق",           labelEn: "Driver"      },
+  { value: "all", labelAr: "جميع الأدوار", labelEn: "All Roles" },
+  ...ROLE_VALUES.map((value) => ({
+    value,
+    labelAr: ROLE_LABELS[value].ar,
+    labelEn: ROLE_LABELS[value].en,
+  })),
 ];
 
 // ─── Avatar helper ────────────────────────────────────────────────────────────
@@ -145,18 +170,24 @@ function StatusBadge({ status, lang }: { status: string; lang: "ar" | "en" }) {
 
 // ─── Role badge ───────────────────────────────────────────────────────────────
 
+const ROLE_BADGE_CLASS: Record<Role, string> = {
+  admin:      "border-teal-200 bg-teal-50 text-teal-700",
+  manager:    "border-violet-200 bg-violet-50 text-violet-700",
+  pharmacist: "border-blue-200 bg-blue-50 text-blue-700",
+  driver:     "border-sky-200 bg-sky-50 text-sky-700",
+  customer:   "border-slate-200 bg-slate-50 text-slate-600",
+};
+
+function getRoleLabel(role: string, lang: "ar" | "en"): string {
+  const r = (ROLE_LABELS[role as Role] ? role : "customer") as Role;
+  return lang === "ar" ? ROLE_LABELS[r].ar : ROLE_LABELS[r].en;
+}
+
 function RoleBadge({ role, lang }: { role: string; lang: "ar" | "en" }) {
-  const cfg: Record<string, { cls: string; labelAr: string; labelEn: string }> = {
-    admin:      { cls: "border-teal-200 bg-teal-50 text-teal-700",       labelAr: "مدير",   labelEn: "Admin"      },
-    manager:    { cls: "border-violet-200 bg-violet-50 text-violet-700", labelAr: "مشرف",   labelEn: "Manager"    },
-    pharmacist: { cls: "border-blue-200 bg-blue-50 text-blue-700",       labelAr: "صيدلي",  labelEn: "Pharmacist" },
-    driver:     { cls: "border-sky-200 bg-sky-50 text-sky-700",          labelAr: "سائق",   labelEn: "Driver"     },
-    customer:   { cls: "border-slate-200 bg-slate-50 text-slate-600",    labelAr: "عميل",   labelEn: "Customer"   },
-  };
-  const { cls, labelAr, labelEn } = cfg[role] ?? cfg.customer;
+  const r = (ROLE_LABELS[role as Role] ? role : "customer") as Role;
   return (
-    <span className={cn("inline-flex items-center rounded-md border px-2 py-0.5 text-[11px] font-bold", cls)}>
-      {lang === "ar" ? labelAr : labelEn}
+    <span className={cn("inline-flex items-center rounded-md border px-2 py-0.5 text-[11px] font-bold", ROLE_BADGE_CLASS[r])}>
+      {lang === "ar" ? ROLE_LABELS[r].ar : ROLE_LABELS[r].en}
     </span>
   );
 }
@@ -257,7 +288,11 @@ export default function UsersManager() {
   // ── Selection state ─────────────────────────────────────────────────────────
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
-  // ── Dialog state ────────────────────────────────────────────────────────────
+  // ── Detail drawer + confirm-dialog state ────────────────────────────────────
+  const [detailId, setDetailId] = useState<string | null>(null);
+  const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
+
+  // ── Dialog state (existing bespoke dialogs — unchanged) ─────────────────────
   const [suspendTarget, setSuspendTarget]     = useState<AdminUser | null>(null);
   const [deleteTarget, setDeleteTarget]       = useState<AdminUser | null>(null);
   const [unsuspendTarget, setUnsuspendTarget] = useState<AdminUser | null>(null);
@@ -292,25 +327,22 @@ export default function UsersManager() {
   // Reset page when filters change
   useEffect(() => { setPage(1); }, [search, statusFilter, roleFilter, sortBy, sortDir]);
 
-  // ── Load counts ─────────────────────────────────────────────────────────────
+  // ── Load counts (single aggregate RPC — replaces the old unfiltered
+  // select('status') over the whole table, re-run after every mutation) ──────
   const loadCounts = useCallback(async () => {
     try {
-      const supabase = getSupabaseClient();
-      const { data } = await supabase
-        .from("profiles")
-        .select("status");
-      if (data) {
-        const active    = data.filter((r) => r.status === "Active").length;
-        const suspended = data.filter((r) => r.status === "Suspended").length;
-        const inactive  = data.filter((r) => r.status === "Inactive").length;
-        setCounts({ total: data.length, active, suspended, inactive });
-      }
+      const result = await fetchStatusCounts();
+      setCounts(result);
     } catch {
       // counts are cosmetic — ignore errors
     }
   }, []);
 
   useEffect(() => { void loadCounts(); }, [loadCounts]);
+
+  const refreshAll = useCallback(() => {
+    startTransition(() => { void loadUsers(); void loadCounts(); });
+  }, [loadUsers, loadCounts]);
 
   // ── Sort toggle ─────────────────────────────────────────────────────────────
   const handleSort = (field: SortField) => {
@@ -322,17 +354,19 @@ export default function UsersManager() {
     }
   };
 
-  // ── Selection ───────────────────────────────────────────────────────────────
-  const allSelected = users.length > 0 && users.every((u) => selectedIds.has(u.id));
+  // ── Selection (self excluded — same convention as StaffManager) ────────────
+  const selectableUsers = users.filter((u) => u.id !== adminUser?.id);
+  const allSelected = selectableUsers.length > 0 && selectableUsers.every((u) => selectedIds.has(u.id));
   const toggleAll = () => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
-      if (allSelected) users.forEach((u) => next.delete(u.id));
-      else users.forEach((u) => next.add(u.id));
+      if (allSelected) selectableUsers.forEach((u) => next.delete(u.id));
+      else selectableUsers.forEach((u) => next.add(u.id));
       return next;
     });
   };
   const toggleRow = (id: string) => {
+    if (id === adminUser?.id) return;
     setSelectedIds((prev) => {
       const next = new Set(prev);
       next.has(id) ? next.delete(id) : next.add(id);
@@ -349,13 +383,65 @@ export default function UsersManager() {
       await unsuspendUser(unsuspendTarget.id, adminUser.id, adminUser.email);
       toast.success(isArabic ? `تم رفع تعليق ${unsuspendTarget.fullName}` : `Suspension removed for ${unsuspendTarget.fullName}`);
       setUnsuspendTarget(null);
-      startTransition(() => { void loadUsers(); void loadCounts(); });
+      refreshAll();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to unsuspend user");
     } finally {
       setUnsuspendLoading(false);
     }
   };
+
+  // ── Confirmed mutations: role / lock / reset sessions ───────────────────────
+  const handleConfirmedAction = useCallback(async () => {
+    if (!pendingAction || !adminUser) return;
+    const { kind } = pendingAction;
+    try {
+      if (kind === "role") {
+        await changeUserRole(pendingAction.member.id, pendingAction.nextRole, adminUser.id, adminUser.email);
+        toast.success(
+          isArabic
+            ? `تم تعيين ${pendingAction.member.fullName || "المستخدم"} كـ${getRoleLabel(pendingAction.nextRole, lang)}`
+            : `${pendingAction.member.fullName || "User"} is now ${getRoleLabel(pendingAction.nextRole, lang)}`,
+        );
+      } else if (kind === "lock") {
+        if (pendingAction.locked) await lockAccount(pendingAction.member.id, adminUser.id, adminUser.email);
+        else await unlockAccount(pendingAction.member.id, adminUser.id, adminUser.email);
+        toast.success(
+          pendingAction.locked
+            ? (isArabic ? "تم قفل الحساب" : "Account locked")
+            : (isArabic ? "تم فتح قفل الحساب" : "Account unlocked"),
+        );
+      } else if (kind === "reset") {
+        await resetUserSessions(pendingAction.member.id, adminUser.id, adminUser.email);
+        toast.success(isArabic ? "تم إنهاء جميع الجلسات النشطة" : "All active sessions were reset");
+      }
+      refreshAll();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : (isArabic ? "فشل الإجراء" : "Action failed"));
+      throw err; // keep AdminConfirmDialog open on failure
+    }
+  }, [pendingAction, adminUser, isArabic, lang, refreshAll]);
+
+  // ── Bulk status actions (status-only — see AdminBulkActionBar's own scope
+  // note; role/lock/delete never get a bulk path) ─────────────────────────────
+  const runBulkStatus = useCallback(
+    async (nextStatus: UserStatus) => {
+      if (!adminUser) return;
+      const ids = Array.from(selectedIds);
+      const results = await Promise.allSettled(
+        ids.map((id) => changeUserStatus(id, nextStatus, adminUser.id, adminUser.email)),
+      );
+      const failed = results.filter((r) => r.status === "rejected").length;
+      if (failed > 0) {
+        toast.error(isArabic ? `فشل تحديث ${failed} حساب` : `Failed to update ${failed} account(s)`);
+      } else {
+        toast.success(isArabic ? "تم تحديث الحسابات المحددة" : "Selected accounts updated");
+      }
+      clearSelection();
+      refreshAll();
+    },
+    [selectedIds, adminUser, isArabic, refreshAll],
+  );
 
   // ── Status tab counts ────────────────────────────────────────────────────────
   const tabCounts: Record<StatusFilter, number> = useMemo(() => ({
@@ -368,6 +454,19 @@ export default function UsersManager() {
   const totalPages = Math.max(1, Math.ceil(total / ITEMS_PER_PAGE));
 
   const hasFilters = statusFilter !== "all" || roleFilter !== "all" || rawSearch.length > 0;
+
+  const detailMember = users.find((u) => u.id === detailId) ?? null;
+  const detailSummary: AdminDetailDrawerSummary | null = detailMember
+    ? {
+        id: detailMember.id,
+        fullName: detailMember.fullName,
+        email: detailMember.email,
+        phone: detailMember.phone,
+        role: detailMember.role,
+        status: detailMember.status,
+        createdAt: detailMember.createdAt,
+      }
+    : null;
 
   return (
     <div className="space-y-6">
@@ -484,24 +583,16 @@ export default function UsersManager() {
           })}
         </div>
 
-        {/* ── Bulk action bar ── */}
-        {selectedIds.size > 0 && (
-          <div className="flex items-center gap-3 border-b border-slate-100 bg-violet-50 px-4 py-2.5 md:px-6">
-            <span className="text-sm font-bold text-violet-700">
-              {isArabic ? `${selectedIds.size} محدد` : `${selectedIds.size} selected`}
-            </span>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={clearSelection}
-                className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-violet-200 bg-white px-3 text-xs font-semibold text-violet-600 hover:bg-violet-50"
-              >
-                <XMarkIcon className="h-3.5 w-3.5" />
-                {isArabic ? "إلغاء التحديد" : "Deselect"}
-              </button>
-            </div>
-          </div>
-        )}
+        {/* ── Bulk action bar (status-only — activate/suspend) ── */}
+        <AdminBulkActionBar
+          selectedCount={selectedIds.size}
+          lang={lang}
+          onClear={clearSelection}
+          actions={[
+            { key: "activate", label: isArabic ? "تنشيط" : "Activate", icon: CheckBadgeIcon, onClick: () => void runBulkStatus("Active") },
+            { key: "suspend", label: isArabic ? "تعليق" : "Suspend", icon: ShieldExclamationIcon, tone: "danger", onClick: () => void runBulkStatus("Suspended") },
+          ]}
+        />
 
         {/* ── Error ── */}
         {error && (
@@ -605,6 +696,7 @@ export default function UsersManager() {
               <TableBody>
                 {users.map((u) => {
                   const selected = selectedIds.has(u.id);
+                  const isSelf = u.id === adminUser?.id;
                   const joinedDate = u.createdAt
                     ? new Intl.DateTimeFormat(isArabic ? "ar-EG" : "en-EG", {
                         year: "numeric", month: "short", day: "numeric",
@@ -624,25 +716,31 @@ export default function UsersManager() {
                         <input
                           type="checkbox"
                           checked={selected}
+                          disabled={isSelf}
                           onChange={() => toggleRow(u.id)}
-                          className="h-4 w-4 rounded border-slate-300 accent-teal-600"
+                          className="h-4 w-4 rounded border-slate-300 accent-teal-600 disabled:opacity-30"
                           aria-label={u.fullName}
                         />
                       </TableCell>
 
                       {/* User info */}
                       <TableCell>
-                        <div className="flex items-center gap-3">
+                        <button
+                          type="button"
+                          onClick={() => setDetailId(u.id)}
+                          className="flex min-w-0 items-center gap-3 text-start"
+                        >
                           <UserAvatar name={u.fullName} email={u.email} />
                           <div className="min-w-0">
                             <p className="truncate text-sm font-bold text-slate-900">
                               {u.fullName || "—"}
+                              {isSelf && <span className="ms-1.5 text-[10px] font-black text-teal-600">({isArabic ? "أنت" : "you"})</span>}
                             </p>
                             <p className="truncate text-xs text-slate-500" dir="ltr">
                               {u.email}
                             </p>
                           </div>
-                        </div>
+                        </button>
                       </TableCell>
 
                       {/* Role */}
@@ -686,7 +784,14 @@ export default function UsersManager() {
                               <EllipsisVerticalIcon className="h-4 w-4" />
                             </button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-44">
+                          <DropdownMenuContent align="end" className="w-52">
+                            {ROLE_VALUES.filter((r) => r !== u.role).map((r) => (
+                              <DropdownMenuItem key={r} onClick={() => setPendingAction({ kind: "role", member: u, nextRole: r })}>
+                                <ShieldCheckIcon className="h-4 w-4" />
+                                {isArabic ? `تعيين كـ${ROLE_LABELS[r].ar}` : `Set as ${ROLE_LABELS[r].en}`}
+                              </DropdownMenuItem>
+                            ))}
+                            <DropdownMenuSeparator />
                             {u.status !== "Suspended" ? (
                               <DropdownMenuItem
                                 onClick={() => setSuspendTarget(u)}
@@ -704,6 +809,19 @@ export default function UsersManager() {
                                 {isArabic ? "رفع التعليق" : "Unsuspend"}
                               </DropdownMenuItem>
                             )}
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem className="gap-2" onClick={() => setPendingAction({ kind: "lock", member: u, locked: true })}>
+                              <LockClosedIcon className="h-4 w-4" />
+                              {isArabic ? "قفل الحساب" : "Lock account"}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className="gap-2" onClick={() => setPendingAction({ kind: "lock", member: u, locked: false })}>
+                              <LockOpenIcon className="h-4 w-4" />
+                              {isArabic ? "فتح القفل" : "Unlock account"}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className="gap-2" onClick={() => setPendingAction({ kind: "reset", member: u })}>
+                              <ArrowPathIcon className="h-4 w-4" />
+                              {isArabic ? "إعادة تعيين الجلسات" : "Reset sessions"}
+                            </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
                               onClick={() => setDeleteTarget(u)}
@@ -736,7 +854,58 @@ export default function UsersManager() {
         )}
       </AdminSectionCard>
 
-      {/* ── Dialogs ── */}
+      {/* ── Detail drawer ── */}
+      <AdminDetailDrawer
+        open={Boolean(detailId)}
+        onClose={() => setDetailId(null)}
+        summary={detailSummary}
+        lang={lang}
+        roleLabel={detailMember ? getRoleLabel(detailMember.role, lang) : ""}
+        statusBadge={detailMember ? <StatusBadge status={detailMember.status} lang={lang} /> : null}
+      />
+
+      {/* ── Confirm dialog for role / lock / reset-sessions ── */}
+      <AdminConfirmDialog
+        open={Boolean(pendingAction)}
+        onClose={() => setPendingAction(null)}
+        onConfirm={handleConfirmedAction}
+        lang={lang}
+        tone={pendingAction?.kind === "lock" && pendingAction.locked ? "warning" : "info"}
+        title={
+          pendingAction?.kind === "role"
+            ? (isArabic ? "تغيير الصلاحية" : "Change role")
+            : pendingAction?.kind === "lock"
+              ? (pendingAction.locked ? (isArabic ? "قفل الحساب" : "Lock account") : (isArabic ? "فتح قفل الحساب" : "Unlock account"))
+              : (isArabic ? "إعادة تعيين الجلسات" : "Reset sessions")
+        }
+        description={
+          pendingAction
+            ? (() => {
+                const isSelf = pendingAction.member.id === adminUser?.id;
+                const selfWarning = isSelf
+                  ? (isArabic
+                      ? " أنت على وشك تعديل حسابك الخاص — قد تفقد صلاحياتك الحالية فورًا."
+                      : " You're about to modify your own account — you may lose your current access immediately.")
+                  : "";
+                if (pendingAction.kind === "role") {
+                  return (isArabic
+                    ? `سيتم تعيين ${pendingAction.member.fullName || "المستخدم"} كـ${getRoleLabel(pendingAction.nextRole, lang)}.${selfWarning}`
+                    : `${pendingAction.member.fullName || "This user"} will be set as ${getRoleLabel(pendingAction.nextRole, lang)}.${selfWarning}`);
+                }
+                if (pendingAction.kind === "lock") {
+                  return pendingAction.locked
+                    ? (isArabic ? `سيتم منع ${pendingAction.member.fullName || "المستخدم"} من تسجيل الدخول.${selfWarning}` : `${pendingAction.member.fullName || "This user"} will be blocked from signing in.${selfWarning}`)
+                    : (isArabic ? `سيتمكن ${pendingAction.member.fullName || "المستخدم"} من تسجيل الدخول مجددًا.` : `${pendingAction.member.fullName || "This user"} will be able to sign in again.`);
+                }
+                return isArabic
+                  ? `سيتم تسجيل خروج ${pendingAction.member.fullName || "المستخدم"} من كل الأجهزة فورًا.${selfWarning}`
+                  : `${pendingAction.member.fullName || "This user"} will be signed out of every device immediately.${selfWarning}`;
+              })()
+            : ""
+        }
+      />
+
+      {/* ── Existing bespoke dialogs (unchanged) ── */}
       {adminUser && (
         <>
           <SuspendDialog
@@ -748,7 +917,7 @@ export default function UsersManager() {
             onClose={() => setSuspendTarget(null)}
             onSuccess={() => {
               setSuspendTarget(null);
-              startTransition(() => { void loadUsers(); void loadCounts(); });
+              refreshAll();
             }}
           />
 
@@ -761,7 +930,7 @@ export default function UsersManager() {
             onClose={() => setDeleteTarget(null)}
             onSuccess={() => {
               setDeleteTarget(null);
-              startTransition(() => { void loadUsers(); void loadCounts(); });
+              refreshAll();
             }}
           />
 

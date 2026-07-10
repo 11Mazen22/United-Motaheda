@@ -12,7 +12,6 @@ import Animated, {
   withSpring,
   withTiming,
 } from "react-native-reanimated";
-import { LinearGradient } from "expo-linear-gradient";
 import { useTranslation } from "react-i18next";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
 import { useBannerStore } from "../banner-store";
@@ -25,17 +24,22 @@ type IoniconsName = React.ComponentProps<typeof Ionicons>["name"];
 
 const VISIBLE_MS = 4500;
 
+// Same semantic mapping as the full notifications list (notifications.tsx's
+// TYPE_CONFIG) — this banner and that screen must agree on what each type
+// means, or the same "health" notification reads as reassuring here and
+// alarming there. No LinearGradient: banned outside SplashOverlay (see the
+// VIP header pattern) — solid tinted wells instead, same as every other
+// icon treatment in the kit system.
 const TYPE_META: Record<string, {
   icon:     IoniconsName;
   color:    string;
   bg:       string;
-  gradient: [string, string];
   labelKey: string;
 }> = {
-  order:  { icon: "bag-check-outline",    color: kit.color.accent,       bg: kit.color.accentTint,    gradient: [kit.color.accentDeep,     kit.color.accent],     labelKey: "notification.order"  },
-  offer:  { icon: "pricetag-outline",     color: theme.colors.warning.strong,   bg: theme.colors.warning.bg,   gradient: [theme.colors.warning.strong, theme.colors.amber[400]],     labelKey: "notification.offer"  },
-  health: { icon: "heart-circle-outline", color: theme.colors.success.strong,   bg: theme.colors.success.bg,   gradient: [theme.colors.success.strong, theme.colors.green[400]],     labelKey: "notification.health" },
-  system: { icon: "sparkles-outline",     color: theme.colors.purple[600],      bg: theme.colors.purple[50],   gradient: [theme.colors.purple[700],    theme.colors.purple[500]],     labelKey: "notification.system" },
+  order:  { icon: "bag-check-outline",    color: kit.color.accentDeep, bg: kit.color.accentTint, labelKey: "notification.order"  },
+  offer:  { icon: "pricetag-outline",     color: kit.color.warn,       bg: kit.color.warnTint,   labelKey: "notification.offer"  },
+  health: { icon: "heart-circle-outline", color: kit.color.danger,    bg: kit.color.dangerTint, labelKey: "notification.health" },
+  system: { icon: "sparkles-outline",     color: kit.color.inkSoft,   bg: kit.color.well,       labelKey: "notification.system" },
 };
 
 // ─── Banner ───────────────────────────────────────────────────────────────────
@@ -124,22 +128,13 @@ export function NotificationBanner() {
           pressed && { opacity: 0.88, transform: [{ scale: 0.97 }] },
         ]}>
 
-        {/* Left gradient accent strip */}
-        <LinearGradient
-          colors={meta.gradient}
-          style={styles.accentStrip}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 0, y: 1 }}
-        />
+        {/* Accent strip */}
+        <View style={[styles.accentStrip, { backgroundColor: meta.color }]} />
 
-        {/* Icon with gradient circle */}
-        <LinearGradient
-          colors={meta.gradient}
-          style={styles.iconCircle}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}>
-          <Ionicons name={meta.icon} size={18} color="#fff" />
-        </LinearGradient>
+        {/* Icon */}
+        <View style={[styles.iconCircle, { backgroundColor: meta.bg }]}>
+          <Ionicons name={meta.icon} size={18} color={meta.color} />
+        </View>
 
         {/* Text content */}
         <View style={styles.textCol}>
@@ -150,7 +145,7 @@ export function NotificationBanner() {
 
         {/* Dismiss button */}
         <Pressable onPress={handleDismiss} hitSlop={14} style={styles.closeBtn}>
-          <Ionicons name="close" size={12} color={theme.colors.text.tertiary} />
+          <Ionicons name="close" size={12} color={kit.color.inkFaint} />
         </Pressable>
 
         {/* Progress bar (drains left to right) */}
@@ -175,15 +170,15 @@ const styles = StyleSheet.create({
     flexDirection:     flexRow(isRtl()),
     alignItems:        "center",
     gap:               10,
-    backgroundColor:   theme.colors.surface,
+    backgroundColor:   kit.color.surface,
     borderRadius:      20,
     paddingVertical:   13,
     paddingHorizontal: 14,
     paddingEnd:        12,
     overflow:          "hidden",
-    ...theme.shadow["2xl"],
+    ...kit.shadow.floating,
     borderWidth:       StyleSheet.hairlineWidth,
-    borderColor:       theme.colors.border.medium,
+    borderColor:       kit.color.line,
   },
   accentStrip: {
     position:                   "absolute",
@@ -200,21 +195,20 @@ const styles = StyleSheet.create({
     borderRadius:    13,
     alignItems:      "center",
     justifyContent:  "center",
-    ...theme.shadow.sm,
   },
   textCol:     { flex: 1, gap: 1.5, marginEnd: 4 },
   bannerLabel: { fontSize: 9, fontFamily: theme.fonts.extrabold, letterSpacing: 0.8, textAlign: textAlignStart(isRtl()) },
-  bannerTitle: { fontSize: theme.fontSize.md, fontFamily: theme.fonts.black, color: theme.colors.text.primary, textAlign: textAlignStart(isRtl()) },
-  bannerBody:  { fontSize: theme.fontSize.sm, fontFamily: theme.fonts.regular, color: theme.colors.text.secondary, textAlign: textAlignStart(isRtl()) },
+  bannerTitle: { fontSize: theme.fontSize.md, fontFamily: theme.fonts.black, color: kit.color.ink, textAlign: textAlignStart(isRtl()) },
+  bannerBody:  { fontSize: theme.fontSize.sm, fontFamily: theme.fonts.regular, color: kit.color.inkSoft, textAlign: textAlignStart(isRtl()) },
   closeBtn: {
     width:           26,
     height:          26,
     borderRadius:    8,
-    backgroundColor: theme.colors.subtle,
+    backgroundColor: kit.color.well,
     alignItems:      "center",
     justifyContent:  "center",
     borderWidth:     StyleSheet.hairlineWidth,
-    borderColor:     theme.colors.border.default,
+    borderColor:     kit.color.line,
   },
   progressTrack: {
     position:        "absolute",
@@ -222,7 +216,7 @@ const styles = StyleSheet.create({
     left:            0,
     right:           0,
     height:          2.5,
-    backgroundColor: theme.colors.border.default,
+    backgroundColor: kit.color.line,
   },
   progressFill: {
     height:       2.5,

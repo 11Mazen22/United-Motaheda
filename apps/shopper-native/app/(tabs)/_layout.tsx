@@ -16,7 +16,7 @@
 
 import React, { useCallback, useEffect, useState } from "react";
 import { Platform, Pressable, StyleSheet, View, useWindowDimensions } from "react-native";
-import { Tabs } from "expo-router";
+import { Redirect, Tabs } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
@@ -217,6 +217,7 @@ function BottomTabBar({ state, navigation }: BottomTabBarProps) {
 // ─── Layout ───────────────────────────────────────────────────────────────────
 
 export default function TabLayout() {
+  const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const [showArrival, setShowArrival] = useState(!arrivalComplete);
 
@@ -224,6 +225,18 @@ export default function TabLayout() {
     arrivalComplete = true;
     setShowArrival(false);
   }, []);
+
+  // Symmetric to (driver)/_layout.tsx's reverse check. Before this, a
+  // customer/pharmacist promoted to driver mid-session (now live via
+  // AuthContext's realtime subscription) had no path into (driver) until the
+  // app was restarted — app/index.tsx's role-based redirect only runs once,
+  // at cold launch, and nothing here re-checked role on the way back in.
+  if (user?.role === "driver") {
+    // as never: same typed-routes escape hatch app/index.tsx already uses
+    // for this exact target — (driver) group routes aren't always present
+    // in the generated route union at typecheck time.
+    return <Redirect href={"/(driver)" as never} />;
+  }
 
   return (
     <View style={{ flex: 1 }}>
