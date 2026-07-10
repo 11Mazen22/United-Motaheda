@@ -765,32 +765,6 @@ function normalizeUser(record: ApiRecord, requestedRole: LoginRole, fallback?: P
   };
 }
 
-function normalizeDashboardPoint(record: ApiRecord): DashboardSeriesPoint {
-  const day = pickFirstString(record, ["day", "Day", "date", "Date", "orderDate", "Order_Date"]) || new Date().toISOString().slice(0, 10);
-  const label = pickFirstString(record, ["label", "Label"]) || day;
-
-  return {
-    day,
-    label,
-    orders: pickFirstNumber(record, ["orders", "Orders", "count", "Count", "totalOrders"]),
-    sales: pickFirstNumber(record, ["sales", "Sales", "totalSales", "Total_Sales"]),
-  };
-}
-
-function normalizeDashboardStats(record: ApiRecord) {
-  const points = pickFirstArray(record, ["ordersByDay", "Orders_By_Day", "dailyOrders", "chart", "series"])
-    .filter(isRecord)
-    .map(normalizeDashboardPoint);
-
-  return {
-    totalSales: pickFirstNumber(record, ["totalSales", "Total_Sales", "sales"]),
-    totalOrders: pickFirstNumber(record, ["totalOrders", "Total_Orders", "orders"]),
-    newCustomers: pickFirstNumber(record, ["newCustomers", "New_Customers", "customers"]),
-    lowStockItems: pickFirstNumber(record, ["lowStockItems", "Low_Stock_Items", "lowStock"]),
-    ordersByDay: points,
-  } satisfies DashboardStats;
-}
-
 function mapManagedOrderToAdminOrder(order: ManagedOrder): AdminOrder {
   return {
     id: order.id,
@@ -1160,25 +1134,6 @@ export async function createOrder(payload: CreateOrderPayload) {
   } satisfies CreateOrderResponse;
 }
 
-export async function getDashboardStats(force = false) {
-  const envelope = await getRequest(
-    {
-      action: "get_dashboard_stats",
-    },
-    { force },
-  );
-
-  return normalizeDashboardStats(unwrapRecord(envelope));
-}
-
-export function getCachedDashboardStats() {
-  const envelope = readCachedRequest({
-    action: "get_dashboard_stats",
-  });
-
-  return envelope ? normalizeDashboardStats(unwrapRecord(envelope)) : null;
-}
-
 export async function getCatalog(_force = false) {
   const envelope = await postRequest("get_catalog", {});
   return normalizeCatalogResponse(unwrapRecord(envelope));
@@ -1279,29 +1234,6 @@ export async function resolveDeliveryIssue(
   resolutionNote?: string,
 ): Promise<DeliveryIssue> {
   return resolveIssue(issueId, staffId, resolutionNote);
-}
-
-export async function getStaff(force = false) {
-  const envelope = await getRequest(
-    {
-      action: "get_staff",
-    },
-    { force },
-  );
-
-  return unwrapArray(envelope, ["staff", "items", "rows"]).map((record) => normalizeStaff(record));
-}
-
-export function getCachedStaff() {
-  const envelope = readCachedRequest({
-    action: "get_staff",
-  });
-
-  return envelope
-    ? unwrapArray(envelope, ["staff", "items", "rows"]).map((record) =>
-        normalizeStaff(record),
-      )
-    : null;
 }
 
 export async function lookupBarcode(barcode: string) {
@@ -1494,12 +1426,17 @@ export async function updateStaffStatus(staff: { id?: string; username?: string 
   });
 }
 
+// Only prefetches getAdminOrders — it's the sole leg whose cache
+// (getCachedAdminOrders) anything actually reads (DashboardOverview.tsx).
+// getDashboardStats and getStaff used to fire here too, but their caches
+// (getCachedDashboardStats/getCachedStaff) have zero readers anywhere in
+// the codebase: real dashboard stats and staff data come from
+// getSupabaseDashboardStats/getSupabaseStaff (adminDashboardApi.ts)
+// instead. Those two were dead legacy Google Sheets network calls firing
+// on every admin page load for a cache nobody consumed — the same root
+// cause as the OperationsHub driver-dropdown bug.
 export async function prefetchAdminData(force = false) {
-  await Promise.allSettled([
-    getDashboardStats(force),
-    getAdminOrders(force),
-    getStaff(force),
-  ]);
+  await getAdminOrders(force);
 }
 
 export type BulkProductPayload = {

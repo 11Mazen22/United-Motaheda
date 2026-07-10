@@ -190,16 +190,18 @@ export async function registerPushToken(input: {
  * could still receive pushes on a device it no longer controls.
  */
 export async function unregisterAllPushTokensForUser(userId: string): Promise<void> {
-  await supabase
+  const { error } = await supabase
     .from("notification_tokens")
     .delete()
     .eq("user_id", userId);
+  if (error) console.error("[notifications] unregisterAllPushTokensForUser failed:", error.message);
 }
 
 export async function unregisterPushToken(userId: string, token: string): Promise<void> {
-  await supabase
+  const { error } = await supabase
     .from("notification_tokens")
     .delete()
     .eq("user_id", userId)
     .eq("expo_push_token", token);
+  if (error) console.error("[notifications] unregisterPushToken failed:", error.message);
 }
