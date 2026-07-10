@@ -1330,6 +1330,7 @@
         "emptyManifestTitle": "لا توجد مهام حالياً",
         "emptyManifestBody": "ستظهر هنا أي طلبات توصيل جديدة فور تعيينها لك.",
         "unknownCustomer": "عميل غير معروف",
+        "statusPreparing": "قيد التحضير",
         "statusReady": "جاهز للاستلام",
         "statusPickedUp": "خارج للتسليم",
         "newOfferTitle": "طلب توصيل جديد ({{count}})",

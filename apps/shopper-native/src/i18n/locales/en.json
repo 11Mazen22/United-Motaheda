@@ -1385,6 +1385,7 @@
         "emptyManifestTitle": "Nothing assigned right now",
         "emptyManifestBody": "New deliveries will show up here as soon as they're assigned to you.",
         "unknownCustomer": "Unknown customer",
+        "statusPreparing": "Being prepared",
         "statusReady": "Ready for pickup",
         "statusPickedUp": "Out for delivery",
         "newOfferTitle": "{{count}} new delivery offer",

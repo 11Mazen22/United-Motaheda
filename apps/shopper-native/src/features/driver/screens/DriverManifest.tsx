@@ -20,9 +20,14 @@ import type { ManifestOrder } from "../api";
 const IS_RTL = isRtl();
 const TEXT_START = textAlignStart(IS_RTL);
 
+// "preparing" is the fallback bucket for every pre-ready stage (pending,
+// pending_payment, confirmed, preparing, and the legacy "processing" synonym)
+// — the driver doesn't need pharmacy-internal stage distinctions, just
+// "not yet" vs "go pick it up" vs "already picked up".
 const STATUS_META: Record<string, { labelKey: string; color: string; bg: string; icon: React.ComponentProps<typeof Ionicons>["name"] }> = {
-  ready:     { labelKey: "driver.statusReady",    color: kit.color.accentDeep, bg: kit.color.accentTint, icon: "cube-outline" },
-  picked_up: { labelKey: "driver.statusPickedUp", color: kit.color.warn,       bg: kit.color.warnTint,   icon: "car-outline" },
+  preparing: { labelKey: "driver.statusPreparing", color: kit.color.inkSoft,    bg: kit.color.well,       icon: "time-outline" },
+  ready:     { labelKey: "driver.statusReady",     color: kit.color.accentDeep, bg: kit.color.accentTint, icon: "cube-outline" },
+  picked_up: { labelKey: "driver.statusPickedUp",  color: kit.color.warn,       bg: kit.color.warnTint,   icon: "car-outline" },
 };
 
 function OfferBanner({ count, onPress }: { count: number; onPress: () => void }) {
@@ -46,9 +51,14 @@ function OfferBanner({ count, onPress }: { count: number; onPress: () => void })
   );
 }
 
+// "shipped" is the legacy synonym for "picked_up" (see
+// packages/contracts/src/orderStatus.ts) — old rows may still carry it.
+const STATUS_ALIASES: Record<string, string> = { shipped: "picked_up", processing: "preparing" };
+
 function ManifestCard({ order, onPress }: { order: ManifestOrder; onPress: () => void }) {
   const { t } = useTranslation();
-  const meta = STATUS_META[order.status] ?? STATUS_META.ready;
+  const key = STATUS_ALIASES[order.status] ?? order.status;
+  const meta = STATUS_META[key] ?? STATUS_META.preparing;
   return (
     <Pressable onPress={onPress} style={s.card}>
       <View style={s.cardHeader}>

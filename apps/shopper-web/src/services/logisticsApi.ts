@@ -475,13 +475,32 @@ export async function updateManagedOrderStatus(
   return mapToManagedOrder(mapRawOrderRow(orderWithItems), driversById);
 }
 
+// Same fix as the native app's listMyManifest (apps/shopper-native/src/
+// features/driver/api.ts): filtering orders directly by status IN
+// ('ready','picked_up','delivered') missed orders a driver has accepted but
+// that are still being prepared — assignment isn't gated on the order
+// already being "ready", so an accepted-but-not-ready order was invisible
+// here too. Scoped to orders with an ACCEPTED delivery_assignments row for
+// this driver, excluding only "cancelled".
 export async function listDriverManifest(driverId: string) {
   const supabase = getSupabaseClient();
+
+  const { data: accepted, error: assignmentsError } = await supabase
+    .from("delivery_assignments")
+    .select("order_id")
+    .eq("driver_id", driverId)
+    .eq("response_status", "accepted");
+  if (assignmentsError) throw new Error(assignmentsError.message);
+
+  const orderIds = Array.from(new Set((accepted ?? []).map((a) => (a as { order_id: string }).order_id)));
+  if (orderIds.length === 0) return [];
+
   const { data, error } = await supabase
     .from("orders")
     .select("id, external_ref, customer_name, customer_phone, customer_address, customer_lat, customer_lng, status, assigned_driver_id, updated_at, created_at, note, total, qr_token")
+    .in("id", orderIds)
     .eq("assigned_driver_id", driverId)
-    .in("status", ["ready", "picked_up", "delivered"])
+    .neq("status", "cancelled")
     .order("updated_at", { ascending: false });
 
   if (error) {

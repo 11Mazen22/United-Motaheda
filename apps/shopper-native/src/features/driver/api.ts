@@ -178,14 +178,47 @@ function mapManifestRow(row: RawManifestRow): ManifestOrder {
 
 // ─── Manifest (task list) ─────────────────────────────────────────────────────
 
-/** Orders currently assigned to me and still in an active delivery stage —
- * mirrors listDriverManifest()'s status filter from the web logisticsApi. */
+// Every non-terminal order status — everything except delivered/cancelled.
+// Includes the legacy "processing"/"shipped" synonyms (preparing/picked_up)
+// since old rows may still carry them (see packages/contracts/orderStatus.ts).
+const ACTIVE_ORDER_STATUSES = [
+  "pending", "pending_payment", "confirmed", "preparing",
+  "processing", "ready", "picked_up", "shipped",
+];
+
+/** Orders where I have an ACCEPTED assignment and the order isn't finished
+ * yet. Previously filtered orders directly by `status IN ('ready',
+ * 'picked_up')`, which meant a driver who accepted an offer for an order
+ * still being prepared (a normal, allowed staff workflow — assignment isn't
+ * gated on the order already being "ready") saw nothing on their manifest:
+ * the accept itself succeeded (delivery_assignments really did flip to
+ * "accepted"), but the order's own status hadn't reached "ready" yet, so it
+ * never matched. This screen's own comments already described the intended
+ * behavior ("accepted orders still being prepared/delivered" /
+ * "as soon as they're assigned to you") — the query just didn't match it.
+ *
+ * Two queries because Supabase-js can't express "an accepted
+ * delivery_assignments row exists for this order" as a single filter on
+ * orders. delivery_assignments is also the more precise source of truth
+ * here than orders.assigned_driver_id alone, since that column is set the
+ * moment an offer is made — before the driver has actually accepted it. */
 export async function listMyManifest(driverId: string): Promise<ManifestOrder[]> {
+  const { data: accepted, error: assignmentsError } = await supabase
+    .from("delivery_assignments")
+    .select("order_id")
+    .eq("driver_id", driverId)
+    .eq("response_status", "accepted");
+
+  if (assignmentsError) throw assignmentsError;
+  const orderIds = Array.from(new Set((accepted ?? []).map((a) => (a as { order_id: string }).order_id)));
+  if (orderIds.length === 0) return [];
+
   const { data, error } = await supabase
     .from("orders")
     .select("id, status, customer_name, customer_phone, customer_address, total, updated_at")
+    .in("id", orderIds)
     .eq("assigned_driver_id", driverId)
-    .in("status", ["ready", "picked_up"])
+    .in("status", ACTIVE_ORDER_STATUSES)
     .order("updated_at", { ascending: false });
 
   if (error) throw error;
