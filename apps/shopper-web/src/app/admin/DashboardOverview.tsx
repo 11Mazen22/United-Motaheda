@@ -7,7 +7,7 @@
  *   admin      – full view (revenue, orders, products, staff)
  *   manager    – revenue, orders, products (no staff snapshot)
  *   pharmacist – orders, products only (no revenue totals, no staff)
- *   driver     – redirected to /admin/my-deliveries
+ *   driver     – redirected to /driver
  *   customer   – should never reach this page (router guard)
  */
 
@@ -19,6 +19,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { useNavigate } from "react-router-dom";
@@ -30,6 +31,7 @@ import {
   CubeIcon,
   UsersIcon,
 } from "@heroicons/react/24/outline";
+import { toast } from "sonner";
 import { useCatalog } from "../../contexts/CatalogContext";
 import { useLanguage } from "../../contexts/LanguageContext";
 import { useAuth } from "../../contexts/AuthContext";
@@ -220,7 +222,7 @@ export default function DashboardOverview() {
   // Drivers should not see the dashboard – redirect immediately
   useEffect(() => {
     if (userRole === "driver") {
-      navigate("/admin/my-deliveries", { replace: true });
+      navigate("/driver", { replace: true });
     }
   }, [userRole, navigate]);
 
@@ -229,27 +231,53 @@ export default function DashboardOverview() {
     lastUpdated,
     isLoading: _catalogLoading,
     error: catalogError,
+    refreshCatalog,
   } = useCatalog();
-
-  const hasCached = Boolean(initialOrders.length);
 
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [orders, setOrders] = useState<AdminOrder[]>(initialOrders);
   const [staff, setStaff] = useState<StaffMember[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!initialOrders.length);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
+  const [lastRefreshedAt, setLastRefreshedAt] = useState<string | null>(null);
 
+  const loadController = useRef<AbortController | null>(null);
+  const latestRequestId = useRef(0);
+
+  // Two distinct signals, kept deliberately separate:
+  //   • `loading`    — true only for the very first paint (drives skeletons).
+  //   • `refreshing` — true for the lifetime of *any* refresh, including the
+  //     user-triggered one, so the button always gets visible feedback.
+  // On "manual" refreshes we also fan out to `refreshCatalog(true)` so every
+  // number on the page — including the catalog-derived product/category
+  // metrics and the "last sync" timestamp — updates from one button, instead
+  // of silently leaving part of the dashboard stale.
   const loadOverview = useCallback(
-    async (force = false) => {
-      if (hasCached && !force) setRefreshing(true);
+    async (mode: "initial" | "manual" = "initial") => {
+      // Abort any in-flight load so a slower, older response can never
+      // overwrite state populated by a newer one.
+      if (loadController.current) {
+        loadController.current.abort();
+      }
+      const controller = new AbortController();
+      loadController.current = controller;
+      const requestId = ++latestRequestId.current;
+
+      if (mode === "manual") setRefreshing(true);
       else setLoading(true);
 
       const results = await Promise.allSettled([
         getSupabaseDashboardStats(),
-        getAdminOrders(force),
+        getAdminOrders(),
         userRole === "admin" ? getSupabaseStaff() : Promise.resolve([]),
+        mode === "manual" ? refreshCatalog(true) : Promise.resolve(undefined),
       ]);
+
+      // Stale request (aborted, or superseded by a newer load) – ignore.
+      if (controller.signal.aborted || requestId !== latestRequestId.current) {
+        return undefined;
+      }
 
       const errors: string[] = [];
       const [statsRes, ordersRes, staffRes] = results;
@@ -276,16 +304,36 @@ export default function DashboardOverview() {
         if (staffRes.status === "fulfilled") {
           setStaff(staffRes.value as StaffMember[]);
         }
-        setError(errors[0] ?? "");
+        setError(errors.join(" ").trim());
         setLoading(false);
         setRefreshing(false);
+        setLastRefreshedAt(new Date().toISOString());
       });
+
+      return { errors };
     },
-    [hasCached, userRole],
+    [refreshCatalog, userRole],
   );
 
+  const handleManualRefresh = useCallback(async () => {
+    const result = await loadOverview("manual");
+    if (!result) return; // aborted / superseded — a newer refresh already owns feedback
+    if (result.errors.length > 0) {
+      toast.error(
+        lang === "ar"
+          ? `تعذّر تحديث بعض البيانات: ${result.errors.join(" ")}`
+          : `Some data couldn't refresh: ${result.errors.join(" ")}`,
+      );
+    } else {
+      toast.success(lang === "ar" ? "تم تحديث اللوحة بنجاح" : "Dashboard refreshed successfully");
+    }
+  }, [loadOverview, lang]);
+
   useEffect(() => {
-    void loadOverview(false);
+    void loadOverview("initial");
+    return () => {
+      loadController.current?.abort();
+    };
   }, [loadOverview]);
 
   const chartData = useMemo(
@@ -325,29 +373,98 @@ export default function DashboardOverview() {
     : 0;
 
   const isInitialLoading = loading && !stats && !orders.length;
+  const combinedError = [error, catalogError].filter(Boolean).join(" ").trim();
 
   // Role helpers
   const showRevenue = userRole === "admin" || userRole === "manager";
   const showStaff = userRole === "admin";
+  const quickActions = [
+    {
+      key: "orders",
+      label: lang === "ar" ? "إدارة الطلبات" : "Manage orders",
+      note: lang === "ar" ? "متابعة التنفيذ والحالات" : "Monitor workflow and status",
+      onClick: () => navigate("/admin/orders"),
+      visible: true,
+      accent: "#0ea5e9",
+    },
+    {
+      key: "products",
+      label: lang === "ar" ? "الكتالوج" : "Catalog",
+      note: lang === "ar" ? "منتجات وأسعار وتغطية" : "Products, pricing, and coverage",
+      onClick: () => navigate("/admin/products"),
+      visible: true,
+      accent: "#8b5cf6",
+    },
+    {
+      key: "promotions",
+      label: lang === "ar" ? "العروض" : "Promotions",
+      note: lang === "ar" ? "خصومات مجدولة وفعالة" : "Scheduled and live discounts",
+      onClick: () => navigate("/admin/promotions"),
+      visible: userRole === "admin" || userRole === "manager",
+      accent: "#f59e0b",
+    },
+    {
+      key: "staff",
+      label: lang === "ar" ? "الفريق" : "Team access",
+      note: lang === "ar" ? "الصلاحيات والحسابات" : "Roles, access, and accounts",
+      onClick: () => navigate("/admin/staff"),
+      visible: userRole === "admin",
+      accent: "#10b981",
+    },
+  ].filter((action) => action.visible);
 
   if (userRole === "driver") return null; // redirect already fired
 
   return (
     <div className="space-y-6">
-      {/* Refresh button */}
-      <div className="flex justify-end">
+      {/* Refresh bar */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-xs font-semibold text-slate-400">
+          {lastRefreshedAt
+            ? (lang === "ar" ? `آخر تحديث: ${formatDate(lastRefreshedAt, lang)}` : `Last refreshed: ${formatDate(lastRefreshedAt, lang)}`)
+            : (lang === "ar" ? "جارٍ تحميل اللوحة…" : "Loading dashboard…")}
+        </p>
         <button
           type="button"
-          onClick={() => void loadOverview(true)}
+          onClick={() => void handleManualRefresh()}
           disabled={refreshing}
+          aria-busy={refreshing}
           className="inline-flex h-11 items-center justify-center gap-2 rounded-[1.25rem] border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 shadow-sm transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
         >
           <ArrowPathIcon className={cn("h-4 w-4 text-teal-600", refreshing && "animate-spin")} />
-          {lang === "ar" ? "تحديث اللوحة" : "Refresh dashboard"}
+          {refreshing
+            ? (lang === "ar" ? "جارٍ التحديث…" : "Refreshing…")
+            : (lang === "ar" ? "تحديث اللوحة" : "Refresh dashboard")}
         </button>
       </div>
 
-      <AdminErrorBanner message={error || catalogError || ""} />
+      <AdminErrorBanner message={combinedError} />
+
+      <AdminSectionCard
+        eyebrow={lang === "ar" ? "تشغيل سريع" : "Quick actions"}
+        title={lang === "ar" ? "اختصارات العمليات" : "Operations shortcuts"}
+        description={lang === "ar" ? "انتقل مباشرة إلى أكثر مراكز العمل استخدامًا في الإدارة." : "Jump directly into the highest-traffic admin workspaces."}
+        accent="sky"
+      >
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          {quickActions.map((action) => (
+            <button
+              key={action.key}
+              type="button"
+              onClick={action.onClick}
+              className="group relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-4 text-start shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
+              style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.5)" }}
+            >
+              <div className="absolute inset-x-0 top-0 h-[3px]" style={{ background: action.accent }} />
+              <p className="text-sm font-black text-slate-900">{action.label}</p>
+              <p className="mt-1 text-xs font-medium text-slate-500">{action.note}</p>
+              <p className="mt-3 text-[11px] font-black uppercase tracking-[0.2em]" style={{ color: action.accent }}>
+                {lang === "ar" ? "فتح" : "Open"}
+              </p>
+            </button>
+          ))}
+        </div>
+      </AdminSectionCard>
 
       {/* ── KPI Metrics ── */}
       <section className="stagger-children grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -456,10 +573,16 @@ export default function DashboardOverview() {
                   accent: "#10b981",
                 },
                 {
-                  label: lang === "ar" ? "عملاء جدد" : "New customers",
+                  label: lang === "ar" ? "عملاء نشطون" : "Active customers",
                   value: formatCompactNumber(stats?.newCustomers ?? 0, lang),
-                  note: lang === "ar" ? "منذ آخر تحديث" : "since last sync",
+                  note: lang === "ar" ? "نشاط آخر 7 أيام" : "last 7 days",
                   accent: "#8b5cf6",
+                },
+                {
+                  label: lang === "ar" ? "مخزون منخفض" : "Low stock",
+                  value: formatCompactNumber(stats?.lowStockItems ?? 0, lang),
+                  note: lang === "ar" ? "منتجات بين 1 و5 وحدات" : "products with 1-5 units left",
+                  accent: "#f59e0b",
                 },
               ].map((item) => (
                 <div
@@ -535,6 +658,15 @@ export default function DashboardOverview() {
           description={lang === "ar"
             ? "متابعة سريعة لآخر الطلبات التي دخلت النظام."
             : "A quick operational list of the most recent orders."}
+          actions={
+            <button
+              type="button"
+              onClick={() => navigate("/admin/orders")}
+              className="inline-flex h-9 items-center rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
+            >
+              {lang === "ar" ? "عرض كل الطلبات" : "View all orders"}
+            </button>
+          }
         >
           {isInitialLoading ? (
             <div className="space-y-3">
@@ -568,6 +700,15 @@ export default function DashboardOverview() {
           <AdminSectionCard
             eyebrow={lang === "ar" ? "حالة الفريق" : "Team health"}
             title={lang === "ar" ? "الوصول والصلاحيات" : "Access snapshot"}
+            actions={
+              <button
+                type="button"
+                onClick={() => navigate("/admin/staff")}
+                className="inline-flex h-9 items-center rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
+              >
+                {lang === "ar" ? "إدارة الفريق" : "Manage team"}
+              </button>
+            }
           >
             {isInitialLoading ? (
               <div className="space-y-3">

@@ -17,11 +17,12 @@ const AdminLayout          = lazy(() => import("./admin/AdminLayout"));
 const DriverApp            = lazy(() => import("./driver/DriverApp"));
 const DashboardOverview    = lazy(() => import("./admin/DashboardOverview"));
 const FastProductEntry     = lazy(() => import("./admin/FastProductEntry"));
-const OperationsHub        = lazy(() => import("./admin/OperationsHub"));
+
 const OrdersManager        = lazy(() => import("./admin/OrdersManager"));
 const OrderTracking        = lazy(() => import("./pages/OrderTracking"));
 const PrescriptionsManager = lazy(() => import("./admin/PrescriptionsManager"));
 const ProductManager       = lazy(() => import("./admin/ProductManager"));
+const PromotionsManager    = lazy(() => import("./admin/PromotionsManager"));
 const SpecialOrdersManager = lazy(() => import("./admin/SpecialOrdersManager"));
 const StaffManager         = lazy(() => import("./admin/StaffManager"));
 const UsersManager         = lazy(() => import("./admin/UsersManager"));
@@ -115,12 +116,8 @@ function AppShell() {
         {/* ── Catalog-requiring routes — CatalogProvider mounted here ── */}
         <Route element={<CatalogShell />}>
 
-          {/* ── Standalone ops board (needs CatalogProvider for shared components) ── */}
-          <Route path="/ops" element={withSuspense(
-            <ProtectedRoute requireRole={["admin", "manager"]}>
-              <OperationsHub />
-            </ProtectedRoute>,
-          )} />
+          {/* Legacy operations URLs now resolve to the single order workspace. */}
+          <Route path="/ops" element={<Navigate to="/admin/orders" replace />} />
 
           {/* ── Driver ── */}
           <Route path="/driver" element={withSuspense(
@@ -143,7 +140,8 @@ function AppShell() {
             <Route path="special-orders"      element={withSuspense(<SpecialOrdersManager />)} />
             <Route path="products/fast-entry" element={withSuspense(<FastProductEntry />)} />
             <Route path="products"            element={withSuspense(<ProductManager />)} />
-            <Route path="operations"          element={withSuspense(<ManagerAndAbove><OperationsHub /></ManagerAndAbove>)} />
+            <Route path="promotions"          element={withSuspense(<ManagerAndAbove><PromotionsManager /></ManagerAndAbove>)} />
+            <Route path="operations"          element={<Navigate to="/admin/orders" replace />} />
             <Route path="prescriptions"       element={withSuspense(<PharmacistAndAbove><PrescriptionsManager /></PharmacistAndAbove>)} />
             <Route path="staff"               element={withSuspense(<AdminOnly><StaffManager /></AdminOnly>)} />
             <Route path="users"               element={withSuspense(<AdminOnly><UsersManager /></AdminOnly>)} />

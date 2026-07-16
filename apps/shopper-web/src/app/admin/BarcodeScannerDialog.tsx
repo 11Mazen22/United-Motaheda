@@ -115,6 +115,7 @@ export default function BarcodeScannerDialog({ open, productId, onClose, onCaptu
           <button
             type="button"
             onClick={handleClose}
+            aria-label={lang === "ar" ? "إقفال" : "Close"}
             className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-[#e8eaed] bg-white text-[#5f6368] transition hover:bg-[#f7f8fa]"
           >
             <XMarkIcon className="h-5 w-5" />
@@ -149,7 +150,11 @@ export default function BarcodeScannerDialog({ open, productId, onClose, onCaptu
 
         <div className="p-6 space-y-4">
           {error && (
-            <div className="flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700">
+            <div
+              role="alert"
+              aria-live="assertive"
+              className="flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700"
+            >
               <XMarkIcon className="h-4 w-4" />
               {error}
             </div>

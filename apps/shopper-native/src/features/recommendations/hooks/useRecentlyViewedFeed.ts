@@ -28,6 +28,8 @@ export function useRecentlyViewedFeed(): NativeProduct[] {
         nameAr:         i.name,
         nameEn:         i.name,
         price:          i.price,
+        basePrice:      i.price,
+        hasActivePromotion: false,
         stock:          0,
         inStock:        true,
         category:       "",

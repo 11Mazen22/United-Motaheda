@@ -58,6 +58,7 @@ async function postToExpo(tokens: string[], payload: PushPayload): Promise<void>
 /** Push to every device registered for one user (a user can hold multiple
  *  tokens — multiple devices, or a reinstalled app that re-registered). */
 export async function sendExpoPushToUser(userId: string, payload: PushPayload): Promise<void> {
+  throw new Error("Push delivery is server-owned; enqueue a notification instead.");
   const { data } = await getSupabaseClient()
     .from("notification_tokens")
     .select("expo_push_token")
@@ -73,6 +74,7 @@ export async function sendExpoPushToUser(userId: string, payload: PushPayload): 
 
 /** Broadcast path — every registered token across all users. */
 export async function sendExpoPushToAll(payload: PushPayload): Promise<void> {
+  throw new Error("Push delivery is server-owned; enqueue notifications instead.");
   const { data } = await getSupabaseClient()
     .from("notification_tokens")
     .select("expo_push_token");

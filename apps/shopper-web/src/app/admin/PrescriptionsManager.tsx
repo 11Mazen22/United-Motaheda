@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   CheckBadgeIcon,
   ClipboardDocumentListIcon,
@@ -39,6 +39,7 @@ import {
   type PrescriptionCounts,
   type PrescriptionReviewStatus,
   type RefillStatus,
+  type ReviewPayload,
 } from "../../services/adminPrescriptionsApi";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -57,10 +58,13 @@ const RX_STATUS_OPTIONS: Array<{ value: RxStatusFilter; labelAr: string; labelEn
 ];
 
 const REFILL_STATUS_OPTIONS: Array<{ value: RefillStatusFilter; labelAr: string; labelEn: string }> = [
-  { value: "pending",   labelAr: "قيد المراجعة", labelEn: "Pending Review" },
-  { value: "preparing", labelAr: "قيد التحضير",  labelEn: "Preparing" },
-  { value: "cancelled", labelAr: "ملغاة",         labelEn: "Cancelled" },
-  { value: "all",       labelAr: "الكل",          labelEn: "All" },
+  { value: "pending",     labelAr: "قيد المراجعة", labelEn: "Pending Review" },
+  { value: "preparing",   labelAr: "قيد التحضير",  labelEn: "Preparing" },
+  { value: "ready",       labelAr: "جاهزة",        labelEn: "Ready" },
+  { value: "on_the_way",  labelAr: "في الطريق",    labelEn: "On the Way" },
+  { value: "delivered",   labelAr: "تم التسليم",   labelEn: "Delivered" },
+  { value: "cancelled",   labelAr: "ملغاة",         labelEn: "Cancelled" },
+  { value: "all",         labelAr: "الكل",          labelEn: "All" },
 ];
 
 const SOURCE_LABEL: Record<string, { ar: string; en: string; cls: string }> = {
@@ -159,49 +163,85 @@ export default function PrescriptionsManager() {
     }
   }, []);
 
+  // AbortController + request-id refs guard against races between rapid
+  // filter/page/search changes and stale responses overwriting fresher ones.
+  const rxLoadController = useRef<AbortController | null>(null);
+  const rxLatestRequestId = useRef(0);
+
   const loadPrescriptions = useCallback(async () => {
+    if (rxLoadController.current) {
+      rxLoadController.current.abort();
+    }
+    const controller = new AbortController();
+    rxLoadController.current = controller;
+    const requestId = ++rxLatestRequestId.current;
+
     setRxLoading(true);
     setRxError("");
     try {
       const result = await fetchPrescriptions({
         page: rxPage, perPage: ITEMS_PER_PAGE, search: rxSearch || undefined, statusFilter: rxStatusFilter,
+        signal: controller.signal,
       });
-      setRxItems(result.items);
-      setRxTotal(result.total);
+      if (!controller.signal.aborted && requestId === rxLatestRequestId.current) {
+        setRxItems(result.items);
+        setRxTotal(result.total);
+      }
     } catch (err) {
-      setRxError(err instanceof Error ? err.message : "Failed to load prescriptions");
+      if (!controller.signal.aborted && requestId === rxLatestRequestId.current) {
+        setRxError(err instanceof Error ? err.message : "Failed to load prescriptions");
+      }
     } finally {
-      setRxLoading(false);
+      if (!controller.signal.aborted && requestId === rxLatestRequestId.current) {
+        setRxLoading(false);
+      }
     }
   }, [rxPage, rxSearch, rxStatusFilter]);
 
+  const refillLoadController = useRef<AbortController | null>(null);
+  const refillLatestRequestId = useRef(0);
+
   const loadRefills = useCallback(async () => {
+    if (refillLoadController.current) {
+      refillLoadController.current.abort();
+    }
+    const controller = new AbortController();
+    refillLoadController.current = controller;
+    const requestId = ++refillLatestRequestId.current;
+
     setRefillLoading(true);
     setRefillError("");
     try {
       const result = await fetchRefillRequests({
         page: refillPage, perPage: ITEMS_PER_PAGE, search: refillSearch || undefined, statusFilter: refillStatusFilter,
+        signal: controller.signal,
       });
-      setRefillItems(result.items);
-      setRefillTotal(result.total);
+      if (!controller.signal.aborted && requestId === refillLatestRequestId.current) {
+        setRefillItems(result.items);
+        setRefillTotal(result.total);
+      }
     } catch (err) {
-      setRefillError(err instanceof Error ? err.message : "Failed to load refill requests");
+      if (!controller.signal.aborted && requestId === refillLatestRequestId.current) {
+        setRefillError(err instanceof Error ? err.message : "Failed to load refill requests");
+      }
     } finally {
-      setRefillLoading(false);
+      if (!controller.signal.aborted && requestId === refillLatestRequestId.current) {
+        setRefillLoading(false);
+      }
     }
   }, [refillPage, refillSearch, refillStatusFilter]);
 
   useEffect(() => { void loadCounts(); }, [loadCounts]);
-  useEffect(() => { void loadPrescriptions(); }, [loadPrescriptions]);
-  useEffect(() => { void loadRefills(); }, [loadRefills]);
+  useEffect(() => {
+    void loadPrescriptions();
+    return () => { rxLoadController.current?.abort(); };
+  }, [loadPrescriptions]);
+  useEffect(() => {
+    void loadRefills();
+    return () => { refillLoadController.current?.abort(); };
+  }, [loadRefills]);
   useEffect(() => { setRxPage(1); }, [rxSearch, rxStatusFilter]);
   useEffect(() => { setRefillPage(1); }, [refillSearch, refillStatusFilter]);
-
-  const refreshAfterReview = () => {
-    void loadCounts();
-    void loadPrescriptions();
-    void loadRefills();
-  };
 
   // ── Review dialog target builder ─────────────────────────────────────────
   const dialogTarget: ReviewDialogTarget | null = (() => {
@@ -236,26 +276,92 @@ export default function PrescriptionsManager() {
     };
   })();
 
+  // Optimistically patch (or, if the new status would fall outside the
+  // current filter, remove) the reviewed row instead of doing a full list
+  // reload. On failure, roll back to the pre-mutation snapshot and rethrow so
+  // the review dialog's own error toast still fires.
+  const applyPrescriptionReview = async (item: AdminPrescription, payload: ReviewPayload) => {
+    const previousItems = rxItems;
+    const previousTotal = rxTotal;
+    const newStatus = payload.decision;
+    const staysInView = rxStatusFilter === "all" || rxStatusFilter === newStatus;
+
+    if (staysInView) {
+      setRxItems((current) => current.map((rx) => (
+        rx.id === item.id
+          ? {
+              ...rx,
+              reviewStatus: newStatus,
+              adminNotes: payload.adminNotes ?? null,
+              rejectionReason: newStatus === "rejected" ? (payload.rejectionReason ?? null) : null,
+            }
+          : rx
+      )));
+    } else {
+      setRxItems((current) => current.filter((rx) => rx.id !== item.id));
+      setRxTotal((total) => Math.max(0, total - 1));
+    }
+
+    try {
+      await reviewPrescription(item.id, item.userId, payload);
+      void loadCounts();
+    } catch (err) {
+      setRxItems(previousItems);
+      setRxTotal(previousTotal);
+      throw err;
+    }
+  };
+
+  const applyRefillReview = async (item: AdminRefillRequest, payload: ReviewPayload) => {
+    const previousItems = refillItems;
+    const previousTotal = refillTotal;
+    const newStatus: RefillStatus = payload.decision === "approved" ? "preparing" : "cancelled";
+    const staysInView = refillStatusFilter === "all" || refillStatusFilter === newStatus;
+
+    if (staysInView) {
+      setRefillItems((current) => current.map((rf) => (
+        rf.id === item.id
+          ? {
+              ...rf,
+              status: newStatus,
+              adminNotes: payload.adminNotes ?? null,
+              rejectionReason: newStatus === "cancelled" ? (payload.rejectionReason ?? null) : null,
+            }
+          : rf
+      )));
+    } else {
+      setRefillItems((current) => current.filter((rf) => rf.id !== item.id));
+      setRefillTotal((total) => Math.max(0, total - 1));
+    }
+
+    try {
+      await reviewRefillRequest(item.id, item.userId, payload);
+      void loadCounts();
+    } catch (err) {
+      setRefillItems(previousItems);
+      setRefillTotal(previousTotal);
+      throw err;
+    }
+  };
+
   const handleApprove = async (adminNotes?: string) => {
     if (!reviewTarget || !adminUser) return;
-    const payload = { decision: "approved" as const, adminId: adminUser.id, adminEmail: adminUser.email, adminNotes };
+    const payload: ReviewPayload = { decision: "approved", adminId: adminUser.id, adminEmail: adminUser.email, adminNotes };
     if (reviewTarget.kind === "prescription") {
-      await reviewPrescription(reviewTarget.item.id, reviewTarget.item.userId, payload);
+      await applyPrescriptionReview(reviewTarget.item, payload);
     } else {
-      await reviewRefillRequest(reviewTarget.item.id, reviewTarget.item.userId, payload);
+      await applyRefillReview(reviewTarget.item, payload);
     }
-    refreshAfterReview();
   };
 
   const handleReject = async (rejectionReason: string, adminNotes?: string) => {
     if (!reviewTarget || !adminUser) return;
-    const payload = { decision: "rejected" as const, adminId: adminUser.id, adminEmail: adminUser.email, adminNotes, rejectionReason };
+    const payload: ReviewPayload = { decision: "rejected", adminId: adminUser.id, adminEmail: adminUser.email, adminNotes, rejectionReason };
     if (reviewTarget.kind === "prescription") {
-      await reviewPrescription(reviewTarget.item.id, reviewTarget.item.userId, payload);
+      await applyPrescriptionReview(reviewTarget.item, payload);
     } else {
-      await reviewRefillRequest(reviewTarget.item.id, reviewTarget.item.userId, payload);
+      await applyRefillReview(reviewTarget.item, payload);
     }
-    refreshAfterReview();
   };
 
   return (

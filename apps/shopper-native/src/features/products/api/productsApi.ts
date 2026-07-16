@@ -7,20 +7,17 @@
  *   - is AbortSignal-aware (React Query passes one through)
  *   - returns a typed, zod-validated DTO
  *
- * The list/search path goes through the search_products RPC for indexed,
- * server-side ranking + filtering. Search terms are passed raw to the server.
- * The backend now handles Arabic/English exact, prefix, and pg_trgm fuzzy
- * matching directly instead of translating queries on the client.
+ * The list/search and detail paths use the canonical effective-pricing RPCs.
+ * Effective prices and active promotions are resolved server-side, so clients
+ * never read legacy product sale flags or original-price columns.
  */
 
 import { supabase } from "@/lib/supabase";
 import { withTimeout } from "@/lib/supabaseRequest";
 import { timed, timedMark } from "@/lib/devTiming";
 import {
-  RawProductRowSchema,
-  SearchProductRowSchema,
-  normalizeRawRow,
-  normalizeSearchRow,
+  EffectiveProductRowSchema,
+  normalizeEffectiveProduct,
   type NativeCategory,
   type NativeProduct,
   type ProductFilters,
@@ -32,9 +29,7 @@ import {
 const DEFAULT_PAGE_SIZE = 15;
 const MAX_PAGE_SIZE     = 50;
 
-/** Explicit column list for direct selects against the products table. */
-const PRODUCT_COLUMNS =
-  'id,"Code","Barcode","Name_Ar","Name_En","Price","Stock","Category_Name","Category_Name_En","is_active",image_url,rating_avg,rating_count,discount_percent,original_price,is_new,is_bestseller,is_sale';
+
 
 // ─── List / search ──────────────────────────────────────────────────────────
 
@@ -56,13 +51,7 @@ export async function fetchProductsPage(args: FetchProductsArgs = {}): Promise<P
     isSale,
   } = args;
 
-  // ── Sale filter: bypass the RPC ──────────────────────────────────────────
-  // The `search_products` RPC has no `p_is_sale` parameter. When the caller
-  // requests sale products, skip the RPC entirely and use the direct table
-  // query which supports arbitrary column filters.
-  if (isSale) {
-    return _fetchProductsPageDirect(args);
-  }
+
 
   const safePageSize = Math.max(1, Math.min(pageSize, MAX_PAGE_SIZE));
   const offset       = (Math.max(1, page) - 1) * safePageSize;
@@ -70,159 +59,35 @@ export async function fetchProductsPage(args: FetchProductsArgs = {}): Promise<P
 
   const rawSearch = search?.trim() || undefined;
 
-  // ── Try the search_products RPC first ────────────────────────────────────
-  try {
-    const rows = await withTimeout(
-      (timeoutSignal) =>
-        timed(
-          `rpc:search_products[cat=${categoryId ?? "*"} q="${(rawSearch ?? "").slice(0, 20)}" sort=${sort} p=${page}]`,
-          () => {
-            if (__DEV__) console.log('[products] search_products p_query=', rawSearch);
-            return supabase
-              .rpc("search_products", {
-                p_query:     rawSearch || null,
-                p_category:  categoryId ?? null,
-                p_in_stock:  inStock ?? false,
-                p_min_price: minPrice ?? null,
-                p_max_price: maxPrice ?? null,
-                p_sort:      sort,
-                p_limit:     safePageSize,
-                p_offset:    offset,
-              })
-              .abortSignal(linkSignals(signal, timeoutSignal));
-          },
-        ),
-      { signal },
-    );
+  const canonicalSort = sort === "name_asc" ? "name_asc" : sort === "price_asc" || sort === "price_desc" ? sort : "newest";
+  const rows = await withTimeout(
+    (timeoutSignal) => timed(
+      `rpc:search_effective_products[cat=${categoryId ?? "*"} q="${(rawSearch ?? "").slice(0, 20)}" sort=${canonicalSort} p=${page}]`,
+      () => supabase.rpc("search_effective_products", {
+        p_query: rawSearch || null,
+        p_category: categoryId ?? null,
+        p_in_stock: inStock ?? false,
+        p_min_price: minPrice ?? null,
+        p_max_price: maxPrice ?? null,
+        p_is_sale: isSale ?? false,
+        p_sort: canonicalSort,
+        p_limit: safePageSize,
+        p_offset: offset,
+      }).abortSignal(linkSignals(signal, timeoutSignal)),
+    ),
+    { signal },
+  );
 
-    const parsed = SearchProductRowSchema.array().safeParse(rows);
-    if (!parsed.success) {
-      if (__DEV__) {
-        console.warn("[products] search_products row validation failed:", parsed.error.issues.slice(0, 3));
-      }
-      timedMark("validation-fail", "search_products rows rejected by zod");
-      // Fall through to direct query fallback
-      throw new Error("zod-validation-failed");
-    }
-
-    const data       = parsed.data;
-    const totalCount = data[0]?.total_count ?? 0;
-    const products   = data.map(normalizeSearchRow);
-
-    return {
-      products,
-      totalCount,
-      hasNextPage: offset + products.length < totalCount,
-      currentPage: page,
-    };
-  } catch (rpcErr) {
-    // ── RPC unavailable or column missing — fall back to direct table query ─
-    // This keeps category pages and search working even when the search_products
-    // RPC hasn't been deployed or the search_vector column migration is pending.
-    if (__DEV__) {
-      console.warn("[products] search_products RPC failed, falling back to direct query:", rpcErr);
-    }
-    return _fetchProductsPageDirect(args);
-  }
-}
-
-/** Direct Supabase table query — used as fallback when the RPC is unavailable,
- *  AND as the primary path when `isSale=true` (RPC has no sale filter). */
-async function _fetchProductsPageDirect(args: FetchProductsArgs): Promise<ProductPage> {
-  const {
-    search,
-    categoryId,
-    inStock,
-    minPrice,
-    maxPrice,
-    sortBy   = "newest",
-    page     = 1,
-    pageSize = DEFAULT_PAGE_SIZE,
-    signal,
-    isSale,
-  } = args;
-
-  const safePageSize = Math.max(1, Math.min(pageSize, MAX_PAGE_SIZE));
-  const offset       = (Math.max(1, page) - 1) * safePageSize;
-  const sort: ProductSortMode = (sortBy ?? "newest") as ProductSortMode;
-  const rawSearch = search?.trim() || undefined;
-
-  let query = supabase
-    .from("products")
-    .select(PRODUCT_COLUMNS, { count: "exact" })
-    .eq("is_active", true);
-
-  // ── Sale filter — real deal products only ───────────────────────────────
-  // Matches products the admin has explicitly flagged as on sale, OR that
-  // carry a discount_percent value (both count as a "deal").
-  if (isSale) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    query = (query as any).or("is_sale.eq.true,discount_percent.gt.0");
+  const parsed = EffectiveProductRowSchema.array().safeParse(rows);
+  if (!parsed.success) {
+    timedMark("validation-fail", "search_effective_products rows rejected by zod");
+    throw new Error(`Invalid canonical product response: ${parsed.error.issues[0]?.message ?? "unknown error"}`);
   }
 
-  // Category filter (exact match on the Arabic category name)
-  if (categoryId) {
-    query = query.eq("Category_Name", categoryId);
-  }
-
-  // Stock filter
-  if (inStock) {
-    query = query.gt("Stock", 0);
-  }
-
-  // Price range
-  if (minPrice != null) query = query.gte("Price", minPrice);
-  if (maxPrice != null) query = query.lte("Price", maxPrice);
-
-  // Text search: ILIKE on Arabic + English names, code, and barcode
-  if (rawSearch) {
-    const safe = rawSearch.replace(/[%_]/g, "\\$&");
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    query = (query as any).or(
-      [
-        `Name_Ar.ilike.%${safe}%`,
-        `Name_En.ilike.%${safe}%`,
-        `Code.ilike.%${safe}%`,
-        `Barcode.ilike.%${safe}%`,
-      ].join(","),
-    );
-  }
-
-  // Sort order
-  if (sort === "price_asc") {
-    query = query.order("Price", { ascending: true });
-  } else if (sort === "price_desc") {
-    query = query.order("Price", { ascending: false });
-  } else if (sort === "name_asc") {
-    query = query.order("Name_En", { ascending: true });
-  } else {
-    // Default: in-stock first, then alphabetical
-    query = query
-      .order("is_active", { ascending: false })
-      .order("Name_En",   { ascending: true });
-  }
-
-  // Pagination
-  query = query.range(offset, offset + safePageSize - 1);
-
-  const { data, error, count } = await (signal ? (query as any).abortSignal(signal) : query);
-  if (error) throw error;
-
-  const rows = (data ?? []) as Record<string, unknown>[];
-  const products = rows
-    .map((row) => {
-      const parsed = RawProductRowSchema.safeParse(row);
-      return parsed.success ? normalizeRawRow(parsed.data) : null;
-    })
-    .filter((p): p is NativeProduct => p !== null);
-
-  const totalCount = count ?? 0;
-  return {
-    products,
-    totalCount,
-    hasNextPage: offset + products.length < totalCount,
-    currentPage: page,
-  };
+  const data = parsed.data;
+  const totalCount = data[0]?.total_count ?? 0;
+  const products = data.map(normalizeEffectiveProduct);
+  return { products, totalCount, hasNextPage: offset + products.length < totalCount, currentPage: page };
 }
 
 // ─── Detail ─────────────────────────────────────────────────────────────────
@@ -233,18 +98,14 @@ export async function fetchProductById(
 ): Promise<NativeProduct | null> {
   if (!id) return null;
   try {
-    const row = await withTimeout(
-      (timeoutSignal) =>
-        supabase
-          .from("products")
-          .select(PRODUCT_COLUMNS)
-          .eq("id", id)
-          .abortSignal(linkSignals(opts.signal, timeoutSignal))
-          .single(),
+    const rows = await withTimeout(
+      (timeoutSignal) => supabase
+        .rpc("get_effective_product", { p_product_id: id })
+        .abortSignal(linkSignals(opts.signal, timeoutSignal)),
       { signal: opts.signal },
     );
-    const parsed = RawProductRowSchema.safeParse(row);
-    return parsed.success ? normalizeRawRow(parsed.data) : null;
+    const parsed = EffectiveProductRowSchema.array().safeParse(rows);
+    return parsed.success && parsed.data[0] ? normalizeEffectiveProduct(parsed.data[0]) : null;
   } catch (e) {
     if (__DEV__) console.warn("[products] fetchProductById failed:", id, e);
     return null;
@@ -261,29 +122,26 @@ export async function fetchFeaturedProducts(
     const rows = await withTimeout(
       (timeoutSignal) =>
         timed(
-          `rpc:get_featured_products[limit=${limit}]`,
-          () =>
-            supabase
-              .rpc("get_featured_products", { p_limit: limit })
-              .abortSignal(linkSignals(opts.signal, timeoutSignal)),
+          `rpc:search_effective_products[featured limit=${limit}]`,
+          () => supabase
+            .rpc("search_effective_products", {
+              p_query: null,
+              p_category: null,
+              p_in_stock: true,
+              p_min_price: null,
+              p_max_price: null,
+              p_is_sale: false,
+              p_sort: "newest",
+              p_limit: Math.max(1, Math.min(limit, MAX_PAGE_SIZE)),
+              p_offset: 0,
+            })
+            .abortSignal(linkSignals(opts.signal, timeoutSignal)),
         ),
       { signal: opts.signal },
     );
-    const parsed = SearchProductRowSchema.partial({ rank: true, total_count: true })
-      .extend({
-        rank:        SearchProductRowSchema.shape.rank.optional(),
-        total_count: SearchProductRowSchema.shape.total_count.optional(),
-      })
-      .array()
-      .safeParse(rows);
+    const parsed = EffectiveProductRowSchema.array().safeParse(rows);
     if (!parsed.success) return [];
-    return parsed.data.map((r) =>
-      normalizeSearchRow({
-        ...r,
-        rank:        r.rank ?? null,
-        total_count: 0,
-      }),
-    );
+    return parsed.data.map(normalizeEffectiveProduct);
   } catch {
     // Featured is non-critical — never break the homepage on its failure.
     return [];

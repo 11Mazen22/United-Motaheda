@@ -54,11 +54,7 @@ export interface UseInfiniteProductsArgs {
   maxPages?:   number;
   /** If false, the query is disabled. Defaults to true. */
   enabled?:    boolean;
-  /**
-   * Restrict results to real sale / discount products (`is_sale=true OR
-   * discount_percent > 0`). Bypasses the search RPC and queries the table
-   * directly so the filter is applied server-side.
-   */
+  /** Restrict results to products with an active canonical promotion. */
   isSale?:     boolean;
 }
 

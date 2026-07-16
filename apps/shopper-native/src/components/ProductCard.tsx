@@ -211,7 +211,7 @@ export const ProductCard = memo(function ProductCard({
   // Resolve effective badge from explicit prop → product flags
   const effectiveBadge: CardBadge | undefined =
     badge
-    ?? (product.isSale        ? "sale"        : undefined)
+    ?? (product.hasActivePromotion ? "sale"        : undefined)
     ?? (product.isNew         ? "new"         : undefined)
     ?? (product.isBestseller  ? "bestseller"  : undefined);
 
@@ -220,10 +220,9 @@ export const ProductCard = memo(function ProductCard({
       ? discountPercent
       : product.discountPercent ?? undefined;
 
-  const showDiscount = (effectiveDiscount ?? 0) > 0;
 
-  const originalPrice = showDiscount && effectiveDiscount
-    ? Math.round(product.price / (1 - effectiveDiscount / 100))
+  const basePrice = product.hasActivePromotion && product.basePrice > product.price
+    ? product.basePrice
     : null;
 
   // ── Render ─────────────────────────────────────────────────────────────
@@ -297,9 +296,9 @@ export const ProductCard = memo(function ProductCard({
                   <UIText style={cs.currency}>{t("common.currency")}</UIText>
                 </UIText>
 
-                {originalPrice !== null && (
+                {basePrice !== null && (
                   <UIText style={cs.original}>
-                    {originalPrice.toLocaleString("ar-EG")}
+                    {basePrice.toLocaleString("ar-EG")}
                   </UIText>
                 )}
               </View>

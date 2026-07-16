@@ -43,15 +43,15 @@ export function notifyCustomerOrderUpdate(orderId: string, status: "picked_up" |
       if (!userId) return;
 
       const copy = COPY[status];
-      const { error } = await supabase.from("notifications").insert({
-        user_id: userId,
-        type: "order",
-        category: "order_updates",
-        title: copy.title,
-        body: copy.body,
-        data: { kind: "order_status", status, orderId },
-        action_url: `/order/${orderId}`,
-        is_read: false,
+      const { error } = await supabase.rpc("enqueue_notification", {
+        p_recipient_id: userId,
+        p_event_type: "order",
+        p_category: "order_updates",
+        p_title: copy.title,
+        p_body: copy.body,
+        p_data: { kind: "order_status", status, orderId },
+        p_action_url: `/order/${orderId}`,
+        p_idempotency_key: `order:${orderId}:status:${status}`,
       });
       if (error && __DEV__) {
         console.warn("[driver/customerNotify] insert failed:", error.message);

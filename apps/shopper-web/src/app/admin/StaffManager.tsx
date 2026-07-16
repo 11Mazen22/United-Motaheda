@@ -3,16 +3,13 @@ import {
   startTransition,
   useCallback,
   useEffect,
-  useMemo,
   useState,
   type FormEvent,
 } from "react";
 import {
-  ArrowDownIcon,
   ArrowPathIcon,
-  ArrowsUpDownIcon,
-  ArrowUpIcon,
   CheckBadgeIcon,
+  ChevronDownIcon,
   EllipsisVerticalIcon,
   LockClosedIcon,
   LockOpenIcon,
@@ -59,7 +56,6 @@ import {
   type AdminUser,
   type LastSignInInfo,
 } from "../../services/adminUsersApi";
-import { getSupabaseClient } from "../../lib/supabaseClient";
 import { toast } from "sonner";
 import {
   ROLE_VALUES,
@@ -74,6 +70,7 @@ import {
   AdminDetailDrawer,
   AdminEmptyState,
   AdminErrorBanner,
+  AdminFormField,
   AdminMetricCard,
   AdminPaginationBar,
   AdminSearchField,
@@ -82,11 +79,19 @@ import {
   useDebouncedValue,
   type AdminDetailDrawerSummary,
 } from "./adminShared";
+import { SortIcon } from "./adminTableIcons";
+import { buildSelfActionWarning } from "./adminSelfActionWarning";
+import { useBulkSelection } from "../../hooks/useBulkSelection";
+import { useDirectoryCounts } from "../../hooks/useDirectoryCounts";
+import { useSortableColumn } from "../../hooks/useSortableColumn";
+import { useAdminConfirmedAction } from "../../hooks/useAdminConfirmedAction";
+import { useAdminBulkStatus } from "../../hooks/useAdminBulkStatus";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 // Role union/labels come from @pharmacy/contracts/src/role.ts (canonical).
 
 type StaffStatus = "Active" | "Inactive" | "Suspended";
+type NewStaffStatus = "Active" | "Inactive";
 type Language = "ar" | "en";
 type StatusFilter = "all" | StaffStatus;
 type SortField = "full_name" | "role" | "status" | "created_at";
@@ -98,7 +103,7 @@ type StaffFormState = {
   email: string;
   password: string;
   role: StaffRole;
-  status: StaffStatus;
+  status: NewStaffStatus;
 };
 
 type PendingAction =
@@ -203,29 +208,6 @@ function StatusBadge({ status, lang }: { status: string; lang: Language }) {
   );
 }
 
-function SortIcon({ active, dir }: { active: boolean; dir: "asc" | "desc" }) {
-  if (!active) return <ArrowsUpDownIcon className="h-3.5 w-3.5 text-slate-300" />;
-  return dir === "asc" ? <ArrowUpIcon className="h-3.5 w-3.5 text-teal-600" /> : <ArrowDownIcon className="h-3.5 w-3.5 text-teal-600" />;
-}
-
-function FormField({
-  label, value, onChange, type = "text", required = false,
-}: {
-  label: string; value: string; onChange: (v: string) => void; type?: string; required?: boolean;
-}) {
-  return (
-    <div className="grid gap-1.5">
-      <label className="text-sm font-medium text-slate-700">{label}</label>
-      <input
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        required={required}
-        className="h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none transition-all focus:border-teal-400 focus:ring-2 focus:ring-teal-500/10"
-      />
-    </div>
-  );
-}
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
@@ -240,19 +222,17 @@ export default function StaffManager() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [lastSignIn, setLastSignIn] = useState<Map<string, LastSignInInfo>>(new Map());
-  const [counts, setCounts] = useState({ total: 0, active: 0, suspended: 0 });
 
   // ── Filter / sort / page state ──────────────────────────────────────────────
   const [rawSearch, setRawSearch] = useState("");
   const search = useDebouncedValue(rawSearch, 250);
   const [roleFilter, setRoleFilter] = useState<"all" | Role>("all");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
-  const [sortBy, setSortBy] = useState<SortField>("created_at");
-  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const { sortBy, sortDir, handleSort } = useSortableColumn<SortField>("created_at", "desc");
   const [page, setPage] = useState(1);
 
   // ── Selection / dialogs ─────────────────────────────────────────────────────
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const bulk = useBulkSelection(staff, { excludeId: viewer?.id ?? null });
   const [detailId, setDetailId] = useState<string | null>(null);
   const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -294,73 +274,33 @@ export default function StaffManager() {
 
   useEffect(() => { if (isAdmin) void loadStaff(); }, [isAdmin, loadStaff]);
   useEffect(() => { setPage(1); }, [search, statusFilter, roleFilter, sortBy, sortDir]);
+  useEffect(() => { bulk.clear(); }, [page, search, statusFilter, roleFilter, sortBy, sortDir, bulk.clear]);
 
   // ── Staff-scoped summary counts (lightweight count-only queries, not a
   // full-table fetch) ─────────────────────────────────────────────────────────
-  const loadCounts = useCallback(async () => {
-    if (!isAdmin) return;
-    try {
-      const supabase = getSupabaseClient();
-      const staffRoles = [...STAFF_ROLE_VALUES];
-      const [totalRes, activeRes, suspendedRes] = await Promise.all([
-        supabase.from("profiles").select("id", { count: "exact", head: true }).in("role", staffRoles).neq("status", "Inactive"),
-        supabase.from("profiles").select("id", { count: "exact", head: true }).in("role", staffRoles).eq("status", "Active"),
-        supabase.from("profiles").select("id", { count: "exact", head: true }).in("role", staffRoles).eq("status", "Suspended"),
-      ]);
-      setCounts({
-        total: totalRes.count ?? 0,
-        active: activeRes.count ?? 0,
-        suspended: suspendedRes.count ?? 0,
-      });
-    } catch {
-      // counts are cosmetic — ignore errors
-    }
-  }, [isAdmin]);
-
-  useEffect(() => { void loadCounts(); }, [loadCounts]);
+  const { counts, reload: loadCounts } = useDirectoryCounts("staff", isAdmin);
 
   const refreshAll = useCallback(() => {
     startTransition(() => { void loadStaff(); void loadCounts(); });
   }, [loadStaff, loadCounts]);
-
-  const handleSort = (field: SortField) => {
-    if (sortBy === field) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
-    else { setSortBy(field); setSortDir("asc"); }
-  };
 
   const totalPages = Math.max(1, Math.ceil(total / ITEMS_PER_PAGE));
   const hasFilters = statusFilter !== "all" || roleFilter !== "all" || rawSearch.length > 0;
   const clearFilters = useCallback(() => {
     setRawSearch(""); setRoleFilter("all"); setStatusFilter("all");
   }, []);
-
-  // ── Selection ────────────────────────────────────────────────────────────────
-  const selectableStaff = staff.filter((m) => m.id !== viewer?.id);
-  const allSelected = selectableStaff.length > 0 && selectableStaff.every((m) => selectedIds.has(m.id));
-  const toggleAll = () => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (allSelected) selectableStaff.forEach((m) => next.delete(m.id));
-      else selectableStaff.forEach((m) => next.add(m.id));
-      return next;
-    });
-  };
-  const toggleRow = (id: string) => {
-    if (id === viewer?.id) return; // self excluded from bulk selection
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
-  };
-  const clearSelection = () => setSelectedIds(new Set());
+  const passwordLength = form.password.length;
 
   // ── Add employee ─────────────────────────────────────────────────────────────
   const handleAddStaff = useCallback(
     async (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault();
-      if (!form.fullName || !form.username || !form.password || !form.email || !form.phone) {
+      if (!form.fullName.trim() || !form.username.trim() || !form.password || !form.email.trim() || !form.phone.trim()) {
         setFormError(isArabic ? "جميع الحقول مطلوبة" : "All fields are required");
+        return;
+      }
+      if (form.password.length < 8) {
+        setFormError(isArabic ? "يجب ألا تقل كلمة المرور عن 8 أحرف" : "Password must be at least 8 characters");
         return;
       }
       setSubmitting(true);
@@ -369,6 +309,7 @@ export default function StaffManager() {
         const result = await createStaffUserViaSuperAdmin({ ...form });
         toast.success(result.message || (isArabic ? "تم إضافة الموظف بنجاح" : "Staff member added successfully"));
         setDialogOpen(false);
+        setForm(EMPTY_FORM);
         refreshAll();
       } catch (err) {
         const msg = err instanceof Error ? err.message : "Failed to add staff member.";
@@ -382,23 +323,24 @@ export default function StaffManager() {
   );
 
   // ── Confirmed mutations ──────────────────────────────────────────────────────
+  const runConfirmedAction = useAdminConfirmedAction(isArabic);
   const handleConfirmedAction = useCallback(async () => {
     if (!pendingAction || !viewer) return;
     const { kind } = pendingAction;
-    try {
+    await runConfirmedAction(async () => {
       if (kind === "role") {
-        await changeUserRole(pendingAction.member.id, pendingAction.nextRole, viewer.id, viewer.email);
+        await changeUserRole(pendingAction.member.id, pendingAction.nextRole);
         toast.success(
           isArabic
             ? `تم تعيين ${pendingAction.member.fullName || "المستخدم"} كـ${getRoleLabel(pendingAction.nextRole, lang)}`
             : `${pendingAction.member.fullName || "User"} is now ${getRoleLabel(pendingAction.nextRole, lang)}`,
         );
       } else if (kind === "status") {
-        await changeUserStatus(pendingAction.member.id, pendingAction.nextStatus, viewer.id, viewer.email);
+        await changeUserStatus(pendingAction.member.id, pendingAction.nextStatus);
         toast.success(isArabic ? "تم تحديث الحالة بنجاح" : "Status updated successfully");
       } else if (kind === "lock") {
-        if (pendingAction.locked) await lockAccount(pendingAction.member.id, viewer.id, viewer.email);
-        else await unlockAccount(pendingAction.member.id, viewer.id, viewer.email);
+        if (pendingAction.locked) await lockAccount(pendingAction.member.id);
+        else await unlockAccount(pendingAction.member.id);
         toast.success(
           pendingAction.locked
             ? (isArabic ? "تم قفل الحساب" : "Account locked")
@@ -406,31 +348,21 @@ export default function StaffManager() {
         );
       }
       refreshAll();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : (isArabic ? "فشل الإجراء" : "Action failed"));
-      throw err; // keep AdminConfirmDialog open on failure
-    }
-  }, [pendingAction, viewer, isArabic, lang, refreshAll]);
+    });
+  }, [pendingAction, viewer, isArabic, lang, refreshAll, runConfirmedAction]);
 
   // ── Bulk status actions (never role/lock/delete — see AdminBulkActionBar's
   // own scope note) ────────────────────────────────────────────────────────────
+  const runBulkStatusUpdate = useAdminBulkStatus(isArabic);
   const runBulkStatus = useCallback(
     async (nextStatus: StaffStatus) => {
       if (!viewer) return;
-      const ids = Array.from(selectedIds);
-      const results = await Promise.allSettled(
-        ids.map((id) => changeUserStatus(id, nextStatus, viewer.id, viewer.email)),
-      );
-      const failed = results.filter((r) => r.status === "rejected").length;
-      if (failed > 0) {
-        toast.error(isArabic ? `فشل تحديث ${failed} حساب` : `Failed to update ${failed} account(s)`);
-      } else {
-        toast.success(isArabic ? "تم تحديث الحسابات المحددة" : "Selected accounts updated");
-      }
-      clearSelection();
+      const ids = Array.from(bulk.selected);
+      await runBulkStatusUpdate(ids, (id) => changeUserStatus(id, nextStatus));
+      bulk.clear();
       refreshAll();
     },
-    [selectedIds, viewer, isArabic, refreshAll],
+    [bulk.selected, bulk.clear, viewer, refreshAll, runBulkStatusUpdate],
   );
 
   if (!isAdmin) return <UnauthorizedMessage lang={lang} />;
@@ -449,6 +381,7 @@ export default function StaffManager() {
     : null;
 
   const thClass = "text-xs font-black uppercase tracking-wide text-slate-500";
+  const sortButtonClass = cn(thClass, "flex items-center gap-1.5 select-none rounded outline-none focus-visible:ring-2 focus-visible:ring-teal-500/40");
 
   return (
     <div className="space-y-5">
@@ -551,9 +484,9 @@ export default function StaffManager() {
         </div>
 
         <AdminBulkActionBar
-          selectedCount={selectedIds.size}
+          selectedCount={bulk.count}
           lang={lang}
-          onClear={clearSelection}
+          onClear={bulk.clear}
           actions={[
             { key: "activate", label: isArabic ? "تنشيط" : "Activate", icon: CheckBadgeIcon, onClick: () => void runBulkStatus("Active") },
             { key: "suspend", label: isArabic ? "تعليق" : "Suspend", icon: ShieldExclamationIcon, tone: "danger", onClick: () => void runBulkStatus("Suspended") },
@@ -622,21 +555,21 @@ export default function StaffManager() {
                   <TableHeader>
                     <TableRow className="border-slate-100 bg-slate-50/60">
                       <TableHead className="w-12 ps-4">
-                        <input type="checkbox" checked={allSelected} onChange={toggleAll} className="h-4 w-4 rounded border-slate-300 accent-teal-600" aria-label={isArabic ? "تحديد الكل" : "Select all"} />
+                        <input type="checkbox" checked={bulk.allSelected} onChange={bulk.toggleAll} className="h-4 w-4 rounded border-slate-300 accent-teal-600" aria-label={isArabic ? "تحديد الكل" : "Select all"} />
                       </TableHead>
-                      <TableHead className={cn(thClass, "cursor-pointer select-none px-4 py-3")} onClick={() => handleSort("full_name")}>
-                        <div className="flex items-center gap-1.5">{isArabic ? "الموظف" : "Employee"}<SortIcon active={sortBy === "full_name"} dir={sortDir} /></div>
+                      <TableHead className="px-4 py-3" aria-sort={sortBy === "full_name" ? (sortDir === "asc" ? "ascending" : "descending") : "none"}>
+                        <button type="button" onClick={() => handleSort("full_name")} className={sortButtonClass}>{isArabic ? "الموظف" : "Employee"}<SortIcon active={sortBy === "full_name"} dir={sortDir} /></button>
                       </TableHead>
-                      <TableHead className={cn(thClass, "cursor-pointer select-none px-4 py-3")} onClick={() => handleSort("role")}>
-                        <div className="flex items-center gap-1.5">{isArabic ? "الدور" : "Role"}<SortIcon active={sortBy === "role"} dir={sortDir} /></div>
+                      <TableHead className="px-4 py-3" aria-sort={sortBy === "role" ? (sortDir === "asc" ? "ascending" : "descending") : "none"}>
+                        <button type="button" onClick={() => handleSort("role")} className={sortButtonClass}>{isArabic ? "الدور" : "Role"}<SortIcon active={sortBy === "role"} dir={sortDir} /></button>
                       </TableHead>
                       <TableHead className={cn(thClass, "px-4 py-3")}>{isArabic ? "الهاتف" : "Phone"}</TableHead>
-                      <TableHead className={cn(thClass, "cursor-pointer select-none px-4 py-3")} onClick={() => handleSort("status")}>
-                        <div className="flex items-center gap-1.5">{isArabic ? "الحالة" : "Status"}<SortIcon active={sortBy === "status"} dir={sortDir} /></div>
+                      <TableHead className="px-4 py-3" aria-sort={sortBy === "status" ? (sortDir === "asc" ? "ascending" : "descending") : "none"}>
+                        <button type="button" onClick={() => handleSort("status")} className={sortButtonClass}>{isArabic ? "الحالة" : "Status"}<SortIcon active={sortBy === "status"} dir={sortDir} /></button>
                       </TableHead>
                       <TableHead className={cn(thClass, "px-4 py-3")}>{isArabic ? "آخر نشاط" : "Last active"}</TableHead>
-                      <TableHead className={cn(thClass, "cursor-pointer select-none px-4 py-3")} onClick={() => handleSort("created_at")}>
-                        <div className="flex items-center gap-1.5">{isArabic ? "الانضمام" : "Joined"}<SortIcon active={sortBy === "created_at"} dir={sortDir} /></div>
+                      <TableHead className="px-4 py-3" aria-sort={sortBy === "created_at" ? (sortDir === "asc" ? "ascending" : "descending") : "none"}>
+                        <button type="button" onClick={() => handleSort("created_at")} className={sortButtonClass}>{isArabic ? "الانضمام" : "Joined"}<SortIcon active={sortBy === "created_at"} dir={sortDir} /></button>
                       </TableHead>
                       <TableHead className="w-12 pe-4 text-end" />
                     </TableRow>
@@ -645,14 +578,15 @@ export default function StaffManager() {
                     {staff.map((member) => {
                       const isSelf = member.id === viewer?.id;
                       return (
-                        <TableRow key={member.id} className={cn("border-slate-100 transition-colors", selectedIds.has(member.id) ? "bg-teal-50/60" : "hover:bg-slate-50/60")}>
+                        <TableRow key={member.id} className={cn("border-slate-100 transition-colors", bulk.isSelected(member.id) ? "bg-teal-50/60" : "hover:bg-slate-50/60")}>
                           <TableCell className="ps-4">
                             <input
                               type="checkbox"
-                              checked={selectedIds.has(member.id)}
+                              checked={bulk.isSelected(member.id)}
                               disabled={isSelf}
-                              onChange={() => toggleRow(member.id)}
+                              onChange={() => bulk.toggle(member.id)}
                               className="h-4 w-4 rounded border-slate-300 accent-teal-600 disabled:opacity-30"
+                              aria-label={member.fullName}
                             />
                           </TableCell>
                           <TableCell className="px-4 py-3 align-top">
@@ -751,11 +685,7 @@ export default function StaffManager() {
           pendingAction
             ? (() => {
                 const isSelf = pendingAction.member.id === viewer?.id;
-                const selfWarning = isSelf
-                  ? (isArabic
-                      ? " أنت على وشك تعديل حسابك الخاص — قد تفقد صلاحياتك الحالية فورًا."
-                      : " You're about to modify your own account — you may lose your current access immediately.")
-                  : "";
+                const selfWarning = buildSelfActionWarning(isArabic, isSelf);
                 if (pendingAction.kind === "role") {
                   return (isArabic
                     ? `سيتم تعيين ${pendingAction.member.fullName || "المستخدم"} كـ${getRoleLabel(pendingAction.nextRole, lang)}.${selfWarning}`
@@ -775,66 +705,163 @@ export default function StaffManager() {
       />
 
       {/* Add Staff Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-md overflow-hidden rounded-xl border border-slate-200 bg-white p-0 shadow-lg">
-          <DialogHeader className="border-b border-slate-100 px-5 py-4">
-            <DialogTitle className="text-lg font-bold text-slate-800">
-              {isArabic ? "إضافة موظف جديد" : "Add new employee"}
-            </DialogTitle>
-            <DialogDescription className="text-sm text-slate-500">
-              {isArabic ? "أدخل بيانات الموظف لإنشاء حساب جديد." : "Enter the employee details to create a new account."}
-            </DialogDescription>
+      <Dialog open={dialogOpen} onOpenChange={(open) => !submitting && setDialogOpen(open)}>
+        <DialogContent
+          className={cn(
+            "flex max-h-[92vh] flex-col overflow-hidden rounded-2xl border-0 bg-white p-0 shadow-[0_32px_80px_-24px_rgba(15,23,42,0.45)] sm:max-w-2xl lg:max-w-3xl",
+            "[&_[data-slot=dialog-close]]:top-5 [&_[data-slot=dialog-close]]:z-20 [&_[data-slot=dialog-close]]:flex [&_[data-slot=dialog-close]]:h-9 [&_[data-slot=dialog-close]]:w-9 [&_[data-slot=dialog-close]]:items-center [&_[data-slot=dialog-close]]:justify-center [&_[data-slot=dialog-close]]:rounded-full [&_[data-slot=dialog-close]]:border [&_[data-slot=dialog-close]]:border-white/20 [&_[data-slot=dialog-close]]:bg-white/10 [&_[data-slot=dialog-close]]:text-white [&_[data-slot=dialog-close]]:opacity-100 [&_[data-slot=dialog-close]]:backdrop-blur-md [&_[data-slot=dialog-close]]:transition [&_[data-slot=dialog-close]]:hover:bg-white/20",
+            isArabic
+              ? "[&_[data-slot=dialog-close]]:left-5 [&_[data-slot=dialog-close]]:right-auto"
+              : "[&_[data-slot=dialog-close]]:left-auto [&_[data-slot=dialog-close]]:right-5",
+          )}
+        >
+          <DialogHeader className="relative shrink-0 overflow-hidden bg-gradient-to-br from-slate-950 via-teal-900 to-teal-700 px-6 py-6 pe-16 text-start sm:px-8 sm:py-7 sm:pe-20 sm:text-start">
+            <div
+              className="pointer-events-none absolute inset-0 opacity-25"
+              style={{ backgroundImage: "radial-gradient(circle at 1px 1px, rgba(255,255,255,.35) 1px, transparent 0)", backgroundSize: "22px 22px" }}
+            />
+            <div className="pointer-events-none absolute -start-20 -top-24 h-56 w-56 rounded-full bg-teal-400/30 blur-3xl" />
+            <div className="pointer-events-none absolute -bottom-24 end-10 h-52 w-52 rounded-full bg-cyan-300/20 blur-3xl" />
+            <div className="relative flex items-center gap-5">
+              <div className="relative hidden shrink-0 sm:block">
+                <span className="absolute -inset-2 rounded-2xl border border-white/10" />
+                <span className="relative inline-flex h-14 w-14 items-center justify-center rounded-2xl border border-white/20 bg-white/10 text-white shadow-xl shadow-slate-950/20 backdrop-blur-md">
+                  <PlusIcon className="h-7 w-7" />
+                </span>
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-teal-200/20 bg-white/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-teal-50 backdrop-blur-sm">
+                  <UsersIcon className="h-3.5 w-3.5" />
+                  {isArabic ? "إدارة فريق العمل" : "Workforce management"}
+                </div>
+                <DialogTitle className="text-2xl font-black tracking-tight text-white sm:text-[1.7rem]">
+                  {isArabic ? "إضافة موظف جديد" : "Add new employee"}
+                </DialogTitle>
+                <DialogDescription className="mt-2 max-w-xl text-sm leading-6 text-teal-50/75">
+                  {isArabic
+                    ? "أنشئ حسابًا آمنًا وحدد صلاحيات الوصول الأولية للموظف. يمكن تعديل الصلاحيات لاحقًا."
+                    : "Create a secure staff account and assign its initial access level. Permissions can be updated later."}
+                </DialogDescription>
+                <div className="mt-3 hidden items-center gap-1.5 text-[11px] font-bold text-white/70 sm:flex">
+                  <ShieldCheckIcon className="h-3.5 w-3.5 text-teal-200" />
+                  {isArabic ? "إجراء آمن وموثّق" : "Secure, audited action"}
+                </div>
+              </div>
+            </div>
           </DialogHeader>
 
-          <form onSubmit={handleAddStaff} className="space-y-4 px-5 py-4">
-            <FormField label={isArabic ? "الاسم الكامل" : "Full name"} value={form.fullName} onChange={(v) => setForm((p) => ({ ...p, fullName: v }))} required />
-            <FormField label={isArabic ? "اسم المستخدم" : "Username"} value={form.username} onChange={(v) => setForm((p) => ({ ...p, username: v }))} required />
-            <FormField label={isArabic ? "البريد الإلكتروني" : "Email"} type="email" value={form.email} onChange={(v) => setForm((p) => ({ ...p, email: v }))} required />
-            <FormField label={isArabic ? "رقم الهاتف" : "Phone number"} type="tel" value={form.phone} onChange={(v) => setForm((p) => ({ ...p, phone: v }))} required />
-            <FormField label={isArabic ? "كلمة المرور" : "Password"} type="password" value={form.password} onChange={(v) => setForm((p) => ({ ...p, password: v }))} required />
+          <form onSubmit={handleAddStaff} className="flex min-h-0 flex-1 flex-col bg-white">
+            <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-5 sm:px-7 sm:py-6">
+              <section className="space-y-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm shadow-slate-200/50 sm:p-6">
+                <div className="flex items-center gap-3">
+                  <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-slate-100 text-xs font-black text-slate-700">1</span>
+                  <div>
+                    <h3 className="text-sm font-black text-slate-900">{isArabic ? "البيانات الأساسية" : "Employee information"}</h3>
+                    <p className="mt-1 text-xs text-slate-500">
+                      {isArabic ? "البيانات الرسمية للموظف كما ستظهر في النظام." : "Official details for the employee, as they will appear in the system."}
+                    </p>
+                  </div>
+                </div>
 
-            <div className="grid gap-1.5">
-              <label className="text-sm font-medium text-slate-700">{isArabic ? "الدور" : "Role"}</label>
-              <select
-                value={form.role}
-                onChange={(e) => setForm((p) => ({ ...p, role: e.target.value as StaffRole }))}
-                className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-600 outline-none transition focus:border-teal-400 focus:ring-2 focus:ring-teal-500/10"
-              >
-                {STAFF_ROLES.map((r) => (
-                  <option key={r.value} value={r.value}>{isArabic ? r.ar : r.en}</option>
-                ))}
-              </select>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <AdminFormField label={isArabic ? "الاسم الكامل" : "Full name"} value={form.fullName} onChange={(v) => setForm((p) => ({ ...p, fullName: v }))} required />
+                  <AdminFormField label={isArabic ? "اسم المستخدم" : "Username"} value={form.username} onChange={(v) => setForm((p) => ({ ...p, username: v }))} required />
+                  <AdminFormField label={isArabic ? "البريد الإلكتروني" : "Email address"} type="email" value={form.email} onChange={(v) => setForm((p) => ({ ...p, email: v }))} required />
+                  <AdminFormField label={isArabic ? "رقم الهاتف" : "Phone number"} type="tel" value={form.phone} onChange={(v) => setForm((p) => ({ ...p, phone: v }))} required />
+                </div>
+              </section>
+
+              <section className="space-y-4 rounded-3xl border border-slate-200 bg-slate-50/70 p-5 shadow-sm shadow-slate-200/40 sm:p-6">
+                <div className="flex items-center gap-3">
+                  <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-teal-100 text-xs font-black text-teal-700">2</span>
+                  <div>
+                    <h3 className="text-sm font-black text-slate-900">{isArabic ? "الأمان والصلاحيات" : "Security and access"}</h3>
+                    <p className="mt-1 text-xs text-slate-500">
+                      {isArabic ? "كلمة مرور مؤقتة، والدور، وحالة الحساب عند الإنشاء." : "Temporary password, role, and starting account status."}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="sm:col-span-2">
+                    <AdminFormField label={isArabic ? "كلمة المرور المؤقتة" : "Temporary password"} type="password" value={form.password} onChange={(v) => setForm((p) => ({ ...p, password: v }))} required />
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <span className={cn(
+                        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-bold",
+                        passwordLength >= 8 ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-amber-200 bg-amber-50 text-amber-700",
+                      )}>
+                        <ShieldCheckIcon className="h-3.5 w-3.5" />
+                        {passwordLength >= 8
+                          ? (isArabic ? "صالحة" : "Valid")
+                          : (isArabic ? "8 أحرف على الأقل" : "At least 8 characters")}
+                      </span>
+                      <p className="text-xs text-slate-500">
+                        {isArabic ? "شاركها عبر قناة آمنة." : "Share it through a secure channel."}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-1.5">
+                    <label htmlFor="new-staff-role" className="text-sm font-semibold text-slate-700">{isArabic ? "الدور الوظيفي" : "Staff role"}<span className="ms-1 text-red-500">*</span></label>
+                    <div className="relative">
+                      <select
+                        id="new-staff-role"
+                        value={form.role}
+                        onChange={(e) => setForm((p) => ({ ...p, role: e.target.value as StaffRole }))}
+                        className="h-11 w-full appearance-none rounded-2xl border border-slate-200 bg-white px-4 pe-11 text-sm font-semibold text-slate-700 outline-none transition focus:border-teal-400 focus:ring-2 focus:ring-teal-500/10"
+                      >
+                        {STAFF_ROLES.map((r) => (
+                          <option key={r.value} value={r.value}>{isArabic ? r.ar : r.en}</option>
+                        ))}
+                      </select>
+                      <ChevronDownIcon className="pointer-events-none absolute end-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                    </div>
+                  </div>
+
+                  <div className="grid gap-1.5">
+                    <label htmlFor="new-staff-status" className="text-sm font-semibold text-slate-700">{isArabic ? "حالة الحساب" : "Account status"}<span className="ms-1 text-red-500">*</span></label>
+                    <div className="relative">
+                      <select
+                        id="new-staff-status"
+                        value={form.status}
+                        onChange={(e) => setForm((p) => ({ ...p, status: e.target.value as NewStaffStatus }))}
+                        className="h-11 w-full appearance-none rounded-2xl border border-slate-200 bg-white px-4 pe-11 text-sm font-semibold text-slate-700 outline-none transition focus:border-teal-400 focus:ring-2 focus:ring-teal-500/10"
+                      >
+                        <option value="Active">{isArabic ? "نشط — يمكنه تسجيل الدخول" : "Active — can sign in"}</option>
+                        <option value="Inactive">{isArabic ? "غير نشط — لا يمكنه الوصول" : "Inactive — access disabled"}</option>
+                      </select>
+                      <ChevronDownIcon className="pointer-events-none absolute end-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              {formError && (
+                <div role="alert" aria-live="polite" className="flex items-start gap-2.5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+                  <XCircleIcon className="mt-0.5 h-5 w-5 shrink-0" />
+                  <span>{formError}</span>
+                </div>
+              )}
             </div>
 
-            <div className="grid gap-1.5">
-              <label className="text-sm font-medium text-slate-700">{isArabic ? "الحالة" : "Status"}</label>
-              <select
-                value={form.status}
-                onChange={(e) => setForm((p) => ({ ...p, status: e.target.value as StaffStatus }))}
-                className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-600 outline-none transition focus:border-teal-400 focus:ring-2 focus:ring-teal-500/10"
+            <DialogFooter className="shrink-0 flex-row items-center justify-end gap-3 border-t border-slate-200 bg-white px-6 py-4 sm:px-7">
+              <button
+                type="button"
+                onClick={() => setDialogOpen(false)}
+                disabled={submitting}
+                className="inline-flex h-11 min-w-24 items-center justify-center rounded-2xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                <option value="Active">{isArabic ? "نشط" : "Active"}</option>
-                <option value="Inactive">{isArabic ? "غير نشط" : "Inactive"}</option>
-                <option value="Suspended">{isArabic ? "موقوف" : "Suspended"}</option>
-              </select>
-            </div>
-
-            {formError && (
-              <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">{formError}</p>
-            )}
-
-            <DialogFooter className="gap-2 pt-2">
-              <button type="button" onClick={() => setDialogOpen(false)} className="inline-flex h-9 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-50">
                 {isArabic ? "إلغاء" : "Cancel"}
               </button>
               <button
                 type="submit"
                 disabled={submitting}
-                className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl px-4 text-sm font-bold text-white shadow-sm transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-                style={{ background: "linear-gradient(135deg, #0E7E74 0%, #0d6b62 100%)" }}
+                className="inline-flex h-11 min-w-40 items-center justify-center gap-2 rounded-2xl bg-teal-700 px-5 text-sm font-black text-white shadow-sm shadow-teal-200 transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {submitting && <ArrowPathIcon className="h-4 w-4 animate-spin" />}
-                {isArabic ? "إضافة" : "Add"}
+                {submitting ? <ArrowPathIcon className="h-4 w-4 animate-spin" /> : <PlusIcon className="h-4 w-4" />}
+                {submitting
+                  ? (isArabic ? "جارٍ إنشاء الحساب…" : "Creating account…")
+                  : (isArabic ? "إنشاء حساب الموظف" : "Create employee")}
               </button>
             </DialogFooter>
           </form>

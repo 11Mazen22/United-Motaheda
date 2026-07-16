@@ -5,17 +5,17 @@
  * instead of re-building address/item layout from scratch.
  */
 import React from "react";
-import { StyleSheet, View } from "react-native";
+import { Linking, Pressable, StyleSheet, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { Screen, Text as UIText } from "@/shared/ui";
 import { Button, kit } from "@/shared/kit";
+import { theme } from "@/shared/theme";
 import { Badge } from "@/components/ui/Badge";
 import {
   DetailSection,
   InfoRow,
-  HeaderBackButton,
   ORDER_STATUS_META,
 } from "@/features/orders/components/OrderDetailHelpers";
 import { useAuth } from "@/features/auth";
@@ -24,6 +24,7 @@ import { formatPrice } from "@/utils/format";
 import { showErrorSheet, showSuccessSheet } from "@/shared/store/appSheetStore";
 import { useDriverOrderDetail, useMyAssignmentForOrder } from "../hooks/useDriverManifest";
 import { useDriverMutations } from "../hooks/useDriverMutations";
+import { DriverScreenHeader } from "../components/DriverScreenHeader";
 
 const IS_RTL = isRtl();
 const TEXT_START = textAlignStart(IS_RTL);
@@ -64,17 +65,24 @@ export function DeliveryExecutionScreen(): React.ReactElement {
 
   const loading = orderQuery.isLoading || assignmentQuery.isLoading;
   const canConfirmPickup = order?.status === "ready" && assignment?.responseStatus === "accepted" && !assignment.pickedUpAt;
-  const canMarkDelivered = order?.status === "picked_up";
+  const canMarkDelivered = order?.status === "out_for_delivery";
+  const address = order?.address.formatted || [order?.address.street, order?.address.city].filter(Boolean).join(", ");
+  const openNavigation = () => {
+    if (!address) return;
+    void Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(address)}`);
+  };
+  const callCustomer = () => {
+    const phone = order?.address.phone?.replace(/\s/g, "");
+    if (phone) void Linking.openURL(`tel:${phone}`);
+  };
 
   return (
     <Screen edgeTop scroll background={kit.color.canvas} contentStyle={s.content}>
-      <View style={s.header}>
-        <HeaderBackButton onPress={() => router.back()} />
-        <UIText variant="sheet-title" style={{ textAlign: TEXT_START, flex: 1 }}>
-          #{(orderId ?? "").slice(-8).toUpperCase()}
-        </UIText>
-        {statusMeta && <Badge variant={statusMeta.variant} size="sm">{t(statusMeta.labelKey)}</Badge>}
-      </View>
+      <DriverScreenHeader
+        title={`#${(orderId ?? "").slice(-8).toUpperCase()}`}
+        subtitle={statusMeta ? t(statusMeta.labelKey) : undefined}
+        trailing={statusMeta ? <Badge variant={statusMeta.variant} size="sm">{t(statusMeta.labelKey)}</Badge> : undefined}
+      />
 
       {loading ? (
         <View style={s.centered}><UIText color="secondary">{t("common.loading")}</UIText></View>
@@ -87,6 +95,36 @@ export function DeliveryExecutionScreen(): React.ReactElement {
         </View>
       ) : (
         <>
+          <View style={s.commandCard}>
+            <View style={{ flex: 1 }}>
+              <UIText variant="caption" color="brand" style={{ textAlign: TEXT_START }}>ACTIVE DELIVERY</UIText>
+              <UIText variant="card-title" style={{ textAlign: TEXT_START, marginTop: 4 }}>{order.address.name || "—"}</UIText>
+              <UIText variant="body-sm" color="secondary" numberOfLines={2} style={{ textAlign: TEXT_START, marginTop: 2 }}>{address || "—"}</UIText>
+            </View>
+            <View style={s.quickActions}>
+              <Pressable onPress={callCustomer} disabled={!order.address.phone} style={[s.quickAction, !order.address.phone && s.quickActionDisabled]} accessibilityRole="button" accessibilityLabel={t("driver.phone")}>
+                <Ionicons name="call-outline" size={19} color={kit.color.accentDeep} />
+              </Pressable>
+              <Pressable onPress={openNavigation} disabled={!address} style={[s.quickAction, !address && s.quickActionDisabled]} accessibilityRole="button" accessibilityLabel={t("driver.address")}>
+                <Ionicons name="navigate-outline" size={19} color={kit.color.accentDeep} />
+              </Pressable>
+            </View>
+          </View>
+
+          <View style={s.timeline}>
+            {[
+              { label: t("driver.statusPreparing"), done: true },
+              { label: t("driver.statusPickedUp"), done: order.status === "out_for_delivery" || order.status === "delivered" },
+              { label: t("driver.deliveredTitle"), done: order.status === "delivered" },
+            ].map((step, index) => (
+              <View key={step.label} style={s.timelineStep}>
+                <View style={[s.timelineDot, step.done && s.timelineDotDone]}>{step.done && <Ionicons name="checkmark" size={11} color="#fff" />}</View>
+                {index < 2 && <View style={[s.timelineLine, step.done && s.timelineLineDone]} />}
+                <UIText style={[s.timelineText, step.done && s.timelineTextDone]}>{step.label}</UIText>
+              </View>
+            ))}
+          </View>
+
           <DetailSection title={t("driver.customerSection")} icon="person-outline" delay={0}>
             <InfoRow label={t("driver.name")} value={order.address.name || "—"} />
             <InfoRow label={t("driver.phone")} value={order.address.phone || "—"} />
@@ -151,20 +189,29 @@ export function DeliveryExecutionScreen(): React.ReactElement {
 
 const s = StyleSheet.create({
   content: { paddingBottom: 40 },
-  header: {
-    flexDirection: flexRow(IS_RTL),
-    alignItems: "center",
-    gap: 10,
-    paddingHorizontal: kit.inset.screen,
-    paddingTop: 12,
-    paddingBottom: 8,
-  },
   centered: { alignItems: "center", paddingTop: 60, paddingHorizontal: 24 },
   actions: {
     marginHorizontal: kit.inset.screen,
     marginTop: 12,
     gap: 12,
   },
+  commandCard: {
+    flexDirection: flexRow(IS_RTL), alignItems: "center", gap: 14,
+    marginHorizontal: kit.inset.screen, marginTop: 8, marginBottom: 16,
+    padding: 16, borderRadius: kit.radius.xl, backgroundColor: kit.color.surface,
+    borderWidth: 1, borderColor: kit.color.line, ...kit.shadow.card,
+  },
+  quickActions: { flexDirection: flexRow(IS_RTL), gap: 8 },
+  quickAction: { width: 44, height: 44, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: kit.color.accentTint },
+  quickActionDisabled: { opacity: 0.4 },
+  timeline: { flexDirection: flexRow(IS_RTL), marginHorizontal: kit.inset.screen, marginBottom: 18 },
+  timelineStep: { flex: 1, alignItems: "center", position: "relative" },
+  timelineDot: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: kit.color.line, backgroundColor: kit.color.surface, alignItems: "center", justifyContent: "center", zIndex: 1 },
+  timelineDotDone: { borderColor: kit.color.accent, backgroundColor: kit.color.accent },
+  timelineLine: { position: "absolute", height: 2, backgroundColor: kit.color.line, top: 10, left: "50%", right: "-50%" },
+  timelineLineDone: { backgroundColor: kit.color.accent },
+  timelineText: { marginTop: 6, fontSize: 10, fontFamily: theme.fonts.semibold, color: kit.color.inkFaint, textAlign: "center" },
+  timelineTextDone: { color: kit.color.accentDeep },
   doneNotice: {
     flexDirection: flexRow(IS_RTL),
     alignItems: "center",

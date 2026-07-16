@@ -1,6 +1,29 @@
-import { AnimatePresence, motion } from "framer-motion";
-import { useEffect, useRef, useState } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useLanguage } from "../../contexts/LanguageContext";
 import { images } from "../data";
+import styles from "./AppBootstrapOverlay.module.css";
+
+const COPY = {
+  en: {
+    eyebrow: "Care, connected",
+    title: "Your pharmacy, ready when you are",
+    subtitle: "Preparing a secure, seamless experience tailored to your care.",
+    stages: ["Securing your session", "Preparing pharmacy services", "Finalising your workspace"],
+    connection: "Connection needs attention",
+    retry: "Try again",
+    footer: "United Pharmacies · Digital care",
+  },
+  ar: {
+    eyebrow: "رعاية متصلة",
+    title: "صيدليتك جاهزة عندما تكون مستعداً",
+    subtitle: "نُجهّز تجربة آمنة وسلسة صُممت لتناسب احتياجاتك الصحية.",
+    stages: ["تأمين جلستك", "تجهيز خدمات الصيدلية", "إنهاء إعداد مساحتك"],
+    connection: "تحتاج إلى التحقق من الاتصال",
+    retry: "إعادة المحاولة",
+    footer: "صيدليات المتحدة · رعاية رقمية",
+  },
+} as const;
 
 export default function AppBootstrapOverlay({
   active,
@@ -19,11 +42,16 @@ export default function AppBootstrapOverlay({
   minVisibleMs?: number;
   showDelayMs?: number;
 }) {
+  const { lang } = useLanguage();
+  const copy = COPY[lang];
   const [visible, setVisible] = useState(false);
   const [canRender, setCanRender] = useState(false);
+  const [stage, setStage] = useState(0);
   const shownAtRef = useRef<number | null>(null);
   const showTimerRef = useRef<number | null>(null);
   const hideTimerRef = useRef<number | null>(null);
+  const reduceMotion = useReducedMotion();
+  const stageCount = copy.stages.length;
 
   useEffect(() => {
     if (active) {
@@ -31,17 +59,14 @@ export default function AppBootstrapOverlay({
         window.clearTimeout(hideTimerRef.current);
         hideTimerRef.current = null;
       }
-      if (visible) {
-        return;
-      }
-      if (showTimerRef.current) {
-        return;
-      }
+      if (visible || showTimerRef.current) return;
+
       showTimerRef.current = window.setTimeout(() => {
         showTimerRef.current = null;
+        shownAtRef.current = Date.now();
+        setStage(0);
         setCanRender(true);
         setVisible(true);
-        shownAtRef.current = Date.now();
       }, showDelayMs);
       return;
     }
@@ -50,20 +75,14 @@ export default function AppBootstrapOverlay({
       window.clearTimeout(showTimerRef.current);
       showTimerRef.current = null;
     }
-
     if (!visible) {
       setCanRender(false);
       return;
     }
 
-    const shownAt = shownAtRef.current ?? Date.now();
-    const elapsed = Date.now() - shownAt;
+    const elapsed = Date.now() - (shownAtRef.current ?? Date.now());
     const remaining = Math.max(0, minVisibleMs - elapsed);
-
-    if (hideTimerRef.current) {
-      window.clearTimeout(hideTimerRef.current);
-    }
-
+    if (hideTimerRef.current) window.clearTimeout(hideTimerRef.current);
     hideTimerRef.current = window.setTimeout(() => {
       hideTimerRef.current = null;
       setVisible(false);
@@ -71,116 +90,96 @@ export default function AppBootstrapOverlay({
   }, [active, minVisibleMs, showDelayMs, visible]);
 
   useEffect(() => {
-    if (!visible) {
-      const timer = window.setTimeout(() => setCanRender(false), 220);
-      return () => window.clearTimeout(timer);
-    }
-  }, [visible]);
+    if (!visible || error || reduceMotion) return;
+    const timer = window.setInterval(() => setStage((current) => (current + 1) % stageCount), 1_500);
+    return () => window.clearInterval(timer);
+  }, [error, reduceMotion, stageCount, visible]);
 
   useEffect(() => {
-    return () => {
-      if (showTimerRef.current) window.clearTimeout(showTimerRef.current);
-      if (hideTimerRef.current) window.clearTimeout(hideTimerRef.current);
-    };
+    if (!visible) {
+      const timer = window.setTimeout(() => setCanRender(false), reduceMotion ? 0 : 280);
+      return () => window.clearTimeout(timer);
+    }
+  }, [reduceMotion, visible]);
+
+  useEffect(() => () => {
+    if (showTimerRef.current) window.clearTimeout(showTimerRef.current);
+    if (hideTimerRef.current) window.clearTimeout(hideTimerRef.current);
   }, []);
 
-  if (!canRender) {
-    return null;
-  }
+  const progress = error ? 1 : (stage + 1) / stageCount;
+  const currentStage = error ? copy.connection : copy.stages[stage];
+  const accessibleLabel = useMemo(() => `${copy.title}. ${currentStage}`, [copy.title, currentStage]);
 
-  const headline = title ?? "Preparing your experience";
-  const description = subtitle ?? "Loading your account and product catalog…";
+  if (!canRender) return null;
 
   return (
     <AnimatePresence>
       {visible && (
         <motion.div
-          key="bootstrap-overlay"
-          initial={{ opacity: 0, filter: "blur(8px)" }}
-          animate={{ opacity: 1, filter: "blur(0px)" }}
-          exit={{ opacity: 0, filter: "blur(10px)" }}
-          transition={{ duration: 0.35, ease: "easeOut" }}
-          className="fixed inset-0 z-[100] overflow-hidden bg-[#041319] text-white"
+          key="united-pharmacies-bootstrap"
+          className={`fixed inset-0 z-[100] overflow-hidden ${styles.overlay}`}
+          initial={reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 1.01 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 1.01 }}
+          transition={{ duration: reduceMotion ? 0.1 : 0.3, ease: [0.22, 1, 0.36, 1] }}
           role="status"
           aria-live="polite"
           aria-busy="true"
+          aria-label={accessibleLabel}
+          dir={lang === "ar" ? "rtl" : "ltr"}
         >
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(45,212,191,0.18),transparent_30%),radial-gradient(circle_at_bottom_right,rgba(14,116,144,0.18),transparent_28%),linear-gradient(160deg,#06131a_0%,#0b1f29_48%,#102c38_100%)]" />
+          <span className={styles.lightBeam} />
+          <span className={styles.grain} />
+          <div className={styles.shell}>
+            <main className={styles.main}>
+              <motion.section
+                className={styles.panel}
+                initial={reduceMotion ? false : { opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: reduceMotion ? 0 : 0.05, duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
+              >
+                <div className={styles.brandStage} aria-hidden="true">
+                  <span className={styles.orbit} />
+                  <span className={`${styles.orbit} ${styles.orbitOuter}`} />
+                  <span className={styles.brandAura} />
+                  <span className={styles.logoTile}><img src={images.logoMark} alt="" /></span>
+                </div>
 
-          <div className="absolute inset-x-0 top-0 h-1 bg-[linear-gradient(90deg,rgba(45,212,191,0)_0%,rgba(45,212,191,0.45)_20%,rgba(56,189,248,0.42)_50%,rgba(45,212,191,0.45)_80%,rgba(45,212,191,0)_100%)] opacity-70" />
+                <p className={styles.eyebrow}>{copy.eyebrow}</p>
+                <h1 className={styles.title}>{title ?? copy.title}</h1>
+                <p className={styles.subtitle}>{subtitle ?? copy.subtitle}</p>
 
-          <div className="relative mx-auto flex min-h-screen max-w-6xl items-center px-4 py-10 sm:px-6 lg:px-8">
-            <div className="w-full">
-              <div className="mx-auto max-w-3xl rounded-[2.75rem] border border-white/12 bg-white/[0.06] p-6 shadow-[0_32px_100px_rgba(2,12,27,0.46)] backdrop-blur-xl md:p-9">
-                <div className="flex flex-col gap-8 md:flex-row md:items-start md:justify-between">
-                  <div className="flex min-w-0 flex-1 flex-col gap-6">
-                    <div className="flex items-center gap-4">
-                      <div className="relative flex h-14 w-14 items-center justify-center rounded-[1.8rem] border border-white/12 bg-white/10 shadow-[0_18px_46px_rgba(45,212,191,0.18)]">
-                        <img src={images.logoMark} alt="United Pharmacies" className="h-8 w-8" />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-[11px] font-black uppercase tracking-[0.26em] text-teal-100/90">
-                          United Pharmacies
-                        </p>
-                        <p className="mt-2 text-2xl font-black leading-tight text-white md:text-3xl">
-                          {headline}
-                        </p>
-                      </div>
-                    </div>
-
-                    <p className="max-w-2xl text-sm font-semibold leading-relaxed text-slate-100/80 md:text-base">
-                      {description}
-                    </p>
-
-                    {error ? (
-                      <div className="rounded-[1.8rem] border border-rose-300/18 bg-rose-500/10 p-5">
-                        <p className="text-sm font-black text-rose-100">Unable to load required data.</p>
-                        <p className="mt-2 text-sm font-semibold text-rose-100/80">{error}</p>
-                        {onRetry && (
-                          <button
-                            type="button"
-                            onClick={onRetry}
-                            className="mt-4 inline-flex h-11 items-center justify-center rounded-full bg-white px-5 text-sm font-black text-slate-900 shadow-[0_14px_36px_rgba(0,0,0,0.30)] transition-transform active:scale-[0.98]"
-                          >
-                            Retry
-                          </button>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="grid gap-3 sm:grid-cols-3">
-                        {Array.from({ length: 3 }).map((_, idx) => (
-                          <div
-                            key={idx}
-                            className="rounded-[1.8rem] border border-white/10 bg-white/[0.05] p-4"
-                          >
-                            <div className="h-3 w-24 animate-pulse rounded-full bg-white/12" />
-                            <div className="mt-4 h-7 w-28 animate-pulse rounded-full bg-teal-300/18" />
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                {error ? (
+                  <div className={styles.error} role="alert">
+                    <p>{error}</p>
+                    {onRetry && <button type="button" className={styles.retry} onClick={onRetry}>{copy.retry}</button>}
                   </div>
-
-                  <div className="w-full max-w-sm rounded-[2.2rem] border border-white/10 bg-slate-950/30 p-6">
-                    <div className="h-3 w-28 animate-pulse rounded-full bg-white/14" />
-                    <div className="mt-5 space-y-4">
-                      {Array.from({ length: 4 }).map((_, index) => (
-                        <div
-                          key={index}
-                          className="flex items-center gap-4 rounded-[1.6rem] border border-white/8 bg-white/[0.04] p-4"
-                        >
-                          <div className="h-10 w-10 animate-pulse rounded-2xl bg-teal-300/18" />
-                          <div className="flex-1 space-y-2">
-                            <div className="h-3 w-28 animate-pulse rounded-full bg-white/12" />
-                            <div className="h-3 w-full animate-pulse rounded-full bg-white/10" />
-                          </div>
-                        </div>
+                ) : (
+                  <div className={styles.progressArea}>
+                    <div className={styles.stageRow}>
+                      <span>{currentStage}</span>
+                      <strong>{Math.round(progress * 100)}%</strong>
+                    </div>
+                    <div className={styles.progressTrack} aria-hidden="true">
+                      <motion.span
+                        className={styles.progressFill}
+                        animate={{ scaleX: progress }}
+                        transition={{ duration: reduceMotion ? 0 : 0.55, ease: "easeOut" }}
+                      />
+                      <span className={styles.progressSheen} />
+                    </div>
+                    <div className={styles.stageDots} aria-hidden="true">
+                      {copy.stages.map((item, index) => (
+                        <span key={item} className={`${styles.stageDot} ${index === stage ? styles.stageDotActive : ""}`} />
                       ))}
                     </div>
                   </div>
-                </div>
-              </div>
-            </div>
+                )}
+              </motion.section>
+            </main>
+
+            <footer className={styles.footer}>{copy.footer}</footer>
           </div>
         </motion.div>
       )}

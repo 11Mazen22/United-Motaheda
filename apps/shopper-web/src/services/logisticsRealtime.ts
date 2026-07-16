@@ -38,8 +38,8 @@ export function subscribeToIssuesBoard(onChange: () => void): RealtimeChannel {
     .subscribe();
 }
 
-/** Subscribes to all three at once and returns a single teardown function —
- * the shape OperationsHub actually wants (one effect, one cleanup). */
+/** Subscribes to all three at once and returns a single teardown function for
+ * any order-workspace delivery view (one effect, one cleanup). */
 export function subscribeToOperationsBoard(onChange: () => void): () => void {
   const supabase = getSupabaseClient();
   const channels: RealtimeChannel[] = [

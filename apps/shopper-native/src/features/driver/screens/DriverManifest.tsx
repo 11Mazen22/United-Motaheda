@@ -4,13 +4,14 @@
  * (accepted orders still being prepared/delivered).
  */
 import React, { useCallback, useState } from "react";
-import { FlatList, Pressable, RefreshControl, StyleSheet, View } from "react-native";
+import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, View } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
 import { Screen, Text as UIText } from "@/shared/ui";
 import { kit } from "@/shared/kit";
+import { theme } from "@/shared/theme";
 import { useAuth } from "@/features/auth";
 import { flexRow, isRtl, textAlignStart, FORWARD_CHEVRON } from "@/utils/layout";
 import { formatPrice } from "@/utils/format";
@@ -82,6 +83,29 @@ function ManifestCard({ order, onPress }: { order: ManifestOrder; onPress: () =>
   );
 }
 
+function ShiftSummary({ orders, offers }: { orders: ManifestOrder[]; offers: number }) {
+  const { t } = useTranslation();
+  const inTransit = orders.filter((order) => (STATUS_ALIASES[order.status] ?? order.status) === "picked_up").length;
+  return (
+    <View style={s.summaryCard}>
+      <View style={s.summaryIntro}>
+        <View style={s.summaryIcon}><Ionicons name="speedometer-outline" size={20} color={kit.color.onInk} /></View>
+        <View style={{ flex: 1 }}>
+          <UIText variant="card-title" color="inverse" style={{ textAlign: TEXT_START }}>{t("driver.manifestTitle")}</UIText>
+          <UIText variant="body-sm" color="inverse-muted" style={{ textAlign: TEXT_START, marginTop: 2 }}>{t("driver.newOfferBody")}</UIText>
+        </View>
+      </View>
+      <View style={s.summaryMetrics}>
+        <View style={s.metric}><UIText style={s.metricValue}>{orders.length}</UIText><UIText style={s.metricLabel}>{t("driver.items")}</UIText></View>
+        <View style={s.metricDivider} />
+        <View style={s.metric}><UIText style={s.metricValue}>{inTransit}</UIText><UIText style={s.metricLabel}>{t("driver.statusPickedUp")}</UIText></View>
+        <View style={s.metricDivider} />
+        <View style={s.metric}><UIText style={s.metricValue}>{offers}</UIText><UIText style={s.metricLabel}>{t("driver.newOfferTitle", { count: offers })}</UIText></View>
+      </View>
+    </View>
+  );
+}
+
 export function DriverManifest(): React.ReactElement {
   const { t } = useTranslation();
   const router = useRouter();
@@ -131,6 +155,7 @@ export function DriverManifest(): React.ReactElement {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={kit.color.accent} />}
         ListHeaderComponent={
           <>
+            <ShiftSummary orders={orders} offers={offerCount} />
             <OfferBanner count={offerCount} onPress={() => router.push("/(driver)/offers" as never)} />
             <UIText variant="section-head" style={{ textAlign: TEXT_START, marginTop: 4, marginBottom: 10 }}>
               {t("driver.manifestTitle")}
@@ -142,7 +167,18 @@ export function DriverManifest(): React.ReactElement {
         )}
         ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
         ListEmptyComponent={
-          !manifestQuery.isLoading ? (
+          manifestQuery.isLoading ? (
+            <View style={s.emptyState}>
+              <ActivityIndicator size="large" color={kit.color.accent} />
+              <UIText variant="body-sm" color="secondary" style={{ marginTop: 12 }}>{t("common.loading")}</UIText>
+            </View>
+          ) : manifestQuery.isError ? (
+            <View style={s.emptyState}>
+              <Ionicons name="cloud-offline-outline" size={40} color={kit.color.inkFaint} />
+              <UIText variant="card-title" style={{ marginTop: 10, textAlign: "center" }}>{t("errors.network")}</UIText>
+              <Pressable onPress={() => void onRefresh()} style={s.retryBtn}><UIText variant="body-sm" color="brand">{t("common.retry")}</UIText></Pressable>
+            </View>
+          ) : !manifestQuery.isLoading ? (
             <View style={s.emptyState}>
               <Ionicons name="checkmark-done-circle-outline" size={40} color={kit.color.inkFaint} />
               <UIText variant="card-title" style={{ marginTop: 10, textAlign: "center" }}>
@@ -178,6 +214,14 @@ const s = StyleSheet.create({
     paddingHorizontal: kit.inset.screen,
     paddingBottom: 40,
   },
+  summaryCard: { backgroundColor: kit.color.ink, borderRadius: kit.radius.xl, padding: 16, marginBottom: 14, ...kit.shadow.raised },
+  summaryIntro: { flexDirection: flexRow(IS_RTL), alignItems: "center", gap: 12 },
+  summaryIcon: { width: 42, height: 42, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.14)" },
+  summaryMetrics: { flexDirection: flexRow(IS_RTL), alignItems: "center", marginTop: 16, paddingTop: 14, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: "rgba(255,255,255,0.18)" },
+  metric: { flex: 1, alignItems: "center" },
+  metricValue: { fontSize: 20, fontFamily: theme.fonts.black, color: kit.color.onInk },
+  metricLabel: { fontSize: 9, color: "rgba(255,255,255,0.68)", textAlign: "center", marginTop: 2 },
+  metricDivider: { width: StyleSheet.hairlineWidth, height: 30, backgroundColor: "rgba(255,255,255,0.22)" },
   offerBanner: {
     flexDirection: flexRow(IS_RTL),
     alignItems: "center",
@@ -226,4 +270,5 @@ const s = StyleSheet.create({
     paddingVertical: 60,
     paddingHorizontal: 24,
   },
+  retryBtn: { marginTop: 14, paddingHorizontal: 16, paddingVertical: 10, borderRadius: kit.radius.pill, backgroundColor: kit.color.accentTint },
 });

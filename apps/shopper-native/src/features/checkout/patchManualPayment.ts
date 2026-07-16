@@ -19,7 +19,7 @@ export async function patchOrderManualPayment(
   const { error } = await supabase
     .from("orders")
     .update({
-      status:             "pending_payment",
+      status:             "payment_pending",
       payment_status:     "pending_verification",
       transfer_number:    patch.transferNumber.trim(),
       payment_proof_url:  patch.paymentProofUrl,

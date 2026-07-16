@@ -61,7 +61,13 @@ export type CatalogProduct = {
   name: string;
   nameAr?: string;
   nameEn?: string;
+  /** Canonical effective price, including any active promotion. */
   price: number;
+  /** Canonical base price before an active promotion. */
+  basePrice: number;
+  hasActivePromotion: boolean;
+  discountPercent?: number;
+  promotionName?: string;
   stock: number;
   inStock: boolean;
   category: string;
@@ -69,8 +75,7 @@ export type CatalogProduct = {
   categoryNameEn: string;
   imageUrl?: string;
   sourceRow: number;
-  isSale?: boolean;
-  originalPrice?: number;
+
 };
 
 export type CatalogSnapshot = {
@@ -660,14 +665,23 @@ function writeSnapshotToStorage(snapshot: CatalogSnapshot) {
 // ─── Supabase product normalizer ──────────────────────────────────────────────
 
 export function normalizeSupabaseProduct(row: Record<string, unknown>, sourceRow: number): CatalogProduct | null {
-  const nameAr = sanitizeText(row.Name_Ar);
-  const nameEnRaw = sanitizeText(row.Name_En);
+  const nameAr = sanitizeText(row.Name_Ar ?? row.name_ar);
+  const nameEnRaw = sanitizeText(row.Name_En ?? row.name_en);
   const legacyName = sanitizeText(row.Name);
   const name = legacyName || nameAr || nameEnRaw;
   const nameEn = nameEnRaw || undefined;
 
-  const price = parseNumber(String(row.Price ?? ""));
+  const price = parseNumber(String(row.effective_price ?? row.Price ?? ""));
   if (!name || price === null || price <= 0) return null;
+  const basePriceRaw = parseNumber(String(row.base_price ?? row.Price ?? ""));
+  const basePrice = basePriceRaw !== null && basePriceRaw >= price ? basePriceRaw : price;
+  const hasActivePromotion = row.has_active_promotion === true && basePrice > price;
+  const discountPercentRaw = parseNumber(String(row.discount_percent ?? ""));
+  const discountPercent = discountPercentRaw !== null
+    ? discountPercentRaw
+    : hasActivePromotion && basePrice > 0
+      ? Math.round(((basePrice - price) / basePrice) * 100)
+      : undefined;
 
   // The DB table has a real Stock column. Read it directly; fall back to
   // is_active (1/0) only for RPC rows that didn't include a stock figure.
@@ -678,8 +692,8 @@ export function normalizeSupabaseProduct(row: Record<string, unknown>, sourceRow
   const inStock = row.is_active !== false;
   const stockVal = (stockNum !== null && stockNum > 0) ? stockNum : (inStock ? 1 : 0);
 
-  const rawCategoryAr = sanitizeText(row.Category_Name);
-  const rawCategoryEn = sanitizeText(row.Category_Name_En);
+  const rawCategoryAr = sanitizeText(row.Category_Name ?? row.category_name);
+  const rawCategoryEn = sanitizeText(row.Category_Name_En ?? row.category_name_en);
   const categorySeed = resolveCategory(
     rawCategoryAr,
     rawCategoryEn,
@@ -687,15 +701,12 @@ export function normalizeSupabaseProduct(row: Record<string, unknown>, sourceRow
     nameEnRaw || name,
   );
 
-  const code = sanitizeText(row.Code);
-  const barcode = sanitizeBarcode(sanitizeText(row.Barcode));
+  const code = sanitizeText(row.Code ?? row.code);
+  const barcode = sanitizeBarcode(sanitizeText(row.Barcode ?? row.barcode));
   const imageUrl = sanitizeText(row.image_url ?? "");
   const idSeed = code || barcode || `${categorySeed.id}-${name}`;
 
-  const isSale = row.is_sale === true;
-  const originalPriceRaw = parseNumber(String(row.original_price ?? ""));
-  const originalPrice =
-    originalPriceRaw !== null && originalPriceRaw > price ? originalPriceRaw : undefined;
+
 
   return {
     id: String(row.id || `${slugify(idSeed)}-${sourceRow}`),
@@ -705,6 +716,10 @@ export function normalizeSupabaseProduct(row: Record<string, unknown>, sourceRow
     nameAr: nameAr || undefined,
     nameEn,
     price: Number(price.toFixed(2)),
+    basePrice: Number(basePrice.toFixed(2)),
+    hasActivePromotion,
+    discountPercent,
+    promotionName: sanitizeText(row.promotion_name ?? "") || undefined,
     stock: Number(stockVal.toFixed(2)),
     inStock,
     category: categorySeed.id,
@@ -712,8 +727,6 @@ export function normalizeSupabaseProduct(row: Record<string, unknown>, sourceRow
     categoryNameEn: categorySeed.names.en,
     imageUrl: isValidHttpUrl(imageUrl) ? imageUrl : undefined,
     sourceRow,
-    isSale: isSale || undefined,
-    originalPrice,
   } satisfies CatalogProduct;
 }
 
@@ -721,41 +734,35 @@ export function normalizeSupabaseProduct(row: Record<string, unknown>, sourceRow
 
 async function fetchAllProductRows(): Promise<Record<string, unknown>[]> {
   const supabase = getSupabaseClient();
-  const PAGE_SIZE = 1000;
-  // Matches typical HTTP/2 stream limits; prevents 429s on free-tier Supabase.
+  const PAGE_SIZE = 100; // enforced upper bound of search_effective_products
   const CONCURRENCY = 6;
 
-  // First, get the exact row count with a lightweight head request.
-  const { count, error: countError } = await supabase
-    .from("products")
-    .select("id", { count: "exact", head: true });
+  const fetchPage = async (pageIndex: number) => {
+    const { data, error } = await supabase.rpc("search_effective_products", {
+      p_query: null,
+      p_category: null,
+      p_in_stock: false,
+      p_min_price: null,
+      p_max_price: null,
+      p_is_sale: false,
+      p_sort: "newest",
+      p_limit: PAGE_SIZE,
+      p_offset: pageIndex * PAGE_SIZE,
+    });
+    if (error) throw new Error(`Canonical catalog RPC error on page ${pageIndex}: ${error.message}`);
+    return (data ?? []) as Record<string, unknown>[];
+  };
 
-  if (countError) throw new Error(`Supabase count error: ${countError.message}`);
-  if (!count || count === 0) return [];
+  const firstPage = await fetchPage(0);
+  const count = Number(firstPage[0]?.total_count ?? 0);
+  if (!count) return [];
 
-  // Build page indices and fire them in parallel waves of CONCURRENCY.
-  const pageCount = Math.ceil(count / PAGE_SIZE);
-  const pages = Array.from({ length: pageCount }, (_, i) => i);
-  const allRows: Record<string, unknown>[] = [];
-
-  for (let i = 0; i < pages.length; i += CONCURRENCY) {
-    const wave = pages.slice(i, i + CONCURRENCY);
-    const results = await Promise.all(
-      wave.map(async (pageIndex) => {
-        const from = pageIndex * PAGE_SIZE;
-        const { data, error } = await supabase
-          .from("products")
-          .select("*")
-          .range(from, from + PAGE_SIZE - 1);
-        if (error) throw new Error(`Supabase error on page ${pageIndex}: ${error.message}`);
-        return data as Record<string, unknown>[] | null;
-      }),
-    );
-    for (const pageData of results) {
-      if (pageData && pageData.length > 0) allRows.push(...pageData);
-    }
+  const allRows = [...firstPage];
+  const pages = Array.from({ length: Math.ceil(count / PAGE_SIZE) - 1 }, (_, index) => index + 1);
+  for (let index = 0; index < pages.length; index += CONCURRENCY) {
+    const results = await Promise.all(pages.slice(index, index + CONCURRENCY).map(fetchPage));
+    for (const pageRows of results) allRows.push(...pageRows);
   }
-
   return allRows;
 }
 

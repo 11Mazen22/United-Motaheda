@@ -677,8 +677,8 @@ function HomeDesktop() {
                         const heroCat  = isRtl
                           ? (hero.categoryName ?? "منتج")
                           : (hero.categoryNameEn ?? hero.categoryName ?? "Product");
-                        const heroDisc = hero.isSale && hero.originalPrice && hero.originalPrice > hero.price
-                          ? Math.round(((hero.originalPrice - hero.price) / hero.originalPrice) * 100) : 0;
+                        const heroDisc = hero.hasActivePromotion && hero.basePrice && hero.basePrice > hero.price
+                          ? Math.round(((hero.basePrice - hero.price) / hero.basePrice) * 100) : 0;
                         return (
                           <motion.div variants={{
                             enter: { opacity: 0, y: 18 },
@@ -753,9 +753,9 @@ function HomeDesktop() {
                                     {hero.price.toFixed(2)}
                                     <span className="ms-1.5 text-[12px] font-semibold text-slate-400">{isRtl ? "ج.م" : "EGP"}</span>
                                   </span>
-                                  {heroDisc > 0 && hero.originalPrice && (
+                                  {heroDisc > 0 && hero.basePrice && (
                                     <span className="tabular-nums text-[14px] font-bold text-slate-400 line-through">
-                                      {hero.originalPrice.toFixed(2)}
+                                      {hero.basePrice.toFixed(2)}
                                     </span>
                                   )}
                                   <span className={cn(
@@ -804,8 +804,8 @@ function HomeDesktop() {
                           const rank = picksStart + 2 + idx;
                           const img  = getCatalogProductImage(product);
                           const name = getLocalizedProductName(product, lang);
-                          const disc = product.isSale && product.originalPrice && product.originalPrice > product.price
-                            ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100) : 0;
+                          const disc = product.hasActivePromotion && product.basePrice && product.basePrice > product.price
+                            ? Math.round(((product.basePrice - product.price) / product.basePrice) * 100) : 0;
                           return (
                             <Link key={product.id} to={`/products/${product.id}`}
                               className={cn(

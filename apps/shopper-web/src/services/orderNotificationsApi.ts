@@ -16,7 +16,6 @@
  */
 
 import { getSupabaseClient } from "../lib/supabaseClient";
-import { sendExpoPushToUser } from "./pushNotifications";
 
 type OrderNotifBucket = "confirmed" | "preparing" | "out_for_delivery" | "delivered" | "cancelled";
 
@@ -79,6 +78,7 @@ async function insertNotification(params: {
   body: string;
   actionUrl: string;
   data: Record<string, unknown>;
+  idempotencyKey: string;
 }): Promise<void> {
   // Routes through a SECURITY DEFINER RPC rather than a plain client-side
   // .insert() — every caller here is staff (admin/manager) writing a
@@ -91,21 +91,27 @@ async function insertNotification(params: {
   // (database/20260710_fix_staff_notification_insert.sql) sidesteps this
   // by checking permission via the already-proven public.is_manager() and
   // performing the insert as the function owner.
-  const { data: notificationId, error } = await getSupabaseClient().rpc(
-    "insert_staff_notification",
+  const { error } = await getSupabaseClient().rpc(
+    "enqueue_notification",
     {
-      p_user_id: params.userId,
-      p_type: "order",
+      p_recipient_id: params.userId,
+      p_event_type: "order",
       p_category: "order_updates",
       p_title: params.title,
       p_body: params.body,
       p_data: params.data,
       p_action_url: params.actionUrl,
+      p_idempotency_key: params.idempotencyKey,
     },
   );
   if (error) {
-    console.error("[orderNotificationsApi] notification insert failed:", error.message);
+    throw error;
   }
+  return;
+  /*
+  // Legacy browser sender retained temporarily for source compatibility;
+  // unreachable by design and will be removed with the next web cleanup.
+  const notificationId: string | null = null;
   const inserted = notificationId ? { id: notificationId as string } : null;
 
   // Forward to the OS notification tray. This used to only happen for
@@ -129,6 +135,7 @@ async function insertNotification(params: {
   } catch (err) {
     console.error("[orderNotificationsApi] push forward failed:", err);
   }
+  */
 }
 
 /** Best-effort: notify the customer their order's status changed. No-op for
@@ -149,6 +156,7 @@ export function notifyOrderStatusChange(orderId: string, status: string): void {
         body: copy.body,
         actionUrl: `/order/${orderId}`,
         data: { kind: "order_status", status: bucket, orderId },
+        idempotencyKey: `order:${orderId}:status:${bucket}`,
       });
     } catch (err) {
       console.error("[orderNotificationsApi] notifyOrderStatusChange failed:", err);
@@ -178,6 +186,7 @@ export function notifyPaymentStatusChange(
         body,
         actionUrl: `/order/${orderId}`,
         data: { kind: "payment_status", decision, orderId },
+        idempotencyKey: `order:${orderId}:payment:${decision}`,
       });
     } catch (err) {
       console.error("[orderNotificationsApi] notifyPaymentStatusChange failed:", err);
@@ -202,6 +211,7 @@ export function notifyDriverAssigned(orderId: string, driverId: string): void {
         // no notification bell of its own, so nothing there consumes this.
         actionUrl: "/(driver)",
         data: { kind: "driver_assignment", orderId },
+        idempotencyKey: `order:${orderId}:driver:${driverId}:assigned`,
       });
     } catch (err) {
       console.error("[orderNotificationsApi] notifyDriverAssigned failed:", err);
@@ -225,6 +235,7 @@ export function notifyDriverUnassigned(orderId: string, previousDriverId: string
         // no notification bell of its own, so nothing there consumes this.
         actionUrl: "/(driver)",
         data: { kind: "driver_unassigned", orderId },
+        idempotencyKey: `order:${orderId}:driver:${previousDriverId}:unassigned`,
       });
     } catch (err) {
       console.error("[orderNotificationsApi] notifyDriverUnassigned failed:", err);
@@ -248,6 +259,7 @@ export function notifyIssueResolved(orderId: string, driverId: string): void {
         // no notification bell of its own, so nothing there consumes this.
         actionUrl: "/(driver)",
         data: { kind: "issue_resolved", orderId },
+        idempotencyKey: `order:${orderId}:driver:${driverId}:issue-resolved`,
       });
     } catch (err) {
       console.error("[orderNotificationsApi] notifyIssueResolved failed:", err);

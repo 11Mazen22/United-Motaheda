@@ -28,6 +28,11 @@ import {
   useDebouncedValue,
 } from "./adminShared";
 import { cn } from "../components/UI";
+import {
+  formatDate,
+  formatDateOnly,
+  isWithinSelectedDateRange,
+} from "./adminDateFilters";
 
 /* ─── Types ─────────────────────────────────────────────────── */
 
@@ -79,77 +84,24 @@ function getStatusDot(status: SpecialOrderRequest["status"]): string {
   return map[status];
 }
 
-function formatDate(value: string, lang: "ar" | "en") {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat(lang === "ar" ? "ar-EG" : "en-EG", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(date);
+function getStatusAccentColor(status: SpecialOrderRequest["status"]): string {
+  const accentColorMap: Record<SpecialOrderRequest["status"], string> = {
+    submitted: "#f59e0b",
+    reviewing: "#0ea5e9",
+    fulfilled: "#10b981",
+    cancelled: "#94a3b8",
+  };
+  return accentColorMap[status];
 }
 
-function formatDateOnly(value: string, lang: "ar" | "en") {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat(lang === "ar" ? "ar-EG" : "en-EG", {
-    dateStyle: "medium",
-  }).format(date);
-}
-
-function getPresetRange(preset: Exclude<DatePreset, "all" | "custom">) {
-  const now = new Date();
-  const end = new Date(now);
-  end.setHours(23, 59, 59, 999);
-  const start = new Date(now);
-  start.setHours(0, 0, 0, 0);
-
-  if (preset === "last7") start.setDate(start.getDate() - 6);
-  if (preset === "last30") start.setDate(start.getDate() - 29);
-
-  return { start, end };
-}
-
-function isWithinSelectedDateRange(
-  value: string,
-  preset: DatePreset,
-  dateFrom: string,
-  dateTo: string,
-) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return false;
-  if (preset === "all") return true;
-
-  if (preset === "today" || preset === "last7" || preset === "last30") {
-    const { start, end } = getPresetRange(preset);
-    return date >= start && date <= end;
-  }
-
-  if (preset === "custom") {
-    if (dateFrom) {
-      const start = new Date(dateFrom);
-      start.setHours(0, 0, 0, 0);
-      if (date < start) return false;
-    }
-    if (dateTo) {
-      const end = new Date(dateTo);
-      end.setHours(23, 59, 59, 999);
-      if (date > end) return false;
-    }
-  }
-
-  return true;
-}
-
+/* ─── Main Component ─────────────────────────────── */
 /* ─── Main Component ─────────────────────────────────────────── */
 
 export default function SpecialOrdersManager() {
   const { user } = useAuth();
   const { lang } = useLanguage();
   const userRole = user?.role ?? "customer";
-
-  if (!["admin", "manager", "pharmacist"].includes(userRole)) {
-    return <AdminUnauthorized lang={lang} />;
-  }
+  const authorized = ["admin", "manager", "pharmacist"].includes(userRole);
 
   // ── State ──────────────────────────────────────────────────
   const [requests, setRequests] = useState<SpecialOrderRequest[]>([]);
@@ -168,15 +120,24 @@ export default function SpecialOrdersManager() {
   // Use a ref (not state) for first-load tracking — keeps loadRequests stable.
   const firstLoadRef = useRef(true);
   const tableMissingRef = useRef(false);
+  const loadControllerRef = useRef<AbortController | null>(null);
+  const latestRequestIdRef = useRef(0);
 
   const debouncedSearch = useDebouncedValue(search, 250);
   const hasInvalidCustomRange =
     datePreset === "custom" && Boolean(dateFrom && dateTo && dateFrom > dateTo);
 
-  // ── Data fetching ──────────────────────────────────────────
+  // ── Data fetching ────────────────────────────────
   const loadRequests = useCallback(async (force = false) => {
     // Skip if table is known-missing and this isn't a forced retry.
     if (tableMissingRef.current && !force) return;
+
+    if (loadControllerRef.current) {
+      loadControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    loadControllerRef.current = controller;
+    const requestId = ++latestRequestIdRef.current;
 
     if (firstLoadRef.current) {
       setLoading(true);
@@ -191,7 +152,10 @@ export default function SpecialOrdersManager() {
       const { data, error: supabaseError } = await supabase
         .from("special_orders")
         .select("*")
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .abortSignal(controller.signal);
+
+      if (controller.signal.aborted || requestId !== latestRequestIdRef.current) return;
 
       if (supabaseError) {
         if (
@@ -214,20 +178,29 @@ export default function SpecialOrdersManager() {
         setRequests((data as SpecialOrderRequest[]) ?? []);
       }
     } catch {
+      if (controller.signal.aborted || requestId !== latestRequestIdRef.current) return;
       setError(
         lang === "ar"
           ? "حدث خطأ أثناء تحميل طلبات النواقص"
           : "Error loading special orders",
       );
     } finally {
-      setLoading(false);
-      setRefreshing(false);
-      firstLoadRef.current = false;
+      if (requestId === latestRequestIdRef.current) {
+        setLoading(false);
+        setRefreshing(false);
+        firstLoadRef.current = false;
+      }
+      if (loadControllerRef.current === controller) {
+        loadControllerRef.current = null;
+      }
     }
   }, [lang]);
 
   useEffect(() => {
     void loadRequests();
+    return () => {
+      loadControllerRef.current?.abort();
+    };
   }, [loadRequests]);
 
   // ── Realtime subscription ──────────────────────────────────
@@ -383,6 +356,8 @@ export default function SpecialOrdersManager() {
   }, [activeTab, dateFrom, datePreset, dateTo, debouncedSearch, hasInvalidCustomRange, lang, tabs]);
 
   // ── Render ─────────────────────────────────────────────────
+  if (!authorized) return <AdminUnauthorized lang={lang} />;
+
   return (
     <div className="space-y-6">
       {/* Metric cards */}
@@ -634,13 +609,7 @@ export default function SpecialOrdersManager() {
           ) : (
             <div className="grid gap-3">
               {filteredRequests.map((request) => {
-                const accentColorMap: Record<SpecialOrderRequest["status"], string> = {
-                  submitted: "#f59e0b",
-                  reviewing: "#0ea5e9",
-                  fulfilled: "#10b981",
-                  cancelled: "#94a3b8",
-                };
-                const accent = accentColorMap[request.status];
+                const accent = getStatusAccentColor(request.status);
                 return (
                 <article
                   key={request.id}

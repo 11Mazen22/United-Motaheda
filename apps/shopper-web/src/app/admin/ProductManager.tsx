@@ -10,7 +10,6 @@
  */
 
 import {
-  memo,
   useCallback,
   useEffect,
   useMemo,
@@ -21,34 +20,19 @@ import {
 import {
   ArrowPathIcon,
   ArrowUpTrayIcon,
-  CheckIcon,
   CubeIcon,
   ExclamationTriangleIcon,
-  PencilIcon,
   PlusIcon,
-  XMarkIcon,
+  TrashIcon,
 } from "@heroicons/react/24/outline";
 import { toast } from "sonner";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "../components/ui/dialog";
-import { Skeleton } from "../components/ui/skeleton";
 import { useAuth } from "../../contexts/AuthContext";
 import { useLanguage } from "../../contexts/LanguageContext";
 import { useCatalog } from "../../contexts/CatalogContext";
 import {
-  lookupBarcode,
-  type ProductMutationPayload,
-} from "../../services/googleSheetsApi";
-import {
   fetchAdminProducts,
-  updateAdminProduct,
   createAdminProduct,
+  deleteAdminProduct,
   handleApiError,
   showSuccessToast,
   showErrorToast,
@@ -56,9 +40,10 @@ import {
 } from "../../services/adminSupabaseApi";
 import { cn } from "../components/UI";
 import {
+  AdminBulkActionBar,
+  AdminConfirmDialog,
   AdminEmptyState,
   AdminErrorBanner,
-  AdminFormField,
   AdminMetricCard,
   AdminPaginationBar,
   AdminSearchField,
@@ -68,554 +53,25 @@ import {
   type AdminRole,
   useDebouncedValue,
 } from "./adminShared";
-
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-type Language = "ar" | "en";
-type Product = AdminProduct;
-
-interface ProductFormState {
-  id: string;
-  barcode: string;
-  name: string;
-  nameAr: string;
-  categoryId: string;
-  price: string;
-  stock: string;
-  description: string;
-  isSale: boolean;
-  originalPrice: string;
-}
-
-interface BarcodeLookupResult {
-  barcode: string;
-  found: boolean;
-  matches: Array<{
-    id: string;
-    barcode: string;
-    productName: string;
-    brand: string;
-    category: string;
-    imageUrl: string;
-    source: string;
-  }>;
-  searchedAt: string;
-}
-
-const EMPTY_FORM: ProductFormState = {
-  id: "",
-  barcode: "",
-  name: "",
-  nameAr: "",
-  categoryId: "",
-  price: "",
-  stock: "",
-  description: "",
-  isSale: false,
-  originalPrice: "",
-};
+import { useBulkSelection } from "../../hooks/useBulkSelection";
+import { ProductFormDialog } from "./ProductFormDialog";
+import { ProductCard, ProductTableRow } from "./ProductListItems";
+import {
+  parseProductCsv,
+  downloadCsvTemplate,
+  type CsvRowError,
+} from "../../utils/productCsv";
+import { resolveProductCategoryId } from "../../utils/productValidation";
 
 const ITEMS_PER_PAGE = 15;
 
-// ─── CSV import ───────────────────────────────────────────────────────────────
-
-/**
- * CSV column order (header row required, case-insensitive, order-independent):
- *   code, barcode, name, name_ar, category, price, stock, is_sale, original_price
- *
- * - code: optional — auto-generated (PROD-<timestamp>) when blank.
- * - barcode: optional.
- * - name: required — English product name.
- * - name_ar: optional — Arabic product name.
- * - category: required — matched against an existing category by id, English
- *   name, or Arabic name (case-insensitive).
- * - price: required — non-negative number.
- * - stock: optional — non-negative integer, defaults to 0.
- * - is_sale: optional — true/false/1/0/yes/no, defaults to false.
- * - original_price: optional — required (non-negative number) when is_sale is true.
- */
-const CSV_TEMPLATE_HEADERS = [
-  "code",
-  "barcode",
-  "name",
-  "name_ar",
-  "category",
-  "price",
-  "stock",
-  "is_sale",
-  "original_price",
-] as const;
-
-interface CsvRowError {
-  row: number;
-  message: string;
-}
-
-interface ParsedCsvRow {
-  row: number;
-  payload: ProductMutationPayload;
-}
-
-/** Splits a single CSV record's raw text into fields, honoring quoted values
- * (RFC4180-style: double-quote wrapping, "" as an escaped quote, commas and
- * newlines allowed inside quotes). */
-function parseCsvText(text: string): string[][] {
-  const rows: string[][] = [];
-  let row: string[] = [];
-  let field = "";
-  let inQuotes = false;
-  let i = 0;
-  const len = text.length;
-
-  const pushField = () => { row.push(field); field = ""; };
-  const pushRow = () => { pushField(); rows.push(row); row = []; };
-
-  while (i < len) {
-    const char = text[i];
-
-    if (inQuotes) {
-      if (char === '"') {
-        if (text[i + 1] === '"') { field += '"'; i += 2; continue; }
-        inQuotes = false; i += 1; continue;
-      }
-      field += char; i += 1; continue;
-    }
-
-    if (char === '"') { inQuotes = true; i += 1; continue; }
-    if (char === ",") { pushField(); i += 1; continue; }
-    if (char === "\r") { i += 1; continue; }
-    if (char === "\n") { pushRow(); i += 1; continue; }
-    field += char; i += 1;
-  }
-
-  // Flush trailing field/row (file may or may not end with a newline).
-  if (field.length > 0 || row.length > 0) pushRow();
-
-  // Drop fully blank trailing rows (common with trailing newlines).
-  return rows.filter((r) => r.some((cell) => cell.trim() !== ""));
-}
-
-function parseBooleanCell(value: string): boolean {
-  const v = value.trim().toLowerCase();
-  return v === "true" || v === "1" || v === "yes" || v === "y";
-}
-
-/** Parses raw CSV text into validated product payloads, matching the exact
- * shape sent by the single-product create/edit form. Returns both the valid
- * rows (ready to insert) and a list of per-row errors for anything invalid. */
-function parseProductCsv(
-  text: string,
-  categories: Array<{ id: string; name: string; nameEn?: string }>,
-  lang: Language,
-): { rows: ParsedCsvRow[]; errors: CsvRowError[] } {
-  const records = parseCsvText(text);
-  const errors: CsvRowError[] = [];
-  const rows: ParsedCsvRow[] = [];
-
-  if (records.length === 0) {
-    errors.push({
-      row: 0,
-      message: lang === "ar" ? "الملف فارغ." : "The file is empty.",
-    });
-    return { rows, errors };
-  }
-
-  const header = records[0].map((h) => h.trim().toLowerCase());
-  const colIndex = (col: string) => header.indexOf(col);
-
-  const requiredCols = ["name", "category", "price"];
-  const missingCols = requiredCols.filter((c) => colIndex(c) === -1);
-  if (missingCols.length > 0) {
-    errors.push({
-      row: 0,
-      message:
-        lang === "ar"
-          ? `أعمدة مفقودة في الرأس: ${missingCols.join(", ")}`
-          : `Missing required column(s) in header: ${missingCols.join(", ")}`,
-    });
-    return { rows, errors };
-  }
-
-  const idxCode = colIndex("code");
-  const idxBarcode = colIndex("barcode");
-  const idxName = colIndex("name");
-  const idxNameAr = colIndex("name_ar");
-  const idxCategory = colIndex("category");
-  const idxPrice = colIndex("price");
-  const idxStock = colIndex("stock");
-  const idxIsSale = colIndex("is_sale");
-  const idxOriginalPrice = colIndex("original_price");
-
-  const cell = (record: string[], idx: number) => (idx === -1 ? "" : (record[idx] ?? "").trim());
-
-  for (let r = 1; r < records.length; r += 1) {
-    const record = records[r];
-    const rowNumber = r + 1; // 1-based, including header row, matches spreadsheet row numbers
-    const rowErrors: string[] = [];
-
-    const name = cell(record, idxName);
-    const categoryRaw = cell(record, idxCategory);
-    const priceRaw = cell(record, idxPrice);
-
-    if (!name) {
-      rowErrors.push(lang === "ar" ? "الاسم مفقود" : "missing 'name'");
-    }
-    if (!categoryRaw) {
-      rowErrors.push(lang === "ar" ? "القسم مفقود" : "missing 'category'");
-    }
-    if (!priceRaw) {
-      rowErrors.push(lang === "ar" ? "السعر مفقود" : "missing 'price'");
-    }
-
-    const price = Number(priceRaw);
-    if (priceRaw && (Number.isNaN(price) || price < 0)) {
-      rowErrors.push(lang === "ar" ? "السعر غير صالح" : "invalid 'price'");
-    }
-
-    const stockRaw = cell(record, idxStock);
-    const stock = stockRaw ? Number(stockRaw) : 0;
-    if (stockRaw && (Number.isNaN(stock) || stock < 0)) {
-      rowErrors.push(lang === "ar" ? "المخزون غير صالح" : "invalid 'stock'");
-    }
-
-    let category: { id: string; name: string; nameEn?: string } | undefined;
-    if (categoryRaw) {
-      const needle = categoryRaw.toLowerCase();
-      category = categories.find(
-        (c) =>
-          c.id.toLowerCase() === needle ||
-          c.name.toLowerCase() === needle ||
-          (c.nameEn ?? "").toLowerCase() === needle,
-      );
-      if (!category) {
-        rowErrors.push(
-          lang === "ar"
-            ? `القسم غير معروف: "${categoryRaw}"`
-            : `unknown category: "${categoryRaw}"`,
-        );
-      }
-    }
-
-    const isSale = idxIsSale !== -1 && parseBooleanCell(cell(record, idxIsSale));
-    const originalPriceRaw = cell(record, idxOriginalPrice);
-    let originalPrice: number | null = null;
-    if (originalPriceRaw) {
-      originalPrice = Number(originalPriceRaw);
-      if (Number.isNaN(originalPrice) || originalPrice < 0) {
-        rowErrors.push(
-          lang === "ar" ? "السعر الأصلي غير صالح" : "invalid 'original_price'",
-        );
-        originalPrice = null;
-      }
-    } else if (isSale) {
-      rowErrors.push(
-        lang === "ar"
-          ? "السعر الأصلي مطلوب عند تفعيل العرض"
-          : "missing 'original_price' (required when is_sale is true)",
-      );
-    }
-
-    if (rowErrors.length > 0) {
-      errors.push({
-        row: rowNumber,
-        message:
-          lang === "ar"
-            ? `الصف ${rowNumber}: ${rowErrors.join("، ")}`
-            : `Row ${rowNumber}: ${rowErrors.join(", ")}`,
-      });
-      continue;
-    }
-
-    rows.push({
-      row: rowNumber,
-      payload: {
-        Code: cell(record, idxCode) || `PROD-${Date.now()}-${rowNumber}`,
-        Barcode: cell(record, idxBarcode) || "",
-        Name: name,
-        Name_Ar: cell(record, idxNameAr) || "",
-        Name_En: name,
-        Price: price,
-        Stock: Number.isNaN(stock) ? 0 : stock,
-        Category: category!.id,
-        Category_Name: category!.name,
-        Category_Name_En: category!.nameEn || category!.name,
-        is_sale: isSale,
-        original_price: originalPrice,
-      } satisfies ProductMutationPayload,
-    });
-  }
-
-  return { rows, errors };
-}
-
-function downloadCsvTemplate() {
-  const sampleRow = [
-    "",
-    "6221031503017",
-    "Paracetamol 500mg",
-    "باراسيتامول 500 مجم",
-    "Pain Relief",
-    "25.50",
-    "100",
-    "false",
-    "",
-  ];
-  const csvContent = [CSV_TEMPLATE_HEADERS.join(","), sampleRow.join(",")].join("\r\n");
-  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = "product-import-template.csv";
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
-}
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function stockLabel(stock: number, lang: Language): string {
-  if (stock === 0) return lang === "ar" ? "نفد" : "Out";
-  if (stock < 5)  return lang === "ar" ? "منخفض جداً" : "Critical";
-  if (stock < 10) return lang === "ar" ? "منخفض" : "Low";
-  return lang === "ar" ? "متاح" : "In Stock";
-}
-
-function stockClasses(stock: number): string {
-  if (stock === 0)  return "border-rose-200 bg-rose-50 text-rose-700";
-  if (stock < 5)    return "border-orange-200 bg-orange-50 text-orange-700";
-  if (stock < 10)   return "border-amber-200 bg-amber-50 text-amber-700";
-  return "border-emerald-200 bg-emerald-50 text-emerald-700";
-}
-
-function formatCurrency(v: number, lang: Language): string {
-  return new Intl.NumberFormat(lang === "ar" ? "ar-EG" : "en-EG", {
-    style: "currency", currency: "EGP", maximumFractionDigits: 2,
-  }).format(v);
-}
-
-// ─── BarcodePanel ─────────────────────────────────────────────────────────────
-
-const BarcodePanel = memo(function BarcodePanel({
-  barcode,
-  lang,
-}: {
-  barcode: string;
-  lang: Language;
-}) {
-  const [lookupResult, setLookupResult] = useState<BarcodeLookupResult | null>(null);
-  const [lookupLoading, setLookupLoading] = useState(false);
-  const prevBarcode = useRef("");
-
-  useEffect(() => {
-    if (!barcode || barcode.length < 8 || barcode === prevBarcode.current) return;
-    prevBarcode.current = barcode;
-    setLookupLoading(true);
-    setLookupResult(null);
-
-    lookupBarcode(barcode)
-      .then((res) => { setLookupResult(res); })
-      .catch(() => { setLookupResult(null); })
-      .finally(() => { setLookupLoading(false); });
-  }, [barcode]);
-
-  if (!barcode || barcode.length < 8) return null;
-
-  return (
-    <div className="rounded-md border border-teal-200 bg-teal-50/60 px-3 py-3">
-      <p className="text-xs font-semibold uppercase tracking-wide text-teal-600">
-        {lang === "ar" ? "بيانات الباركود" : "Barcode lookup"}
-      </p>
-      {lookupLoading ? (
-        <div className="mt-2 space-y-1.5">
-          <Skeleton className="h-3 w-32 rounded-full bg-teal-100" />
-          <Skeleton className="h-3 w-48 rounded-full bg-teal-100" />
-        </div>
-      ) : lookupResult ? (
-        <div className="mt-2">
-          {lookupResult.matches && lookupResult.matches.length > 0 ? (
-            lookupResult.matches.map((match, idx) => (
-              <div key={idx} className="mb-2">
-                {match.productName && (
-                  <p className="text-sm font-semibold text-teal-800">{match.productName}</p>
-                )}
-                {match.brand && (
-                  <p className="text-xs text-teal-600">{match.brand}</p>
-                )}
-              </div>
-            ))
-          ) : (
-            <p className="text-xs text-teal-600">
-              {lang === "ar" ? "لا توجد نتائج مطابقة." : "No matching results found."}
-            </p>
-          )}
-        </div>
-      ) : (
-        <p className="mt-2 text-xs text-teal-600">
-          {lang === "ar" ? "لا توجد بيانات متاحة لهذا الباركود." : "No reference data found for this barcode."}
-        </p>
-      )}
-    </div>
-  );
-});
-
-// ─── ProductCard (mobile) ──────────────────────────────────────────────────────
-
-const ProductCard = memo(function ProductCard({
-  product,
-  lang,
-  canEdit,
-  onEdit,
-}: {
-  product: Product;
-  lang: Language;
-  canEdit: boolean;
-  onEdit: (p: Product) => void;
-}) {
-  const stockColor =
-    product.stock === 0 ? "#f43f5e"
-    : product.stock < 5  ? "#f97316"
-    : product.stock < 10 ? "#f59e0b"
-    : "#10b981";
-
-  return (
-    <article
-      className="relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5"
-      style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.5)" }}
-    >
-      <div className="h-[3px]" style={{ background: stockColor }} />
-
-      <div className="p-3.5">
-        <div className="flex items-start gap-3">
-          <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-slate-100 bg-slate-50 shadow-sm">
-            {product.imageUrl ? (
-              <img
-                src={product.imageUrl}
-                alt={product.name}
-                className="h-full w-full object-cover"
-                loading="lazy"
-              />
-            ) : (
-              <div className="flex h-full w-full items-center justify-center text-slate-300">
-                <CubeIcon className="h-6 w-6" />
-              </div>
-            )}
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="line-clamp-2 text-sm font-bold text-slate-800">
-              {lang === "ar" && product.nameAr ? product.nameAr : product.name}
-            </p>
-            <p className="mt-0.5 text-xs font-semibold text-slate-400">{product.categoryName}</p>
-          </div>
-        </div>
-
-        <div className="mt-3 grid grid-cols-3 gap-2">
-          <div className="rounded-xl border border-slate-100 bg-slate-50/80 px-2 py-2 text-center">
-            <p className="text-[9px] font-black uppercase tracking-wide text-slate-400">{lang === "ar" ? "السعر" : "Price"}</p>
-            <p className="mt-1 text-xs font-black text-slate-800">{formatCurrency(product.price, lang)}</p>
-          </div>
-          <div className="rounded-xl border border-slate-100 bg-slate-50/80 px-2 py-2 text-center">
-            <p className="text-[9px] font-black uppercase tracking-wide text-slate-400">{lang === "ar" ? "المخزون" : "Stock"}</p>
-            <p className="mt-1 text-xs font-black" style={{ color: stockColor }}>{product.stock}</p>
-          </div>
-          <div className="rounded-xl border border-slate-100 bg-slate-50/80 px-2 py-2 text-center">
-            <p className="text-[9px] font-black uppercase tracking-wide text-slate-400">{lang === "ar" ? "الحالة" : "State"}</p>
-            <span className={cn("mt-1 inline-block rounded-full border px-1.5 py-0.5 text-[9px] font-bold", stockClasses(product.stock))}>
-              {stockLabel(product.stock, lang)}
-            </span>
-          </div>
-        </div>
-
-        {product.barcode && (
-          <p className="mt-2 text-[10px] font-mono text-slate-400" dir="ltr">{product.barcode}</p>
-        )}
-
-        {product.is_sale && (
-          <div className="mt-2 inline-flex items-center gap-1 rounded-md bg-amber-100 px-2 py-0.5 text-[10px] font-black text-amber-700">
-            <span>🏷</span>
-            {lang === "ar" ? "عرض نشط" : "Active offer"}
-            {product.original_price ? ` · ${formatCurrency(product.original_price, lang)}` : ""}
-          </div>
-        )}
-
-      {canEdit && (
-        <button
-          type="button"
-          onClick={() => onEdit(product)}
-          className="mt-3 inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-xl border border-teal-200 bg-teal-50/60 text-xs font-bold text-teal-700 transition-all hover:bg-teal-100 hover:shadow-sm active:scale-[.98]"
-        >
-          <PencilIcon className="h-3.5 w-3.5" />
-          {lang === "ar" ? "تعديل" : "Edit"}
-        </button>
-      )}
-      </div>
-    </article>
-  );
-});
-
-// ─── ProductTableRow (desktop) ─────────────────────────────────────────────────
-
-const ProductTableRow = memo(function ProductTableRow({
-  product,
-  lang,
-  canEdit,
-  onEdit,
-}: {
-  product: Product;
-  lang: Language;
-  canEdit: boolean;
-  onEdit: (p: Product) => void;
-}) {
-  return (
-    <tr className="border-b border-slate-100 transition-colors hover:bg-slate-50/60">
-      <td className="px-4 py-3">
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 shrink-0 overflow-hidden rounded-md border border-slate-100 bg-slate-50">
-            {product.imageUrl ? (
-              <img src={product.imageUrl} alt={product.name} className="h-full w-full object-cover" loading="lazy" />
-            ) : (
-              <div className="flex h-full w-full items-center justify-center text-slate-300">
-                <CubeIcon className="h-5 w-5" />
-              </div>
-            )}
-          </div>
-          <div className="min-w-0">
-            <p className="truncate text-sm font-medium text-slate-700">
-              {lang === "ar" && product.nameAr ? product.nameAr : product.name}
-            </p>
-            {product.barcode && (
-              <p className="mt-0.5 text-[11px] text-slate-400" dir="ltr">{product.barcode}</p>
-            )}
-          </div>
-        </div>
-      </td>
-      <td className="px-4 py-3 text-sm text-slate-600">{product.categoryName}</td>
-      <td className="px-4 py-3 text-sm font-bold text-slate-700">{formatCurrency(product.price, lang)}</td>
-      <td className="px-4 py-3">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-bold text-slate-700">{product.stock}</span>
-          <span className={cn("rounded-full border px-2 py-0.5 text-[10px] font-medium", stockClasses(product.stock))}>
-            {stockLabel(product.stock, lang)}
-          </span>
-        </div>
-      </td>
-      <td className="px-4 py-3">
-        {canEdit && (
-          <button
-            type="button"
-            onClick={() => onEdit(product)}
-            className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg border border-teal-200 bg-teal-50 px-2.5 text-xs font-bold text-teal-700 transition-colors hover:bg-teal-100 active:scale-95"
-          >
-            <PencilIcon className="h-3 w-3" />
-            {lang === "ar" ? "تعديل" : "Edit"}
-          </button>
-        )}
-      </td>
-    </tr>
-  );
-});
-
-// ─── Main Component ───────────────────────────────────────────────────────────
+type ConfirmDialogState = {
+  open: boolean;
+  title: string;
+  description: string;
+  tone?: "danger" | "warning" | "info";
+  onConfirm: () => Promise<void>;
+};
 
 export default function ProductManager() {
   const { user } = useAuth();
@@ -630,75 +86,88 @@ export default function ProductManager() {
   // Role-based permissions
   const canManageProducts = ["admin", "manager", "pharmacist"].includes(userRole);
   const canBulkImport = ["admin", "manager"].includes(userRole);
+  const canDelete = ["admin", "manager"].includes(userRole);
 
-  // State
+  // Filters / pagination
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [stockFilter, setStockFilter] = useState<"all" | "low" | "out">("all");
   const [currentPage, setCurrentPage] = useState(1);
+  const debouncedSearch = useDebouncedValue(search, 250);
+
+  // Create/edit dialog
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [form, setForm] = useState<ProductFormState>(EMPTY_FORM);
-  const [submitting, setSubmitting] = useState(false);
-  const [formError, setFormError] = useState("");
+  const [editingProduct, setEditingProduct] = useState<AdminProduct | null>(null);
+
+  // CSV import
   const [csvImporting, setCsvImporting] = useState(false);
   const [error, setError] = useState("");
   const csvRef = useRef<HTMLInputElement>(null);
-  const debouncedSearch = useDebouncedValue(search, 250);
+
+  // Confirm dialog (single + bulk delete)
+  const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState | null>(null);
 
   const openAddDialog = useCallback(() => {
-    setForm(EMPTY_FORM);
-    setFormError("");
+    setEditingProduct(null);
     setDialogOpen(true);
   }, []);
 
   const openEditDialog = useCallback((product: AdminProduct) => {
-    setForm({
-      id: product.code,
-      barcode: product.barcode ?? "",
-      name: product.name,
-      nameAr: product.nameAr ?? "",
-      categoryId: product.category,
-      price: String(product.price),
-      stock: String(product.stock),
-      description: "",
-      isSale: product.is_sale ?? false,
-      originalPrice: product.original_price != null ? String(product.original_price) : "",
-    });
-    setFormError("");
+    setEditingProduct(product);
     setDialogOpen(true);
   }, []);
 
-  // Load products from Supabase
-  useEffect(() => {
-    const loadProducts = async () => {
-      setProductsLoading(true);
-      setProductsError("");
-      try {
-        const adminProducts = await fetchAdminProducts();
-        setProducts(adminProducts);
-      } catch (error) {
-        const errorMessage = handleApiError(error, "Failed to load products");
-        setProductsError(errorMessage);
-        showErrorToast(error, "Failed to load products");
-      } finally {
-        setProductsLoading(false);
-      }
-    };
-
-    loadProducts();
+  const handleSaved = useCallback((saved: AdminProduct) => {
+    setProducts((prev) => {
+      const updated = prev.filter((p) => p.id !== saved.id);
+      return [saved, ...updated];
+    });
   }, []);
+
+  // Load products from Supabase — abort-guarded so overlapping loads (e.g. a
+  // manual refresh fired while the initial mount load is still in flight)
+  // can't have a slower/older response clobber a newer one.
+  const loadControllerRef = useRef<AbortController | null>(null);
+  const latestRequestIdRef = useRef(0);
+
+  const loadProducts = useCallback(async () => {
+    loadControllerRef.current?.abort();
+    const controller = new AbortController();
+    loadControllerRef.current = controller;
+    const requestId = ++latestRequestIdRef.current;
+
+    setProductsLoading(true);
+    setProductsError("");
+    try {
+      const adminProducts = await fetchAdminProducts({ signal: controller.signal });
+      if (requestId !== latestRequestIdRef.current) return; // stale response
+      setProducts(adminProducts);
+    } catch (err) {
+      if (controller.signal.aborted || requestId !== latestRequestIdRef.current) return;
+      const errorMessage = handleApiError(err, "Failed to load products");
+      setProductsError(errorMessage);
+      showErrorToast(err, "Failed to load products");
+    } finally {
+      if (requestId === latestRequestIdRef.current) setProductsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadProducts();
+    return () => loadControllerRef.current?.abort();
+  }, [loadProducts]);
 
   const filteredProducts = useMemo(() => {
     const q = debouncedSearch.trim().toLowerCase();
     return products.filter((p) => {
-      if (categoryFilter !== "all" && p.category !== categoryFilter) return false;
+      if (categoryFilter !== "all" && resolveProductCategoryId(p, categories) !== categoryFilter) return false;
       if (stockFilter === "out" && p.stock !== 0) return false;
       if (stockFilter === "low" && (p.stock === 0 || p.stock >= 10)) return false;
       if (!q) return true;
       return [p.name, p.nameAr ?? "", p.barcode, p.categoryName]
         .filter(Boolean).join(" ").toLowerCase().includes(q);
     });
-  }, [categoryFilter, debouncedSearch, products, stockFilter]);
+  }, [categories, categoryFilter, debouncedSearch, products, stockFilter]);
 
   const summary = useMemo(() => ({
     total: products.length,
@@ -716,68 +185,80 @@ export default function ProductManager() {
     return filteredProducts.slice(start, start + ITEMS_PER_PAGE);
   }, [currentPage, filteredProducts]);
 
-  const handleSave = useCallback(async () => {
-    if (!form.name || !form.categoryId || !form.price) {
-      setFormError(lang === "ar" ? "يرجى ملء الحقول المطلوبة." : "Please fill all required fields.");
-      return;
-    }
-    const price = Number(form.price);
-    const stock = Number(form.stock);
-    if (Number.isNaN(price) || price < 0) {
-      setFormError(lang === "ar" ? "السعر غير صالح." : "Invalid price.");
-      return;
-    }
-    setSubmitting(true);
-    setFormError("");
-    try {
-      const origPrice = form.originalPrice ? Number(form.originalPrice) : null;
-      const payload = {
-        Code: form.id || `PROD-${Date.now()}`,
-        Barcode: form.barcode || "",
-        Name: form.name,
-        Name_Ar: form.nameAr || "",
-        Name_En: form.name,
-        Price: Number.isNaN(price) ? 0 : price,
-        Stock: Number.isNaN(stock) ? 0 : stock,
-        Category: form.categoryId,
-        Category_Name: categories.find((c) => c.id === form.categoryId)?.name || "",
-        Category_Name_En: categories.find((c) => c.id === form.categoryId)?.nameEn || "",
-        is_sale: form.isSale,
-        original_price: origPrice && !Number.isNaN(origPrice) ? origPrice : null,
-      } satisfies ProductMutationPayload;
+  const bulk = useBulkSelection(paginatedProducts);
 
-      let updatedProduct: AdminProduct;
-      
-      if (form.id) {
-        // Update existing product
-        updatedProduct = await updateAdminProduct(payload);
-        showSuccessToast(lang === "ar" ? "تم تحديث المنتج بنجاح." : "Product updated successfully.");
-      } else {
-        // Create new product
-        updatedProduct = await createAdminProduct(payload);
-        showSuccessToast(lang === "ar" ? "تم إضافة المنتج بنجاح." : "Product added successfully.");
-      }
+  const handleDeleteOne = useCallback((product: AdminProduct) => {
+    setConfirmDialog({
+      open: true,
+      title: lang === "ar" ? "حذف المنتج" : "Delete product",
+      description: lang === "ar"
+        ? `هل تريد حذف "${product.name}"؟ لا يمكن التراجع عن هذا الإجراء.`
+        : `Delete "${product.name}"? This action cannot be undone.`,
+      tone: "danger",
+      onConfirm: async () => {
+        const previous = products;
+        setProducts((prev) => prev.filter((p) => p.id !== product.id));
+        try {
+          await deleteAdminProduct(product.code);
+          showSuccessToast(lang === "ar" ? "تم حذف المنتج." : "Product deleted.");
+        } catch (err) {
+          setProducts(previous); // rollback
+          showErrorToast(err, "Delete failed");
+          throw err;
+        }
+      },
+    });
+  }, [products, lang]);
 
-      // Update local state
-      setProducts(prev => {
-        const updated = prev.filter(p => p.id !== updatedProduct.id);
-        return [updatedProduct, ...updated];
-      });
-
-      setDialogOpen(false);
-      
-    } catch (err: unknown) {
-      const msg = handleApiError(err, "Save failed");
-      setFormError(msg);
-      showErrorToast(err, "Save failed");
-    } finally {
-      setSubmitting(false);
-    }
-  }, [form, lang, categories]);
+  const handleBulkDelete = useCallback(() => {
+    const targets = paginatedProducts.filter((p) => bulk.isSelected(p.id));
+    if (targets.length === 0) return;
+    setConfirmDialog({
+      open: true,
+      title: lang === "ar" ? "حذف المنتجات المحددة" : "Delete selected products",
+      description: lang === "ar"
+        ? `هل تريد حذف ${targets.length} منتج؟ لا يمكن التراجع عن هذا الإجراء.`
+        : `Delete ${targets.length} selected product(s)? This action cannot be undone.`,
+      tone: "danger",
+      onConfirm: async () => {
+        const results = await Promise.allSettled(
+          targets.map((p) => deleteAdminProduct(p.code).then(() => p.id)),
+        );
+        const deletedIds = new Set(
+          results
+            .filter((r): r is PromiseFulfilledResult<string> => r.status === "fulfilled")
+            .map((r) => r.value),
+        );
+        const failedCount = results.length - deletedIds.size;
+        if (deletedIds.size > 0) {
+          setProducts((prev) => prev.filter((p) => !deletedIds.has(p.id)));
+        }
+        bulk.clear();
+        if (failedCount > 0) {
+          toast.error(
+            lang === "ar"
+              ? `تم حذف ${deletedIds.size} وفشل حذف ${failedCount}.`
+              : `Deleted ${deletedIds.size}; failed to delete ${failedCount}.`,
+          );
+        } else {
+          showSuccessToast(lang === "ar" ? "تم حذف المنتجات المحددة." : "Selected products deleted.");
+        }
+      },
+    });
+  }, [paginatedProducts, bulk, lang]);
 
   const handleCsvImport = useCallback(async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (!file.name.toLowerCase().endsWith(".csv") || file.size > 5 * 1024 * 1024) {
+      const message = lang === "ar"
+        ? "اختر ملف CSV صالحًا بحجم لا يتجاوز 5 ميغابايت."
+        : "Choose a valid CSV file no larger than 5 MB.";
+      setError(message);
+      toast.error(message);
+      if (csvRef.current) csvRef.current.value = "";
+      return;
+    }
     setCsvImporting(true);
     setError("");
     try {
@@ -825,11 +306,11 @@ export default function ProductManager() {
             : `Imported ${imported.length} of ${total} products successfully.`,
         );
       } else {
-        const summary = lang === "ar"
+        const summaryMsg = lang === "ar"
           ? `تم استيراد ${imported.length} من ${total} منتجًا (${failures.length} صفوف بها أخطاء).`
           : `Imported ${imported.length} of ${total} products (${failures.length} row${failures.length === 1 ? "" : "s"} had errors).`;
-        setError(`${summary} ${failures.map((f) => f.message).join(" | ")}`);
-        toast.error(summary);
+        setError(`${summaryMsg} ${failures.map((f) => f.message).join(" | ")}`);
+        toast.error(summaryMsg);
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Import failed.";
@@ -841,7 +322,7 @@ export default function ProductManager() {
     }
   }, [categories, lang]);
 
-  // Guard
+  // Guard — after all hooks, per Rules of Hooks.
   if (!canManageProducts) return <AdminUnauthorized lang={lang} />;
 
   const thClass = "px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500";
@@ -921,15 +402,7 @@ export default function ProductManager() {
             )}
             <button
               type="button"
-              onClick={async () => {
-                try {
-                  const adminProducts = await fetchAdminProducts();
-                  setProducts(adminProducts);
-                  showSuccessToast(lang === "ar" ? "تم تحديث المنتجات" : "Products refreshed");
-                } catch (error) {
-                  showErrorToast(error, "Failed to refresh products");
-                }
-              }}
+              onClick={() => void loadProducts()}
               disabled={isLoading || productsLoading}
               className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-50 disabled:opacity-60"
             >
@@ -953,8 +426,8 @@ export default function ProductManager() {
           {canBulkImport && (
             <p className="mb-3 rounded-lg border border-slate-100 bg-slate-50/80 px-3 py-2 text-xs font-medium text-slate-500">
               {lang === "ar"
-                ? "تنسيق CSV: code, barcode, name, name_ar, category, price, stock, is_sale, original_price (الاسم والقسم والسعر مطلوبة، والقسم يجب أن يطابق قسماً موجوداً بالاسم أو المعرف)."
-                : "CSV format: code, barcode, name, name_ar, category, price, stock, is_sale, original_price — name, category, and price are required; category must match an existing category by id or name."}
+                ? "تنسيق CSV: code, barcode, name, name_ar, category, price, stock (الاسم والقسم والسعر مطلوبة، والقسم يجب أن يطابق قسماً موجوداً بالاسم أو المعرف)."
+                : "CSV format: code, barcode, name, name_ar, category, price, stock — name, category, and price are required; category must match an existing category by id or name."}
             </p>
           )}
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -967,6 +440,7 @@ export default function ProductManager() {
             <select
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value)}
+              aria-label={lang === "ar" ? "تصفية حسب القسم" : "Filter by category"}
               className="h-9 rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-600 outline-none transition focus:border-teal-400 focus:ring-2 focus:ring-teal-500/10"
             >
               <option value="all">{lang === "ar" ? "جميع الأقسام" : "All categories"}</option>
@@ -977,6 +451,7 @@ export default function ProductManager() {
             <select
               value={stockFilter}
               onChange={(e) => setStockFilter(e.target.value as "all" | "low" | "out")}
+              aria-label={lang === "ar" ? "تصفية حسب حالة المخزون" : "Filter by stock status"}
               className="h-9 rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-600 outline-none transition focus:border-teal-400 focus:ring-2 focus:ring-teal-500/10"
             >
               <option value="all">{lang === "ar" ? "جميع حالات المخزون" : "All stock states"}</option>
@@ -990,6 +465,23 @@ export default function ProductManager() {
             </span>
           </div>
         </div>
+
+        {canDelete && (
+          <AdminBulkActionBar
+            selectedCount={bulk.count}
+            onClear={bulk.clear}
+            lang={lang}
+            actions={[
+              {
+                key: "delete",
+                label: lang === "ar" ? "حذف المحدد" : "Delete selected",
+                icon: TrashIcon,
+                tone: "danger",
+                onClick: handleBulkDelete,
+              },
+            ]}
+          />
+        )}
 
         {/* Content */}
         <div className="px-4 pb-2 pt-3">
@@ -1021,7 +513,11 @@ export default function ProductManager() {
                     product={p}
                     lang={lang}
                     canEdit={canManageProducts}
+                    canDelete={canDelete}
+                    selected={bulk.isSelected(p.id)}
                     onEdit={openEditDialog}
+                    onDelete={handleDeleteOne}
+                    onToggleSelect={bulk.toggle}
                   />
                 ))}
               </div>
@@ -1033,6 +529,17 @@ export default function ProductManager() {
                     <table className="min-w-[56rem] w-full">
                       <thead>
                         <tr className="border-b border-slate-100 bg-slate-50/60">
+                          {canDelete && (
+                            <th className="w-10 px-3 py-3">
+                              <input
+                                type="checkbox"
+                                checked={bulk.allSelected}
+                                onChange={bulk.toggleAll}
+                                aria-label={lang === "ar" ? "تحديد الكل" : "Select all"}
+                                className="h-4 w-4 rounded border-slate-300 accent-teal-600"
+                              />
+                            </th>
+                          )}
                           <th className={thClass}>{lang === "ar" ? "المنتج" : "Product"}</th>
                           <th className={thClass}>{lang === "ar" ? "القسم" : "Category"}</th>
                           <th className={thClass}>{lang === "ar" ? "السعر" : "Price"}</th>
@@ -1047,7 +554,11 @@ export default function ProductManager() {
                             product={p}
                             lang={lang}
                             canEdit={canManageProducts}
+                            canDelete={canDelete}
+                            selected={bulk.isSelected(p.id)}
                             onEdit={openEditDialog}
+                            onDelete={handleDeleteOne}
+                            onToggleSelect={bulk.toggle}
                           />
                         ))}
                       </tbody>
@@ -1069,147 +580,28 @@ export default function ProductManager() {
         />
       </AdminSectionCard>
 
-      {/* Add / Edit Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto rounded-xl border border-slate-200 bg-white p-0 shadow-lg">
-          <DialogHeader className="border-b border-slate-100 px-5 py-4">
-            <DialogTitle className="text-lg font-bold text-slate-800">
-              {form.id
-                ? lang === "ar" ? "تعديل المنتج" : "Edit product"
-                : lang === "ar" ? "إضافة منتج جديد" : "Add new product"}
-            </DialogTitle>
-            <DialogDescription className="text-sm text-slate-500">
-              {lang === "ar" ? "أدخل بيانات المنتج وسيتم حفظه في الكتالوج." : "Fill in product details and it will be saved to the catalog."}
-            </DialogDescription>
-          </DialogHeader>
+      <ProductFormDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        editingProduct={editingProduct}
+        categories={categories}
+        lang={lang}
+        onSaved={handleSaved}
+      />
 
-          <div className="space-y-4 px-5 py-4">
-            <AdminFormField
-              label={lang === "ar" ? "الاسم (إنجليزي)" : "Name (English)"}
-              value={form.name}
-              onChange={(v) => setForm((p) => ({ ...p, name: v }))}
-              required
-            />
-            <AdminFormField
-              label={lang === "ar" ? "الاسم (عربي)" : "Name (Arabic)"}
-              value={form.nameAr}
-              onChange={(v) => setForm((p) => ({ ...p, nameAr: v }))}
-              dir="rtl"
-            />
-            <AdminFormField
-              label={lang === "ar" ? "الباركود" : "Barcode"}
-              value={form.barcode}
-              onChange={(v) => setForm((p) => ({ ...p, barcode: v }))}
-              dir="ltr"
-            />
-
-            <BarcodePanel barcode={form.barcode} lang={lang} />
-
-            <div className="grid gap-1.5">
-              <label className="text-sm font-medium text-slate-700">
-                {lang === "ar" ? "القسم" : "Category"} *
-              </label>
-              <select
-                value={form.categoryId}
-                onChange={(e) => setForm((p) => ({ ...p, categoryId: e.target.value }))}
-                className="h-9 w-full rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-600 outline-none transition focus:border-teal-400 focus:ring-2 focus:ring-teal-500/10"
-              >
-                <option value="">{lang === "ar" ? "اختر قسماً" : "Select a category"}</option>
-                {categories.map((c) => (
-                  <option key={c.id} value={c.id}>{lang === "ar" ? c.name : c.nameEn || c.name}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <AdminFormField
-                label={lang === "ar" ? "السعر (EGP)" : "Price (EGP)"}
-                value={form.price}
-                onChange={(v) => setForm((p) => ({ ...p, price: v }))}
-                type="number"
-                required
-              />
-              <AdminFormField
-                label={lang === "ar" ? "المخزون" : "Stock"}
-                value={form.stock}
-                onChange={(v) => setForm((p) => ({ ...p, stock: v }))}
-                type="number"
-              />
-            </div>
-
-            {/* Offer status */}
-            <div className="space-y-1.5">
-              <p className="text-sm font-medium text-slate-700">
-                {lang === "ar" ? "حالة العرض" : "Offer status"}
-              </p>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setForm((p) => ({ ...p, isSale: false }))}
-                  className={cn(
-                    "h-9 rounded-lg border text-sm font-bold transition-all",
-                    !form.isSale
-                      ? "border-slate-300 bg-slate-100 text-slate-800 shadow-inner"
-                      : "border-slate-200 bg-white text-slate-400 hover:bg-slate-50",
-                  )}
-                >
-                  {lang === "ar" ? "ليس عرضاً" : "Not an offer"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setForm((p) => ({ ...p, isSale: true }))}
-                  className={cn(
-                    "h-9 rounded-lg border text-sm font-bold transition-all",
-                    form.isSale
-                      ? "border-teal-300 bg-teal-50 text-teal-700 shadow-inner"
-                      : "border-slate-200 bg-white text-slate-400 hover:bg-slate-50",
-                  )}
-                >
-                  {lang === "ar" ? "عرض نشط ✓" : "Active offer ✓"}
-                </button>
-              </div>
-            </div>
-
-            {form.isSale && (
-              <AdminFormField
-                label={lang === "ar" ? "السعر الأصلي قبل التخفيض (EGP)" : "Original price before discount (EGP)"}
-                value={form.originalPrice}
-                onChange={(v) => setForm((p) => ({ ...p, originalPrice: v }))}
-                type="number"
-              />
-            )}
-
-            {formError && (
-              <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
-                {formError}
-              </div>
-            )}
-          </div>
-
-          <DialogFooter className="border-t border-slate-100 px-5 py-4 gap-2">
-            <button
-              type="button"
-              onClick={() => setDialogOpen(false)}
-              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-50"
-            >
-              <XMarkIcon className="h-4 w-4" />
-              {lang === "ar" ? "إلغاء" : "Cancel"}
-            </button>
-            <button
-              type="button"
-              onClick={() => void handleSave()}
-              disabled={submitting}
-              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl px-4 text-sm font-bold text-white shadow-sm transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-              style={{ background: "linear-gradient(135deg, #0E7E74 0%, #0d6b62 100%)" }}
-            >
-              {submitting ? <ArrowPathIcon className="h-4 w-4 animate-spin" /> : <CheckIcon className="h-4 w-4" />}
-              {form.id
-                ? lang === "ar" ? "حفظ التعديلات" : "Save changes"
-                : lang === "ar" ? "إضافة" : "Add product"}
-            </button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {confirmDialog && (
+        <AdminConfirmDialog
+          open={confirmDialog.open}
+          onClose={() => setConfirmDialog(null)}
+          onConfirm={async () => {
+            await confirmDialog.onConfirm();
+          }}
+          title={confirmDialog.title}
+          description={confirmDialog.description}
+          tone={confirmDialog.tone || "info"}
+          lang={lang}
+        />
+      )}
     </div>
   );
 }

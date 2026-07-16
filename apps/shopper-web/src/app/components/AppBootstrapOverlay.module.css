@@ -1,0 +1,81 @@
+.overlay {
+  --loader-bg: var(--background);
+  --loader-fg: var(--foreground);
+  --loader-muted: var(--muted-foreground);
+  --loader-line: var(--border);
+  --loader-glass: color-mix(in srgb, var(--card) 72%, transparent);
+  background:
+    radial-gradient(circle at 50% 42%, color-mix(in srgb, var(--brand-teal) 13%, transparent), transparent 20rem),
+    radial-gradient(circle at 7% 95%, color-mix(in srgb, #7dd3fc 13%, transparent), transparent 28rem),
+    var(--loader-bg);
+  color: var(--loader-fg);
+  isolation: isolate;
+}
+
+.lightBeam,
+.grain,
+.orbit,
+.brandAura,
+.progressSheen { position: absolute; pointer-events: none; }
+.lightBeam { inset: -55%; background: conic-gradient(from 45deg at 50% 50%, transparent, color-mix(in srgb, var(--brand-teal) 7%, transparent), transparent 28%); animation: loader-sweep 20s linear infinite; }
+.grain { inset: 0; opacity: .36; background-image: linear-gradient(color-mix(in srgb, var(--loader-line) 52%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--loader-line) 52%, transparent) 1px, transparent 1px); background-size: 4.5rem 4.5rem; mask-image: radial-gradient(ellipse 70% 58% at 50% 45%, black, transparent 82%); }
+
+.shell { position: relative; display: grid; min-height: 100dvh; grid-template-rows: minmax(0, 1fr) auto; padding: clamp(1rem, 3.5vw, 2rem); }
+.main { display: grid; min-height: 0; place-items: center; padding-block: clamp(.5rem, 2vh, 1.25rem); }
+.panel { width: min(100%, 32rem); text-align: center; }
+
+.brandStage { position: relative; display: grid; width: clamp(7.25rem, 22vh, 10.5rem); aspect-ratio: 1; place-items: center; margin: 0 auto clamp(1rem, 3vh, 1.75rem); }
+.orbit { inset: 0; border: 1px solid color-mix(in srgb, var(--brand-teal) 26%, transparent); border-radius: 50%; }
+.orbit::before, .orbit::after { content: ""; position: absolute; width: .55rem; height: .55rem; border-radius: 50%; background: var(--brand-teal); box-shadow: 0 0 0 .35rem color-mix(in srgb, var(--brand-teal) 12%, transparent); }
+.orbit::before { top: 16%; inset-inline-start: 12%; }
+.orbit::after { bottom: 14%; inset-inline-end: 10%; background: #74cbea; }
+.orbitOuter { inset: -.95rem; opacity: .55; border-style: dashed; animation: loader-orbit 16s linear infinite; }
+.brandAura { inset: 14%; border-radius: 2rem; background: color-mix(in srgb, var(--brand-teal) 15%, transparent); filter: blur(22px); animation: loader-breathe 3.5s ease-in-out infinite; }
+.logoTile { position: relative; display: grid; width: 58%; aspect-ratio: 1; place-items: center; overflow: hidden; border: 1px solid color-mix(in srgb, var(--brand-teal) 30%, transparent); border-radius: 1.55rem; background: var(--loader-glass); box-shadow: 0 20px 48px color-mix(in srgb, var(--brand-teal) 18%, transparent), inset 0 1px 0 color-mix(in srgb, white 35%, transparent); backdrop-filter: blur(16px); }
+.logoTile img { width: 68%; height: 68%; object-fit: contain; }
+
+.eyebrow { margin: 0; color: var(--brand-teal-deeper); font-size: clamp(.65rem, 1.8vw, .72rem); font-weight: 800; letter-spacing: .18em; text-transform: uppercase; }
+.title { max-width: 26rem; margin: .65rem auto 0; font-size: clamp(1.72rem, 5.7vw, 2.7rem); font-weight: 800; letter-spacing: -.045em; line-height: 1.14; text-wrap: balance; }
+.subtitle { max-width: 29rem; margin: .75rem auto 0; color: var(--loader-muted); font-size: clamp(.85rem, 2.5vw, 1rem); font-weight: 500; line-height: 1.55; text-wrap: balance; }
+.overlay[dir="rtl"] .title { max-width: 22rem; font-size: clamp(1.75rem, 5.5vw, 2.65rem); line-height: 1.25; letter-spacing: 0; }
+
+.progressArea { margin: clamp(1.15rem, 3.2vh, 1.8rem) auto 0; width: min(100%, 25rem); text-align: start; }
+.stageRow { display: flex; align-items: center; justify-content: space-between; gap: 1rem; color: var(--loader-muted); font-size: .78rem; font-weight: 700; }
+.stageRow strong { color: var(--loader-fg); font-variant-numeric: tabular-nums; }
+.progressTrack { position: relative; height: .3rem; margin-top: .75rem; overflow: hidden; border-radius: 99px; background: color-mix(in srgb, var(--loader-line) 75%, transparent); }
+.progressFill { position: absolute; inset-block: 0; inset-inline-start: 0; width: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--brand-teal-deeper), var(--brand-teal), #80d7ee); transform-origin: left; }
+.progressSheen { inset-block: -200%; width: 2rem; background: rgba(255,255,255,.7); filter: blur(7px); animation: loader-shine 1.9s ease-in-out infinite; }
+.stageDots { display: flex; justify-content: center; gap: .45rem; margin-top: 1rem; }
+.stageDot { width: .34rem; height: .34rem; border-radius: 99px; background: color-mix(in srgb, var(--loader-muted) 42%, transparent); transition: width .35s ease, background .35s ease; }
+.stageDotActive { width: 1.15rem; background: var(--brand-teal); }
+
+.footer { display: flex; justify-content: center; padding-top: .4rem; color: var(--loader-muted); font-size: .68rem; font-weight: 700; letter-spacing: .08em; }
+.error { margin-top: 1.75rem; padding: 1rem; border: 1px solid color-mix(in srgb, var(--destructive) 28%, transparent); border-radius: 1rem; background: color-mix(in srgb, var(--destructive) 8%, transparent); text-align: start; }
+.error p { margin: 0; font-size: .88rem; line-height: 1.5; }
+.retry { min-height: 2.6rem; margin-top: .8rem; padding: 0 1rem; border: 0; border-radius: .8rem; background: var(--brand-teal-deeper); color: white; font: inherit; font-size: .82rem; font-weight: 800; cursor: pointer; }
+.retry:focus-visible { outline: 3px solid var(--ring); outline-offset: 3px; }
+
+@keyframes loader-sweep { to { transform: rotate(360deg); } }
+@keyframes loader-orbit { to { transform: rotate(360deg); } }
+@keyframes loader-breathe { 50% { transform: scale(1.12); opacity: .72; } }
+@keyframes loader-shine { from { inset-inline-start: -25%; } to { inset-inline-start: 112%; } }
+
+@media (max-height: 46rem) {
+  .shell { padding-block: .8rem; }
+  .brandStage { width: 6.5rem; margin-bottom: .75rem; }
+  .title { font-size: clamp(1.55rem, 4.8vw, 2.15rem); }
+  .overlay[dir="rtl"] .title { font-size: clamp(1.6rem, 4.8vw, 2.2rem); line-height: 1.18; }
+  .subtitle { margin-top: .5rem; }
+  .progressArea { margin-top: .9rem; }
+  .footer { display: none; }
+}
+
+@media (max-width: 24rem) {
+  .shell { padding-inline: 1rem; }
+  .brandStage { width: 8.5rem; }
+  .lockup { width: 10.5rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lightBeam, .orbitOuter, .brandAura, .progressSheen { animation: none; }
+}

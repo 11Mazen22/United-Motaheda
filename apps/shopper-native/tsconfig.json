@@ -9,12 +9,13 @@
       "DOM"
     ],
     "moduleResolution": "bundler",
+    "baseUrl": ".",
     "noEmit": true,
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "strict": true,
     "target": "ESNext",
-    "baseUrl": ".",
+
     "paths": {
       "@/*": [
         "./src/*"

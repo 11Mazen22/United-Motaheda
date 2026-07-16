@@ -52,8 +52,12 @@ export const STATUS_META: Record<
   ready:           { labelKey: "orders.shipped",        variant: "brand",   icon: "cube-outline",             dot: kit.color.accent        },
   shipped:         { labelKey: "orders.shipped",        variant: "brand",   icon: "car-outline",              dot: kit.color.accent        },
   picked_up:       { labelKey: "orders.shipped",        variant: "brand",   icon: "car-outline",              dot: kit.color.accent        },
+  driver_assigned: { labelKey: "orders.shipped",        variant: "brand",   icon: "car-outline",              dot: kit.color.accent        },
+  driver_accepted: { labelKey: "orders.shipped",        variant: "brand",   icon: "car-outline",              dot: kit.color.accent        },
+  out_for_delivery:{ labelKey: "orders.shipped",        variant: "brand",   icon: "car-outline",              dot: kit.color.accent        },
   delivered:       { labelKey: "orders.delivered",      variant: "success", icon: "checkmark-circle-outline", dot: kit.color.success       },
   cancelled:       { labelKey: "orders.cancelled",      variant: "error",   icon: "close-circle-outline",     dot: kit.color.danger        },
+  archived:        { labelKey: "orders.delivered",      variant: "neutral", icon: "archive-outline",          dot: kit.color.inkFaint     },
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -91,8 +95,8 @@ type StepDef = {
 const TIMELINE_STEPS: StepDef[] = [
   { status: "pending",    icon: "time-outline",             match: ["pending", "pending_payment", "confirmed"] },
   { status: "processing", icon: "refresh-outline",          match: ["processing", "preparing"]                 },
-  { status: "shipped",    icon: "car-outline",              match: ["shipped", "ready", "picked_up"]           },
-  { status: "delivered",  icon: "checkmark-circle-outline", match: ["delivered"]                               },
+  { status: "shipped",    icon: "car-outline",              match: ["shipped", "ready", "picked_up", "driver_assigned", "driver_accepted", "out_for_delivery"] },
+  { status: "delivered",  icon: "checkmark-circle-outline", match: ["delivered", "archived"]                   },
 ];
 
 const EMERALD = kit.color.success;

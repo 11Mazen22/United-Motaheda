@@ -1426,7 +1426,7 @@
         "reportIssue": "Report an issue",
         "reportIssueTitle": "Report a delivery issue",
         "whatWentWrong": "What went wrong?",
-        "priorIssueOpenNotice": "You already have an open report for this order. Submitting another will add a second one.",
+        "priorIssueOpenNotice": "You already have an open report for this order. Wait for the operations team to review it before submitting another.",
         "reasonCustomerUnreachable": "Customer unreachable",
         "reasonWrongAddress": "Wrong address",
         "reasonCustomerRefused": "Customer refused delivery",

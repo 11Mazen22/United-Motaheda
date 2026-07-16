@@ -501,12 +501,12 @@ export function ShopperProductTile({
             <span className="inline-flex max-w-[100px] items-center rounded-full border border-white/80 bg-white/95 px-2.5 py-1 text-[10px] font-black text-slate-700 shadow-sm">
               <span className="truncate">{badge || displayCategoryName}</span>
             </span>
-            {product.isSale && product.originalPrice ? (
+            {product.hasActivePromotion && product.basePrice ? (
               <span className="inline-flex items-center gap-1 self-start rounded-md bg-amber-500 px-1.5 py-0.5 text-[9px] font-black text-white shadow-md">
                 <Tag className="h-2.5 w-2.5" />
-                {`${Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}% OFF`}
+                {`${Math.round(((product.basePrice - product.price) / product.basePrice) * 100)}% OFF`}
               </span>
-            ) : product.isSale ? (
+            ) : product.hasActivePromotion ? (
               <span className="inline-flex items-center gap-1 self-start rounded-md bg-amber-500 px-1.5 py-0.5 text-[9px] font-black text-white shadow-md">
                 <Tag className="h-2.5 w-2.5" />
                 {lang === "ar" ? "عرض" : "OFFER"}
@@ -568,12 +568,12 @@ export function ShopperProductTile({
         ) : null}
 
         <div className="mt-auto pt-3">
-          {product.originalPrice && (
+          {product.basePrice && (
             <p className="text-[10px] font-bold text-slate-400 line-through">
-              {product.originalPrice.toFixed(2)} <span className="text-[9px]">{t("currency")}</span>
+              {product.basePrice.toFixed(2)} <span className="text-[9px]">{t("currency")}</span>
             </p>
           )}
-          <p className={cn("text-[1.05rem] font-black tracking-tight", product.isSale && product.originalPrice ? "text-amber-600" : "text-slate-950")}>
+          <p className={cn("text-[1.05rem] font-black tracking-tight", product.hasActivePromotion && product.basePrice ? "text-amber-600" : "text-slate-950")}>
             {product.price.toFixed(2)} <span className="text-xs text-slate-400">{t("currency")}</span>
           </p>
           <p className="mt-1 text-[11px] font-semibold leading-4 text-slate-500">

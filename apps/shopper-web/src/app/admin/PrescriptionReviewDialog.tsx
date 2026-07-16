@@ -44,6 +44,7 @@ export default function PrescriptionReviewDialog({
   const [mode, setMode] = useState<"idle" | "rejecting">("idle");
   const [adminNotes, setAdminNotes] = useState("");
   const [rejectionReason, setRejectionReason] = useState("");
+  const [rejectionReasonError, setRejectionReasonError] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -51,6 +52,7 @@ export default function PrescriptionReviewDialog({
       setMode("idle");
       setAdminNotes("");
       setRejectionReason("");
+      setRejectionReasonError("");
     }
   }, [open]);
 
@@ -71,9 +73,11 @@ export default function PrescriptionReviewDialog({
 
   const handleReject = async () => {
     if (!rejectionReason.trim()) {
+      setRejectionReasonError(isArabic ? "يرجى كتابة سبب الرفض" : "Please provide a rejection reason");
       toast.error(isArabic ? "يرجى كتابة سبب الرفض" : "Please provide a rejection reason");
       return;
     }
+    setRejectionReasonError("");
     setLoading(true);
     try {
       await onReject(rejectionReason.trim(), adminNotes.trim() || undefined);
@@ -145,12 +149,24 @@ export default function PrescriptionReviewDialog({
               </label>
               <textarea
                 value={rejectionReason}
-                onChange={(e) => setRejectionReason(e.target.value)}
+                onChange={(e) => {
+                  setRejectionReason(e.target.value);
+                  if (rejectionReasonError && e.target.value.trim()) setRejectionReasonError("");
+                }}
                 rows={2}
                 placeholder={isArabic ? "مثال: رقم الوصفة غير صحيح…" : "e.g., The Rx number couldn't be verified…"}
-                className="w-full resize-none rounded-xl border border-rose-200 bg-white p-3 text-sm text-slate-800 outline-none placeholder:text-slate-400 focus:border-rose-400 focus:ring-2 focus:ring-rose-100"
+                aria-invalid={!!rejectionReasonError}
+                className={cn(
+                  "w-full resize-none rounded-xl border bg-white p-3 text-sm text-slate-800 outline-none placeholder:text-slate-400 focus:ring-2",
+                  rejectionReasonError
+                    ? "border-rose-400 focus:border-rose-500 focus:ring-rose-200"
+                    : "border-rose-200 focus:border-rose-400 focus:ring-rose-100",
+                )}
                 autoFocus
               />
+              {rejectionReasonError && (
+                <p className="mt-1.5 text-xs font-semibold text-rose-600">{rejectionReasonError}</p>
+              )}
             </div>
           )}
 

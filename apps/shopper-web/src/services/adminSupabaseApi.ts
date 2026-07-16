@@ -7,7 +7,20 @@
 
 import { getSupabaseClient } from "../lib/supabaseClient";
 import { toast } from "sonner";
-import type { ProductMutationPayload } from "./googleSheetsApi";
+export type ProductMutationPayload = {
+  /** Supabase row ID. Required for an existing product update. */
+  id?: string;
+  Code: string;
+  Barcode?: string;
+  Name: string;
+  Name_Ar: string;
+  Name_En: string;
+  Price: number;
+  Stock: number;
+  Category: string;
+  Category_Name: string;
+  Category_Name_En: string;
+};
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -25,8 +38,6 @@ export interface AdminProduct {
   categoryNameEn: string;
   inStock: boolean;
   is_active: boolean;
-  is_sale: boolean;
-  original_price?: number;
   imageUrl?: string;
   created_at?: string;
   updated_at?: string;
@@ -44,17 +55,7 @@ export interface AdminStaff {
   updated_at?: string;
 }
 
-export interface AdminOffer {
-  id: string;
-  title: string;
-  description: string;
-  discountPercent: number;
-  startDate: string;
-  endDate: string;
-  isActive: boolean;
-  created_at?: string;
-  updated_at?: string;
-}
+
 
 export interface ApiError {
   message: string;
@@ -112,15 +113,21 @@ function logOperation(operation: string, data?: any, error?: unknown) {
 
 // ─── Product Operations ───────────────────────────────────────────────────────────
 
-export async function fetchAdminProducts(): Promise<AdminProduct[]> {
+export async function fetchAdminProducts(opts?: { signal?: AbortSignal }): Promise<AdminProduct[]> {
   const operation = 'fetchAdminProducts';
   
   try {
     const supabase = getSupabaseClient();
-    const { data, error } = await supabase
+    let query = supabase
       .from('products')
       .select('*')
       .order('created_at', { ascending: false });
+
+    if (opts?.signal) {
+      query = query.abortSignal(opts.signal) as typeof query;
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       logOperation(operation, null, error);
@@ -141,8 +148,7 @@ export async function fetchAdminProducts(): Promise<AdminProduct[]> {
       categoryNameEn: row.Category_Name_En || '',
       inStock: Boolean(row.is_active),
       is_active: Boolean(row.is_active),
-      is_sale: Boolean(row.is_sale),
-      original_price: row.original_price != null ? Number(row.original_price) : undefined,
+      imageUrl: typeof row.image_url === "string" ? row.image_url : undefined,
       created_at: row.created_at,
       updated_at: row.updated_at,
     }));
@@ -167,19 +173,24 @@ export async function updateAdminProduct(payload: ProductMutationPayload): Promi
 
     const supabase = getSupabaseClient();
     
-    // First, find the product by code to get the Supabase ID
-    const { data: existingProduct, error: findError } = await supabase
-      .from('products')
-      .select('id')
-      .eq('Code', payload.Code)
-      .single();
+    // A row ID is unambiguous. Keep the code lookup as a compatibility path
+    // for older callers while forms always send the selected product's ID.
+    let productId = payload.id;
+    if (!productId) {
+      const { data: existingProduct, error: findError } = await supabase
+        .from('products')
+        .select('id')
+        .eq('Code', payload.Code)
+        .single();
 
-    if (findError) {
-      logOperation(operation, { payload }, findError);
-      throw new Error(`Product not found with code ${payload.Code}: ${findError.message}`);
+      if (findError) {
+        logOperation(operation, { payload }, findError);
+        throw new Error(`Product not found with code ${payload.Code}: ${findError.message}`);
+      }
+      productId = existingProduct?.id;
     }
 
-    if (!existingProduct?.id) {
+    if (!productId) {
       throw new Error(`Product not found with code ${payload.Code}`);
     }
 
@@ -197,18 +208,13 @@ export async function updateAdminProduct(payload: ProductMutationPayload): Promi
       is_active: Number(payload.Stock) > 0,
       updated_at: new Date().toISOString(),
     };
-    if (payload.is_sale !== undefined) {
-      updateData.is_sale = payload.is_sale;
-    }
-    if (payload.original_price !== undefined) {
-      updateData.original_price = payload.original_price;
-    }
+
 
     // Update the product
     const { data, error } = await supabase
       .from('products')
       .update(updateData)
-      .eq('id', existingProduct.id)
+      .eq('id', productId)
       .select()
       .single();
 
@@ -235,8 +241,6 @@ export async function updateAdminProduct(payload: ProductMutationPayload): Promi
       categoryNameEn: data.Category_Name_En || '',
       inStock: Boolean(data.is_active),
       is_active: Boolean(data.is_active),
-      is_sale: Boolean(data.is_sale),
-      original_price: data.original_price != null ? Number(data.original_price) : undefined,
       created_at: data.created_at,
       updated_at: data.updated_at,
     };
@@ -268,7 +272,7 @@ export async function createAdminProduct(payload: ProductMutationPayload): Promi
       Category: payload.Category,
       Category_Name: payload.Category_Name,
       Category_Name_En: payload.Category_Name_En,
-      is_active: Number(payload.Stock) > 0, // Auto-set active based on stock
+      is_active: Number(payload.Stock) > 0,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
@@ -302,8 +306,6 @@ export async function createAdminProduct(payload: ProductMutationPayload): Promi
       categoryNameEn: data.Category_Name_En || '',
       inStock: Boolean(data.is_active),
       is_active: Boolean(data.is_active),
-      is_sale: Boolean(data.is_sale),
-      original_price: data.original_price != null ? Number(data.original_price) : undefined,
       created_at: data.created_at,
       updated_at: data.updated_at,
     };
@@ -462,104 +464,7 @@ export async function updateAdminStaff(
   }
 }
 
-// ─── Offer Operations ─────────────────────────────────────────────────────────────
 
-export async function fetchAdminOffers(): Promise<AdminOffer[]> {
-  const operation = 'fetchAdminOffers';
-  
-  try {
-    const supabase = getSupabaseClient();
-    const { data, error } = await supabase
-      .from('offers')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      logOperation(operation, null, error);
-      throw new Error(`Failed to fetch offers: ${error.message}`);
-    }
-
-    const offers: AdminOffer[] = (data || []).map((row: any) => ({
-      id: row.id,
-      title: row.title || '',
-      description: row.description || '',
-      discountPercent: Number(row.discount_percent) || 0,
-      startDate: row.start_date || '',
-      endDate: row.end_date || '',
-      isActive: Boolean(row.is_active),
-      created_at: row.created_at,
-      updated_at: row.updated_at,
-    }));
-
-    logOperation(operation, { count: offers.length });
-    return offers;
-
-  } catch (error) {
-    logOperation(operation, null, error);
-    throw error;
-  }
-}
-
-export async function updateAdminOffer(
-  id: string,
-  updates: Partial<Pick<AdminOffer, 'title' | 'description' | 'discountPercent' | 'startDate' | 'endDate' | 'isActive'>>
-): Promise<AdminOffer> {
-  const operation = 'updateAdminOffer';
-  
-  try {
-    if (!id) {
-      throw new Error('Offer ID is required for updates');
-    }
-
-    const supabase = getSupabaseClient();
-    
-    // Prepare update data for Supabase schema
-    const updateData = {
-      ...(updates.title && { title: updates.title }),
-      ...(updates.description && { description: updates.description }),
-      ...(updates.discountPercent !== undefined && { discount_percent: Number(updates.discountPercent) }),
-      ...(updates.startDate && { start_date: updates.startDate }),
-      ...(updates.endDate && { end_date: updates.endDate }),
-      ...(updates.isActive !== undefined && { is_active: Boolean(updates.isActive) }),
-      updated_at: new Date().toISOString(),
-    };
-
-    const { data, error } = await supabase
-      .from('offers')
-      .update(updateData)
-      .eq('id', id)
-      .select()
-      .single();
-
-    if (error) {
-      logOperation(operation, { id, updates, updateData }, error);
-      throw new Error(`Failed to update offer: ${error.message}`);
-    }
-
-    if (!data) {
-      throw new Error('No data returned after update');
-    }
-
-    const updatedOffer: AdminOffer = {
-      id: data.id,
-      title: data.title || '',
-      description: data.description || '',
-      discountPercent: Number(data.discount_percent) || 0,
-      startDate: data.start_date || '',
-      endDate: data.end_date || '',
-      isActive: Boolean(data.is_active),
-      created_at: data.created_at,
-      updated_at: data.updated_at,
-    };
-
-    logOperation(operation, { id, updates, updatedOffer });
-    return updatedOffer;
-
-  } catch (error) {
-    logOperation(operation, { id, updates }, error);
-    throw error;
-  }
-}
 
 // ─── Utility Functions ─────────────────────────────────────────────────────────────
 

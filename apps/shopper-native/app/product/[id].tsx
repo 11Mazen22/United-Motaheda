@@ -726,11 +726,11 @@ export default function ProductDetailScreen() {
                       </UIText>
                     </View>
 
-                    {/* Original strikethrough + discount % chip when on sale */}
-                    {product.originalPrice && product.originalPrice > product.price && (
-                      <View style={[action.priceCompareRow, { flexDirection: flexRow(IS_RTL) }]}>
+                    {/* Canonical base price + active-promotion discount. */}
+                    {product.hasActivePromotion && product.basePrice > product.price && (
+                      <View style={[action.priceCompareRow, { flexDirection: flexRow(IS_RTL) }]}> 
                         <UIText style={action.priceOriginal} numberOfLines={1}>
-                          {(product.originalPrice * qty).toFixed(2)} {t("common.currency")}
+                          {(product.basePrice * qty).toFixed(2)} {t("common.currency")}
                         </UIText>
                         {product.discountPercent && product.discountPercent > 0 && (
                           <View style={action.discountChip}>

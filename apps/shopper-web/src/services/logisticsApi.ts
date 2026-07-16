@@ -343,9 +343,21 @@ export async function assignDriver(orderId: string, driverId: string | null, sta
     );
   }
 
-  const updatedRow = data[0] as RawOpsOrderRow;
+  let updatedRow = data[0] as RawOpsOrderRow;
   if ((updatedRow.assigned_driver_id ?? null) !== (driverId ?? null)) {
     throw new Error("Driver did not persist; the database returned the previous value.");
+  }
+
+  // Assigning a ready order also advances its lifecycle. Earlier phases may
+  // nominate a driver while preparation is still in progress, so only the
+  // canonical ready state is eligible for this transition.
+  if (driverId && normalizeOrderStatus(updatedRow.status) === "ready") {
+    const { data: transitioned, error: transitionError } = await supabase.rpc("transition_order", {
+      p_order_id: orderId,
+      p_next_status: "driver_assigned",
+    });
+    if (transitionError) throw new Error(transitionError.message);
+    updatedRow = transitioned as RawOpsOrderRow;
   }
 
   if (driverId) {

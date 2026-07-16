@@ -10,13 +10,13 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { Screen, Text as UIText } from "@/shared/ui";
 import { Button, kit } from "@/shared/kit";
-import { HeaderBackButton } from "@/features/orders/components/OrderDetailHelpers";
 import { useAuth } from "@/features/auth";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
 import { showErrorSheet, showSuccessSheet } from "@/shared/store/appSheetStore";
 import { useMyIssuesForOrder } from "../hooks/useDriverManifest";
 import { useDriverMutations } from "../hooks/useDriverMutations";
 import type { IssueReasonCode } from "../api";
+import { DriverScreenHeader } from "../components/DriverScreenHeader";
 
 const IS_RTL = isRtl();
 const TEXT_START = textAlignStart(IS_RTL);
@@ -57,12 +57,7 @@ export function IssueReportScreen(): React.ReactElement {
 
   return (
     <Screen edgeTop keyboardAvoiding background={kit.color.canvas} contentStyle={s.content}>
-      <View style={s.header}>
-        <HeaderBackButton onPress={() => router.back()} />
-        <UIText variant="sheet-title" style={{ textAlign: TEXT_START, flex: 1 }}>
-          {t("driver.reportIssueTitle")}
-        </UIText>
-      </View>
+      <DriverScreenHeader title={t("driver.reportIssueTitle")} subtitle={t("driver.whatWentWrong")} />
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 24 }}>
         {priorOpen && (
@@ -111,7 +106,7 @@ export function IssueReportScreen(): React.ReactElement {
             label={t("driver.submitIssue")}
             icon="send"
             onPress={() => void handleSubmit()}
-            disabled={!selected}
+            disabled={!selected || Boolean(priorOpen)}
             loading={mutations.report.isPending}
             full
             size="lg"
@@ -149,14 +144,6 @@ function ReasonRow({
 
 const s = StyleSheet.create({
   content: { paddingBottom: 0 },
-  header: {
-    flexDirection: flexRow(IS_RTL),
-    alignItems: "center",
-    gap: 12,
-    paddingHorizontal: kit.inset.screen,
-    paddingTop: 12,
-    paddingBottom: 12,
-  },
   priorNotice: {
     flexDirection: flexRow(IS_RTL),
     alignItems: "center",

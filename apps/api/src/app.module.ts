@@ -2,6 +2,7 @@ import { Module } from "@nestjs/common";
 import { PrismaModule } from "./prisma/prisma.module";
 import { BranchesModule } from "./modules/branches/branches.module";
 import { DeliveryModule } from "./modules/delivery/delivery.module";
+import { PromotionCopilotModule } from "./modules/promotion-copilot/promotion-copilot.module";
 
 // Note: an OrdersModule (unauthenticated POST /orders, never set orders.user_id)
 // used to be registered here. Both clients now create orders via the
@@ -10,6 +11,6 @@ import { DeliveryModule } from "./modules/delivery/delivery.module";
 // and apps/shopper-web/src/services/shopperCheckoutApi.ts), so it was
 // removed rather than left live and reachable with no auth guard.
 @Module({
-  imports: [PrismaModule, BranchesModule, DeliveryModule],
+  imports: [PrismaModule, BranchesModule, DeliveryModule, PromotionCopilotModule],
 })
 export class AppModule {}

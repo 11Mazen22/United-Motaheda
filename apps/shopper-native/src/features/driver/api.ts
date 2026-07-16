@@ -279,6 +279,24 @@ export async function getAssignment(assignmentId: string, driverId: string): Pro
 }
 
 export async function acceptAssignment(assignmentId: string, driverId: string): Promise<DeliveryAssignment> {
+  const { data: offer, error: offerError } = await supabase
+    .from("delivery_assignments")
+    .select("order_id")
+    .eq("id", assignmentId)
+    .eq("driver_id", driverId)
+    .eq("response_status", "offered")
+    .maybeSingle();
+
+  if (offerError) throw offerError;
+  const orderId = (offer as { order_id?: string } | null)?.order_id;
+  if (!orderId) throw new Error("This delivery offer is no longer available.");
+
+  const { error: transitionError } = await supabase.rpc("transition_order", {
+    p_order_id: orderId,
+    p_next_status: "driver_accepted",
+  });
+  if (transitionError) throw transitionError;
+
   const { data, error } = await supabase
     .from("delivery_assignments")
     .update({ response_status: "accepted", responded_at: new Date().toISOString() })
@@ -344,19 +362,16 @@ export async function declineAssignment(
 
 // ─── Delivery execution (pickup / in-transit / delivered) ────────────────────
 
-/** Confirm pickup — advances the order to the canonical 'picked_up' status
- * (this app's existing lifecycle already represents "in transit" this way;
- * no separate sub-state was introduced, per the delivery workflow plan). */
+/** Confirm pickup through the canonical order-state machine. */
 export async function confirmPickup(orderId: string, assignmentId: string, driverId: string): Promise<void> {
-  const { data, error } = await supabase
-    .from("orders")
-    .update({ status: "picked_up", updated_at: new Date().toISOString() })
-    .eq("id", orderId)
-    .eq("assigned_driver_id", driverId)
-    .select("id, status");
+  const { data, error } = await supabase.rpc("transition_order", {
+    p_order_id: orderId,
+    p_next_status: "out_for_delivery",
+  });
 
   if (error) throw error;
-  if (!data || data.length === 0) {
+  const updated = data as { assigned_driver_id?: string | null; status?: string } | null;
+  if (!updated || updated.assigned_driver_id !== driverId || updated.status !== "out_for_delivery") {
     throw new Error("Could not confirm pickup — check that this order is still assigned to you.");
   }
 
@@ -370,15 +385,14 @@ export async function confirmPickup(orderId: string, assignmentId: string, drive
 }
 
 export async function completeDelivery(orderId: string, assignmentId: string, driverId: string): Promise<void> {
-  const { data, error } = await supabase
-    .from("orders")
-    .update({ status: "delivered", updated_at: new Date().toISOString() })
-    .eq("id", orderId)
-    .eq("assigned_driver_id", driverId)
-    .select("id, status");
+  const { data, error } = await supabase.rpc("transition_order", {
+    p_order_id: orderId,
+    p_next_status: "delivered",
+  });
 
   if (error) throw error;
-  if (!data || data.length === 0) {
+  const updated = data as { assigned_driver_id?: string | null; status?: string } | null;
+  if (!updated || updated.assigned_driver_id !== driverId || updated.status !== "delivered") {
     throw new Error("Could not mark this order delivered — check that it's still assigned to you.");
   }
 
@@ -399,6 +413,21 @@ export async function reportIssue(
   reasonCode: IssueReasonCode,
   note?: string,
 ): Promise<DeliveryIssue> {
+  // Avoid duplicate open reports during retry/reconnect. This is intentionally
+  // checked at the data boundary as well as in the UI, because a driver can
+  // submit from a stale screen after the realtime update has already arrived.
+  const { data: existing, error: existingError } = await supabase
+    .from("delivery_issues")
+    .select(ISSUE_COLUMNS)
+    .eq("order_id", orderId)
+    .eq("driver_id", driverId)
+    .neq("status", "resolved")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (existingError) throw existingError;
+  if (existing) return mapIssueRow(existing as RawIssueRow);
+
   const { data, error } = await supabase
     .from("delivery_issues")
     .insert({

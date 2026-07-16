@@ -58,13 +58,19 @@
 
 export const CANONICAL_ORDER_STATUSES = [
   "pending",
-  "pending_payment",
   "confirmed",
+  "verification",
+  "payment_pending",
+  "payment_approved",
   "preparing",
   "ready",
   "picked_up",
+  "driver_assigned",
+  "driver_accepted",
+  "out_for_delivery",
   "delivered",
   "cancelled",
+  "archived", 
 ] as const;
 
 export type CanonicalOrderStatus = (typeof CANONICAL_ORDER_STATUSES)[number];
@@ -80,12 +86,13 @@ export type OrderStatus = (typeof ORDER_STATUS_VALUES)[number];
 
 const LEGACY_SYNONYMS: Record<string, CanonicalOrderStatus> = {
   processing: "preparing",
-  shipped: "picked_up",
-  verified: "preparing",
+  shipped: "out_for_delivery",
+  pending_payment: "payment_pending",
+  picked_up: "out_for_delivery",
+  verified: "payment_approved",
   packed: "ready",
   ready_for_dispatch: "ready",
-  out_for_delivery: "picked_up",
-  outfordelivery: "picked_up",
+  outfordelivery: "out_for_delivery",
   canceled: "cancelled",
   returned: "cancelled",
   failed_delivery: "delivered",
@@ -105,13 +112,19 @@ export function normalizeOrderStatus(value: string | null | undefined): Canonica
 
 export const ORDER_STATUS_LABELS: Record<CanonicalOrderStatus, { ar: string; en: string }> = {
   pending: { ar: "في الانتظار", en: "Pending" },
-  pending_payment: { ar: "بانتظار تأكيد الدفع", en: "Awaiting payment" },
   confirmed: { ar: "تم التأكيد", en: "Confirmed" },
+  verification: { ar: "التحقق", en: "Verification" },
+  payment_pending: { ar: "بانتظار الدفع", en: "Payment pending" },
+  payment_approved: { ar: "تم اعتماد الدفع", en: "Payment approved" },
   preparing: { ar: "قيد التجهيز", en: "Preparing" },
-  ready: { ar: "جاهز للتسليم", en: "Ready for pickup" },
-  picked_up: { ar: "خارج للتسليم", en: "Out for delivery" },
+  ready: { ar: "جاهز للاستلام", en: "Ready for pickup" },
+  picked_up: { ar: "تم الاستلام", en: "Picked up" },
+  driver_assigned: { ar: "تم تعيين السائق", en: "Driver assigned" },
+  driver_accepted: { ar: "قبل السائق", en: "Driver accepted" },
+  out_for_delivery: { ar: "خارج للتسليم", en: "Out for delivery" },
   delivered: { ar: "تم التسليم", en: "Delivered" },
   cancelled: { ar: "ملغي", en: "Cancelled" },
+  archived: { ar: "مؤرشف", en: "Archived" },
 };
 
 export function getOrderStatusLabel(status: CanonicalOrderStatus, lang: "ar" | "en"): string {
@@ -125,14 +138,20 @@ export function getOrderStatusLabel(status: CanonicalOrderStatus, lang: "ar" | "
  * legal. Terminal states (delivered, cancelled) have no outgoing edges.
  */
 export const ORDER_STATUS_TRANSITIONS: Record<CanonicalOrderStatus, CanonicalOrderStatus[]> = {
-  pending: ["confirmed", "preparing", "cancelled"],
-  pending_payment: ["confirmed", "cancelled"],
+  pending: ["verification", "cancelled"],
   confirmed: ["preparing", "cancelled"],
-  preparing: ["ready", "picked_up", "cancelled"],
-  ready: ["picked_up", "cancelled"],
+  verification: ["payment_pending", "payment_approved", "cancelled"],
+  payment_pending: ["payment_approved", "cancelled"],
+  payment_approved: ["preparing", "cancelled"],
+  preparing: ["ready", "cancelled"],
+  ready: ["driver_assigned", "cancelled"],
   picked_up: ["delivered", "cancelled"],
-  delivered: [],
-  cancelled: [],
+  driver_assigned: ["driver_accepted", "cancelled"],
+  driver_accepted: ["out_for_delivery", "cancelled"],
+  out_for_delivery: ["delivered", "cancelled"],
+  delivered: ["archived"],
+  cancelled: ["archived"],
+  archived: [],
 };
 
 export function isOrderStatusTransitionAllowed(

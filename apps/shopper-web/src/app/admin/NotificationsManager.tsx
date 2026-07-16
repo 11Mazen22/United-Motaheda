@@ -9,7 +9,6 @@ import {
   BellIcon,
   CheckCircleIcon,
   ClockIcon,
-  ExclamationTriangleIcon,
   MagnifyingGlassIcon,
   MegaphoneIcon,
   PaperAirplaneIcon,
@@ -22,13 +21,12 @@ import {
 } from "@heroicons/react/24/outline";
 import {
   BoltIcon,
-  CheckBadgeIcon,
   SparklesIcon,
 } from "@heroicons/react/24/solid";
+import { toast } from "sonner";
 import { getSupabaseClient } from "../../lib/supabaseClient";
 import { useLanguage } from "../../contexts/LanguageContext";
-import { sendExpoPushToAll, sendExpoPushToUser } from "../../services/pushNotifications";
-import { useDebouncedValue } from "./adminShared";
+import { AdminConfirmDialog, useDebouncedValue } from "./adminShared";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -344,9 +342,7 @@ function UserRecipientPicker({
 
 // ─── Compose form ─────────────────────────────────────────────────────────────
 
-function ComposeCard({
-  onSent,
-}: { onSent: (n: SentNotification) => void }) {
+function ComposeCard() {
   const { lang } = useLanguage();
   const [type,    setType]    = useState<NotifType>("system");
   const [title,   setTitle]   = useState("");
@@ -354,21 +350,20 @@ function ComposeCard({
   const [target,  setTarget]  = useState<SendTarget>("all");
   const [recipients, setRecipients] = useState<RecipientUser[]>([]);
   const [sending, setSending] = useState(false);
-  const [result,  setResult]  = useState<"ok" | "err" | null>(null);
+  const [confirmBroadcastOpen, setConfirmBroadcastOpen] = useState(false);
+  const [broadcastCount, setBroadcastCount] = useState<number | null>(null);
 
   // Apply template
   const applyTemplate = (tmpl: typeof QUICK_TEMPLATES[number]) => {
     setType(tmpl.type);
     setTitle(tmpl.title);
     setBody(tmpl.body);
-    setResult(null);
   };
 
   const handleSend = useCallback(async () => {
     if (!title.trim() || !body.trim()) return;
     if (target === "user" && recipients.length === 0) return;
     setSending(true);
-    setResult(null);
     try {
       const sb = getSupabaseClient();
       const cleanTitle = title.trim();
@@ -380,16 +375,18 @@ function ComposeCard({
         // function isn't deployed on this Supabase instance, so it 404'd and
         // surfaced the "فشل الإرسال" error to the admin every time.
         //
-        // We now do the broadcast directly from the client:
+        // We now enqueue the broadcast durably via `enqueue_notification_batch`
+        // (see supabase/migrations/20260713090000_notification_delivery_pipeline.sql):
         //   1. Pull every active user ID from `profiles` (the source of truth
         //      for app accounts — same table the native app reads/writes).
-        //   2. Bulk-insert one notification row per user. The mobile app's
-        //      realtime channel `notifications:user_id=eq.<uid>` already
-        //      listens for INSERTs on this table, so each device that has the
-        //      app open lights up instantly.
-        //   3. Best-effort: also push to every registered Expo device token
-        //      (so closed apps wake up), via the same shared helper every
-        //      automated order/driver notification uses — see pushNotifications.ts.
+        //   2. The RPC inserts one `notifications` row per recipient (each
+        //      insert is instantly picked up by this screen's own realtime
+        //      subscription below, and by the mobile app's per-user channel)
+        //      and one `notification_outbox` row per recipient.
+        //   3. A scheduled worker (supabase/functions/notification-worker)
+        //      claims the outbox and pushes to every registered Expo device
+        //      token, with retries and per-user preference checks — so closed
+        //      apps still wake up, without the client waiting on that work.
         const { data: profiles, error: pErr } = await sb
           .from("profiles")
           .select("id");
@@ -403,67 +400,35 @@ function ComposeCard({
           throw new Error("No user accounts found to broadcast to.");
         }
 
-        const rows = userIds.map((uid) => ({
-          user_id: uid,
-          type,
-          title:    cleanTitle,
-          body:     cleanBody,
-          is_read:  false,
-        }));
-
-        // Supabase has a 1000-row insert limit per call — chunk to be safe.
-        const CHUNK = 500;
-        for (let i = 0; i < rows.length; i += CHUNK) {
-          const { error: insErr } = await sb
-            .from("notifications")
-            .insert(rows.slice(i, i + CHUNK));
-          if (insErr) throw insErr;
-        }
-
-        void sendExpoPushToAll({ title: cleanTitle, body: cleanBody, data: { type } });
-
-        onSent({
-          id:         Date.now().toString(),
-          user_id:    null,
-          type,
-          title:      cleanTitle,
-          body:       cleanBody,
-          is_read:    false,
-          created_at: new Date().toISOString(),
+        const { error: queueError } = await sb.rpc("enqueue_notification_batch", {
+          p_recipient_ids: userIds,
+          p_event_type: type,
+          p_category: type === "offer" ? "promotions" : "account_updates",
+          p_title: cleanTitle,
+          p_body: cleanBody,
+          p_data: { source: "admin_broadcast", type },
+          p_action_url: null,
+          p_idempotency_namespace: `admin:${crypto.randomUUID()}`,
         });
+        if (queueError) throw queueError;
       } else {
         // ── Selected-recipients path (1 or more) ────────────────────────────
-        const rows = recipients.map((r) => ({
-          user_id: r.id,
-          type,
-          title:   cleanTitle,
-          body:    cleanBody,
-          is_read: false,
-        }));
-        const { data, error } = await sb
-          .from("notifications")
-          .insert(rows)
-          .select();
-        if (error) throw error;
-        const insertedRows = (data ?? []) as SentNotification[];
-        for (const row of insertedRows) onSent(row);
-
-        // This branch previously had no push forwarding at all — a specific
-        // recipient only saw the notification if they had the app open.
-        // notification_id rides along (matched by user_id, not array position —
-        // Postgres doesn't guarantee a bulk insert's RETURNING order matches
-        // the input order) so tapping the push can mark that exact row read.
-        const idByUser = new Map(insertedRows.map((row) => [row.user_id, row.id]));
-        for (const r of recipients) {
-          void sendExpoPushToUser(r.id, {
-            title: cleanTitle,
-            body: cleanBody,
-            data: { type, notification_id: idByUser.get(r.id) },
-          });
-        }
+        // Same durable enqueue/outbox/worker pipeline as the broadcast path
+        // above, scoped to the chosen recipients.
+        const { error: queueError } = await sb.rpc("enqueue_notification_batch", {
+          p_recipient_ids: recipients.map((recipient) => recipient.id),
+          p_event_type: type,
+          p_category: type === "offer" ? "promotions" : "account_updates",
+          p_title: cleanTitle,
+          p_body: cleanBody,
+          p_data: { source: "admin_compose", type },
+          p_action_url: null,
+          p_idempotency_namespace: `admin:${crypto.randomUUID()}`,
+        });
+        if (queueError) throw queueError;
       }
 
-      setResult("ok");
+      toast.success(lang === "ar" ? "تم الإرسال بنجاح!" : "Sent successfully!");
       setTitle("");
       setBody("");
       setRecipients([]);
@@ -471,11 +436,26 @@ function ComposeCard({
       if (import.meta.env.DEV) {
         console.error("[NotificationsManager] send failed:", err);
       }
-      setResult("err");
+      toast.error(lang === "ar" ? "فشل الإرسال. تحقق من إعداد Supabase." : "Failed. Check Supabase config.");
     } finally {
       setSending(false);
     }
-  }, [type, title, body, target, recipients, onSent]);
+  }, [type, title, body, target, recipients, lang]);
+
+  const handleSendClick = useCallback(() => {
+    if (target === "all") {
+      setBroadcastCount(null);
+      setConfirmBroadcastOpen(true);
+      // Best-effort recipient count for the confirmation copy — doesn't block
+      // opening the dialog, and handleSend re-fetches the real ids itself.
+      void getSupabaseClient()
+        .from("profiles")
+        .select("id", { count: "exact", head: true })
+        .then(({ count }) => setBroadcastCount(count ?? null));
+      return;
+    }
+    void handleSend();
+  }, [target, handleSend]);
 
   const isValid = title.trim().length > 0 && body.trim().length > 0 && (target === "all" || recipients.length > 0);
   const meta    = TYPE_META[type];
@@ -650,7 +630,7 @@ function ComposeCard({
           {/* Send */}
           <button
             type="button"
-            onClick={handleSend}
+            onClick={handleSendClick}
             disabled={!isValid || sending}
             className="relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-xl bg-slate-900 px-6 py-3 text-sm font-black text-white shadow-md transition-all hover:bg-slate-800 active:scale-[.98] disabled:cursor-not-allowed disabled:opacity-40">
             {sending && (
@@ -667,21 +647,27 @@ function ComposeCard({
                     : `Send to ${recipients.length} recipient${recipients.length === 1 ? "" : "s"}`)
                   : (lang === "ar" ? "اختر مستلماً واحداً على الأقل" : "Select at least one recipient")}
           </button>
-
-          {result === "ok" && (
-            <div className="flex animate-in fade-in slide-in-from-bottom-2 items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700">
-              <CheckBadgeIcon className="h-5 w-5 shrink-0" />
-              {lang === "ar" ? "تم الإرسال بنجاح!" : "Sent successfully!"}
-            </div>
-          )}
-          {result === "err" && (
-            <div className="flex animate-in fade-in slide-in-from-bottom-2 items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
-              <ExclamationTriangleIcon className="h-5 w-5 shrink-0" />
-              {lang === "ar" ? "فشل الإرسال. تحقق من إعداد Supabase." : "Failed. Check Supabase config."}
-            </div>
-          )}
         </div>
       </div>
+
+      <AdminConfirmDialog
+        open={confirmBroadcastOpen}
+        onClose={() => setConfirmBroadcastOpen(false)}
+        onConfirm={handleSend}
+        title={lang === "ar" ? "تأكيد البث للجميع" : "Confirm broadcast to all"}
+        description={
+          broadcastCount != null
+            ? (lang === "ar"
+              ? `أنت على وشك إرسال إشعار إلى ${broadcastCount} مستخدم. هل تريد الاستمرار؟`
+              : `You are about to notify ${broadcastCount} users. Continue?`)
+            : (lang === "ar"
+              ? "أنت على وشك إرسال إشعار إلى جميع المستخدمين. هل تريد الاستمرار؟"
+              : "You are about to notify all users. Continue?")
+        }
+        tone="warning"
+        confirmLabel={lang === "ar" ? "إرسال" : "Send"}
+        lang={lang}
+      />
     </div>
   );
 }
@@ -751,6 +737,7 @@ function HistoryPanel({
   const { lang } = useLanguage();
   const [filter,   setFilter]   = useState<HistFilter>("all");
   const [newIds,   setNewIds]   = useState<Set<string>>(new Set());
+  const [confirmClearOpen, setConfirmClearOpen] = useState(false);
   const prevLen = sent.length;
 
   // Track newly arrived items
@@ -808,10 +795,10 @@ function HistoryPanel({
         {sent.length > 0 && (
           <button
             type="button"
-            onClick={onDeleteAll}
+            onClick={() => setConfirmClearOpen(true)}
             className="flex items-center gap-1 rounded-lg border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs font-bold text-red-600 transition-colors hover:bg-red-100">
             <TrashIcon className="h-3.5 w-3.5" />
-            {lang === "ar" ? "حذف الكل" : "Clear all"}
+            {lang === "ar" ? "مسح السجل المعروض" : "Clear visible history"}
           </button>
         )}
       </div>
@@ -867,6 +854,21 @@ function HistoryPanel({
           </div>
         )}
       </div>
+
+      <AdminConfirmDialog
+        open={confirmClearOpen}
+        onClose={() => setConfirmClearOpen(false)}
+        onConfirm={onDeleteAll}
+        title={lang === "ar" ? "مسح السجل المعروض؟" : "Clear visible history?"}
+        description={
+          lang === "ar"
+            ? `سيتم حذف ${sent.length} إشعار المعروض حالياً نهائياً. لا يمكن التراجع عن هذا الإجراء.`
+            : `This will permanently delete the ${sent.length} notifications currently shown. This cannot be undone.`
+        }
+        tone="danger"
+        confirmLabel={lang === "ar" ? "حذف" : "Delete"}
+        lang={lang}
+      />
     </div>
   );
 }
@@ -913,10 +915,6 @@ export default function NotificationsManager() {
     return () => { void channel.unsubscribe(); };
   }, []);
 
-  const handleSent = useCallback((n: SentNotification) => {
-    setSent((prev) => [n, ...prev]);
-  }, []);
-
   const handleDelete = useCallback(async (id: string) => {
     setSent((prev) => prev.filter((n) => n.id !== id));
     try { await getSupabaseClient().from("notifications").delete().eq("id", id); } catch { /**/ }
@@ -961,7 +959,7 @@ export default function NotificationsManager() {
             </div>
           )}
 
-          <ComposeCard onSent={handleSent} />
+          <ComposeCard />
         </div>
 
         <HistoryPanel

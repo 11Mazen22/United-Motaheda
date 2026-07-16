@@ -17,6 +17,7 @@ import {
   CalendarDaysIcon,
   CheckCircleIcon,
   ClipboardDocumentListIcon,
+  EyeIcon,
   FunnelIcon,
   TruckIcon,
   XCircleIcon,
@@ -24,11 +25,16 @@ import {
 import { toast } from "sonner";
 import { useAuth } from "../../contexts/AuthContext";
 import { useLanguage } from "../../contexts/LanguageContext";
-import {
-  type AdminOrder as LegacyAdminOrder,
-  type OrderStatus as ApiOrderStatus,
-} from "../../services/googleSheetsApi";
+
 import { normalizeOrderStatus as normalizeCanonicalStatus } from "@pharmacy/contracts";
+import {
+  assignDriver,
+  listDrivers,
+  listOpenAssignments,
+  reassignDriver,
+
+  type LogisticsProfile,
+} from "../../services/logisticsApi";
 import {
   fetchAdminOrders,
   adminUpdateOrderStatus,
@@ -52,22 +58,41 @@ import {
   type AdminRole,
   useDebouncedValue,
 } from "./adminShared";
+import {
+  formatDate,
+  formatDateOnly,
+  isWithinSelectedDateRange,
+} from "./adminDateFilters";
+import { OrderDetailDrawer, type OrderDetailDrawerSummary } from "./OrderDetailDrawer";
 
-type OrderStatus = ApiOrderStatus;
+type OrderStatus = "Pending" | "Processing" | "Out for Delivery" | "Delivered" | "Cancelled";
 type Language = "ar" | "en";
 
-// Bridge: adapt SupabaseAdminOrder to the legacy AdminOrder shape so the
-// existing table / card components continue working while we progressively
-// upgrade the UI.
-type AdminOrder = LegacyAdminOrder & {
-  // Extended fields from the Supabase query
-  paymentStatus:   string;
+// Presentation adapter for the Supabase order contract. This deliberately
+// stays local so the workspace does not depend on the retired Sheets facade.
+type AdminOrder = {
+  id: string;
+  customerName: string;
+  customerPhone: string;
+  customerAddress?: string;
+  productCodes: string[];
+  totalPrice: number;
+  address: string;
+  note: string;
+  orderDate: string;
+  status: OrderStatus;
+  paymentMethod: string;
+  paymentLabel: string;
+  requestPosMachine: boolean;
+  assignedDriver?: string;
+  assignedDriverId?: string;
+  paymentStatus: string;
   paymentProofUrl: string | null;
-  transferNumber:  string | null;
-  items:           AdminOrderItem[];
+  transferNumber: string | null;
+  items: AdminOrderItem[];
 };
 
-function supabaseToAdminOrder(o: SupabaseAdminOrder): AdminOrder {
+function supabaseToAdminOrder(o: SupabaseAdminOrder): WorkflowOrder {
   const addr = o.customerAddress as Record<string, string> | null;
   const formattedAddress =
     typeof addr?.formatted === "string"
@@ -106,12 +131,28 @@ function supabaseToAdminOrder(o: SupabaseAdminOrder): AdminOrder {
     paymentLabel:    getPaymentLabel(o.paymentMethod),
     requestPosMachine: false,
     assignedDriver:  undefined,
-    assignedDriverId: undefined,
-    // extended
+      assignedDriverId: undefined,
+      canonicalStatus: normalizeCanonicalStatus(o.status),
+      assignmentStatus: undefined,
+      // extended
     paymentStatus:   o.paymentStatus,
     paymentProofUrl: o.paymentProofUrl,
     transferNumber:  o.transferNumber,
     items:           o.items,
+  };
+}
+
+function toDrawerSummary(order: AdminOrder): OrderDetailDrawerSummary {
+  return {
+    id: order.id,
+    customerName: order.customerName,
+    customerPhone: order.customerPhone,
+    customerAddress: order.customerAddress ?? order.address,
+    totalPrice: order.totalPrice,
+    orderDate: order.orderDate,
+    paymentLabel: order.paymentLabel,
+    assignedDriver: order.assignedDriver,
+    note: order.note || undefined,
   };
 }
 
@@ -125,7 +166,12 @@ function getPaymentLabel(method: string | null): string {
   }
 }
 type DatePreset = "all" | "today" | "last7" | "last30" | "custom";
-type TabKey = "all" | "pending" | "processing" | "out" | "delivered" | "cancelled";
+type WorkflowStage = "all" | "new" | "verification" | "payment" | "preparation" | "ready" | "assignment" | "accepted" | "out" | "delivered" | "cancelled" | "archived";
+
+type WorkflowOrder = AdminOrder & {
+  canonicalStatus: string;
+  assignmentStatus?: "offered" | "accepted";
+};
 
 const ORDER_STATUSES: OrderStatus[] = [
   "Pending",
@@ -170,66 +216,6 @@ function formatCurrency(value: number, lang: Language): string {
     currency: "EGP",
     maximumFractionDigits: 0,
   }).format(value);
-}
-
-function formatDate(value: string, lang: Language): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat(lang === "ar" ? "ar-EG" : "en-EG", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(date);
-}
-
-function formatDateOnly(value: string, lang: Language): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat(lang === "ar" ? "ar-EG" : "en-EG", {
-    dateStyle: "medium",
-  }).format(date);
-}
-
-function getPresetRange(preset: Exclude<DatePreset, "custom" | "all">) {
-  const now = new Date();
-  const end = new Date(now);
-  end.setHours(23, 59, 59, 999);
-  const start = new Date(now);
-  start.setHours(0, 0, 0, 0);
-
-  if (preset === "last7") {
-    start.setDate(start.getDate() - 6);
-  } else if (preset === "last30") {
-    start.setDate(start.getDate() - 29);
-  }
-
-  return { start, end };
-}
-
-function isWithinSelectedDateRange(orderDate: string, preset: DatePreset, dateFrom: string, dateTo: string) {
-  const value = new Date(orderDate);
-  if (Number.isNaN(value.getTime())) return false;
-
-  if (preset === "all") return true;
-
-  if (preset === "today" || preset === "last7" || preset === "last30") {
-    const { start, end } = getPresetRange(preset);
-    return value >= start && value <= end;
-  }
-
-  if (preset === "custom") {
-    if (dateFrom) {
-      const start = new Date(dateFrom);
-      start.setHours(0, 0, 0, 0);
-      if (value < start) return false;
-    }
-    if (dateTo) {
-      const end = new Date(dateTo);
-      end.setHours(23, 59, 59, 999);
-      if (value > end) return false;
-    }
-  }
-
-  return true;
 }
 
 function allowedNextStatuses(current: OrderStatus, role: AdminRole, paymentStatus?: string): OrderStatus[] {
@@ -282,6 +268,20 @@ const StatusSelect = memo(function StatusSelect({
   );
 });
 
+function getWorkflowStage(order: WorkflowOrder): WorkflowStage {
+  if (order.status === "Cancelled") return "cancelled";
+  if (order.status === "Delivered") return "delivered";
+  if (order.canonicalStatus === "archived") return "archived";
+  if (order.status === "Out for Delivery") return "out";
+  if (order.assignmentStatus === "accepted") return "accepted";
+  if (order.assignmentStatus === "offered" || order.assignedDriverId) return "assignment";
+  if (order.canonicalStatus === "ready") return "ready";
+  if (order.status === "Processing") return "preparation";
+  if (order.paymentStatus === "pending_verification") return "payment";
+  if (order.canonicalStatus === "confirmed" || order.canonicalStatus === "pending_payment") return "verification";
+  return "new";
+}
+
 function getStatusAccentColor(status: OrderStatus): string {
   if (status === "Delivered") return "#10b981";
   if (status === "Cancelled") return "#f43f5e";
@@ -295,11 +295,13 @@ const OrderCard = memo(function OrderCard({
   lang,
   updating,
   onStatusChange,
+  onOpenDetail,
 }: {
-  order: AdminOrder;
+  order: WorkflowOrder;
   lang: Language;
   updating: boolean;
   onStatusChange: (order: AdminOrder, next: OrderStatus) => void;
+  onOpenDetail: (order: WorkflowOrder) => void;
 }) {
   const accent = getStatusAccentColor(order.status);
   return (
@@ -341,6 +343,14 @@ const OrderCard = memo(function OrderCard({
           </div>
           <div className="flex items-center gap-2">
             {updating && <ArrowPathIcon className="h-4 w-4 animate-spin text-teal-600" />}
+            <button
+              type="button"
+              onClick={() => onOpenDetail(order)}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-50 hover:text-teal-600"
+              aria-label={lang === "ar" ? "عرض التفاصيل" : "View details"}
+            >
+              <EyeIcon className="h-4 w-4" />
+            </button>
             <StatusSelect order={order} lang={lang} role="manager" disabled={updating} onChange={onStatusChange} />
           </div>
         </div>
@@ -351,13 +361,13 @@ const OrderCard = memo(function OrderCard({
 
 // ─── Payment status helpers ───────────────────────────────────────────────────
 
-function getPaymentStatusBadge(status: string) {
+function getPaymentStatusBadge(status: string, lang: Language) {
   switch (status) {
     case "pending_verification":
       return (
         <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-amber-700">
           <span className="h-1.5 w-1.5 rounded-full bg-amber-500 shadow-[0_0_4px_rgba(245,158,11,0.6)]" />
-          بانتظار التحقق
+          {lang === "ar" ? "بانتظار التحقق" : "Pending verification"}
         </span>
       );
     case "verified":
@@ -365,14 +375,14 @@ function getPaymentStatusBadge(status: string) {
       return (
         <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-emerald-700">
           <CheckCircleIcon className="h-3 w-3 text-emerald-500" />
-          تم التحقق
+          {lang === "ar" ? "تم التحقق" : "Verified"}
         </span>
       );
     case "failed":
       return (
         <span className="inline-flex items-center gap-1.5 rounded-full border border-rose-200 bg-rose-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-rose-700">
           <XCircleIcon className="h-3 w-3 text-rose-500" />
-          مرفوض
+          {lang === "ar" ? "مرفوض" : "Rejected"}
         </span>
       );
     default:
@@ -389,13 +399,15 @@ const OrderTableRow = memo(function OrderTableRow({
   onStatusChange,
   onVerifyPayment,
   onRejectPayment,
+  onOpenDetail,
 }: {
-  order:           AdminOrder;
+  order:           WorkflowOrder;
   lang:            Language;
   updating:        boolean;
   onStatusChange:  (order: AdminOrder, next: OrderStatus) => void;
   onVerifyPayment: (orderId: string) => void;
   onRejectPayment: (orderId: string) => void;
+  onOpenDetail:    (order: WorkflowOrder) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [proofOpen, setProofOpen] = useState(false);
@@ -464,7 +476,7 @@ const OrderTableRow = memo(function OrderTableRow({
         <td className="px-5 py-4">
           <div className="flex flex-col gap-1">
             <span className="text-xs font-semibold text-slate-700">{order.paymentLabel}</span>
-            {getPaymentStatusBadge(order.paymentStatus)}
+            {getPaymentStatusBadge(order.paymentStatus, lang)}
           </div>
         </td>
 
@@ -482,6 +494,14 @@ const OrderTableRow = memo(function OrderTableRow({
         <td className="px-5 py-4" onClick={(e) => e.stopPropagation()}>
           <div className="flex items-center gap-2">
             {updating && <ArrowPathIcon className="h-4 w-4 animate-spin text-teal-600" />}
+            <button
+              type="button"
+              onClick={() => onOpenDetail(order)}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-50 hover:text-teal-600"
+              aria-label={lang === "ar" ? "عرض التفاصيل" : "View details"}
+            >
+              <EyeIcon className="h-4 w-4" />
+            </button>
             <StatusSelect order={order} lang={lang} role="manager" disabled={updating} onChange={onStatusChange} />
           </div>
         </td>
@@ -625,18 +645,17 @@ export default function OrdersManager() {
   const { user } = useAuth();
   const { lang } = useLanguage();
   const userRole = (user?.role ?? "customer") as AdminRole;
+  const authorized = ["admin", "manager"].includes(userRole);
 
-  if (!["admin", "manager"].includes(userRole)) {
-    return <AdminUnauthorized lang={lang} />;
-  }
-
-  const [orders, setOrders] = useState<AdminOrder[]>([]);
+  const [orders, setOrders] = useState<WorkflowOrder[]>([]);
+  const [drivers, setDrivers] = useState<LogisticsProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
+  const [detailOrder, setDetailOrder] = useState<WorkflowOrder | null>(null);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<OrderStatus | "all">("all");
-  const [activeTab, setActiveTab] = useState<TabKey>("all");
+  const [activeTab, setActiveTab] = useState<WorkflowStage>("all");
   const [datePreset, setDatePreset] = useState<DatePreset>("all");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
@@ -644,34 +663,74 @@ export default function OrdersManager() {
   const [showFilters, setShowFilters] = useState(false);
   const [pendingById, setPendingById] = useState<Record<string, true>>({});
   const firstLoadRef = useRef(true);
+  const loadControllerRef = useRef<AbortController | null>(null);
+  const latestRequestIdRef = useRef(0);
 
   const debouncedSearch = useDebouncedValue(search, 250);
   const hasInvalidCustomRange = datePreset === "custom" && Boolean(dateFrom && dateTo && dateFrom > dateTo);
 
-  const loadOrders = useCallback(async (_force = false) => {
+  // `force` lets the manual refresh button interrupt an in-flight load and
+  // start a fresh one; a non-forced call (e.g. the initial mount effect)
+  // skips itself if a load is already running rather than firing a duplicate.
+  const loadOrders = useCallback(async (force = false) => {
+    if (loadControllerRef.current) {
+      if (!force) return;
+      loadControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    loadControllerRef.current = controller;
+    const requestId = ++latestRequestIdRef.current;
+
     if (!firstLoadRef.current) setRefreshing(true);
     else setLoading(true);
     setError("");
 
     try {
-      // Fetch all pages in one call (pageSize=200 covers most volumes).
-      const { orders: fetched } = await fetchAdminOrders({ pageSize: 200 });
-      const mapped = fetched.map(supabaseToAdminOrder);
+      // The order API remains the canonical source; logistics enriches it with
+      // driver availability and the current assignment state for this workspace.
+      const [{ orders: fetched }, nextDrivers, assignments] = await Promise.all([
+        fetchAdminOrders({ pageSize: 200, signal: controller.signal }),
+        listDrivers(),
+        listOpenAssignments(),
+      ]);
+      const driversById = new Map(nextDrivers.map((driver) => [driver.id, driver]));
+      const assignmentsByOrder = new Map(assignments.map((assignment) => [assignment.orderId, assignment]));
+      const mapped: WorkflowOrder[] = fetched.map((raw) => {
+        const order = supabaseToAdminOrder(raw) as WorkflowOrder;
+        const assignment = assignmentsByOrder.get(order.id);
+        const driver = assignment ? driversById.get(assignment.driverId) : undefined;
+        return {
+          ...order,
+          assignedDriverId: assignment?.driverId,
+          assignedDriver: driver?.full_name,
+          assignmentStatus: assignment?.responseStatus === "accepted" ? "accepted" : assignment ? "offered" : undefined,
+        };
+      });
+      if (controller.signal.aborted || requestId !== latestRequestIdRef.current) return;
       startTransition(() => {
         setOrders(mapped);
+        setDrivers(nextDrivers);
         setLoading(false);
         setRefreshing(false);
         firstLoadRef.current = false;
       });
     } catch (loadError) {
+      if (controller.signal.aborted || requestId !== latestRequestIdRef.current) return;
       setError(loadError instanceof Error ? loadError.message : "Failed to load orders.");
       setLoading(false);
       setRefreshing(false);
+    } finally {
+      if (loadControllerRef.current === controller) {
+        loadControllerRef.current = null;
+      }
     }
   }, []);
 
   useEffect(() => {
     void loadOrders();
+    return () => {
+      loadControllerRef.current?.abort();
+    };
   }, [loadOrders]);
 
   const setRowPending = useCallback((orderId: string, value: boolean) => {
@@ -688,10 +747,9 @@ export default function OrdersManager() {
   const handleStatusChange = useCallback(async (order: AdminOrder, nextStatus: OrderStatus) => {
     if (order.status === nextStatus || pendingById[order.id]) return;
 
-    // Map legacy capitalized UI status → canonical DB status. Targets the
-    // same spellings as the Operations Hub (mapLegacyToCanonicalOrderStatus
-    // in googleSheetsApi.ts) so both admin screens write identical values
-    // for the same action instead of two different strings for one state.
+    // Map the display bucket back to the canonical order status written by
+    // this workspace. The actual mutation is Supabase-native and uses the
+    // same contract as the driver and shopper flows.
     const statusMapReverse: Record<OrderStatus, string> = {
       Pending:            "pending",
       Processing:         "preparing",
@@ -705,7 +763,7 @@ export default function OrdersManager() {
     setRowPending(order.id, true);
     startTransition(() => {
       setOrders((current) => current.map((entry) => (
-        entry.id === order.id ? { ...entry, status: nextStatus } : entry
+        entry.id === order.id ? { ...entry, status: nextStatus, canonicalStatus: statusMapReverse[nextStatus] } : entry
       )));
     });
 
@@ -719,7 +777,7 @@ export default function OrdersManager() {
     } catch {
       startTransition(() => {
         setOrders((current) => current.map((entry) => (
-          entry.id === previousOrder.id ? previousOrder : entry
+          entry.id === previousOrder.id ? previousOrder as WorkflowOrder : entry
         )));
       });
       toast.error(lang === "ar" ? "فشل تحديث حالة الطلب" : "Failed to update order status");
@@ -782,16 +840,40 @@ export default function OrdersManager() {
     }
   }, [lang, orders, pendingById, setRowPending]);
 
+  const handleDriverAssignment = useCallback(async (driverId: string) => {
+    if (!detailOrder || !user?.id || pendingById[detailOrder.id]) return;
+    const nextDriver = drivers.find((driver) => driver.id === driverId);
+    if (!nextDriver) return;
+    const previousOrder = detailOrder;
+    setRowPending(detailOrder.id, true);
+    const optimistic: WorkflowOrder = {
+      ...detailOrder,
+      assignedDriverId: driverId,
+      assignedDriver: nextDriver.full_name,
+      assignmentStatus: "offered",
+    };
+    setOrders((current) => current.map((order) => order.id === optimistic.id ? optimistic : order));
+    setDetailOrder(optimistic);
+    try {
+      if (previousOrder.assignedDriverId && previousOrder.assignedDriverId !== driverId) {
+        await reassignDriver(previousOrder.id, driverId, user.id);
+      } else {
+        await assignDriver(previousOrder.id, driverId, user.id);
+      }
+      toast.success(lang === "ar" ? "تم إرسال تعيين السائق" : "Driver assignment sent");
+    } catch (assignmentError) {
+      setOrders((current) => current.map((order) => order.id === previousOrder.id ? previousOrder : order));
+      setDetailOrder(previousOrder);
+      toast.error(assignmentError instanceof Error ? assignmentError.message : (lang === "ar" ? "تعذر تعيين السائق" : "Could not assign driver"));
+    } finally {
+      setRowPending(previousOrder.id, false);
+    }
+  }, [detailOrder, drivers, lang, pendingById, setRowPending, user?.id]);
+
   const filteredOrders = useMemo(() => {
     const query = debouncedSearch.trim().toLowerCase();
     return orders.filter((order) => {
-      const tabMatches =
-        activeTab === "all"        ? true :
-        activeTab === "pending"    ? order.status === "Pending" :
-        activeTab === "processing" ? order.status === "Processing" :
-        activeTab === "out"        ? order.status === "Out for Delivery" :
-        activeTab === "delivered"  ? order.status === "Delivered" :
-        order.status === "Cancelled";
+      const tabMatches = activeTab === "all" || getWorkflowStage(order) === activeTab;
 
       if (!tabMatches) return false;
       if (statusFilter !== "all" && order.status !== statusFilter) return false;
@@ -813,23 +895,28 @@ export default function OrdersManager() {
     });
   }, [activeTab, dateFrom, datePreset, dateTo, debouncedSearch, hasInvalidCustomRange, orders, statusFilter]);
 
-  const summary = useMemo(() => ({
-    total: orders.length,
-    pending: orders.filter((order) => order.status === "Pending").length,
-    processing: orders.filter((order) => order.status === "Processing").length,
-    out: orders.filter((order) => order.status === "Out for Delivery").length,
-    delivered: orders.filter((order) => order.status === "Delivered").length,
-    cancelled: orders.filter((order) => order.status === "Cancelled").length,
-  }), [orders]);
+  const summary = useMemo(() => {
+    const counts = Object.fromEntries(([
+      "new", "verification", "payment", "preparation", "ready", "assignment",
+      "accepted", "out", "delivered", "cancelled", "archived",
+    ] as WorkflowStage[]).map((stage) => [stage, orders.filter((order) => getWorkflowStage(order) === stage).length])) as Record<WorkflowStage, number>;
+    return { total: orders.length, ...counts };
+  }, [orders]);
 
   const tabs = useMemo(() => ([
-    { key: "all",        label: lang === "ar" ? "الكل" : "All",              count: summary.total },
-    { key: "pending",    label: lang === "ar" ? "في الانتظار" : "Pending",   count: summary.pending },
-    { key: "processing", label: lang === "ar" ? "قيد التجهيز" : "Processing", count: summary.processing },
-    { key: "out",        label: lang === "ar" ? "خارج للتسليم" : "Out for delivery", count: summary.out },
-    { key: "delivered",  label: lang === "ar" ? "تم التسليم" : "Delivered",  count: summary.delivered },
-    { key: "cancelled",  label: lang === "ar" ? "ملغي" : "Cancelled",        count: summary.cancelled },
-  ] satisfies Array<{ key: TabKey; label: string; count: number }>), [lang, summary]);
+    { key: "all", label: lang === "ar" ? "الكل" : "All", count: summary.total },
+    { key: "new", label: lang === "ar" ? "طلبات جديدة" : "New orders", count: summary.new },
+    { key: "verification", label: lang === "ar" ? "التحقق" : "Verification", count: summary.verification },
+    { key: "payment", label: lang === "ar" ? "الدفع" : "Payment", count: summary.payment },
+    { key: "preparation", label: lang === "ar" ? "التجهيز" : "Preparation", count: summary.preparation },
+    { key: "ready", label: lang === "ar" ? "جاهز للاستلام" : "Ready", count: summary.ready },
+    { key: "assignment", label: lang === "ar" ? "تعيين سائق" : "Driver assignment", count: summary.assignment },
+    { key: "accepted", label: lang === "ar" ? "قبل السائق" : "Driver accepted", count: summary.accepted },
+    { key: "out", label: lang === "ar" ? "قيد التوصيل" : "Out for delivery", count: summary.out },
+    { key: "delivered", label: lang === "ar" ? "تم التسليم" : "Delivered", count: summary.delivered },
+    { key: "cancelled", label: lang === "ar" ? "ملغي" : "Cancelled", count: summary.cancelled },
+    { key: "archived", label: lang === "ar" ? "مؤرشف" : "Archived", count: summary.archived },
+  ] satisfies Array<{ key: WorkflowStage; label: string; count: number }>), [lang, summary]);
 
   const totalPages = Math.max(1, Math.ceil(filteredOrders.length / ITEMS_PER_PAGE));
 
@@ -926,22 +1013,24 @@ export default function OrdersManager() {
 
   const thClass = "px-5 py-3.5 text-start text-xs font-black uppercase tracking-[0.18em] text-slate-500";
 
+  if (!authorized) return <AdminUnauthorized lang={lang} />;
+
   return (
     <div className="space-y-6">
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
         <AdminMetricCard label={lang === "ar" ? "إجمالي الطلبات" : "Total orders"} value={summary.total} icon={ClipboardDocumentListIcon} />
-        <AdminMetricCard label={lang === "ar" ? "في الانتظار" : "Pending"} value={summary.pending} tone="amber" />
-        <AdminMetricCard label={lang === "ar" ? "قيد التجهيز" : "Processing"} value={summary.processing} tone="violet" />
-        <AdminMetricCard label={lang === "ar" ? "خارج للتسليم" : "Out for delivery"} value={summary.out} icon={TruckIcon} tone="sky" />
+        <AdminMetricCard label={lang === "ar" ? "بانتظار الدفع" : "Payment review"} value={summary.payment} tone="amber" />
+        <AdminMetricCard label={lang === "ar" ? "قيد التجهيز" : "In preparation"} value={summary.preparation} tone="violet" />
+        <AdminMetricCard label={lang === "ar" ? "تعيين السائقين" : "Driver assignment"} value={summary.assignment + summary.accepted} icon={TruckIcon} tone="sky" />
         <AdminMetricCard label={lang === "ar" ? "تم التسليم" : "Delivered"} value={summary.delivered} icon={CheckCircleIcon} tone="emerald" />
       </div>
 
       <AdminErrorBanner message={error} />
 
       <AdminSectionCard
-        eyebrow={lang === "ar" ? "إدارة الطلبات" : "Order management"}
-        title={lang === "ar" ? "قائمة الطلبات" : "Orders list"}
-        description={lang === "ar" ? "عرض تشغيلي واسع للطلبات مع تبويبات حالات وتصفية تاريخية وتحديث متفائل آمن." : "A broad operational order list with status tabs, date filtering, and safe optimistic updates."}
+        eyebrow={lang === "ar" ? "مركز إدارة الطلبات" : "Order management workspace"}
+        title={lang === "ar" ? "رحلة الطلب الكاملة" : "End-to-end order lifecycle"}
+        description={lang === "ar" ? "مصدر واحد للحالة والدفع والتجهيز والتعيين والتسليم، مع إجراءات آمنة وتحديثات متفائلة قابلة للتراجع." : "One source of truth for verification, payment, preparation, dispatch, and delivery with safe, reversible optimistic updates."}
         bodyClassName="space-y-5 px-0 py-0"
         actions={(
           <div className="flex flex-wrap gap-2">
@@ -975,7 +1064,7 @@ export default function OrdersManager() {
           <AdminTabBar
             tabs={tabs}
             activeTab={activeTab}
-            onChange={(tab) => setActiveTab(tab as TabKey)}
+            onChange={(tab) => setActiveTab(tab as WorkflowStage)}
             className="pb-4"
           />
         </div>
@@ -1084,6 +1173,7 @@ export default function OrdersManager() {
                     lang={lang}
                     updating={Boolean(pendingById[order.id])}
                     onStatusChange={handleStatusChange}
+                    onOpenDetail={setDetailOrder}
                   />
                 ))}
               </div>
@@ -1114,6 +1204,7 @@ export default function OrdersManager() {
                             onStatusChange={handleStatusChange}
                             onVerifyPayment={handleVerifyPayment}
                             onRejectPayment={handleRejectPayment}
+                            onOpenDetail={setDetailOrder}
                           />
                         ))}
                       </tbody>
@@ -1134,6 +1225,60 @@ export default function OrdersManager() {
           onPageChange={setCurrentPage}
         />
       </AdminSectionCard>
+
+      <OrderDetailDrawer
+        open={Boolean(detailOrder)}
+        onClose={() => setDetailOrder(null)}
+        lang={lang}
+        order={detailOrder ? toDrawerSummary(detailOrder) : null}
+        statusBadge={detailOrder ? (
+          <span className={cn("admin-badge", getStatusClasses(detailOrder.status))}>
+            <span className={cn("h-1.5 w-1.5 rounded-full", getStatusDot(detailOrder.status))} />
+            {getStatusLabel(detailOrder.status, lang)}
+          </span>
+        ) : null}
+        actions={detailOrder ? (
+          <div className="space-y-3">
+            <div>
+              <p className="mb-1.5 text-[11px] font-black uppercase tracking-widest text-slate-400">
+                {lang === "ar" ? "تعيين السائق" : "Driver assignment"}
+              </p>
+              <select
+                value={detailOrder.assignedDriverId ?? ""}
+                disabled={Boolean(pendingById[detailOrder.id])}
+                onChange={(event) => {
+                  if (event.target.value) void handleDriverAssignment(event.target.value);
+                }}
+                className="admin-input h-10 w-full rounded-xl border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700"
+              >
+                <option value="">{lang === "ar" ? "اختر سائقاً" : "Select a driver"}</option>
+                {drivers.filter((driver) => driver.is_active).map((driver) => (
+                  <option key={driver.id} value={driver.id}>{driver.full_name}</option>
+                ))}
+              </select>
+              <p className="mt-1 text-xs text-slate-500">
+                {detailOrder.assignmentStatus === "accepted"
+                  ? (lang === "ar" ? "قبل السائق المهمة — تابع التقدم في الخط الزمني أدناه." : "Driver accepted — follow delivery progress in the timeline below.")
+                  : detailOrder.assignmentStatus === "offered"
+                    ? (lang === "ar" ? "بانتظار قبول السائق." : "Waiting for the driver to accept.")
+                    : (lang === "ar" ? "سيظهر قبول السائق وتقدم التوصيل في الخط الزمني." : "Acceptance and delivery progress appear in the timeline.")}
+              </p>
+            </div>
+            <div>
+              <p className="mb-1.5 text-[11px] font-black uppercase tracking-widest text-slate-400">
+                {lang === "ar" ? "تحديث مرحلة الطلب" : "Update order stage"}
+              </p>
+              <StatusSelect
+                order={detailOrder}
+                lang={lang}
+                role={userRole}
+                disabled={Boolean(pendingById[detailOrder.id])}
+                onChange={handleStatusChange}
+              />
+            </div>
+          </div>
+        ) : null}
+      />
     </div>
   );
 }

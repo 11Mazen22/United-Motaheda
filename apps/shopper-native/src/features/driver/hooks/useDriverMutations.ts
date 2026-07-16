@@ -20,9 +20,13 @@ import { driverQueryKeys, invalidateDriverLists } from "./useDriverManifest";
 export function useDriverMutations(driverId: string | undefined) {
   const queryClient = useQueryClient();
   const invalidateAll = () => { if (driverId) invalidateDriverLists(queryClient, driverId); };
+  const requireDriverId = (): string => {
+    if (!driverId) throw new Error("Driver session is no longer available. Please sign in again.");
+    return driverId;
+  };
 
   const accept = useMutation({
-    mutationFn: (assignmentId: string) => acceptAssignment(assignmentId, driverId as string),
+    mutationFn: (assignmentId: string) => acceptAssignment(assignmentId, requireDriverId()),
     onSuccess: (_data, assignmentId) => {
       invalidateAll();
       void queryClient.invalidateQueries({ queryKey: driverQueryKeys.offer(assignmentId) });
@@ -31,7 +35,7 @@ export function useDriverMutations(driverId: string | undefined) {
 
   const decline = useMutation({
     mutationFn: (args: { assignmentId: string; orderId: string; reason: string }) =>
-      declineAssignment(args.assignmentId, driverId as string, args.orderId, args.reason),
+      declineAssignment(args.assignmentId, requireDriverId(), args.orderId, args.reason),
     onSuccess: (_data, args) => {
       invalidateAll();
       void queryClient.invalidateQueries({ queryKey: driverQueryKeys.offer(args.assignmentId) });
@@ -40,7 +44,7 @@ export function useDriverMutations(driverId: string | undefined) {
 
   const pickup = useMutation({
     mutationFn: (args: { orderId: string; assignmentId: string }) =>
-      confirmPickup(args.orderId, args.assignmentId, driverId as string),
+      confirmPickup(args.orderId, args.assignmentId, requireDriverId()),
     onSuccess: (_data, args) => {
       invalidateAll();
       void queryClient.invalidateQueries({ queryKey: driverQueryKeys.order(args.orderId) });
@@ -49,7 +53,7 @@ export function useDriverMutations(driverId: string | undefined) {
 
   const deliver = useMutation({
     mutationFn: (args: { orderId: string; assignmentId: string }) =>
-      completeDelivery(args.orderId, args.assignmentId, driverId as string),
+      completeDelivery(args.orderId, args.assignmentId, requireDriverId()),
     onSuccess: (_data, args) => {
       invalidateAll();
       void queryClient.invalidateQueries({ queryKey: driverQueryKeys.order(args.orderId) });
@@ -58,7 +62,7 @@ export function useDriverMutations(driverId: string | undefined) {
 
   const report = useMutation({
     mutationFn: (args: { orderId: string; reasonCode: IssueReasonCode; note?: string }) =>
-      reportIssue(args.orderId, driverId as string, args.reasonCode, args.note),
+      reportIssue(args.orderId, requireDriverId(), args.reasonCode, args.note),
     onSuccess: (_data, args) => {
       void queryClient.invalidateQueries({ queryKey: driverQueryKeys.issues(args.orderId) });
     },

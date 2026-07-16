@@ -10,13 +10,14 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { Screen, Text as UIText } from "@/shared/ui";
 import { Button, kit } from "@/shared/kit";
-import { HeaderBackButton, InfoRow } from "@/features/orders/components/OrderDetailHelpers";
+import { InfoRow } from "@/features/orders/components/OrderDetailHelpers";
 import { useAuth } from "@/features/auth";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
 import { formatPrice } from "@/utils/format";
 import { showErrorSheet, showSuccessSheet } from "@/shared/store/appSheetStore";
 import { useDriverOffer, useDriverOrderDetail } from "../hooks/useDriverManifest";
 import { useDriverMutations } from "../hooks/useDriverMutations";
+import { DriverScreenHeader } from "../components/DriverScreenHeader";
 
 const IS_RTL = isRtl();
 const TEXT_START = textAlignStart(IS_RTL);
@@ -60,12 +61,7 @@ export function AssignmentOfferDetail(): React.ReactElement {
 
   return (
     <Screen edgeTop scroll background={kit.color.canvas} contentStyle={s.content}>
-      <View style={s.header}>
-        <HeaderBackButton onPress={() => router.back()} />
-        <UIText variant="sheet-title" style={{ textAlign: TEXT_START, flex: 1 }}>
-          {t("driver.newDeliveryOffer")}
-        </UIText>
-      </View>
+      <DriverScreenHeader title={t("driver.newDeliveryOffer")} subtitle={t("driver.tapToRespond")} />
 
       {loading ? (
         <View style={s.centered}><UIText color="secondary">{t("common.loading")}</UIText></View>
@@ -154,14 +150,6 @@ export function AssignmentOfferDetail(): React.ReactElement {
 
 const s = StyleSheet.create({
   content: { paddingBottom: 40 },
-  header: {
-    flexDirection: flexRow(IS_RTL),
-    alignItems: "center",
-    gap: 12,
-    paddingHorizontal: kit.inset.screen,
-    paddingTop: 12,
-    paddingBottom: 16,
-  },
   centered: { alignItems: "center", paddingTop: 60, paddingHorizontal: 24 },
   card: {
     marginHorizontal: kit.inset.screen,

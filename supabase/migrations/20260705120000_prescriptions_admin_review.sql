@@ -52,7 +52,7 @@ alter table public.refill_requests
   add column if not exists rejection_reason text;
 
 create index if not exists refill_requests_status_idx
-  on public.refill_requests (status, created_at desc);
+  on public.refill_requests (status, placed_at desc);
 
 -- ─── RLS: prescriptions — staff visibility + review action ──────────────────
 -- Additive only. Existing customer-scoped select/insert policies (not defined

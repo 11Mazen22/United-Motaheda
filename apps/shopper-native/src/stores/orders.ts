@@ -42,10 +42,14 @@ export type OrderStatus =
   | "processing"
   | "preparing"
   | "ready"
+  | "driver_assigned"
+  | "driver_accepted"
+  | "out_for_delivery"
   | "shipped"
   | "picked_up"
   | "delivered"
-  | "cancelled";
+  | "cancelled"
+  | "archived";
 
 export interface Order {
   id:        string;

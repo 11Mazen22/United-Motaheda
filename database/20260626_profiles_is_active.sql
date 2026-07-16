@@ -1,6 +1,6 @@
 -- Add is_active column to profiles table.
--- This column gates staff access (adminStaffApi) and soft-delete (adminUsersApi).
--- Customer accounts have NULL (not set); staff default to true; soft-deleted get false.
+-- This column gates staff access (adminStaffApi) and account activation status.
+-- Customer accounts have NULL (not set); staff default to true.
 
 ALTER TABLE public.profiles
   ADD COLUMN IF NOT EXISTS is_active boolean DEFAULT NULL;

@@ -16,13 +16,14 @@ import {
   HeartIcon,
   HomeIcon,
   InboxStackIcon,
-  ServerStackIcon,
+
   ShieldCheckIcon,
   Squares2X2Icon,
   TruckIcon,
   UsersIcon,
   UserGroupIcon,
   BellIcon,
+  TagIcon,
   VideoCameraIcon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
@@ -37,7 +38,8 @@ const SECTION_COLOR: Record<string, { accent: string; bg: string; border: string
   overview:      { accent: "#0E7E74", bg: "rgba(14,126,116,0.18)",  border: "rgba(14,126,116,0.30)",  text: "#5ee7c8" },
   orders:        { accent: "#0EA5E9", bg: "rgba(14,165,233,0.18)",  border: "rgba(14,165,233,0.30)",  text: "#7dd3fc" },
   inventory:     { accent: "#6366F1", bg: "rgba(99,102,241,0.18)",  border: "rgba(99,102,241,0.30)",  text: "#a5b4fc" },
-  operations:    { accent: "#F59E0B", bg: "rgba(245,158,11,0.15)",  border: "rgba(245,158,11,0.28)",  text: "#fcd34d" },
+  promotions:    { accent: "#D946EF", bg: "rgba(217,70,239,0.18)",  border: "rgba(217,70,239,0.30)",  text: "#f0abfc" },
+
   prescriptions: { accent: "#EF4444", bg: "rgba(239,68,68,0.15)",   border: "rgba(239,68,68,0.28)",   text: "#fca5a5" },
   users:         { accent: "#8B5CF6", bg: "rgba(139,92,246,0.18)", border: "rgba(139,92,246,0.30)",  text: "#c4b5fd" },
   notifications: { accent: "#EC4899", bg: "rgba(236,72,153,0.15)", border: "rgba(236,72,153,0.28)",  text: "#f9a8d4" },
@@ -92,18 +94,11 @@ const ALL_SECTIONS: NavSection[] = [
     icon: CubeIcon,
     items: [
       { to: "/admin/products/fast-entry", labelAr: "الإدخال السريع", labelEn: "Fast Entry", hintAr: "باركود وصورة وحفظ سريع", hintEn: "Barcode scan, snapshot, save", icon: VideoCameraIcon, allowedRoles: ["admin", "manager", "pharmacist"] },
-      { to: "/admin/products", labelAr: "كتالوج المنتجات", labelEn: "Product Catalog", hintAr: "الكتالوج والمخزون الكامل", hintEn: "Full catalog and stock levels", icon: CubeIcon, allowedRoles: ["admin", "manager", "pharmacist"] },
+      { to: "/admin/products", end: true, labelAr: "كتالوج المنتجات", labelEn: "Product Catalog", hintAr: "الكتالوج والمخزون الكامل", hintEn: "Full catalog and stock levels", icon: CubeIcon, allowedRoles: ["admin", "manager", "pharmacist"] },
+      { to: "/admin/promotions", labelAr: "العروض", labelEn: "Promotions", hintAr: "عروض مجدولة وأسعار محكمة", hintEn: "Scheduled, controlled discounts", icon: TagIcon, allowedRoles: ["admin", "manager"] },
     ],
   },
-  {
-    key: "operations",
-    labelAr: "مركز العمليات",
-    labelEn: "Operations",
-    icon: ServerStackIcon,
-    items: [
-      { to: "/admin/operations", labelAr: "لوحة التسليم", labelEn: "Operations Hub", hintAr: "تعيين السائقين وتتبع التسليم", hintEn: "Driver assignment and delivery tracking", icon: ServerStackIcon, allowedRoles: ["admin", "manager"] },
-    ],
-  },
+
   {
     key: "prescriptions",
     labelAr: "الوصفات الطبية",

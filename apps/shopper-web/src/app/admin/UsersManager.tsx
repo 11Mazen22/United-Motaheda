@@ -3,13 +3,11 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import {
-  ArrowDownIcon,
   ArrowPathIcon,
-  ArrowUpIcon,
-  ArrowsUpDownIcon,
   CheckBadgeIcon,
   EllipsisVerticalIcon,
   FunnelIcon,
@@ -47,7 +45,6 @@ import {
 import { cn } from "../components/UI";
 import { useLanguage } from "../../contexts/LanguageContext";
 import { useAuth } from "../../contexts/AuthContext";
-import { getSupabaseClient } from "../../lib/supabaseClient";
 import { toast } from "sonner";
 import { ROLE_VALUES, ROLE_LABELS, type Role } from "@pharmacy/contracts";
 import {
@@ -64,18 +61,26 @@ import {
   useDebouncedValue,
   type AdminDetailDrawerSummary,
 } from "./adminShared";
+import { SortIcon } from "./adminTableIcons";
+import { buildSelfActionWarning } from "./adminSelfActionWarning";
+import { useBulkSelection } from "../../hooks/useBulkSelection";
+import { useDirectoryCounts } from "../../hooks/useDirectoryCounts";
+import { useSortableColumn } from "../../hooks/useSortableColumn";
+import { useAdminConfirmedAction } from "../../hooks/useAdminConfirmedAction";
+import { useAdminBulkStatus } from "../../hooks/useAdminBulkStatus";
 import SuspendDialog from "./SuspendDialog";
 import DeleteUserDialog from "./DeleteUserDialog";
 import {
   changeUserRole,
   changeUserStatus,
-  fetchStatusCounts,
+  deleteUserPermanently,
   fetchUsers,
   lockAccount,
   resetUserSessions,
   unlockAccount,
   unsuspendUser,
   type AdminUser,
+  type DeleteUserPayload,
   type FetchUsersOptions,
 } from "../../services/adminUsersApi";
 
@@ -85,13 +90,6 @@ type UserStatus = "Active" | "Inactive" | "Suspended";
 type StatusFilter = "all" | UserStatus;
 type RoleFilter = "all" | Role;
 type SortField = "full_name" | "email" | "created_at" | "status" | "role";
-
-interface UserCounts {
-  total: number;
-  active: number;
-  suspended: number;
-  inactive: number;
-}
 
 // Role/lock/reset go through the generic AdminConfirmDialog (mirrors
 // StaffManager's PendingAction shape). Suspend/unsuspend/delete keep using
@@ -192,15 +190,6 @@ function RoleBadge({ role, lang }: { role: string; lang: "ar" | "en" }) {
   );
 }
 
-// ─── Sort icon ────────────────────────────────────────────────────────────────
-
-function SortIcon({ active, dir }: { active: boolean; dir: "asc" | "desc" }) {
-  if (!active) return <ArrowsUpDownIcon className="h-3.5 w-3.5 text-slate-300" />;
-  return dir === "asc"
-    ? <ArrowUpIcon className="h-3.5 w-3.5 text-teal-600" />
-    : <ArrowDownIcon className="h-3.5 w-3.5 text-teal-600" />;
-}
-
 // ─── Unsuspend confirm dialog ─────────────────────────────────────────────────
 
 function UnsuspendDialog({
@@ -274,21 +263,20 @@ export default function UsersManager() {
   const [total, setTotal]       = useState(0);
   const [loading, setLoading]   = useState(true);
   const [error, setError]       = useState("");
-  const [counts, setCounts]     = useState<UserCounts>({ total: 0, active: 0, suspended: 0, inactive: 0 });
 
-  // ── Filter / sort state ─────────────────────────────────────────────────────
+  // ── Filter / sort state ──────────────────────────────────────────────────────
   const [rawSearch, setRawSearch] = useState("");
   const search = useDebouncedValue(rawSearch, 350);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [roleFilter, setRoleFilter]     = useState<RoleFilter>("all");
-  const [sortBy, setSortBy]   = useState<SortField>("created_at");
-  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const { sortBy, sortDir, handleSort } = useSortableColumn<SortField>("created_at", "desc");
   const [page, setPage]       = useState(1);
+  const listRequestId = useRef(0);
 
-  // ── Selection state ─────────────────────────────────────────────────────────
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  // ── Selection state ──────────────────────────────────────────────────────────────
+  const bulk = useBulkSelection(users, { excludeId: adminUser?.id ?? null });
 
-  // ── Detail drawer + confirm-dialog state ────────────────────────────────────
+  // ── Detail drawer + confirm-dialog state ─────────────────────────────────────────
   const [detailId, setDetailId] = useState<string | null>(null);
   const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
 
@@ -300,6 +288,7 @@ export default function UsersManager() {
 
   // ── Load users ──────────────────────────────────────────────────────────────
   const loadUsers = useCallback(async () => {
+    const requestId = ++listRequestId.current;
     setLoading(true);
     setError("");
     try {
@@ -313,12 +302,14 @@ export default function UsersManager() {
         sortDir,
       };
       const result = await fetchUsers(opts);
+      if (requestId !== listRequestId.current) return;
       setUsers(result.users);
       setTotal(result.total);
     } catch (err) {
+      if (requestId !== listRequestId.current) return;
       setError(err instanceof Error ? err.message : "Failed to load users");
     } finally {
-      setLoading(false);
+      if (requestId === listRequestId.current) setLoading(false);
     }
   }, [page, search, statusFilter, roleFilter, sortBy, sortDir]);
 
@@ -326,56 +317,66 @@ export default function UsersManager() {
 
   // Reset page when filters change
   useEffect(() => { setPage(1); }, [search, statusFilter, roleFilter, sortBy, sortDir]);
+  useEffect(() => { bulk.clear(); }, [page, search, statusFilter, roleFilter, sortBy, sortDir, bulk.clear]);
 
   // ── Load counts (single aggregate RPC — replaces the old unfiltered
   // select('status') over the whole table, re-run after every mutation) ──────
-  const loadCounts = useCallback(async () => {
-    try {
-      const result = await fetchStatusCounts();
-      setCounts(result);
-    } catch {
-      // counts are cosmetic — ignore errors
-    }
-  }, []);
-
-  useEffect(() => { void loadCounts(); }, [loadCounts]);
+  const { counts, reload: loadCounts, setCounts } = useDirectoryCounts("all");
 
   const refreshAll = useCallback(() => {
     startTransition(() => { void loadUsers(); void loadCounts(); });
   }, [loadUsers, loadCounts]);
 
-  // ── Sort toggle ─────────────────────────────────────────────────────────────
-  const handleSort = (field: SortField) => {
-    if (sortBy === field) {
-      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
-    } else {
-      setSortBy(field);
-      setSortDir("asc");
+  const handlePermanentDelete = useCallback(async (payload: DeleteUserPayload) => {
+    const deletedUser = users.find((user) => user.id === payload.userId);
+    if (!deletedUser) throw new Error("User is no longer present in this result set.");
+
+    const previousUsers = users;
+    const previousTotal = total;
+    const previousCounts = counts;
+    const previousDetailId = detailId;
+
+    // Prevent an older search/filter request from restoring the row while the
+    // transactional delete is still in flight.
+    listRequestId.current += 1;
+    setLoading(false);
+    setUsers((current) => current.filter((user) => user.id !== payload.userId));
+    setTotal((current) => Math.max(0, current - 1));
+    setDetailId((current) => current === payload.userId ? null : current);
+    setCounts((current) => ({
+      ...current,
+      total: Math.max(0, current.total - 1),
+      active: Math.max(0, current.active - (deletedUser.status === "Active" ? 1 : 0)),
+      suspended: Math.max(0, current.suspended - (deletedUser.status === "Suspended" ? 1 : 0)),
+      inactive: Math.max(0, current.inactive - (deletedUser.status === "Inactive" ? 1 : 0)),
+      staff: Math.max(0, current.staff - (deletedUser.role !== "customer" ? 1 : 0)),
+      customers: Math.max(0, current.customers - (deletedUser.role === "customer" ? 1 : 0)),
+      admins: Math.max(0, current.admins - (deletedUser.role === "admin" ? 1 : 0)),
+      managers: Math.max(0, current.managers - (deletedUser.role === "manager" ? 1 : 0)),
+      pharmacists: Math.max(0, current.pharmacists - (deletedUser.role === "pharmacist" ? 1 : 0)),
+      drivers: Math.max(0, current.drivers - (deletedUser.role === "driver" ? 1 : 0)),
+    }));
+
+    try {
+      await deleteUserPermanently(payload);
+      void loadCounts();
+      if (previousUsers.length === 1 && page > 1) {
+        setPage((current) => Math.max(1, current - 1));
+      } else {
+        void loadUsers();
+      }
+    } catch (err) {
+      setUsers(previousUsers);
+      setTotal(previousTotal);
+      setCounts(previousCounts);
+      setDetailId(previousDetailId);
+      void loadUsers();
+      void loadCounts();
+      throw err;
     }
-  };
+  }, [users, total, counts, detailId, setCounts, loadCounts, page, loadUsers]);
 
-  // ── Selection (self excluded — same convention as StaffManager) ────────────
-  const selectableUsers = users.filter((u) => u.id !== adminUser?.id);
-  const allSelected = selectableUsers.length > 0 && selectableUsers.every((u) => selectedIds.has(u.id));
-  const toggleAll = () => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (allSelected) selectableUsers.forEach((u) => next.delete(u.id));
-      else selectableUsers.forEach((u) => next.add(u.id));
-      return next;
-    });
-  };
-  const toggleRow = (id: string) => {
-    if (id === adminUser?.id) return;
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
-  };
-  const clearSelection = () => setSelectedIds(new Set());
-
-  // ── Unsuspend ────────────────────────────────────────────────────────────────
+  // ── Unsuspend ─────────────────────────────────────────────────────────────────
   const handleUnsuspendConfirm = async () => {
     if (!unsuspendTarget || !adminUser) return;
     setUnsuspendLoading(true);
@@ -391,56 +392,47 @@ export default function UsersManager() {
     }
   };
 
-  // ── Confirmed mutations: role / lock / reset sessions ───────────────────────
+  // ── Confirmed mutations: role / lock / reset sessions ───────────────────
+  const runConfirmedAction = useAdminConfirmedAction(isArabic);
   const handleConfirmedAction = useCallback(async () => {
     if (!pendingAction || !adminUser) return;
     const { kind } = pendingAction;
-    try {
+    await runConfirmedAction(async () => {
       if (kind === "role") {
-        await changeUserRole(pendingAction.member.id, pendingAction.nextRole, adminUser.id, adminUser.email);
+        await changeUserRole(pendingAction.member.id, pendingAction.nextRole);
         toast.success(
           isArabic
             ? `تم تعيين ${pendingAction.member.fullName || "المستخدم"} كـ${getRoleLabel(pendingAction.nextRole, lang)}`
             : `${pendingAction.member.fullName || "User"} is now ${getRoleLabel(pendingAction.nextRole, lang)}`,
         );
       } else if (kind === "lock") {
-        if (pendingAction.locked) await lockAccount(pendingAction.member.id, adminUser.id, adminUser.email);
-        else await unlockAccount(pendingAction.member.id, adminUser.id, adminUser.email);
+        if (pendingAction.locked) await lockAccount(pendingAction.member.id);
+        else await unlockAccount(pendingAction.member.id);
         toast.success(
           pendingAction.locked
             ? (isArabic ? "تم قفل الحساب" : "Account locked")
             : (isArabic ? "تم فتح قفل الحساب" : "Account unlocked"),
         );
       } else if (kind === "reset") {
-        await resetUserSessions(pendingAction.member.id, adminUser.id, adminUser.email);
+        await resetUserSessions(pendingAction.member.id);
         toast.success(isArabic ? "تم إنهاء جميع الجلسات النشطة" : "All active sessions were reset");
       }
       refreshAll();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : (isArabic ? "فشل الإجراء" : "Action failed"));
-      throw err; // keep AdminConfirmDialog open on failure
-    }
-  }, [pendingAction, adminUser, isArabic, lang, refreshAll]);
+    });
+  }, [pendingAction, adminUser, isArabic, lang, refreshAll, runConfirmedAction]);
 
   // ── Bulk status actions (status-only — see AdminBulkActionBar's own scope
-  // note; role/lock/delete never get a bulk path) ─────────────────────────────
+  // note; role/lock/delete never get a bulk path) ───────────────────────
+  const runBulkStatusUpdate = useAdminBulkStatus(isArabic);
   const runBulkStatus = useCallback(
-    async (nextStatus: UserStatus) => {
+    async (nextStatus: "Active" | "Inactive") => {
       if (!adminUser) return;
-      const ids = Array.from(selectedIds);
-      const results = await Promise.allSettled(
-        ids.map((id) => changeUserStatus(id, nextStatus, adminUser.id, adminUser.email)),
-      );
-      const failed = results.filter((r) => r.status === "rejected").length;
-      if (failed > 0) {
-        toast.error(isArabic ? `فشل تحديث ${failed} حساب` : `Failed to update ${failed} account(s)`);
-      } else {
-        toast.success(isArabic ? "تم تحديث الحسابات المحددة" : "Selected accounts updated");
-      }
-      clearSelection();
+      const ids = Array.from(bulk.selected);
+      await runBulkStatusUpdate(ids, (id) => changeUserStatus(id, nextStatus));
+      bulk.clear();
       refreshAll();
     },
-    [selectedIds, adminUser, isArabic, refreshAll],
+    [bulk.selected, bulk.clear, adminUser, refreshAll, runBulkStatusUpdate],
   );
 
   // ── Status tab counts ────────────────────────────────────────────────────────
@@ -585,12 +577,12 @@ export default function UsersManager() {
 
         {/* ── Bulk action bar (status-only — activate/suspend) ── */}
         <AdminBulkActionBar
-          selectedCount={selectedIds.size}
+          selectedCount={bulk.count}
           lang={lang}
-          onClear={clearSelection}
+          onClear={bulk.clear}
           actions={[
             { key: "activate", label: isArabic ? "تنشيط" : "Activate", icon: CheckBadgeIcon, onClick: () => void runBulkStatus("Active") },
-            { key: "suspend", label: isArabic ? "تعليق" : "Suspend", icon: ShieldExclamationIcon, tone: "danger", onClick: () => void runBulkStatus("Suspended") },
+            { key: "deactivate", label: isArabic ? "إلغاء التنشيط" : "Deactivate", icon: UserCircleIcon, tone: "danger", onClick: () => void runBulkStatus("Inactive") },
           ]}
         />
 
@@ -626,8 +618,8 @@ export default function UsersManager() {
                   <TableHead className="w-12 ps-4">
                     <input
                       type="checkbox"
-                      checked={allSelected}
-                      onChange={toggleAll}
+                      checked={bulk.allSelected}
+                      onChange={bulk.toggleAll}
                       className="h-4 w-4 rounded border-slate-300 accent-teal-600"
                       aria-label={isArabic ? "تحديد الكل" : "Select all"}
                     />
@@ -635,37 +627,53 @@ export default function UsersManager() {
 
                   {/* User */}
                   <TableHead
-                    className="min-w-[200px] cursor-pointer select-none"
-                    onClick={() => handleSort("full_name")}
+                    className="min-w-[200px]"
+                    aria-sort={sortBy === "full_name" ? (sortDir === "asc" ? "ascending" : "descending") : "none"}
                   >
-                    <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => handleSort("full_name")}
+                      className="flex items-center gap-1.5 select-none rounded outline-none focus-visible:ring-2 focus-visible:ring-teal-500/40"
+                    >
                       <span className="text-xs font-black uppercase tracking-wide text-slate-500">
                         {isArabic ? "المستخدم" : "User"}
                       </span>
                       <SortIcon active={sortBy === "full_name"} dir={sortDir} />
-                    </div>
+                    </button>
                   </TableHead>
 
                   {/* Role */}
-                  <TableHead className="hidden min-w-[110px] sm:table-cell">
-                    <div className="flex items-center gap-1.5">
+                  <TableHead
+                    className="hidden min-w-[110px] sm:table-cell"
+                    aria-sort={sortBy === "role" ? (sortDir === "asc" ? "ascending" : "descending") : "none"}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => handleSort("role")}
+                      className="flex items-center gap-1.5 select-none rounded outline-none focus-visible:ring-2 focus-visible:ring-teal-500/40"
+                    >
                       <span className="text-xs font-black uppercase tracking-wide text-slate-500">
                         {isArabic ? "الدور" : "Role"}
                       </span>
-                    </div>
+                      <SortIcon active={sortBy === "role"} dir={sortDir} />
+                    </button>
                   </TableHead>
 
                   {/* Status */}
                   <TableHead
-                    className="min-w-[110px] cursor-pointer select-none"
-                    onClick={() => handleSort("status")}
+                    className="min-w-[110px]"
+                    aria-sort={sortBy === "status" ? (sortDir === "asc" ? "ascending" : "descending") : "none"}
                   >
-                    <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => handleSort("status")}
+                      className="flex items-center gap-1.5 select-none rounded outline-none focus-visible:ring-2 focus-visible:ring-teal-500/40"
+                    >
                       <span className="text-xs font-black uppercase tracking-wide text-slate-500">
                         {isArabic ? "الحالة" : "Status"}
                       </span>
                       <SortIcon active={sortBy === "status"} dir={sortDir} />
-                    </div>
+                    </button>
                   </TableHead>
 
                   {/* Phone */}
@@ -677,15 +685,19 @@ export default function UsersManager() {
 
                   {/* Joined */}
                   <TableHead
-                    className="hidden min-w-[120px] cursor-pointer select-none lg:table-cell"
-                    onClick={() => handleSort("created_at")}
+                    className="hidden min-w-[120px] lg:table-cell"
+                    aria-sort={sortBy === "created_at" ? (sortDir === "asc" ? "ascending" : "descending") : "none"}
                   >
-                    <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => handleSort("created_at")}
+                      className="flex items-center gap-1.5 select-none rounded outline-none focus-visible:ring-2 focus-visible:ring-teal-500/40"
+                    >
                       <span className="text-xs font-black uppercase tracking-wide text-slate-500">
                         {isArabic ? "التسجيل" : "Joined"}
                       </span>
                       <SortIcon active={sortBy === "created_at"} dir={sortDir} />
-                    </div>
+                    </button>
                   </TableHead>
 
                   {/* Actions */}
@@ -695,7 +707,7 @@ export default function UsersManager() {
 
               <TableBody>
                 {users.map((u) => {
-                  const selected = selectedIds.has(u.id);
+                  const selected = bulk.isSelected(u.id);
                   const isSelf = u.id === adminUser?.id;
                   const joinedDate = u.createdAt
                     ? new Intl.DateTimeFormat(isArabic ? "ar-EG" : "en-EG", {
@@ -717,7 +729,7 @@ export default function UsersManager() {
                           type="checkbox"
                           checked={selected}
                           disabled={isSelf}
-                          onChange={() => toggleRow(u.id)}
+                          onChange={() => bulk.toggle(u.id)}
                           className="h-4 w-4 rounded border-slate-300 accent-teal-600 disabled:opacity-30"
                           aria-label={u.fullName}
                         />
@@ -778,8 +790,11 @@ export default function UsersManager() {
                           <DropdownMenuTrigger asChild>
                             <button
                               type="button"
-                              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-50 hover:text-slate-700"
-                              aria-label={isArabic ? "الإجراءات" : "Actions"}
+                              disabled={isSelf}
+                              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-50 hover:text-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
+                              aria-label={isSelf
+                                ? (isArabic ? "لا يمكن تعديل حسابك الحالي" : "Your current account cannot be modified here")
+                                : (isArabic ? "الإجراءات" : "Actions")}
                             >
                               <EllipsisVerticalIcon className="h-4 w-4" />
                             </button>
@@ -822,14 +837,18 @@ export default function UsersManager() {
                               <ArrowPathIcon className="h-4 w-4" />
                               {isArabic ? "إعادة تعيين الجلسات" : "Reset sessions"}
                             </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              onClick={() => setDeleteTarget(u)}
-                              className="gap-2 text-red-600 focus:text-red-700"
-                            >
-                              <TrashIcon className="h-4 w-4" />
-                              {isArabic ? "حذف الحساب" : "Delete Account"}
-                            </DropdownMenuItem>
+                            {u.id !== adminUser?.id && (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  onClick={() => setDeleteTarget(u)}
+                                  className="gap-2 text-red-600 focus:text-red-700"
+                                >
+                                  <TrashIcon className="h-4 w-4" />
+                                  {isArabic ? "حذف الحساب" : "Delete Account"}
+                                </DropdownMenuItem>
+                              </>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
@@ -882,11 +901,7 @@ export default function UsersManager() {
           pendingAction
             ? (() => {
                 const isSelf = pendingAction.member.id === adminUser?.id;
-                const selfWarning = isSelf
-                  ? (isArabic
-                      ? " أنت على وشك تعديل حسابك الخاص — قد تفقد صلاحياتك الحالية فورًا."
-                      : " You're about to modify your own account — you may lose your current access immediately.")
-                  : "";
+                const selfWarning = buildSelfActionWarning(isArabic, isSelf);
                 if (pendingAction.kind === "role") {
                   return (isArabic
                     ? `سيتم تعيين ${pendingAction.member.fullName || "المستخدم"} كـ${getRoleLabel(pendingAction.nextRole, lang)}.${selfWarning}`
@@ -924,14 +939,9 @@ export default function UsersManager() {
           <DeleteUserDialog
             open={Boolean(deleteTarget)}
             user={deleteTarget}
-            adminId={adminUser.id}
-            adminEmail={adminUser.email}
             lang={lang}
+            onDelete={handlePermanentDelete}
             onClose={() => setDeleteTarget(null)}
-            onSuccess={() => {
-              setDeleteTarget(null);
-              refreshAll();
-            }}
           />
 
           <UnsuspendDialog

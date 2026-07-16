@@ -315,7 +315,7 @@ export function DailyPicksSection({
                   animate={{ scale: 1, opacity: 1 }}
                   transition={{ duration: 0.35, delay: 0.1 }}
                 >
-                  {spotlight.isSale && (
+                  {spotlight.hasActivePromotion && (
                     <span
                       className={cn(
                         "absolute top-4 z-10 inline-flex items-center gap-1 bg-[#1d1d1f] text-white text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded shadow-[0_0_10px_rgba(0,0,0,0.3)]",
@@ -370,9 +370,9 @@ export function DailyPicksSection({
                   <span className="text-4xl font-black text-[#1d1d1f]">
                     {formatCurrency(spotlight.price, isRtl)}
                   </span>
-                  {spotlight.originalPrice && (
+                  {spotlight.basePrice && (
                     <span className="text-lg font-medium text-[#6e6e73] line-through">
-                      {formatCurrency(spotlight.originalPrice, isRtl)}
+                      {formatCurrency(spotlight.basePrice, isRtl)}
                     </span>
                   )}
                 </div>
@@ -476,7 +476,7 @@ export function DailyPicksSection({
                       >
                         {/* Image zone */}
                         <div className="relative aspect-[3/4] bg-[#f5f5f7] flex items-center justify-center overflow-hidden p-4">
-                          {product.isSale && (
+                          {product.hasActivePromotion && (
                             <span
                               className={cn(
                                 "absolute top-2.5 z-10 bg-[#1d1d1f] text-white",
@@ -533,9 +533,9 @@ export function DailyPicksSection({
                               <span className="text-sm font-black text-[#1d1d1f]">
                                 {formatCurrency(product.price, isRtl)}
                               </span>
-                              {product.originalPrice && (
+                              {product.basePrice && (
                                 <span className="text-[10px] font-medium text-[#6e6e73] line-through">
-                                  {formatCurrency(product.originalPrice, isRtl)}
+                                  {formatCurrency(product.basePrice, isRtl)}
                                 </span>
                               )}
                             </div>

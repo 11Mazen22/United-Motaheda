@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 
-const root = new URL("../src/", import.meta.url);
+const root = new URL("../apps/shopper-web/src/", import.meta.url);
 const queue = [root];
 const offenders = [];
 

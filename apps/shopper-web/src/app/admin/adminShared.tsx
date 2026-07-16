@@ -61,7 +61,7 @@ import { hasRolePermission } from "@pharmacy/contracts";
 // here as AdminRole/hasPermission so every existing importer in this admin
 // panel keeps working unchanged.
 
-export type { Role as AdminRole };
+export type AdminRole = Role;
 
 export function hasPermission(
   userRole: Role | undefined,
@@ -829,7 +829,7 @@ const AUDIT_ACTION_META: Record<string, { ar: string; en: string; icon: Componen
   change_status:   { ar: "تغيير الحالة",     en: "Status changed",      icon: ArrowPathIcon,          tone: "text-blue-700 bg-blue-100" },
   suspend_user:     { ar: "تعليق الحساب",     en: "Account suspended",   icon: ShieldExclamationIcon,  tone: "text-rose-700 bg-rose-100" },
   unsuspend_user:   { ar: "رفع التعليق",      en: "Suspension removed",  icon: CheckBadgeIcon,         tone: "text-emerald-700 bg-emerald-100" },
-  delete_user:      { ar: "حذف الحساب",       en: "Account deleted",     icon: TrashIcon,              tone: "text-red-700 bg-red-100" },
+  delete_user_permanently:   { ar: "حذف الحساب نهائيًا", en: "Account permanently deleted", icon: TrashIcon, tone: "text-red-700 bg-red-100" },
   lock_account:     { ar: "قفل الحساب",       en: "Account locked",      icon: LockClosedIcon,         tone: "text-amber-700 bg-amber-100" },
   unlock_account:   { ar: "فتح قفل الحساب",   en: "Account unlocked",    icon: LockOpenIcon,           tone: "text-emerald-700 bg-emerald-100" },
   reset_sessions:   { ar: "إعادة تعيين الجلسات", en: "Sessions reset",  icon: ArrowPathIcon,           tone: "text-blue-700 bg-blue-100" },

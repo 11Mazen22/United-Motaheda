@@ -166,12 +166,12 @@ export const ProductCard = memo(function ProductCard({
             <span className="inline-flex max-w-[120px] items-center truncate rounded-lg border border-white/70 bg-white/92 px-2 py-1 text-[9px] font-black tracking-wide text-slate-600 shadow-sm">
               {displayCategoryName}
             </span>
-            {product.isSale && product.originalPrice ? (
+            {product.hasActivePromotion && product.basePrice ? (
               <span className="inline-flex items-center gap-1 self-start rounded-md bg-amber-500 px-1.5 py-0.5 text-[9px] font-black text-white shadow-md">
                 <Tag className="h-2.5 w-2.5" />
-                {`${Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}% OFF`}
+                {`${Math.round(((product.basePrice - product.price) / product.basePrice) * 100)}% OFF`}
               </span>
-            ) : product.isSale ? (
+            ) : product.hasActivePromotion ? (
               <span className="inline-flex items-center gap-1 self-start rounded-md bg-amber-500 px-1.5 py-0.5 text-[9px] font-black text-white shadow-md">
                 <Tag className="h-2.5 w-2.5" />
                 {lang === "ar" ? "عرض" : "OFFER"}
@@ -290,15 +290,15 @@ export const ProductCard = memo(function ProductCard({
             <p className="text-[9px] font-black uppercase tracking-[0.15em] text-slate-400">
               {lang === "ar" ? "السعر" : "Price"}
             </p>
-            {product.originalPrice && (
+            {product.basePrice && (
               <p className="text-[9px] font-bold leading-none text-slate-400 line-through">
-                {product.originalPrice.toFixed(2)}{" "}
+                {product.basePrice.toFixed(2)}{" "}
                 <span className="text-[8px]">{t("currency")}</span>
               </p>
             )}
             <p className={cn(
               "mt-0.5 text-[1.1rem] font-black leading-none tracking-tight",
-              product.isSale && product.originalPrice ? "text-amber-600" : "text-slate-900",
+              product.hasActivePromotion && product.basePrice ? "text-amber-600" : "text-slate-900",
             )}>
               {product.price.toFixed(2)}{" "}
               <span className="text-[10px] font-bold text-slate-400">{t("currency")}</span>

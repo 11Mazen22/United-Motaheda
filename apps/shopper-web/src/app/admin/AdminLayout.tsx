@@ -12,7 +12,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { useAuth } from "../../contexts/AuthContext";
 import { useLanguage } from "../../contexts/LanguageContext";
-import { prefetchAdminData } from "../../services/googleSheetsApi";
+
 import AdminSidebar from "./AdminSidebar";
 
 const SIDEBAR_STORAGE_KEY = "united_admin_sidebar_collapsed";
@@ -34,13 +34,7 @@ function getAdminRouteMeta(pathname: string, lang: "ar" | "en") {
         : "A single queue for customer special-order requests that need review or follow-up.",
     };
 
-  if (pathname.startsWith("/admin/operations"))
-    return {
-      title: lang === "ar" ? "مركز العمليات" : "Operations",
-      subtitle: lang === "ar"
-        ? "تعيين السائقين وتتبع تسليم الطلبات من مكان واحد."
-        : "Assign drivers and track delivery progress from one place.",
-    };
+
 
   if (pathname.startsWith("/admin/products/fast-entry"))
     return {
@@ -56,6 +50,12 @@ function getAdminRouteMeta(pathname: string, lang: "ar" | "en") {
       subtitle: lang === "ar"
         ? "تحكم مباشر في الكتالوج والمخزون والتنبيهات المرتبطة بالمنتجات."
         : "Direct control over the catalog, stock levels, and product alerts.",
+    };
+
+  if (pathname.startsWith("/admin/promotions"))
+    return {
+      title: lang === "ar" ? "العروض" : "Promotions",
+      subtitle: lang === "ar" ? "أدر الخصومات المجدولة والمنتجات بحفظ معاملات محكم." : "Manage scheduled discounts and product assignments with transactional saves.",
     };
 
   if (pathname.startsWith("/admin/staff"))
@@ -136,11 +136,7 @@ export default function AdminLayout() {
     document.title = `${routeMeta.title} | ${lang === "ar" ? "لوحة الإدارة" : "United Admin"}`;
   }, [lang, routeMeta.title]);
 
-  // Prefetch admin data
-  useEffect(() => {
-    if (user?.role !== "admin") return;
-    void prefetchAdminData();
-  }, [user?.role]);
+
 
   const todayLabel = useMemo(
     () => new Intl.DateTimeFormat(lang === "ar" ? "ar-EG" : "en-EG", {

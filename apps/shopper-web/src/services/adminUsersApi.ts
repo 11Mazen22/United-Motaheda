@@ -38,6 +38,23 @@ export interface FetchUsersResult {
   totalPages: number;
 }
 
+export type DirectorySummaryScope = 'all' | 'staff' | 'customers';
+
+export interface AdminDirectorySummary {
+  total: number;
+  active: number;
+  suspended: number;
+  inactive: number;
+  staff: number;
+  customers: number;
+  admins: number;
+  managers: number;
+  pharmacists: number;
+  drivers: number;
+  verified: number;
+  recentlyActive7d: number;
+}
+
 export interface SuspendUserPayload {
   userId: string;
   reasonCodes: string[];
@@ -50,10 +67,6 @@ export interface SuspendUserPayload {
 
 export interface DeleteUserPayload {
   userId: string;
-  userEmail: string;
-  userName: string;
-  adminId: string;
-  adminEmail?: string;
   reason: string;
   adminNotes?: string;
 }
@@ -100,18 +113,19 @@ function rowToSuspensionInfo(row: SuspensionRow): ActiveSuspensionInfo {
   };
 }
 
+function quotePostgrestFilterValue(value: string): string {
+  return `"${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function applyProfileFilters(q: any, options: FetchUsersOptions): any {
   const { search, statusFilter, roleFilter } = options;
   if (search && search.trim() !== '') {
-    const term = `%${search.trim()}%`;
-    q = q.or(`full_name.ilike.${term},email.ilike.${term},phone.ilike.${term}`);
+    const term = quotePostgrestFilterValue(`%${search.trim()}%`);
+    q = q.or(`full_name.ilike.${term},email.ilike.${term},phone.ilike.${term},username.ilike.${term}`);
   }
   if (statusFilter && statusFilter !== 'all') {
     q = q.eq('status', statusFilter);
-  } else {
-    // 'all' still hides soft-deleted (Inactive) accounts — filter explicitly for them.
-    q = q.neq('status', 'Inactive');
   }
   if (roleFilter && roleFilter !== 'all') {
     if (Array.isArray(roleFilter)) q = q.in('role', roleFilter);
@@ -249,40 +263,21 @@ export async function unsuspendUser(userId: string, adminId: string, adminEmail?
   await logAdminAction(adminId, 'unsuspend_user', userId, { adminEmail });
 }
 
-export async function softDeleteUser(payload: DeleteUserPayload): Promise<void> {
+export async function deleteUserPermanently(payload: DeleteUserPayload): Promise<void> {
   const supabase = getSupabaseClient();
-
-  const { error: profileErr } = await supabase
-    .from('profiles')
-    .update({ status: 'Inactive', is_active: false })
-    .eq('id', payload.userId);
-
-  if (profileErr) {
-    throw new Error(`[adminUsersApi.softDeleteUser] profile update failed: ${profileErr.message}`);
-  }
-
-  const { error: logErr } = await supabase
-    .from('user_deletion_log')
-    .insert({
-      deleted_user_id: payload.userId,
-      deleted_user_email: payload.userEmail,
-      deleted_user_name: payload.userName,
-      deleted_by: payload.adminId,
-      deletion_type: 'admin',
-      reason: payload.reason,
-      admin_notes: payload.adminNotes ?? null,
-    });
-
-  if (logErr) {
-    throw new Error(`[adminUsersApi.softDeleteUser] deletion log insert failed: ${logErr.message}`);
-  }
-
-  await logAdminAction(payload.adminId, 'delete_user', payload.userId, {
-    userEmail: payload.userEmail,
-    userName: payload.userName,
-    reason: payload.reason,
-    adminEmail: payload.adminEmail,
+  const { data, error } = await supabase.rpc('admin_delete_user_permanently', {
+    p_target_user_id: payload.userId,
+    p_reason: payload.reason,
+    p_admin_notes: payload.adminNotes ?? null,
   });
+
+  if (error) {
+    throw new Error(`[adminUsersApi.deleteUserPermanently] ${error.message}`);
+  }
+  const result = data as { deleted?: boolean; userId?: string } | null;
+  if (result?.deleted !== true || result.userId !== payload.userId) {
+    throw new Error('[adminUsersApi.deleteUserPermanently] deletion was not confirmed');
+  }
 }
 
 export async function getSuspensionHistory(userId: string): Promise<ActiveSuspensionInfo[]> {
@@ -345,70 +340,33 @@ export async function logAdminAction(
 // change role and only the other could suspend/delete the same profiles
 // row) ───────────────────────────────────────────────────────────────────
 
-export async function changeUserRole(
-  userId: string,
-  nextRole: Role,
-  adminId: string,
-  adminEmail?: string,
-): Promise<void> {
+export async function changeUserRole(userId: string, nextRole: Role): Promise<void> {
   const supabase = getSupabaseClient();
-
-  const { data: before } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', userId)
-    .maybeSingle();
-  const fromRole = before?.role as string | undefined;
-
-  // .select() + verify is required here, not optional — see
-  // StaffManager.tsx's original handleRoleChange for the incident this
-  // idiom was born from: a silently-blocked update (RLS, or the
-  // profiles_guard_role_status trigger deciding the caller isn't a
-  // manager) returns no error and zero rows changed, which PostgREST
-  // treats as a successful request.
-  const { data, error } = await supabase
-    .from('profiles')
-    .update({ role: nextRole })
-    .eq('id', userId)
-    .select('id, role')
-    .maybeSingle();
-
+  const { data, error } = await supabase.rpc('admin_update_profile_access', {
+    p_target_user_id: userId,
+    p_next_role: nextRole,
+    p_next_status: null,
+  });
   if (error) throw new Error(`[adminUsersApi.changeUserRole] ${error.message}`);
-  if (!data || data.role !== nextRole) {
+  if (!data || (data as { role?: string }).role !== nextRole) {
     throw new Error('Role update did not persist.');
   }
-
-  await logAdminAction(adminId, 'change_role', userId, { fromRole, toRole: nextRole, adminEmail });
 }
 
 export async function changeUserStatus(
   userId: string,
   nextStatus: 'Active' | 'Inactive' | 'Suspended',
-  adminId: string,
-  adminEmail?: string,
 ): Promise<void> {
   const supabase = getSupabaseClient();
-
-  const { data: before } = await supabase
-    .from('profiles')
-    .select('status')
-    .eq('id', userId)
-    .maybeSingle();
-  const fromStatus = before?.status as string | undefined;
-
-  const { data, error } = await supabase
-    .from('profiles')
-    .update({ status: nextStatus })
-    .eq('id', userId)
-    .select('id, status')
-    .maybeSingle();
-
+  const { data, error } = await supabase.rpc('admin_update_profile_access', {
+    p_target_user_id: userId,
+    p_next_role: null,
+    p_next_status: nextStatus,
+  });
   if (error) throw new Error(`[adminUsersApi.changeUserStatus] ${error.message}`);
-  if (!data || data.status !== nextStatus) {
+  if (!data || (data as { status?: string }).status !== nextStatus) {
     throw new Error('Status update did not persist.');
   }
-
-  await logAdminAction(adminId, 'change_status', userId, { fromStatus, toStatus: nextStatus, adminEmail });
 }
 
 // ─── Lock / unlock / reset sessions — thin wrappers over the
@@ -424,26 +382,23 @@ async function invokePrivilegedAction(action: string, params: Record<string, unk
   if (!data?.success) throw new Error(data?.error ?? `Failed to perform ${action}.`);
 }
 
-export async function lockAccount(userId: string, adminId: string, adminEmail?: string): Promise<void> {
+export async function lockAccount(userId: string): Promise<void> {
   await invokePrivilegedAction('set_account_lock', { userId, locked: true });
-  await logAdminAction(adminId, 'lock_account', userId, { adminEmail });
 }
 
-export async function unlockAccount(userId: string, adminId: string, adminEmail?: string): Promise<void> {
+export async function unlockAccount(userId: string): Promise<void> {
   await invokePrivilegedAction('set_account_lock', { userId, locked: false });
-  await logAdminAction(adminId, 'unlock_account', userId, { adminEmail });
 }
 
-export async function resetUserSessions(userId: string, adminId: string, adminEmail?: string): Promise<void> {
+export async function resetUserSessions(userId: string): Promise<void> {
   await invokePrivilegedAction('reset_sessions', { userId });
-  await logAdminAction(adminId, 'reset_sessions', userId, { adminEmail });
 }
 
 // ─── Audit log ────────────────────────────────────────────────────────────
 
 export interface AuditLogEntry {
   id: string;
-  adminId: string;
+  adminId: string | null;
   adminName: string;
   action: string;
   targetUserId: string | null;
@@ -485,7 +440,7 @@ export async function fetchAuditLog(
 
   const rows = (data ?? []) as Array<{
     id: string;
-    admin_id: string;
+    admin_id: string | null;
     action: string;
     target_user_id: string | null;
     details: Record<string, unknown> | null;
@@ -504,7 +459,7 @@ export async function fetchAuditLog(
   const entries: AuditLogEntry[] = rows.map((r) => ({
     id: r.id,
     adminId: r.admin_id,
-    adminName: adminNames.get(r.admin_id) ?? '—',
+    adminName: (r.admin_id ? adminNames.get(r.admin_id) : undefined) ?? '—',
     action: r.action,
     targetUserId: r.target_user_id,
     details: r.details,
@@ -524,6 +479,21 @@ export interface ProfileStatusCounts {
   inactive: number;
 }
 
+const ZERO_DIRECTORY_SUMMARY: AdminDirectorySummary = {
+  total: 0,
+  active: 0,
+  suspended: 0,
+  inactive: 0,
+  staff: 0,
+  customers: 0,
+  admins: 0,
+  managers: 0,
+  pharmacists: 0,
+  drivers: 0,
+  verified: 0,
+  recentlyActive7d: 0,
+};
+
 /** Replaces the old client-side loadCounts() pattern (an unfiltered
  * select('status') over the whole table, re-run after every mutation) with
  * one aggregate RPC call. */
@@ -532,6 +502,18 @@ export async function fetchStatusCounts(): Promise<ProfileStatusCounts> {
   const { data, error } = await supabase.rpc('admin_profile_status_counts');
   if (error) throw new Error(`[adminUsersApi.fetchStatusCounts] ${error.message}`);
   return (data as ProfileStatusCounts) ?? { total: 0, active: 0, suspended: 0, inactive: 0 };
+}
+
+/** Enterprise admin summary for both Users and Employees pages. Includes
+ * status, role mix, verified-email count, and recent activity in one
+ * SECURITY DEFINER RPC backed by auth.users + public.profiles. */
+export async function fetchDirectorySummary(
+  scope: DirectorySummaryScope = 'all',
+): Promise<AdminDirectorySummary> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase.rpc('admin_directory_summary', { p_scope: scope });
+  if (error) throw new Error(`[adminUsersApi.fetchDirectorySummary] ${error.message}`);
+  return { ...ZERO_DIRECTORY_SUMMARY, ...(data as Partial<AdminDirectorySummary> | null) };
 }
 
 export interface LastSignInInfo {

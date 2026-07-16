@@ -81,7 +81,7 @@ export interface InfiniteProductsFilters {
    * `buildSupabaseQuery`. Defaults to "relevant" (in-stock first, then name A–Z).
    */
   sortBy?: "relevant" | "price_asc" | "price_desc" | "name";
-  /** When true, only rows where `is_sale = true` are returned. */
+  /** When true, only products with an active canonical promotion are returned. */
   isSale?: boolean;
 }
 

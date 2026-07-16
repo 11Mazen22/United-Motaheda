@@ -50,9 +50,10 @@ async function ensurePermissions(): Promise<boolean> {
 
 async function configureAndroidChannel(): Promise<void> {
   if (Platform.OS !== "android") return;
-  await Notifications.setNotificationChannelAsync("default", {
-    name: "Notifications",
-    importance: Notifications.AndroidImportance.DEFAULT,
+  await Notifications.setNotificationChannelAsync("orders", {
+    name: "Order and delivery updates",
+    description: "Time-sensitive delivery, assignment, and payment updates",
+    importance: Notifications.AndroidImportance.HIGH,
     vibrationPattern: [0, 250, 250, 250],
     lightColor: theme.colors.teal[500],
     sound: "default",
@@ -132,11 +133,18 @@ export function usePushNotificationRegistration({
     if (Platform.OS === "web") return; // response listeners are not supported on web reliably
     if (!enabled) return;
 
-    const sub = Notifications.addNotificationResponseReceivedListener((response) => {
+    const handleResponse = (response: Notifications.NotificationResponse | null) => {
+      if (!response) return;
       const data = (response.notification.request.content.data ?? {}) as Record<string, unknown>;
       const actionUrl = typeof data.action_url === "string" ? data.action_url : null;
       tapHandlerRef.current?.(actionUrl, data);
-    });
+    };
+
+    // A response listener only observes a live process. Recover the last
+    // response as well so a tap that cold-started a terminated app reaches
+    // the exact destination after the router/auth tree has mounted.
+    void Notifications.getLastNotificationResponseAsync().then(handleResponse).catch(() => {});
+    const sub = Notifications.addNotificationResponseReceivedListener(handleResponse);
 
     return () => sub.remove();
   }, [enabled]);

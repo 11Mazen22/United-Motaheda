@@ -160,9 +160,8 @@ export type AdminOrder = {
   assignedDriver?: string;
   assignedDriverId?: string;
   /** From delivery_assignments — the current open (offered/accepted) row for
-   * this order, if any. Populated by OperationsHub after fetching
-   * getOpenAssignments() separately; absent here means no open assignment
-   * exists (order is unassigned, or the assignment was already completed). */
+   * this order, if any. The unified order workspace may load these separately;
+   * absent means the order is unassigned or the assignment is complete. */
   assignmentStatus?: "offered" | "accepted";
   assignmentOfferedAt?: string;
 };
@@ -581,24 +580,6 @@ function unwrapRecord(envelope: ApiEnvelope) {
   }
 
   return envelope as ApiRecord;
-}
-
-function unwrapArray(envelope: ApiEnvelope, fallbackKeys: string[] = []) {
-  if (Array.isArray(envelope.data)) {
-    return envelope.data.filter(isRecord);
-  }
-
-  const record = unwrapRecord(envelope);
-
-  for (const key of fallbackKeys) {
-    const value = record[key];
-
-    if (Array.isArray(value)) {
-      return value.filter(isRecord);
-    }
-  }
-
-  return [];
 }
 
 async function getRequest(
@@ -1147,7 +1128,7 @@ export function getCachedCatalog() {
   return envelope ? normalizeCatalogResponse(unwrapRecord(envelope)) : null;
 }
 
-export async function getAdminOrders(_force = false) {
+export async function getAdminOrders() {
   const orders = await listManagedOrders();
   compatibilityAdminOrdersCache = orders.map(mapManagedOrderToAdminOrder);
   return compatibilityAdminOrdersCache;
@@ -1204,8 +1185,8 @@ export async function assignOrderDriver(orderId: string, driverId: string | null
 }
 
 // ─── Delivery workflow: reassignment, assignment history, issues ────────────
-// Thin re-export wrappers, same shape as updateOrderStatus/assignOrderDriver
-// above, so OperationsHub.tsx keeps importing everything from this one file.
+// Thin re-export wrappers keep the legacy admin-order facade compatible with
+// the canonical Supabase logistics service.
 
 export async function reassignOrderDriver(orderId: string, driverId: string, staffId: string) {
   const updatedOrder = await reassignDriver(orderId.trim(), driverId, staffId);
@@ -1433,10 +1414,9 @@ export async function updateStaffStatus(staff: { id?: string; username?: string 
 // the codebase: real dashboard stats and staff data come from
 // getSupabaseDashboardStats/getSupabaseStaff (adminDashboardApi.ts)
 // instead. Those two were dead legacy Google Sheets network calls firing
-// on every admin page load for a cache nobody consumed — the same root
-// cause as the OperationsHub driver-dropdown bug.
-export async function prefetchAdminData(force = false) {
-  await getAdminOrders(force);
+// on every admin page load for a cache nobody consumed.
+export async function prefetchAdminData() {
+  await getAdminOrders();
 }
 
 export type BulkProductPayload = {

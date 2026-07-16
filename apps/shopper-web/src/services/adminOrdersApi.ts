@@ -198,6 +198,7 @@ export interface FetchAdminOrdersArgs {
   search?:      string;
   fromDate?:    string;
   toDate?:      string;
+  signal?:      AbortSignal;
 }
 
 /** Fetch paginated orders for the admin table. */
@@ -211,6 +212,7 @@ export async function fetchAdminOrders(
     search,
     fromDate,
     toDate,
+    signal,
   } = args;
 
   const from = (page - 1) * pageSize;
@@ -236,6 +238,8 @@ export async function fetchAdminOrders(
 
     if (fromDate) q = q.gte("created_at", fromDate);
     if (toDate)   q = q.lte("created_at", toDate);
+
+    if (signal) q = q.abortSignal(signal) as typeof q;
 
     return q;
   };
@@ -291,11 +295,10 @@ export async function adminUpdateOrderStatus(
   orderId: string,
   status:  AdminOrderStatus,
 ): Promise<void> {
-  const { error } = await getSupabaseClient()
-    .from("orders")
-    .update({ status, last_status_at: new Date().toISOString() })
-    .eq("id", orderId);
-
+  const { error } = await getSupabaseClient().rpc("admin_transition_order", {
+    p_order_id: orderId,
+    p_next_status: status,
+  });
   if (error) throw error;
   notifyOrderStatusChange(orderId, status);
 }

@@ -42,6 +42,8 @@ export default function SuspendDialog({
   const [expiresAt, setExpiresAt] = useState("");
   const [adminNotes, setAdminNotes] = useState("");
   const [loading, setLoading] = useState(false);
+  const [codesError, setCodesError] = useState("");
+  const [expiresError, setExpiresError] = useState("");
 
   useEffect(() => {
     if (!open) {
@@ -49,10 +51,13 @@ export default function SuspendDialog({
       setDurationType("permanent");
       setExpiresAt("");
       setAdminNotes("");
+      setCodesError("");
+      setExpiresError("");
     }
   }, [open]);
 
   const toggleCode = (code: string) => {
+    setCodesError("");
     setSelectedCodes((prev) =>
       prev.includes(code) ? prev.filter((c) => c !== code) : [...prev, code],
     );
@@ -60,12 +65,21 @@ export default function SuspendDialog({
 
   const handleSubmit = async () => {
     if (!user) return;
-    if (selectedCodes.length === 0) {
-      toast.error(isArabic ? "اختر سببًا واحدًا على الأقل" : "Select at least one policy violation");
+
+    const codeErr = selectedCodes.length === 0
+      ? (isArabic ? "اختر سببًا واحدًا على الأقل" : "Select at least one policy violation")
+      : "";
+    const expiresErr = durationType === "temporary" && !expiresAt
+      ? (isArabic ? "حدد تاريخ انتهاء التعليق المؤقت" : "Set an expiry date for temporary suspension")
+      : "";
+    setCodesError(codeErr);
+    setExpiresError(expiresErr);
+    if (codeErr) {
+      toast.error(codeErr);
       return;
     }
-    if (durationType === "temporary" && !expiresAt) {
-      toast.error(isArabic ? "حدد تاريخ انتهاء التعليق المؤقت" : "Set an expiry date for temporary suspension");
+    if (expiresErr) {
+      toast.error(expiresErr);
       return;
     }
 
@@ -149,6 +163,7 @@ export default function SuspendDialog({
                     key={policy.code}
                     type="button"
                     onClick={() => toggleCode(policy.code)}
+                    aria-pressed={selected}
                     className={cn(
                       "flex items-start gap-3 rounded-xl border p-3 text-start transition-all",
                       selected
@@ -185,6 +200,9 @@ export default function SuspendDialog({
                 );
               })}
             </div>
+            {codesError && (
+              <p className="mt-1.5 text-xs font-semibold text-rose-600">{codesError}</p>
+            )}
           </div>
 
           {/* Duration */}
@@ -218,10 +236,16 @@ export default function SuspendDialog({
                 <input
                   type="datetime-local"
                   value={expiresAt}
-                  onChange={(e) => setExpiresAt(e.target.value)}
+                  onChange={(e) => {
+                    setExpiresAt(e.target.value);
+                    setExpiresError("");
+                  }}
                   min={new Date().toISOString().slice(0, 16)}
                   className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-800 outline-none focus:border-rose-400 focus:ring-2 focus:ring-rose-100"
                 />
+                {expiresError && (
+                  <p className="mt-1.5 text-xs font-semibold text-rose-600">{expiresError}</p>
+                )}
               </div>
             )}
           </div>

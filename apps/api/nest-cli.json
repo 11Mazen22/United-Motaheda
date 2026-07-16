@@ -3,7 +3,7 @@
   "sourceRoot": "src",
   "compilerOptions": {
     "webpack": true,
-    "tsConfigPath": "tsconfig.json",
+    "tsConfigPath": "tsconfig.build.json",
     "webpackConfigPath": "webpack.config.js"
   }
 }

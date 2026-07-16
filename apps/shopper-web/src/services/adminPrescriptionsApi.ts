@@ -45,6 +45,7 @@ export interface FetchPrescriptionsOptions {
   perPage?: number;
   search?: string;
   statusFilter?: "all" | PrescriptionReviewStatus;
+  signal?: AbortSignal;
 }
 
 export interface FetchRefillRequestsOptions {
@@ -52,6 +53,7 @@ export interface FetchRefillRequestsOptions {
   perPage?: number;
   search?: string;
   statusFilter?: "all" | RefillStatus;
+  signal?: AbortSignal;
 }
 
 export interface FetchResult<T> {
@@ -179,6 +181,9 @@ export async function fetchPrescriptions(
     const term = `%${options.search.trim()}%`;
     query = query.or(`name.ilike.${term},rx_number.ilike.${term}`);
   }
+  if (options.signal) {
+    query = query.abortSignal(options.signal) as typeof query;
+  }
 
   const { data, count, error } = await query
     .order("added_at", { ascending: false })
@@ -266,6 +271,9 @@ export async function fetchRefillRequests(
 
   if (options.statusFilter && options.statusFilter !== "all") {
     query = query.eq("status", options.statusFilter);
+  }
+  if (options.signal) {
+    query = query.abortSignal(options.signal) as typeof query;
   }
 
   const { data, count, error } = await query

@@ -66,6 +66,7 @@ export function NotificationBanner() {
   const segments      = useSegments() as readonly string[];
   const isDriverRoute = segments[0] === "(driver)";
   const banner        = useBannerStore((s) => s.banner);
+  const queuedCount   = useBannerStore((s) => s.queue.length);
   const dismissBanner = useBannerStore((s) => s.dismissBanner);
   const timerRef      = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -159,7 +160,14 @@ export function NotificationBanner() {
 
         {/* Text content */}
         <View style={styles.textCol}>
-          <UIText style={[styles.bannerLabel, { color: meta.color }]}>{t(meta.labelKey)}</UIText>
+          <View style={styles.labelRow}>
+            <UIText style={[styles.bannerLabel, { color: meta.color }]}>{t(meta.labelKey)}</UIText>
+            {queuedCount > 0 && (
+              <View style={[styles.queuePill, { backgroundColor: meta.bg }]}>
+                <UIText style={[styles.queueText, { color: meta.color }]}>+{queuedCount}</UIText>
+              </View>
+            )}
+          </View>
           <UIText style={styles.bannerTitle} numberOfLines={1}>{banner.title}</UIText>
           <UIText style={styles.bannerBody}  numberOfLines={1}>{banner.body}</UIText>
         </View>
@@ -192,35 +200,38 @@ const styles = StyleSheet.create({
     alignItems:        "center",
     gap:               10,
     backgroundColor:   kit.color.surface,
-    borderRadius:      20,
-    paddingVertical:   13,
-    paddingHorizontal: 14,
+    borderRadius:      24,
+    paddingVertical:   15,
+    paddingHorizontal: 16,
     paddingEnd:        12,
     overflow:          "hidden",
     ...kit.shadow.floating,
-    borderWidth:       StyleSheet.hairlineWidth,
-    borderColor:       kit.color.line,
+    borderWidth:       1,
+    borderColor:       "rgba(15, 23, 42, 0.08)",
   },
   accentStrip: {
     position:                   "absolute",
     right:                      0,
     top:                        0,
     bottom:                     0,
-    width:                      4,
-    borderTopRightRadius:       20,
-    borderBottomRightRadius:    20,
+    width:                      5,
+    borderTopRightRadius:       24,
+    borderBottomRightRadius:    24,
   },
   iconCircle: {
-    width:           40,
-    height:          40,
-    borderRadius:    13,
+    width:           44,
+    height:          44,
+    borderRadius:    15,
     alignItems:      "center",
     justifyContent:  "center",
   },
-  textCol:     { flex: 1, gap: 1.5, marginEnd: 4 },
-  bannerLabel: { fontSize: 9, fontFamily: theme.fonts.extrabold, letterSpacing: 0.8, textAlign: textAlignStart(isRtl()) },
+  textCol:     { flex: 1, gap: 2, marginEnd: 4 },
+  labelRow:    { flexDirection: flexRow(isRtl()), alignItems: "center", gap: 6 },
+  bannerLabel: { fontSize: 10, fontFamily: theme.fonts.extrabold, letterSpacing: 0.9, textAlign: textAlignStart(isRtl()) },
+  queuePill:   { minWidth: 20, height: 18, paddingHorizontal: 5, borderRadius: 9, alignItems: "center", justifyContent: "center" },
+  queueText:   { fontSize: 10, fontFamily: theme.fonts.black },
   bannerTitle: { fontSize: theme.fontSize.md, fontFamily: theme.fonts.black, color: kit.color.ink, textAlign: textAlignStart(isRtl()) },
-  bannerBody:  { fontSize: theme.fontSize.sm, fontFamily: theme.fonts.regular, color: kit.color.inkSoft, textAlign: textAlignStart(isRtl()) },
+  bannerBody:  { fontSize: theme.fontSize.sm, fontFamily: theme.fonts.regular, color: kit.color.inkSoft, lineHeight: 20, textAlign: textAlignStart(isRtl()) },
   closeBtn: {
     width:           26,
     height:          26,

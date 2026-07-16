@@ -1,3 +1,5 @@
+const path = require("path");
+
 // Custom webpack config for NestJS API
 // Forces @pharmacy/* workspace packages to be bundled (not externalized)
 // so the runtime doesn't try to load raw TypeScript source files.
@@ -6,6 +8,10 @@ module.exports = (options) => {
 
   return {
     ...options,
+    resolveLoader: {
+      ...options.resolveLoader,
+      modules: [path.resolve(__dirname, "node_modules"), "node_modules"],
+    },
     externals: [
       (data, callback) => {
         const { request } = data;

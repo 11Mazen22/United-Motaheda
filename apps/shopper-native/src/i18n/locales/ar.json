@@ -1371,7 +1371,7 @@
         "reportIssue": "الإبلاغ عن مشكلة",
         "reportIssueTitle": "الإبلاغ عن مشكلة في التوصيل",
         "whatWentWrong": "ما هي المشكلة؟",
-        "priorIssueOpenNotice": "لديك بالفعل بلاغ مفتوح لهذا الطلب. إرسال بلاغ آخر سيضيف بلاغًا ثانيًا.",
+        "priorIssueOpenNotice": "لديك بالفعل بلاغ مفتوح لهذا الطلب. انتظر مراجعة فريق العمليات قبل إرسال بلاغ آخر.",
         "reasonCustomerUnreachable": "تعذّر الوصول للعميل",
         "reasonWrongAddress": "عنوان غير صحيح",
         "reasonCustomerRefused": "رفض العميل الاستلام",

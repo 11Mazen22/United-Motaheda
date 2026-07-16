@@ -151,7 +151,7 @@ const EditorialHeroCard = memo(function EditorialHeroCard({
   const { t }       = useTranslation();
   const displayName = lang === "ar" ? (product.nameAr ?? product.name) : (product.name ?? product.nameAr);
   const category    = product.categoryName ?? "";
-  const isSale      = Boolean(product.isSale);
+  const isSale      = product.hasActivePromotion;
   const isNew       = Boolean(product.isNew);
 
   const handlePress = useCallback(() => {

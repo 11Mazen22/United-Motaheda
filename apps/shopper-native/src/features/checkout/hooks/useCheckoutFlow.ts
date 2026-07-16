@@ -392,7 +392,7 @@ export function useCheckoutFlow(): CheckoutFlowState {
 
         if (isManualWalletPayment(paymentMethod) && paymentProofUrl) {
           const needsPatch =
-            result.status !== "pending_payment" ||
+            result.status !== "payment_pending" ||
             result.paymentStatus !== "pending_verification";
           if (needsPatch) {
             await patchOrderManualPayment(

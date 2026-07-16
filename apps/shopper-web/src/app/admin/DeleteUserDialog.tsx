@@ -8,17 +8,15 @@ import {
   DialogTitle,
 } from "../components/ui/dialog";
 import { cn } from "../components/UI";
-import { softDeleteUser, type DeleteUserPayload } from "../../services/adminUsersApi";
+import { type DeleteUserPayload } from "../../services/adminUsersApi";
 import { toast } from "sonner";
 
 interface DeleteUserDialogProps {
   open: boolean;
   onClose: () => void;
   user: { id: string; fullName: string; email: string } | null;
-  adminId: string;
-  adminEmail?: string;
   lang: "ar" | "en";
-  onSuccess: () => void;
+  onDelete: (payload: DeleteUserPayload) => Promise<void>;
 }
 
 const REASONS = [
@@ -34,10 +32,8 @@ export default function DeleteUserDialog({
   open,
   onClose,
   user,
-  adminId,
-  adminEmail,
   lang,
-  onSuccess,
+  onDelete,
 }: DeleteUserDialogProps) {
   const isArabic = lang === "ar";
   const [reason, setReason] = useState("");
@@ -51,34 +47,31 @@ export default function DeleteUserDialog({
       setReason("");
       setAdminNotes("");
       setConfirmText("");
+    } else {
+      confirmRef.current?.focus();
     }
   }, [open]);
 
   const expectedConfirm = user?.email ?? "";
-  const canSubmit = reason && confirmText === expectedConfirm;
+  const canSubmit = Boolean(reason) && confirmText === expectedConfirm;
 
   const handleSubmit = async () => {
-    if (!user || !canSubmit) return;
+    if (!user || !canSubmit || loading) return;
 
     const payload: DeleteUserPayload = {
       userId: user.id,
-      userEmail: user.email,
-      userName: user.fullName,
-      adminId,
-      adminEmail,
       reason,
       adminNotes: adminNotes.trim() || undefined,
     };
 
     setLoading(true);
     try {
-      await softDeleteUser(payload);
+      await onDelete(payload);
       toast.success(
         isArabic
           ? `تم حذف حساب ${user.fullName}`
           : `${user.fullName}'s account deleted`,
       );
-      onSuccess();
       onClose();
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed to delete user";
@@ -91,7 +84,7 @@ export default function DeleteUserDialog({
   if (!user) return null;
 
   return (
-    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+    <Dialog open={open} onOpenChange={(v) => !v && !loading && onClose()}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <div className="flex items-center gap-3">
@@ -120,8 +113,8 @@ export default function DeleteUserDialog({
                 </p>
                 <p className="mt-1 text-sm text-red-700">
                   {isArabic
-                    ? "سيتم إلغاء تفعيل الحساب وتسجيل عملية الحذف. لن تتمكن من استعادة هذا الحساب."
-                    : "The account will be deactivated and the deletion logged. You will not be able to restore this account."}
+                    ? "سيتم حذف بيانات تسجيل الدخول والبيانات المرتبطة بالحساب نهائيًا مع الاحتفاظ بسجلات التدقيق والتشغيل مجهولة الهوية."
+                    : "Sign-in access and account-owned data will be permanently deleted. Audit and operational history will be retained without the user's identity."}
                 </p>
               </div>
             </div>
@@ -129,10 +122,12 @@ export default function DeleteUserDialog({
 
           {/* Reason */}
           <div>
-            <label className="mb-1.5 block text-sm font-bold text-slate-800">
+            <label htmlFor="delete-user-reason" className="mb-1.5 block text-sm font-bold text-slate-800">
               {isArabic ? "* سبب الحذف" : "* Deletion Reason"}
             </label>
             <select
+              id="delete-user-reason"
+              required
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-800 outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100"
@@ -148,13 +143,15 @@ export default function DeleteUserDialog({
 
           {/* Admin notes */}
           <div>
-            <label className="mb-1.5 block text-sm font-bold text-slate-800">
+            <label htmlFor="delete-user-notes" className="mb-1.5 block text-sm font-bold text-slate-800">
               {isArabic ? "ملاحظات إضافية (اختياري)" : "Additional Notes (optional)"}
             </label>
             <textarea
+              id="delete-user-notes"
               value={adminNotes}
               onChange={(e) => setAdminNotes(e.target.value)}
               rows={2}
+              maxLength={2000}
               placeholder={isArabic ? "ملاحظات تُسجَّل في سجل الحذف…" : "Notes recorded in the deletion log…"}
               className="w-full resize-none rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-800 outline-none placeholder:text-slate-400 focus:border-red-400 focus:ring-2 focus:ring-red-100"
             />
@@ -162,7 +159,7 @@ export default function DeleteUserDialog({
 
           {/* Confirm by typing email */}
           <div>
-            <label className="mb-1.5 block text-sm font-bold text-slate-800">
+            <label htmlFor="delete-user-confirmation" className="mb-1.5 block text-sm font-bold text-slate-800">
               {isArabic
                 ? `* للتأكيد، اكتب البريد الإلكتروني للمستخدم:`
                 : `* To confirm, type the user's email address:`}
@@ -170,8 +167,11 @@ export default function DeleteUserDialog({
             </label>
             <input
               ref={confirmRef}
+              id="delete-user-confirmation"
               type="email"
               dir="ltr"
+              required
+              autoComplete="off"
               value={confirmText}
               onChange={(e) => setConfirmText(e.target.value)}
               placeholder={user.email}
@@ -189,7 +189,8 @@ export default function DeleteUserDialog({
             <button
               type="button"
               onClick={onClose}
-              className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+              disabled={loading}
+              className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <X className="h-4 w-4" />
               {isArabic ? "إلغاء" : "Cancel"}
