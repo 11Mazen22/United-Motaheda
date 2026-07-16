@@ -44,7 +44,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import type { RealtimeChannel, Session, User as SupabaseUser } from "@supabase/supabase-js";
+import type { AuthChangeEvent, RealtimeChannel, Session, User as SupabaseUser } from "@supabase/supabase-js";
 import { toast } from "sonner";
 import { getSupabaseClient } from "../lib/supabaseClient";
 import { useLanguage } from "./LanguageContext";
@@ -149,15 +149,39 @@ function parseStatus(value: unknown): UserStatus {
 // Raw query — no timeout guard here; see fetchProfileRowWithTimeout below.
 async function fetchProfileRow(
   userId: string,
+  signal?: AbortSignal,
 ): Promise<Record<string, unknown> | null> {
   const supabase = getSupabaseClient();
-  const { data, error } = await supabase
+  const queryBuilder = supabase
     .from("profiles")
     .select("id, full_name, email, phone, role, status, created_at")
     .eq("id", userId)
     .single();
 
+  let data: Record<string, unknown> | null = null;
+  let error: { code?: string; message?: string } | null = null;
+
+  if (signal) {
+    try {
+      const response = await (queryBuilder as typeof queryBuilder & {
+        abortSignal?: (signal: AbortSignal) => Promise<{ data: Record<string, unknown> | null; error: { code?: string; message?: string } | null }>;
+      }).abortSignal?.(signal);
+      data = response?.data ?? null;
+      error = response?.error ?? null;
+    } catch (abortError) {
+      if (signal.aborted) {
+        return null;
+      }
+      error = { message: abortError instanceof Error ? abortError.message : "Unknown error" };
+    }
+  } else {
+    const response = await queryBuilder;
+    data = (response.data as Record<string, unknown> | null) ?? null;
+    error = response.error as { code?: string; message?: string } | null;
+  }
+
   if (error) {
+    if (signal?.aborted) return null;
     if (error.code === "PGRST116") return null; // row not found – new user
     console.error("[AuthContext] fetchProfileRow error:", error.message);
     return null;
@@ -176,13 +200,16 @@ async function fetchProfileRowWithTimeout(
   userId: string,
   timeoutMs = 5000,
 ): Promise<Record<string, unknown> | null> {
-  const timeoutPromise = new Promise<null>((resolve) =>
-    setTimeout(() => {
-      console.warn("[AuthContext] fetchProfileRow timed out — will retry in background.");
-      resolve(null);
-    }, timeoutMs),
-  );
-  return Promise.race([fetchProfileRow(userId), timeoutPromise]);
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => {
+    console.warn("[AuthContext] fetchProfileRow timed out — will retry in background.");
+    controller.abort();
+  }, timeoutMs);
+  try {
+    return await fetchProfileRow(userId, controller.signal);
+  } finally {
+    window.clearTimeout(timer);
+  }
 }
 
 function buildProfile(
@@ -303,11 +330,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     };
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
+    const handleAuthStateChange = async (event: AuthChangeEvent, currentSession: Session | null) => {
       if (cancelled) return;
-
       try {
         setSession(currentSession ?? null);
 
@@ -339,11 +363,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.error("[AuthContext] onAuthStateChange handler failed:", err);
         if (event === "INITIAL_SESSION") finalize();
       }
+    };
+
+    // Supabase may hold its auth lock while invoking this callback. Defer any
+    // profile query to a separate task so PostgREST token resolution cannot
+    // deadlock behind the auth event that initiated it.
+    const pendingHandlers = new Set<number>();
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, currentSession) => {
+      const timer = window.setTimeout(() => {
+        pendingHandlers.delete(timer);
+        void handleAuthStateChange(event, currentSession);
+      }, 0);
+      pendingHandlers.add(timer);
     });
 
     return () => {
       cancelled = true;
       clearTimeout(emergencyTimer);
+      pendingHandlers.forEach((timer) => window.clearTimeout(timer));
+      pendingHandlers.clear();
       subscription.unsubscribe();
     };
   }, [resolveUser]);

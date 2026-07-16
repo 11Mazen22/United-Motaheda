@@ -125,23 +125,76 @@ function collectLCP() {
 }
 
 function collectINP() {
-  // INP requires the `event` entry type (PerformanceEventTiming)
-  const maxDurations: number[] = [];
+  type Interaction = {
+    duration: number;
+    eventName: string;
+    target: string;
+    inputDelay: number;
+    processingTime: number;
+    presentationDelay: number;
+  };
+
+  const interactions = new Map<number, Interaction>();
+  const ungroupedInteractions: Interaction[] = [];
+
+  const describeTarget = (target: EventTarget | null): string => {
+    if (!(target instanceof Element)) return "unknown";
+    const id = target.id ? `#${target.id}` : "";
+    const classes = Array.from(target.classList).slice(0, 2).map((name) => `.${name}`).join("");
+    return `${target.tagName.toLowerCase()}${id}${classes}`;
+  };
 
   observe<PerformanceEventTiming>("event", (entries) => {
-    for (const e of entries) {
-      maxDurations.push(e.processingEnd - e.startTime);
+    for (const entry of entries) {
+      const duration = entry.duration || Math.max(0, entry.processingEnd - entry.startTime);
+      const processingTime = Math.max(0, entry.processingEnd - entry.processingStart);
+      const interaction: Interaction = {
+        duration,
+        eventName: entry.name,
+        target: describeTarget(entry.target),
+        inputDelay: Math.max(0, entry.processingStart - entry.startTime),
+        processingTime,
+        presentationDelay: Math.max(0, duration - Math.max(0, entry.processingEnd - entry.startTime)),
+      };
+
+      if (entry.interactionId > 0) {
+        const existing = interactions.get(entry.interactionId);
+        if (!existing || interaction.duration > existing.duration) {
+          interactions.set(entry.interactionId, interaction);
+        }
+      } else {
+        ungroupedInteractions.push(interaction);
+      }
     }
   }, { type: "event", buffered: true, durationThreshold: 40 } as PerformanceObserverInit);
 
+  const finalize = () => {
+    const candidates = [...interactions.values(), ...ungroupedInteractions]
+      .sort((a, b) => b.duration - a.duration);
+    if (candidates.length === 0) return;
+
+    // The INP outlier rule ignores one worst interaction per 50 interactions.
+    const outlierIndex = Math.floor(candidates.length / 50);
+    const interaction = candidates[Math.min(outlierIndex, candidates.length - 1)];
+    if (!interaction) return;
+    const rating = rateINP(interaction.duration);
+    sendVital({ name: "INP", value: interaction.duration, rating, url: location.href });
+
+    if (import.meta.env.DEV && rating !== "good") {
+      console.warn("[Vitals] INP attribution", {
+        event: interaction.eventName,
+        target: interaction.target,
+        inputDelay: Math.round(interaction.inputDelay),
+        processingTime: Math.round(interaction.processingTime),
+        presentationDelay: Math.round(interaction.presentationDelay),
+      });
+    }
+  };
+
   addEventListener("visibilitychange", () => {
-    if (document.visibilityState !== "hidden" || maxDurations.length === 0) return;
-    // INP = 98th-percentile event duration
-    const sorted = [...maxDurations].sort((a, b) => a - b);
-    const idx = Math.floor(sorted.length * 0.98);
-    const value = sorted[idx] ?? sorted[sorted.length - 1] ?? 0;
-    sendVital({ name: "INP", value, rating: rateINP(value), url: location.href });
+    if (document.visibilityState === "hidden") finalize();
   });
+  addEventListener("pagehide", finalize);
 }
 
 function collectCLS() {

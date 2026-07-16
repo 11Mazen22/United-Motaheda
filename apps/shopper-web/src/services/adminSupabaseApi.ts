@@ -66,13 +66,21 @@ export interface ApiError {
 
 // ─── Error Handling ───────────────────────────────────────────────────────────────
 
+function isAbortError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  const candidate = error as { name?: unknown; message?: unknown; code?: unknown };
+  return candidate.name === 'AbortError' || candidate.message?.toString().includes('AbortError') || candidate.code === 'ABORT_ERR';
+}
+
 function handleSupabaseError(error: unknown): ApiError {
-  console.error('[AdminSupabaseAPI] Supabase error details:', {
-    error,
-    type: typeof error,
-    constructor: error?.constructor?.name,
-    keys: Object.keys(error || {}),
-  });
+  if (!isAbortError(error)) {
+    console.error('[AdminSupabaseAPI] Supabase error details:', {
+      error,
+      type: typeof error,
+      constructor: error?.constructor?.name,
+      keys: Object.keys(error || {}),
+    });
+  }
 
   if (error && typeof error === 'object') {
     const supabaseError = error as any;
@@ -130,7 +138,9 @@ export async function fetchAdminProducts(opts?: { signal?: AbortSignal }): Promi
     const { data, error } = await query;
 
     if (error) {
-      logOperation(operation, null, error);
+      if (!isAbortError(error)) {
+        logOperation(operation, null, error);
+      }
       throw new Error(`Failed to fetch products: ${error.message}`);
     }
 
@@ -157,7 +167,9 @@ export async function fetchAdminProducts(opts?: { signal?: AbortSignal }): Promi
     return products;
 
   } catch (error) {
-    logOperation(operation, null, error);
+    if (!isAbortError(error)) {
+      logOperation(operation, null, error);
+    }
     throw error;
   }
 }

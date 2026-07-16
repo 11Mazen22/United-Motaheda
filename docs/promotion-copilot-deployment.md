@@ -42,6 +42,22 @@ Supabase Postgres connection and canonical pricing functions. The browser sends
 its current bearer token to the API; no service-role key, database connection,
 or Ollama URL is exposed to it.
 
+## Troubleshoot 503 responses
+
+The API returns a specific safe message for each unavailable dependency. Inspect
+the response body in the browser Network panel or the error shown in Copilot:
+
+| Response message | Cause | Railway fix |
+| --- | --- | --- |
+| `Promotion Copilot authentication is not configured.` | `SUPABASE_URL` or `SUPABASE_ANON_KEY` is absent on `pharmacy-api` | Add both variables and redeploy `pharmacy-api` |
+| `Promotion Copilot is being prepared. Please try again shortly.` | `OLLAMA_BASE_URL` or `OLLAMA_MODEL` is absent | Add both variables and redeploy `pharmacy-api` |
+| `Promotion Copilot is temporarily unavailable.` | The API cannot connect to Ollama | Confirm the Ollama service is running and use its Railway private DNS URL, for example `http://promotion-ollama.railway.internal:11434` |
+| `Promotion Copilot generation timed out.` | The model is not loaded or inference exceeded the bounded timeout | Verify the model is present, increase service memory/CPU, then adjust `PROMOTION_COPILOT_OLLAMA_TIMEOUT_MS` only if needed |
+
+From the `pharmacy-api` Railway shell/network, verify that the configured service
+responds to `GET /api/tags` and that the exact value of `OLLAMA_MODEL` appears in
+the returned model list. A public Ollama URL is neither required nor recommended.
+
 ## Ollama setup
 
 1. Create the private Railway `promotion-ollama` service using the Ollama image.

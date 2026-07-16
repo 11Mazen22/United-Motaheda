@@ -26,6 +26,12 @@ const responseSchema = z.object({
   requestId: z.string(),
 });
 
+const responseEnvelopeSchema = z.object({
+  success: z.literal(true),
+  data: responseSchema,
+  error: z.null(),
+});
+
 export type PromotionCopilotProposal = z.infer<typeof proposalSchema>;
 export type PromotionCopilotResponse = z.infer<typeof responseSchema>;
 
@@ -35,15 +41,78 @@ export interface PromotionCopilotRequest {
   candidateProductIds?: string[];
 }
 
-function responseErrorMessage(payload: unknown, fallback: string): string {
-  if (!payload || typeof payload !== "object") return fallback;
-  const message = (payload as { message?: unknown }).message;
+function readableMessage(message: unknown): string {
   if (typeof message === "string" && message.trim()) return message;
   if (Array.isArray(message)) {
-    const joined = message.filter((item): item is string => typeof item === "string").join(" ");
-    if (joined) return joined;
+    return message.filter((item): item is string => typeof item === "string").join(" ");
   }
+  return "";
+}
+
+function responseErrorMessage(payload: unknown, fallback: string): string {
+  if (!payload || typeof payload !== "object") return fallback;
+  const record = payload as {
+    message?: unknown;
+    error?: unknown;
+    details?: unknown;
+    success?: unknown;
+  };
+
+  const message = readableMessage(record.message);
+  if (message) return message;
+
+  if (record.error && typeof record.error === "object") {
+    const nestedMessage = readableMessage((record.error as { message?: unknown }).message);
+    if (nestedMessage) return nestedMessage;
+  }
+
+  if (record.details && typeof record.details === "object") {
+    const detailsMessage = readableMessage((record.details as { message?: unknown }).message);
+    if (detailsMessage) return detailsMessage;
+  }
+
   return fallback;
+}
+
+function getHttpErrorMessage(status: number, payload: unknown, fallback: string): string {
+  const message = responseErrorMessage(payload, "");
+  if (message) return message;
+
+  switch (status) {
+    case 400:
+      return "Promotion Copilot could not process that request. Please try a simpler prompt.";
+    case 401:
+    case 403:
+      return "Your staff session is not authorized to use Promotion Copilot. Please sign in again.";
+    case 429:
+      return "Promotion Copilot is busy right now. Please try again in a moment.";
+    case 500:
+    case 502:
+    case 503:
+      return "Promotion Copilot is temporarily unavailable. Please try again shortly.";
+    default:
+      return fallback;
+  }
+}
+
+async function readResponsePayload(response: Response): Promise<unknown> {
+  const contentType = response.headers.get("content-type") ?? "";
+  const rawText = await response.text();
+  if (!rawText) return null;
+
+  if (contentType.includes("application/json")) {
+    try {
+      return JSON.parse(rawText);
+    } catch {
+      return { message: rawText };
+    }
+  }
+
+  try {
+    return JSON.parse(rawText);
+  } catch {
+    return { message: rawText };
+  }
 }
 
 export async function requestPromotionProposal(
@@ -59,6 +128,7 @@ export async function requestPromotionProposal(
   const response = await fetch(`${publicEnv.apiBase.replace(/\/$/, "")}/admin/promotion-copilot/propose`, {
     method: "POST",
     headers: {
+      Accept: "application/json",
       Authorization: `Bearer ${data.session.access_token}`,
       "Content-Type": "application/json",
       "X-Request-Id": crypto.randomUUID(),
@@ -72,18 +142,17 @@ export async function requestPromotionProposal(
   });
 
   if (!response.ok) {
-    let payload: unknown;
-    try {
-      payload = await response.json();
-    } catch {
-      payload = null;
-    }
-    throw new Error(responseErrorMessage(payload, "Promotion Copilot could not generate a draft."));
+    const payload = await readResponsePayload(response);
+    throw new Error(getHttpErrorMessage(response.status, payload, "Promotion Copilot could not generate a draft."));
   }
 
-  const parsed = responseSchema.safeParse(await response.json());
-  if (!parsed.success) {
-    throw new Error("Promotion Copilot returned an invalid draft. Please try again.");
-  }
-  return parsed.data;
+  const payload: unknown = await readResponsePayload(response);
+  const envelope = responseEnvelopeSchema.safeParse(payload);
+  if (envelope.success) return envelope.data.data;
+
+  // Keep direct responses compatible with local API instances that do not use
+  // the production response interceptor.
+  const direct = responseSchema.safeParse(payload);
+  if (direct.success) return direct.data;
+  throw new Error("Promotion Copilot returned an invalid draft. Please try again.");
 }

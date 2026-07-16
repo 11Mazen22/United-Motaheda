@@ -58,7 +58,7 @@ import { useSortableColumn } from "../../hooks/useSortableColumn";
 import { SortIcon } from "./adminTableIcons";
 import { cn } from "../components/UI";
 import { PromotionProductSelector } from "./PromotionProductSelector";
-import { PromotionCopilotWorkspace } from "./PromotionCopilotWorkspace";
+import { PromotionCopilotWorkspace, type PromotionCopilotFormContext } from "./PromotionCopilotWorkspace";
 import type { PromotionCopilotProposal } from "../../services/promotionCopilotApi";
 import {
   getPromotionStatus,
@@ -290,6 +290,8 @@ export default function PromotionsManager() {
   const [editorTab, setEditorTab] = useState<EditorTab>("details");
   const [saving, setSaving] = useState(false);
   const [copilotOpen, setCopilotOpen] = useState(false);
+  const [copilotContext, setCopilotContext] = useState<PromotionCopilotFormContext | null>(null);
+  const [copilotTarget, setCopilotTarget] = useState<Promotion | null>(null);
 
   // View, search, filter, sort, pagination
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
@@ -496,11 +498,19 @@ export default function PromotionsManager() {
   }, [reset]);
 
   const openCopilotForCreate = useCallback(() => {
-    setEditing(null);
-    setEditorTab("details");
-    reset(emptyForm());
+    const draft = emptyForm();
+    setCopilotTarget(null);
+    setCopilotContext({
+      name: draft.name,
+      description: draft.description,
+      discountType: draft.discountType,
+      discountValue: draft.discountValue,
+      startsAt: new Date(draft.startsAt).toISOString(),
+      endsAt: new Date(draft.endsAt).toISOString(),
+      productIds: draft.productIds,
+    });
     setCopilotOpen(true);
-  }, [reset]);
+  }, []);
 
   const openEdit = useCallback((promotion: Promotion) => {
     setEditing(promotion);
@@ -519,40 +529,54 @@ export default function PromotionsManager() {
   }, [reset]);
 
   const openCopilotForPromotion = useCallback((promotion: Promotion) => {
-    setEditing(promotion);
-    setEditorTab("details");
-    reset({
+    setCopilotTarget(promotion);
+    setCopilotContext({
+      id: promotion.id,
       name: promotion.name,
       description: promotion.description ?? "",
       discountType: promotion.discountType,
       discountValue: promotion.discountValue,
-      startsAt: toLocalDateTimeInput(promotion.startsAt),
-      endsAt: toLocalDateTimeInput(promotion.endsAt),
-      status: getPromotionStatus(promotion),
+      startsAt: promotion.startsAt,
+      endsAt: promotion.endsAt,
       productIds: promotion.productIds,
     });
     setCopilotOpen(true);
-  }, [reset]);
+  }, []);
 
   const applyCopilotProposal = useCallback((proposal: PromotionCopilotProposal) => {
-    const current = form.getValues();
-    const toLocalInput = (value: string | undefined, fallback: string) => (
-      value && Number.isFinite(Date.parse(value)) ? toLocalDateTimeInput(value) : fallback
-    );
+    const context = copilotContext ?? copilotDraft;
+    const fallback = emptyForm();
+    const toLocalInput = (value: string | undefined, defaultValue: string) => {
+      if (!value || !Number.isFinite(Date.parse(value))) return defaultValue;
+      const date = new Date(value);
+      return new Date(date.getTime() - date.getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
+    };
+    const defaults: PromotionFormValues = copilotTarget ? {
+      name: copilotTarget.name,
+      description: copilotTarget.description ?? "",
+      discountType: copilotTarget.discountType,
+      discountValue: copilotTarget.discountValue,
+      startsAt: toLocalInput(copilotTarget.startsAt, fallback.startsAt),
+      endsAt: toLocalInput(copilotTarget.endsAt, fallback.endsAt),
+      status: getPromotionStatus(copilotTarget),
+      productIds: copilotTarget.productIds,
+    } : fallback;
+    reset(defaults);
     reset({
-      name: proposal.name ?? current.name,
-      description: proposal.description ?? current.description ?? "",
-      discountType: proposal.discountType ?? current.discountType,
-      discountValue: proposal.discountValue ?? current.discountValue,
-      startsAt: toLocalInput(proposal.startsAt, current.startsAt),
-      endsAt: toLocalInput(proposal.endsAt, current.endsAt),
+      name: proposal.name ?? context.name ?? defaults.name,
+      description: proposal.description ?? context.description ?? defaults.description ?? "",
+      discountType: proposal.discountType ?? context.discountType ?? defaults.discountType,
+      discountValue: proposal.discountValue ?? context.discountValue ?? defaults.discountValue,
+      startsAt: toLocalInput(proposal.startsAt ?? context.startsAt, defaults.startsAt),
+      endsAt: toLocalInput(proposal.endsAt ?? context.endsAt, defaults.endsAt),
       status: "draft",
-      productIds: proposal.productIds.length > 0 ? proposal.productIds : current.productIds,
+      productIds: proposal.productIds.length > 0 ? proposal.productIds : context.productIds,
     }, { keepDefaultValues: true });
+    setEditing(copilotTarget);
     setEditorTab("details");
     setCopilotOpen(false);
     setOpen(true);
-  }, [form, reset]);
+  }, [copilotContext, copilotDraft, copilotTarget, reset]);
 
   const duplicatePromotion = useCallback(async (promotion: Promotion) => {
     try {
@@ -996,7 +1020,7 @@ export default function PromotionsManager() {
                   <p className="mt-1 max-w-2xl text-sm text-slate-500">{t("promotions.dialogSubtitle")}</p>
                 </div>
                 <div className="hidden items-center gap-2 sm:flex">
-                  <button type="button" onClick={() => setCopilotOpen(true)} className="inline-flex h-10 items-center gap-2 rounded-xl bg-[linear-gradient(135deg,#111827,#6d28d9)] px-3 text-xs font-black text-white shadow-md transition hover:-translate-y-0.5"><SparklesIcon className="h-4 w-4" />{isArabic ? "تحسين مع Copilot" : "Improve with Copilot"}</button>
+                  <button type="button" onClick={() => { setCopilotTarget(editing); setCopilotContext(copilotDraft); setCopilotOpen(true); }} className="inline-flex h-10 items-center gap-2 rounded-xl bg-[linear-gradient(135deg,#111827,#6d28d9)] px-3 text-xs font-black text-white shadow-md transition hover:-translate-y-0.5"><SparklesIcon className="h-4 w-4" />{isArabic ? "تحسين مع Copilot" : "Improve with Copilot"}</button>
                   <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-600">
                     <CubeIcon className="h-4 w-4 text-violet-600" />
                     {watchProductIds.length} {isArabic ? "منتج محدد" : "products selected"}
@@ -1151,12 +1175,12 @@ export default function PromotionsManager() {
       </Dialog>
 
       <PromotionCopilotWorkspace
-        key={editing?.id ?? "new-promotion"}
+        key={copilotContext?.id ?? "new-promotion"}
         open={copilotOpen}
         locale={lang}
         productsById={productsById}
         existingPromotionsByProduct={existingPromotionsByProduct}
-        currentDraft={copilotDraft}
+        currentDraft={copilotContext ?? copilotDraft}
         onClose={() => setCopilotOpen(false)}
         onApply={applyCopilotProposal}
       />
