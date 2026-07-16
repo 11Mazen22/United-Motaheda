@@ -18,4 +18,4 @@ COPY start-ollama.sh /start-ollama.sh
 RUN chmod +x /start-ollama.sh
 
 # Start Ollama and pre-pull neural-chat model
-CMD ["/start-ollama.sh"]
+ENTRYPOINT ["/start-ollama.sh"]
