@@ -120,6 +120,12 @@ Deno.serve(async (req) => {
 
     const orderId = crypto.randomUUID();
     const now = new Date().toISOString();
+    const lat = typeof body.address?.lat === "number" && Number.isFinite(body.address.lat)
+      ? body.address.lat
+      : null;
+    const lng = typeof body.address?.lng === "number" && Number.isFinite(body.address.lng)
+      ? body.address.lng
+      : null;
 
     const row: Record<string, unknown> = {
       id:                orderId,
@@ -131,6 +137,8 @@ Deno.serve(async (req) => {
       customer_name:     body.customer?.fullName ?? "",
       customer_phone:    body.customer?.phone ?? "",
       customer_address:  body.address ?? {},
+      customer_lat:      lat,
+      customer_lng:      lng,
       note:              body.note ?? "",
       subtotal:          body.expectedPricing?.subtotal ?? 0,
       shipping_fee:      body.expectedPricing?.shipping ?? 0,

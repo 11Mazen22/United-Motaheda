@@ -183,6 +183,7 @@ export function useCheckoutFlow(): CheckoutFlowState {
 
   // ── Delivery / location ──────────────────────────────────────────────
   const deliveryQuote      = useDeliveryContext();
+  const customerCoordinates = useLocationStore((s) => s.coordinates);
   const selectedBranchId   = useLocationStore((s) => s.selectedBranchId);
   const setSelectedBranchId = useLocationStore((s) => s.setSelectedBranchId);
 
@@ -377,6 +378,13 @@ export function useCheckoutFlow(): CheckoutFlowState {
         user,
         form:              form as unknown as CheckoutFormInput,
         pricing,
+        coordinates: customerCoordinates ?? (
+          defaultAddress
+          && typeof defaultAddress.lat === "number"
+          && typeof defaultAddress.lng === "number"
+            ? { lat: defaultAddress.lat, lng: defaultAddress.lng }
+            : null
+        ),
         paymentMethod,
         paymentLabel:      paymentLabel(paymentMethod),
         requestPosMachine: requestPos,
@@ -435,6 +443,8 @@ export function useCheckoutFlow(): CheckoutFlowState {
       paymentMethod,
       requestPos,
       pricing,
+      customerCoordinates,
+      defaultAddress,
       transferNumber,
       receiptUri,
       lang,

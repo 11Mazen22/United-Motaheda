@@ -71,6 +71,8 @@ export interface Order {
     notes?:     string;
     formatted?: string;
   };
+  customerLat?:    number | null;
+  customerLng?:    number | null;
   status:          OrderStatus;
   paymentMethod:   string | null;
   paymentStatus:   string;

@@ -4,10 +4,11 @@
  * order-detail screen's shared helpers (DetailSection/InfoRow/ORDER_STATUS_META)
  * instead of re-building address/item layout from scratch.
  */
-import React from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Linking, Pressable, StyleSheet, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import * as ExpoLocation from "expo-location";
 import { useTranslation } from "react-i18next";
 import { Screen, Text as UIText } from "@/shared/ui";
 import { Button, kit } from "@/shared/kit";
@@ -24,6 +25,7 @@ import { formatPrice } from "@/utils/format";
 import { showErrorSheet, showSuccessSheet } from "@/shared/store/appSheetStore";
 import { useDriverOrderDetail, useMyAssignmentForOrder } from "../hooks/useDriverManifest";
 import { useDriverMutations } from "../hooks/useDriverMutations";
+import { pushDriverLocation } from "../api";
 import { DriverScreenHeader } from "../components/DriverScreenHeader";
 
 const IS_RTL = isRtl();
@@ -42,6 +44,7 @@ export function DeliveryExecutionScreen(): React.ReactElement {
   const order = orderQuery.data;
   const assignment = assignmentQuery.data;
   const statusMeta = order ? (ORDER_STATUS_META[order.status] ?? ORDER_STATUS_META.pending) : null;
+  const [locationSyncState, setLocationSyncState] = useState<"idle" | "syncing" | "ready" | "denied" | "error">("idle");
 
   const handlePickup = async () => {
     if (!orderId || !assignment) return;
@@ -67,9 +70,83 @@ export function DeliveryExecutionScreen(): React.ReactElement {
   const canConfirmPickup = order?.status === "ready" && assignment?.responseStatus === "accepted" && !assignment.pickedUpAt;
   const canMarkDelivered = order?.status === "out_for_delivery";
   const address = order?.address.formatted || [order?.address.street, order?.address.city].filter(Boolean).join(", ");
+  const destinationCoords = useMemo(() => {
+    if (
+      typeof order?.customerLat === "number"
+      && Number.isFinite(order.customerLat)
+      && typeof order?.customerLng === "number"
+      && Number.isFinite(order.customerLng)
+    ) {
+      return { lat: order.customerLat, lng: order.customerLng };
+    }
+    return null;
+  }, [order?.customerLat, order?.customerLng]);
+  const shouldBroadcastLocation =
+    Boolean(user?.id)
+    && Boolean(orderId)
+    && Boolean(assignment?.id)
+    && ["out_for_delivery", "picked_up", "shipped"].includes(order?.status ?? "");
+
+  useEffect(() => {
+    if (!shouldBroadcastLocation || !user?.id || !orderId) return;
+
+    let cancelled = false;
+    let intervalId: ReturnType<typeof setInterval> | null = null;
+
+    const syncCurrentLocation = async () => {
+      try {
+        setLocationSyncState((current) => (current === "ready" ? current : "syncing"));
+        const permission = await ExpoLocation.requestForegroundPermissionsAsync();
+        if (permission.status !== "granted") {
+          if (!cancelled) setLocationSyncState("denied");
+          return;
+        }
+
+        const position = await ExpoLocation.getCurrentPositionAsync({
+          accuracy: ExpoLocation.Accuracy.Balanced,
+        });
+
+        await pushDriverLocation({
+          driver_id: user.id,
+          order_id: orderId,
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+          accuracy_meters: position.coords.accuracy ?? undefined,
+          heading: typeof position.coords.heading === "number" ? position.coords.heading : undefined,
+          speed_kmh:
+            typeof position.coords.speed === "number"
+              ? Math.max(position.coords.speed, 0) * 3.6
+              : undefined,
+          captured_at: new Date(position.timestamp).toISOString(),
+        });
+
+        if (!cancelled) setLocationSyncState("ready");
+      } catch {
+        if (!cancelled) setLocationSyncState("error");
+      }
+    };
+
+    void syncCurrentLocation();
+    intervalId = setInterval(() => {
+      void syncCurrentLocation();
+    }, 20_000);
+
+    return () => {
+      cancelled = true;
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [orderId, shouldBroadcastLocation, user?.id]);
+
   const openNavigation = () => {
+    if (destinationCoords) {
+      void Linking.openURL(
+        `https://www.google.com/maps/dir/?api=1&destination=${destinationCoords.lat},${destinationCoords.lng}&travelmode=driving`,
+      );
+      return;
+    }
+
     if (!address) return;
-    void Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(address)}`);
+    void Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(address)}&travelmode=driving`);
   };
   const callCustomer = () => {
     const phone = order?.address.phone?.replace(/\s/g, "");
@@ -100,6 +177,11 @@ export function DeliveryExecutionScreen(): React.ReactElement {
               <UIText variant="caption" color="brand" style={{ textAlign: TEXT_START }}>ACTIVE DELIVERY</UIText>
               <UIText variant="card-title" style={{ textAlign: TEXT_START, marginTop: 4 }}>{order.address.name || "—"}</UIText>
               <UIText variant="body-sm" color="secondary" numberOfLines={2} style={{ textAlign: TEXT_START, marginTop: 2 }}>{address || "—"}</UIText>
+              {destinationCoords ? (
+                <UIText variant="caption" color="secondary" style={{ textAlign: TEXT_START, marginTop: 6 }}>
+                  {destinationCoords.lat.toFixed(5)}, {destinationCoords.lng.toFixed(5)}
+                </UIText>
+              ) : null}
             </View>
             <View style={s.quickActions}>
               <Pressable onPress={callCustomer} disabled={!order.address.phone} style={[s.quickAction, !order.address.phone && s.quickActionDisabled]} accessibilityRole="button" accessibilityLabel={t("driver.phone")}>
@@ -109,6 +191,37 @@ export function DeliveryExecutionScreen(): React.ReactElement {
                 <Ionicons name="navigate-outline" size={19} color={kit.color.accentDeep} />
               </Pressable>
             </View>
+          </View>
+
+          <View style={s.liveStatusCard}>
+            <Ionicons
+              name={
+                locationSyncState === "ready"
+                  ? "radio-outline"
+                  : locationSyncState === "denied"
+                    ? "location-outline"
+                    : locationSyncState === "error"
+                      ? "alert-circle-outline"
+                      : "navigate-outline"
+              }
+              size={16}
+              color={
+                locationSyncState === "ready"
+                  ? kit.color.success
+                  : locationSyncState === "error"
+                    ? kit.color.warn
+                    : kit.color.accentDeep
+              }
+            />
+            <UIText variant="body-sm" style={{ flex: 1, textAlign: TEXT_START }}>
+              {locationSyncState === "ready"
+                ? t("driver.liveLocationReady", "Live driver location is updating for tracking.")
+                : locationSyncState === "denied"
+                  ? t("driver.liveLocationDenied", "Location access is required for accurate tracking.")
+                  : locationSyncState === "error"
+                    ? t("driver.liveLocationError", "Live location update failed. We will retry automatically.")
+                    : t("driver.liveLocationSyncing", "Preparing navigation and live location updates.")}
+            </UIText>
           </View>
 
           <View style={s.timeline}>
@@ -200,6 +313,19 @@ const s = StyleSheet.create({
     marginHorizontal: kit.inset.screen, marginTop: 8, marginBottom: 16,
     padding: 16, borderRadius: kit.radius.xl, backgroundColor: kit.color.surface,
     borderWidth: 1, borderColor: kit.color.line, ...kit.shadow.card,
+  },
+  liveStatusCard: {
+    flexDirection: flexRow(IS_RTL),
+    alignItems: "center",
+    gap: 8,
+    marginHorizontal: kit.inset.screen,
+    marginBottom: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: kit.radius.lg,
+    backgroundColor: kit.color.accentTint,
+    borderWidth: 1,
+    borderColor: kit.color.line,
   },
   quickActions: { flexDirection: flexRow(IS_RTL), gap: 8 },
   quickAction: { width: 44, height: 44, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: kit.color.accentTint },

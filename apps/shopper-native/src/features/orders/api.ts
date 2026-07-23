@@ -53,6 +53,8 @@ interface OrderRow {
   customer_name:    string;
   customer_phone:   string;
   customer_address: Record<string, unknown> | null;
+  customer_lat:     number | null;
+  customer_lng:     number | null;
   payment_method:   string | null;
   payment_status:   string;
   external_ref:     string | null;
@@ -129,6 +131,8 @@ function rowToOrder(row: OrderRow): Order {
         row.note ||
         (typeof addr.notes === "string" ? addr.notes : undefined),
     },
+    customerLat:     row.customer_lat ?? null,
+    customerLng:     row.customer_lng ?? null,
     status:          row.status as OrderStatus,
     paymentMethod:   row.payment_method   ?? null,
     paymentStatus:   row.payment_status   ?? "pending",
@@ -154,6 +158,8 @@ const ORDERS_SELECT = [
   "customer_name",
   "customer_phone",
   "customer_address",
+  "customer_lat",
+  "customer_lng",
   "payment_method",
   "payment_status",
   "external_ref",

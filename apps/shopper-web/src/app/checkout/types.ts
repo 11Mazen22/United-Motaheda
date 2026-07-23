@@ -56,6 +56,8 @@ export type CheckoutAddressSnapshot = {
   buildingNumber?: string;
   floor?: string;
   apartmentNumber?: string;
+  lat?: number;
+  lng?: number;
 };
 
 export type CheckoutSubmitCommand = {

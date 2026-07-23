@@ -1,4 +1,4 @@
-﻿// Checkout.tsx – with cascading address dropdowns and dynamic delivery fee
+// Checkout.tsx – with cascading address dropdowns and dynamic delivery fee
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useDeliveryQuote, useLocationState } from "@pharmacy/domain-location";
@@ -163,9 +163,12 @@ export default function Checkout() {
   const primaryDeliveryBranch = deliveryBranches[0] ?? null;
   const selectedArea = useLocationState((state) => state.selectedArea);
   const selectedBranchId = useLocationState((state) => state.selectedBranchId);
+  const locationCoordinates = useLocationState((state) => state.coordinates);
   const locationPermission = useLocationState((state) => state.permission);
   const setSelectedArea = useLocationState((state) => state.setSelectedArea);
   const setSelectedBranchId = useLocationState((state) => state.setSelectedBranchId);
+  const setLocationCoordinates = useLocationState((state) => state.setCoordinates);
+  const setLocationPermission = useLocationState((state) => state.setPermission);
 
   const [form, setForm] = useState<CheckoutFormValues>({
     fullName: "",
@@ -368,6 +371,41 @@ export default function Checkout() {
     }));
   };
 
+  const requestCurrentLocation = () => {
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      setSubmitError(
+        lang === "ar"
+          ? "خدمة تحديد الموقع غير متاحة على هذا الجهاز."
+          : "Location services are not available on this device.",
+      );
+      return;
+    }
+
+    setSubmitError("");
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setLocationCoordinates({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        });
+        setLocationPermission("granted");
+      },
+      () => {
+        setLocationPermission("denied");
+        setSubmitError(
+          lang === "ar"
+            ? "تعذر تحديد موقعك الحالي. يرجى السماح بالوصول إلى الموقع ثم إعادة المحاولة."
+            : "We couldn't detect your current location. Please allow location access and try again.",
+        );
+      },
+      {
+        enableHighAccuracy: true,
+        maximumAge: 15_000,
+        timeout: 10_000,
+      },
+    );
+  };
+
   const markFieldTouched = (field: CheckoutFieldName) => {
     setTouchedFields((prev) => new Set(prev).add(field));
   };
@@ -519,6 +557,7 @@ export default function Checkout() {
       user,
       form,
       pricing,
+      coordinates: locationCoordinates,
       region: selectedArea || undefined,
       subRegion: (lang === "ar" ? selectedBranch?.nameAr : selectedBranch?.nameEn) || undefined,
       paymentMethod,
@@ -1008,6 +1047,38 @@ export default function Checkout() {
           onChangeArea={setSelectedArea}
           onChangeBranch={setSelectedBranchId}
         />
+      </div>
+
+      <div className="sm:col-span-2">
+        <div className="rounded-2xl border border-slate-200 bg-[linear-gradient(145deg,#ffffff_0%,#f8fbfb_62%,#eff6f7_100%)] p-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-black text-slate-900">
+                {lang === "ar" ? "الموقع الحالي" : "Current location"}
+              </p>
+              <p className="mt-1 text-sm font-semibold text-slate-500">
+                {locationCoordinates
+                  ? `${locationCoordinates.lat.toFixed(5)}, ${locationCoordinates.lng.toFixed(5)}`
+                  : locationPermission === "denied"
+                    ? (lang === "ar"
+                      ? "تم رفض إذن الموقع. اضغط لإعادة المحاولة."
+                      : "Location access was denied. Tap to try again.")
+                    : (lang === "ar"
+                      ? "استخدم موقعك الحالي لتحسين تحديد العنوان ورسوم التوصيل."
+                      : "Use your live location for a more accurate address and delivery quote.")}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={requestCurrentLocation}
+              className="inline-flex h-11 items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 text-sm font-black text-slate-700 shadow-sm transition hover:border-teal-200 hover:bg-teal-50"
+            >
+              {locationCoordinates
+                ? (lang === "ar" ? "تحديث موقعي" : "Refresh my location")
+                : (lang === "ar" ? "استخدم موقعي الحالي" : "Use my current location")}
+            </button>
+          </div>
+        </div>
       </div>
 
       <div className="sm:col-span-2">

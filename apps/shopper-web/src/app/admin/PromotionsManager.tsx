@@ -76,6 +76,8 @@ type ViewMode = "grid" | "list" | "calendar";
 type EditorTab = "details" | "products";
 type DecoratedPromotion = Promotion & { status: PromotionStatus; isExpiringSoon: boolean };
 
+const COPILOT_UNAVAILABLE = true;
+
 const STATUS_TONE: Record<PromotionStatus, { badge: string; bar: string; ring: string }> = {
   active: { badge: "bg-emerald-50 text-emerald-700 ring-emerald-200", bar: "bg-emerald-500", ring: "ring-emerald-100" },
   paused: { badge: "bg-amber-50 text-amber-700 ring-amber-200", bar: "bg-amber-400", ring: "ring-amber-100" },
@@ -180,9 +182,9 @@ function PromotionActionsMenu({
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-40">
-        <DropdownMenuItem onClick={onCopilot}>
+        <DropdownMenuItem disabled={COPILOT_UNAVAILABLE}>
           <SparklesIcon className="me-2 h-4 w-4 text-violet-600" />
-          {t("lang") === "ar" ? "مراجعة مع Copilot" : "Review with Copilot"}
+          {t("lang") === "ar" ? "قريباً" : "Coming soon"}
         </DropdownMenuItem>
         <DropdownMenuItem onClick={onEdit}>{t("promotions.edit")}</DropdownMenuItem>
         {onDuplicate && <DropdownMenuItem onClick={onDuplicate}>{t("promotions.duplicate")}</DropdownMenuItem>}
@@ -766,7 +768,7 @@ export default function PromotionsManager() {
           <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end">
             <button type="button" onClick={() => { void load(); }} disabled={loading} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-50"><ArrowPathIcon className={cn("h-4 w-4", loading && "animate-spin")} />{isArabic ? "تحديث" : "Refresh"}</button>
             <button type="button" onClick={openCreate} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-violet-200 bg-white px-5 text-sm font-black text-violet-700 shadow-sm transition hover:-translate-y-0.5 hover:bg-violet-50"><PlusIcon className="h-4 w-4" />{t("promotions.new")}</button>
-            <button type="button" onClick={openCopilotForCreate} className="group inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[linear-gradient(135deg,#111827,#6d28d9)] px-5 text-sm font-black text-white shadow-lg shadow-violet-900/20 transition hover:-translate-y-0.5 hover:shadow-xl"><SparklesIcon className="h-4 w-4 transition group-hover:rotate-12" />{isArabic ? "إنشاء باستخدام Copilot" : "Create with Copilot"}</button>
+            <button type="button" disabled={COPILOT_UNAVAILABLE} className="group inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[linear-gradient(135deg,#111827,#6d28d9)] px-5 text-sm font-black text-white shadow-lg shadow-violet-900/20 transition hover:-translate-y-0.5 hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-60"><SparklesIcon className="h-4 w-4 transition group-hover:rotate-12" />{isArabic ? "قريباً" : "Coming soon"}</button>
           </div>
         </div>
       </section>
@@ -1020,7 +1022,7 @@ export default function PromotionsManager() {
                   <p className="mt-1 max-w-2xl text-sm text-slate-500">{t("promotions.dialogSubtitle")}</p>
                 </div>
                 <div className="hidden items-center gap-2 sm:flex">
-                  <button type="button" onClick={() => { setCopilotTarget(editing); setCopilotContext(copilotDraft); setCopilotOpen(true); }} className="inline-flex h-10 items-center gap-2 rounded-xl bg-[linear-gradient(135deg,#111827,#6d28d9)] px-3 text-xs font-black text-white shadow-md transition hover:-translate-y-0.5"><SparklesIcon className="h-4 w-4" />{isArabic ? "تحسين مع Copilot" : "Improve with Copilot"}</button>
+                  <button type="button" disabled={COPILOT_UNAVAILABLE} className="inline-flex h-10 items-center gap-2 rounded-xl bg-[linear-gradient(135deg,#111827,#6d28d9)] px-3 text-xs font-black text-white shadow-md transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"><SparklesIcon className="h-4 w-4" />{isArabic ? "قريباً" : "Coming soon"}</button>
                   <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-600">
                     <CubeIcon className="h-4 w-4 text-violet-600" />
                     {watchProductIds.length} {isArabic ? "منتج محدد" : "products selected"}

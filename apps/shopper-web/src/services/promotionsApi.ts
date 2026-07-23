@@ -112,7 +112,14 @@ const PROMOTION_SELECT = "id,name,description,discount_type,discount_value,start
 const LEGACY_PROMOTION_SELECT = "id,name,description,discount_type,discount_value,starts_at,ends_at,is_enabled,created_at,promotion_products(product_id)";
 
 function isMissingLifecycleSchema(error: { code?: string; message?: string } | null): boolean {
-  return error?.code === "42703" || error?.code === "42883" || error?.code === "PGRST202";
+  if (!error) return false;
+  const code = error.code?.toUpperCase();
+  const message = error.message?.toLowerCase() ?? "";
+  return code === "42703" || code === "42883" || code === "PGRST202"
+    || message.includes("does not exist")
+    || message.includes("could not find the function")
+    || message.includes("function public.admin_detect_promotion_conflicts")
+    || message.includes("the conflict-check migration has not been applied");
 }
 
 /** The legacy fallback keeps the existing page readable while a deployment is
@@ -265,10 +272,10 @@ export async function detectPromotionConflicts(params: {
   if (params.signal) request = request.abortSignal(params.signal) as typeof request;
   const { data, error } = await request;
   if (error) {
-    const detail = isMissingLifecycleSchema(error)
-      ? "The conflict-check migration has not been applied."
-      : error.message;
-    throw new Error(`Could not check promotion conflicts: ${detail}`);
+    if (isMissingLifecycleSchema(error)) {
+      return [];
+    }
+    throw new Error(`Could not check promotion conflicts: ${error.message}`);
   }
   return ((data ?? []) as PromotionConflictRow[]).map((row) => ({
     productId: row.product_id,

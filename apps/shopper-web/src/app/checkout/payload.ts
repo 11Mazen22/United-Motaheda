@@ -16,6 +16,10 @@ export function buildCheckoutAddressSnapshot(
   options?: {
     region?: string;
     subRegion?: string;
+    coordinates?: {
+      lat: number;
+      lng: number;
+    } | null;
   },
 ): CheckoutAddressSnapshot {
   const floorLine = form.floor.trim() ? `Floor ${form.floor.trim()}` : null;
@@ -36,6 +40,8 @@ export function buildCheckoutAddressSnapshot(
     buildingNumber: form.buildingNumber.trim() || undefined,
     floor: form.floor.trim() || undefined,
     apartmentNumber: form.apartmentNumber.trim() || undefined,
+    lat: options?.coordinates?.lat,
+    lng: options?.coordinates?.lng,
   };
 }
 
@@ -74,6 +80,10 @@ export function buildCheckoutSubmitCommand(input: {
   pricing: CheckoutPricing;
   region?: string;
   subRegion?: string;
+  coordinates?: {
+    lat: number;
+    lng: number;
+  } | null;
   paymentMethod: CheckoutPaymentMethod;
   paymentLabel: string;
   requestPosMachine: boolean;
@@ -84,6 +94,7 @@ export function buildCheckoutSubmitCommand(input: {
   const address = buildCheckoutAddressSnapshot(input.form, {
     region: input.region,
     subRegion: input.subRegion,
+    coordinates: input.coordinates,
   });
 
   return {

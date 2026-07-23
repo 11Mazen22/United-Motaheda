@@ -68,6 +68,17 @@ export interface DeliveryIssue {
   createdAt:      string;
 }
 
+export interface DriverLocationPayload {
+  driver_id: string;
+  order_id: string;
+  lat: number;
+  lng: number;
+  accuracy_meters?: number;
+  speed_kmh?: number;
+  heading?: number;
+  captured_at?: string;
+}
+
 /** A manifest entry — an assigned order plus a lightweight summary, enough
  * for the task-list screen without fetching every line item up front. */
 export interface ManifestOrder {
@@ -456,4 +467,12 @@ export async function listMyIssuesForOrder(orderId: string, driverId: string): P
 
   if (error) throw error;
   return ((data ?? []) as RawIssueRow[]).map(mapIssueRow);
+}
+
+export async function pushDriverLocation(payload: DriverLocationPayload): Promise<void> {
+  const { error } = await supabase.functions.invoke("driver-location", {
+    body: payload,
+  });
+
+  if (error) throw error;
 }
