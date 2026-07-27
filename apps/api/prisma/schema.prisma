@@ -554,37 +554,40 @@ model order_items {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model orders {
-  id                                           String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  external_ref                                 String?       @unique
+  id                                           String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  external_ref                                 String?              @unique
   customer_name                                String
   customer_phone                               String
   customer_address                             Json
-  customer_lat                                 Decimal?      @db.Decimal(9, 6)
-  customer_lng                                 Decimal?      @db.Decimal(9, 6)
-  status                                       order_status  @default(pending)
-  assigned_driver_id                           String?       @db.Uuid
-  qr_token                                     String        @unique @default(dbgenerated("encode(gen_random_bytes(16), 'hex'::text)"))
-  subtotal                                     Decimal       @default(0) @db.Decimal(12, 2)
-  shipping_fee                                 Decimal       @default(0) @db.Decimal(12, 2)
-  total                                        Decimal       @default(0) @db.Decimal(12, 2)
-  source                                       String        @default("supabase")
-  last_status_at                               DateTime      @default(now()) @db.Timestamptz(6)
-  created_at                                   DateTime      @default(now()) @db.Timestamptz(6)
-  updated_at                                   DateTime      @default(now()) @db.Timestamptz(6)
-  user_id                                      String?       @db.Uuid
-  note                                         String        @default("")
-  discount_total                               Decimal       @default(0) @db.Decimal(12, 2)
-  tax_total                                    Decimal       @default(0) @db.Decimal(12, 2)
+  customer_lat                                 Decimal?             @db.Decimal(9, 6)
+  customer_lng                                 Decimal?             @db.Decimal(9, 6)
+  status                                       order_status         @default(pending)
+  assigned_driver_id                           String?              @db.Uuid
+  qr_token                                     String               @unique @default(dbgenerated("encode(gen_random_bytes(16), 'hex'::text)"))
+  subtotal                                     Decimal              @default(0) @db.Decimal(12, 2)
+  shipping_fee                                 Decimal              @default(0) @db.Decimal(12, 2)
+  total                                        Decimal              @default(0) @db.Decimal(12, 2)
+  source                                       String               @default("supabase")
+  last_status_at                               DateTime             @default(now()) @db.Timestamptz(6)
+  created_at                                   DateTime             @default(now()) @db.Timestamptz(6)
+  updated_at                                   DateTime             @default(now()) @db.Timestamptz(6)
+  user_id                                      String?              @db.Uuid
+  note                                         String               @default("")
+  discount_total                               Decimal              @default(0) @db.Decimal(12, 2)
+  tax_total                                    Decimal              @default(0) @db.Decimal(12, 2)
   payment_method                               String?
-  payment_status                               String        @default("pending")
+  payment_status                               String               @default("pending")
   payment_reference                            String?
   idempotency_key                              String?
   failure_reason                               String?
   order_items                                  order_items[]
-  profiles_orders_assigned_driver_idToprofiles profiles?     @relation("orders_assigned_driver_idToprofiles", fields: [assigned_driver_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  profiles_orders_user_idToprofiles            profiles?     @relation("orders_user_idToprofiles", fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  profiles_orders_assigned_driver_idToprofiles profiles?            @relation("orders_assigned_driver_idToprofiles", fields: [assigned_driver_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  profiles_orders_user_idToprofiles            profiles?            @relation("orders_user_idToprofiles", fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  deliveryAssignment                           DeliveryAssignment?
 
   @@index([user_id, created_at(sort: Desc)], map: "orders_user_created_idx")
+  @@index([assigned_driver_id])
+  @@index([status, created_at(sort: Desc)])
   @@schema("public")
 }
 
@@ -612,19 +615,21 @@ model products {
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model profiles {
-  id                                         String   @id @db.Uuid
-  full_name                                  String   @default("")
-  phone                                      String?  @unique
+  id                                         String            @id @db.Uuid
+  full_name                                  String            @default("")
+  phone                                      String?           @unique
   email                                      String?
   username                                   String?
   address                                    String?
-  role                                       app_role @default(customer)
-  status                                     String   @default("Active")
-  created_at                                 DateTime @default(now()) @db.Timestamptz(6)
-  updated_at                                 DateTime @default(now()) @db.Timestamptz(6)
-  orders_orders_assigned_driver_idToprofiles orders[] @relation("orders_assigned_driver_idToprofiles")
-  orders_orders_user_idToprofiles            orders[] @relation("orders_user_idToprofiles")
-  users                                      users    @relation(fields: [id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  role                                       app_role          @default(customer)
+  status                                     String            @default("Active")
+  created_at                                 DateTime          @default(now()) @db.Timestamptz(6)
+  updated_at                                 DateTime          @default(now()) @db.Timestamptz(6)
+  orders_orders_assigned_driver_idToprofiles orders[]          @relation("orders_assigned_driver_idToprofiles")
+  orders_orders_user_idToprofiles            orders[]          @relation("orders_user_idToprofiles")
+  users                                      users             @relation(fields: [id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  driverProfile                              DriverProfile?
+  notificationTokens                         NotificationToken[]
 
   @@schema("public")
 }
@@ -794,5 +799,267 @@ model DeliveryZone {
   updatedAt        DateTime @updatedAt
 
   @@index([branchId])
+  @@schema("public")
+}
+
+/// Driver profile with vehicle information and documents
+model DriverProfile {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId          String   @unique @db.Uuid
+  user            profiles @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Vehicle Information
+  vehicleType     String   // motorcycle, car, bicycle, scooter
+  vehiclePlate    String?
+  vehicleModel    String?
+  vehicleColor    String?
+  
+  // Documents
+  licenseNumber   String?
+  licenseExpiry   DateTime? @db.Timestamptz(6)
+  licensePhotoUrl String?
+  idPhotoUrl      String?
+  vehiclePhotoUrl String?
+  insurancePhotoUrl String?
+  
+  // Status and Availability
+  status          DriverStatus @default(PENDING_APPROVAL)
+  isOnline        Boolean   @default(false)
+  currentLat      Float?
+  currentLng      Float?
+  lastLocationAt  DateTime? @db.Timestamptz(6)
+  
+  // Performance Metrics
+  rating          Float     @default(5.0)
+  totalDeliveries Int       @default(0)
+  completionRate  Float     @default(100.0)
+  totalEarnings   Decimal   @default(0) @db.Decimal(12, 2)
+  
+  // Metadata
+  approvedAt      DateTime? @db.Timestamptz(6)
+  approvedBy      String?   @db.Uuid
+  rejectionReason String?
+  createdAt       DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt       DateTime  @updatedAt @db.Timestamptz(6)
+  
+  // Relations
+  locations       DriverLocation[]
+  deliveries      DeliveryAssignment[]
+  sessions        DriverSession[]
+  earnings        DriverEarning[]
+  
+  @@index([status])
+  @@index([isOnline])
+  @@index([userId])
+  @@schema("public")
+}
+
+/// Real-time driver location tracking with GPS data
+model DriverLocation {
+  id         String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  driverId   String        @db.Uuid
+  driver     DriverProfile @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  
+  // GPS Data
+  latitude   Float
+  longitude  Float
+  accuracy   Float         // meters
+  heading    Float?        // degrees (0-360)
+  speed      Float?        // m/s
+  altitude   Float?        // meters
+  
+  // Metadata
+  timestamp  DateTime      @default(now()) @db.Timestamptz(6)
+  
+  @@index([driverId, timestamp(sort: Desc)])
+  @@index([timestamp(sort: Desc)])
+  @@schema("public")
+}
+
+/// Order assignment and delivery tracking
+model DeliveryAssignment {
+  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orderId         String        @unique @db.Uuid
+  driverId        String        @db.Uuid
+  order           orders        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  driver          DriverProfile @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  
+  // Pharmacy Location (pickup point)
+  pharmacyName    String
+  pharmacyLat     Float
+  pharmacyLng     Float
+  pharmacyAddress String
+  
+  // Workflow Timestamps
+  assignedAt           DateTime  @default(now()) @db.Timestamptz(6)
+  acceptedAt           DateTime? @db.Timestamptz(6)
+  rejectedAt           DateTime? @db.Timestamptz(6)
+  arrivedPharmacyAt    DateTime? @db.Timestamptz(6)
+  pickedUpAt           DateTime? @db.Timestamptz(6)
+  arrivedCustomerAt    DateTime? @db.Timestamptz(6)
+  deliveredAt          DateTime? @db.Timestamptz(6)
+  cancelledAt          DateTime? @db.Timestamptz(6)
+  
+  // Delivery Proof
+  proofPhotoUrl        String?
+  customerSignature    String?   // base64 encoded
+  deliveryNotes        String?
+  customerRating       Int?      // 1-5
+  customerFeedback     String?
+  
+  // Earnings
+  baseFee              Decimal   @db.Decimal(10, 2)
+  distanceFee          Decimal   @default(0) @db.Decimal(10, 2)
+  tipAmount            Decimal   @default(0) @db.Decimal(10, 2)
+  bonusAmount          Decimal   @default(0) @db.Decimal(10, 2)
+  totalEarnings        Decimal   @db.Decimal(10, 2)
+  
+  // Status
+  status               DeliveryStatus @default(ASSIGNED)
+  cancellationReason   String?
+  
+  // Metadata
+  estimatedDistance    Float?    // km
+  estimatedDuration    Int?      // minutes
+  actualDistance       Float?    // km
+  actualDuration       Int?      // minutes
+  createdAt            DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt            DateTime  @updatedAt @db.Timestamptz(6)
+  
+  @@index([driverId, status])
+  @@index([orderId])
+  @@index([status, assignedAt(sort: Desc)])
+  @@index([driverId, deliveredAt(sort: Desc)])
+  @@schema("public")
+}
+
+/// Driver work sessions for shift tracking
+model DriverSession {
+  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  driverId        String        @db.Uuid
+  driver          DriverProfile @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  
+  // Session Times
+  startedAt       DateTime      @default(now()) @db.Timestamptz(6)
+  endedAt         DateTime?     @db.Timestamptz(6)
+  
+  // Session Stats
+  totalOnlineTime Int           @default(0) // minutes
+  totalDeliveries Int           @default(0)
+  totalEarnings   Decimal       @default(0) @db.Decimal(12, 2)
+  totalDistance   Float         @default(0) // km
+  
+  @@index([driverId, startedAt(sort: Desc)])
+  @@schema("public")
+}
+
+/// Driver earnings per delivery
+model DriverEarning {
+  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  driverId        String        @db.Uuid
+  driver          DriverProfile @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  deliveryId      String        @db.Uuid
+  
+  // Earnings Breakdown
+  baseFee         Decimal       @db.Decimal(10, 2)
+  distanceFee     Decimal       @default(0) @db.Decimal(10, 2)
+  tipAmount       Decimal       @default(0) @db.Decimal(10, 2)
+  bonusAmount     Decimal       @default(0) @db.Decimal(10, 2)
+  totalAmount     Decimal       @db.Decimal(10, 2)
+  
+  // Payment Status
+  isPaid          Boolean       @default(false)
+  paidAt          DateTime?     @db.Timestamptz(6)
+  paymentMethod   String?       // bank_transfer, cash, wallet
+  paymentRef      String?
+  
+  // Metadata
+  earnedAt        DateTime      @default(now()) @db.Timestamptz(6)
+  createdAt       DateTime      @default(now()) @db.Timestamptz(6)
+  
+  @@index([driverId, earnedAt(sort: Desc)])
+  @@index([isPaid])
+  @@schema("public")
+}
+
+/// Push notification device tokens
+model NotificationToken {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId     String   @db.Uuid
+  user       profiles @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Token Data
+  token      String   @unique
+  platform   String   // ios, android, web
+  deviceId   String?
+  deviceName String?
+  
+  // Status
+  isActive   Boolean  @default(true)
+  
+  // Metadata
+  createdAt  DateTime @default(now()) @db.Timestamptz(6)
+  lastUsedAt DateTime @default(now()) @db.Timestamptz(6)
+  
+  @@index([userId, isActive])
+  @@index([token])
+  @@schema("public")
+}
+
+/// Notification history and tracking
+model NotificationLog {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  
+  // Target
+  userId          String?  @db.Uuid
+  tokenId         String?  @db.Uuid
+  
+  // Content
+  title           String
+  body            String
+  data            Json?    @default("{}")
+  imageUrl        String?
+  
+  // Status
+  status          String   // sent, delivered, failed, clicked
+  platform        String   // ios, android, web
+  errorMessage    String?
+  
+  // Metadata
+  sentAt          DateTime @default(now()) @db.Timestamptz(6)
+  deliveredAt     DateTime? @db.Timestamptz(6)
+  clickedAt       DateTime? @db.Timestamptz(6)
+  
+  @@index([userId, sentAt(sort: Desc)])
+  @@index([status])
+  @@schema("public")
+}
+
+/// Driver status enum
+enum DriverStatus {
+  PENDING_APPROVAL
+  APPROVED
+  ACTIVE
+  SUSPENDED
+  REJECTED
+  INACTIVE
+  
+  @@schema("public")
+}
+
+/// Delivery status enum
+enum DeliveryStatus {
+  ASSIGNED
+  ACCEPTED
+  REJECTED
+  EN_ROUTE_TO_PICKUP
+  ARRIVED_AT_PHARMACY
+  PICKED_UP
+  EN_ROUTE_TO_CUSTOMER
+  ARRIVED_AT_CUSTOMER
+  DELIVERED
+  CANCELLED
+  FAILED
+  
   @@schema("public")
 }

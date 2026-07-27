@@ -4,7 +4,7 @@ import { Text as UIText } from "@/shared/ui";
 import Animated, { FadeIn } from "react-native-reanimated";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import { Controller, type Control } from "react-hook-form";
+import { type Control } from "react-hook-form";
 
 import { Input } from "@/components/ui/Input";
 import { theme } from "@/shared/theme";
@@ -21,14 +21,24 @@ import { type CheckoutPricing } from "../types";
 import { SectionCard } from "./SectionCard";
 import { SummaryRow } from "./SummaryRow";
 import { PaymentOptionsList } from "./PaymentOptionsList";
+import { CouponInput } from "./CouponInput";
 import { summaryStyles, errorStyles } from "./checkout.styles";
 
 interface ReviewStepProps {
   values:               CheckoutFormSchema;
   paymentMethod:        CheckoutPaymentMethod;
   requestPos:           boolean;
+  couponCode:           string;
+  onCouponCodeChange:   (v: string) => void;
+  onApplyCoupon:        () => Promise<void>;
+  onRemoveCoupon:       () => void;
+  couponApplied:        boolean;
+  couponError:          string | null;
+  couponValidating:     boolean;
+  couponDiscountAmount: number;
+  appliedCouponCode:    string;
+  /** Legacy: still used for the UNITED10 promo code discount row display */
   promoApplied:         boolean;
-  promoError:           string | null;
   pricing:              CheckoutPricing;
   deliveryQuote:        ReturnType<typeof useDeliveryContext>;
   submitError:          string | null;
@@ -42,7 +52,6 @@ interface ReviewStepProps {
   onEditPayment:        () => void;
   onPaymentChange:      (m: CheckoutPaymentMethod) => void;
   onTogglePos:          () => void;
-  onApplyPromo:         () => void;
   control:              Control<CheckoutFormSchema>;
 }
 
@@ -50,8 +59,16 @@ export const ReviewStep = React.memo(function ReviewStep({
   values,
   paymentMethod,
   requestPos,
+  couponCode,
+  onCouponCodeChange,
+  onApplyCoupon,
+  onRemoveCoupon,
+  couponApplied,
+  couponError,
+  couponValidating,
+  couponDiscountAmount,
+  appliedCouponCode,
   promoApplied,
-  promoError,
   pricing,
   deliveryQuote,
   submitError,
@@ -65,7 +82,6 @@ export const ReviewStep = React.memo(function ReviewStep({
   onEditPayment,
   onPaymentChange,
   onTogglePos,
-  onApplyPromo,
   control,
 }: ReviewStepProps) {
   const { t, i18n } = useTranslation();
@@ -169,41 +185,19 @@ export const ReviewStep = React.memo(function ReviewStep({
         </View>
       </SectionCard>
 
-      {/* Promo */}
+      {/* Coupon */}
       <SectionCard title={t("checkout.promoSection")} icon="pricetag-outline" delay={170}>
-        <Controller
-          control={control}
-          name="promoCode"
-          render={({ field }) => (
-            <View style={s.promoRow}>
-              <View style={{ flex: 1 }}>
-                <Input
-                  value={field.value ?? ""}
-                  onChangeText={field.onChange}
-                  placeholder={t("checkout.promoPlaceholder")}
-                  editable={!promoApplied}
-                  error={promoError ?? undefined}
-                />
-              </View>
-              <Pressable
-                onPress={onApplyPromo}
-                disabled={promoApplied}
-                style={[s.promoBtn, promoApplied && s.promoBtnApplied]}>
-                <UIText style={[s.promoBtnText, promoApplied && s.promoBtnTextApplied]}>
-                  {promoApplied
-                    ? t("checkout.promoApplied")
-                    : t("checkout.promoApply")}
-                </UIText>
-              </Pressable>
-            </View>
-          )}
+        <CouponInput
+          value={couponCode}
+          onChangeText={onCouponCodeChange}
+          onApply={onApplyCoupon}
+          onRemove={onRemoveCoupon}
+          loading={couponValidating}
+          applied={couponApplied}
+          discountAmount={couponDiscountAmount}
+          error={couponError}
+          appliedCode={appliedCouponCode}
         />
-        {promoApplied && (
-          <View style={s.promoSuccess}>
-            <Ionicons name="gift" size={13} color={kit.color.success} />
-            <UIText style={s.promoSuccessText}>{t("checkout.promoSuccess")}</UIText>
-          </View>
-        )}
       </SectionCard>
 
       {/* Pricing summary */}

@@ -15,6 +15,10 @@
     "skipLibCheck": true,
     "strict": true,
     "target": "ESNext",
+    
+    // Override web-centric base config settings
+    "types": [],
+    "ignoreDeprecations": null,
 
     "paths": {
       "@/*": [

@@ -8,6 +8,14 @@
  *   - Wiring the hook to sub-components
  *   - Handling navigation (router) and scroll (scrollRef)
  *   - Scroll-to-top side-effect on step change
+ *
+ * Hardening (Part 1):
+ *   - CheckoutErrorFallback: cart-preserving boundary fallback (shows item
+ *     count, retry, go-back) replaces the generic white-screen recovery.
+ *   - submitInProgressRef: synchronous duplicate-submission guard that fires
+ *     BEFORE the async setState for `submitting`, closing the race window
+ *     where rapid double-taps could enqueue two submissions while the first
+ *     state update is still pending.
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -26,6 +34,7 @@ import { useTranslation } from "react-i18next";
 
 import { ErrorBoundary } from "@/shared/components";
 import { Text as UIText } from "@/shared/ui";
+import { CheckoutErrorFallback } from "@/features/checkout/components/CheckoutErrorFallback";
 
 import { kit, Button as KitButton } from "@/shared/kit";
 import { isManualWalletPayment } from "@/features/checkout";
@@ -55,7 +64,14 @@ import Animated, { FadeInDown } from "react-native-reanimated";
 
 // ─── Public export — wrapped in an error boundary so render failures in any
 //     sub-component recover at the screen level.
+//
+//     The fallback prop provides a cart-preserving recovery UI that:
+//       1. Shows the number of items still held in the Zustand cart store
+//       2. Offers "retry" (boundary reset) and "go back" (navigate away)
+//       3. Never white-screens — imports zero kit/theme dependencies
 export default function CheckoutScreenBoundary() {
+  const router = useRouter();
+
   useEffect(() => {
     if (__DEV__) {
       console.log("[CheckoutScreenBoundary] Mounted");
@@ -63,7 +79,16 @@ export default function CheckoutScreenBoundary() {
   }, []);
 
   return (
-    <ErrorBoundary surface="checkout">
+    <ErrorBoundary
+      surface="checkout"
+      fallback={(reset, error) => (
+        <CheckoutErrorFallback
+          error={error}
+          onReset={reset}
+          onGoBack={() => router.back()}
+        />
+      )}
+    >
       <CheckoutScreen />
     </ErrorBoundary>
   );
@@ -277,8 +302,16 @@ function CheckoutScreen() {
             values={flow.form.getValues()}
             paymentMethod={flow.paymentMethod}
             requestPos={flow.requestPos}
+            couponCode={flow.couponCode}
+            onCouponCodeChange={flow.setCouponCode}
+            onApplyCoupon={flow.handleApplyCoupon}
+            onRemoveCoupon={flow.handleRemoveCoupon}
+            couponApplied={flow.couponApplied}
+            couponError={flow.couponError}
+            couponValidating={flow.couponValidating}
+            couponDiscountAmount={flow.couponDiscountAmount}
+            appliedCouponCode={flow.appliedCouponCode}
             promoApplied={flow.promoApplied}
-            promoError={flow.promoError}
             pricing={flow.pricing}
             deliveryQuote={flow.deliveryQuote}
             submitError={flow.submitError}
@@ -292,7 +325,6 @@ function CheckoutScreen() {
             onEditPayment={flow.backToDetails}
             onPaymentChange={flow.onPaymentChange}
             onTogglePos={flow.onTogglePos}
-            onApplyPromo={flow.handleApplyPromo}
             control={flow.form.control}
           />
         )}

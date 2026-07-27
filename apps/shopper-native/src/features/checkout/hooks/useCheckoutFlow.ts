@@ -55,6 +55,7 @@ import {
   type CheckoutFormInput,
   type CheckoutPricing,
 } from "@/features/checkout";
+import { useApplyCoupon } from "./useApplyCoupon";
 import { SUPPORTED_GOVERNORATE } from "@/features/delivery";
 import { paymentLabel } from "../constants";
 
@@ -144,6 +145,17 @@ export interface CheckoutFlowState {
   onPaymentChange:  (m: ReturnType<typeof useCheckoutStore.getState>["paymentMethod"]) => void;
   onTogglePos:      () => void;
 
+  // ── Coupon ────────────────────────────────────────────────────────────
+  couponApplied:   boolean;
+  couponError:     string | null;
+  couponValidating:boolean;
+  couponCode:      string;
+  appliedCouponCode: string;
+  couponDiscountAmount: number;
+  setCouponCode:   (v: string) => void;
+  handleApplyCoupon: () => Promise<void>;
+  handleRemoveCoupon: () => void;
+
   // ── User ─────────────────────────────────────────────────────────────
   user: ReturnType<typeof useAuth>["user"];
   lang: "en" | "ar";
@@ -202,7 +214,37 @@ export function useCheckoutFlow(): CheckoutFlowState {
   const [otpPending, setOtpPending]            = useState<{ phone: string; form: CheckoutFormSchema } | null>(null);
   const [showAuthGate, setShowAuthGate]        = useState(false);
 
+  // ── Coupon ────────────────────────────────────────────────────────────
+  const [couponCode, setCouponCode] = useState("");
+  const {
+    couponResult,
+    validating:   couponValidating,
+    couponError,
+    applyCode:    applyCodeFn,
+    removeCoupon: removeCouponFn,
+    couponApplied,
+  } = useApplyCoupon();
+
   const idempotencyKeyRef = useRef(createIdempotencyKey());
+  /**
+   * Synchronous duplicate-submission guard.
+   *
+   * Problem: `submitting` state is set via setState, which is batched and
+   * asynchronous. A user who double-taps the "Confirm" button can fire two
+   * calls to onSubmit() before the first setState({ submitting: true }) has
+   * flushed through React's scheduler — both calls see `submitting === false`
+   * and both proceed past the early-return guard.
+   *
+   * The idempotency key on the server prevents the second call from creating
+   * a duplicate order, but it still fires a network request, triggers
+   * inventory checks, runs the phone-OTP flow, etc. That's wasteful and can
+   * produce confusing double-error UI.
+   *
+   * Solution: a plain ref that is set synchronously before any await. The
+   * ref assignment is immediate (no scheduler), so the second tap always sees
+   * true and returns early, regardless of whether React has re-rendered yet.
+   */
+  const submitInProgressRef = useRef(false);
 
   // ── Derived cart lines (memoized) ────────────────────────────────────
   const cartLines = useMemo(
@@ -223,10 +265,12 @@ export function useCheckoutFlow(): CheckoutFlowState {
   const pricing = useMemo(
     () =>
       createCheckoutPricing(cartLines, {
-        promoCode:   promoCodeFromStore,
-        shippingFee: deliveryQuote.cost,
+        promoCode:    promoCodeFromStore,
+        shippingFee:  deliveryQuote.cost,
+        // Server-validated coupon takes precedence over the legacy client code.
+        couponAmount: couponResult?.valid ? couponResult.discountAmount : undefined,
       }),
-    [cartLines, promoCodeFromStore, deliveryQuote.cost],
+    [cartLines, promoCodeFromStore, deliveryQuote.cost, couponResult],
   );
 
   const promoApplied = pricing.discount > 0;
@@ -472,7 +516,17 @@ export function useCheckoutFlow(): CheckoutFlowState {
 
   const onSubmit = useCallback(
     async (form: CheckoutFormSchema): Promise<void> => {
-      if (cartLines.length === 0) return;
+      // ── Synchronous duplicate-submission guard ──────────────────────────
+      // This ref check fires BEFORE any await so it's immune to React's
+      // batched-setState race. The idempotency key is a second-line defence
+      // at the server; this guard prevents the redundant network round-trip.
+      if (submitInProgressRef.current) return;
+      submitInProgressRef.current = true;
+
+      if (cartLines.length === 0) {
+        submitInProgressRef.current = false;
+        return;
+      }
       setSubmitting(true);
       setSubmitError(null);
 
@@ -481,11 +535,17 @@ export function useCheckoutFlow(): CheckoutFlowState {
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
         setSubmitting(false);
         setShowAuthGate(true);
+        // Auth gate is a modal pause — release the guard so the user can
+        // re-submit after signing in without reloading the screen.
+        submitInProgressRef.current = false;
         return;
       }
 
       if (!PHONE_VERIFICATION_ENABLED) {
         await placeOrderForForm(form);
+        // placeOrderForForm clears submitting on all its own exit paths;
+        // release the guard here so a failed attempt can be retried.
+        submitInProgressRef.current = false;
         return;
       }
 
@@ -519,22 +579,28 @@ export function useCheckoutFlow(): CheckoutFlowState {
           if (Platform.OS !== "web")
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
           setSubmitting(false);
+          submitInProgressRef.current = false;
           return;
         }
         try {
           await sendPhoneOtp(candidate);
           setOtpPending({ phone: e164, form });
+          // OTP flow is a modal pause — release so the verified callback can
+          // call placeOrderForForm normally.
+          submitInProgressRef.current = false;
         } catch {
           if (__DEV__) console.warn("[checkout] sendPhoneOtp failed");
           setSubmitError(t("checkout.otpSendError"));
           if (Platform.OS !== "web")
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
           setSubmitting(false);
+          submitInProgressRef.current = false;
         }
         return;
       }
 
       await placeOrderForForm(form);
+      submitInProgressRef.current = false;
     },
     [cartLines, user, placeOrderForForm, t],
   );
@@ -574,6 +640,18 @@ export function useCheckoutFlow(): CheckoutFlowState {
     if (Platform.OS !== "web") Haptics.selectionAsync().catch(() => {});
     setRequestPos((v) => !v);
   }, []);
+
+  // ── Coupon handlers ──────────────────────────────────────────────────
+  const handleApplyCoupon = useCallback(async () => {
+    // Pass the current cart subtotal so the server can validate min_order_amount
+    // and compute the concrete discount amount against the actual cart value.
+    await applyCodeFn(couponCode, pricing.subtotal);
+  }, [applyCodeFn, couponCode, pricing.subtotal]);
+
+  const handleRemoveCoupon = useCallback(() => {
+    removeCouponFn();
+    setCouponCode("");
+  }, [removeCouponFn]);
 
   // ── Return ────────────────────────────────────────────────────────────
   return {
@@ -616,6 +694,15 @@ export function useCheckoutFlow(): CheckoutFlowState {
     handleOtpCancel,
     onPaymentChange,
     onTogglePos,
+    couponApplied,
+    couponError,
+    couponValidating,
+    couponCode,
+    appliedCouponCode: couponResult?.valid ? couponResult.code : "",
+    couponDiscountAmount: couponResult?.valid ? couponResult.discountAmount : 0,
+    setCouponCode,
+    handleApplyCoupon,
+    handleRemoveCoupon,
     user,
     lang,
   };

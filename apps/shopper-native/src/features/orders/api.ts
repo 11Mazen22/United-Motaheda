@@ -60,6 +60,7 @@ interface OrderRow {
   external_ref:     string | null;
   payment_proof_url: string | null;
   transfer_number:  string | null;
+  qr_token:         string | null;
   order_items:      OrderItemRow[];
 }
 
@@ -139,6 +140,7 @@ function rowToOrder(row: OrderRow): Order {
     externalRef:     row.external_ref     ?? null,
     paymentProofUrl: row.payment_proof_url ?? null,
     transferNumber:  row.transfer_number  ?? null,
+    qrToken:         row.qr_token         ?? null,
   };
 }
 
@@ -165,6 +167,7 @@ const ORDERS_SELECT = [
   "external_ref",
   "payment_proof_url",
   "transfer_number",
+  "qr_token",
   "order_items(id,product_id,quantity,unit_price,line_total,product_snapshot)",
 ].join(",");
 

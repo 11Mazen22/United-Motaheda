@@ -79,6 +79,7 @@ export interface Order {
   externalRef:     string | null;
   paymentProofUrl: string | null;
   transferNumber:  string | null;
+  qrToken?:        string | null;
 }
 
 interface OrdersState {

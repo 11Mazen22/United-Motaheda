@@ -99,6 +99,20 @@ GRANT EXECUTE ON FUNCTION public.admin_search_promotion_products(text, text, int
 -- Promotion mutations are transactional and validate that every new assignment
 -- remains in the active catalog. Existing legacy inactive assignments may be
 -- removed, but may not be retained on a subsequent save.
+--
+-- Drop both known overloads before recreating. PostgreSQL's CREATE OR REPLACE
+-- cannot change parameter defaults on an existing function signature — it must
+-- be dropped first. Both overloads are dropped here for idempotency:
+--   • 9-param: created by 20260713150000 (no p_status)
+--   • 10-param: may exist on remote with a defaulted p_status from a prior
+--     manual or out-of-band deployment; dropping it ensures a clean replace.
+-- (20260716130000 repeats both drops for belt-and-suspenders idempotency.)
+DROP FUNCTION IF EXISTS public.admin_save_promotion(
+  uuid, text, text, text, numeric, timestamptz, timestamptz, boolean, uuid[]
+);
+DROP FUNCTION IF EXISTS public.admin_save_promotion(
+  uuid, text, text, text, numeric, timestamptz, timestamptz, boolean, uuid[], text
+);
 CREATE OR REPLACE FUNCTION public.admin_save_promotion(
   p_id uuid, p_name text, p_description text, p_discount_type text, p_discount_value numeric,
   p_starts_at timestamptz, p_ends_at timestamptz, p_is_enabled boolean, p_product_ids uuid[],

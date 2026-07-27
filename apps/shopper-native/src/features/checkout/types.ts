@@ -115,3 +115,48 @@ export type CheckoutFieldName =
   | "apartmentNumber";
 
 export type CheckoutFieldErrors = Partial<Record<CheckoutFieldName, string>>;
+
+// ─── Coupon types ─────────────────────────────────────────────────────────────
+
+/** All possible reasons a coupon is invalid — mirrors the validate_coupon RPC. */
+export type CouponInvalidReason =
+  | "not_found"
+  | "inactive"
+  | "expired"
+  | "limit_reached"
+  | "already_redeemed"
+  | "first_order_only"
+  | "min_order_not_met";
+
+export type CouponValidationResult =
+  | {
+      valid:            true;
+      couponId:         string;
+      code:             string;
+      discountType:     "percentage" | "fixed_amount";
+      discountValue:    number;
+      /** Concrete EGP amount deducted from the order subtotal. */
+      discountAmount:   number;
+      minOrderAmount:   number | null;
+      firstOrderOnly:   boolean;
+    }
+  | {
+      valid:            false;
+      reason:           CouponInvalidReason;
+      /** Present when reason === 'min_order_not_met'. */
+      minOrderAmount?:  number;
+    };
+
+/** Wire shape returned by the validate-coupon edge function. */
+export interface CouponValidationPayload {
+  valid:             boolean;
+  coupon_id?:        string;
+  code?:             string;
+  discount_type?:    string;
+  discount_value?:   number;
+  discount_amount?:  number;
+  min_order_amount?: number | null;
+  first_order_only?: boolean;
+  reason?:           string;
+  error?:            string;
+}

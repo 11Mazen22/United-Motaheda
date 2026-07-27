@@ -1,0 +1,119 @@
+{
+  "expo": {
+    "name": "United Pharmacy Driver",
+    "slug": "united-pharmacy-driver",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "driver",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "imageWidth": 280,
+      "resizeMode": "contain",
+      "backgroundColor": "#0E7E74"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.unitedpharmacy.driver",
+      "buildNumber": "1",
+      "jsEngine": "hermes",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSLocationWhenInUseUsageDescription": "We need your location to show your position on the map and calculate routes to deliveries.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "We need your background location to track your position during active deliveries.",
+        "NSLocationAlwaysUsageDescription": "Background location is used to keep your position updated during deliveries.",
+        "NSCameraUsageDescription": "Camera is needed to take delivery proof photos.",
+        "NSPhotoLibraryUsageDescription": "Photo library access is needed to upload delivery proof."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0E7E74"
+      },
+      "package": "com.unitedpharmacy.driver",
+      "jsEngine": "hermes",
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_BACKGROUND_LOCATION",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_LOCATION",
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.VIBRATE",
+        "android.permission.POST_NOTIFICATIONS"
+      ],
+      "statusBar": {
+        "backgroundColor": "transparent",
+        "translucent": true
+      },
+      "versionCode": 1
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      [
+        "expo-secure-store",
+        {
+          "configureAndroidBackup": true
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash.png",
+          "imageWidth": 280,
+          "resizeMode": "contain",
+          "backgroundColor": "#0E7E74"
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Allow United Pharmacy Driver to use your location for navigation and delivery tracking.",
+          "locationAlwaysAndWhenInUsePermission": "Allow United Pharmacy Driver to access your location in the background during active deliveries.",
+          "locationAlwaysPermission": "Background location is needed during active deliveries.",
+          "isAndroidBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": true
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Camera access is required to photograph delivery proof.",
+          "recordAudioAndroid": false
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Photo library access is needed to upload delivery proof photos."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#0E7E74",
+          "sounds": [],
+          "androidMode": "default",
+          "androidCollapsedTitle": "United Pharmacy Driver"
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "router": { "origin": false },
+      "apiUrl": "http://192.168.1.1:3000",
+      "googleMapsApiKey": "YOUR_GOOGLE_MAPS_API_KEY"
+    }
+  }
+}

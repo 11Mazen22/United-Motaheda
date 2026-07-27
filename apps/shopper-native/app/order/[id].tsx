@@ -31,6 +31,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
+import { StyleSheet } from "react-native";
 import { useOrderDetail } from "@/features/orders/hooks/useOrders";
 import { Text as UIText } from "@/shared/ui";
 import { Badge } from "@/components/ui/Badge";
@@ -144,6 +145,19 @@ export default function OrderDetailScreen(): React.ReactElement {
       .filter(Boolean)
       .join(language === "en" ? ", " : "، ");
 
+  // ── Track Driver button visibility ──────────────────────────────────────────
+  // Shown when:
+  //   • order is actively being delivered (any in-transit status)
+  //   • qrToken is available (required by track-order Edge Function)
+  // qrToken is fetched as part of ORDERS_SELECT (added in B4 Task 4).
+  const TRACKABLE_STATUSES = new Set([
+    "out_for_delivery",
+    "picked_up",
+    "shipped",
+    "driver_accepted",
+  ]);
+  const isTrackable = TRACKABLE_STATUSES.has(order.status) && Boolean(order.qrToken);
+
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]}>
       {/* ── Sticky header ───────────────────────────────────────────────────── */}
@@ -190,6 +204,35 @@ export default function OrderDetailScreen(): React.ReactElement {
             </View>
           )}
         </Animated.View>
+
+        {/* ── Track Driver button ────────────────────────────────────────── */}
+        {isTrackable && (
+          <Animated.View entering={FadeInDown.delay(45).duration(320)}>
+            <Pressable
+              onPress={() =>
+                router.push(
+                  `/order/track/${order.id}?token=${encodeURIComponent(order.qrToken ?? "")}` as never,
+                )
+              }
+              style={({ pressed }) => [
+                trackBtnStyles.btn,
+                pressed && trackBtnStyles.btnPressed,
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel={t("tracking.trackDriverBtn", "Track Driver")}
+            >
+              <Ionicons name="navigate" size={18} color={kit.color.onAccent} />
+              <UIText
+                variant="body-sm"
+                weight="bold"
+                style={{ color: kit.color.onAccent, textAlign: TEXT_START }}
+              >
+                {t("tracking.trackDriverBtn", "Track Driver")}
+              </UIText>
+              <Ionicons name="radio-outline" size={15} color={kit.color.onAccent} style={{ marginStart: "auto" }} />
+            </Pressable>
+          </Animated.View>
+        )}
 
         {/* ── Timeline ──────────────────────────────────────────────────────── */}
         <DetailSection title={t("orders.timeline")} icon="git-branch-outline" delay={60}>
@@ -358,3 +401,23 @@ export default function OrderDetailScreen(): React.ReactElement {
     </View>
   );
 }
+
+// ─── Track Driver button styles ───────────────────────────────────────────────
+// Defined outside the component (no closure needed) to avoid re-creation on
+// every render, matching the pattern used in DeliveryExecutionScreen.tsx.
+const trackBtnStyles = StyleSheet.create({
+  btn: {
+    flexDirection:     "row",
+    alignItems:        "center",
+    gap:               10,
+    backgroundColor:   kit.color.accent,
+    borderRadius:      kit.radius.lg,
+    paddingVertical:   14,
+    paddingHorizontal: 18,
+    ...kit.shadow.brandGlow,
+  },
+  btnPressed: {
+    backgroundColor: kit.color.accentDeep,
+    transform:       [{ scale: 0.98 }],
+  },
+});

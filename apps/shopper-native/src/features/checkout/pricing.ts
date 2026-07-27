@@ -1,8 +1,12 @@
 /**
- * Pricing engine — ported verbatim from shopper-web.
+ * Pricing engine — ported verbatim from shopper-web, extended with
+ * server-validated coupon support.
  *
  * Business rules:
- *  - Promo "UNITED10" → 10% off subtotal
+ *  - Legacy promo "UNITED10" → 10% off subtotal (backward-compat, client-side)
+ *  - Server coupon (CouponValidationResult) takes precedence over the legacy
+ *    promo code when both are present. The coupon discount amount is supplied
+ *    directly by the server (validate_coupon RPC) and is never recomputed here.
  *  - Tax = (subtotal - discount) * taxRate (default 0)
  *  - Shipping passed in from delivery quote
  *  - All money rounded to 2 dp
@@ -27,9 +31,11 @@ export function isPromoCodeEligible(value: string) {
 export function createCheckoutPricing(
   lines: CheckoutLineInput[],
   options?: {
-    promoCode?: string;
-    shippingFee?: number;
-    taxRate?: number;
+    promoCode?:    string;
+    shippingFee?:  number;
+    taxRate?:      number;
+    /** Discount amount from a server-validated coupon (takes precedence). */
+    couponAmount?: number;
   },
 ): CheckoutPricing {
   const normalizedLines: CheckoutPricingLine[] = lines.map((line) => {
@@ -48,9 +54,17 @@ export function createCheckoutPricing(
   const subtotal = roundCurrency(
     normalizedLines.reduce((total, line) => total + line.lineTotal, 0),
   );
-  const discount = isPromoCodeEligible(options?.promoCode ?? "")
-    ? roundCurrency(subtotal * 0.1)
-    : 0;
+
+  // Server coupon takes precedence over the legacy UNITED10 client-side code.
+  let discount: number;
+  if (typeof options?.couponAmount === "number" && options.couponAmount > 0) {
+    discount = roundCurrency(Math.min(options.couponAmount, subtotal));
+  } else if (isPromoCodeEligible(options?.promoCode ?? "")) {
+    discount = roundCurrency(subtotal * 0.1);
+  } else {
+    discount = 0;
+  }
+
   const taxRate = Math.max(0, options?.taxRate ?? 0);
   const tax = roundCurrency(Math.max(0, subtotal - discount) * taxRate);
   const shipping = roundCurrency(Math.max(0, options?.shippingFee ?? 0));
