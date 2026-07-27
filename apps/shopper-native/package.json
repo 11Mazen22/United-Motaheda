@@ -2,6 +2,9 @@
   "name": "@pharmacy/shopper-native",
   "version": "1.0.0",
   "main": "expo-router/entry",
+  "engines": {
+    "node": ">=20.19.4"
+  },
   "scripts": {
     "postinstall": "patch-package",
     "start": "expo start --lan",

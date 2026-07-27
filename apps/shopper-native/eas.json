@@ -4,11 +4,8 @@
     "appVersionSource": "local"
   },
   "build": {
-    "base": {
-      "node": "20.19.4"
-    },
     "development": {
-      "extends": "base",
+      "node": "20.19.4",
       "developmentClient": true,
       "distribution": "internal",
       "channel": "development",
@@ -17,7 +14,7 @@
       }
     },
     "preview": {
-      "extends": "base",
+      "node": "20.19.4",
       "distribution": "internal",
       "android": {
         "buildType": "apk"
@@ -28,7 +25,7 @@
       }
     },
     "production-apk": {
-      "extends": "base",
+      "node": "20.19.4",
       "autoIncrement": true,
       "android": {
         "buildType": "apk"
@@ -39,7 +36,7 @@
       }
     },
     "verify": {
-      "extends": "base",
+      "node": "20.19.4",
       "autoIncrement": true,
       "android": {
         "buildType": "apk"
@@ -50,7 +47,7 @@
       }
     },
     "production": {
-      "extends": "base",
+      "node": "20.19.4",
       "autoIncrement": true,
       "credentialsSource": "local",
       "channel": "production",
