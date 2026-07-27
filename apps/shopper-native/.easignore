@@ -1,52 +1,29 @@
-# ─── Node modules ─────────────────────────────────────────────────────────────
-# EAS reinstalls from package-lock.json / yarn.lock on the build server.
 node_modules/
 
-# ─── Android build artifacts ──────────────────────────────────────────────────
-# Gradle output — fully regenerated during the EAS build.
 android/app/build/
+android/app/.cxx/
 android/build/
 android/.gradle/
-# CMake / Ninja C++ build cache (react-native-reanimated, worklets-core, etc.)
-# NOTE: this actually lives at android/app/.cxx/ (one level deeper than the
-# app module root), not android/.cxx/ — the old pattern here never matched
-# anything and let a confirmed 639MB of native object files/static libs leak
-# into every EAS upload archive. Glob catches it at any nesting depth.
-**/.cxx/
-# Kotlin incremental compilation cache
 android/.kotlin/
 
-# ─── iOS build artifacts ──────────────────────────────────────────────────────
 ios/build/
 ios/Pods/
 ios/DerivedData/
 
-# ─── Web / Expo build output ──────────────────────────────────────────────────
-# Web bundle produced by `expo export --platform web` — not needed for native.
 dist/
+dist-web-check/
 web-build/
-# Ad-hoc local `expo export` output dirs used during this session's manual
-# verification passes — never needed by the actual build.
 bundle-check/
-
-# ─── Stray local files ─────────────────────────────────────────────────────────
-# .gitignore excludes *.zip but .easignore does NOT inherit .gitignore at all
-# (EAS uses this file INSTEAD of .gitignore, not merged) — a stray 23MB
-# "assets (2).zip" duplicate-download sitting at the project root was
-# confirmed being uploaded in every build archive as a result.
-*.zip
-
-# ─── Local Expo cache ─────────────────────────────────────────────────────────
-.expo/
-
-# ─── Dev tooling & local-only files ───────────────────────────────────────────
 graphify-out/
+
+.expo/
 .uploads/
 coverage/
 .nyc_output/
+
 *.log
 *.heapsnapshot
+*.zip
 
-# ─── OS noise ─────────────────────────────────────────────────────────────────
 .DS_Store
 Thumbs.db
