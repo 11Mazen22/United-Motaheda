@@ -5,7 +5,7 @@
   },
   "build": {
     "development": {
-      "node": "20.19.4",
+      "image": "ubuntu-24.04-jdk-17-ndk-r27b",
       "developmentClient": true,
       "distribution": "internal",
       "channel": "development",
@@ -14,7 +14,7 @@
       }
     },
     "preview": {
-      "node": "20.19.4",
+      "image": "ubuntu-24.04-jdk-17-ndk-r27b",
       "distribution": "internal",
       "android": {
         "buildType": "apk"
@@ -25,7 +25,7 @@
       }
     },
     "preview-aab": {
-      "node": "20.19.4",
+      "image": "ubuntu-24.04-jdk-17-ndk-r27b",
       "distribution": "internal",
       "android": {
         "buildType": "app-bundle"
@@ -36,7 +36,7 @@
       }
     },
     "production-apk": {
-      "node": "20.19.4",
+      "image": "ubuntu-24.04-jdk-17-ndk-r27b",
       "autoIncrement": true,
       "android": {
         "buildType": "apk"
@@ -47,7 +47,7 @@
       }
     },
     "verify": {
-      "node": "20.19.4",
+      "image": "ubuntu-24.04-jdk-17-ndk-r27b",
       "autoIncrement": true,
       "android": {
         "buildType": "apk"
@@ -58,7 +58,7 @@
       }
     },
     "production": {
-      "node": "20.19.4",
+      "image": "ubuntu-24.04-jdk-17-ndk-r27b",
       "autoIncrement": true,
       "credentialsSource": "local",
       "channel": "production",
