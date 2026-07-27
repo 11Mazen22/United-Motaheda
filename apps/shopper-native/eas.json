@@ -24,6 +24,17 @@
         "CMAKE_VERSION": "3.22.1"
       }
     },
+    "preview-aab": {
+      "node": "20.19.4",
+      "distribution": "internal",
+      "android": {
+        "buildType": "app-bundle"
+      },
+      "channel": "preview",
+      "env": {
+        "CMAKE_VERSION": "3.22.1"
+      }
+    },
     "production-apk": {
       "node": "20.19.4",
       "autoIncrement": true,
