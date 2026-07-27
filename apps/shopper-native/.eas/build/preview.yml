@@ -1,0 +1,14 @@
+build:
+  name: Preview APK
+  steps:
+    - eas/use_npm_token
+    - run:
+        name: Upgrade Node.js to 20
+        command: |
+          curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+          sudo apt-get install -y nodejs
+          node --version
+    - eas/checkout
+    - eas/install_node_modules
+    - eas/prebuild
+    - eas/run_gradle
