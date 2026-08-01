@@ -19,8 +19,13 @@ function haversineDistanceKm(
 }
 
 function buildEtaBand(distanceKm: number, loadFactor = 1) {
-  const distanceMinutes = Math.max(10, Math.round(distanceKm * 7));
-  const weighted = Math.round(distanceMinutes * Math.max(loadFactor, 1));
+  // Cairo traffic model:
+  //   Base prep time:  10 min (always)
+  //   Drive speed:     ~25 km/h in city = 2.4 min/km
+  //   Buffer:          +5 min for handover
+  const driveMinutes = Math.round(distanceKm * 2.4);
+  const baseMinutes  = 10 + driveMinutes + 5;
+  const weighted     = Math.round(baseMinutes * Math.max(loadFactor, 1));
   return {
     minMinutes: weighted,
     maxMinutes: weighted + 15,
@@ -115,11 +120,24 @@ export class DeliveryService {
 
     const candidates = requested ? [requested] : activeBranches;
 
+    // Sort candidates by distance from user — nearest branch first.
+    // This ensures the user is always served by the closest branch,
+    // which also gives them the cheapest fee.
+    const sortedCandidates = [...candidates].sort((a, b) =>
+      haversineDistanceKm(input.coordinates, { lat: a.lat, lng: a.lng }) -
+      haversineDistanceKm(input.coordinates, { lat: b.lat, lng: b.lng }),
+    );
+
     let matched: { branch: typeof activeBranches[number]; zone: typeof activeBranches[number]["zones"][number] } | null =
       null;
 
-    for (const branch of candidates) {
-      for (const zone of branch.zones) {
+    for (const branch of sortedCandidates) {
+      // Sort zones by baseFee ascending — smallest zone (nearest) wins first.
+      // This ensures a user 1.5 km away pays 15 EGP, not 35 EGP.
+      const sortedZones = [...branch.zones].sort(
+        (a, b) => Number(a.baseFee) - Number(b.baseFee),
+      );
+      for (const zone of sortedZones) {
         const polygon = zone.polygon as unknown as Polygon;
         if (polygon && Array.isArray((polygon as any).points) && pointInPolygon(input.coordinates, polygon)) {
           matched = { branch, zone };

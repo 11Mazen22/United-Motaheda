@@ -10,6 +10,15 @@ import pharmacyHomeWide from "../assets/pharmacy-home-wide.jpg";
 import pharmacyHomePortrait from "../assets/pharmacy-home-portrait.jpg";
 import { getServiceHoursSentence } from "./config";
 
+/**
+ * Generate a Google Maps embed URL from coordinates.
+ * Uses the maps.google.com embed format which works without an API key
+ * and always shows the exact pin at the given lat/lng.
+ */
+function buildMapEmbedUrl(lat: number, lng: number, zoom = 17): string {
+  return `https://maps.google.com/maps?q=${lat},${lng}&z=${zoom}&t=&ie=UTF8&iwloc=&output=embed`;
+}
+
 export const images = {
   pic0: pharmacyInteriorBrand,
   pic1: pharmacyInterior,
@@ -117,8 +126,7 @@ export const locations = [
     governorate: "Cairo",
     area: "القاهرة الجديدة",
     deliveryEnabled: true,
-    mapEmbedSrc:
-      "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3452.31!2d31.3853!3d30.0827!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMzDCsDA0JzU3LjciTiAzMcKwMjMnMDcuMSJF!5e0!3m2!1sen!2seg!4v1",
+    mapEmbedSrc: buildMapEmbedUrl(30.0827, 31.3853, 17),
   },
   {
     id: "maadi",
@@ -140,8 +148,7 @@ export const locations = [
     governorate: "Cairo",
     area: "المعادي",
     deliveryEnabled: true,
-    mapEmbedSrc:
-      "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3454.8!2d31.2824!3d30.0146!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMzDCsDAwJzUyLjYiTiAzMcKwMTYnNTYuNiJF!5e0!3m2!1sen!2seg!4v1",
+    mapEmbedSrc: buildMapEmbedUrl(30.0146, 31.2824, 17),
   },
   {
     id: "masakin-dhabbat",
@@ -163,8 +170,7 @@ export const locations = [
     governorate: "Cairo",
     area: "مدينة نصر",
     deliveryEnabled: true,
-    mapEmbedSrc:
-      "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3453.3!2d31.3550!3d30.0520!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMzDCsDAzJzA3LjIiTiAzMcKwMjEnMTguMCJF!5e0!3m2!1sen!2seg!4v1",
+    mapEmbedSrc: buildMapEmbedUrl(30.0520, 31.3550, 17),
   },
   {
     id: "masakin-dhabbat-2",
@@ -186,8 +192,7 @@ export const locations = [
     governorate: "Cairo",
     area: "مدينة نصر",
     deliveryEnabled: true,
-    mapEmbedSrc:
-      "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3453.3!2d31.3551!3d30.0521!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMzDCsDAzJzA3LjIiTiAzMcKwMjEnMTguMCJF!5e0!3m2!1sen!2seg!4v1",
+    mapEmbedSrc: buildMapEmbedUrl(30.0521, 31.3551, 17),
   },
   {
     id: "ismailia-14",
@@ -209,8 +214,7 @@ export const locations = [
     governorate: "Cairo",
     area: "مدينة نصر",
     deliveryEnabled: true,
-    mapEmbedSrc:
-      "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3452.9!2d31.3780!3d30.0650!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMzDCsDAzJzU0LjAiTiAzMcKwMjInNDAuOCJF!5e0!3m2!1sen!2seg!4v1",
+    mapEmbedSrc: buildMapEmbedUrl(30.0650, 31.3780, 17),
   },
   {
     id: "ismailia-13",
@@ -232,8 +236,7 @@ export const locations = [
     governorate: "Cairo",
     area: "مدينة نصر",
     deliveryEnabled: true,
-    mapEmbedSrc:
-      "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3452.9!2d31.3785!3d30.0655!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMzDCsDAzJzU1LjgiTiAzMcKwMjInNDIuNiJF!5e0!3m2!1sen!2seg!4v1",
+    mapEmbedSrc: buildMapEmbedUrl(30.0655, 31.3785, 17),
   },
 ] satisfies readonly SiteLocation[];
 
