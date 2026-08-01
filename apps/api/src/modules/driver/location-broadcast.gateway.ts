@@ -8,7 +8,7 @@ import {
   ConnectedSocket,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
 import { DriverLocationService } from './driver-location.service';
 
 interface LocationBroadcast {
@@ -48,7 +48,10 @@ export class LocationBroadcastGateway
   private connectedClients = new Map<string, Socket>();
   private driverSockets = new Map<string, string>(); // driverId -> socketId
 
-  constructor(private readonly locationService: DriverLocationService) {}
+  constructor(
+    @Inject(forwardRef(() => DriverLocationService))
+    private readonly locationService: DriverLocationService,
+  ) {}
 
   /**
    * Handle client connection
