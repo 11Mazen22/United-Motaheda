@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "../../lib/supabaseClient";
-import { useDeliveryQuote, useLocationState } from "@pharmacy/domain-location";
+import { useDeliveryQuote, useLocationState, useBrowserLocation } from "@pharmacy/domain-location";
 import {
   ArrowLeft,
   ArrowRight,
@@ -143,6 +143,11 @@ export default function Checkout() {
   const { refreshCatalog } = useCatalog();
   const { t, lang } = useLanguage();
   const isShopperShell = useIsShopperShell();
+
+  // Auto-request location on checkout mount — fires the delivery quote
+  // immediately so zone validation and fee calculation work without the
+  // user having to click "Use my location".
+  useBrowserLocation(true);
   const [step, setStep] = useState<1 | 2>(1);
 
   // Scroll to top whenever the user advances between checkout steps so they

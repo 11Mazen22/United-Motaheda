@@ -29,6 +29,7 @@ import {
 import { supabase } from "@/lib/supabase";
 import { track } from "@/lib/analytics";
 import { geocodeAddress } from "@/lib/geocoding";
+import * as ExpoLocation from "expo-location";
 import {
   useAddressStore,
   selectDefaultAddress,
@@ -238,6 +239,35 @@ export function useCheckoutFlow(): CheckoutFlowState {
   useEffect(() => {
     track("checkout_started", { item_count: cartLines.length });
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ── Auto-request GPS on checkout mount ───────────────────────────────
+  // If we don't already have coordinates, request them silently in the
+  // background so the delivery quote fires and zone validation works
+  // without the user having to tap "Use my location".
+  const setCoordinatesFromStore = useLocationStore((s) => s.setCoordinates);
+  useEffect(() => {
+    if (customerCoordinates) return; // already have location
+    let cancelled = false;
+    void (async () => {
+      try {
+        const { status } = await ExpoLocation.requestForegroundPermissionsAsync();
+        if (status !== "granted" || cancelled) return;
+        const pos = await ExpoLocation.getCurrentPositionAsync({
+          accuracy: ExpoLocation.Accuracy.Balanced,
+        });
+        if (!cancelled) {
+          setCoordinatesFromStore({
+            lat: pos.coords.latitude,
+            lng: pos.coords.longitude,
+          });
+        }
+      } catch {
+        // Non-fatal — geocoding fallback handles the no-GPS case
+      }
+    })();
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const idempotencyKeyRef = useRef(createIdempotencyKey());

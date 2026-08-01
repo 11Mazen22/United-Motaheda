@@ -28,6 +28,7 @@ import { ImageWithFallback }                from "../components/figma/ImageWithF
 import { cn }                               from "../components/UI";
 import { useIsShopperShell }               from "../components/ui/use-mobile";
 import { useDeliveryContext }              from "../hooks/useDeliveryContext";
+import { useBrowserLocation }             from "@pharmacy/domain-location";
 import { getLocalizedProductName }         from "../localization";
 import { MobileCartView }                  from "./ShopperMobileViews";
 
@@ -39,6 +40,9 @@ const INK  = "#0A1220";
 
 export default function Cart() {
   const isShopperShell = useIsShopperShell();
+  // Auto-request browser location on cart mount so the delivery quote
+  // fires immediately and zone validation works without user action.
+  useBrowserLocation(true);
   if (isShopperShell) return <MobileCartView />;
   return <CartDesktop />;
 }
