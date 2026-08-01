@@ -5,7 +5,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ONBOARDING_KEY } from "@/lib/onboardingKey";
 import { useAuth } from "@/features/auth";
 
-type Target = "/(tabs)" | "/(driver)" | "/onboarding";
+type Target = "/(tabs)" | "/(driver)" | "/(pharmacist)" | "/onboarding";
 
 export default function Entry() {
   const { user, loading: authLoading } = useAuth();
@@ -39,7 +39,9 @@ export default function Entry() {
     ? "/onboarding"
     : user?.role === "driver"
       ? "/(driver)"
-      : "/(tabs)";
+      : user?.role === "pharmacist"
+        ? "/(pharmacist)"
+        : "/(tabs)";
 
   // Cast: expo-router's generated route types haven't picked up the new
   // (driver) group's routes at the time of this typecheck run (typegen

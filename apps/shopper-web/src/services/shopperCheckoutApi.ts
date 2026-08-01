@@ -106,18 +106,12 @@ async function ensureUserProfile(command: CheckoutSubmitCommand): Promise<void> 
 
     if (selectError) {
       // Can't read the table — skip silently; Edge Function will decide
-      console.warn("[shopperCheckoutApi] ensureUserProfile select failed:", selectError.message);
       return;
     }
 
     if (existing) return; // Profile exists — nothing to do
 
-    // 2. Profile row is missing — create it now using checkout form data
-    console.warn(
-      "[shopperCheckoutApi] Profile row missing for user",
-      userId,
-      "— creating it before checkout.",
-    );
+    // 2. Profile row is missing — create it now using checkout form data.
 
     const { error: upsertError } = await supabase.from("profiles").upsert(
       {
@@ -135,15 +129,9 @@ async function ensureUserProfile(command: CheckoutSubmitCommand): Promise<void> 
     if (upsertError) {
       // Log but don't throw — the Edge Function will surface a clear 403 if
       // it still can't find the profile, which we handle below.
-      console.error(
-        "[shopperCheckoutApi] ensureUserProfile upsert failed:",
-        upsertError.message,
-      );
-    } else {
-      console.log("[shopperCheckoutApi] Profile row created for user", userId);
+      return;
     }
-  } catch (err) {
-    console.error("[shopperCheckoutApi] ensureUserProfile unexpected error:", err);
+  } catch {
     // Don't rethrow — attempt the Edge Function call regardless
   }
 }

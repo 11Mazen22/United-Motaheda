@@ -1,6 +1,7 @@
 // Checkout.tsx – with cascading address dropdowns and dynamic delivery fee
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import { supabase } from "../../lib/supabaseClient";
 import { useDeliveryQuote, useLocationState } from "@pharmacy/domain-location";
 import {
   ArrowLeft,
@@ -41,7 +42,7 @@ import {
   normalizeEgyptianPhone,
 } from "../config";
 import { CheckoutRequestError, formatCheckoutError } from "../checkout/errors";
-import { createCheckoutPricing, isPromoCodeEligible } from "../checkout/pricing";
+import { createCheckoutPricing } from "../checkout/pricing";
 import {
   buildCheckoutAddressSnapshot,
   buildCheckoutNote,
@@ -57,6 +58,7 @@ import { BranchSelector } from "../components/BranchSelector";
 import { GeofenceStatusBanner } from "../components/GeofenceStatusBanner";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { ShopperPage, ShopperSurface } from "../components/ShopperPrimitives";
+import { PlacesAutocompleteField } from "../components/PlacesAutocompleteField";
 import { useIsShopperShell } from "../components/ui/use-mobile";
 import { cn } from "../components/UI";
 import { appendOrder } from "../orders";
@@ -155,7 +157,11 @@ export default function Checkout() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [touchedFields, setTouchedFields] = useState<Set<CheckoutFieldName>>(new Set());
+  const [couponValidating, setCouponValidating] = useState(false);
+  const [couponDiscountAmount, setCouponDiscountAmount] = useState<number>(0);
   const idempotencyKeyRef = useRef(createIdempotencyKey());
+  /** Synchronous guard — prevents double-tap submissions while isSubmitting state update is still pending. */
+  const submitInProgressRef = useRef(false);
   type PaymentMethodId = "cod" | "instapay" | "vodafone" | "online" | "banquemisr";
 
   // ── Cairo-only branch selection ───────────────────────────────────────
@@ -284,18 +290,58 @@ export default function Checkout() {
   );
   const deliveryQuote = useDeliveryQuote(cartSnapshot, form.streetName.trim(), selectedBranchId || undefined);
 
+  // ── Auto-geocode street address to get delivery quote when no GPS ─────────
+  // When the user types a street address but hasn't granted GPS permission,
+  // geocode it after a 1.5s debounce and feed the result into the location
+  // store so useDeliveryQuote can run the zone check.
+  useEffect(() => {
+    const street = form.streetName.trim();
+    if (!street || street.length < 6) return;
+    if (locationCoordinates) return; // GPS already set — no need to geocode
+
+    const timer = setTimeout(async () => {
+      try {
+        const params = new URLSearchParams({
+          text: `${street}, القاهرة, مصر`,
+          apiKey: "c6beba954a794cb49263d1679e4bc8bf",
+          limit: "1",
+          lang: "ar",
+          filter: "countrycode:eg",
+        });
+        const resp = await fetch(`https://api.geoapify.com/v1/geocode/search?${params}`);
+        if (!resp.ok) return;
+        const json = await resp.json();
+        const feature = json.features?.[0];
+        if (!feature) return;
+        const { lat, lon } = feature.properties;
+        if (lat && lon) {
+          setLocationCoordinates({ lat, lng: lon });
+        }
+      } catch {
+        // Non-fatal — quote just won't run without coordinates
+      }
+    }, 1500);
+
+    return () => clearTimeout(timer);
+  }, [form.streetName, locationCoordinates, setLocationCoordinates]);
+
   // Use the dynamic quote cost when available; otherwise fall back to the
   // flat DEFAULT_DELIVERY_FEE so checkout is usable without location permission.
   const dynamicDeliveryFee = deliveryQuote.data?.cost ?? DEFAULT_DELIVERY_FEE;
-  const dynamicFeeLabel = lang === "ar" ? `${dynamicDeliveryFee} ج.م` : `${dynamicDeliveryFee} EGP`;
+  const dynamicFeeLabel = deliveryQuote.isLoading
+    ? (lang === "ar" ? "جارٍ الحساب…" : "Calculating…")
+    : deliveryQuote.data?.isDeliverable === false
+    ? (lang === "ar" ? "غير متاح" : "Unavailable")
+    : `${dynamicDeliveryFee} ${lang === "ar" ? "ج.م" : "EGP"}`;
 
   const pricing = useMemo(
     () =>
       createCheckoutPricing(cartSnapshot.items, {
         promoCode: promoApplied ? form.promoCode : undefined,
         shippingFee: dynamicDeliveryFee,
+        couponAmount: promoApplied && couponDiscountAmount > 0 ? couponDiscountAmount : undefined,
       }),
-    [cartSnapshot.items, dynamicDeliveryFee, form.promoCode, promoApplied],
+    [cartSnapshot.items, dynamicDeliveryFee, form.promoCode, promoApplied, couponDiscountAmount],
   );
 
   const addressSnapshot = useMemo(
@@ -426,14 +472,51 @@ export default function Checkout() {
     return true;
   };
 
-  const handleApplyPromo = () => {
-    if (isPromoCodeEligible(form.promoCode)) {
-      setPromoApplied(true);
-      setPromoError("");
-      return;
-    }
+  // ── Server-validated coupon state ───────────────────────────────────────
+  const handleApplyPromo = async () => {
+    const code = form.promoCode.trim().toUpperCase();
+    if (!code) return;
+
+    setCouponValidating(true);
+    setPromoError("");
     setPromoApplied(false);
-    setPromoError(lang === "ar" ? "كود الخصم غير صالح." : "Invalid promo code.");
+    setCouponDiscountAmount(0);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("validate-coupon", {
+        body: {
+          code,
+          order_subtotal: pricing.subtotal,
+        },
+      });
+
+      if (error || !data) {
+        setPromoError(lang === "ar" ? "تعذّر التحقق من الكود. حاول مرة أخرى." : "Could not validate coupon. Please try again.");
+        return;
+      }
+
+      if (data.valid) {
+        setPromoApplied(true);
+        setCouponDiscountAmount(data.discount_amount ?? 0);
+        setPromoError("");
+      } else {
+        const reasons: Record<string, string> = {
+          not_found:        lang === "ar" ? "كود الخصم غير صحيح أو غير موجود." : "Invalid or unknown coupon code.",
+          inactive:         lang === "ar" ? "كود الخصم غير مفعّل حالياً." : "This coupon is currently inactive.",
+          expired:          lang === "ar" ? "انتهت صلاحية كود الخصم." : "This coupon has expired.",
+          limit_reached:    lang === "ar" ? "تم استنفاد الحد الأقصى لهذا الكود." : "This coupon has reached its usage limit.",
+          already_redeemed: lang === "ar" ? "لقد استخدمت هذا الكود من قبل." : "You have already used this coupon.",
+          first_order_only: lang === "ar" ? "هذا الكود للطلب الأول فقط." : "This coupon is valid for first orders only.",
+          min_order_not_met:lang === "ar" ? `الحد الأدنى للطلب هو ${data.min_order_amount ?? ""} ج.م.` : `Minimum order of ${data.min_order_amount ?? ""} EGP required.`,
+        };
+        setPromoError(reasons[data.reason as string] ?? (lang === "ar" ? "كود الخصم غير صالح." : "Invalid coupon code."));
+        setPromoApplied(false);
+      }
+    } catch {
+      setPromoError(lang === "ar" ? "تعذّر التحقق من الكود." : "Could not validate coupon.");
+    } finally {
+      setCouponValidating(false);
+    }
   };
 
   const handlePlaceOrder = async () => {
@@ -515,6 +598,11 @@ export default function Checkout() {
 
     setManualPaymentError(null);
     setSubmitError("");
+
+    // Synchronous duplicate-submission guard — same pattern as React Native.
+    if (submitInProgressRef.current) return;
+    submitInProgressRef.current = true;
+
     setIsSubmitting(true);
 
     // Upload receipt before calling the Edge Function so the URL is available.
@@ -534,13 +622,6 @@ export default function Checkout() {
         setUploadingReceipt(false);
       }
     }
-
-    console.log("[Checkout] Starting order submission", {
-      itemCount: items.length,
-      total: pricing.total,
-      paymentMethod,
-      userId: user.id,
-    });
 
     let orderId: string | null = null;
     let orderDate: string | null = null;
@@ -569,17 +650,7 @@ export default function Checkout() {
     });
 
     try {
-      console.log("[Checkout] Calling createCheckoutOrder API");
-      const startTime = Date.now();
-
       const response = await createCheckoutOrder(submitCommand);
-
-      const duration = Date.now() - startTime;
-      console.log("[Checkout] Order submission successful", {
-        orderId: response.orderId,
-        duration,
-        status: response.status,
-      });
 
       orderId = response.orderId;
       orderDate = response.createdAt;
@@ -622,14 +693,12 @@ export default function Checkout() {
         await clearCart();
         setPlacedOrderId(localOrder.id);
         idempotencyKeyRef.current = createIdempotencyKey();
-      } catch (localError) {
-        console.error("[Checkout] Local order persistence failed:", localError);
+      } catch {
         await clearCart();
         setPlacedOrderId(orderId ?? `SUBMITTED-${Date.now()}`);
         idempotencyKeyRef.current = createIdempotencyKey();
       }
     } catch (error) {
-      console.error("[Checkout] Order submission failed:", error);
 
       if (error instanceof CheckoutRequestError && error.shouldRefreshCatalog) {
         void refreshCatalog(true);
@@ -652,8 +721,8 @@ export default function Checkout() {
       }
       return;
     } finally {
+      submitInProgressRef.current = false;
       setIsSubmitting(false);
-      console.log("[Checkout] Order submission process completed");
     }
   };
 
@@ -926,8 +995,8 @@ export default function Checkout() {
             />
             <button
               type="button"
-              onClick={handleApplyPromo}
-              disabled={promoApplied || !form.promoCode.trim()}
+              onClick={() => void handleApplyPromo()}
+              disabled={promoApplied || !form.promoCode.trim() || couponValidating}
               className={cn(
                 "flex-shrink-0 rounded-2xl px-4 text-sm font-black transition-colors",
                 promoApplied
@@ -935,14 +1004,20 @@ export default function Checkout() {
                   : "bg-[var(--primary)] text-white hover:bg-[var(--primary-strong)] disabled:opacity-40",
               )}
             >
-              {promoApplied ? (lang === "ar" ? "مفعّل" : "Applied") : t("apply")}
+              {couponValidating
+                ? (lang === "ar" ? "جارٍ التحقق…" : "Checking…")
+                : promoApplied
+                  ? (lang === "ar" ? "مفعّل ✓" : "Applied ✓")
+                  : t("apply")}
             </button>
           </div>
           {promoError ? <p className="mt-2 text-xs font-bold text-rose-500">{promoError}</p> : null}
           {promoApplied ? (
-            <p className="mt-2 inline-flex items-center gap-1 text-xs font-black text-slate-600">
+            <p className="mt-2 inline-flex items-center gap-1 text-xs font-black text-emerald-600">
               <Gift className="h-3.5 w-3.5" />
-              {lang === "ar" ? "تم تفعيل خصم 10%" : "10% discount applied"}
+              {lang === "ar"
+                ? `تم تفعيل خصم ${pricing.discount.toFixed(0)} ج.م`
+                : `Discount of ${pricing.discount.toFixed(0)} EGP applied`}
             </p>
           ) : null}
         </div>
@@ -1054,28 +1129,38 @@ export default function Checkout() {
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-sm font-black text-slate-900">
-                {lang === "ar" ? "الموقع الحالي" : "Current location"}
+                {lang === "ar" ? "تحديد الموقع" : "Improve address accuracy"}
               </p>
               <p className="mt-1 text-sm font-semibold text-slate-500">
                 {locationCoordinates
-                  ? `${locationCoordinates.lat.toFixed(5)}, ${locationCoordinates.lng.toFixed(5)}`
+                  ? (lang === "ar"
+                    ? "تم تحديد موقعك. يمكنك تحديثه في أي وقت."
+                    : "Location detected. You can refresh it anytime.")
                   : locationPermission === "denied"
                     ? (lang === "ar"
                       ? "تم رفض إذن الموقع. اضغط لإعادة المحاولة."
                       : "Location access was denied. Tap to try again.")
                     : (lang === "ar"
-                      ? "استخدم موقعك الحالي لتحسين تحديد العنوان ورسوم التوصيل."
+                      ? "استخدم موقعك الحالي لتحسين دقة العنوان ورسوم التوصيل."
                       : "Use your live location for a more accurate address and delivery quote.")}
               </p>
             </div>
             <button
               type="button"
               onClick={requestCurrentLocation}
-              className="inline-flex h-11 items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 text-sm font-black text-slate-700 shadow-sm transition hover:border-teal-200 hover:bg-teal-50"
+              className={cn(
+                "inline-flex h-11 items-center justify-center gap-2 rounded-2xl border px-5 text-sm font-black shadow-sm transition",
+                locationCoordinates
+                  ? "border-teal-200 bg-teal-50 text-teal-700 hover:bg-teal-100"
+                  : "border-slate-200 bg-white text-slate-700 hover:border-teal-200 hover:bg-teal-50",
+              )}
             >
+              <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>
+              </svg>
               {locationCoordinates
-                ? (lang === "ar" ? "تحديث موقعي" : "Refresh my location")
-                : (lang === "ar" ? "استخدم موقعي الحالي" : "Use my current location")}
+                ? (lang === "ar" ? "تحديث الموقع" : "Refresh location")
+                : (lang === "ar" ? "استخدم موقعي" : "Use my location")}
             </button>
           </div>
         </div>
@@ -1099,15 +1184,19 @@ export default function Checkout() {
       </div>
 
 
-      {/* Street name */}
-      <Field
-        icon={MapPin}
+      {/* Street name — autocomplete */}
+      <PlacesAutocompleteField
         label={t("street_name")}
         value={form.streetName}
         onChange={(value) => updateField("streetName", value)}
         onBlur={() => markFieldTouched("streetName")}
+        onSuggestionSelect={(s) => {
+          if (s.street)      updateField("streetName",    s.street);
+          if (s.houseNumber) updateField("buildingNumber", s.houseNumber);
+        }}
         placeholder={lang === "ar" ? "مثال: شارع النصر" : "e.g. El-Nasr Street"}
         error={displayErrors.streetName}
+        lang={lang}
       />
 
       {/* Building / Floor / Apartment */}
@@ -1417,6 +1506,26 @@ export default function Checkout() {
                 );
               })}
             </div>
+
+            {deliveryQuote.data?.isDeliverable === false && (
+              <div className="rounded-2xl border border-red-200 bg-red-50 px-5 py-4">
+                <div className="flex items-start gap-3">
+                  <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-red-100">
+                    <Truck className="h-4 w-4 text-red-500" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-black text-red-700">
+                      {lang === "ar" ? "عنوانك خارج نطاق التوصيل" : "Your address is outside our delivery zone"}
+                    </p>
+                    <p className="mt-1 text-sm font-semibold text-red-600">
+                      {lang === "ar"
+                        ? "للأسف لا نستطيع التوصيل لهذا العنوان حالياً. يرجى اختيار عنوان آخر أو التواصل معنا."
+                        : "We cannot deliver to this address currently. Please update your address or contact us."}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {submitError ? (
               <div className="rounded-[1.35rem] border border-rose-200 bg-rose-50 px-5 py-4 text-sm font-bold text-rose-600">
@@ -1755,11 +1864,16 @@ export default function Checkout() {
                     <button
                       type="button"
                       onClick={handlePlaceOrder}
-                      disabled={isSubmitting || uploadingReceipt}
-                      className="inline-flex h-13 items-center justify-center gap-2 rounded-2xl bg-[var(--primary)] px-8 text-sm font-black text-white transition-colors hover:bg-[var(--primary-strong)] disabled:opacity-60"
+                      disabled={isSubmitting || uploadingReceipt || deliveryQuote.data?.isDeliverable === false}
+                      className="inline-flex h-13 items-center justify-center gap-2 rounded-2xl bg-[var(--primary)] px-8 text-sm font-black text-white transition-colors hover:bg-[var(--primary-strong)] disabled:cursor-not-allowed disabled:opacity-60"
                       style={{ height: "3.25rem" }}
                     >
-                      {isSubmitting ? (
+                      {deliveryQuote.data?.isDeliverable === false ? (
+                        <>
+                          <X className="h-4 w-4" />
+                          {lang === "ar" ? "خارج نطاق التوصيل" : "Outside delivery zone"}
+                        </>
+                      ) : isSubmitting ? (
                         <>
                           <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/70 border-t-transparent" />
                           {lang === "ar" ? "جارٍ إرسال الطلب..." : "Submitting order..."}

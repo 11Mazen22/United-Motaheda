@@ -5,7 +5,6 @@
   },
   "build": {
     "development": {
-      "image": "sdk-54",
       "developmentClient": true,
       "distribution": "internal",
       "channel": "development",
@@ -14,8 +13,6 @@
       }
     },
     "preview": {
-      "image": "sdk-54",
-      "config": "preview.yml",
       "distribution": "internal",
       "android": {
         "buildType": "apk"
@@ -26,7 +23,6 @@
       }
     },
     "preview-aab": {
-      "image": "sdk-54",
       "distribution": "internal",
       "android": {
         "buildType": "app-bundle"
@@ -37,7 +33,6 @@
       }
     },
     "production-apk": {
-      "image": "sdk-54",
       "autoIncrement": true,
       "android": {
         "buildType": "apk"
@@ -48,7 +43,6 @@
       }
     },
     "verify": {
-      "image": "sdk-54",
       "autoIncrement": true,
       "android": {
         "buildType": "apk"
@@ -59,7 +53,6 @@
       }
     },
     "production": {
-      "image": "sdk-54",
       "autoIncrement": true,
       "credentialsSource": "local",
       "channel": "production",

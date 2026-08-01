@@ -8,6 +8,7 @@ export function useDeliveryContext() {
   const { cart } = useCart();
   const { lang } = useLanguage();
   const permission = useLocationState((state) => state.permission);
+  const coordinates = useLocationState((state) => state.coordinates);
 
   const cartSnapshot = useMemo(
     () => ({
@@ -33,6 +34,7 @@ export function useDeliveryContext() {
 
   return {
     permission,
+    coordinates,
     status:      quote.data ?? null,
     isLoading:   quote.isLoading,
     isAvailable: quote.data?.isDeliverable ?? null,

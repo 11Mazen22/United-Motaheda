@@ -238,6 +238,12 @@ export default function TabLayout() {
     return <Redirect href={"/(driver)" as never} />;
   }
 
+  // Symmetric guard for pharmacist — a customer promoted to pharmacist
+  // mid-session is redirected out of the customer tabs immediately.
+  if (user?.role === "pharmacist") {
+    return <Redirect href={"/(pharmacist)" as never} />;
+  }
+
   return (
     <View style={{ flex: 1 }}>
       <Tabs

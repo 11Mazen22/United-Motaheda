@@ -2,6 +2,9 @@
   "name": "pharmacy-motahheda-monorepo",
   "private": true,
   "version": "0.1.0",
+  "engines": {
+    "node": ">=20.19.4"
+  },
   "workspaces": [
     "apps/shopper-web",
     "packages/*"

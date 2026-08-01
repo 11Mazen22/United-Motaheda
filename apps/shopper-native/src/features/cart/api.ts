@@ -96,46 +96,83 @@ export async function clearUserCart(userId: string): Promise<void> {
   if (error) throw error;
 }
 
-/** Replace the user's entire cart with a new set of items. Used on sign-in
- *  to push the merged local+server cart back. Implemented as
- *  delete-then-insert in a sequence (not transactional; if the insert phase
- *  fails after delete succeeded, the cart is empty server-side and will be
- *  rebuilt by the next mutation). */
+/**
+ * Replace the user's entire cart with a new set of items.
+ *
+ * Implementation: bulk UPSERT then delete any product_ids not in the new set.
+ * This is safer than delete-then-insert: if the "new rows" write fails the
+ * old cart still exists server-side, so nothing is lost.
+ *
+ * The unique(user_id, product_id) constraint on cart_items makes the upsert
+ * idempotent — re-running after a partial failure produces the same result.
+ */
 export async function replaceUserCart(userId: string, items: CartItem[]): Promise<void> {
-  await clearUserCart(userId);
-  if (items.length === 0) return;
+  if (items.length === 0) {
+    await clearUserCart(userId);
+    return;
+  }
 
   const rows = items.map((item) => ({
     user_id:          userId,
     product_id:       item.productId,
     quantity:         item.quantity,
     product_snapshot: item.product,
+    updated_at:       new Date().toISOString(),
   }));
-  const { error } = await timed(
-    "cart:replaceUserCart insert",
-    () => supabase.from("cart_items").insert(rows),
+
+  // 1. Upsert new rows — safe, idempotent
+  const { error: upsertError } = await timed(
+    "cart:replaceUserCart upsert",
+    () =>
+      supabase
+        .from("cart_items")
+        .upsert(rows, { onConflict: "user_id,product_id" }),
   );
-  if (error) throw error;
+  if (upsertError) throw upsertError;
+
+  // 2. Delete product_ids that are no longer in the cart
+  const keepIds = items.map((i) => i.productId);
+  const { error: deleteError } = await timed(
+    "cart:replaceUserCart prune",
+    () =>
+      supabase
+        .from("cart_items")
+        .delete()
+        .eq("user_id", userId)
+        .not("product_id", "in", `(${keepIds.map((id) => `"${id}"`).join(",")})`),
+  );
+  if (deleteError) throw deleteError;
 }
 
-/** Merge two cart lists by productId. Quantities sum; the LATEST product
- *  snapshot wins (because product data might have changed since the
- *  anonymous cart was filled). Used during sign-in to combine the
- *  anonymous-session local cart with whatever the user's server cart held. */
+/**
+ * Merge two cart lists by productId.
+ *
+ * Strategy (updated from sum to max):
+ *   - The server snapshot wins on product data (it may have fresher pricing)
+ *   - Quantity is the MAXIMUM of the two sides, capped at product.stock
+ *
+ * Rationale: summing quantities was a bug — a user browsing anonymously who
+ * added 2 units, then signed in and had 2 on their server cart, ended up with
+ * 4 units regardless of stock. Taking the max is the correct behaviour:
+ * "the user wanted at least this many" without exceeding what was intended.
+ */
 export function mergeCartItems(local: CartItem[], server: CartItem[]): CartItem[] {
   const map = new Map<string, CartItem>();
-  // Seed with server items so the snapshot they carry wins ties.
+
+  // Seed with server items first so their product snapshot takes priority.
   for (const it of server) map.set(it.productId, { ...it });
+
   for (const it of local) {
     const existing = map.get(it.productId);
     if (existing) {
-      map.set(it.productId, {
-        ...existing,
-        quantity: existing.quantity + it.quantity,
-      });
+      // Take the higher quantity of the two sides, but never exceed stock.
+      const stock    = existing.product?.stock ?? it.product?.stock ?? Infinity;
+      const merged   = Math.min(Math.max(existing.quantity, it.quantity), stock);
+      map.set(it.productId, { ...existing, quantity: merged });
     } else {
       map.set(it.productId, { ...it });
     }
   }
+
   return Array.from(map.values());
 }

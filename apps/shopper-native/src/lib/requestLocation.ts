@@ -13,7 +13,7 @@ export async function requestAndStoreLocation(): Promise<boolean> {
   try {
     if (Platform.OS === "web") {
       const nav = typeof navigator !== "undefined" ? navigator : null;
-      if (!nav || !(nav as GeolocationNavigator).geolocation) return false;
+      if (!nav || !nav.geolocation) return false;
 
       return await new Promise<boolean>((resolve) => {
         nav.geolocation.getCurrentPosition(

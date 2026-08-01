@@ -9,9 +9,11 @@
  */
 
 import { supabase } from "@/lib/supabase";
+import { withRetry } from "./resilience";
 import type {
   CouponValidationPayload,
   CouponValidationResult,
+  CouponInvalidReason,
 } from "./types";
 
 const EDGE_FUNCTION_NAME = "validate-coupon";
@@ -45,13 +47,11 @@ function parseCouponPayload(
     "min_order_not_met",
   ]);
 
-  const reason = validReasons.has(raw.reason ?? "")
-    ? (raw.reason as CouponValidationResult["reason" & keyof Extract<CouponValidationResult, { valid: false }>])
-    : "not_found";
+  const reason = (validReasons.has(raw.reason ?? "") ? raw.reason : "not_found") as CouponInvalidReason;
 
   return {
-    valid:           false,
-    reason:          reason as CouponValidationResult extends { valid: false; reason: infer R } ? R : never,
+    valid:           false as const,
+    reason,
     minOrderAmount:  raw.min_order_amount ?? undefined,
   };
 }
@@ -76,25 +76,37 @@ export async function validateCouponCode(
   code:           string,
   orderSubtotal:  number,
 ): Promise<CouponValidationResult> {
-  const { data, error } = await supabase.functions.invoke<CouponValidationPayload>(
-    EDGE_FUNCTION_NAME,
-    {
-      body: {
-        code:            code.trim().toUpperCase(),
-        order_subtotal:  orderSubtotal,
-      },
+  return withRetry(
+    async () => {
+      const { data, error } = await supabase.functions.invoke<CouponValidationPayload>(
+        EDGE_FUNCTION_NAME,
+        {
+          body: {
+            code:           code.trim().toUpperCase(),
+            order_subtotal: orderSubtotal,
+          },
+        },
+      );
+
+      if (error) {
+        // Network/relay errors are retryable; function errors (400/422) are not
+        const isRetryable =
+          error.message === "Failed to fetch" ||
+          error.message === "Network request failed" ||
+          error.message === "Load failed";
+        const e = new CouponValidationError(
+          error.message ?? "Failed to validate coupon. Please try again.",
+        );
+        (e as CouponValidationError & { retryable: boolean }).retryable = isRetryable;
+        throw e;
+      }
+
+      if (!data) {
+        throw new CouponValidationError("Empty response from coupon service.");
+      }
+
+      return parseCouponPayload(data);
     },
+    { maxAttempts: 2, baseDelayMs: 600, maxDelayMs: 3_000, jitter: 0.2 },
   );
-
-  if (error) {
-    throw new CouponValidationError(
-      error.message ?? "Failed to validate coupon. Please try again.",
-    );
-  }
-
-  if (!data) {
-    throw new CouponValidationError("Empty response from coupon service.");
-  }
-
-  return parseCouponPayload(data);
 }

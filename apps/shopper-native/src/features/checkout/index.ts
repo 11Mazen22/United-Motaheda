@@ -12,3 +12,12 @@ export * from "./schema";
 export { createCheckoutOrder } from "./api";
 export { isManualWalletPayment } from "./manualPayment";
 export { patchOrderManualPayment } from "./patchManualPayment";
+export {
+  withRetry,
+  withDeduplication,
+  saveCheckoutDraft,
+  loadCheckoutDraft,
+  clearCheckoutDraft,
+  type CheckoutDraft,
+  type RetryOptions,
+} from "./resilience";

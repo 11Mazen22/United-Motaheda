@@ -17,6 +17,7 @@ import {
 } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import { CheckoutRequestError } from "./errors";
+import { withDeduplication, withRetry } from "./resilience";
 import type {
   CheckoutSubmitCommand,
   CreateOrderResult,
@@ -140,7 +141,22 @@ function isNetworkErrorMessage(message: string | undefined): boolean {
   );
 }
 
-export async function createCheckoutOrder(
+export function createCheckoutOrder(
+  command: CheckoutSubmitCommand,
+): Promise<CreateOrderResult> {
+  // Two layers of protection against duplicate submissions:
+  //   1. withDeduplication — collapses concurrent calls with the same key
+  //   2. withRetry — retries only retryable (network/timeout) errors
+  return withRetry(
+    () => withDeduplication(
+      `checkout:${command.idempotencyKey}`,
+      () => _createCheckoutOrder(command),
+    ),
+    { maxAttempts: 3, baseDelayMs: 1_000, maxDelayMs: 8_000, jitter: 0.3 },
+  );
+}
+
+async function _createCheckoutOrder(
   command: CheckoutSubmitCommand,
 ): Promise<CreateOrderResult> {
   await ensureUserProfile(command);

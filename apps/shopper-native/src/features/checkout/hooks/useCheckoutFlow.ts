@@ -27,6 +27,8 @@ import {
   PHONE_VERIFICATION_ENABLED,
 } from "@/features/auth";
 import { supabase } from "@/lib/supabase";
+import { track } from "@/lib/analytics";
+import { geocodeAddress } from "@/lib/geocoding";
 import {
   useAddressStore,
   selectDefaultAddress,
@@ -55,6 +57,7 @@ import {
   type CheckoutFormInput,
   type CheckoutPricing,
 } from "@/features/checkout";
+import { saveCheckoutDraft, clearCheckoutDraft, loadCheckoutDraft } from "@/features/checkout/resilience";
 import { useApplyCoupon } from "./useApplyCoupon";
 import { SUPPORTED_GOVERNORATE } from "@/features/delivery";
 import { paymentLabel } from "../constants";
@@ -156,6 +159,12 @@ export interface CheckoutFlowState {
   handleApplyCoupon: () => Promise<void>;
   handleRemoveCoupon: () => void;
 
+  // ── Draft recovery ────────────────────────────────────────────────────
+  /** Non-null when a recoverable previous checkout draft was found on mount. */
+  pendingDraft:        import("../resilience").CheckoutDraft | null;
+  handleRestoreDraft:  () => void;
+  handleDiscardDraft:  () => void;
+
   // ── User ─────────────────────────────────────────────────────────────
   user: ReturnType<typeof useAuth>["user"];
   lang: "en" | "ar";
@@ -225,6 +234,12 @@ export function useCheckoutFlow(): CheckoutFlowState {
     couponApplied,
   } = useApplyCoupon();
 
+  // ── Track checkout started once on mount ─────────────────────────────
+  useEffect(() => {
+    track("checkout_started", { item_count: cartLines.length });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const idempotencyKeyRef = useRef(createIdempotencyKey());
   /**
    * Synchronous duplicate-submission guard.
@@ -283,6 +298,42 @@ export function useCheckoutFlow(): CheckoutFlowState {
       mode:          "onChange",
     });
 
+  // ── Draft recovery ───────────────────────────────────────────────────
+  // Placed after useForm so setValue is in scope.
+  const [pendingDraft, setPendingDraft] = useState<import("../resilience").CheckoutDraft | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    loadCheckoutDraft().then((draft: import("../resilience").CheckoutDraft | null) => {
+      if (!alive || !draft) return;
+      if (draft.idempotencyKey !== idempotencyKeyRef.current) {
+        setPendingDraft(draft);
+      }
+    }).catch(() => {});
+    return () => { alive = false; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleRestoreDraft = useCallback(() => {
+    if (!pendingDraft) return;
+    const f = pendingDraft.form;
+    if (f.fullName)        setValue("fullName",        f.fullName,        { shouldDirty: true });
+    if (f.phone)           setValue("phone",           f.phone,           { shouldDirty: true });
+    if (f.streetName)      setValue("streetName",      f.streetName,      { shouldDirty: true });
+    if (f.buildingNumber)  setValue("buildingNumber",  f.buildingNumber,  { shouldDirty: true });
+    if (f.floor)           setValue("floor",           f.floor,           { shouldDirty: true });
+    if (f.apartmentNumber) setValue("apartmentNumber", f.apartmentNumber, { shouldDirty: true });
+    if (f.note)            setValue("note",            f.note,            { shouldDirty: true });
+    if (f.promoCode)       setValue("promoCode",       f.promoCode,       { shouldDirty: true });
+    setPendingDraft(null);
+    void clearCheckoutDraft();
+  }, [pendingDraft, setValue]);
+
+  const handleDiscardDraft = useCallback(() => {
+    setPendingDraft(null);
+    void clearCheckoutDraft();
+  }, []);
+
   // ── Effects ──────────────────────────────────────────────────────────
 
   // Fetch saved phone from profile
@@ -339,9 +390,10 @@ export function useCheckoutFlow(): CheckoutFlowState {
     }
     if (Platform.OS !== "web")
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+    track("checkout_step_review_viewed", { item_count: cartLines.length });
     setStep("review");
     return true;
-  }, [trigger]);
+  }, [trigger, cartLines.length]);
 
   const backToDetails = useCallback(() => {
     setStep("details");
@@ -369,9 +421,30 @@ export function useCheckoutFlow(): CheckoutFlowState {
     async (form: CheckoutFormSchema): Promise<void> => {
       if (!user?.id) return;
 
+      // ── Save recovery draft before any network call ────────────────────
+      // If the app is killed mid-submission (backgrounded on iOS, OOM on
+      // Android), the user can recover their form state on next launch.
+      void saveCheckoutDraft({
+        idempotencyKey: idempotencyKeyRef.current,
+        form: {
+          fullName:        form.fullName,
+          phone:           form.phone,
+          streetName:      form.streetName,
+          buildingNumber:  form.buildingNumber,
+          floor:           form.floor,
+          apartmentNumber: form.apartmentNumber,
+          note:            form.note ?? "",
+          promoCode:       form.promoCode ?? "",
+        },
+        paymentMethod,
+      });
+
       const reservationFailures = await ensureReservations();
       if (reservationFailures.length > 0) {
         setSubmitError(t("checkout.reservationFailed"));
+        track("checkout_reservation_failed", {
+          failed_count: reservationFailures.length,
+        });
         if (Platform.OS !== "web")
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
         setSubmitting(false);
@@ -417,18 +490,43 @@ export function useCheckoutFlow(): CheckoutFlowState {
         setManualPaymentError(null);
       }
 
+      // ── Coordinate resolution (three-tier) ─────────────────────────────
+      // 1. GPS coordinates (most accurate)
+      // 2. Saved default address lat/lng
+      // 3. Geocode the form address on the fly (new address, no GPS)
+      let resolvedCoords: { lat: number; lng: number } | null =
+        customerCoordinates ??
+        (defaultAddress &&
+          typeof defaultAddress.lat === "number" &&
+          typeof defaultAddress.lng === "number"
+            ? { lat: defaultAddress.lat, lng: defaultAddress.lng }
+            : null);
+
+      if (!resolvedCoords && !useSavedAddress) {
+        // Best-effort: geocode the address the user just typed.
+        // Failure is non-fatal — the order can be placed without coords;
+        // the delivery quote will be less accurate but the order succeeds.
+        try {
+          const geocoded = await geocodeAddress({
+            street:   form.streetName?.trim() ?? "",
+            building: form.buildingNumber?.trim() ?? "",
+            district: "",
+            city:     form.city?.trim() ?? "القاهرة",
+          });
+          if (geocoded && geocoded.confidence >= 0.3) {
+            resolvedCoords = { lat: geocoded.lat, lng: geocoded.lng };
+          }
+        } catch {
+          // Non-fatal — proceed without coordinates
+        }
+      }
+
       const command = buildCheckoutSubmitCommand({
         idempotencyKey:    idempotencyKeyRef.current,
         user,
         form:              form as unknown as CheckoutFormInput,
         pricing,
-        coordinates: customerCoordinates ?? (
-          defaultAddress
-          && typeof defaultAddress.lat === "number"
-          && typeof defaultAddress.lng === "number"
-            ? { lat: defaultAddress.lat, lng: defaultAddress.lng }
-            : null
-        ),
+        coordinates:       resolvedCoords,
         paymentMethod,
         paymentLabel:      paymentLabel(paymentMethod),
         requestPosMachine: requestPos,
@@ -438,8 +536,10 @@ export function useCheckoutFlow(): CheckoutFlowState {
       });
 
       let orderId: string;
+      // eslint-disable-next-line prefer-const
+      let result!: Awaited<ReturnType<typeof createCheckoutOrder>>;
       try {
-        const result = await createCheckoutOrder(command);
+        result = await createCheckoutOrder(command);
         orderId = result.orderId;
 
         if (isManualWalletPayment(paymentMethod) && paymentProofUrl) {
@@ -456,6 +556,14 @@ export function useCheckoutFlow(): CheckoutFlowState {
         }
       } catch (err) {
         if (__DEV__) console.warn("[checkout] createCheckoutOrder failed:", err);
+        const isReplay = err instanceof CheckoutRequestError && err.code === "UNKNOWN" &&
+          (err as unknown as { idempotentReplay?: boolean }).idempotentReplay;
+        if (isReplay) track("checkout_idempotent_replay");
+        else track("checkout_failed", {
+          error_code:    err instanceof CheckoutRequestError ? err.code : "UNKNOWN",
+          payment_method: paymentMethod,
+          retryable:     err instanceof CheckoutRequestError ? (err.retryable ? 1 : 0) : 0,
+        });
         setSubmitError(
           err instanceof CheckoutRequestError
             ? formatCheckoutError(err, lang)
@@ -472,9 +580,20 @@ export function useCheckoutFlow(): CheckoutFlowState {
       void refreshOrders(user.id);
       invalidateOrders(queryClient, user.id);
 
+      track("checkout_completed", {
+        order_id:       orderId,
+        payment_method: paymentMethod,
+        total:          pricing.total,
+        item_count:     pricing.itemCount,
+        discount:       pricing.discount,
+        has_coupon:     pricing.discount > 0 ? 1 : 0,
+        idempotent_replay: result.idempotentReplay ? 1 : 0,
+      });
+
       setPlacedOrderId(orderId);
       clearCart();
       resetCheckout();
+      void clearCheckoutDraft();
       idempotencyKeyRef.current = createIdempotencyKey();
 
       if (Platform.OS !== "web")
@@ -643,15 +762,16 @@ export function useCheckoutFlow(): CheckoutFlowState {
 
   // ── Coupon handlers ──────────────────────────────────────────────────
   const handleApplyCoupon = useCallback(async () => {
-    // Pass the current cart subtotal so the server can validate min_order_amount
-    // and compute the concrete discount amount against the actual cart value.
     await applyCodeFn(couponCode, pricing.subtotal);
+    // Analytics fired after applyCodeFn resolves — couponResult state is set
+    // inside useApplyCoupon; we check it on next render via couponApplied.
   }, [applyCodeFn, couponCode, pricing.subtotal]);
 
   const handleRemoveCoupon = useCallback(() => {
+    track("checkout_coupon_removed", { code: couponResult?.code ?? "" });
     removeCouponFn();
     setCouponCode("");
-  }, [removeCouponFn]);
+  }, [removeCouponFn, couponResult]);
 
   // ── Return ────────────────────────────────────────────────────────────
   return {
@@ -703,6 +823,10 @@ export function useCheckoutFlow(): CheckoutFlowState {
     setCouponCode,
     handleApplyCoupon,
     handleRemoveCoupon,
+    // ── Draft recovery ─────────────────────────────────────────────────
+    pendingDraft,
+    handleRestoreDraft,
+    handleDiscardDraft,
     user,
     lang,
   };

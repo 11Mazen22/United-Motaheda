@@ -1,44 +1,43 @@
 /**
  * Branches API service.
  *
- * v3: fetches from the Railway backend (same DB as web) so the app and
- *     website always show the exact same branches and delivery zones.
- *     Falls back to the static seed data on any network failure.
+ * Strategy: the static BRANCHES seed in data.ts is the authoritative source
+ * for phone numbers, hours, full addresses, and display names — this data
+ * only changes when branches physically change, so it belongs in the app
+ * bundle, not fetched on every launch.
+ *
+ * The Railway backend is queried for two things only:
+ *   1. `isActive` — whether a branch is temporarily closed
+ *   2. Coordinates — if Railway has corrected coords, use them
+ *
+ * Any branch in the Railway response that is NOT in the static seed is
+ * silently ignored — we never display branches we haven't curated.
+ * Any branch in the static seed that is NOT in the Railway response retains
+ * its static data and is treated as active (fail-open).
+ *
+ * This means branch cards always show correct phones/hours/addresses even
+ * when the Railway API is slow, returns incomplete data, or is unreachable.
  */
 
 import { railwayApi } from "@/lib/railwayApi";
 import { BRANCHES } from "./data";
 import type { Branch } from "./types";
 
-function mapRailwayBranch(row: {
-  id: string;
-  nameAr: string;
-  nameEn: string;
-  governorate: string;
-  area: string;
-  lat: number;
-  lng: number;
+interface RailwayPatch {
+  id:       string;
+  lat?:     number;
+  lng?:     number;
   isActive: boolean;
-}): Branch | null {
-  if (!Number.isFinite(row.lat) || !Number.isFinite(row.lng)) return null;
+}
+
+function applyRailwayPatch(staticBranch: Branch, patch: RailwayPatch): Branch {
   return {
-    id:              row.id,
-    nameAr:          row.nameAr,
-    nameEn:          row.nameEn,
-    fullNameAr:      row.nameAr,
-    fullNameEn:      row.nameEn,
-    addressAr:       "",
-    addressEn:       "",
-    phones:          [],
-    hoursAr:         "",
-    hoursEn:         "",
-    lat:             row.lat,
-    lng:             row.lng,
-    mapZoom:         16,
-    isPrimary:       row.id === "gardenia",
-    governorate:     (row.governorate as Branch["governorate"]) ?? "Cairo",
-    area:            row.area ?? "",
-    deliveryEnabled: row.isActive ?? true,
+    ...staticBranch,
+    // Update coordinates only if Railway provides valid ones
+    lat: Number.isFinite(patch.lat) ? (patch.lat as number) : staticBranch.lat,
+    lng: Number.isFinite(patch.lng) ? (patch.lng as number) : staticBranch.lng,
+    // Railway can mark a branch inactive (e.g. temporarily closed)
+    deliveryEnabled: staticBranch.deliveryEnabled && patch.isActive,
   };
 }
 
@@ -47,11 +46,24 @@ export async function fetchBranches(): Promise<Branch[]> {
     const rows = await railwayApi.listBranches();
     if (!rows?.length) return [...BRANCHES];
 
-    const mapped = rows
-      .map(mapRailwayBranch)
-      .filter((b): b is Branch => b !== null);
+    // Build a lookup map from Railway response
+    const patchById = new Map<string, RailwayPatch>();
+    for (const row of rows) {
+      patchById.set(row.id, {
+        id:       row.id,
+        lat:      row.lat,
+        lng:      row.lng,
+        isActive: row.isActive ?? true,
+      });
+    }
 
-    return mapped.length > 0 ? mapped : [...BRANCHES];
+    // Merge Railway patches into static branches — static data wins for
+    // phones, addresses, hours, names
+    return BRANCHES.map((staticBranch) => {
+      const patch = patchById.get(staticBranch.id);
+      if (!patch) return staticBranch; // not in Railway → use static as-is
+      return applyRailwayPatch(staticBranch, patch);
+    });
   } catch {
     // Railway unreachable → use static seed so the UI never blocks
     return [...BRANCHES];

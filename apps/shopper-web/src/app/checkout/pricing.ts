@@ -18,6 +18,7 @@ export function createCheckoutPricing(
   lines: CheckoutLineInput[],
   options?: {
     promoCode?: string;
+    discountAmount?: number;
     shippingFee?: number;
     taxRate?: number;
   },
@@ -38,9 +39,11 @@ export function createCheckoutPricing(
   const subtotal = roundCurrency(
     normalizedLines.reduce((total, line) => total + line.lineTotal, 0),
   );
-  const discount = isPromoCodeEligible(options?.promoCode ?? "")
-    ? roundCurrency(subtotal * 0.1)
-    : 0;
+  const discount = options?.discountAmount != null
+    ? roundCurrency(Math.min(subtotal, Math.max(0, options.discountAmount)))
+    : isPromoCodeEligible(options?.promoCode ?? "")
+      ? roundCurrency(subtotal * 0.1)
+      : 0;
   const taxRate = Math.max(0, options?.taxRate ?? 0);
   const tax = roundCurrency(Math.max(0, subtotal - discount) * taxRate);
   const shipping = roundCurrency(Math.max(0, options?.shippingFee ?? 0));

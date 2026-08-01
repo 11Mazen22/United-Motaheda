@@ -152,6 +152,7 @@ export default function RootLayout() {
               <Stack.Screen name="onboarding"             options={{ headerShown: false, animation: "fade" }} />
               <Stack.Screen name="(tabs)"                 options={{ headerShown: false }} />
               <Stack.Screen name="(driver)"                options={{ headerShown: false }} />
+              <Stack.Screen name="(pharmacist)"           options={{ headerShown: false }} />
               <Stack.Screen name="(auth)"                 options={{ headerShown: false, presentation: "modal", animation: "slide_from_bottom" }} />
               <Stack.Screen name="product/[id]"           options={{ headerShown: false, animation: "slide_from_right" }} />
               <Stack.Screen name="category/[id]"          options={{ headerShown: false, animation: "slide_from_right" }} />

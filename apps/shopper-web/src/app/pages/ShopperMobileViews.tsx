@@ -65,6 +65,8 @@ import {
 import { getLocalizedCategoryName, getLocalizedProductName } from "../localization";
 import { resolveCanonicalCategorySegment } from "../seo";
 import { cn } from "../components/UI";
+import { GeofenceStatusBanner } from "../components/GeofenceStatusBanner";
+import { useDeliveryContext } from "../hooks/useDeliveryContext";
 import { useDebouncedValue } from "../hooks/useDebouncedValue";
 import { useCatalogCategorySearch } from "../hooks/useCatalogCategorySearch";
 import { getMaxPriceCeiled } from "../hooks/useCatalogFilters";
@@ -1396,6 +1398,7 @@ export function MobileCartView() {
   const { cart, removeFromCart, updateQuantity, summary } = useCart();
   const { featuredProducts } = useCatalog();
   const { t, lang } = useLanguage();
+  const delivery = useDeliveryContext();
   const [visibleRecommendations, setVisibleRecommendations] = useState(4);
   const recommendationPool = featuredProducts.filter(
     (product) => !cart.some((item) => item.product_id === product.id),
@@ -1497,6 +1500,15 @@ export function MobileCartView() {
             <ShieldCheck className="h-4 w-4" />
             {lang === "ar" ? "مراجعة واضحة قبل الدفع" : "A clear review before payment"}
           </div>
+          {delivery.status ? (
+            <GeofenceStatusBanner className="mt-3" status={delivery.status} lang={lang} />
+          ) : delivery.permission === "denied" ? (
+            <div className="mt-3 rounded-[1.2rem] border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-800">
+              {lang === "ar"
+                ? "اسمح بالوصول إلى موقعك لتأكيد إمكانية التوصيل."
+                : "Allow location access to confirm delivery availability."}
+            </div>
+          ) : null}
         </ShopperSurface>
         <div className="space-y-3">
           {cart.map((item) => {
@@ -1638,7 +1650,11 @@ export function MobileCartView() {
             </Link>
             <Link
               to="/checkout"
-              className="inline-flex h-12 items-center justify-center rounded-[1.2rem] bg-[#2563eb] text-sm font-black text-white shadow-[0_16px_28px_rgba(37,99,235,0.24)]"
+              aria-disabled={delivery.isAvailable === false}
+              className={cn(
+                "inline-flex h-12 items-center justify-center rounded-[1.2rem] bg-[#2563eb] text-sm font-black text-white shadow-[0_16px_28px_rgba(37,99,235,0.24)]",
+                delivery.isAvailable === false && "pointer-events-none opacity-50",
+              )}
             >
               {lang === "ar" ? "الانتقال إلى الدفع" : "Proceed to checkout"}
             </Link>
@@ -1683,7 +1699,11 @@ export function MobileCartView() {
         </div>
         <Link
           to="/checkout"
-          className="inline-flex h-12 items-center justify-center rounded-full bg-[#2563eb] text-sm font-black text-white shadow-[0_16px_28px_rgba(37,99,235,0.24)]"
+          aria-disabled={delivery.isAvailable === false}
+          className={cn(
+            "inline-flex h-12 items-center justify-center rounded-full bg-[#2563eb] text-sm font-black text-white shadow-[0_16px_28px_rgba(37,99,235,0.24)]",
+            delivery.isAvailable === false && "pointer-events-none opacity-50",
+          )}
         >
           {lang === "ar" ? "إتمام الطلب" : "Checkout"}
         </Link>

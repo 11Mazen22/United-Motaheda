@@ -163,7 +163,7 @@ export const CartDrawer = forwardRef<CartDrawerRef>(function CartDrawer(_, ref) 
                   </UIText>
                 </View>
                 <UIText variant="sheet-title" weight="black" align="left" style={styles.grandTotalValue}>
-                  {formatPrice(pricing.subtotal - pricing.discount + delivery.cost)}
+                  {formatPrice(pricing.subtotal - pricing.discount + pricing.tax + (delivery.isFree ? 0 : delivery.cost))}
                 </UIText>
               </View>
 
@@ -210,6 +210,12 @@ function CartDrawerRow({
   const product = item.product;
   const lineTotal = (product?.price ?? 0) * item.quantity;
 
+  // Low-stock: warn when ≤ 5 units remain after reserving
+  const stock      = product?.stock ?? Infinity;
+  const isLowStock = Number.isFinite(stock) && stock > 0 && stock <= 5;
+  const isLastUnit = stock === 1;
+  const isAtMax    = item.quantity >= stock;
+
   const haptic = () => {
     if (Platform.OS !== "web") Haptics.selectionAsync().catch(() => {});
   };
@@ -228,6 +234,19 @@ function CartDrawerRow({
         <UIText variant="body-sm" weight="bold" align="right" numberOfLines={2} style={styles.rowNameNew}>
           {product?.nameAr ?? product?.name}
         </UIText>
+
+        {/* Low-stock warning badge */}
+        {isLowStock && (
+          <View style={styles.lowStockBadge}>
+            <Ionicons name="alert-circle" size={11} color={kit.color.danger} />
+            <UIText style={styles.lowStockText}>
+              {isLastUnit
+                ? t("cart.lastUnit", "آخر قطعة")
+                : t("cart.lowStock", { count: stock })}
+            </UIText>
+          </View>
+        )}
+
         <UIText variant="card-title" weight="black" align="right" style={styles.rowPriceNew}>
           {formatPrice(lineTotal)}
         </UIText>
@@ -246,10 +265,15 @@ function CartDrawerRow({
             </UIText>
             <Pressable
               onPress={() => { haptic(); onIncrement(); }}
+              disabled={isAtMax}
               accessibilityRole="button"
               accessibilityLabel={t("common.increment")}
-              style={styles.qtyBtn}>
-              <Ionicons name="add" size={14} color={kit.color.accentDeep} />
+              style={[styles.qtyBtn, isAtMax && styles.qtyBtnDisabled]}>
+              <Ionicons
+                name="add"
+                size={14}
+                color={isAtMax ? kit.color.inkFaint : kit.color.accentDeep}
+              />
             </Pressable>
           </View>
           <Pressable
@@ -419,6 +443,25 @@ const styles = StyleSheet.create({
     borderColor:     theme.colors.error.light,
     alignItems:      "center",
     justifyContent:  "center",
+  },
+  lowStockBadge: {
+    flexDirection:     "row",
+    alignItems:        "center",
+    gap:               4,
+    paddingHorizontal: 8,
+    paddingVertical:   3,
+    borderRadius:      kit.radius.pill,
+    backgroundColor:   kit.color.dangerTint,
+    alignSelf:         "flex-start",
+    marginBottom:      2,
+  },
+  lowStockText: {
+    fontSize:   10,
+    fontFamily: theme.fonts.bold,
+    color:      kit.color.danger,
+  },
+  qtyBtnDisabled: {
+    opacity: 0.35,
   },
 
   // ── Footer — premium anchor (matches Cart screen footer) ──

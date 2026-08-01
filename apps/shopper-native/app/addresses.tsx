@@ -165,8 +165,26 @@ export default function AddressesScreen() {
           await addAddress(user.id, data);
         }
         setDrawerVisible(false);
-      } catch {
-        showErrorSheet(t("addresses.saveError"), t("addresses.saveErrorDesc"));
+      } catch (err) {
+        // Duplicate address — show a specific message with a "use existing" CTA
+        // instead of the generic save-error sheet so the user understands what
+        // happened and is not left wondering why the save failed silently.
+        if (err instanceof Error && err.message === "duplicate_address") {
+          showConfirmSheet(
+            t("addresses.duplicateTitle", "العنوان موجود مسبقاً"),
+            t(
+              "addresses.duplicateBody",
+              "هذا العنوان محفوظ بالفعل في قائمة عناوينك. هل تريد استخدام العنوان الموجود؟",
+            ),
+            () => setDrawerVisible(false),
+            {
+              confirmLabel: t("addresses.duplicateUseExisting", "استخدام العنوان الموجود"),
+              cancelLabel:  t("addresses.duplicateEditNew", "تعديل العنوان"),
+            },
+          );
+        } else {
+          showErrorSheet(t("addresses.saveError"), t("addresses.saveErrorDesc"));
+        }
       } finally {
         setSubmitting(false);
       }

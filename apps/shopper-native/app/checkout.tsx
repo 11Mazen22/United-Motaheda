@@ -50,6 +50,7 @@ import { SuccessScreen }    from "@/features/checkout/components/SuccessScreen";
 import { DetailsStep }      from "@/features/checkout/components/DetailsStep";
 import { ReviewStep }       from "@/features/checkout/components/ReviewStep";
 import { StepPill, StepLine } from "@/features/checkout/components/StepIndicator";
+import { DraftRecoveryBanner } from "@/features/checkout/components/DraftRecoveryBanner";
 import {
   headerStyles  as hs,
   stepBarStyles as sb,
@@ -277,10 +278,20 @@ function CheckoutScreen() {
           </Animated.View>
         )}
 
+        {/* ── Draft recovery banner ────────────────────────────────────── */}
+        {flow.pendingDraft && (
+          <DraftRecoveryBanner
+            draft={flow.pendingDraft}
+            onRestore={flow.handleRestoreDraft}
+            onDiscard={flow.handleDiscardDraft}
+          />
+        )}
+
         {flow.step === "details" ? (
           <DetailsStep
             control={flow.form.control}
             errors={flow.form.formState.errors}
+            setValue={(field, value) => flow.form.setValue(field as never, value as never)}
             selectedBranchId={flow.selectedBranchId}
             onSelectBranch={(b) => flow.setSelectedBranchId(b.id)}
             deliveryBranch={flow.deliveryQuote.branch}
@@ -311,7 +322,6 @@ function CheckoutScreen() {
             couponValidating={flow.couponValidating}
             couponDiscountAmount={flow.couponDiscountAmount}
             appliedCouponCode={flow.appliedCouponCode}
-            promoApplied={flow.promoApplied}
             pricing={flow.pricing}
             deliveryQuote={flow.deliveryQuote}
             submitError={flow.submitError}
@@ -325,7 +335,6 @@ function CheckoutScreen() {
             onEditPayment={flow.backToDetails}
             onPaymentChange={flow.onPaymentChange}
             onTogglePos={flow.onTogglePos}
-            control={flow.form.control}
           />
         )}
       </ScrollView>

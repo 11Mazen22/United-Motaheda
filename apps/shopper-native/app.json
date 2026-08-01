@@ -66,7 +66,8 @@
           "android": {
             "kotlinVersion": "2.1.21",
             "newArchEnabled": true,
-            "enableProguardInReleaseBuilds": true
+            "enableProguardInReleaseBuilds": true,
+            "enableMinifyInReleaseBuilds": true
           },
           "ios": {
             "newArchEnabled": true
@@ -109,13 +110,13 @@
         "origin": false
       },
       "eas": {
-        "projectId": "cc0dea9d-00d1-4ac8-9923-426fe3ba1c52"
+        "projectId": "1f6bee7a-6298-40a9-bf47-23e2254814ab"
       }
     },
     "runtimeVersion": "1.0.0",
-    "owner": "mazen-moham",
+    "owner": "united-baqy",
     "updates": {
-      "url": "https://u.expo.dev/cc0dea9d-00d1-4ac8-9923-426fe3ba1c52"
+      "url": ""
     }
   }
 }

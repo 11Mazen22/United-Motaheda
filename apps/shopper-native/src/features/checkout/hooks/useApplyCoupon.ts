@@ -22,6 +22,7 @@ import { useCallback, useRef, useState } from "react";
 import { Platform } from "react-native";
 import * as Haptics from "expo-haptics";
 
+import { track } from "@/lib/analytics";
 import {
   validateCouponCode,
   CouponValidationError,
@@ -105,6 +106,12 @@ export function useApplyCoupon(): UseApplyCouponReturn {
         if (result.valid) {
           setCouponResult(result);
           setCouponError(null);
+          track("checkout_coupon_applied", {
+            code:           result.code,
+            discount_type:  result.discountType,
+            discount_amount: result.discountAmount,
+            first_order_only: result.firstOrderOnly ? 1 : 0,
+          });
           if (Platform.OS !== "web") {
             Haptics.notificationAsync(
               Haptics.NotificationFeedbackType.Success,
@@ -120,6 +127,10 @@ export function useApplyCoupon(): UseApplyCouponReturn {
                 : undefined,
             ),
           );
+          track("checkout_coupon_failed", {
+            code:   trimmed.toUpperCase(),
+            reason: result.reason,
+          });
           if (Platform.OS !== "web") {
             Haptics.notificationAsync(
               Haptics.NotificationFeedbackType.Error,

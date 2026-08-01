@@ -1,9 +1,9 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
 @Injectable()
 export class FileUploadService {
-  private readonly supabase;
+  private readonly supabase: SupabaseClient | null = null;
   private readonly BUCKET_NAME = 'driver-documents';
 
   constructor() {
@@ -12,9 +12,11 @@ export class FileUploadService {
 
     if (!supabaseUrl || !supabaseServiceKey) {
       console.warn('Supabase configuration missing. File uploads will be disabled.');
+      // Do NOT create the client — passing empty strings throws inside the SDK.
+      return;
     }
 
-    this.supabase = createClient(supabaseUrl || '', supabaseServiceKey || '');
+    this.supabase = createClient(supabaseUrl, supabaseServiceKey);
   }
 
   /**

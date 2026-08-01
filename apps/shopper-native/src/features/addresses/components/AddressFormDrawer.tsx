@@ -38,6 +38,7 @@ import { SUPPORTED_GOVERNORATE } from "@/features/delivery/constants";
 import { theme } from "@/shared/theme";
 import { kit } from "@/shared/kit";
 import { flexRow, isRtl, textAlignStart, BACK_ARROW, FORWARD_ARROW } from "@/utils/layout";
+import { PlacesAutocompleteInput, type PlacesSuggestion } from "@/components/ui/PlacesAutocompleteInput";
 
 const _isRtl = isRtl();
 
@@ -773,10 +774,15 @@ function StepContent({
                 </View>
               </View>
 
-              <FloatingLabelInput
+              <PlacesAutocompleteInput
                 label={t("addressForm.street")}
                 value={form.street}
-                onChange={(v) => updateField("street", v)}
+                onChangeText={(v) => updateField("street", v)}
+                onSuggestionSelect={(s: PlacesSuggestion) => {
+                  if (s.street) updateField("street", s.street);
+                  if (s.houseNumber) updateField("building", s.houseNumber);
+                  if (s.district) updateField("district", s.district);
+                }}
                 error={errors.street}
                 placeholder={t("addressForm.streetPlaceholder")}
               />

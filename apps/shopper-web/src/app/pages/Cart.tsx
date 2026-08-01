@@ -75,6 +75,8 @@ function CartDesktop() {
 
   const feeDisplay = delivery.isLoading
     ? (lang === "ar" ? "جارٍ الحساب…" : "Calculating…")
+    : delivery.isAvailable === false
+    ? (lang === "ar" ? "خارج نطاق التوصيل" : "Outside delivery zone")
     : delivery.fee !== null
     ? `${delivery.fee} ${t("currency")}`
     : (lang === "ar" ? "يُحسب عند الإتمام" : "Calculated at checkout");

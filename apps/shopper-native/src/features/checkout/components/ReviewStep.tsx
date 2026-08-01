@@ -4,9 +4,7 @@ import { Text as UIText } from "@/shared/ui";
 import Animated, { FadeIn } from "react-native-reanimated";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import { type Control } from "react-hook-form";
 
-import { Input } from "@/components/ui/Input";
 import { theme } from "@/shared/theme";
 import { kit } from "@/shared/kit";
 import { ManualPaymentPanel } from "@/features/payment";
@@ -24,6 +22,8 @@ import { PaymentOptionsList } from "./PaymentOptionsList";
 import { CouponInput } from "./CouponInput";
 import { summaryStyles, errorStyles } from "./checkout.styles";
 
+const IS_RTL = isRtl();
+
 interface ReviewStepProps {
   values:               CheckoutFormSchema;
   paymentMethod:        CheckoutPaymentMethod;
@@ -37,8 +37,6 @@ interface ReviewStepProps {
   couponValidating:     boolean;
   couponDiscountAmount: number;
   appliedCouponCode:    string;
-  /** Legacy: still used for the UNITED10 promo code discount row display */
-  promoApplied:         boolean;
   pricing:              CheckoutPricing;
   deliveryQuote:        ReturnType<typeof useDeliveryContext>;
   submitError:          string | null;
@@ -52,7 +50,6 @@ interface ReviewStepProps {
   onEditPayment:        () => void;
   onPaymentChange:      (m: CheckoutPaymentMethod) => void;
   onTogglePos:          () => void;
-  control:              Control<CheckoutFormSchema>;
 }
 
 export const ReviewStep = React.memo(function ReviewStep({
@@ -68,7 +65,6 @@ export const ReviewStep = React.memo(function ReviewStep({
   couponValidating,
   couponDiscountAmount,
   appliedCouponCode,
-  promoApplied,
   pricing,
   deliveryQuote,
   submitError,
@@ -82,7 +78,6 @@ export const ReviewStep = React.memo(function ReviewStep({
   onEditPayment,
   onPaymentChange,
   onTogglePos,
-  control,
 }: ReviewStepProps) {
   const { t, i18n } = useTranslation();
   const sep = i18n.language.startsWith("en") ? ", " : "، ";
@@ -101,14 +96,73 @@ export const ReviewStep = React.memo(function ReviewStep({
             distanceKm={deliveryQuote.distanceKm ?? undefined}
             compact
           />
-          <View style={s.etaPillInline}>
-            <Ionicons name="time-outline" size={12} color={kit.color.accent} />
-            <UIText style={s.etaPillText}>
-              {t("checkout.etaText", {
-                min: deliveryQuote.eta.min,
-                max: deliveryQuote.eta.max,
-              })}
-            </UIText>
+
+          {/* ── Estimated delivery timeline card ───────────────────────── */}
+          <View style={s.etaCard}>
+            <View style={[s.etaRow, { flexDirection: flexRow(IS_RTL) }]}>
+              {/* Prep step */}
+              <View style={s.etaStep}>
+                <View style={[s.etaIcon, s.etaIconPrep]}>
+                  <Ionicons name="construct-outline" size={13} color={kit.color.accentDeep} />
+                </View>
+                <UIText style={s.etaStepLabel}>{t("checkout.etaPrep", "تجهيز")}</UIText>
+                <UIText style={s.etaStepValue}>{t("checkout.etaPrepTime", "10–20 د")}</UIText>
+              </View>
+
+              <View style={s.etaConnector} />
+
+              {/* Dispatch step */}
+              <View style={s.etaStep}>
+                <View style={[s.etaIcon, s.etaIconDispatch]}>
+                  <Ionicons name="car-outline" size={13} color="#1D4ED8" />
+                </View>
+                <UIText style={s.etaStepLabel}>{t("checkout.etaDispatch", "توصيل")}</UIText>
+                <UIText style={s.etaStepValue}>
+                  {t("checkout.etaText", {
+                    min: deliveryQuote.eta.min,
+                    max: deliveryQuote.eta.max,
+                  })}
+                </UIText>
+              </View>
+
+              <View style={s.etaConnector} />
+
+              {/* Delivery step */}
+              <View style={s.etaStep}>
+                <View style={[s.etaIcon, s.etaIconDone]}>
+                  <Ionicons name="home-outline" size={13} color={kit.color.success} />
+                </View>
+                <UIText style={s.etaStepLabel}>{t("checkout.etaArrival", "وصول")}</UIText>
+                <UIText style={s.etaStepValue}>
+                  {t("checkout.etaTotal", {
+                    min: 10 + (deliveryQuote.eta.min ?? 30),
+                    max: 20 + (deliveryQuote.eta.max ?? 60),
+                  })}
+                </UIText>
+              </View>
+            </View>
+
+            {/* Free / standard delivery indicator */}
+            <View style={[s.etaFooter, { flexDirection: flexRow(IS_RTL) }]}>
+              <Ionicons
+                name={deliveryQuote.isFree ? "gift-outline" : "bicycle-outline"}
+                size={12}
+                color={deliveryQuote.isFree ? kit.color.success : kit.color.inkSoft}
+              />
+              <UIText style={[
+                s.etaFooterText,
+                deliveryQuote.isFree && s.etaFooterFree,
+              ]}>
+                {deliveryQuote.isFree
+                  ? t("checkout.freeDelivery", "توصيل مجاني")
+                  : t("checkout.standardDelivery", { cost: formatPrice(deliveryQuote.cost) })}
+              </UIText>
+              {deliveryQuote.distanceKm !== null && (
+                <UIText style={s.etaFooterDist}>
+                  {deliveryQuote.distanceKm.toFixed(1)} {t("common.km", "كم")}
+                </UIText>
+              )}
+            </View>
           </View>
         </SectionCard>
       )}
@@ -269,22 +323,72 @@ const s = StyleSheet.create({
     marginVertical:  6,
   },
 
-  // ETA pill inline (branch card)
-  etaPillInline: {
-    flexDirection:     flexRow(isRtl()),
-    alignItems:        "center",
-    alignSelf:         "flex-end",
-    gap:               5,
-    backgroundColor:   kit.color.accentTint,
-    paddingHorizontal: 10,
-    paddingVertical:   5,
-    borderRadius:      999,
-    marginTop:         8,
+  // ── ETA delivery timeline card ──────────────────────────────────────
+  etaCard: {
+    marginTop:         10,
+    backgroundColor:   kit.color.canvas,
+    borderRadius:      kit.radius.lg,
+    borderWidth:       1,
+    borderColor:       kit.color.line,
+    padding:           12,
+    gap:               10,
   },
-  etaPillText: {
+  etaRow: {
+    alignItems: "center",
+    gap:        6,
+  },
+  etaStep: {
+    flex:       1,
+    alignItems: "center",
+    gap:        4,
+  },
+  etaIcon: {
+    width:          32,
+    height:         32,
+    borderRadius:   10,
+    alignItems:     "center",
+    justifyContent: "center",
+  },
+  etaIconPrep:     { backgroundColor: kit.color.accentTint },
+  etaIconDispatch: { backgroundColor: "#EFF6FF" },
+  etaIconDone:     { backgroundColor: kit.color.successTint },
+  etaStepLabel: {
+    fontSize:   9,
+    fontFamily: theme.fonts.bold,
+    color:      kit.color.inkSoft,
+    textAlign:  "center",
+  },
+  etaStepValue: {
+    fontSize:   10,
+    fontFamily: theme.fonts.black,
+    color:      kit.color.ink,
+    textAlign:  "center",
+  },
+  etaConnector: {
+    flex:            0.3,
+    height:          1.5,
+    backgroundColor: kit.color.line,
+  },
+  etaFooter: {
+    alignItems:  "center",
+    gap:         6,
+    paddingTop:  8,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: kit.color.line,
+  },
+  etaFooterText: {
+    flex:       1,
     fontSize:   10,
     fontFamily: theme.fonts.bold,
-    color:      kit.color.accentDeep,
+    color:      kit.color.inkSoft,
+  },
+  etaFooterFree: {
+    color: kit.color.success,
+  },
+  etaFooterDist: {
+    fontSize:   10,
+    fontFamily: theme.fonts.semibold,
+    color:      kit.color.inkFaint,
   },
 
   // POS toggle

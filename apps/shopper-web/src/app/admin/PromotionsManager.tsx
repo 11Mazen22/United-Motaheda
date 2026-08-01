@@ -160,12 +160,11 @@ function WindowProgress({ promotion, lang }: { promotion: Promotion; lang: "ar" 
 }
 
 function PromotionActionsMenu({
-  promotion, t, onEdit, onCopilot, onDuplicate, onToggle, onDelete,
+  promotion, t, onEdit, onDuplicate, onToggle, onDelete,
 }: {
   promotion: DecoratedPromotion;
   t: (key: string, opts?: Record<string, unknown>) => string;
   onEdit: () => void;
-  onCopilot: () => void;
   onDuplicate?: () => void;
   onToggle: () => void;
   onDelete: () => void;
@@ -204,7 +203,7 @@ function PromotionActionsMenu({
  * a visual/marketing object first, so a card grid (Shopify Discounts /
  * Stripe Coupons pattern) is the default instead of a dense data table. */
 function PromotionCard({
-  promotion, lang, isArabic, t, selected, onSelect, productsById, onEdit, onCopilot, onDuplicate, onToggle, onDelete,
+  promotion, lang, isArabic, t, selected, onSelect, productsById, onEdit, onDuplicate, onToggle, onDelete,
 }: {
   promotion: DecoratedPromotion;
   lang: "ar" | "en";
@@ -214,7 +213,6 @@ function PromotionCard({
   onSelect: () => void;
   productsById: Map<string, AdminProduct>;
   onEdit: () => void;
-  onCopilot: () => void;
   onDuplicate: () => void;
   onToggle: () => void;
   onDelete: () => void;
@@ -242,7 +240,7 @@ function PromotionCard({
           <p className="truncate text-sm font-bold text-slate-900">{promotion.name}</p>
           <p className="mt-0.5 line-clamp-1 text-xs text-slate-500">{promotion.description || (isArabic ? "بدون وصف" : "No description")}</p>
         </div>
-        <PromotionActionsMenu promotion={promotion} t={t} onEdit={onEdit} onCopilot={onCopilot} onDuplicate={onDuplicate} onToggle={onToggle} onDelete={onDelete} />
+        <PromotionActionsMenu promotion={promotion} t={t} onEdit={onEdit} onDuplicate={onDuplicate} onToggle={onToggle} onDelete={onDelete} />
       </div>
 
       <div className="flex-1 space-y-3 border-t border-slate-100 bg-slate-50/60 px-4 py-3">
@@ -292,8 +290,8 @@ export default function PromotionsManager() {
   const [editorTab, setEditorTab] = useState<EditorTab>("details");
   const [saving, setSaving] = useState(false);
   const [copilotOpen, setCopilotOpen] = useState(false);
-  const [copilotContext, setCopilotContext] = useState<PromotionCopilotFormContext | null>(null);
-  const [copilotTarget, setCopilotTarget] = useState<Promotion | null>(null);
+  const [copilotContext] = useState<PromotionCopilotFormContext | null>(null);
+  const [copilotTarget] = useState<Promotion | null>(null);
 
   // View, search, filter, sort, pagination
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
@@ -499,21 +497,6 @@ export default function PromotionsManager() {
     setOpen(true);
   }, [reset]);
 
-  const openCopilotForCreate = useCallback(() => {
-    const draft = emptyForm();
-    setCopilotTarget(null);
-    setCopilotContext({
-      name: draft.name,
-      description: draft.description,
-      discountType: draft.discountType,
-      discountValue: draft.discountValue,
-      startsAt: new Date(draft.startsAt).toISOString(),
-      endsAt: new Date(draft.endsAt).toISOString(),
-      productIds: draft.productIds,
-    });
-    setCopilotOpen(true);
-  }, []);
-
   const openEdit = useCallback((promotion: Promotion) => {
     setEditing(promotion);
     setEditorTab("details");
@@ -529,21 +512,6 @@ export default function PromotionsManager() {
     });
     setOpen(true);
   }, [reset]);
-
-  const openCopilotForPromotion = useCallback((promotion: Promotion) => {
-    setCopilotTarget(promotion);
-    setCopilotContext({
-      id: promotion.id,
-      name: promotion.name,
-      description: promotion.description ?? "",
-      discountType: promotion.discountType,
-      discountValue: promotion.discountValue,
-      startsAt: promotion.startsAt,
-      endsAt: promotion.endsAt,
-      productIds: promotion.productIds,
-    });
-    setCopilotOpen(true);
-  }, []);
 
   const applyCopilotProposal = useCallback((proposal: PromotionCopilotProposal) => {
     const context = copilotContext ?? copilotDraft;
@@ -915,7 +883,6 @@ export default function PromotionsManager() {
                     onSelect={() => bulk.toggle(p.id)}
                     productsById={productsById}
                     onEdit={() => openEdit(p)}
-                    onCopilot={() => openCopilotForPromotion(p)}
                     onDuplicate={() => duplicatePromotion(p)}
                     onToggle={() => toggle(p)}
                     onDelete={() => handleDelete(p)}
@@ -986,7 +953,7 @@ export default function PromotionsManager() {
                           <StatusPill status={p.status} lang={lang} t={t} />
                         </td>
                         <td className="px-5 py-4 text-end">
-                          <PromotionActionsMenu promotion={p} t={t} onEdit={() => openEdit(p)} onCopilot={() => openCopilotForPromotion(p)} onDuplicate={() => duplicatePromotion(p)} onToggle={() => toggle(p)} onDelete={() => handleDelete(p)} />
+                          <PromotionActionsMenu promotion={p} t={t} onEdit={() => openEdit(p)} onDuplicate={() => duplicatePromotion(p)} onToggle={() => toggle(p)} onDelete={() => handleDelete(p)} />
                         </td>
                       </tr>
                     ))}

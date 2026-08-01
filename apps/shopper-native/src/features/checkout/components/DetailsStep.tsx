@@ -6,6 +6,8 @@ import { useTranslation } from "react-i18next";
 import { Controller, type Control, type FieldErrors } from "react-hook-form";
 
 import { Input } from "@/components/ui/Input";
+import { PlacesAutocompleteInput } from "@/components/ui/PlacesAutocompleteInput";
+import type { PlacesSuggestion } from "@/components/ui/PlacesAutocompleteInput";
 import { Text as UIText } from "@/shared/ui";
 import { theme } from "@/shared/theme";
 import { kit, SegmentedToggle } from "@/shared/kit";
@@ -28,6 +30,7 @@ const TEXT_START = textAlignStart(IS_RTL);
 interface DetailsStepProps {
   control:               Control<CheckoutFormSchema>;
   errors:                FieldErrors<CheckoutFormSchema>;
+  setValue:              (field: keyof CheckoutFormSchema, value: string) => void;
   selectedBranchId:      string | null;
   onSelectBranch:        (b: Branch) => void;
   deliveryBranch:        Branch | null;
@@ -48,6 +51,7 @@ interface DetailsStepProps {
 export const DetailsStep = React.memo(function DetailsStep({
   control,
   errors,
+  setValue,
   selectedBranchId,
   onSelectBranch,
   deliveryBranch,
@@ -247,11 +251,14 @@ export const DetailsStep = React.memo(function DetailsStep({
           control={control}
           name="streetName"
           render={({ field }) => (
-            <Input
+            <PlacesAutocompleteInput
               label={t("checkout.streetLabel")}
               value={field.value}
               onChangeText={field.onChange}
-              onBlur={field.onBlur}
+              onSuggestionSelect={(s: PlacesSuggestion) => {
+                if (s.street)      setValue("streetName",     s.street);
+                if (s.houseNumber) setValue("buildingNumber", s.houseNumber);
+              }}
               placeholder={t("checkout.streetPlaceholder")}
               error={errors.streetName?.message}
             />

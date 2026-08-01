@@ -1,17 +1,31 @@
 /**
- * Branch seed data — ported from shopper-web/src/app/data.ts.
+ * Branch seed data — authoritative source for all United Pharmacies branches.
  *
- * Five Cairo branches with WGS84 coordinates. Hours/phones come from the
- * web reference and should stay in sync. When this moves to Supabase, this
- * file becomes the offline fallback only.
+ * This file is the single source of truth for phones, hours, addresses,
+ * names, and capability flags. The Railway API is queried at runtime only
+ * to patch coordinates or isActive status — everything else comes from here.
+ *
+ * When a new branch opens:
+ *   1. Add an entry here with full capability flags.
+ *   2. Deploy the app update.
+ *   3. Optionally add the branch to the Railway DB so it appears in the
+ *      real-time quote engine.
  */
 
 import type { Branch } from "./types";
 
+// ─── Shared constants ─────────────────────────────────────────────────────────
+
+const OPENS  = "09:00";
+const CLOSES = "23:00";
+
 const HOURS_AR = "كل الأيام • من 9:00 صباحاً حتى 11:00 مساءً";
 const HOURS_EN = "Every day • 9:00 AM – 11:00 PM";
 
-// Phone numbers from the official branch listing photo
+const SHARED_HOURS = { ar: HOURS_AR, en: HOURS_EN, opens: OPENS, closes: CLOSES } as const;
+
+// ─── Phone numbers ────────────────────────────────────────────────────────────
+
 const GARDENIA_PHONE    = "01012255595";
 const MAADI_PHONE       = "01061128400";
 const DHABBAT_1_PHONE   = "01226898995";
@@ -20,19 +34,36 @@ const ISMAILIA_14_PHONE = "01201967825";
 const ISMAILIA_13_PHONE = "01090530095";
 const WHATSAPP_LINE     = "01112343212";
 
-const directionsUrl = (lat: number, lng: number) =>
+// ─── Default capabilities ─────────────────────────────────────────────────────
+
+const DEFAULT_CAPABILITIES = {
+  deliveryEnabled:       true,
+  pickupEnabled:         true,
+  acceptsPrescriptions:  true,
+  supportsRefrigeration: false,
+  is24h:                 false,
+  emergencyAvailable:    false,
+} as const;
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+const directionsUrl = (lat: number, lng: number): string =>
   `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${lat},${lng}`)}`;
+
+// ─── Branch definitions ───────────────────────────────────────────────────────
 
 export const BRANCHES: readonly Branch[] = [
   {
+    ...DEFAULT_CAPABILITIES,
     id:              "gardenia",
     nameAr:          "جاردينيا سيتي",
     nameEn:          "Gardenia City",
     fullNameAr:      "صيدليات المتحدة - جاردينيا سيتي",
     fullNameEn:      "United Pharmacies - Gardenia City",
-    addressAr:       "محل B1 مول CITY WALK كومباوند جاردينيا سيتي",
-    addressEn:       "Shop B1, City Walk Mall, Gardenia City Compound",
+    addressAr:       "محل B1 مول CITY WALK كومباوند جاردينيا سيتي، القاهرة الجديدة",
+    addressEn:       "Shop B1, City Walk Mall, Gardenia City Compound, New Cairo",
     phones:          [GARDENIA_PHONE, WHATSAPP_LINE],
+    hours:           SHARED_HOURS,
     hoursAr:         HOURS_AR,
     hoursEn:         HOURS_EN,
     lat:             30.0827,
@@ -41,10 +72,11 @@ export const BRANCHES: readonly Branch[] = [
     isPrimary:       true,
     governorate:     "Cairo",
     area:            "القاهرة الجديدة",
-    deliveryEnabled: true,
+    deliveryRadiusKm: 14,
     mapsDirectionsUrl: directionsUrl(30.0827, 31.3853),
   },
   {
+    ...DEFAULT_CAPABILITIES,
     id:              "maadi",
     nameAr:          "المعادي",
     nameEn:          "Maadi",
@@ -53,6 +85,7 @@ export const BRANCHES: readonly Branch[] = [
     addressAr:       "ش فلسطين، بندر مول، المعادي، القاهرة",
     addressEn:       "Palestine St., Bandar Mall, Maadi, Cairo",
     phones:          [MAADI_PHONE, WHATSAPP_LINE],
+    hours:           SHARED_HOURS,
     hoursAr:         HOURS_AR,
     hoursEn:         HOURS_EN,
     lat:             30.0146,
@@ -61,18 +94,19 @@ export const BRANCHES: readonly Branch[] = [
     isPrimary:       false,
     governorate:     "Cairo",
     area:            "المعادي",
-    deliveryEnabled: true,
     mapsDirectionsUrl: directionsUrl(30.0146, 31.2824),
   },
   {
+    ...DEFAULT_CAPABILITIES,
     id:              "masakin-dhabbat",
-    nameAr:          "مساكن الضباط",
-    nameEn:          "Masakin Al-Dabbat",
-    fullNameAr:      "صيدليات المتحدة - مساكن الضباط",
-    fullNameEn:      "United Pharmacies - Masakin Al-Dabbat",
-    addressAr:       "عمارة 336 شارع فاطمة الزهراء متفرع من الميثاق",
-    addressEn:       "Building 336, Fatima Al-Zahraa St., off Al-Mithaq St.",
+    nameAr:          "مساكن الضباط ١",
+    nameEn:          "Masakin Al-Dabbat 1",
+    fullNameAr:      "صيدليات المتحدة - مساكن الضباط ١",
+    fullNameEn:      "United Pharmacies - Masakin Al-Dabbat 1",
+    addressAr:       "عمارة 336 شارع فاطمة الزهراء متفرع من الميثاق، مساكن الضباط، مدينة نصر",
+    addressEn:       "Building 336, Fatima Al-Zahraa St., off Al-Mithaq St., Masakin Al-Dabbat, Nasr City",
     phones:          [DHABBAT_1_PHONE, WHATSAPP_LINE],
+    hours:           SHARED_HOURS,
     hoursAr:         HOURS_AR,
     hoursEn:         HOURS_EN,
     lat:             30.0520,
@@ -81,30 +115,31 @@ export const BRANCHES: readonly Branch[] = [
     isPrimary:       false,
     governorate:     "Cairo",
     area:            "مدينة نصر",
-    deliveryEnabled: true,
     mapsDirectionsUrl: directionsUrl(30.0520, 31.3550),
   },
   {
+    ...DEFAULT_CAPABILITIES,
     id:              "masakin-dhabbat-2",
     nameAr:          "مساكن الضباط ٢",
     nameEn:          "Masakin Al-Dabbat 2",
     fullNameAr:      "صيدليات المتحدة - مساكن الضباط ٢",
     fullNameEn:      "United Pharmacies - Masakin Al-Dabbat 2",
-    addressAr:       "عمارة 336 شارع فاطمة الزهراء متفرع من الميثاق",
-    addressEn:       "Building 336, Fatima Al-Zahraa St., off Al-Mithaq St.",
+    addressAr:       "عمارة 340 شارع فاطمة الزهراء متفرع من الميثاق، مساكن الضباط، مدينة نصر",
+    addressEn:       "Building 340, Fatima Al-Zahraa St., off Al-Mithaq St., Masakin Al-Dabbat, Nasr City",
     phones:          [DHABBAT_2_PHONE, WHATSAPP_LINE],
+    hours:           SHARED_HOURS,
     hoursAr:         HOURS_AR,
     hoursEn:         HOURS_EN,
-    lat:             30.0521,
-    lng:             31.3551,
+    lat:             30.0525,
+    lng:             31.3558,
     mapZoom:         17,
     isPrimary:       false,
     governorate:     "Cairo",
     area:            "مدينة نصر",
-    deliveryEnabled: true,
-    mapsDirectionsUrl: directionsUrl(30.0521, 31.3551),
+    mapsDirectionsUrl: directionsUrl(30.0525, 31.3558),
   },
   {
+    ...DEFAULT_CAPABILITIES,
     id:              "ismailia-14",
     nameAr:          "شارع الاسماعيليه - ١٤",
     nameEn:          "Ismailia St. – No. 14",
@@ -113,6 +148,7 @@ export const BRANCHES: readonly Branch[] = [
     addressAr:       "١٤ ش الأسماعيلية متفرع من شارع الميثاق، زهراء مدينة نصر",
     addressEn:       "14 Ismailia St., off Al-Mithaq St., Zahraa Nasr City",
     phones:          [ISMAILIA_14_PHONE, WHATSAPP_LINE],
+    hours:           SHARED_HOURS,
     hoursAr:         HOURS_AR,
     hoursEn:         HOURS_EN,
     lat:             30.0650,
@@ -121,10 +157,10 @@ export const BRANCHES: readonly Branch[] = [
     isPrimary:       false,
     governorate:     "Cairo",
     area:            "مدينة نصر",
-    deliveryEnabled: true,
     mapsDirectionsUrl: directionsUrl(30.0650, 31.3780),
   },
   {
+    ...DEFAULT_CAPABILITIES,
     id:              "ismailia-13",
     nameAr:          "شارع الاسماعيليه - ١٣",
     nameEn:          "Ismailia St. – No. 13",
@@ -133,6 +169,7 @@ export const BRANCHES: readonly Branch[] = [
     addressAr:       "١٣ ش الأسماعيلية متفرع من شارع الميثاق، زهراء مدينة نصر",
     addressEn:       "13 Ismailia St., off Al-Mithaq St., Zahraa Nasr City",
     phones:          [ISMAILIA_13_PHONE, WHATSAPP_LINE],
+    hours:           SHARED_HOURS,
     hoursAr:         HOURS_AR,
     hoursEn:         HOURS_EN,
     lat:             30.0655,
@@ -141,7 +178,6 @@ export const BRANCHES: readonly Branch[] = [
     isPrimary:       false,
     governorate:     "Cairo",
     area:            "مدينة نصر",
-    deliveryEnabled: true,
     mapsDirectionsUrl: directionsUrl(30.0655, 31.3785),
   },
 ];
