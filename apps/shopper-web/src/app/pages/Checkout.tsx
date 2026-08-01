@@ -55,6 +55,7 @@ import {
 } from "../checkout/validation";
 import { EmptyState, PageHero, SectionIntro } from "../components/BrandPrimitives";
 import { BranchSelector } from "../components/BranchSelector";
+import { BranchMapEmbed } from "../components/BranchMapEmbed";
 import { GeofenceStatusBanner } from "../components/GeofenceStatusBanner";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { ShopperPage, ShopperSurface } from "../components/ShopperPrimitives";
@@ -1128,6 +1129,16 @@ export default function Checkout() {
           onChangeBranch={setSelectedBranchId}
         />
       </div>
+
+      {/* Branch map embed — shows the selected branch location */}
+      {selectedBranch && (
+        <div className="sm:col-span-2">
+          <BranchMapEmbed
+            src={`https://maps.google.com/maps?q=${selectedBranch.lat},${selectedBranch.lng}&z=17&t=&ie=UTF8&iwloc=&output=embed`}
+            title={lang === "ar" ? selectedBranch.nameAr : selectedBranch.nameEn}
+          />
+        </div>
+      )}
 
       <div className="sm:col-span-2">
         <div className="rounded-2xl border border-slate-200 bg-[linear-gradient(145deg,#ffffff_0%,#f8fbfb_62%,#eff6f7_100%)] p-4">
