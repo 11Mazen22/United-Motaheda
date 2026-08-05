@@ -120,9 +120,15 @@ export function useTabSwipeGesture(currentRoute: TabRouteName): TabSwipeGesture 
       // translationX very negative == swipe left (finger moves toward the left edge).
       const swipedLeft = e.translationX < 0;
 
-      // RTL direction mapping (matches CategoryStrip's arrow-button convention):
-      //  Not RTL: swipe left  -> next tab (index + 1); swipe right -> previous tab (index - 1)
-      //  RTL:     swipe left  -> previous tab (index - 1); swipe right -> next tab (index + 1)
+      // RTL direction mapping:
+      // With forceRTL active, the gesture coordinate system is NOT mirrored —
+      // physical finger movement still maps to positive/negative translationX
+      // in the same physical direction. But the TAB ORDER reads right-to-left
+      // in Arabic (tab 0 = rightmost position, tab 4 = leftmost). So:
+      //   Swipe left  (translationX < 0) in LTR → advance to next tab (higher index)
+      //   Swipe left  (translationX < 0) in RTL → go back to previous tab (lower index)
+      //   Swipe right (translationX > 0) in LTR → go back to previous tab (lower index)
+      //   Swipe right (translationX > 0) in RTL → advance to next tab (higher index)
       const delta = IS_RTL ? (swipedLeft ? -1 : 1) : (swipedLeft ? 1 : -1);
 
       const rawTarget   = currentIndex + delta;

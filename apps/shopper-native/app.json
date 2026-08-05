@@ -41,7 +41,7 @@
         "backgroundColor": "transparent",
         "translucent": true
       },
-      "versionCode": 40
+      "versionCode": 41
     },
     "web": {
       "bundler": "metro",
@@ -110,13 +110,13 @@
         "origin": false
       },
       "eas": {
-        "projectId": "1f6bee7a-6298-40a9-bf47-23e2254814ab"
+        "projectId": "cc0dea9d-00d1-4ac8-9923-426fe3ba1c52"
       }
     },
     "runtimeVersion": "1.0.0",
-    "owner": "united-baqy",
     "updates": {
       "url": ""
-    }
+    },
+    "owner": "mazen-moham"
   }
 }

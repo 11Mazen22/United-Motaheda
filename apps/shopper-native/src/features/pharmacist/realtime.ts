@@ -1,28 +1,40 @@
 /**
  * Pharmacist realtime channel subscriptions.
  *
- * Pattern mirrors features/driver/realtime.ts exactly:
- *   - One channel per table scope
- *   - No retry logic here — retry is handled by the hook that mounts these
- *   - Returns the raw RealtimeChannel for cleanup
+ * Root-cause fix for "cannot add postgres_changes callbacks for
+ * realtime:pharmacist-orders after subscribe()":
  *
- * Subscribed tables:
- *   orders           — any INSERT or UPDATE on PHARMACIST_ACTIVE_STATUSES
- *   prescriptions    — any INSERT or UPDATE (new Rx submissions appear live)
+ *   Supabase throws that error when .on() is called on a channel that has
+ *   already called .subscribe(). This happens when usePharmacistRealtimeSync
+ *   is called a second time before the previous channels are fully removed
+ *   — e.g. when userId changes (auth state flicker) or React StrictMode
+ *   double-invokes the effect in dev.
  *
- * RLS on both tables already scopes subscriptions to data the pharmacist
- * is permitted to see — the Supabase realtime broker enforces this.
+ *   Fix: use a unique channel name per call (appending a monotonic counter)
+ *   so each subscription always gets a fresh channel object, never reusing
+ *   an already-subscribed one.  The cleanup in usePharmacistRealtimeSync
+ *   already calls supabase.removeChannel() — this just ensures we never
+ *   re-enter the same channel name while a previous subscription is
+ *   still tearing down.
  */
 
 import { supabase } from "@/lib/supabase";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 
+let _seq = 0;
+function nextSeq() {
+  return ++_seq;
+}
+
 /** Listen for any order change that is relevant to the pharmacist queue. */
 export function subscribeToPharmacistOrders(
   onChange: () => void,
 ): RealtimeChannel {
+  // Unique channel name prevents the "callbacks after subscribe()" error when
+  // the hook is re-mounted (StrictMode double-invoke, userId change, etc.)
+  const channelName = `pharmacist-orders-${nextSeq()}`;
   return supabase
-    .channel("pharmacist-orders")
+    .channel(channelName)
     .on(
       "postgres_changes",
       { event: "*", schema: "public", table: "orders" },
@@ -35,8 +47,9 @@ export function subscribeToPharmacistOrders(
 export function subscribeToPharmacistPrescriptions(
   onChange: () => void,
 ): RealtimeChannel {
+  const channelName = `pharmacist-prescriptions-${nextSeq()}`;
   return supabase
-    .channel("pharmacist-prescriptions")
+    .channel(channelName)
     .on(
       "postgres_changes",
       { event: "*", schema: "public", table: "prescriptions" },

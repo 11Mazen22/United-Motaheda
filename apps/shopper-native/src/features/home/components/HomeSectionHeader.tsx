@@ -1,24 +1,30 @@
 /**
- * HomeSectionHeader — 2026 rebuild on the @/shared/kit design language.
+ * HomeSectionHeader — 2026 Premium Redesign.
  *
- * Editorial section title bar: tinted icon tile (derived from the accent),
- * eyebrow + ink title stack, and a quiet ghost "view all" affordance
- * (text + chevron — the bordered pill is gone).
+ * Design language:
+ *   • Bold 20px black Cairo title with tight tracking
+ *   • Accent-tinted gradient icon tile (12×12 radius, 44pt square)
+ *   • Hairline eyebrow in uppercase, spaced, accent-colored
+ *   • "View all" affordance: filled accent-tinted pill with chevron —
+ *     clearly tappable but never visually dominant
+ *   • RTL-aware throughout (flexRow, textAlignStart)
+ *   • Accepts an optional `rightSlot` for countdown timers etc.
  */
+
 import React, { memo } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { useTranslation } from "react-i18next";
 import { Text as UIText } from "@/shared/ui";
-import { theme } from "@/shared/theme";
-import { shStyles as base } from "./home.styles";
-import { flexRow, isRtl, textAlignStart, FORWARD_CHEVRON } from "@/utils/layout";
 import { kit } from "@/shared/kit";
+import { theme } from "@/shared/theme";
+import { flexRow, isRtl, textAlignStart, FORWARD_CHEVRON } from "@/utils/layout";
 import { useScreenLayout } from "@/utils/responsive";
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>["name"];
 
-const IS_RTL = isRtl();
+const IS_RTL     = isRtl();
 const TEXT_START = textAlignStart(IS_RTL);
 
 export interface HomeSectionHeaderProps {
@@ -27,11 +33,14 @@ export interface HomeSectionHeaderProps {
   icon:       IoniconsName;
   accent?:    string;
   onMore?:    () => void;
+  /** Custom right-side widget (e.g. flash-sale countdown) */
   rightSlot?: React.ReactNode;
 }
 
 export const HomeSectionHeader = memo(function HomeSectionHeader({
-  eyebrow, title, icon,
+  eyebrow,
+  title,
+  icon,
   accent    = kit.color.accentDeep,
   onMore,
   rightSlot,
@@ -39,97 +48,145 @@ export const HomeSectionHeader = memo(function HomeSectionHeader({
   const { t }       = useTranslation();
   const { pagePad } = useScreenLayout();
 
-  return (
-    <View style={[base.row, { paddingHorizontal: pagePad }]}>
-      {/* Leading cluster — icon tile + text stack. Allowed to shrink/
-          truncate so a wide rightSlot (e.g. the flash-sale countdown)
-          never gets pushed into overlapping the title — that overlap was
-          a real bug, not just crowding. */}
-      <View style={base.left}>
-        <View style={[sh.iconTile, { backgroundColor: accent + "14" }]}>
-          <Ionicons name={icon} size={17} color={accent} />
-        </View>
+  // Derive tint from accent (14% opacity layer)
+  const tint = accent + "1A"; // 10% alpha
+  const tintMid = accent + "26"; // 15% alpha
 
+  return (
+    <View style={[sh.row, { paddingHorizontal: pagePad }]}>
+
+      {/* ── Leading cluster: icon tile + text stack ── */}
+      <View style={sh.leading}>
+
+        {/* Gradient icon tile */}
+        <LinearGradient
+          colors={[tintMid, tint]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[sh.iconTile, { borderColor: accent + "22" }]}
+        >
+          <Ionicons name={icon} size={18} color={accent} />
+        </LinearGradient>
+
+        {/* Text stack */}
         <View style={sh.textStack}>
-          {eyebrow && (
-            <UIText style={[sh.eyebrow, { color: accent }]} numberOfLines={1}>
+          {eyebrow ? (
+            <UIText
+              numberOfLines={1}
+              style={[sh.eyebrow, { color: accent }]}
+            >
               {eyebrow}
             </UIText>
-          )}
-          <UIText style={sh.title} numberOfLines={1}>{title}</UIText>
+          ) : null}
+          <UIText numberOfLines={1} style={sh.title}>
+            {title}
+          </UIText>
         </View>
       </View>
 
-      {/* Trailing slot — ghost "view all", or a fixed-width widget (e.g. a
-          countdown) that must never be squeezed by the leading cluster. */}
+      {/* ── Trailing: custom slot OR view-all pill ── */}
       <View style={sh.trailing}>
-      {rightSlot ?? (onMore && (
-        <Pressable
-          onPress={onMore}
-          hitSlop={10}
-          accessibilityRole="button"
-          accessibilityLabel={t("home.viewAll")}
-          style={sh.more}>
-          {/*
-            `weight="bold"` forces fontFamily via the Text component's
-            FONT_STYLES path. This is more reliable than passing fontFamily
-            inside a style object — the weight prop bypasses variant defaults
-            entirely so Cairo_700Bold cannot be lost to a stale layout pass.
-          */}
-          <UIText weight="bold" style={sh.moreText}>
-            {t("home.viewAll")}
-          </UIText>
-          <Ionicons name={FORWARD_CHEVRON} size={13} color={kit.color.inkSoft} />
-        </Pressable>
-      ))}
+        {rightSlot ?? (onMore ? (
+          <Pressable
+            onPress={onMore}
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel={t("home.viewAll")}
+            style={({ pressed }) => [sh.moreBtn, pressed && sh.moreBtnPressed]}
+          >
+            <UIText style={[sh.moreText, { color: accent }]}>
+              {t("home.viewAll")}
+            </UIText>
+            <Ionicons name={FORWARD_CHEVRON} size={12} color={accent} />
+          </Pressable>
+        ) : null)}
       </View>
     </View>
   );
 });
 
+// ─── Styles ───────────────────────────────────────────────────────────────────
+
 const sh = StyleSheet.create({
+  row: {
+    flexDirection:  flexRow(IS_RTL),
+    alignItems:     "center",
+    justifyContent: "space-between",
+    minHeight:      44,
+  },
+
+  // Leading: icon tile + text
+  leading: {
+    flex:          1,
+    flexShrink:    1,
+    flexDirection: flexRow(IS_RTL),
+    alignItems:    "center",
+    gap:           12,
+    minWidth:      0,
+  },
+
+  // 44×44 gradient icon tile, bordered
   iconTile: {
-    width:          42,
-    height:         42,
-    borderRadius:   13,
+    width:          44,
+    height:         44,
+    borderRadius:   14,
     alignItems:     "center",
     justifyContent: "center",
+    borderWidth:    1,
+    flexShrink:     0,
   },
-  textStack: { flexShrink: 1, gap: 1 },
-  trailing:  { flexShrink: 0 },
+
+  textStack: {
+    flexShrink: 1,
+    gap:        2,
+    minWidth:   0,
+  },
+
   eyebrow: {
     fontFamily:         theme.fonts.bold,
     fontSize:           10,
-    lineHeight:         15,
-    letterSpacing:      0.4,
+    lineHeight:         14,
+    letterSpacing:      1.2,
+    textTransform:      "uppercase",
     textAlign:          TEXT_START,
     includeFontPadding: false,
   },
+
   title: {
     fontFamily:         theme.fonts.black,
-    fontSize:           19,
+    fontSize:           20,
     lineHeight:         26,
     color:              kit.color.ink,
-    letterSpacing:      -0.3,
+    letterSpacing:      -0.4,
     textAlign:          TEXT_START,
     includeFontPadding: false,
   },
-  more: {
+
+  // Trailing
+  trailing: {
+    flexShrink: 0,
+    marginStart: 12,
+  },
+
+  // "View all" pill
+  moreBtn: {
     flexDirection:     flexRow(IS_RTL),
     alignItems:        "center",
     gap:               4,
-    paddingVertical:   5,
-    paddingHorizontal: 11,
+    paddingHorizontal: 12,
+    paddingVertical:   7,
     borderRadius:      kit.radius.pill,
+    backgroundColor:   kit.color.accentTint,
     borderWidth:       1,
-    borderColor:       kit.color.line,
-    backgroundColor:   kit.color.surface,
+    borderColor:       kit.color.accentDeep + "20",
+  },
+  moreBtnPressed: {
+    opacity: 0.75,
   },
   moreText: {
     fontFamily:         theme.fonts.bold,
-    fontSize:           11,
-    lineHeight:         17,
-    color:              kit.color.inkSoft,
+    fontSize:           12,
+    lineHeight:         16,
     includeFontPadding: false,
   },
 });

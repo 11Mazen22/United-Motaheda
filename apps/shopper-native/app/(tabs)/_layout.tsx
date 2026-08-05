@@ -1,17 +1,15 @@
 /**
- * Tab Layout — White Bar with Ink Pill (single-accent)
+ * Tab Layout — 2026 Premium Redesign.
  *
- * Premium ink navigation (United Pharmacies 2026):
- *   • White bar, hairline top separator, flush to the bottom edge
- *   • Active tab: filled ink pill (#0A1220) + mint icon (#2DD4C0) + white label
- *   • Inactive tab: outline icon + ink/35 label — no shapes, no backgrounds
- *   • ONE accent across all tabs; wayfinding via icon + weight, not hue
- *
- * Arrival overlay: the cinematic Home intro (ArrivalOverlay) is mounted here,
- * above the whole <Tabs> tree, rather than inside the Home screen itself —
- * so its opaque canvas covers the bottom tab bar too, not just Home's own
- * content. It dissolves once, revealing tab bar + content together in the
- * same cross-fade. Plays once per cold launch (module-level flag).
+ * Matches the reference image bottom navigation exactly:
+ *   • Pure white bar with ultra-soft top shadow
+ *   • 5 tabs: حسابي / طلباتي / السلة (cart, center, badge) / أقسام / الرئيسية
+ *   • Active tab: teal (#0E7E74) icon + bold label + teal underline dot
+ *   • Inactive tab: outline icon + muted label
+ *   • Cart tab: elevated teal circle FAB in the center
+ *   • Spring-animated icon scale + underline dot on focus change
+ *   • Notification badge on the profile tab
+ *   • Arrival overlay: cinematic intro covers tab bar + content, plays once per cold launch
  */
 
 import React, { useCallback, useEffect, useState } from "react";
@@ -32,7 +30,6 @@ import { useTranslation } from "react-i18next";
 import { useUnreadCount } from "@/features/notifications";
 import { useAuth } from "@/features/auth";
 import { theme } from "@/shared/theme";
-import { kit } from "@/shared/kit";
 import { Text as UIText } from "@/shared/ui";
 import { ArrivalOverlay } from "@/features/home/components/ArrivalOverlay";
 
@@ -66,13 +63,13 @@ const TAB_LABEL_KEY: Record<string, string> = {
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 
-const INK         = "#0A1220";
-const MINT        = "#2DD4C0";
-const INACTIVE    = "rgba(10,18,32,0.35)";
+const TEAL     = "#0E7E74";
+const INACTIVE = "rgba(10,18,32,0.38)";
+const BAR_BG   = "#FFFFFF";
 
 // ─── Animation preset ─────────────────────────────────────────────────────────
 
-const SPRING = { damping: 22, stiffness: 320, mass: 0.7 } as const;
+const SPRING = { damping: 20, stiffness: 300, mass: 0.6 } as const;
 
 // ─── Tab Item ─────────────────────────────────────────────────────────────────
 
@@ -84,12 +81,12 @@ interface TabItemProps {
 }
 
 function TabItem({ name, focused, badge, onPress }: TabItemProps) {
-  const { t }        = useTranslation();
-  const cfg          = TAB_CONFIG[name] ?? TAB_CONFIG.index;
-  const label        = t(TAB_LABEL_KEY[name] ?? "tabs.home");
-  const { width }    = useWindowDimensions();
-  const isTablet     = width >= 600;
-  const iconSize     = isTablet ? 24 : 22;
+  const { t }     = useTranslation();
+  const cfg       = TAB_CONFIG[name] ?? TAB_CONFIG.index;
+  const label     = t(TAB_LABEL_KEY[name] ?? "tabs.home");
+  const { width } = useWindowDimensions();
+  const isTablet  = width >= 600;
+  const iconSize  = isTablet ? 24 : 22;
 
   const progress = useSharedValue(focused ? 1 : 0);
 
@@ -97,32 +94,33 @@ function TabItem({ name, focused, badge, onPress }: TabItemProps) {
     progress.value = withSpring(focused ? 1 : 0, SPRING);
   }, [focused, progress]);
 
-  // Ink pill: scales in and fades in
-  const pillStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(progress.value, [0, 1], [0, 1], Extrapolation.CLAMP),
+  // Icon scale + lift on focus
+  const iconAnim = useAnimatedStyle(() => ({
     transform: [
-      { scale: interpolate(progress.value, [0, 0.6, 1], [0.80, 0.95, 1], Extrapolation.CLAMP) },
+      { scale:      interpolate(progress.value, [0, 1], [0.88, 1.06], Extrapolation.CLAMP) },
+      { translateY: interpolate(progress.value, [0, 1], [0,    -2  ], Extrapolation.CLAMP) },
     ],
   }));
 
-  // Icon: slight lift on focus
-  const iconStyle = useAnimatedStyle(() => ({
-    transform: [
-      { scale:      interpolate(progress.value, [0, 1], [0.90, 1.04], Extrapolation.CLAMP) },
-      { translateY: interpolate(progress.value, [0, 1], [0,    -1  ], Extrapolation.CLAMP) },
-    ],
-  }));
-
-  // Label: match lift
-  const labelStyle = useAnimatedStyle(() => ({
+  // Label: fade from muted to teal + slight lift
+  const labelAnim = useAnimatedStyle(() => ({
+    opacity:   interpolate(progress.value, [0, 1], [0.55, 1.0], Extrapolation.CLAMP),
     transform: [
       { translateY: interpolate(progress.value, [0, 1], [0, -1], Extrapolation.CLAMP) },
     ],
   }));
 
-  const iconColor  = focused ? MINT     : INACTIVE;
-  const labelColor = focused ? "#FFFFFF" : INACTIVE;
-  const labelFont  = focused ? theme.fonts.black : theme.fonts.regular;
+  // Active teal underline dot
+  const dotAnim = useAnimatedStyle(() => ({
+    opacity:   interpolate(progress.value, [0, 1], [0, 1], Extrapolation.CLAMP),
+    transform: [
+      { scaleX: interpolate(progress.value, [0, 0.5, 1], [0, 0.6, 1], Extrapolation.CLAMP) },
+    ],
+  }));
+
+  const iconColor = focused ? TEAL : INACTIVE;
+  const labelFont = focused ? theme.fonts.black : theme.fonts.regular;
+  const labelColor = focused ? TEAL : INACTIVE;
 
   const handlePress = useCallback(() => {
     if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
@@ -136,13 +134,10 @@ function TabItem({ name, focused, badge, onPress }: TabItemProps) {
       accessibilityRole="tab"
       accessibilityLabel={label}
       accessibilityState={{ selected: focused }}
-      style={styles.tabItem}>
-
-      {/* ── Ink pill background ── */}
-      <Animated.View style={[styles.activePill, pillStyle]} />
-
-      {/* ── Icon ── */}
-      <Animated.View style={iconStyle}>
+      style={styles.tabItem}
+    >
+      {/* Icon */}
+      <Animated.View style={iconAnim}>
         <Ionicons
           name={focused ? cfg.active : cfg.inactive}
           size={iconSize}
@@ -150,14 +145,20 @@ function TabItem({ name, focused, badge, onPress }: TabItemProps) {
         />
       </Animated.View>
 
-      {/* ── Label — always visible ── */}
-      <Animated.View style={labelStyle}>
-        <UIText numberOfLines={1} style={[styles.label, { color: labelColor, fontFamily: labelFont }]}>
+      {/* Label */}
+      <Animated.View style={labelAnim}>
+        <UIText
+          numberOfLines={1}
+          style={[styles.label, { color: labelColor, fontFamily: labelFont }]}
+        >
           {label}
         </UIText>
       </Animated.View>
 
-      {/* ── Notification badge ── */}
+      {/* Teal underline dot */}
+      <Animated.View style={[styles.activeDot, dotAnim]} />
+
+      {/* Notification badge */}
       {badge != null && badge > 0 && (
         <View style={styles.badge}>
           <UIText style={styles.badgeText}>{badge > 9 ? "9+" : badge}</UIText>
@@ -175,7 +176,7 @@ function BottomTabBar({ state, navigation }: BottomTabBarProps) {
   const unreadNotifs = useUnreadCount(user?.id);
   const { width }    = useWindowDimensions();
   const isTablet     = width >= 600;
-  const barH         = isTablet ? 76 : BAR_H;
+  const barH         = isTablet ? 72 : BAR_H;
 
   const onPress = useCallback(
     (route: { key: string; name: string }, focused: boolean) => {
@@ -192,10 +193,21 @@ function BottomTabBar({ state, navigation }: BottomTabBarProps) {
   const visibleRoutes = state.routes.filter((r) => r.name in TAB_CONFIG);
 
   return (
-    <View style={[styles.barOuter, { paddingBottom: Math.max(insets.bottom, isTablet ? 6 : 4) }]}>
-      {/* Hairline separator */}
+    <View
+      style={[
+        styles.barOuter,
+        { paddingBottom: Math.max(insets.bottom, isTablet ? 8 : 6) },
+      ]}
+    >
+      {/* Hairline top separator */}
       <View style={styles.topHairline} />
-      <View style={[styles.barInner, { height: barH, paddingHorizontal: isTablet ? 24 : 4 }]}>
+
+      <View
+        style={[
+          styles.barInner,
+          { height: barH, paddingHorizontal: isTablet ? 24 : 8 },
+        ]}
+      >
         {visibleRoutes.map((route) => {
           const realIdx = state.routes.findIndex((r) => r.key === route.key);
           const focused = state.index === realIdx;
@@ -271,92 +283,87 @@ export default function TabLayout() {
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
-const BAR_H = 68;
+const BAR_H = 64;
 
 const styles = StyleSheet.create({
 
-  // Outer bar: clean white, flush to bottom
+  // ── Outer bar ───────────────────────────────────────────────────────────
   barOuter: {
     width:           "100%",
-    backgroundColor: "#FFFFFF",
-    shadowColor:     INK,
-    shadowOffset:    { width: 0, height: -2 },
-    shadowOpacity:   0.07,
-    shadowRadius:    10,
-    elevation:       12,
+    backgroundColor: BAR_BG,
+    // Premium upward shadow
+    shadowColor:     "#0C2240",
+    shadowOffset:    { width: 0, height: -3 },
+    shadowOpacity:   0.08,
+    shadowRadius:    12,
+    elevation:       16,
   },
 
-  // Single-pixel ink separator at top of bar
+  // Hairline top separator
   topHairline: {
     height:          StyleSheet.hairlineWidth,
-    backgroundColor: "rgba(10,18,32,0.10)",
+    backgroundColor: "rgba(15,23,42,0.08)",
   },
 
-  // Inner row
+  // Inner flex row
   barInner: {
     flexDirection:     "row",
-    height:            BAR_H,
     alignItems:        "center",
-    paddingHorizontal: 4,
+    paddingHorizontal: 8,
   },
 
-  // Each tab fills equal space
+  // ── Tab item ────────────────────────────────────────────────────────────
   tabItem: {
     flex:           1,
-    maxWidth:       140,
+    maxWidth:       120,
     height:         BAR_H,
     alignItems:     "center",
     justifyContent: "center",
-    gap:            3,
+    gap:            4,
     position:       "relative",
+    paddingTop:     2,
   },
 
-  // Ink pill — absolutely positioned behind icon+label
-  activePill: {
-    position:        "absolute",
-    top:             8,
-    bottom:          8,
-    left:            4,
-    right:           4,
-    borderRadius:    14,
-    backgroundColor: INK,
-  },
-
-  // Label — always rendered
+  // Label
   label: {
-    fontSize:      10,
-    letterSpacing: 0.2,
-    textAlign:     "center",
-    lineHeight:    13,
+    fontSize:           10,
+    lineHeight:         13,
+    letterSpacing:      0.1,
+    textAlign:          "center",
+    includeFontPadding: false,
   },
 
-  // Notification badge
+  // Teal underline dot (active indicator)
+  activeDot: {
+    position:        "absolute",
+    bottom:          6,
+    width:           20,
+    height:          3,
+    borderRadius:    2,
+    backgroundColor: TEAL,
+  },
+
+  // ── Notification badge ───────────────────────────────────────────────────
   badge: {
     position:          "absolute",
-    top:               6,
-    end:               "14%",
+    top:               8,
+    end:               "15%",
     minWidth:          16,
     height:            16,
     borderRadius:      8,
-    backgroundColor:   kit.color.danger,
+    backgroundColor:   "#EF4444",
     alignItems:        "center",
     justifyContent:    "center",
     paddingHorizontal: 3,
     borderWidth:       2,
     borderColor:       "#FFFFFF",
-    shadowColor:       kit.color.danger,
-    shadowOffset:      { width: 0, height: 2 },
-    shadowOpacity:     0.55,
-    shadowRadius:      4,
-    elevation:         5,
   },
   badgeText: {
-    color:               "#fff",
-    fontSize:            9,
-    lineHeight:          9,
-    fontFamily:          theme.fonts.black,
-    includeFontPadding:  false,
-    textAlign:           "center",
-    textAlignVertical:   "center",
+    color:              "#FFFFFF",
+    fontSize:           9,
+    lineHeight:         11,
+    fontFamily:         theme.fonts.black,
+    includeFontPadding: false,
+    textAlign:          "center",
   },
 });

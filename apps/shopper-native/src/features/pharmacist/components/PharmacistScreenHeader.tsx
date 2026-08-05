@@ -1,7 +1,6 @@
 /**
  * PharmacistScreenHeader — reusable header for all pharmacist screens.
- * Mirrors DriverScreenHeader exactly so the two experiences are visually
- * consistent where they share UX patterns (back navigation, title, badge).
+ * Premium version: proper title size, clean white surface, teal back button.
  */
 import React from "react";
 import { Pressable, StyleSheet, View } from "react-native";
@@ -9,6 +8,7 @@ import { useRouter }      from "expo-router";
 import { Ionicons }       from "@expo/vector-icons";
 import { Text as UIText } from "@/shared/ui";
 import { kit }            from "@/shared/kit";
+import { theme }          from "@/shared/theme";
 import { BACK_CHEVRON, flexRow, isRtl, textAlignStart } from "@/utils/layout";
 
 const IS_RTL     = isRtl();
@@ -29,7 +29,7 @@ export function PharmacistScreenHeader({
   onBack,
   hideBack = false,
 }: PharmacistScreenHeaderProps) {
-  const router = useRouter();
+  const router     = useRouter();
   const handleBack = onBack ?? (() => router.back());
 
   return (
@@ -38,23 +38,21 @@ export function PharmacistScreenHeader({
         <Pressable
           onPress={handleBack}
           style={s.backBtn}
-          hitSlop={8}
+          hitSlop={10}
           accessibilityRole="button"
           accessibilityLabel="Back"
         >
-          <Ionicons name={BACK_CHEVRON} size={18} color={kit.color.inkSoft} />
+          <Ionicons name={BACK_CHEVRON} size={18} color={kit.color.accentDeep} />
         </Pressable>
       )}
+
       <View style={[s.titles, hideBack && s.titlesNoBack]}>
-        <UIText variant="card-title" style={{ textAlign: TEXT_START }} numberOfLines={1}>
-          {title}
-        </UIText>
+        <UIText style={s.title} numberOfLines={1}>{title}</UIText>
         {subtitle ? (
-          <UIText variant="caption" color="secondary" style={{ textAlign: TEXT_START }}>
-            {subtitle}
-          </UIText>
+          <UIText style={s.subtitle}>{subtitle}</UIText>
         ) : null}
       </View>
+
       {trailing ? <View style={s.trailing}>{trailing}</View> : null}
     </View>
   );
@@ -64,31 +62,47 @@ const s = StyleSheet.create({
   root: {
     flexDirection:     flexRow(IS_RTL),
     alignItems:        "center",
-    gap:               10,
+    gap:               12,
     paddingHorizontal: kit.inset.screen,
-    paddingVertical:   14,
+    paddingVertical:   16,
     backgroundColor:   kit.color.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: kit.color.line,
-    ...kit.shadow.raised,
   },
   backBtn: {
-    width:           38,
-    height:          38,
-    borderRadius:    19,
+    width:           40,
+    height:          40,
+    borderRadius:    20,
     alignItems:      "center",
     justifyContent:  "center",
-    backgroundColor: kit.color.well,
+    backgroundColor: kit.color.accentTint,
     borderWidth:     1,
-    borderColor:     kit.color.line,
+    borderColor:     kit.color.accentDeep + "22",
     flexShrink:      0,
   },
   titles: {
     flex: 1,
-    gap:  2,
+    gap:  3,
   },
   titlesNoBack: {
     paddingStart: 4,
+  },
+  title: {
+    fontSize:           20,
+    lineHeight:         26,
+    fontFamily:         theme.fonts.black,
+    color:              kit.color.ink,
+    letterSpacing:      -0.3,
+    textAlign:          TEXT_START,
+    includeFontPadding: false,
+  },
+  subtitle: {
+    fontSize:           12,
+    lineHeight:         16,
+    fontFamily:         theme.fonts.regular,
+    color:              kit.color.inkFaint,
+    textAlign:          TEXT_START,
+    includeFontPadding: false,
   },
   trailing: {
     flexShrink: 0,

@@ -10,23 +10,27 @@ export interface BranchAddress {
 
 export const BRANCH_ADDRESSES: readonly BranchAddress[] = [
   {
-    title: "United Pharmacies - Gardenia",
-    address: "Gardenia, New Cairo, Cairo",
+    title: "United Pharmacies - Gardenia City",
+    address: "Shop B1, City Walk Mall, Gardenia City Compound, New Cairo",
   },
   {
-    title: "United Pharmacies - Palestine Street",
-    address: "1 Palestine Rd, El-Basatin Sharkeya, Maadi, Cairo",
+    title: "United Pharmacies - Maadi",
+    address: "1 Palestine St., inside Bandar Mall, New Maadi, Cairo",
   },
   {
-    title: "United Pharmacies - Al Hay Al Asher",
-    address: "Al Hay Al Asher, Nasr City, Cairo",
+    title: "United Pharmacies - Masakin Al-Dabbat 1",
+    address: "Building 336, Fatima El-Zahraa St., off Al-Mithaq St., Nasr City",
   },
   {
-    title: "United Pharmacies - Zahraa El Gomhoureya",
-    address: "El Gomhoureya St. #14, Zahraa Nasr City, Cairo",
+    title: "United Pharmacies - Masakin Al-Dabbat 2",
+    address: "Building 2004, Fatima El-Zahraa St., off Al-Mithaq St., 10th District, Nasr City",
   },
   {
-    title: "United Pharmacies - Nasr City (Fatma El-Zahraa Rd.)",
-    address: "Fatma El-Zahraa Rd, Al Hay Al Asher, Nasr City, Cairo",
+    title: "United Pharmacies - Ismailia St. No. 14",
+    address: "14 Ismailia St., off Al-Mithaq St., Zahraa Nasr City",
+  },
+  {
+    title: "United Pharmacies - Ismailia St. No. 13",
+    address: "13 El Ismaileya St., off Al-Mithaq St., Zahraa Nasr City",
   },
 ] as const;

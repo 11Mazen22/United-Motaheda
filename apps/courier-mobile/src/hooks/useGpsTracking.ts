@@ -12,6 +12,9 @@ import { driverApi } from '@/lib/api';
  * - Starts background tracking when there's an active delivery.
  * - Applies Kalman-filtered locations to the location store.
  * - Posts to the backend on the adaptive interval managed by GpsManager.
+ *
+ * Stale-callback fix: onLocation is stored in a ref so GpsManager always
+ * invokes the latest version without needing to re-register on every render.
  */
 export function useGpsTracking() {
   const isOnline = useAuthStore((s) => s.user?.driverProfile?.isOnline ?? false);
@@ -42,20 +45,20 @@ export function useGpsTracking() {
         timestamp: loc.timestamp,
       });
     } catch (err) {
-      // Non-critical — location posting failure shouldn't block the app
       if (__DEV__) console.warn('[useGpsTracking] Post error:', err);
     } finally {
       postingRef.current = false;
-      // Drain the queue
       const next = postQueue.current.shift();
       if (next) postLocation(next);
     }
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ─── Location callback from GpsManager ───────────────────────────────────
-  const onLocation = useCallback(
+  // ─── Stable ref to always-latest location handler ────────────────────────
+  // Avoids stale closure: GpsManager stores this ref function once and the
+  // ref.current always points at the latest setLocation / postLocation.
+  const onLocationRef = useRef<(loc: FilteredLocation) => void>(() => {});
+  onLocationRef.current = useCallback(
     (loc: FilteredLocation) => {
-      // Always update UI store
       setLocation({
         latitude: loc.latitude,
         longitude: loc.longitude,
@@ -64,17 +67,18 @@ export function useGpsTracking() {
         accuracy: loc.accuracy,
         altitude: loc.altitude,
       });
-
-      // Post to backend (GpsManager already applies adaptive interval)
       postLocation(loc);
     },
     [setLocation, postLocation],
   );
 
-  // ─── Start / stop tracking based on online status ─────────────────────────
+  // ─── Register the stable ref wrapper ONCE ────────────────────────────────
   useEffect(() => {
-    GpsManager.onLocation(onLocation);
+    GpsManager.onLocation((loc) => onLocationRef.current(loc));
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ─── Start / stop foreground tracking based on online status ─────────────
+  useEffect(() => {
     if (isOnline) {
       GpsManager.startForeground().then((ok) => {
         if (ok) startTracking();
@@ -82,11 +86,7 @@ export function useGpsTracking() {
     } else {
       GpsManager.stopAll().then(() => stopTracking());
     }
-
-    return () => {
-      // Don't stop on unmount if still online (layout remounts)
-    };
-  }, [isOnline]);
+  }, [isOnline]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ─── Background tracking during active delivery ───────────────────────────
   useEffect(() => {
@@ -95,9 +95,9 @@ export function useGpsTracking() {
     } else {
       GpsManager.stopBackground().catch(() => {});
     }
-  }, [!!activeDelivery, isOnline]);
+  }, [!!activeDelivery, isOnline]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ─── Foreground / background app state ────────────────────────────────────
+  // ─── Resume foreground when app comes back to foreground ─────────────────
   useEffect(() => {
     const sub = AppState.addEventListener('change', (state: AppStateStatus) => {
       if (state === 'active' && isOnline && !GpsManager.isBackgroundTracking()) {

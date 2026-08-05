@@ -19,3 +19,4 @@ credentials/
 credentials.json
 *.jks
 *.keystore
+node_modules

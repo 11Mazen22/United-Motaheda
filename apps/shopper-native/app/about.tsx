@@ -21,7 +21,7 @@ import { kit } from "@/shared/kit";
 import { useTranslation } from "react-i18next";
 import { theme } from "@/shared/theme";
 import { AppLogo } from "@/shared/components/AppLogo";
-import { BranchAddressList } from "@/components/BranchAddressCard";
+import { BranchMapList } from "@/components/BranchMapCard";
 import { useAppLanguage } from "@/i18n/LanguageProvider";
 import { flexRow, isRtl, textAlignStart, BACK_CHEVRON, FORWARD_CHEVRON } from "@/utils/layout";
 
@@ -166,7 +166,7 @@ export default function AboutScreen() {
             </View>
             <UIText style={[s.sectionTitle, { textAlign: TEXT_START }]}>{t("about.branchesTitle")}</UIText>
           </View>
-          <BranchAddressList />
+          <BranchMapList flat />
         </Animated.View>
 
         {/* Contact */}

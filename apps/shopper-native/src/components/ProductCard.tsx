@@ -1,20 +1,21 @@
 /**
- * ProductCard — V3 Elite Redesign (2026)
+ * ProductCard — 2026 Premium Redesign.
  *
- * Features:
- *   • expo-image with blurhash placeholder for instant perceived load
- *   • Animated heart wishlist toggle (spring scale burst)
- *   • Pill badge: sale % / new / bestseller — colour-coded
- *   • Stacked price + struck-through original price when on discount
- *   • Circular add-to-cart button with haptic feedback + optimistic update
- *   • Out-of-stock frosted overlay with text
- *   • AR / EN display name — resolved from product data
- *   • RTL-aware absolute positioning (badge top-start, heart top-end)
- *   • WCAG AA: all text ≥ 4.5:1, touch targets ≥ 44 pt (heart hitSlop)
- *   • Memoized: only re-renders when product id, wishlist state, or lang changes
+ * Matches the reference image product cards exactly:
+ *   • White card with 16px radius, soft shadow
+ *   • Square image area (140pt) with contain fit, light-grey bg
+ *   • Heart wishlist toggle — top-end corner, semi-transparent white circle
+ *   • Sale/New/Bestseller pill badge — top-start corner (colour-coded)
+ *   • Product name — bold Cairo, 2 lines
+ *   • Price in brand teal + struck-through original
+ *   • Circular teal add-to-cart button — bottom-end corner
+ *   • Out-of-stock overlay
+ *   • Spring press animation on the whole card
+ *   • expo-image with blurhash placeholder
+ *   • RTL-aware badge/heart corners
+ *   • Full accessibility (WCAG AA)
  *
- * Used by:
- *   ProductGrid, FlashSaleSection, RecentlyViewedCarousel, FeaturedSection
+ * Memoised — only re-renders when product id, wishlist state, or lang changes.
  */
 
 import React, { memo, useCallback } from "react";
@@ -24,9 +25,9 @@ import {
   StyleSheet,
   View,
 } from "react-native";
-import { Image }       from "expo-image";
-import { Ionicons }    from "@expo/vector-icons";
-import * as Haptics    from "expo-haptics";
+import { Image } from "expo-image";
+import { Ionicons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -34,23 +35,22 @@ import Animated, {
 } from "react-native-reanimated";
 import { useTranslation } from "react-i18next";
 
-import { Text as UIText }  from "../shared/ui/Text";
-import { theme }            from "../shared/theme";
-import { kit }              from "../shared/kit";
-import { isRtl, flexRow }   from "../utils/layout";
-import { useCartStore }     from "../stores/cart";
-import { useWishlistStore } from "../stores/wishlist";
+import { Text as UIText }   from "../shared/ui/Text";
+import { theme }             from "../shared/theme";
+import { kit }               from "../shared/kit";
+import { isRtl, textAlignStart, flexRow } from "../utils/layout";
+import { useCartStore }      from "../stores/cart";
+import { useWishlistStore }  from "../stores/wishlist";
 import type { NativeProduct } from "../features/products/types";
 
-// ─── Constants ───────────────────────────────────────────────────────────────
+// ─── Constants ────────────────────────────────────────────────────────────────
 
-const IS_RTL = isRtl();
-
-/**
- * Generic blue-tinted blurhash that matches the app's cyan brand.
- * Replace with per-product blurhash from your DB for production.
- */
+const IS_RTL     = isRtl();
+const TEXT_START = textAlignStart(IS_RTL);
 const DEFAULT_BLURHASH = "L6PZfSi_.AyE_3t7t7R**0o#DgR4";
+
+const SPRING_IN  = { damping: 10, stiffness: 400 } as const;
+const SPRING_OUT = { damping: 14, stiffness: 300 } as const;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -58,20 +58,15 @@ export type CardBadge = "sale" | "new" | "bestseller";
 
 export interface ProductCardProps {
   product:          NativeProduct;
-  /** Display language — selects nameAr vs nameEn */
   lang?:            "ar" | "en";
-  /** Explicit badge override — otherwise auto-resolved from product flags */
   badge?:           CardBadge;
-  /** Explicit discount percentage — shown inside the badge and as strikethrough */
   discountPercent?: number;
   onPress?:         () => void;
-  /** Extra style passed to the root Pressable (e.g. width from a carousel) */
   style?:           object;
 }
 
-// ─── Sub-components ──────────────────────────────────────────────────────────
+// ─── HeartButton ─────────────────────────────────────────────────────────────
 
-/** Animated wishlist heart button */
 const HeartButton = memo(function HeartButton({
   product,
 }: {
@@ -87,8 +82,7 @@ const HeartButton = memo(function HeartButton({
   }));
 
   const handlePress = useCallback(() => {
-    // Spring burst: scale up then snap back
-    scale.value = withSpring(1.4, { damping: 5, stiffness: 500 }, () => {
+    scale.value = withSpring(1.5, { damping: 5, stiffness: 500 }, () => {
       scale.value = withSpring(1, { damping: 12, stiffness: 300 });
     });
     if (Platform.OS !== "web") {
@@ -100,7 +94,7 @@ const HeartButton = memo(function HeartButton({
   return (
     <Pressable
       onPress={handlePress}
-      hitSlop={12}
+      hitSlop={10}
       accessibilityRole="button"
       accessibilityLabel={liked ? "Remove from wishlist" : "Save to wishlist"}
       style={cs.heartBtn}
@@ -108,15 +102,16 @@ const HeartButton = memo(function HeartButton({
       <Animated.View style={animStyle}>
         <Ionicons
           name={liked ? "heart" : "heart-outline"}
-          size={17}
-          color={liked ? kit.color.danger : kit.color.inkFaint}
+          size={16}
+          color={liked ? "#EF4444" : kit.color.inkFaint}
         />
       </Animated.View>
     </Pressable>
   );
 });
 
-/** Pill badge (sale / new / bestseller) */
+// ─── CardBadgeView ────────────────────────────────────────────────────────────
+
 const CardBadgeView = memo(function CardBadgeView({
   type,
   percent,
@@ -131,7 +126,7 @@ const CardBadgeView = memo(function CardBadgeView({
   switch (type) {
     case "sale":
       label = percent ? `-${percent}%` : t("product.sale");
-      bg    = kit.color.danger;
+      bg    = "#EF4444";
       break;
     case "new":
       label = t("product.new");
@@ -139,7 +134,7 @@ const CardBadgeView = memo(function CardBadgeView({
       break;
     case "bestseller":
       label = t("product.bestseller");
-      bg    = kit.color.warn;
+      bg    = "#F59E0B";
       break;
   }
 
@@ -150,7 +145,8 @@ const CardBadgeView = memo(function CardBadgeView({
   );
 });
 
-/** Circular add-to-cart button */
+// ─── AddButton ───────────────────────────────────────────────────────────────
+
 const AddButton = memo(function AddButton({
   product,
 }: {
@@ -164,8 +160,8 @@ const AddButton = memo(function AddButton({
   }));
 
   const handlePress = useCallback(() => {
-    scale.value = withSpring(0.88, { damping: 8, stiffness: 500 }, () => {
-      scale.value = withSpring(1, { damping: 10, stiffness: 300 });
+    scale.value = withSpring(0.85, { damping: 6, stiffness: 500 }, () => {
+      scale.value = withSpring(1, { damping: 12, stiffness: 300 });
     });
     if (Platform.OS !== "web") {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
@@ -182,7 +178,7 @@ const AddButton = memo(function AddButton({
         accessibilityLabel="Add to cart"
         style={cs.addBtnInner}
       >
-        <Ionicons name="add" size={18} color={kit.color.onInk} />
+        <Ionicons name="add" size={18} color="#FFFFFF" />
       </Pressable>
     </Animated.View>
   );
@@ -201,121 +197,128 @@ export const ProductCard = memo(function ProductCard({
   const { t } = useTranslation();
 
   // ── Derived display values ──────────────────────────────────────────────
-
   const displayName = (
     lang === "en"
       ? (product.nameEn || product.nameAr || product.name)
       : (product.nameAr || product.nameEn || product.name)
   ) ?? "";
 
-  // Resolve effective badge from explicit prop → product flags
   const effectiveBadge: CardBadge | undefined =
     badge
-    ?? (product.hasActivePromotion ? "sale"        : undefined)
-    ?? (product.isNew         ? "new"         : undefined)
-    ?? (product.isBestseller  ? "bestseller"  : undefined);
+    ?? (product.hasActivePromotion ? "sale"       : undefined)
+    ?? (product.isNew              ? "new"        : undefined)
+    ?? (product.isBestseller       ? "bestseller" : undefined);
 
   const effectiveDiscount =
     discountPercent != null
       ? discountPercent
       : product.discountPercent ?? undefined;
 
+  const basePrice =
+    product.hasActivePromotion && product.basePrice > product.price
+      ? product.basePrice
+      : null;
 
-  const basePrice = product.hasActivePromotion && product.basePrice > product.price
-    ? product.basePrice
-    : null;
+  // ── Card-level press animation ──────────────────────────────────────────
+  const cardScale = useSharedValue(1);
+  const cardAnim  = useAnimatedStyle(() => ({
+    transform: [{ scale: cardScale.value }],
+  }));
 
-  // ── Render ─────────────────────────────────────────────────────────────
+  const onPressIn  = useCallback(() => { cardScale.value = withSpring(0.97, SPRING_IN);  }, [cardScale]);
+  const onPressOut = useCallback(() => { cardScale.value = withSpring(1.0, SPRING_OUT); }, [cardScale]);
 
+  // ─── Render ────────────────────────────────────────────────────────────
   return (
     <Pressable
       onPress={onPress}
+      onPressIn={onPressIn}
+      onPressOut={onPressOut}
       accessibilityRole="button"
       accessibilityLabel={displayName}
-      style={cs.cardTouchable}
+      style={cs.touchable}
     >
-      {({ pressed }) => (
-        <View style={[cs.card, style, pressed && cs.cardPressed]}>
-          {/* ── Image block ───────────────────────────────── */}
-          <View style={cs.imgWrap}>
-            {product.imageUrl ? (
-              <Image
-                source={{ uri: product.imageUrl }}
-                style={cs.img}
-                placeholder={DEFAULT_BLURHASH}
-                contentFit="cover"
-                transition={180}
-                cachePolicy="memory-disk"
-                accessibilityLabel={displayName}
-              />
-            ) : (
-              <View style={cs.imgPlaceholder}>
-                <Ionicons name="medkit-outline" size={36} color={kit.color.inkFaint} />
-              </View>
-            )}
+      <Animated.View style={[cs.card, style, cardAnim]}>
 
-            {/* Badge — top-start corner */}
-            {effectiveBadge && (
-              <CardBadgeView
-                type={effectiveBadge}
-                percent={effectiveDiscount ?? undefined}
-              />
-            )}
-
-            {/* Heart — top-end corner */}
-            <HeartButton product={product} />
-
-            {/* Out-of-stock overlay */}
-            {!product.inStock && (
-              <View style={cs.oosOverlay}>
-                <UIText style={cs.oosText}>{t("product.outOfStock")}</UIText>
-              </View>
-            )}
-          </View>
-
-          {/* ── Info block ────────────────────────────────── */}
-          <View style={cs.info}>
-            {/* Category eyebrow */}
-            {Boolean(product.categoryName) && (
-              <UIText numberOfLines={1} style={cs.category}>
-                {lang === "en" ? (product.categoryNameEn || product.categoryName) : product.categoryName}
-              </UIText>
-            )}
-
-            {/* Name */}
-            <UIText numberOfLines={2} style={cs.name}>
-              {displayName}
-            </UIText>
-
-            {/* Price row + add-to-cart */}
-            <View style={cs.bottomRow}>
-              <View style={cs.priceCol}>
-                <UIText style={cs.price}>
-                  {product.price.toLocaleString("ar-EG")}
-                  {"  "}
-                  <UIText style={cs.currency}>{t("common.currency")}</UIText>
-                </UIText>
-
-                {basePrice !== null && (
-                  <UIText style={cs.original}>
-                    {basePrice.toLocaleString("ar-EG")}
-                  </UIText>
-                )}
-              </View>
-
-              {/* Add-to-cart only when in stock */}
-              {product.inStock && <AddButton product={product} />}
+        {/* ── Image area ── */}
+        <View style={cs.imgWrap}>
+          {product.imageUrl ? (
+            <Image
+              source={{ uri: product.imageUrl }}
+              style={cs.img}
+              placeholder={DEFAULT_BLURHASH}
+              contentFit="contain"
+              transition={200}
+              cachePolicy="memory-disk"
+              accessibilityLabel={displayName}
+            />
+          ) : (
+            <View style={cs.imgPlaceholder}>
+              <Ionicons name="medkit-outline" size={32} color={kit.color.inkFaint} />
             </View>
+          )}
+
+          {/* Badge — top-start */}
+          {effectiveBadge && (
+            <CardBadgeView
+              type={effectiveBadge}
+              percent={effectiveDiscount}
+            />
+          )}
+
+          {/* Heart — top-end */}
+          <HeartButton product={product} />
+
+          {/* Out of stock overlay */}
+          {!product.inStock && (
+            <View style={cs.oosOverlay}>
+              <UIText style={cs.oosText}>{t("product.outOfStock")}</UIText>
+            </View>
+          )}
+        </View>
+
+        {/* ── Info area ── */}
+        <View style={cs.info}>
+          {/* Category eyebrow */}
+          {Boolean(product.categoryName) && (
+            <UIText numberOfLines={1} style={cs.category}>
+              {lang === "en"
+                ? (product.categoryNameEn || product.categoryName)
+                : product.categoryName}
+            </UIText>
+          )}
+
+          {/* Name */}
+          <UIText numberOfLines={2} style={cs.name}>
+            {displayName}
+          </UIText>
+
+          {/* Price row + add button */}
+          <View style={cs.bottomRow}>
+            <View style={cs.priceCol}>
+              <UIText style={cs.price}>
+                {product.price.toLocaleString("ar-EG")}
+                {"  "}
+                <UIText style={cs.currency}>{t("common.currency")}</UIText>
+              </UIText>
+              {basePrice !== null && (
+                <UIText style={cs.originalPrice}>
+                  {basePrice.toLocaleString("ar-EG")}
+                </UIText>
+              )}
+            </View>
+
+            {product.inStock && <AddButton product={product} />}
           </View>
         </View>
-      )}
+      </Animated.View>
     </Pressable>
   );
 });
 
 export default ProductCard;
 
-// ─── Skeleton (for loading states) ───────────────────────────────────────────
+// ─── Skeleton ─────────────────────────────────────────────────────────────────
 
 export const ProductCardSkeleton = memo(function ProductCardSkeleton() {
   return (
@@ -330,35 +333,34 @@ export const ProductCardSkeleton = memo(function ProductCardSkeleton() {
   );
 });
 
-// ─── Styles ──────────────────────────────────────────────────────────────────
+// ─── Styles ───────────────────────────────────────────────────────────────────
 
 const cs = StyleSheet.create({
-  // ── Card shell ─────────────────────────────────────────────────────────
-  // Touchable wrapper carries only sizing/radius (flex to fill the grid
-  // cell, borderRadius for ripple shape) — visual styling lives on the
-  // plain View inside instead of on the Pressable's own function-computed
-  // style, which is unreliable here.
-  cardTouchable: {
+  // ── Card shell ──────────────────────────────────────────────────────────
+  touchable: {
     flex:         1,
-    borderRadius: kit.radius.card,
+    borderRadius: 16,
   },
   card: {
-    backgroundColor: kit.color.surface,
-    borderRadius:    kit.radius.card,
+    backgroundColor: "#FFFFFF",
+    borderRadius:    16,
     overflow:        "hidden",
     borderWidth:     1,
-    borderColor:     kit.color.line,
+    borderColor:     "rgba(15,23,42,0.06)",
     flex:            1,
-  },
-  cardPressed: {
-    opacity: 0.88,
+    // Soft shadow
+    shadowColor:     "#0C2240",
+    shadowOffset:    { width: 0, height: 3 },
+    shadowOpacity:   0.07,
+    shadowRadius:    10,
+    elevation:       3,
   },
 
-  // ── Image ──────────────────────────────────────────────────────────────
+  // ── Image ───────────────────────────────────────────────────────────────
   imgWrap: {
     width:           "100%",
     height:          140,
-    backgroundColor: kit.color.well,
+    backgroundColor: "#F8FAFB",
   },
   img: {
     width:  "100%",
@@ -369,141 +371,157 @@ const cs = StyleSheet.create({
     height:          "100%",
     alignItems:      "center",
     justifyContent:  "center",
-    backgroundColor: kit.color.well,
+    backgroundColor: "#F1F5F9",
   },
 
-  // ── Badge (top-start) ──────────────────────────────────────────────────
+  // ── Badge (top-start) ────────────────────────────────────────────────────
   badge: {
     position:          "absolute",
     top:               8,
-    // RTL: badge on right edge; LTR: badge on left edge
     ...(IS_RTL ? { right: 8 } : { left: 8 }),
     paddingHorizontal: 7,
     paddingVertical:   3,
-    borderRadius:      kit.radius.pill,
+    borderRadius:      6,
   },
   badgeText: {
-    color:              "#fff",
+    color:              "#FFFFFF",
     fontSize:           9,
     lineHeight:         13,
-    fontFamily:         theme.fonts.bold,
+    fontFamily:         theme.fonts.black,
     includeFontPadding: false,
   },
 
-  // ── Heart (top-end) ────────────────────────────────────────────────────
+  // ── Heart (top-end) ──────────────────────────────────────────────────────
   heartBtn: {
     position:        "absolute",
-    top:             6,
-    // RTL: left edge; LTR: right edge
-    ...(IS_RTL ? { left: 6 } : { right: 6 }),
-    width:           30,
-    height:          30,
-    borderRadius:    15,
-    backgroundColor: "rgba(255,255,255,0.90)",
+    top:             8,
+    ...(IS_RTL ? { left: 8 } : { right: 8 }),
+    width:           28,
+    height:          28,
+    borderRadius:    14,
+    backgroundColor: "rgba(255,255,255,0.92)",
     alignItems:      "center",
     justifyContent:  "center",
+    shadowColor:     "#000",
+    shadowOffset:    { width: 0, height: 1 },
+    shadowOpacity:   0.08,
+    shadowRadius:    3,
+    elevation:       2,
   },
 
-  // ── Out-of-stock overlay ───────────────────────────────────────────────
+  // ── Out-of-stock overlay ─────────────────────────────────────────────────
   oosOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(255,255,255,0.70)",
+    backgroundColor: "rgba(255,255,255,0.75)",
     alignItems:      "center",
     justifyContent:  "center",
   },
   oosText: {
-    fontFamily:         theme.fonts.bold,
+    fontFamily:         theme.fonts.black,
     fontSize:           11,
     lineHeight:         16,
     color:              kit.color.inkSoft,
     includeFontPadding: false,
   },
 
-  // ── Info block ─────────────────────────────────────────────────────────
+  // ── Info block ───────────────────────────────────────────────────────────
   info: {
     paddingHorizontal: 10,
-    paddingTop:        8,
-    paddingBottom:     10,
-    gap:               3,
+    paddingTop:        10,
+    paddingBottom:     12,
+    gap:               4,
   },
   category: {
     fontFamily:         theme.fonts.regular,
     fontSize:           10,
     lineHeight:         14,
     color:              kit.color.inkFaint,
-    textAlign:          IS_RTL ? "right" : "left",
+    textAlign:          TEXT_START,
     includeFontPadding: false,
   },
   name: {
-    fontFamily:         theme.fonts.semibold,
+    fontFamily:         theme.fonts.bold,
     fontSize:           13,
     lineHeight:         18,
     color:              kit.color.ink,
-    textAlign:          IS_RTL ? "right" : "left",
+    textAlign:          TEXT_START,
     includeFontPadding: false,
   },
 
-  // ── Price row ──────────────────────────────────────────────────────────
+  // ── Price row ────────────────────────────────────────────────────────────
   bottomRow: {
     flexDirection:  flexRow(IS_RTL),
-    alignItems:     "flex-end",
+    alignItems:     "center",
     justifyContent: "space-between",
     marginTop:      4,
   },
   priceCol: {
-    gap: 1,
+    flex:    1,
+    gap:     2,
+    minWidth: 0,
   },
   price: {
     fontFamily:         theme.fonts.black,
-    fontSize:           15,
-    lineHeight:         20,
-    color:              kit.color.ink,
+    fontSize:           14,
+    lineHeight:         19,
+    color:              kit.color.accentDeep,
+    textAlign:          TEXT_START,
     includeFontPadding: false,
   },
   currency: {
     fontFamily:         theme.fonts.regular,
     fontSize:           11,
-    color:              kit.color.inkSoft,
-  },
-  original: {
-    fontFamily:         theme.fonts.regular,
-    fontSize:           10,
-    lineHeight:         14,
     color:              kit.color.inkFaint,
-    textDecorationLine: "line-through",
-    includeFontPadding: false,
+  },
+  originalPrice: {
+    fontFamily:          theme.fonts.regular,
+    fontSize:            11,
+    lineHeight:          15,
+    color:               kit.color.inkFaint,
+    textDecorationLine:  "line-through",
+    textAlign:           TEXT_START,
+    includeFontPadding:  false,
   },
 
-  // ── Add-to-cart button ─────────────────────────────────────────────────
+  // ── Add-to-cart circular button ──────────────────────────────────────────
   addBtn: {
-    width:  30,
-    height: 30,
+    width:           34,
+    height:          34,
+    borderRadius:    17,
+    backgroundColor: kit.color.accentDeep,
+    overflow:        "hidden",
+    shadowColor:     kit.color.accentDeep,
+    shadowOffset:    { width: 0, height: 2 },
+    shadowOpacity:   0.30,
+    shadowRadius:    6,
+    elevation:       4,
   },
   addBtnInner: {
-    flex:            1,
-    borderRadius:    15,
-    backgroundColor: kit.color.accentDeep,
-    alignItems:      "center",
-    justifyContent:  "center",
+    flex:           1,
+    alignItems:     "center",
+    justifyContent: "center",
   },
 
-  // ── Skeleton ───────────────────────────────────────────────────────────
+  // ── Skeleton ─────────────────────────────────────────────────────────────
   skeletonCard: {
-    borderColor: "transparent",
+    shadowOpacity: 0,
+    elevation:     0,
+    borderColor:   "transparent",
   },
   skeletonImg: {
-    backgroundColor: kit.color.well,
+    backgroundColor: "#EEF2F7",
   },
   skeletonLine: {
     height:          12,
     borderRadius:    6,
-    backgroundColor: kit.color.well,
-    marginVertical:  2,
+    backgroundColor: "#EEF2F7",
+    width:           "80%",
   },
   skeletonLineTall: {
     height: 16,
+    width:  "60%",
   },
   skeletonLineShort: {
-    width: "55%",
+    width: "40%",
   },
 });

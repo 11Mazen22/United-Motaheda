@@ -233,7 +233,7 @@ export default function MapScreen() {
 
   const apiKey = getGoogleMapsApiKey();
 
-  // Destination based on delivery status
+  // Destination based on delivery status — with coordinate validation
   const getDestination = useCallback(() => {
     if (!activeDelivery) return null;
     const isPharmacyLeg =
@@ -243,15 +243,33 @@ export default function MapScreen() {
       activeDelivery.status === 'PICKED_UP';
 
     if (isPharmacyLeg) {
-      return { lat: activeDelivery.pharmacyLat, lng: activeDelivery.pharmacyLng, type: 'pharmacy' as const };
+      const lat = activeDelivery.pharmacyLat;
+      const lng = activeDelivery.pharmacyLng;
+      // Validate coordinates are real numbers in plausible range
+      if (
+        typeof lat === 'number' && typeof lng === 'number' &&
+        lat !== 0 && lng !== 0 &&
+        lat >= -90 && lat <= 90 &&
+        lng >= -180 && lng <= 180
+      ) {
+        return { lat, lng, type: 'pharmacy' as const };
+      }
+      return null;
     }
-    if (activeDelivery.order.customerLat && activeDelivery.order.customerLng) {
-      return {
-        lat: activeDelivery.order.customerLat,
-        lng: activeDelivery.order.customerLng,
-        type: 'customer' as const,
-      };
+
+    const cLat = activeDelivery.order.customerLat;
+    const cLng = activeDelivery.order.customerLng;
+    if (
+      cLat && cLng &&
+      typeof cLat === 'number' && typeof cLng === 'number' &&
+      cLat !== 0 && cLng !== 0 &&
+      cLat >= -90 && cLat <= 90 &&
+      cLng >= -180 && cLng <= 180
+    ) {
+      return { lat: cLat, lng: cLng, type: 'customer' as const };
     }
+
+    // Fallback: try to geocode from address string if coords are invalid
     return null;
   }, [activeDelivery]);
 
@@ -312,21 +330,43 @@ export default function MapScreen() {
     );
   }, [location.latitude, location.longitude]);
 
-  // Open Google Maps navigation
+  // Open Google Maps navigation with validated coordinates
   const openNavigation = useCallback(() => {
     const dest = getDestination();
-    if (!dest) return;
+    if (!dest) {
+      // If no valid coordinates, fall back to address-based search
+      const address = activeDelivery
+        ? (
+            activeDelivery.status === 'EN_ROUTE_TO_CUSTOMER' ||
+            activeDelivery.status === 'ARRIVED_AT_CUSTOMER'
+              ? activeDelivery.order.customerAddress
+              : activeDelivery.pharmacyAddress
+          )
+        : null;
 
-    const url = Platform.select({
-      ios: `comgooglemaps://?daddr=${dest.lat},${dest.lng}&directionsmode=driving`,
-      android: `google.navigation:q=${dest.lat},${dest.lng}&mode=d`,
-    });
-    const fallback = `https://maps.google.com/maps?daddr=${dest.lat},${dest.lng}`;
+      if (address) {
+        const encoded = encodeURIComponent(address);
+        const url = `https://www.google.com/maps/search/?api=1&query=${encoded}`;
+        Linking.openURL(url).catch(() => {});
+      }
+      return;
+    }
 
-    Linking.canOpenURL(url!).then((canOpen) => {
-      Linking.openURL(canOpen ? url! : fallback).catch(() => {});
-    });
-  }, [getDestination]);
+    // Prefer native Google Maps app for turn-by-turn; fall back to web
+    const iosUrl      = `comgooglemaps://?daddr=${dest.lat},${dest.lng}&directionsmode=driving`;
+    const androidUrl  = `google.navigation:q=${dest.lat},${dest.lng}&mode=d`;
+    const fallbackUrl = `https://www.google.com/maps/dir/?api=1&destination=${dest.lat},${dest.lng}&travelmode=driving`;
+
+    const nativeUrl = Platform.select({ ios: iosUrl, android: androidUrl });
+
+    if (nativeUrl) {
+      Linking.canOpenURL(nativeUrl)
+        .then((canOpen) => Linking.openURL(canOpen ? nativeUrl : fallbackUrl))
+        .catch(() => Linking.openURL(fallbackUrl).catch(() => {}));
+    } else {
+      Linking.openURL(fallbackUrl).catch(() => {});
+    }
+  }, [getDestination, activeDelivery]);
 
   const hasLocation = location.latitude != null && location.longitude != null;
   const dest = getDestination();

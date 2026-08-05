@@ -139,7 +139,7 @@ function DigitDisplay({ rxNumber, reduced, onPress }: DigitDisplayProps): React.
               isActive && d.boxActive,
             ]}>
             {isFilled ? (
-              <Text weight="black" style={[d.char, { fontSize: Math.round(boxSize * 0.46) }]}>
+              <Text weight="black" color="brand" style={[d.char, { fontSize: Math.round(boxSize * 0.46) }]}>
                 {digit}
               </Text>
             ) : isActive ? (
@@ -673,6 +673,7 @@ const k = StyleSheet.create({
   row: {
     flexDirection: "row",
     gap:           10,
+    height:        62,            // explicit height so children with flex:1 expand
   },
   // Bare touchable: only `flex` (for row distribution) + radius (for ripple
   // shape). All visual styling lives on the inner View via function-as-
@@ -682,10 +683,12 @@ const k = StyleSheet.create({
   keyTouchable: {
     flex:         1,
     borderRadius: kit.radius.lg,
+    height:       62,             // explicit height so flex:1 on key resolves correctly
   },
   key: {
     flex:            1,
     height:          62,
+    minHeight:       62,
     borderRadius:    kit.radius.lg,
     backgroundColor: kit.color.surface,
     borderWidth:     1,

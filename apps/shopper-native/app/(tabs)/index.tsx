@@ -1,22 +1,22 @@
 /**
- * HomeScreen — 2026 V3 redesign (full reimagining).
+ * HomeScreen — 2026 Premium Redesign.
  *
- * New IA, top to bottom:
- *   1. DeliveryHeader   — slim cinematic header (ambient orb, logo breath, search)
- *   2. HomeHero         — tier-1 personalised hero (greeting, status, 3 chips)
- *   3. TodayCare        — anticipatory care (only when active orders / Rx)
- *   4. CategoryStrip    — horizontal browse rail
- *   5. FlashSaleSection — countdown + sale rail (only when sale products exist)
- *   6. DailyEdit        — editorial 1+2 product layout (NEW)
- *   7. RecentlyViewed   — personal trail (only when content)
- *   8. SavingsStrip     — closing trust band (replaces TrustStrip + bottom CTA)
+ * Architecture matches the reference image layout exactly:
+ *   1. DeliveryHeader   — white top bar (logo + notification bell)
+ *   2. HomeHero         — teal gradient card (greeting + search + 3 quick actions)
+ *   3. TodayCare        — anticipatory care strip (authed only)
+ *   4. CategoryStrip    — square pastel category tiles
+ *   5. FlashSaleSection — offer banner + countdown + product rail
+ *   6. DailyEdit        — editorial featured products (1+2 layout)
+ *   7. RecentlyViewed   — personal trail (lazy, below fold)
+ *   8. SavingsStrip     — trust band (lazy, below fold)
  *
- * Removed: PromoBanner, QuickActions, TrustStrip — absorbed into HomeHero
- * and SavingsStrip. Single source of identity, no duplicated trust messaging.
+ * Scroll behaviour:
+ *   • Animated.ScrollView (Reanimated) — scroll offset drives header fade
+ *   • Pull-to-refresh with teal tint
+ *   • Below-fold lazy-mount after first scroll (preserves initial frame budget)
  *
- * Arrival overlay: relocated to (tabs)/_layout.tsx so the cinematic sequence
- * covers the bottom tab bar too, not just this screen's own content — see
- * that file's header comment for details.
+ * All existing callbacks, queries, and business logic preserved.
  */
 
 import React, {
@@ -25,23 +25,28 @@ import React, {
 } from "react";
 import {
   RefreshControl,
-  ScrollView,
   StyleSheet,
   View,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
-import { GestureDetector }                from "react-native-gesture-handler";
-import Animated                           from "react-native-reanimated";
-import { useSafeAreaInsets }              from "react-native-safe-area-context";
-import { useRouter }                      from "expo-router";
-import { useTranslation }                 from "react-i18next";
-import { useQuery, useQueryClient }       from "@tanstack/react-query";
+import { GestureDetector } from "react-native-gesture-handler";
+import Animated, {
+  useAnimatedScrollHandler,
+  useAnimatedStyle,
+  useSharedValue,
+  interpolate,
+  Extrapolation,
+} from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
+import { useTranslation } from "react-i18next";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
-// ─── Stores ──────────────────────────────────────────────────────────────────
-import { useCartStore, selectItemCount }  from "../../src/stores/cart";
-import { useAuth }                        from "../../src/features/auth";
+// ─── Stores ───────────────────────────────────────────────────────────────────
+import { useCartStore, selectItemCount } from "../../src/stores/cart";
+import { useAuth } from "../../src/features/auth";
 
-// ─── API ─────────────────────────────────────────────────────────────────────
+// ─── API ──────────────────────────────────────────────────────────────────────
 import {
   categoryKeys,
   fetchCategories,
@@ -59,22 +64,33 @@ import { RecentlyViewedCarousel } from "../../src/features/home/components/Recen
 import { DailyEdit }              from "../../src/features/home/components/DailyEdit";
 import { SavingsStrip }           from "../../src/features/home/components/SavingsStrip";
 
-// ─── Theme ───────────────────────────────────────────────────────────────────
+// ─── Kit ─────────────────────────────────────────────────────────────────────
 import { kit } from "../../src/shared/kit";
 import { useTabSwipeGesture } from "../../src/shared/navigation/useTabSwipeGesture";
 
-// ─── HomeScreen ──────────────────────────────────────────────────────────────
+// ─── HomeScreen ───────────────────────────────────────────────────────────────
 
 export default function HomeScreen() {
   const { gesture, animatedStyle } = useTabSwipeGesture("index");
-  const insets    = useSafeAreaInsets();
-  const router    = useRouter();
-  const { i18n }  = useTranslation();
-  const { user }  = useAuth();
-  const cartCount = useCartStore(selectItemCount);
-  const qc        = useQueryClient();
+  const insets     = useSafeAreaInsets();
+  const router     = useRouter();
+  const { i18n }   = useTranslation();
+  const { user }   = useAuth();
+  const cartCount  = useCartStore(selectItemCount);
+  const qc         = useQueryClient();
 
   const lang = (i18n.language === "en" ? "en" : "ar") as "ar" | "en";
+
+  // ── Scroll-driven header opacity ──────────────────────────────────────────
+  const scrollY         = useSharedValue(0);
+  const scrollHandler   = useAnimatedScrollHandler((e) => {
+    scrollY.value = e.contentOffset.y;
+  });
+
+  // Header border becomes visible after scrolling past the hero
+  const headerBorderStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(scrollY.value, [0, 40], [0, 1], Extrapolation.CLAMP),
+  }));
 
   // ── Lazy below-fold ───────────────────────────────────────────────────────
   const [belowFold, setBelowFold] = useState(false);
@@ -105,12 +121,14 @@ export default function HomeScreen() {
 
   // ── Navigation callbacks ──────────────────────────────────────────────────
 
-  const goCart       = useCallback(() => router.push("/(tabs)/cart"    as any), [router]);
-  const goSearch     = useCallback(() => router.push("/search"         as any), [router]);
-  const goNotifs     = useCallback(() => router.push("/notifications"  as any), [router]);
-  const goAllCats    = useCallback(() => router.push("/(tabs)/products"     ), [router]);
-  const goOffers     = useCallback(() => router.push("/offers"         as any), [router]);
-  const goScanRx     = useCallback(() => router.push("/prescriptions/scan" as any), [router]);
+  const goCart      = useCallback(() => router.push("/(tabs)/cart" as any), [router]);
+  const goSearch    = useCallback(() => router.push("/search" as any), [router]);
+  const goNotifs    = useCallback(() => router.push("/notifications" as any), [router]);
+  const goAllCats   = useCallback(() => router.push("/(tabs)/products"), [router]);
+  const goOffers    = useCallback(() => router.push("/deals" as any), [router]);
+  const goScanRx    = useCallback(() => router.push("/prescriptions/scan" as any), [router]);
+  // Fast delivery → browse all products (fastest way to find your medicine)
+  const goFastDeliv = useCallback(() => router.push("/(tabs)/products" as any), [router]);
 
   const goCategory = useCallback(
     (id: string) =>
@@ -141,79 +159,89 @@ export default function HomeScreen() {
 
   return (
     <GestureDetector gesture={gesture}>
-    <Animated.View style={[s.root, animatedStyle]}>
-      <StatusBar style="dark" />
+      <Animated.View style={[s.root, animatedStyle]}>
+        <StatusBar style="dark" />
 
-      <DeliveryHeader
-        insets={insets}
-        user={user}
-        cartCount={cartCount}
-        onCartPress={goCart}
-        onSearchPress={goSearch}
-        onNotifPress={goNotifs}
-      />
+        {/* ── Fixed top bar ── */}
+        <DeliveryHeader
+          insets={insets}
+          user={user}
+          cartCount={cartCount}
+          onCartPress={goCart}
+          onSearchPress={goSearch}
+          onNotifPress={goNotifs}
+        />
 
-      <ScrollView
-        style={s.scroll}
-        contentContainerStyle={s.scrollContent}
-        showsVerticalScrollIndicator={false}
-        overScrollMode="never"
-        scrollEventThrottle={32}
-        onScrollBeginDrag={onScrollBeginDrag}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={kit.color.accentDeep}
-            colors={[kit.color.accentDeep]}
-            progressBackgroundColor={kit.color.surface}
+        {/* ── Scroll shadow line (appears after scroll) ── */}
+        <Animated.View style={[s.scrollShadowLine, headerBorderStyle]} pointerEvents="none" />
+
+        {/* ── Main scroll ── */}
+        <Animated.ScrollView
+          style={s.scroll}
+          contentContainerStyle={s.scrollContent}
+          showsVerticalScrollIndicator={false}
+          overScrollMode="never"
+          scrollEventThrottle={16}
+          onScroll={scrollHandler}
+          onScrollBeginDrag={onScrollBeginDrag}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={kit.color.accentDeep}
+              colors={[kit.color.accentDeep]}
+              progressBackgroundColor={kit.color.surface}
+            />
+          }
+        >
+          {/* 1. Hero — greeting + search + quick actions */}
+          <HomeHero
+            onScanRx={goScanRx}
+            onDeals={goOffers}
+            onSearch={goSearch}
+            onFastDeliv={goFastDeliv}
           />
-        }
-      >
-        {/* 1. Tier-1 hero — personalised greeting, status, 3 primary actions */}
-        <HomeHero
-          onScanRx={goScanRx}
-          onDeals={goSearch}
-        />
 
-        {/* 2. Anticipatory care (authed only — renders null otherwise) */}
-        {Boolean(user) && <TodayCare />}
+          {/* 2. Anticipatory care (authed only) */}
+          {Boolean(user) && <TodayCare />}
 
-        {/* 3. Categories — horizontal browse rail */}
-        <CategoryStrip
-          categories={categoriesQ.data ?? []}
-          isLoading={categoriesQ.isLoading}
-          lang={lang}
-          onCategoryPress={(id, _name, _nameEn) => goCategory(id)}
-          onViewAll={goAllCats}
-        />
+          {/* 3. Categories */}
+          <CategoryStrip
+            categories={categoriesQ.data ?? []}
+            isLoading={categoriesQ.isLoading}
+            lang={lang}
+            onCategoryPress={(id, _name, _nameEn) => goCategory(id)}
+            onViewAll={goAllCats}
+          />
 
-        {/* 4. Flash sale — only when products exist */}
-        {(saleProducts.length > 0 || saleLoading) && (
-          <FlashSaleSection
-            products={saleProducts}
+          {/* 4. Flash sale / Exclusive Offers */}
+          {(saleProducts.length > 0 || saleLoading) && (
+            <FlashSaleSection
+              products={saleProducts}
+              onProductPress={goProduct}
+              onViewAll={goOffers}
+            />
+          )}
+
+          {/* 5. Daily edit — editorial featured products */}
+          <DailyEdit
+            lang={lang}
             onProductPress={goProduct}
             onViewAll={goOffers}
           />
-        )}
 
-        {/* 5. Daily edit — editorial product trio */}
-        <DailyEdit
-          lang={lang}
-          onProductPress={goProduct}
-        />
+          {/* ── Below-fold: lazy-mount after first scroll drag ── */}
+          {belowFold && (
+            <>
+              <RecentlyViewedCarousel lang={lang} onProductPress={goProduct} />
+              <SavingsStrip />
+            </>
+          )}
 
-        {/* Below-fold: lazy after first scroll */}
-        {belowFold && (
-          <>
-            <RecentlyViewedCarousel lang={lang} onProductPress={goProduct} />
-            <SavingsStrip />
-          </>
-        )}
-
-        <View style={{ height: Math.max(insets.bottom, 16) + 72 }} />
-      </ScrollView>
-    </Animated.View>
+          {/* Bottom spacer — clears the tab bar */}
+          <View style={{ height: Math.max(insets.bottom, 16) + 80 }} />
+        </Animated.ScrollView>
+      </Animated.View>
     </GestureDetector>
   );
 }
@@ -223,12 +251,23 @@ export default function HomeScreen() {
 const s = StyleSheet.create({
   root: {
     flex:            1,
-    backgroundColor: kit.color.canvas,
+    backgroundColor: "#F4F7FA",
   },
   scroll: {
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 8,
+    // No extra paddingTop — DeliveryHeader is position:static in the flex column
+  },
+
+  // Thin teal-tinted shadow line that appears under the header on scroll
+  scrollShadowLine: {
+    height:          2,
+    backgroundColor: kit.color.accentTint,
+    shadowColor:     kit.color.accentDeep,
+    shadowOffset:    { width: 0, height: 1 },
+    shadowOpacity:   0.08,
+    shadowRadius:    4,
+    elevation:       2,
   },
 });

@@ -14,6 +14,17 @@
 
 import type { Branch } from "./types";
 
+// ─── Map embed URL builder ────────────────────────────────────────────────────
+
+/**
+ * Builds a Google Maps embed URL from coordinates.
+ * Uses the iframe-compatible `output=embed` format — no API key required.
+ * The same formula used by shopper-web's buildMapEmbedUrl.
+ */
+export function buildBranchMapEmbedUrl(lat: number, lng: number, zoom = 18): string {
+  return `https://maps.google.com/maps?q=${lat},${lng}&z=${zoom}&t=&ie=UTF8&iwloc=&output=embed`;
+}
+
 // ─── Shared constants ─────────────────────────────────────────────────────────
 
 const OPENS  = "09:00";
@@ -66,14 +77,14 @@ export const BRANCHES: readonly Branch[] = [
     hours:           SHARED_HOURS,
     hoursAr:         HOURS_AR,
     hoursEn:         HOURS_EN,
-    lat:             30.0827,
-    lng:             31.3853,
-    mapZoom:         16,
+    lat:             29.974689,
+    lng:             31.277849,
+    mapZoom:         18,
     isPrimary:       true,
     governorate:     "Cairo",
     area:            "القاهرة الجديدة",
     deliveryRadiusKm: 14,
-    mapsDirectionsUrl: directionsUrl(30.0827, 31.3853),
+    mapsDirectionsUrl: directionsUrl(29.974689, 31.277849),
   },
   {
     ...DEFAULT_CAPABILITIES,
@@ -88,13 +99,13 @@ export const BRANCHES: readonly Branch[] = [
     hours:           SHARED_HOURS,
     hoursAr:         HOURS_AR,
     hoursEn:         HOURS_EN,
-    lat:             30.0146,
-    lng:             31.2824,
-    mapZoom:         17,
+    lat:             30.005823,
+    lng:             31.228783,
+    mapZoom:         18,
     isPrimary:       false,
     governorate:     "Cairo",
     area:            "المعادي",
-    mapsDirectionsUrl: directionsUrl(30.0146, 31.2824),
+    mapsDirectionsUrl: directionsUrl(30.005823, 31.228783),
   },
   {
     ...DEFAULT_CAPABILITIES,
@@ -109,13 +120,13 @@ export const BRANCHES: readonly Branch[] = [
     hours:           SHARED_HOURS,
     hoursAr:         HOURS_AR,
     hoursEn:         HOURS_EN,
-    lat:             30.0520,
-    lng:             31.3550,
-    mapZoom:         17,
+    lat:             30.081112,
+    lng:             31.345743,
+    mapZoom:         18,
     isPrimary:       false,
     governorate:     "Cairo",
     area:            "مدينة نصر",
-    mapsDirectionsUrl: directionsUrl(30.0520, 31.3550),
+    mapsDirectionsUrl: directionsUrl(30.081112, 31.345743),
   },
   {
     ...DEFAULT_CAPABILITIES,
@@ -124,19 +135,19 @@ export const BRANCHES: readonly Branch[] = [
     nameEn:          "Masakin Al-Dabbat 2",
     fullNameAr:      "صيدليات المتحدة - مساكن الضباط ٢",
     fullNameEn:      "United Pharmacies - Masakin Al-Dabbat 2",
-    addressAr:       "عمارة 340 شارع فاطمة الزهراء متفرع من الميثاق، مساكن الضباط، مدينة نصر",
-    addressEn:       "Building 340, Fatima Al-Zahraa St., off Al-Mithaq St., Masakin Al-Dabbat, Nasr City",
+    addressAr:       "عمارة 2004 شارع فاطمة الزهراء متفرع من الميثاق، الحي العاشر، مساكن الضباط، مدينة نصر",
+    addressEn:       "Building 2004, Fatima Al-Zahraa St., off Al-Mithaq St., 10th District, Masakin Al-Dabbat, Nasr City",
     phones:          [DHABBAT_2_PHONE, WHATSAPP_LINE],
     hours:           SHARED_HOURS,
     hoursAr:         HOURS_AR,
     hoursEn:         HOURS_EN,
-    lat:             30.0525,
-    lng:             31.3558,
-    mapZoom:         17,
+    lat:             30.073556,
+    lng:             31.354220,
+    mapZoom:         18,
     isPrimary:       false,
     governorate:     "Cairo",
     area:            "مدينة نصر",
-    mapsDirectionsUrl: directionsUrl(30.0525, 31.3558),
+    mapsDirectionsUrl: directionsUrl(30.073556, 31.354220),
   },
   {
     ...DEFAULT_CAPABILITIES,
@@ -145,19 +156,19 @@ export const BRANCHES: readonly Branch[] = [
     nameEn:          "Ismailia St. – No. 14",
     fullNameAr:      "صيدليات المتحدة - شارع الاسماعيليه ١٤",
     fullNameEn:      "United Pharmacies - Ismailia St. No. 14",
-    addressAr:       "١٤ ش الأسماعيلية متفرع من شارع الميثاق، زهراء مدينة نصر",
+    addressAr:       "١٤ ش الإسماعيلية متفرع من شارع الميثاق، زهراء مدينة نصر",
     addressEn:       "14 Ismailia St., off Al-Mithaq St., Zahraa Nasr City",
     phones:          [ISMAILIA_14_PHONE, WHATSAPP_LINE],
     hours:           SHARED_HOURS,
     hoursAr:         HOURS_AR,
     hoursEn:         HOURS_EN,
-    lat:             30.0650,
-    lng:             31.3780,
-    mapZoom:         16,
+    lat:             30.063412,
+    lng:             31.356925,
+    mapZoom:         18,
     isPrimary:       false,
     governorate:     "Cairo",
     area:            "مدينة نصر",
-    mapsDirectionsUrl: directionsUrl(30.0650, 31.3780),
+    mapsDirectionsUrl: directionsUrl(30.063412, 31.356925),
   },
   {
     ...DEFAULT_CAPABILITIES,
@@ -172,13 +183,13 @@ export const BRANCHES: readonly Branch[] = [
     hours:           SHARED_HOURS,
     hoursAr:         HOURS_AR,
     hoursEn:         HOURS_EN,
-    lat:             30.0655,
-    lng:             31.3785,
-    mapZoom:         16,
+    lat:             30.052940,
+    lng:             31.395260,
+    mapZoom:         18,
     isPrimary:       false,
     governorate:     "Cairo",
     area:            "مدينة نصر",
-    mapsDirectionsUrl: directionsUrl(30.0655, 31.3785),
+    mapsDirectionsUrl: directionsUrl(30.052940, 31.395260),
   },
 ];
 

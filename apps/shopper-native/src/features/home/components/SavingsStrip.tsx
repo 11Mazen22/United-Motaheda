@@ -1,10 +1,14 @@
 /**
- * SavingsStrip — Tier-3 supporting trust band.
+ * SavingsStrip — 2026 Premium Redesign.
  *
- *   ┌───────────────────────────────────────────────┐
- *   │ ✓ Genuine medicines      ✓ 30-min delivery   │
- *   │ ✓ Licensed pharmacists   ✓ Cold-chain logistics│
- *   └───────────────────────────────────────────────┘
+ * Matches the reference image trust-strip section (bottom of home):
+ *   • 4-cell grid in a white rounded card
+ *   • Each cell: tinted icon badge + bold label
+ *   • Light teal tint background
+ *   • Cells: دفع آمن وحماية تامة / دعم فني على مدار الساعة /
+ *             منتجات أصلية مضمونة 100% / أكثر من 35,000 منتج
+ *
+ * Full RTL support.
  */
 
 import React, { memo } from "react";
@@ -22,26 +26,63 @@ const TEXT_START = textAlignStart(IS_RTL);
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>["name"];
 
-const TRUST_ICONS: IoniconsName[] = ["shield-checkmark", "flash", "ribbon", "snow"];
-const TRUST_KEYS = ["home.savingsLine1", "home.savingsLine2", "home.savingsLine3", "home.savingsLine4"] as const;
+interface TrustCell {
+  icon:    IoniconsName;
+  labelKey: string;
+  bg:      string;
+  fg:      string;
+}
+
+const TRUST_CELLS: TrustCell[] = [
+  {
+    icon:     "shield-checkmark",
+    labelKey: "home.savingsLine1",
+    bg:       kit.color.accentTint,
+    fg:       kit.color.accentDeep,
+  },
+  {
+    icon:     "headset",
+    labelKey: "home.savingsLine2",
+    bg:       "#EFF6FF",
+    fg:       "#2563EB",
+  },
+  {
+    icon:     "ribbon",
+    labelKey: "home.savingsLine3",
+    bg:       "#ECFDF5",
+    fg:       "#059669",
+  },
+  {
+    icon:     "cube-outline",
+    labelKey: "home.savingsLine4",
+    bg:       "#FFF7ED",
+    fg:       "#EA580C",
+  },
+];
 
 export const SavingsStrip = memo(function SavingsStrip() {
   const { t }       = useTranslation();
   const { pagePad } = useScreenLayout();
+
   return (
     <View style={[s.wrap, { marginHorizontal: pagePad }]}>
+      {/* Eyebrow header */}
       <View style={s.eyebrowRow}>
-        <Ionicons name="leaf-outline" size={12} color={kit.color.accentDeep} />
+        <View style={s.eyebrowDot} />
         <UIText style={s.eyebrow}>{t("home.savingsPromise")}</UIText>
+        <View style={s.eyebrowDot} />
       </View>
 
+      {/* 2×2 grid */}
       <View style={s.grid}>
-        {TRUST_KEYS.map((key, i) => (
-          <View key={key} style={s.cell}>
-            <View style={s.iconWrap}>
-              <Ionicons name={TRUST_ICONS[i]} size={14} color={kit.color.accentDeep} />
+        {TRUST_CELLS.map((cell) => (
+          <View key={cell.labelKey} style={s.cell}>
+            <View style={[s.iconWrap, { backgroundColor: cell.bg }]}>
+              <Ionicons name={cell.icon} size={18} color={cell.fg} />
             </View>
-            <UIText style={s.label} numberOfLines={1}>{t(key)}</UIText>
+            <UIText style={s.label} numberOfLines={2}>
+              {t(cell.labelKey)}
+            </UIText>
           </View>
         ))}
       </View>
@@ -49,51 +90,69 @@ export const SavingsStrip = memo(function SavingsStrip() {
   );
 });
 
+// ─── Styles ───────────────────────────────────────────────────────────────────
+
 const s = StyleSheet.create({
   wrap: {
-    marginTop:         kit.sp(4),
-    marginBottom:      kit.sp(2),
-    backgroundColor:   kit.color.canvas,
-    borderRadius:      kit.radius.lg,
-    borderWidth:       StyleSheet.hairlineWidth,
-    borderColor:       kit.color.line,
-    paddingHorizontal: kit.sp(4),
-    paddingVertical:   kit.sp(4),
-    gap:               kit.sp(3),
+    marginTop:       24,
+    marginBottom:    8,
+    backgroundColor: "#FFFFFF",
+    borderRadius:    20,
+    borderWidth:     1,
+    borderColor:     "rgba(15,23,42,0.06)",
+    paddingHorizontal: 20,
+    paddingVertical:   20,
+    gap:             16,
+    shadowColor:     "#0C2240",
+    shadowOffset:    { width: 0, height: 2 },
+    shadowOpacity:   0.05,
+    shadowRadius:    8,
+    elevation:       2,
   },
+
   eyebrowRow: {
-    flexDirection: flexRow(IS_RTL),
-    alignItems:    "center",
-    gap:           6,
+    flexDirection:  "row",
+    alignItems:     "center",
+    justifyContent: "center",
+    gap:            8,
+  },
+  eyebrowDot: {
+    width:           24,
+    height:          1.5,
+    backgroundColor: kit.color.accentDeep + "40",
+    borderRadius:    1,
   },
   eyebrow: {
     fontFamily:         theme.fonts.black,
-    fontSize:           10,
-    lineHeight:         14,
+    fontSize:           11,
+    lineHeight:         16,
     color:              kit.color.accentDeep,
-    letterSpacing:      1.2,
+    letterSpacing:      1.4,
     textTransform:      "uppercase",
+    textAlign:          "center",
     includeFontPadding: false,
   },
+
   grid: {
     flexDirection: flexRow(IS_RTL),
     flexWrap:      "wrap",
-    rowGap:        10,
+    gap:           0,
+    rowGap:        16,
   },
   cell: {
     width:         "50%",
     flexDirection: flexRow(IS_RTL),
     alignItems:    "center",
-    gap:           8,
+    gap:           12,
     paddingEnd:    8,
   },
   iconWrap: {
-    width:           24,
-    height:          24,
-    borderRadius:    8,
-    backgroundColor: kit.color.accentTint,
-    alignItems:      "center",
-    justifyContent:  "center",
+    width:          44,
+    height:         44,
+    borderRadius:   14,
+    alignItems:     "center",
+    justifyContent: "center",
+    flexShrink:     0,
   },
   label: {
     flex:               1,

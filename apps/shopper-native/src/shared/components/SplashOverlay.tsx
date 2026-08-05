@@ -238,7 +238,12 @@ function SplashSequenceView({ onExited }: { onExited: () => void }): React.React
 
           {/* Wordmark */}
           <Animated.View style={[styles.wordmark, wordAnim]}>
-            <UIText weight="black" style={styles.brandName}>United Pharmacy</UIText>
+            <UIText weight="black" style={styles.brandName}>
+              {t("splash.brandName", "صيدلية المتحدة")}
+            </UIText>
+            <UIText weight="semibold" style={styles.brandNameEn}>
+              United Pharmacy
+            </UIText>
             <View style={styles.brandSep}>
               <View style={styles.brandLine} />
               <View style={styles.brandDot} />
@@ -367,14 +372,23 @@ const styles = StyleSheet.create({
   // ── Wordmark ──────────────────────────────────────────────────────────────────
   wordmark: {
     alignItems: "center",
-    gap:        6,
+    gap:        4,
   },
   brandName: {
-    fontSize:           23,
+    fontSize:           26,
     color:              "#07122a",
     letterSpacing:      -0.8,
     includeFontPadding: false,
-    lineHeight:         29,
+    lineHeight:         32,
+    textAlign:          "center",
+  },
+  brandNameEn: {
+    fontSize:           13,
+    color:              "rgba(7,18,42,0.50)",
+    letterSpacing:      0.4,
+    includeFontPadding: false,
+    lineHeight:         18,
+    textAlign:          "center",
   },
   // Refined separator: two short lines flanking the dot
   brandSep: {

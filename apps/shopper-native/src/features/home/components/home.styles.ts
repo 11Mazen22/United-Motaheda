@@ -1,18 +1,16 @@
 /**
- * home.styles — Shared StyleSheet tokens for the Home screen component family.
+ * home.styles — Shared design tokens for the Home screen component family.
  *
- * V3 changes:
- *   • Replaced `theme.spacing[n]` refs with `kit.sp(n)` — `theme` has no `.spacing`
- *   • Added `sectionStyles.divider`, `sectionStyles.wrapFlush`, `sectionStyles.wrapSmall`
- *   • Added `cntStyles.separator` for the countdown colon spacing fix
- *   • Ensured RTL via `flexRow(isRtl())`
- *
- * All dimensions follow the 4 px grid.
+ * 2026 Premium Redesign:
+ *   • Richer section wrapper variants with staggered entry spacing
+ *   • Elevated card tokens (shadow layering, border system)
+ *   • Countdown cell styles with glow shadow
+ *   • Flash-sale rail styles
+ *   • All dimensions on the 4 px grid
  */
 
 import { StyleSheet } from "react-native";
 import { theme } from "@/shared/theme";
-import { kit } from "@/shared/kit";
 import { flexRow, isRtl } from "@/utils/layout";
 
 const IS_RTL = isRtl();
@@ -20,31 +18,30 @@ const IS_RTL = isRtl();
 // ─── Section wrapper styles ───────────────────────────────────────────────────
 
 export const sectionStyles = StyleSheet.create({
-  /** Standard top-padded section wrapper */
+  /** Standard section wrapper — 28 px top gap */
   wrap: {
-    paddingTop: kit.sp(6),    // 24 px
-    gap:        kit.sp(4),    // 16 px
+    paddingTop: 28,
+    gap: 16,
   },
-  /** Taller top padding for the first section after the header */
+  /** Taller top padding for the first section after the header (e.g. HomeHero) */
   wrapTall: {
-    paddingTop: kit.sp(8),    // 32 px
+    paddingTop: 36,
   },
   /** Section that starts immediately below — no top padding */
   wrapFlush: {
     paddingTop: 0,
-    gap:        kit.sp(4),
+    gap: 16,
   },
-  /** Compact section (e.g. small carousels, inline widgets) */
+  /** Compact section */
   wrapSmall: {
-    paddingTop: kit.sp(4),    // 16 px
-    gap:        kit.sp(3),    // 12 px
+    paddingTop: 16,
+    gap: 12,
   },
   /** Full-bleed horizontal hairline divider */
   divider: {
-    height:          1,
-    marginVertical:  kit.sp(2),   // 8 px
-    backgroundColor: theme.colors.border.hairline,
-    opacity:         0.7,
+    height: StyleSheet.hairlineWidth,
+    marginVertical: 8,
+    backgroundColor: "rgba(15,23,42,0.07)",
   },
 });
 
@@ -52,86 +49,86 @@ export const sectionStyles = StyleSheet.create({
 
 export const shStyles = StyleSheet.create({
   row: {
-    flexDirection:  flexRow(IS_RTL),
-    alignItems:     "center",
+    flexDirection: flexRow(IS_RTL),
+    alignItems: "center",
     justifyContent: "space-between",
-    // paddingHorizontal is applied inline via useScreenLayout().pagePad in each consumer
   },
   left: {
-    flex:          1,
-    flexShrink:    1,
+    flex: 1,
+    flexShrink: 1,
     flexDirection: flexRow(IS_RTL),
-    alignItems:    "center",
-    gap:           kit.sp(3),   // 12 px
+    alignItems: "center",
+    gap: 12,
   },
   icon: {
-    width:          34,
-    height:         34,
-    borderRadius:   10,
-    alignItems:     "center",
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: "center",
     justifyContent: "center",
-    borderWidth:    1,
-    overflow:       "hidden",
+    overflow: "hidden",
   },
   title: {
-    letterSpacing: -0.3,
+    letterSpacing: -0.4,
   },
   moreBtn: {
-    flexDirection:     flexRow(IS_RTL),
-    alignItems:        "center",
-    gap:               4,
+    flexDirection: flexRow(IS_RTL),
+    alignItems: "center",
+    gap: 4,
     paddingHorizontal: 4,
-    paddingVertical:   6,
+    paddingVertical: 6,
   },
 });
 
-// ─── Countdown styles (FlashSaleSection with creative animations) ─────────────────
+// ─── Countdown styles (FlashSaleSection) ─────────────────────────────────────
 
 export const cntStyles = StyleSheet.create({
   timerRow: {
     flexDirection: "row",
-    alignItems:    "center",
-    gap:           8,
+    alignItems: "center",
+    gap: 6,
   },
   colon: {
-    color:        kit.color.accentDeep,
-    fontSize:     18,
-    fontFamily:   theme.fonts.black,
-    marginBottom: 14,
-    fontWeight:   "700",
+    color: "rgba(255,255,255,0.7)",
+    fontSize: 17,
+    fontFamily: theme.fonts.black,
+    marginBottom: 16,
   },
   unit: {
     alignItems: "center",
-    gap:        4,
+    gap: 4,
   },
   cell: {
-    borderRadius:      10,
-    paddingHorizontal: 12,
-    paddingVertical:   8,
-    minWidth:          44,
-    alignItems:        "center",
-    justifyContent:    "center",
-    borderWidth:       0,
-    shadowColor:       "#0E7E74",
-    shadowOffset:      { width: 0, height: 0 },
-    shadowOpacity:     0.25,
-    shadowRadius:      8,
-    elevation:         6,
-    boxShadow:         "0px 0px 8px rgba(14,126,116,0.25)",
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    minWidth: 42,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.15)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.20)",
   },
   value: {
-    color:              "#fff",
-    fontSize:           16,
-    lineHeight:         22,
-    fontFamily:         theme.fonts.black,
+    color: "#fff",
+    fontSize: 18,
+    lineHeight: 22,
+    fontFamily: theme.fonts.black,
     includeFontPadding: false,
-    fontWeight:         "700",
   },
   unitLabel: {
-    color:         kit.color.accentDeep,
-    fontSize:      11,
-    fontWeight:    "700",
-    letterSpacing: 0.3,
+    color: "rgba(255,255,255,0.65)",
+    fontSize: 9,
+    fontFamily: theme.fonts.bold,
+    letterSpacing: 0.5,
+    textTransform: "uppercase" as const,
+  },
+  separator: {
+    color: "rgba(255,255,255,0.5)",
+    fontSize: 18,
+    fontFamily: theme.fonts.black,
+    lineHeight: 22,
+    marginBottom: 14,
   },
 });
 
@@ -139,18 +136,18 @@ export const cntStyles = StyleSheet.create({
 
 export const flashStyles = StyleSheet.create({
   itemWrap: {
-    width:     166,
+    width: 170,
     marginEnd: 12,
   },
   sectionGap: {
-    gap: kit.sp(5),
+    gap: 0,
+    overflow: "hidden",
   },
   railContainer: {
     overflow: "hidden",
-    borderRadius: kit.radius.lg,
   },
   railContent: {
-    paddingVertical: 4,
+    paddingVertical: 8,
   },
 });
 
@@ -161,3 +158,35 @@ export const featuredStyles = StyleSheet.create({
     flex: 1,
   },
 });
+
+// ─── Shared premium card tokens ───────────────────────────────────────────────
+
+export const cardTokens = {
+  /** Full-radius surface card with soft shadow */
+  surfaceCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "rgba(15,23,42,0.06)",
+    shadowColor: "#0C2240",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 4,
+  },
+  /** Slightly more elevated card */
+  elevatedCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    shadowColor: "#0C2240",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.12,
+    shadowRadius: 24,
+    elevation: 8,
+  },
+  /** Brand-tinted card */
+  brandCard: {
+    borderRadius: 20,
+    overflow: "hidden" as const,
+  },
+} as const;
