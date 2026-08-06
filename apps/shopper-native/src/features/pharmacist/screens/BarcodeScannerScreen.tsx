@@ -46,7 +46,7 @@ import Animated, {
 import { Screen, Text as UIText } from "@/shared/ui";
 import { kit }                    from "@/shared/kit";
 import { theme }                  from "@/shared/theme";
-import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
+import { BACK_CHEVRON, flexRow, isRtl, textAlignStart } from "@/utils/layout";
 import { formatPrice }            from "@/utils/format";
 
 import { getProductByBarcode } from "../api/inventory";
@@ -311,7 +311,7 @@ export function BarcodeScannerScreen(): React.ReactElement {
           accessibilityRole="button"
           accessibilityLabel={t("common.back")}
         >
-          <Ionicons name="chevron-back" size={20} color="#fff" />
+          <Ionicons name={BACK_CHEVRON} size={20} color="#fff" />
         </Pressable>
       </View>
 

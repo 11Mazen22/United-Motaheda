@@ -1,13 +1,12 @@
 /**
- * Orders Screen — Driver app home screen (2026 redesign).
+ * Orders Screen — Driver home (2026 premium rebuild).
  *
- * Layout:
- *  • Hero header: greeting + online/offline toggle
- *  • Active delivery banner (taps to delivery tab)
- *  • Available orders FlatList with expandable cards
- *  • Empty state for online/offline
- *
- * Design: teal/white, premium cards, clear hierarchy, large touch targets.
+ * Sections:
+ *   • White header — greeting (Cairo Black) + online pill toggle
+ *   • GPS accuracy strip when online
+ *   • Active delivery banner with teal gradient
+ *   • Skeleton loaders → order FlatList
+ *   • Empty state (pulsing radar when online, power icon when offline)
  */
 
 import React, { useCallback, useEffect } from 'react';
@@ -17,21 +16,20 @@ import {
   StyleSheet,
   FlatList,
   RefreshControl,
-  Pressable,
   Switch,
   TouchableOpacity,
   Animated as RNAnimated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter }    from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, typography, spacing, radii, shadows } from '@/theme/tokens';
 import { SkeletonCard, showToast } from '@/components/ui';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { driverApi } from '@/lib/api';
+import { driverApi }    from '@/lib/api';
 import { useAuthStore } from '@/stores/auth.store';
-import { useOrdersStore, AvailableOrder } from '@/stores/orders.store';
+import { useOrdersStore, type AvailableOrder } from '@/stores/orders.store';
 
 // ─── Order Card ───────────────────────────────────────────────────────────────
 
@@ -40,90 +38,53 @@ function OrderCard({
   onAccept,
   accepting,
 }: {
-  order: AvailableOrder;
+  order:    AvailableOrder;
   onAccept: (id: string) => void;
   accepting: boolean;
 }) {
   const [expanded, setExpanded] = React.useState(false);
+  const isCash = order.paymentMethod === 'cash';
 
   return (
     <View style={oc.card}>
-      {/* Accent stripe */}
+      {/* 4px teal accent stripe */}
       <View style={oc.stripe} />
 
       {/* Header — tap to expand */}
-      <TouchableOpacity
-        onPress={() => setExpanded((v) => !v)}
-        activeOpacity={0.7}
-        style={oc.header}
-      >
+      <TouchableOpacity onPress={() => setExpanded((v) => !v)} activeOpacity={0.75} style={oc.header}>
         <View style={oc.headerLeft}>
           <View style={oc.iconBox}>
-            <Ionicons name="cube-outline" size={22} color={colors.primary} />
+            <Ionicons name="cube-outline" size={20} color={colors.primary} />
           </View>
           <View style={{ flex: 1, minWidth: 0 }}>
-            <Text style={oc.customerName} numberOfLines={1}>
-              {order.customerName}
-            </Text>
-            <Text style={oc.customerAddr} numberOfLines={1}>
-              {order.customerAddress}
-            </Text>
+            <Text style={oc.customerName} numberOfLines={1}>{order.customerName}</Text>
+            <Text style={oc.customerAddr} numberOfLines={1}>{order.customerAddress}</Text>
           </View>
         </View>
         <View style={oc.earningsCol}>
-          <Text style={oc.earningsAmount}>
-            {order.estimatedEarnings.toFixed(0)}
-          </Text>
-          <Text style={oc.earningsCurrency}>EGP</Text>
-          <Ionicons
-            name={expanded ? 'chevron-up' : 'chevron-down'}
-            size={14}
-            color={colors.inkFaint}
-            style={{ marginTop: 2 }}
-          />
+          <Text style={oc.earningsAmt}>{order.estimatedEarnings.toFixed(0)}</Text>
+          <Text style={oc.earningsCur}>EGP</Text>
+          <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={14} color={colors.inkFaint} />
         </View>
       </TouchableOpacity>
 
-      {/* Stats chips */}
-      <View style={oc.chips}>
-        <View style={oc.chip}>
-          <Ionicons name="navigate-outline" size={12} color={colors.primary} />
-          <Text style={oc.chipText}>
-            {order.distanceToPickupMeters != null
-              ? `${(order.distanceToPickupMeters / 1000).toFixed(1)} km`
-              : '—'}
-          </Text>
-        </View>
-        <View style={oc.chipDivider} />
-        <View style={oc.chip}>
-          <Ionicons name="time-outline" size={12} color={colors.primary} />
-          <Text style={oc.chipText}>~{order.estimatedMinutes ?? '?'} min</Text>
-        </View>
-        <View style={oc.chipDivider} />
-        <View style={oc.chip}>
-          <Ionicons name="bag-outline" size={12} color={colors.primary} />
-          <Text style={oc.chipText}>{order.itemCount} items</Text>
-        </View>
-        <View style={oc.chipDivider} />
-        <View
-          style={[
-            oc.chip,
-            oc.payChip,
-            order.paymentMethod === 'cash' ? oc.payChipCash : oc.payChipCard,
-          ]}
-        >
-          <Ionicons
-            name={order.paymentMethod === 'cash' ? 'cash-outline' : 'card-outline'}
-            size={12}
-            color={order.paymentMethod === 'cash' ? '#B45309' : colors.info}
-          />
-          <Text
-            style={[
-              oc.chipText,
-              { color: order.paymentMethod === 'cash' ? '#B45309' : colors.info },
-            ]}
-          >
-            {order.paymentMethod === 'cash' ? 'Cash' : 'Card'}
+      {/* Stats row */}
+      <View style={oc.stats}>
+        <StatChip icon="navigate-outline" label={
+          order.distanceToPickupMeters != null
+            ? `${(order.distanceToPickupMeters / 1000).toFixed(1)} km`
+            : '—'
+        } />
+        <View style={oc.chipSep} />
+        <StatChip icon="time-outline" label={`~${order.estimatedMinutes ?? '?'} min`} />
+        <View style={oc.chipSep} />
+        <StatChip icon="bag-outline" label={`${order.itemCount} items`} />
+        <View style={oc.chipSep} />
+        <View style={[oc.payBadge, isCash ? oc.payBadgeCash : oc.payBadgeCard]}>
+          <Ionicons name={isCash ? 'cash-outline' : 'card-outline'} size={11}
+            color={isCash ? '#B45309' : colors.info} />
+          <Text style={[oc.payBadgeText, { color: isCash ? '#B45309' : colors.info }]}>
+            {isCash ? 'Cash' : 'Card'}
           </Text>
         </View>
       </View>
@@ -132,29 +93,11 @@ function OrderCard({
       {expanded && (
         <View style={oc.details}>
           <View style={oc.detailSep} />
-          <View style={oc.detailRow}>
-            <View style={oc.detailIcon}>
-              <Ionicons name="storefront-outline" size={16} color={colors.primary} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={oc.detailLabel}>Pickup</Text>
-              <Text style={oc.detailValue}>{order.pharmacy.name}</Text>
-              <Text style={oc.detailSub}>{order.pharmacy.address}</Text>
-            </View>
-          </View>
-          <View style={oc.detailRow}>
-            <View style={oc.detailIcon}>
-              <Ionicons name="home-outline" size={16} color={colors.primary} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={oc.detailLabel}>Deliver to</Text>
-              <Text style={oc.detailValue}>{order.customerName}</Text>
-              <Text style={oc.detailSub}>{order.customerAddress}</Text>
-            </View>
-          </View>
+          <DetailRow icon="storefront-outline" label="Pickup" title={order.pharmacy.name} sub={order.pharmacy.address} />
+          <DetailRow icon="home-outline" label="Deliver to" title={order.customerName} sub={order.customerAddress} />
           {order.note ? (
             <View style={oc.noteBox}>
-              <Ionicons name="information-circle-outline" size={14} color={colors.info} />
+              <Ionicons name="information-circle-outline" size={13} color={colors.info} />
               <Text style={oc.noteText}>{order.note}</Text>
             </View>
           ) : null}
@@ -167,12 +110,8 @@ function OrderCard({
 
       {/* Actions */}
       <View style={oc.actions}>
-        <TouchableOpacity
-          style={oc.skipBtn}
-          onPress={() => {/* local dismiss */}}
-          activeOpacity={0.7}
-        >
-          <Ionicons name="close-outline" size={18} color={colors.inkMuted} />
+        <TouchableOpacity style={oc.skipBtn} onPress={() => {}} activeOpacity={0.7}>
+          <Ionicons name="close-outline" size={17} color={colors.inkMuted} />
           <Text style={oc.skipText}>Skip</Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -185,8 +124,8 @@ function OrderCard({
             <Text style={oc.acceptText}>Accepting…</Text>
           ) : (
             <>
-              <Ionicons name="checkmark-circle" size={20} color="#fff" />
-              <Text style={oc.acceptText}>Accept  •  {order.estimatedEarnings.toFixed(0)} EGP</Text>
+              <Ionicons name="checkmark-circle" size={18} color="#fff" />
+              <Text style={oc.acceptText}>Accept · {order.estimatedEarnings.toFixed(0)} EGP</Text>
             </>
           )}
         </TouchableOpacity>
@@ -195,235 +134,216 @@ function OrderCard({
   );
 }
 
+function StatChip({ icon, label }: { icon: React.ComponentProps<typeof Ionicons>['name']; label: string }) {
+  return (
+    <View style={oc.chip}>
+      <Ionicons name={icon} size={11} color={colors.primary} />
+      <Text style={oc.chipText}>{label}</Text>
+    </View>
+  );
+}
+
+function DetailRow({
+  icon, label, title, sub,
+}: {
+  icon:  React.ComponentProps<typeof Ionicons>['name'];
+  label: string;
+  title: string;
+  sub:   string;
+}) {
+  return (
+    <View style={oc.detailRow}>
+      <View style={oc.detailIcon}>
+        <Ionicons name={icon} size={15} color={colors.primary} />
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text style={oc.detailLabel}>{label}</Text>
+        <Text style={oc.detailTitle}>{title}</Text>
+        <Text style={oc.detailSub}>{sub}</Text>
+      </View>
+    </View>
+  );
+}
+
 const oc = StyleSheet.create({
   card: {
     backgroundColor: colors.surface,
-    borderRadius: radii['2xl'],
-    overflow: 'hidden',
+    borderRadius:    radii['2xl'],
+    overflow:        'hidden',
     ...shadows.md,
   },
-  stripe: {
-    height: 4,
-    backgroundColor: colors.primary,
-  },
+  stripe: { height: 4, backgroundColor: colors.primary },
+
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: spacing[4],
-    gap: spacing[3],
+    flexDirection:  'row',
+    alignItems:     'center',
+    padding:        spacing[4],
+    gap:            spacing[3],
   },
   headerLeft: {
-    flex: 1,
+    flex:          1,
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[3],
-    minWidth: 0,
+    alignItems:    'center',
+    gap:           spacing[3],
+    minWidth:      0,
   },
   iconBox: {
-    width: 44,
-    height: 44,
-    borderRadius: radii.xl,
+    width:           42,
+    height:          42,
+    borderRadius:    radii.lg,
     backgroundColor: colors.primaryLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
+    alignItems:      'center',
+    justifyContent:  'center',
+    flexShrink:      0,
   },
   customerName: {
-    fontSize: typography.base,
-    fontWeight: typography.semibold,
-    color: colors.ink,
+    fontFamily: typography.bold,
+    fontSize:   typography.base,
+    color:      colors.ink,
   },
   customerAddr: {
-    fontSize: typography.xs,
-    color: colors.inkMuted,
-    marginTop: 2,
+    fontFamily: typography.regular,
+    fontSize:   typography.xs,
+    color:      colors.inkMuted,
+    marginTop:  2,
   },
-  earningsCol: {
-    alignItems: 'center',
-    flexShrink: 0,
-  },
-  earningsAmount: {
-    fontSize: typography.xl,
-    fontWeight: typography.extrabold,
-    color: colors.primary,
+  earningsCol: { alignItems: 'center', flexShrink: 0 },
+  earningsAmt: {
+    fontFamily: typography.black,
+    fontSize:   typography.xl,
+    color:      colors.primary,
     lineHeight: 26,
   },
-  earningsCurrency: {
-    fontSize: typography.xs,
-    color: colors.primary,
-    fontWeight: typography.semibold,
+  earningsCur: {
+    fontFamily: typography.semibold,
+    fontSize:   typography.xs,
+    color:      colors.primary,
   },
 
-  chips: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  stats: {
+    flexDirection:     'row',
+    alignItems:        'center',
     paddingHorizontal: spacing[4],
-    paddingBottom: spacing[3],
-    gap: spacing[2],
-    flexWrap: 'wrap',
+    paddingBottom:     spacing[3],
+    gap:               spacing[2],
+    flexWrap:          'wrap',
   },
-  chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
+  chip: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   chipText: {
-    fontSize: typography.xs,
-    color: colors.inkMuted,
-    fontWeight: typography.medium,
+    fontFamily: typography.medium,
+    fontSize:   typography.xs,
+    color:      colors.inkMuted,
   },
-  chipDivider: {
-    width: 1,
-    height: 12,
-    backgroundColor: colors.border,
-  },
-  payChip: {
+  chipSep: { width: 1, height: 12, backgroundColor: colors.border },
+  payBadge: {
+    flexDirection:     'row',
+    alignItems:        'center',
+    gap:               4,
     paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: radii.full,
+    paddingVertical:   3,
+    borderRadius:      radii.full,
   },
-  payChipCash: { backgroundColor: '#FEF9C3' },
-  payChipCard: { backgroundColor: '#EFF6FF' },
+  payBadgeCash: { backgroundColor: '#FEF9C3' },
+  payBadgeCard: { backgroundColor: '#EFF6FF' },
+  payBadgeText: {
+    fontFamily: typography.bold,
+    fontSize:   typography.xs,
+  },
 
   details: {
     paddingHorizontal: spacing[4],
-    paddingBottom: spacing[3],
-    gap: spacing[3],
+    paddingBottom:     spacing[3],
+    gap:               spacing[3],
   },
-  detailSep: {
-    height: 1,
-    backgroundColor: colors.borderSoft,
-  },
-  detailRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing[3],
-  },
+  detailSep: { height: 1, backgroundColor: colors.borderSoft },
+  detailRow: { flexDirection: 'row', gap: spacing[3] },
   detailIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: radii.lg,
+    width:           32,
+    height:          32,
+    borderRadius:    radii.md,
     backgroundColor: colors.primaryLight,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems:      'center',
+    justifyContent:  'center',
   },
-  detailLabel: {
-    fontSize: typography.xs,
-    color: colors.inkFaint,
-    fontWeight: typography.medium,
-  },
-  detailValue: {
-    fontSize: typography.sm,
-    fontWeight: typography.semibold,
-    color: colors.ink,
-    marginTop: 1,
-  },
-  detailSub: {
-    fontSize: typography.xs,
-    color: colors.inkMuted,
-  },
+  detailLabel: { fontFamily: typography.medium, fontSize: typography.xs, color: colors.inkFaint },
+  detailTitle: { fontFamily: typography.bold, fontSize: typography.sm, color: colors.ink, marginTop: 1 },
+  detailSub:   { fontFamily: typography.regular, fontSize: typography.xs, color: colors.inkMuted },
   noteBox: {
-    flexDirection: 'row',
-    gap: spacing[2],
-    backgroundColor: '#EFF6FF',
-    padding: spacing[3],
-    borderRadius: radii.lg,
+    flexDirection:     'row',
+    gap:               spacing[2],
+    backgroundColor:   '#EFF6FF',
+    padding:           spacing[3],
+    borderRadius:      radii.lg,
   },
   noteText: {
-    flex: 1,
-    fontSize: typography.xs,
-    color: colors.info,
+    flex:       1,
+    fontFamily: typography.regular,
+    fontSize:   typography.xs,
+    color:      colors.info,
   },
   totalRow: {
-    flexDirection: 'row',
+    flexDirection:  'row',
     justifyContent: 'space-between',
-    paddingTop: spacing[2],
+    paddingTop:     spacing[2],
   },
-  totalLabel: {
-    fontSize: typography.sm,
-    color: colors.inkMuted,
-    fontWeight: typography.medium,
-  },
-  totalValue: {
-    fontSize: typography.base,
-    fontWeight: typography.bold,
-    color: colors.ink,
-  },
+  totalLabel: { fontFamily: typography.medium, fontSize: typography.sm, color: colors.inkMuted },
+  totalValue: { fontFamily: typography.bold,   fontSize: typography.base, color: colors.ink },
 
   actions: {
-    flexDirection: 'row',
-    borderTopWidth: 1,
+    flexDirection:  'row',
+    borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.borderSoft,
   },
   skipBtn: {
-    flex: 0.3,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flex:           0.3,
+    flexDirection:  'row',
+    alignItems:     'center',
     justifyContent: 'center',
-    gap: spacing[1],
+    gap:            spacing[1],
     paddingVertical: spacing[4],
-    borderRightWidth: 1,
+    borderRightWidth: StyleSheet.hairlineWidth,
     borderRightColor: colors.borderSoft,
   },
-  skipText: {
-    fontSize: typography.sm,
-    color: colors.inkMuted,
-    fontWeight: typography.medium,
-  },
+  skipText: { fontFamily: typography.medium, fontSize: typography.sm, color: colors.inkMuted },
   acceptBtn: {
-    flex: 0.7,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flex:           0.7,
+    flexDirection:  'row',
+    alignItems:     'center',
     justifyContent: 'center',
-    gap: spacing[2],
+    gap:            spacing[2],
     backgroundColor: colors.primary,
     paddingVertical: spacing[4],
   },
-  acceptBtnPending: {
-    backgroundColor: colors.primaryDark,
-  },
-  acceptText: {
-    fontSize: typography.sm,
-    color: colors.white,
-    fontWeight: typography.bold,
-  },
+  acceptBtnPending: { backgroundColor: colors.primaryDark },
+  acceptText: { fontFamily: typography.bold, fontSize: typography.sm, color: colors.white },
 });
 
 // ─── Active delivery banner ───────────────────────────────────────────────────
 
 function ActiveBanner() {
-  const router = useRouter();
+  const router         = useRouter();
   const activeDelivery = useOrdersStore((s) => s.activeDelivery);
   if (!activeDelivery) return null;
 
-  const statusLabels: Record<string, string> = {
-    ACCEPTED: 'Order Accepted',
-    EN_ROUTE_TO_PICKUP: 'Heading to Pharmacy',
-    ARRIVED_AT_PHARMACY: 'At Pharmacy',
-    PICKED_UP: 'Order Picked Up',
+  const STATUS_LABELS: Record<string, string> = {
+    ACCEPTED:             'Order Accepted',
+    EN_ROUTE_TO_PICKUP:   'Heading to Pharmacy',
+    ARRIVED_AT_PHARMACY:  'At Pharmacy',
+    PICKED_UP:            'Order Picked Up',
     EN_ROUTE_TO_CUSTOMER: 'Heading to Customer',
-    ARRIVED_AT_CUSTOMER: 'At Customer',
+    ARRIVED_AT_CUSTOMER:  'At Customer Location',
   };
 
   return (
-    <TouchableOpacity
-      onPress={() => router.push('/(tabs)/delivery')}
-      activeOpacity={0.9}
-    >
+    <TouchableOpacity onPress={() => router.push('/(tabs)/delivery')} activeOpacity={0.9}>
       <View style={ab.banner}>
         <View style={ab.pulse} />
         <View style={ab.textBlock}>
-          <Text style={ab.title}>
-            {statusLabels[activeDelivery.status] ?? 'Active Delivery'}
-          </Text>
-          <Text style={ab.sub} numberOfLines={1}>
-            → {activeDelivery.order.customerName}
-          </Text>
+          <Text style={ab.title}>{STATUS_LABELS[activeDelivery.status] ?? 'Active Delivery'}</Text>
+          <Text style={ab.sub} numberOfLines={1}>→ {activeDelivery.order.customerName}</Text>
         </View>
-        <View style={ab.rightBlock}>
-          <Text style={ab.earnings}>
-            ~{parseFloat(activeDelivery.estimatedEarnings).toFixed(0)} EGP
-          </Text>
+        <View style={ab.right}>
+          <Text style={ab.earnings}>~{parseFloat(activeDelivery.estimatedEarnings).toFixed(0)} EGP</Text>
           <Ionicons name="chevron-forward" size={16} color="rgba(255,255,255,0.7)" />
         </View>
       </View>
@@ -433,52 +353,38 @@ function ActiveBanner() {
 
 const ab = StyleSheet.create({
   banner: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection:     'row',
+    alignItems:        'center',
     paddingHorizontal: spacing[5],
-    paddingVertical: spacing[3],
-    gap: spacing[3],
-    backgroundColor: colors.primary,
+    paddingVertical:   spacing[3],
+    gap:               spacing[3],
+    backgroundColor:   colors.primary,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.primaryDark,
   },
   pulse: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+    width:           10,
+    height:          10,
+    borderRadius:    5,
     backgroundColor: colors.online,
-    flexShrink: 0,
+    flexShrink:      0,
   },
   textBlock: { flex: 1 },
-  title: {
-    fontSize: typography.sm,
-    color: colors.white,
-    fontWeight: typography.bold,
-  },
-  sub: {
-    fontSize: typography.xs,
-    color: 'rgba(255,255,255,0.75)',
-    marginTop: 1,
-  },
-  rightBlock: {
-    alignItems: 'flex-end',
-    gap: 2,
-  },
-  earnings: {
-    fontSize: typography.sm,
-    color: colors.white,
-    fontWeight: typography.extrabold,
-  },
+  title: { fontFamily: typography.bold,   fontSize: typography.sm,  color: colors.white },
+  sub:   { fontFamily: typography.regular, fontSize: typography.xs, color: 'rgba(255,255,255,0.75)', marginTop: 1 },
+  right: { alignItems: 'flex-end', gap: 2 },
+  earnings: { fontFamily: typography.black, fontSize: typography.sm, color: colors.white },
 });
 
 // ─── Empty state ──────────────────────────────────────────────────────────────
 
 function EmptyState({ isOnline }: { isOnline: boolean }) {
   const pulseAnim = React.useRef(new RNAnimated.Value(1)).current;
-
   React.useEffect(() => {
     if (!isOnline) return;
     const loop = RNAnimated.loop(
       RNAnimated.sequence([
-        RNAnimated.timing(pulseAnim, { toValue: 1.18, duration: 900, useNativeDriver: true }),
+        RNAnimated.timing(pulseAnim, { toValue: 1.16, duration: 900, useNativeDriver: true }),
         RNAnimated.timing(pulseAnim, { toValue: 1,    duration: 900, useNativeDriver: true }),
       ]),
     );
@@ -488,90 +394,63 @@ function EmptyState({ isOnline }: { isOnline: boolean }) {
 
   return (
     <View style={em.wrap}>
-      <RNAnimated.View
-        style={[em.iconRing, { transform: [{ scale: pulseAnim }] }]}
-      >
-        <View style={em.iconInner}>
+      <RNAnimated.View style={[em.ring, { transform: [{ scale: pulseAnim }] }]}>
+        <View style={em.inner}>
           <Ionicons
             name={isOnline ? 'radio-outline' : 'power-outline'}
-            size={36}
+            size={34}
             color={isOnline ? colors.primary : colors.inkFaint}
           />
         </View>
       </RNAnimated.View>
-      <Text style={em.title}>
-        {isOnline ? 'Looking for orders…' : 'You are Offline'}
-      </Text>
+      <Text style={em.title}>{isOnline ? 'Looking for orders…' : 'You are Offline'}</Text>
       <Text style={em.desc}>
         {isOnline
-          ? 'Stay close to your phone. New orders appear instantly.'
-          : 'Toggle the switch above to start receiving delivery requests.'}
+          ? 'Stay nearby. Orders appear instantly when available.'
+          : 'Toggle the switch above to start receiving orders.'}
       </Text>
     </View>
   );
 }
 
 const em = StyleSheet.create({
-  wrap: {
-    alignItems: 'center',
-    paddingTop: spacing[16],
-    paddingHorizontal: spacing[8],
-    gap: spacing[4],
-  },
-  iconRing: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
+  wrap: { alignItems: 'center', paddingTop: spacing[20], paddingHorizontal: spacing[8], gap: spacing[4] },
+  ring: {
+    width: 88, height: 88, borderRadius: 44,
     backgroundColor: colors.primaryLight,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: 'center', justifyContent: 'center',
   },
-  iconInner: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
+  inner: {
+    width: 68, height: 68, borderRadius: 34,
     backgroundColor: colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: 'center', justifyContent: 'center',
   },
-  title: {
-    fontSize: typography.xl,
-    fontWeight: typography.bold,
-    color: colors.ink,
-    textAlign: 'center',
-  },
-  desc: {
-    fontSize: typography.base,
-    color: colors.inkMuted,
-    textAlign: 'center',
-    lineHeight: 22,
-  },
+  title: { fontFamily: typography.black, fontSize: typography.xl, color: colors.ink, textAlign: 'center' },
+  desc:  { fontFamily: typography.regular, fontSize: typography.base, color: colors.inkMuted, textAlign: 'center', lineHeight: 22 },
 });
 
-// ─── Main screen ─────────────────────────────────────────────────────────────
+// ─── Main Screen ──────────────────────────────────────────────────────────────
 
 export default function OrdersScreen() {
-  const router       = useRouter();
-  const queryClient  = useQueryClient();
-  const user         = useAuthStore((s) => s.user);
-  const isOnline     = user?.driverProfile?.isOnline ?? false;
-  const setOnline    = useAuthStore((s) => s.setOnlineStatus);
+  const router      = useRouter();
+  const qc          = useQueryClient();
+  const user        = useAuthStore((s) => s.user);
+  const isOnline    = user?.driverProfile?.isOnline ?? false;
+  const setOnline   = useAuthStore((s) => s.setOnlineStatus);
   const setAvailable = useOrdersStore((s) => s.setAvailableOrders);
-  const setActive    = useOrdersStore((s) => s.setActiveDelivery);
-  const active       = useOrdersStore((s) => s.activeDelivery);
-
-  // ── Queries ───────────────────────────────────────────────────────────────
+  const setActive   = useOrdersStore((s) => s.setActiveDelivery);
+  const active      = useOrdersStore((s) => s.activeDelivery);
 
   const { data: ordersData, isFetching, refetch: refetchOrders } = useQuery({
     queryKey: ['orders', 'available'],
-    queryFn: driverApi.getAvailableOrders,
-    enabled: isOnline,
+    queryFn:  driverApi.getAvailableOrders,
+    enabled:  isOnline,
     refetchInterval: 15_000,
   });
 
   const { data: activeData, refetch: refetchActive } = useQuery({
     queryKey: ['delivery', 'active'],
-    queryFn: driverApi.getActiveDelivery,
+    queryFn:  driverApi.getActiveDelivery,
     refetchInterval: 30_000,
   });
 
@@ -583,8 +462,6 @@ export default function OrdersScreen() {
     if (activeData !== undefined) setActive((activeData as any).activeDelivery ?? null);
   }, [activeData]);
 
-  // ── Toggle online ─────────────────────────────────────────────────────────
-
   const toggleMutation = useMutation({
     mutationFn: (online: boolean) => online ? driverApi.goOnline() : driverApi.goOffline(),
     onSuccess: (_, online) => {
@@ -592,84 +469,71 @@ export default function OrdersScreen() {
       showToast(online ? 'You are now online' : 'You are now offline', online ? 'success' : 'info');
       if (online) refetchOrders();
     },
-    onError: (err: any) => {
-      showToast(err?.response?.data?.message ?? 'Failed to update status', 'error');
-    },
+    onError: (err: any) => showToast(err?.response?.data?.message ?? 'Failed to update status', 'error'),
   });
 
   const handleToggle = useCallback(() => {
-    if (!isOnline && active) {
-      showToast('Cannot go offline during an active delivery', 'warning');
-      return;
-    }
+    if (!isOnline && active) { showToast('Cannot go offline during an active delivery', 'warning'); return; }
     toggleMutation.mutate(!isOnline);
   }, [isOnline, active, toggleMutation]);
-
-  // ── Accept order ──────────────────────────────────────────────────────────
 
   const acceptMutation = useMutation({
     mutationFn: (id: string) => driverApi.acceptOrder(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['delivery', 'active'] });
-      queryClient.invalidateQueries({ queryKey: ['orders', 'available'] });
+      qc.invalidateQueries({ queryKey: ['delivery', 'active'] });
+      qc.invalidateQueries({ queryKey: ['orders', 'available'] });
       refetchActive();
       showToast('Order accepted!', 'success');
       router.push('/(tabs)/delivery');
     },
-    onError: (err: any) => {
-      showToast(err?.response?.data?.message ?? 'Failed to accept', 'error');
-    },
+    onError: (err: any) => showToast(err?.response?.data?.message ?? 'Failed to accept', 'error'),
   });
 
   const orders: AvailableOrder[] = (ordersData as any)?.orders ?? [];
+  const firstName = user?.fullName?.split(' ')[0] ?? 'Driver';
 
   const onRefresh = useCallback(async () => {
     await Promise.all([refetchOrders(), refetchActive()]);
   }, [refetchOrders, refetchActive]);
 
-  const firstName = user?.fullName?.split(' ')[0] ?? 'Driver';
-
   return (
     <ErrorBoundary>
       <SafeAreaView style={s.safe} edges={['top']}>
 
-        {/* ── Hero header ─── */}
+        {/* ── Header ── */}
         <View style={s.header}>
-          <View style={s.headerTop}>
-            <View>
-              <Text style={s.greeting}>Hello, {firstName} 👋</Text>
-              <Text style={s.subline}>
-                {isOnline
-                  ? `${orders.length} order${orders.length !== 1 ? 's' : ''} available`
-                  : 'Go online to receive orders'}
-              </Text>
-            </View>
-
-            {/* Online toggle */}
-            <View style={[s.togglePill, isOnline && s.togglePillOn]}>
-              <View style={[s.statusDot, isOnline ? s.statusDotOn : s.statusDotOff]} />
-              <Text style={[s.toggleLabel, isOnline && s.toggleLabelOn]}>
-                {toggleMutation.isPending ? '…' : isOnline ? 'Online' : 'Offline'}
-              </Text>
-              <Switch
-                value={isOnline}
-                onValueChange={handleToggle}
-                disabled={toggleMutation.isPending}
-                trackColor={{ false: colors.border, true: `${colors.primary}50` }}
-                thumbColor={isOnline ? colors.primary : colors.inkFaint}
-                ios_backgroundColor={colors.border}
-              />
-            </View>
+          <View style={s.headerText}>
+            <Text style={s.greeting}>مرحباً، {firstName} 👋</Text>
+            <Text style={s.subline}>
+              {isOnline
+                ? `${orders.length} ${orders.length === 1 ? 'طلب متاح' : 'طلبات متاحة'}`
+                : 'اضغط للاتصال واستلام الطلبات'}
+            </Text>
           </View>
 
-          {/* GPS accuracy mini-strip — only when online */}
-          {isOnline && (
-            <View style={s.accuracyStrip}>
-              <View style={s.accuracyDot} />
-              <Text style={s.accuracyText}>GPS active — updating every few seconds</Text>
-            </View>
-          )}
+          <View style={[s.togglePill, isOnline && s.togglePillOn]}>
+            <View style={[s.dot, isOnline ? s.dotOn : s.dotOff]} />
+            <Text style={[s.toggleLabel, isOnline && s.toggleLabelOn]}>
+              {toggleMutation.isPending ? '…' : isOnline ? 'Online' : 'Offline'}
+            </Text>
+            <Switch
+              value={isOnline}
+              onValueChange={handleToggle}
+              disabled={toggleMutation.isPending}
+              trackColor={{ false: colors.border, true: `${colors.primary}50` }}
+              thumbColor={isOnline ? colors.primary : colors.inkFaint}
+              ios_backgroundColor={colors.border}
+            />
+          </View>
         </View>
+
+        {/* GPS strip */}
+        {isOnline && (
+          <View style={s.gpsStrip}>
+            <View style={s.gpsDot} />
+            <Text style={s.gpsText}>GPS active — live tracking enabled</Text>
+          </View>
+        )}
 
         {/* Active delivery banner */}
         <ActiveBanner />
@@ -715,82 +579,72 @@ const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.surfaceAlt },
 
   header: {
+    flexDirection:     'row',
+    alignItems:        'center',
+    justifyContent:    'space-between',
     paddingHorizontal: spacing[5],
-    paddingTop: spacing[3],
-    paddingBottom: spacing[4],
-    backgroundColor: colors.surface,
-    borderBottomWidth: 1,
+    paddingTop:        spacing[4],
+    paddingBottom:     spacing[4],
+    backgroundColor:   colors.surface,
+    borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.borderSoft,
+    gap:               spacing[3],
   },
-  headerTop: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing[3],
-  },
+  headerText: { flex: 1 },
   greeting: {
-    fontSize: typography.lg,
-    fontWeight: typography.bold,
-    color: colors.ink,
+    fontFamily: typography.black,
+    fontSize:   typography.lg,
+    color:      colors.ink,
   },
   subline: {
-    fontSize: typography.sm,
-    color: colors.inkMuted,
-    marginTop: 2,
+    fontFamily: typography.regular,
+    fontSize:   typography.sm,
+    color:      colors.inkMuted,
+    marginTop:  2,
   },
-
   togglePill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[2],
+    flexDirection:     'row',
+    alignItems:        'center',
+    gap:               spacing[2],
     paddingHorizontal: spacing[3],
-    paddingVertical: spacing[2],
-    borderRadius: radii.full,
-    backgroundColor: colors.well,
-    borderWidth: 1,
-    borderColor: colors.border,
+    paddingVertical:   spacing[2],
+    borderRadius:      radii.full,
+    backgroundColor:   colors.well,
+    borderWidth:       1,
+    borderColor:       colors.border,
+    flexShrink:        0,
   },
   togglePillOn: {
     backgroundColor: `${colors.primary}12`,
-    borderColor: `${colors.primary}40`,
+    borderColor:     `${colors.primary}40`,
   },
-  statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  statusDotOn: { backgroundColor: colors.online },
-  statusDotOff: { backgroundColor: colors.inkFaint },
+  dot:    { width: 8, height: 8, borderRadius: 4 },
+  dotOn:  { backgroundColor: colors.online },
+  dotOff: { backgroundColor: colors.inkFaint },
   toggleLabel: {
-    fontSize: typography.xs,
-    fontWeight: typography.semibold,
-    color: colors.inkMuted,
+    fontFamily: typography.semibold,
+    fontSize:   typography.xs,
+    color:      colors.inkMuted,
   },
   toggleLabelOn: { color: colors.primary },
 
-  accuracyStrip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginTop: spacing[3],
-    paddingHorizontal: spacing[1],
+  gpsStrip: {
+    flexDirection:     'row',
+    alignItems:        'center',
+    gap:               6,
+    paddingHorizontal: spacing[5],
+    paddingVertical:   spacing[2],
+    backgroundColor:   colors.surface,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.borderSoft,
   },
-  accuracyDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: colors.online,
-  },
-  accuracyText: {
-    fontSize: typography.xs,
-    color: colors.inkMuted,
+  gpsDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.online },
+  gpsText: {
+    fontFamily: typography.regular,
+    fontSize:   typography.xs,
+    color:      colors.inkMuted,
   },
 
-  list: {
-    padding: spacing[4],
-    paddingBottom: spacing[10],
-  },
-  skeletons: {
-    padding: spacing[4],
-  },
+  list:     { padding: spacing[4], paddingBottom: spacing[12] },
+  skeletons: { padding: spacing[4] },
 });

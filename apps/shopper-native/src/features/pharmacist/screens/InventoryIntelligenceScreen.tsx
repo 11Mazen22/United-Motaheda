@@ -226,28 +226,25 @@ export function InventoryIntelligenceScreen(): React.ReactElement {
         }
       />
 
-      {/* Search bar (shown in all tabs, but only active in search tab) */}
-      {tab === "search" && (
-        <View style={[s.searchBar, { flexDirection: flexRow(IS_RTL) }]}>
-          <Ionicons name="search-outline" size={16} color={kit.color.inkFaint} />
-          <TextInput
-            value={rawQuery}
-            onChangeText={(v) => { setRawQuery(v); if (v.trim()) setTab("search"); }}
-            placeholder={t("pharmacist.inventorySearch")}
-            placeholderTextColor={kit.color.inkFaint}
-            autoCorrect={false}
-            autoCapitalize="none"
-            style={s.searchInput}
-            returnKeyType="search"
-            autoFocus
-          />
-          {rawQuery.length > 0 && (
-            <Pressable onPress={() => setRawQuery("")} hitSlop={8}>
-              <Ionicons name="close-circle" size={16} color={kit.color.inkFaint} />
-            </Pressable>
-          )}
-        </View>
-      )}
+      {/* Search bar — always visible */}
+      <View style={[s.searchBar, { flexDirection: flexRow(IS_RTL) }]}>
+        <Ionicons name="search-outline" size={16} color={kit.color.inkFaint} />
+        <TextInput
+          value={rawQuery}
+          onChangeText={(v) => { setRawQuery(v); if (v.trim()) setTab('search'); }}
+          placeholder={t('pharmacist.inventorySearch')}
+          placeholderTextColor={kit.color.inkFaint}
+          autoCorrect={false}
+          autoCapitalize="none"
+          style={s.searchInput}
+          returnKeyType="search"
+        />
+        {rawQuery.length > 0 && (
+          <Pressable onPress={() => { setRawQuery(''); setTab('lowstock'); }} hitSlop={8}>
+            <Ionicons name="close-circle" size={16} color={kit.color.inkFaint} />
+          </Pressable>
+        )}
+      </View>
 
       {/* Tab bar */}
       <View style={[s.tabs, { flexDirection: flexRow(IS_RTL) }]}>
@@ -261,7 +258,10 @@ export function InventoryIntelligenceScreen(): React.ReactElement {
           return (
             <Pressable
               key={tabKey}
-              onPress={() => setTab(tabKey)}
+              onPress={() => {
+                setTab(tabKey);
+                if (tabKey !== 'search') setRawQuery('');
+              }}
               style={[s.tab, active && s.tabActive]}
               accessibilityRole="button"
             >

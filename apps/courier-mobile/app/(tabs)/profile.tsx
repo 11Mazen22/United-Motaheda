@@ -13,7 +13,7 @@ import { useRouter } from 'expo-router';
 import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { formatDistanceToNow } from 'date-fns';
-import { colors, typography, spacing, radii, shadows } from '@/theme/tokens';
+import { colors, typography, fontWeight, spacing, radii, shadows } from '@/theme/tokens';
 import { Card, Badge, SkeletonCard, showToast } from '@/components/ui';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { driverApi } from '@/lib/api';
@@ -69,9 +69,9 @@ function StatCard({
 const sc = StyleSheet.create({
   card: { flex: 1, padding: spacing[4], alignItems: 'center', gap: spacing[1] },
   iconBox: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
-  value: { fontSize: typography.xl, fontWeight: typography.extrabold, color: colors.ink },
-  label: { fontSize: typography.xs, color: colors.inkMuted, textAlign: 'center' },
-  sub: { fontSize: typography.xs, color: colors.success, fontWeight: typography.medium },
+  value: { fontFamily: typography.black,   fontSize: typography.xl, color: colors.ink },
+  label: { fontFamily: typography.regular, fontSize: typography.xs, color: colors.inkMuted, textAlign: 'center' },
+  sub:   { fontFamily: typography.semibold, fontSize: typography.xs, color: colors.success },
 });
 
 // ─── Earnings tab ─────────────────────────────────────────────────────────────
@@ -411,17 +411,17 @@ const pt = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: spacing[1],
   },
-  avatarText: { fontSize: typography['2xl'], fontWeight: typography.extrabold, color: colors.white },
-  name: { fontSize: typography.xl, fontWeight: typography.bold, color: colors.ink },
-  phone: { fontSize: typography.sm, color: colors.inkMuted },
-  ratingRow: { flexDirection: 'row', alignItems: 'center', gap: spacing[2] },
-  ratingValue: { fontSize: typography.base, fontWeight: typography.bold, color: colors.ink },
-  card: { padding: spacing[4], gap: spacing[3] },
-  cardTitle: { fontSize: typography.base, fontWeight: typography.bold, color: colors.ink },
+  avatarText: { fontFamily: typography.black, fontSize: typography['2xl'], color: colors.white },
+  name:       { fontFamily: typography.bold,  fontSize: typography.xl,    color: colors.ink },
+  phone:      { fontFamily: typography.regular, fontSize: typography.sm,  color: colors.inkMuted },
+  ratingRow:  { flexDirection: 'row', alignItems: 'center', gap: spacing[2] },
+  ratingValue:{ fontFamily: typography.bold, fontSize: typography.base, color: colors.ink },
+  card:       { padding: spacing[4], gap: spacing[3] },
+  cardTitle:  { fontFamily: typography.bold, fontSize: typography.base, color: colors.ink },
   infoGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing[3] },
   infoItem: { width: '45%' },
-  infoLabel: { fontSize: typography.xs, color: colors.inkMuted },
-  infoValue: { fontSize: typography.sm, fontWeight: typography.semibold, color: colors.ink, marginTop: 2 },
+  infoLabel: { fontFamily: typography.regular, fontSize: typography.xs, color: colors.inkMuted },
+  infoValue: { fontFamily: typography.semibold, fontSize: typography.sm, color: colors.ink, marginTop: 2 },
   docsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing[4] },
 });
 
@@ -502,7 +502,7 @@ const s = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.borderSoft,
   },
-  headerTitle: { fontSize: typography.lg, fontWeight: typography.bold, color: colors.ink },
+  headerTitle: { fontFamily: typography.bold, fontSize: typography.lg, color: colors.ink },
   logoutBtn: { padding: spacing[1] },
 
   tabBar: {

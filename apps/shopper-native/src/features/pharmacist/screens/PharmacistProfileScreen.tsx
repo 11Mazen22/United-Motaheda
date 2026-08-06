@@ -10,7 +10,7 @@ import { Screen, Text as UIText } from "@/shared/ui";
 import { kit }                    from "@/shared/kit";
 import { theme }                  from "@/shared/theme";
 import { useAuth }                from "@/features/auth";
-import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
+import { FORWARD_CHEVRON, flexRow, isRtl, textAlignStart } from "@/utils/layout";
 import { PharmacistScreenHeader } from "../components/PharmacistScreenHeader";
 
 const IS_RTL     = isRtl();
@@ -39,7 +39,7 @@ function MenuRow({ icon, label, onPress, danger = false }: MenuRowProps) {
       >
         {label}
       </UIText>
-      {!danger && <Ionicons name="chevron-forward" size={14} color={kit.color.inkFaint} />}
+      {!danger && <Ionicons name={FORWARD_CHEVRON} size={14} color={kit.color.inkFaint} />}
     </Pressable>
   );
 }

@@ -387,9 +387,9 @@ export function WorkbenchScreen(): React.ReactElement {
 
 const s = StyleSheet.create({
   listContent: {
-    paddingBottom: 48,
+    paddingBottom:     48,
     paddingHorizontal: kit.inset.screen,
-    gap: 0,
+    gap:               10,
   },
 
   // ── Hero ──────────────────────────────────────────────────────────────────

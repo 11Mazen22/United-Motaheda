@@ -21,7 +21,7 @@ import { useQueryClient }  from "@tanstack/react-query";
 
 import { Screen, Text as UIText }  from "@/shared/ui";
 import { kit }                     from "@/shared/kit";
-import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
+import { flexRow, isRtl, textAlignStart, FORWARD_CHEVRON } from "@/utils/layout";
 
 import { useAllPrescriptions }     from "../hooks/usePharmacistQueries";
 import { PharmacistScreenHeader }  from "../components/PharmacistScreenHeader";
@@ -68,7 +68,7 @@ function RxCard({ rx, onPress }: { rx: PharmacistPrescription; onPress: () => vo
         <UIText variant="caption" color="secondary">
           {rx.submissionSource === "whatsapp" ? "WhatsApp" : rx.submissionSource === "scan" ? t("pharmacist.scan") : t("pharmacist.manual")}
         </UIText>
-        <Ionicons name="chevron-forward" size={14} color={kit.color.inkFaint} />
+        <Ionicons name={FORWARD_CHEVRON} size={14} color={kit.color.inkFaint} />
       </View>
       <UIText variant="card-title" style={{ textAlign: TEXT_START, marginTop: 8 }} numberOfLines={1}>
         {rx.name || "—"}

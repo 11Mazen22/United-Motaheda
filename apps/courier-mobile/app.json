@@ -43,7 +43,8 @@
         "android.permission.FOREGROUND_SERVICE_LOCATION",
         "android.permission.RECEIVE_BOOT_COMPLETED",
         "android.permission.VIBRATE",
-        "android.permission.POST_NOTIFICATIONS"
+        "android.permission.POST_NOTIFICATIONS",
+        "android.permission.RECORD_AUDIO"
       ],
       "statusBar": {
         "backgroundColor": "transparent",
@@ -111,9 +112,14 @@
       "typedRoutes": true
     },
     "extra": {
-      "router": { "origin": false },
+      "router": {
+        "origin": false
+      },
       "apiUrl": "http://192.168.1.1:3000",
-      "googleMapsApiKey": "YOUR_GOOGLE_MAPS_API_KEY"
+      "googleMapsApiKey": "YOUR_GOOGLE_MAPS_API_KEY",
+      "eas": {
+        "projectId": "united-pharmacy-driver"
+      }
     }
   }
 }
