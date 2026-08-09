@@ -5,13 +5,8 @@ const path = require("path");
 const config = getDefaultConfig(__dirname);
 const workspaceRoot = path.resolve(__dirname, "../..");
 
-// Shared design-system packages live outside this app's independent install root.
+// Shared design-system packages live outside this app's install root.
 config.watchFolders = [workspaceRoot];
-config.resolver.nodeModulesPaths = [
-  path.resolve(__dirname, "node_modules"),
-  path.resolve(workspaceRoot, "node_modules"),
-];
-config.resolver.disableHierarchicalLookup = true;
 
 // ─── Web bundle: avoid ESM variants that ship `import.meta` ──────────────────
 //
@@ -31,11 +26,6 @@ config.resolver.disableHierarchicalLookup = true;
 // Native is unaffected — it resolves via the "react-native" condition which
 // already points at the CJS build, and the resolveRequest branch checks for
 // platform === "web" before rewriting.
-
-config.resolver.unstable_conditionsByPlatform = {
-  ...(config.resolver.unstable_conditionsByPlatform ?? {}),
-  web: ["browser"],
-};
 
 const upstreamResolveRequest = config.resolver.resolveRequest;
 config.resolver.resolveRequest = (context, moduleName, platform) => {
