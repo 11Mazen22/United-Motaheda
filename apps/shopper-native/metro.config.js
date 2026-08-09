@@ -70,18 +70,6 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
   }
 
   if (platform === "web") {
-    // ─── React 19 + react-native-web@0.18 compat ────────────────────────────
-    // react-native-web@0.18.x imports `render`, `hydrate`, and `createRoot`
-    // from 'react-dom'.  React 19 removed the first two and moved createRoot
-    // to 'react-dom/client'.  The shim re-exports the full react-dom surface
-    // and back-fills the three missing APIs so the web bundle boots correctly.
-    if (moduleName === "react-dom") {
-      return {
-        filePath: path.resolve(__dirname, "src/shims/reactDomR19Web.js"),
-        type: "sourceFile",
-      };
-    }
-
     // Force zustand to its CJS build on web regardless of condition matching.
     if (moduleName === "zustand")              moduleName = "zustand/index.js";
     else if (moduleName === "zustand/middleware") moduleName = "zustand/middleware.js";
