@@ -1,7 +1,7 @@
 // Checkout.tsx – with cascading address dropdowns and dynamic delivery fee
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { supabase } from "../../lib/supabaseClient";
+import { getSupabaseClient } from "../../lib/supabaseClient";
 import { useDeliveryQuote, useLocationState, useBrowserLocation } from "@pharmacy/domain-location";
 import {
   ArrowLeft,
@@ -345,7 +345,7 @@ export default function Checkout() {
       createCheckoutPricing(cartSnapshot.items, {
         promoCode: promoApplied ? form.promoCode : undefined,
         shippingFee: dynamicDeliveryFee,
-        couponAmount: promoApplied && couponDiscountAmount > 0 ? couponDiscountAmount : undefined,
+        discountAmount: promoApplied && couponDiscountAmount > 0 ? couponDiscountAmount : undefined,
       }),
     [cartSnapshot.items, dynamicDeliveryFee, form.promoCode, promoApplied, couponDiscountAmount],
   );
@@ -489,7 +489,7 @@ export default function Checkout() {
     setCouponDiscountAmount(0);
 
     try {
-      const { data, error } = await supabase.functions.invoke("validate-coupon", {
+      const { data, error } = await getSupabaseClient().functions.invoke("validate-coupon", {
         body: {
           code,
           order_subtotal: pricing.subtotal,

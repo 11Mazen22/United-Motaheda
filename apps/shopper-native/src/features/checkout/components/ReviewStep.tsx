@@ -1,12 +1,12 @@
 ﻿import React from "react";
 import { Pressable, StyleSheet, View } from "react-native";
-import { Text as UIText } from "@/shared/ui";
+import { Text as UIText } from "@pharmacy/ui-native";
 import Animated, { FadeIn } from "react-native-reanimated";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 
-import { theme } from "@/shared/theme";
-import { kit } from "@/shared/kit";
+import { theme } from "@pharmacy/design-tokens";
+import { kit } from "@pharmacy/ui-native";
 import { ManualPaymentPanel } from "@/features/payment";
 import { BranchCard, type useDeliveryContext } from "@/features/delivery";
 import { isManualWalletPayment } from "@/features/checkout";

@@ -25,23 +25,23 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { useRouter }      from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons }       from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
-import { Screen, Text as UIText } from "@/shared/ui";
-import { kit }                    from "@/shared/kit";
-import { theme }                  from "@/shared/theme";
+import { Screen, Text as UIText } from "@pharmacy/ui-native";
+import { kit }                    from "@pharmacy/ui-native";
+import { theme }                  from "@pharmacy/design-tokens";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
 import { formatPrice }            from "@/utils/format";
 
 import {
   useLowStockProducts,
+  useOutOfStockProducts,
   useProductSearch,
 } from "../hooks/usePharmacistQueries";
-import { getLowStockProducts } from "../api/inventory";
 import { pharmacistQueryKeys } from "../hooks/queryKeys";
 import { PharmacistScreenHeader } from "../components/PharmacistScreenHeader";
 import type { PharmacistProduct } from "../api/types";
@@ -76,7 +76,7 @@ function ProductCard({
 
   return (
     <Animated.View entering={FadeInDown.delay(index * 30).duration(240)}>
-      <View style={[s.card, { borderLeftColor: urg, borderLeftWidth: 4 }]}>
+      <View style={[s.card, { borderStartColor: urg, borderStartWidth: 4 }]}>
         {/* Header row */}
         <View style={[s.cardHeader, { flexDirection: flexRow(IS_RTL) }]}>
           <View style={{ flex: 1 }}>
@@ -158,56 +158,64 @@ function ProductCard({
 export function InventoryIntelligenceScreen(): React.ReactElement {
   const { t }       = useTranslation();
   const router      = useRouter();
+  const params      = useLocalSearchParams<{ query?: string }>();
   const queryClient = useQueryClient();
 
   const [tab,        setTab]        = useState<InventoryTab>("lowstock");
   const [rawQuery,   setRawQuery]   = useState("");
+  const [refreshing, setRefreshing] = useState(false);
   const query = useDeferredValue(rawQuery.trim());
 
-  const lowStockQuery   = useLowStockProducts();
-  const searchQuery     = useProductSearch(query);
-  // Out-of-stock is just a stricter low-stock fetch with threshold 0
-  const [outOfStock, setOutOfStock] = useState<PharmacistProduct[]>([]);
-  const [oosLoading, setOosLoading] = useState(false);
-
-  const loadOutOfStock = useCallback(async () => {
-    if (tab !== "outofstock") return;
-    setOosLoading(true);
-    try {
-      const data = await getLowStockProducts(0, 100);
-      setOutOfStock(data.filter((p) => p.available === 0));
-    } catch { /* swallow */ }
-    finally { setOosLoading(false); }
-  }, [tab]);
-
   React.useEffect(() => {
-    if (tab === "outofstock") void loadOutOfStock();
-  }, [tab, loadOutOfStock]);
+    if (typeof params.query !== "string") return;
+    const nextQuery = params.query.trim();
+    if (!nextQuery || nextQuery === rawQuery) return;
+    setRawQuery(nextQuery);
+    setTab("search");
+  }, [params.query, rawQuery]);
+
+  const lowStockQuery   = useLowStockProducts();
+  const outOfStockQuery = useOutOfStockProducts();
+  const searchQuery     = useProductSearch(query);
 
   const onRefresh = useCallback(async () => {
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: pharmacistQueryKeys.lowStock() }),
-      queryClient.invalidateQueries({ queryKey: pharmacistQueryKeys.products(query) }),
-    ]);
-    if (tab === "outofstock") await loadOutOfStock();
-  }, [queryClient, query, tab, loadOutOfStock]);
+    setRefreshing(true);
+    try {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: pharmacistQueryKeys.lowStock() }),
+        queryClient.invalidateQueries({ queryKey: [...pharmacistQueryKeys.lowStock(), "out-of-stock"] }),
+        queryClient.invalidateQueries({ queryKey: pharmacistQueryKeys.products(query) }),
+      ]);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [queryClient, query]);
 
   const handleScan = useCallback((barcode: string) => {
-    router.push("/(pharmacist)/scanner" as never);
-    // Pre-fill handled inside the scanner via search param in a future iteration
-    void barcode; // acknowledge the arg
+    router.push({
+      pathname: "/(pharmacist)/scanner" as never,
+      params: {
+        mode: "inventory",
+        barcode,
+      },
+    });
   }, [router]);
 
   // Derive current list
   const items: PharmacistProduct[] =
     tab === "lowstock"   ? (lowStockQuery.data  ?? []) :
-    tab === "outofstock" ? outOfStock                  :
+    tab === "outofstock" ? (outOfStockQuery.data ?? []) :
     (searchQuery.data ?? []);
 
   const isLoading =
     tab === "lowstock"   ? lowStockQuery.isLoading  :
-    tab === "outofstock" ? oosLoading               :
+    tab === "outofstock" ? outOfStockQuery.isLoading :
     (query.length > 0 && searchQuery.isLoading);
+
+  const isError =
+    tab === "lowstock"   ? lowStockQuery.isError  :
+    tab === "outofstock" ? outOfStockQuery.isError :
+    (query.length > 0 && searchQuery.isError);
 
   return (
     <Screen edgeTop background={kit.color.canvas}>
@@ -281,9 +289,10 @@ export function InventoryIntelligenceScreen(): React.ReactElement {
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
-            refreshing={false}
+            refreshing={refreshing}
             onRefresh={onRefresh}
             tintColor={kit.color.accent}
+            colors={[kit.color.accent]}
           />
         }
         renderItem={({ item, index }) => (
@@ -294,6 +303,18 @@ export function InventoryIntelligenceScreen(): React.ReactElement {
           isLoading ? (
             <View style={s.empty}>
               <ActivityIndicator size="large" color={kit.color.accent} />
+            </View>
+          ) : isError ? (
+            <View style={s.empty}>
+              <Ionicons name="cloud-offline-outline" size={44} color={kit.color.inkFaint} />
+              <UIText variant="card-title" style={{ marginTop: 12, textAlign: "center" }}>
+                {t("errors.network")}
+              </UIText>
+              <Pressable onPress={() => void onRefresh()} style={s.retryBtn}>
+                <UIText variant="body-sm" color="brand">
+                  {t("common.retry")}
+                </UIText>
+              </Pressable>
             </View>
           ) : (
             <View style={s.empty}>
@@ -401,4 +422,11 @@ const s = StyleSheet.create({
     flexShrink: 0,
   },
   empty: { alignItems: "center", paddingTop: 60, paddingBottom: 40 },
+  retryBtn: {
+    marginTop:         12,
+    paddingHorizontal: 20,
+    paddingVertical:   10,
+    borderRadius:      kit.radius.lg,
+    backgroundColor:   kit.color.accentTint,
+  },
 });

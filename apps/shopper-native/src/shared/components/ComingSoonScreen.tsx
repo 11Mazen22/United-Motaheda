@@ -12,8 +12,8 @@ import { StyleSheet, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { AppHeader } from "./AppHeader";
-import { Text } from "@/shared/ui";
-import { theme } from "@/shared/theme";
+import { Text } from "@pharmacy/ui-native";
+import { theme } from "@pharmacy/design-tokens";
 
 export interface ComingSoonScreenProps {
   title:     string;

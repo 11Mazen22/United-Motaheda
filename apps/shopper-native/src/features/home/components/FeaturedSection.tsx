@@ -34,7 +34,7 @@ import { ProductCard, ProductCardSkeleton } from "@/components/ProductCard";
 import { HomeSectionHeader } from "./HomeSectionHeader";
 import { sectionStyles } from "./home.styles";
 import { fetchFeaturedProducts, productKeys } from "@/features/products";
-import { kit } from "@/shared/kit";
+import { kit } from "@pharmacy/ui-native";
 import { useScreenLayout } from "@/utils/responsive";
 import type { NativeProduct } from "@/features/products";
 

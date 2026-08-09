@@ -1,5 +1,5 @@
-import { theme } from "@/shared/theme";
-import { kit } from "@/shared/kit";
+import { theme } from "@pharmacy/design-tokens";
+import { kit } from "@pharmacy/ui-native";
 
 export interface FAQItem {
   id: string;

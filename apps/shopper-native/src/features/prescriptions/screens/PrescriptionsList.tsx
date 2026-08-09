@@ -28,8 +28,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
-import { kit, Button, SegmentedToggle, type SegmentOption } from "@/shared/kit";
-import { Text } from "@/shared/ui";
+import { kit, Button, SegmentedToggle, type SegmentOption } from "@pharmacy/ui-native";
+import { Text } from "@pharmacy/ui-native";
 import { RxCard } from "@/shared/components/RxCard";
 import { useAuth } from "@/features/auth";
 import {

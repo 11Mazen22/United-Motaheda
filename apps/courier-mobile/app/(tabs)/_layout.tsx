@@ -16,7 +16,7 @@ import Animated, {
   withSpring,
   Extrapolation,
 } from 'react-native-reanimated';
-import { colors, typography, spacing, shadows, radii } from '@/theme/tokens';
+import { colors, typography, spacing, shadows, radii } from '@pharmacy/ui-native/courier-tokens';
 import { useOrdersStore } from '@/stores/orders.store';
 
 type IconName = React.ComponentProps<typeof Ionicons>['name'];

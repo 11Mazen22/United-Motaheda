@@ -21,11 +21,13 @@
 
 import React, {
   useCallback,
+  useEffect,
   useRef,
   useState,
 } from "react";
 import {
   ActivityIndicator,
+  Platform,
   Pressable,
   StyleSheet,
   View,
@@ -33,7 +35,7 @@ import {
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { Ionicons }         from "@expo/vector-icons";
 import { useTranslation }   from "react-i18next";
-import { useRouter }        from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import * as Haptics         from "expo-haptics";
 import Animated, {
   FadeIn,
@@ -43,10 +45,10 @@ import Animated, {
   SlideOutDown,
 } from "react-native-reanimated";
 
-import { Screen, Text as UIText } from "@/shared/ui";
-import { kit }                    from "@/shared/kit";
-import { theme }                  from "@/shared/theme";
-import { BACK_CHEVRON, flexRow, isRtl, textAlignStart } from "@/utils/layout";
+import { Screen, Text as UIText } from "@pharmacy/ui-native";
+import { kit }                    from "@pharmacy/ui-native";
+import { theme }                  from "@pharmacy/design-tokens";
+import { BACK_CHEVRON, edgeEnd, edgeStart, flexRow, isRtl, textAlignStart } from "@/utils/layout";
 import { formatPrice }            from "@/utils/format";
 
 import { getProductByBarcode } from "../api/inventory";
@@ -56,7 +58,7 @@ import type { PharmacistProduct }  from "../api/types";
 const IS_RTL     = isRtl();
 const TEXT_START = textAlignStart(IS_RTL);
 
-type ScanMode = "medicine" | "order";
+type ScanMode = "medicine" | "inventory" | "order";
 
 // Minimum ms between processing two consecutive scans of the same value
 const DEBOUNCE_MS = 1_500;
@@ -102,9 +104,24 @@ const pg = StyleSheet.create({
 
 // ─── Product result card ───────────────────────────────────────────────────────
 
-function ProductCard({ product, onDismiss }: { product: PharmacistProduct; onDismiss: () => void }) {
+function ProductCard({
+  product,
+  mode,
+  adjustment,
+  onAdjust,
+  onDismiss,
+  onOpenInventory,
+}: {
+  product: PharmacistProduct;
+  mode: ScanMode;
+  adjustment: number;
+  onAdjust: (delta: number) => void;
+  onDismiss: () => void;
+  onOpenInventory: () => void;
+}) {
   const { t } = useTranslation();
   const isLow = product.available <= 5;
+  const adjustedAvailable = Math.max(0, product.available + adjustment);
 
   return (
     <Animated.View
@@ -168,6 +185,41 @@ function ProductCard({ product, onDismiss }: { product: PharmacistProduct; onDis
           <UIText variant="caption" color="secondary">{product.categoryName}</UIText>
         </View>
       )}
+
+      {mode === "inventory" && (
+        <View style={rc.adjustCard}>
+          <View style={[rc.adjustHeader, { flexDirection: flexRow(IS_RTL) }]}>
+            <View style={{ flex: 1 }}>
+              <UIText variant="body-sm" weight="bold" style={{ textAlign: TEXT_START }}>
+                {t("pharmacist.inventoryAdjustTitle", "Quick stock review")}
+              </UIText>
+              <UIText variant="caption" color="secondary" style={{ textAlign: TEXT_START }}>
+                {t("pharmacist.inventoryAdjustedAvailable", "Adjusted available")}: {adjustedAvailable}
+              </UIText>
+            </View>
+            <Pressable onPress={onOpenInventory} style={rc.openInventoryBtn}>
+              <UIText style={rc.openInventoryText}>
+                {t("pharmacist.scannerOpenInventory", "Open inventory")}
+              </UIText>
+            </Pressable>
+          </View>
+
+          <View style={[rc.adjustRow, { flexDirection: flexRow(IS_RTL) }]}>
+            <Pressable onPress={() => onAdjust(-1)} style={rc.adjustBtn} accessibilityRole="button">
+              <Ionicons name="remove" size={18} color={kit.color.accentDeep} />
+            </Pressable>
+            <View style={rc.adjustValueWrap}>
+              <UIText style={rc.adjustValue}>{adjustment > 0 ? `+${adjustment}` : adjustment}</UIText>
+              <UIText style={rc.adjustHint}>
+                {t("pharmacist.inventoryAdjustHint", "Session-only recount helper")}
+              </UIText>
+            </View>
+            <Pressable onPress={() => onAdjust(1)} style={rc.adjustBtn} accessibilityRole="button">
+              <Ionicons name="add" size={18} color={kit.color.accentDeep} />
+            </Pressable>
+          </View>
+        </View>
+      )}
     </Animated.View>
   );
 }
@@ -186,7 +238,12 @@ const rc = StyleSheet.create({
     gap:               12,
     ...kit.shadow.overlay,
   },
-  close: { position: "absolute", top: 14, right: 14, zIndex: 1 },
+  close: {
+    position: "absolute",
+    top: 14,
+    [edgeEnd(IS_RTL)]: 14,
+    zIndex: 1,
+  },
   header: { alignItems: "flex-start", gap: 12 },
   barcodeIcon: {
     width: 42, height: 42, borderRadius: 12,
@@ -203,6 +260,59 @@ const rc = StyleSheet.create({
   warnRow:   { flexDirection: "row", alignItems: "center", gap: 6, padding: 10, borderRadius: kit.radius.lg, backgroundColor: kit.color.dangerTint },
   warnText:  { fontSize: 12, fontFamily: theme.fonts.bold, color: kit.color.danger, flex: 1 },
   catRow:    { alignItems: "center", gap: 6 },
+  adjustCard: {
+    gap:             12,
+    padding:         12,
+    borderRadius:    kit.radius.lg,
+    backgroundColor: kit.color.well,
+    borderWidth:     1,
+    borderColor:     kit.color.line,
+  },
+  adjustHeader: {
+    alignItems: "center",
+    gap:        10,
+  },
+  openInventoryBtn: {
+    paddingHorizontal: 12,
+    paddingVertical:   8,
+    borderRadius:      kit.radius.pill,
+    backgroundColor:   kit.color.accentTint,
+  },
+  openInventoryText: {
+    fontSize:   11,
+    fontFamily: theme.fonts.bold,
+    color:      kit.color.accentDeep,
+  },
+  adjustRow: {
+    alignItems:     "center",
+    justifyContent: "space-between",
+    gap:            12,
+  },
+  adjustBtn: {
+    width:           42,
+    height:          42,
+    borderRadius:    14,
+    backgroundColor: kit.color.surface,
+    borderWidth:     1,
+    borderColor:     kit.color.line,
+    alignItems:      "center",
+    justifyContent:  "center",
+  },
+  adjustValueWrap: {
+    flex:       1,
+    alignItems: "center",
+    gap:        2,
+  },
+  adjustValue: {
+    fontSize:   22,
+    fontFamily: theme.fonts.black,
+    color:      kit.color.ink,
+  },
+  adjustHint: {
+    fontSize:   10,
+    fontFamily: theme.fonts.regular,
+    color:      kit.color.inkFaint,
+  },
 });
 
 // ─── Main screen ──────────────────────────────────────────────────────────────
@@ -210,6 +320,7 @@ const rc = StyleSheet.create({
 export function BarcodeScannerScreen(): React.ReactElement {
   const { t }    = useTranslation();
   const router   = useRouter();
+  const params   = useLocalSearchParams<{ barcode?: string; mode?: ScanMode }>();
   const [permission, requestPermission] = useCameraPermissions();
 
   const [mode,         setMode]         = useState<ScanMode>("medicine");
@@ -217,29 +328,45 @@ export function BarcodeScannerScreen(): React.ReactElement {
   const [scanning,     setScanning]     = useState(false);
   const [result,       setResult]       = useState<PharmacistProduct | null>(null);
   const [error,        setError]        = useState<string | null>(null);
+  const [adjustment,   setAdjustment]   = useState(0);
 
   // Debounce ref — stores the last scanned value + timestamp
   const lastScanRef = useRef<{ value: string; ts: number } | null>(null);
+  const handledParamScanRef = useRef<string | null>(null);
 
   const dismissResult = useCallback(() => {
     setResult(null);
     setError(null);
+    setAdjustment(0);
   }, []);
+
+  useEffect(() => {
+    if (params.mode === "medicine" || params.mode === "order" || params.mode === "inventory") {
+      setMode(params.mode);
+    }
+  }, [params.mode]);
 
   const handleBarcode = useCallback(
     async (data: string) => {
+      const value = data.trim();
+      if (!value) {
+        setError(t("pharmacist.scannerError", "حدث خطأ أثناء البحث. حاول مجدداً."));
+        return;
+      }
+
       // Debounce
       const now = Date.now();
       if (
         lastScanRef.current &&
-        lastScanRef.current.value === data &&
+        lastScanRef.current.value === value &&
         now - lastScanRef.current.ts < DEBOUNCE_MS
       ) return;
-      lastScanRef.current = { value: data, ts: now };
+      lastScanRef.current = { value, ts: now };
 
       setScanning(true);
       setError(null);
       setResult(null);
+      setAdjustment(0);
 
       if (Platform.OS !== "web") {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
@@ -248,13 +375,13 @@ export function BarcodeScannerScreen(): React.ReactElement {
       if (mode === "order") {
         // QR token — navigate to order detail
         setScanning(false);
-        router.push(`/(pharmacist)/order/${data}` as never);
+        router.push(`/(pharmacist)/order/${value}` as never);
         return;
       }
 
       // Medicine lookup
       try {
-        const product = await getProductByBarcode(data);
+        const product = await getProductByBarcode(value);
         if (product) {
           setResult(product);
           if (Platform.OS !== "web") {
@@ -274,6 +401,14 @@ export function BarcodeScannerScreen(): React.ReactElement {
     },
     [mode, router, t],
   );
+
+  useEffect(() => {
+    if (!permission?.granted) return;
+    const seededBarcode = typeof params.barcode === "string" ? params.barcode.trim() : "";
+    if (!seededBarcode || handledParamScanRef.current === seededBarcode) return;
+    handledParamScanRef.current = seededBarcode;
+    void handleBarcode(seededBarcode);
+  }, [handleBarcode, params.barcode, permission?.granted]);
 
   if (!permission) {
     return (
@@ -317,7 +452,7 @@ export function BarcodeScannerScreen(): React.ReactElement {
 
       {/* Mode selector */}
       <Animated.View entering={FadeIn.duration(300)} style={s.modeBar}>
-        {(["medicine", "order"] as ScanMode[]).map((m) => (
+        {(["medicine", "inventory", "order"] as ScanMode[]).map((m) => (
           <Pressable
             key={m}
             onPress={() => { setMode(m); dismissResult(); }}
@@ -327,6 +462,8 @@ export function BarcodeScannerScreen(): React.ReactElement {
             <UIText style={[s.modeBtnText, mode === m && s.modeBtnTextActive]}>
               {m === "medicine"
                 ? t("pharmacist.scanModeMedicine", "دواء")
+                : m === "inventory"
+                  ? t("pharmacist.scanModeInventory", "جرد")
                 : t("pharmacist.scanModeOrder",    "طلب")}
             </UIText>
           </Pressable>
@@ -349,6 +486,8 @@ export function BarcodeScannerScreen(): React.ReactElement {
         <UIText style={s.instruction}>
           {mode === "medicine"
             ? t("pharmacist.scannerInstructMedicine", "وجّه الكاميرا نحو باركود الدواء")
+            : mode === "inventory"
+              ? t("pharmacist.scannerInstructInventory", "امسح الباركود لمراجعة المخزون بسرعة")
             : t("pharmacist.scannerInstructOrder",    "امسح رمز QR الخاص بالطلب")}
         </UIText>
       </View>
@@ -387,6 +526,11 @@ export function BarcodeScannerScreen(): React.ReactElement {
         >
           <Ionicons name="alert-circle-outline" size={16} color={kit.color.danger} />
           <UIText style={s.errorText}>{error}</UIText>
+          {lastScanRef.current?.value ? (
+            <Pressable onPress={() => void handleBarcode(lastScanRef.current!.value)} hitSlop={10} style={s.retryPill}>
+              <UIText style={s.retryPillText}>{t("common.retry")}</UIText>
+            </Pressable>
+          ) : null}
           <Pressable onPress={dismissResult} hitSlop={10}>
             <Ionicons name="close" size={14} color={kit.color.danger} />
           </Pressable>
@@ -396,7 +540,20 @@ export function BarcodeScannerScreen(): React.ReactElement {
       {/* Product result */}
       {result && (
         <Pressable style={StyleSheet.absoluteFill} onPress={dismissResult} accessible={false}>
-          <ProductCard product={result} onDismiss={dismissResult} />
+          <ProductCard
+            product={result}
+            mode={mode}
+            adjustment={adjustment}
+            onAdjust={(delta) => setAdjustment((value) => Math.max(-result.available, value + delta))}
+            onDismiss={dismissResult}
+            onOpenInventory={() => {
+              dismissResult();
+              router.push({
+                pathname: "/(pharmacist)/inventory" as never,
+                params: result.barcode ? { query: result.barcode } : undefined,
+              });
+            }}
+          />
         </Pressable>
       )}
     </View>
@@ -405,14 +562,16 @@ export function BarcodeScannerScreen(): React.ReactElement {
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
-import { Platform } from "react-native";
-
 const WINDOW_SIZE = 240;
 
 const s = StyleSheet.create({
   centered: { flex: 1, alignItems: "center", justifyContent: "center" },
 
-  backBtn: { position: "absolute", top: 56, left: 16 },
+  backBtn: {
+    position: "absolute",
+    top: 56,
+    [edgeStart(IS_RTL)]: 16,
+  },
 
   modeBar: {
     position:          "absolute",
@@ -529,4 +688,15 @@ const s = StyleSheet.create({
     paddingVertical:   12,
   },
   errorText: { flex: 1, fontSize: 12, fontFamily: theme.fonts.bold, color: kit.color.danger },
+  retryPill: {
+    paddingHorizontal: 10,
+    paddingVertical:   6,
+    borderRadius:      kit.radius.pill,
+    backgroundColor:   "rgba(255,255,255,0.55)",
+  },
+  retryPillText: {
+    fontSize:   10,
+    fontFamily: theme.fonts.bold,
+    color:      kit.color.danger,
+  },
 });

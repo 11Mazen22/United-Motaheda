@@ -12,9 +12,9 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { Text as UIText } from "@/shared/ui";
+import { Text as UIText } from "@pharmacy/ui-native";
 import { Ionicons } from "@expo/vector-icons";
-import { kit } from "@/shared/kit";
+import { kit } from "@pharmacy/ui-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
@@ -23,7 +23,7 @@ import { useTranslation } from "react-i18next";
 import { FAQAccordion, FAQCategoryRail } from "@/features/faq";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { FAQ_DATA, FAQ_CATEGORIES, type FAQCategory, type FAQItem } from "@/features/faq";
-import { theme } from "@/shared/theme";
+import { theme } from "@pharmacy/design-tokens";
 import { flexRow, isRtl, textAlignStart, BACK_CHEVRON, FORWARD_CHEVRON } from "@/utils/layout";
 
 const IS_RTL     = isRtl();

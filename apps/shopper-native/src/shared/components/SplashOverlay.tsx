@@ -41,11 +41,11 @@ import Animated, {
   withSpring,
   withTiming,
 } from "react-native-reanimated";
-import { Text as UIText } from "@/shared/ui";
+import { Text as UIText } from "@pharmacy/ui-native";
 import { useTranslation } from "react-i18next";
 import { AppLogo } from "@/shared/components/AppLogo";
 import { PressableScale } from "@/shared/motion";
-import { theme } from "@/shared/theme";
+import { theme } from "@pharmacy/design-tokens";
 import { useSplashSequence } from "./useSplashSequence";
 import { notifySplashExited } from "@/shared/splashBridge";
 

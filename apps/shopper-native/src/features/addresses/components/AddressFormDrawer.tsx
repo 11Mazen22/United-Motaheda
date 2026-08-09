@@ -16,7 +16,7 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { Text as UIText } from "@/shared/ui";
+import { Text as UIText } from "@pharmacy/ui-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
@@ -35,8 +35,8 @@ import { AddressMapPlaceholder } from "./AddressMapPlaceholder";
 import { ADDRESS_LABELS } from "../types";
 import type { Address, AddressFormData } from "../types";
 import { SUPPORTED_GOVERNORATE } from "@/features/delivery/constants";
-import { theme } from "@/shared/theme";
-import { kit } from "@/shared/kit";
+import { theme } from "@pharmacy/design-tokens";
+import { kit } from "@pharmacy/ui-native";
 import { flexRow, isRtl, textAlignStart, BACK_ARROW, FORWARD_ARROW } from "@/utils/layout";
 import { PlacesAutocompleteInput, type PlacesSuggestion } from "@/components/ui/PlacesAutocompleteInput";
 

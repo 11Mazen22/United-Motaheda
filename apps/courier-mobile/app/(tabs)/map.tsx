@@ -12,11 +12,11 @@ import {
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE, Region } from 'react-native-maps';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, typography, spacing, radii, shadows } from '@/theme/tokens';
-import { Card } from '@/components/ui';
+import { colors, typography, spacing, radii, shadows } from '@pharmacy/ui-native/courier-tokens';
+import { Card } from '@pharmacy/ui-native';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { useLocationStore } from '@/stores/location.store';
-import { useOrdersStore } from '@/stores/orders.store';
+import { useOrdersStore, type ActiveDelivery } from '@/stores/orders.store';
 import { haversineMeters } from '@/lib/gps/KalmanFilter';
 
 // Decode Google Maps encoded polyline
@@ -126,7 +126,7 @@ const ad = StyleSheet.create({
     gap: 5,
   },
   dot: { width: 8, height: 8, borderRadius: 4 },
-  label: { fontSize: typography.xs, color: '#fff', fontWeight: typography.medium },
+  label: { fontSize: typography.xs, color: '#fff', fontFamily: typography.medium },
 });
 
 // ─── Bottom sheet ─────────────────────────────────────────────────────────────
@@ -135,7 +135,7 @@ function BottomSheet({
   delivery,
   onNavigate,
 }: {
-  delivery: ReturnType<typeof useOrdersStore>['activeDelivery'];
+  delivery: ActiveDelivery | null;
   onNavigate: () => void;
 }) {
   if (!delivery) return null;
@@ -202,8 +202,8 @@ const bs = StyleSheet.create({
     backgroundColor: colors.primary,
   },
   info: { flex: 1 },
-  statusText: { fontSize: typography.xs, color: colors.inkMuted, fontWeight: typography.medium },
-  destName: { fontSize: typography.base, fontWeight: typography.bold, color: colors.ink, marginTop: 2 },
+  statusText: { fontSize: typography.xs, color: colors.inkMuted, fontFamily: typography.medium },
+  destName: { fontSize: typography.base, fontFamily: typography.bold, color: colors.ink, marginTop: 2 },
   destAddr: { fontSize: typography.xs, color: colors.inkMuted, marginTop: 1 },
   navBtn: {
     flexDirection: 'row',
@@ -214,7 +214,7 @@ const bs = StyleSheet.create({
     paddingVertical: spacing[2],
     borderRadius: radii.lg,
   },
-  navText: { color: colors.white, fontWeight: typography.bold, fontSize: typography.sm },
+  navText: { color: colors.white, fontFamily: typography.bold, fontSize: typography.sm },
 });
 
 // ─── Main map screen ──────────────────────────────────────────────────────────
@@ -538,7 +538,7 @@ const s = StyleSheet.create({
     borderRadius: radii.full,
     ...shadows.md,
   },
-  etaText: { fontSize: typography.sm, fontWeight: typography.bold, color: colors.ink },
+  etaText: { fontSize: typography.sm, fontFamily: typography.bold, color: colors.ink },
 
   driverMarker: {
     width: 40,

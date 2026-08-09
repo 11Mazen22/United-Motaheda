@@ -1,7 +1,7 @@
 import { StyleSheet } from "react-native";
 import { flexRow, isRtl, textAlignStart, valueTextAlign } from "@/utils/layout";
-import { theme } from "@/shared/theme";
-import { kit } from "@/shared/kit";
+import { theme } from "@pharmacy/design-tokens";
+import { kit } from "@pharmacy/ui-native";
 
 const TEXT_START = textAlignStart(isRtl());
 

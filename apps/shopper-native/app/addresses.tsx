@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { showConfirmSheet, showErrorSheet } from "@/shared/store/appSheetStore";
 import { Ionicons } from "@expo/vector-icons";
-import { kit } from "@/shared/kit";
+import { kit } from "@pharmacy/ui-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
@@ -31,8 +31,8 @@ import {
   type AddressFormData,
 } from "@/features/addresses";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { Text as UIText } from "@/shared/ui";
-import { theme } from "@/shared/theme";
+import { Text as UIText } from "@pharmacy/ui-native";
+import { theme } from "@pharmacy/design-tokens";
 import { flexRow, isRtl, textAlignStart, BACK_CHEVRON, FORWARD_CHEVRON } from "@/utils/layout";
 
 const IS_RTL     = isRtl();

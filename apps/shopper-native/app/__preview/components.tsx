@@ -12,7 +12,7 @@ import React, { useState } from "react";
 import { Alert, ScrollView, View } from "react-native";
 import { Stack, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { theme } from "@/shared/theme";
+import { theme } from "@pharmacy/design-tokens";
 import {
   AppHeader,
   RxCard,
@@ -21,8 +21,8 @@ import {
   type Prescription,
   type Reminder,
 } from "@/shared/components";
-import { Text } from "@/shared/ui";
-import { Button } from "@/shared/kit";
+import { Text } from "@pharmacy/ui-native";
+import { Button } from "@pharmacy/ui-native";
 import { EmptyState } from "@/components/ui/EmptyState";
 import {
   OcrReviewForm,

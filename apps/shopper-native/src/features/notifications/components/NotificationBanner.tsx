@@ -1,6 +1,6 @@
 ﻿import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Platform, Pressable, StyleSheet, View } from "react-native";
-import { Text as UIText } from "@/shared/ui";
+import { Text as UIText } from "@pharmacy/ui-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter, useSegments } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -15,8 +15,8 @@ import Animated, {
 import { useTranslation } from "react-i18next";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
 import { useBannerStore } from "../banner-store";
-import { theme } from "@/shared/theme";
-import { kit } from "@/shared/kit";
+import { theme } from "@pharmacy/design-tokens";
+import { kit } from "@pharmacy/ui-native";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 

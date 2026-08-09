@@ -8,9 +8,9 @@
 import React, { useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
 import { useTranslation } from "react-i18next";
-import { Text as UIText } from "@/shared/ui";
-import { kit } from "@/shared/kit";
-import { theme } from "@/shared/theme";
+import { Text as UIText } from "@pharmacy/ui-native";
+import { kit } from "@pharmacy/ui-native";
+import { theme } from "@pharmacy/design-tokens";
 import { setAppLanguage, type AppLanguage } from "@/i18n";
 
 export function LangSwitcher() {

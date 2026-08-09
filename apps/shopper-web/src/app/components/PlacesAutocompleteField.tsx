@@ -13,7 +13,7 @@
  *   - Caches results in memory for the session
  */
 
-import React, {
+import {
   useCallback,
   useEffect,
   useRef,

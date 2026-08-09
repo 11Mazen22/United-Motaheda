@@ -10,15 +10,15 @@ import { useTranslation } from "react-i18next";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
 
 const _isRtl = isRtl();
-import { Text as UIText } from "@/shared/ui";
+import { Text as UIText } from "@pharmacy/ui-native";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withTiming,
   interpolateColor,
 } from "react-native-reanimated";
-import { theme } from "@/shared/theme";
-import { kit } from "@/shared/kit";
+import { theme } from "@pharmacy/design-tokens";
+import { kit } from "@pharmacy/ui-native";
 
 interface InputProps extends TextInputProps {
   label?:       string;

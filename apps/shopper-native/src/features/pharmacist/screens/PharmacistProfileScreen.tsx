@@ -4,14 +4,17 @@
 import React from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { Ionicons }       from "@expo/vector-icons";
+import { useRouter }      from "expo-router";
 import { useTranslation } from "react-i18next";
 
-import { Screen, Text as UIText } from "@/shared/ui";
-import { kit }                    from "@/shared/kit";
-import { theme }                  from "@/shared/theme";
+import { Screen, Text as UIText } from "@pharmacy/ui-native";
+import { kit }                    from "@pharmacy/ui-native";
+import { theme }                  from "@pharmacy/design-tokens";
 import { useAuth }                from "@/features/auth";
+import { useAppLanguage }         from "@/i18n/LanguageProvider";
 import { FORWARD_CHEVRON, flexRow, isRtl, textAlignStart } from "@/utils/layout";
 import { PharmacistScreenHeader } from "../components/PharmacistScreenHeader";
+import { usePharmacistDashboard } from "../hooks/usePharmacistQueries";
 
 const IS_RTL     = isRtl();
 const TEXT_START = textAlignStart(IS_RTL);
@@ -46,7 +49,37 @@ function MenuRow({ icon, label, onPress, danger = false }: MenuRowProps) {
 
 export function PharmacistProfileScreen(): React.ReactElement {
   const { t }              = useTranslation();
+  const router             = useRouter();
   const { user, signOut }  = useAuth();
+  const { language, setLanguage } = useAppLanguage();
+  const statsQ             = usePharmacistDashboard();
+
+  const stats = [
+    {
+      label: t("pharmacist.statActiveOrders"),
+      value: statsQ.data?.activeOrders ?? 0,
+      icon: "bag-handle-outline" as const,
+      color: kit.color.accentDeep,
+      bg: kit.color.accentTint,
+    },
+    {
+      label: t("pharmacist.statPendingRx"),
+      value: statsQ.data?.pendingPrescriptions ?? 0,
+      icon: "document-text-outline" as const,
+      color: "#7C3AED",
+      bg: "#F5F3FF",
+    },
+    {
+      label: t("pharmacist.statLowStock"),
+      value: statsQ.data?.lowStockCount ?? 0,
+      icon: "alert-circle-outline" as const,
+      color: kit.color.danger,
+      bg: kit.color.dangerTint,
+    },
+  ];
+
+  const nextLanguage = language === "ar" ? "en" : "ar";
+  const languageLabel = language === "ar" ? "العربية" : "English";
 
   return (
     <Screen edgeTop background={kit.color.canvas}>
@@ -74,15 +107,52 @@ export function PharmacistProfileScreen(): React.ReactElement {
           </View>
         </View>
 
+        <View style={s.statsCard}>
+          {stats.map((item, index) => (
+            <View
+              key={item.label}
+              style={[
+                s.statRow,
+                { flexDirection: flexRow(IS_RTL) },
+                index !== stats.length - 1 && s.statRowBorder,
+              ]}
+            >
+              <View style={[s.menuIcon, { backgroundColor: item.bg }]}>
+                <Ionicons name={item.icon} size={16} color={item.color} />
+              </View>
+              <UIText variant="body-sm" style={{ flex: 1, textAlign: TEXT_START }}>
+                {item.label}
+              </UIText>
+              <UIText style={s.statValue}>{item.value}</UIText>
+            </View>
+          ))}
+        </View>
+
         {/* Menu */}
         <View style={s.card}>
-          <MenuRow icon="notifications-outline" label={t("pharmacist.profileNotifications")} onPress={() => {}} />
+          <MenuRow
+            icon="notifications-outline"
+            label={t("pharmacist.profileNotifications")}
+            onPress={() => router.push("/(pharmacist)/notifications" as never)}
+          />
           <View style={s.divider} />
-          <MenuRow icon="language-outline"      label={t("pharmacist.profileLanguage")}      onPress={() => {}} />
+          <MenuRow
+            icon="language-outline"
+            label={`${t("pharmacist.profileLanguage")} · ${languageLabel}`}
+            onPress={() => { void setLanguage(nextLanguage); }}
+          />
           <View style={s.divider} />
-          <MenuRow icon="lock-closed-outline"   label={t("pharmacist.profileSecurity")}      onPress={() => {}} />
+          <MenuRow
+            icon="lock-closed-outline"
+            label={t("pharmacist.profileSecurity")}
+            onPress={() => router.push("/change-password" as never)}
+          />
           <View style={s.divider} />
-          <MenuRow icon="help-circle-outline"   label={t("pharmacist.profileHelp")}          onPress={() => {}} />
+          <MenuRow
+            icon="help-circle-outline"
+            label={t("pharmacist.profileHelp")}
+            onPress={() => router.push("/faq" as never)}
+          />
         </View>
 
         <View style={[s.card, { marginTop: 12 }]}>
@@ -135,6 +205,31 @@ const s = StyleSheet.create({
     borderColor:      kit.color.line,
     overflow:         "hidden",
     ...kit.shadow.card,
+  },
+  statsCard: {
+    marginHorizontal: kit.inset.screen,
+    marginBottom:     12,
+    backgroundColor:  kit.color.surface,
+    borderRadius:     kit.radius.xl,
+    borderWidth:      1,
+    borderColor:      kit.color.line,
+    overflow:         "hidden",
+    ...kit.shadow.card,
+  },
+  statRow: {
+    alignItems:        "center",
+    gap:               12,
+    paddingHorizontal: kit.inset.card,
+    paddingVertical:   14,
+  },
+  statRowBorder: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: kit.color.line,
+  },
+  statValue: {
+    fontSize:   16,
+    fontFamily: theme.fonts.black,
+    color:      kit.color.ink,
   },
   menuRow: {
     alignItems:        "center",

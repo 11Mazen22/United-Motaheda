@@ -6,9 +6,9 @@ import React from "react";
 import { Pressable, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Animated, { FadeInDown } from "react-native-reanimated";
-import { Text as UIText } from "@/shared/ui";
+import { Text as UIText } from "@pharmacy/ui-native";
 
-import { kit } from "@/shared/kit";
+import { kit } from "@pharmacy/ui-native";
 import { BACK_CHEVRON, textAlignStart, isRtl, valueTextAlign } from "@/utils/layout";
 import type { Order, OrderStatus } from "@/stores/orders";
 import { styles } from "./order-detail.styles";

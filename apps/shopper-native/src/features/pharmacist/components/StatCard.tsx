@@ -5,9 +5,9 @@
 import React from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { Ionicons }       from "@expo/vector-icons";
-import { Text as UIText } from "@/shared/ui";
-import { kit }            from "@/shared/kit";
-import { theme }          from "@/shared/theme";
+import { Text as UIText } from "@pharmacy/ui-native";
+import { kit }            from "@pharmacy/ui-native";
+import { theme }          from "@pharmacy/design-tokens";
 
 interface StatCardProps {
   value:     number | string;

@@ -7,9 +7,9 @@
  * EmptyOrdersState, and UnauthenticatedState moved to the light kit.
  */
 import { StyleSheet } from "react-native";
-import { theme } from "@/shared/theme";
+import { theme } from "@pharmacy/design-tokens";
 import { flexRow, isRtl, valueTextAlign } from "@/utils/layout";
-import { kit } from "@/shared/kit";
+import { kit } from "@pharmacy/ui-native";
 
 // ── Empty state (authenticated, no orders)
 export const emptyS = StyleSheet.create({

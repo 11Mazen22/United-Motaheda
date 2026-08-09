@@ -30,10 +30,10 @@ import { supabase } from "@/lib/supabase";
 import { updateProfile, getAuthError, useAuth } from "@/features/auth";
 import { captureError } from "@/lib/crashReporter";
 import { Input } from "@/components/ui/Input";
-import { Button } from "@/shared/kit";
-import { Text as UIText } from "@/shared/ui";
-import { kit } from "@/shared/kit";
-import { theme } from "@/shared/theme";
+import { Button } from "@pharmacy/ui-native";
+import { Text as UIText } from "@pharmacy/ui-native";
+import { kit } from "@pharmacy/ui-native";
+import { theme } from "@pharmacy/design-tokens";
 import { flexRow, isRtl, textAlignStart, BACK_CHEVRON } from "@/utils/layout";
 
 const IS_RTL     = isRtl();

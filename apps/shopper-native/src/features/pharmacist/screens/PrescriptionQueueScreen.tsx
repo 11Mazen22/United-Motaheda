@@ -19,8 +19,8 @@ import { Ionicons }        from "@expo/vector-icons";
 import { useTranslation }  from "react-i18next";
 import { useQueryClient }  from "@tanstack/react-query";
 
-import { Screen, Text as UIText }  from "@/shared/ui";
-import { kit }                     from "@/shared/kit";
+import { Screen, Text as UIText }  from "@pharmacy/ui-native";
+import { kit }                     from "@pharmacy/ui-native";
 import { flexRow, isRtl, textAlignStart, FORWARD_CHEVRON } from "@/utils/layout";
 
 import { useAllPrescriptions }     from "../hooks/usePharmacistQueries";

@@ -8,8 +8,8 @@ import { Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import { Screen, Text as UIText } from "@/shared/ui";
-import { Button, kit } from "@/shared/kit";
+import { Screen, Text as UIText } from "@pharmacy/ui-native";
+import { Button, kit } from "@pharmacy/ui-native";
 import { useAuth } from "@/features/auth";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
 import { showErrorSheet, showSuccessSheet } from "@/shared/store/appSheetStore";

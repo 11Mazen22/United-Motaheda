@@ -15,8 +15,8 @@ import * as ImagePicker from 'expo-image-picker';
 import Animated, {
   useSharedValue, useAnimatedStyle, withSpring, withTiming,
 } from 'react-native-reanimated';
-import { colors, typography, spacing, radii, shadows } from '@/theme/tokens';
-import { Button, showToast } from '@/components/ui';
+import { colors, typography, spacing, radii, shadows } from '@pharmacy/ui-native/courier-tokens';
+import { Button, showToast } from '@pharmacy/ui-native';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { driverApi } from '@/lib/api';
 import {

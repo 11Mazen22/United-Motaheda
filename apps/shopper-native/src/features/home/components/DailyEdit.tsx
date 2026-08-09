@@ -28,9 +28,9 @@ import Animated, {
 } from "react-native-reanimated";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { Text as UIText } from "@/shared/ui";
-import { theme } from "@/shared/theme";
-import { kit } from "@/shared/kit";
+import { Text as UIText } from "@pharmacy/ui-native";
+import { theme } from "@pharmacy/design-tokens";
+import { kit } from "@pharmacy/ui-native";
 import { flexRow, isRtl, textAlignStart, FORWARD_CHEVRON } from "@/utils/layout";
 import { useScreenLayout } from "@/utils/responsive";
 import { ProductCard } from "@/components/ProductCard";

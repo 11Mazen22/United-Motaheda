@@ -11,11 +11,11 @@ import { Platform, StyleSheet, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useTranslation } from "react-i18next";
-import { Text as UIText } from "@/shared/ui";
-import { theme } from "@/shared/theme";
+import { Text as UIText } from "@pharmacy/ui-native";
+import { theme } from "@pharmacy/design-tokens";
 import { flexRow, isRtl, textAlignStart, FORWARD_CHEVRON } from "@/utils/layout";
 import { PressableScale } from "@/shared/motion";
-import { kit } from "@/shared/kit";
+import { kit } from "@pharmacy/ui-native";
 import { useScreenLayout } from "@/utils/responsive";
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>["name"];

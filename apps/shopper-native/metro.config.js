@@ -3,6 +3,15 @@ const { withNativeWind } = require("nativewind/metro");
 const path = require("path");
 
 const config = getDefaultConfig(__dirname);
+const workspaceRoot = path.resolve(__dirname, "../..");
+
+// Shared design-system packages live outside this app's independent install root.
+config.watchFolders = [workspaceRoot];
+config.resolver.nodeModulesPaths = [
+  path.resolve(__dirname, "node_modules"),
+  path.resolve(workspaceRoot, "node_modules"),
+];
+config.resolver.disableHierarchicalLookup = true;
 
 // ─── Web bundle: avoid ESM variants that ship `import.meta` ──────────────────
 //

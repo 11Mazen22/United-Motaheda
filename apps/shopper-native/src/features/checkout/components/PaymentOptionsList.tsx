@@ -1,10 +1,10 @@
 import React from "react";
 import { Pressable, StyleSheet, View } from "react-native";
-import { Text as UIText } from "@/shared/ui";
+import { Text as UIText } from "@pharmacy/ui-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import { theme } from "@/shared/theme";
-import { kit } from "@/shared/kit";
+import { theme } from "@pharmacy/design-tokens";
+import { kit } from "@pharmacy/ui-native";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
 import { PAYMENT_METHOD_CONFIGS } from "../constants";
 import type { CheckoutPaymentMethod } from "../constants";

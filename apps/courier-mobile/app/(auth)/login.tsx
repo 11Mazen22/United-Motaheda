@@ -15,8 +15,8 @@ import { useForm, Controller } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, typography, spacing, radii } from '@/theme/tokens';
-import { Button, Input, showToast } from '@/components/ui';
+import { colors, typography, spacing, radii } from '@pharmacy/ui-native/courier-tokens';
+import { Button, Input, showToast } from '@pharmacy/ui-native';
 import { driverApi } from '@/lib/api';
 import { useAuthStore } from '@/stores/auth.store';
 
@@ -137,7 +137,7 @@ export default function LoginScreen() {
 
             <Button
               title="Sign In"
-              onPress={handleSubmit(onSubmit)}
+              onPress={() => void handleSubmit(onSubmit)()}
               loading={isSubmitting}
               fullWidth
               size="lg"
@@ -179,7 +179,7 @@ const s = StyleSheet.create({
   },
   title: {
     fontSize: typography['2xl'],
-    fontWeight: typography.extrabold,
+    fontFamily: typography.black,
     color: colors.ink,
     letterSpacing: -0.5,
   },
@@ -201,7 +201,7 @@ const s = StyleSheet.create({
   },
   formTitle: {
     fontSize: typography.xl,
-    fontWeight: typography.bold,
+    fontFamily: typography.bold,
     color: colors.ink,
     marginBottom: spacing[1],
   },
@@ -224,6 +224,6 @@ const s = StyleSheet.create({
   registerLink: {
     fontSize: typography.sm,
     color: colors.primary,
-    fontWeight: typography.semibold,
+    fontFamily: typography.semibold,
   },
 });

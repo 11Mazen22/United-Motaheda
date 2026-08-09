@@ -32,11 +32,11 @@ import Animated, {
   withRepeat,
   withTiming,
 } from "react-native-reanimated";
-import { Text as UIText } from "@/shared/ui";
+import { Text as UIText } from "@pharmacy/ui-native";
 import { AppLogo } from "@/shared/components/AppLogo";
 import { flexRow, isRtl } from "@/utils/layout";
-import { kit } from "@/shared/kit";
-import { theme } from "@/shared/theme";
+import { kit } from "@pharmacy/ui-native";
+import { theme } from "@pharmacy/design-tokens";
 import { useScreenLayout } from "@/utils/responsive";
 import { useUnreadCount } from "@/features/notifications";
 import { useAuth } from "@/features/auth";

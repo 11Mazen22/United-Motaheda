@@ -17,8 +17,8 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import { colors, typography, spacing, radii, shadows } from '@/theme/tokens';
-import { Button, Input, Card, Badge, showToast } from '@/components/ui';
+import { colors, typography, spacing, radii, shadows } from '@pharmacy/ui-native/courier-tokens';
+import { Button, Input, Card, Badge, showToast } from '@pharmacy/ui-native';
 import { driverApi } from '@/lib/api';
 import { useAuthStore } from '@/stores/auth.store';
 
@@ -104,7 +104,7 @@ const si = StyleSheet.create({
   idle: { backgroundColor: colors.well, borderWidth: 1.5, borderColor: colors.border },
   active: { backgroundColor: colors.primary },
   done: { backgroundColor: colors.success },
-  dotLabel: { fontSize: typography.sm, fontWeight: typography.bold, color: colors.inkMuted },
+  dotLabel: { fontSize: typography.sm, fontFamily: typography.bold, color: colors.inkMuted },
   dotLabelActive: { color: colors.white },
   line: { flex: 1, height: 2, backgroundColor: colors.border, marginHorizontal: spacing[1] },
   lineDone: { backgroundColor: colors.success },
@@ -340,10 +340,10 @@ export default function RegisterScreen() {
 
               <Button
                 title="Next: Vehicle Info"
-                onPress={form1.handleSubmit((data) => {
+                onPress={() => void form1.handleSubmit((data) => {
                   setStep1Data(data);
                   setStep(1);
-                })}
+                })()}
                 loading={form1.formState.isSubmitting}
                 fullWidth
                 size="lg"
@@ -440,10 +440,10 @@ export default function RegisterScreen() {
 
               <Button
                 title="Next: Documents"
-                onPress={form2.handleSubmit((data) => {
+                onPress={() => void form2.handleSubmit((data) => {
                   setStep2Data(data);
                   setStep(2);
-                })}
+                })()}
                 fullWidth
                 size="lg"
                 style={{ marginTop: spacing[4] }}
@@ -555,7 +555,7 @@ const s = StyleSheet.create({
 
   title: {
     fontSize: typography['2xl'],
-    fontWeight: typography.extrabold,
+    fontFamily: typography.black,
     color: colors.ink,
     marginBottom: spacing[1],
   },
@@ -569,7 +569,7 @@ const s = StyleSheet.create({
 
   sectionLabel: {
     fontSize: typography.sm,
-    fontWeight: typography.medium,
+    fontFamily: typography.medium,
     color: colors.inkSoft,
     marginBottom: spacing[1],
   },
@@ -590,8 +590,8 @@ const s = StyleSheet.create({
     backgroundColor: colors.primaryLight,
   },
   vehicleEmoji: { fontSize: 28 },
-  vehicleLabel: { fontSize: typography.xs, fontWeight: typography.medium, color: colors.inkMuted },
-  vehicleLabelActive: { color: colors.primary, fontWeight: typography.bold },
+  vehicleLabel: { fontSize: typography.xs, fontFamily: typography.medium, color: colors.inkMuted },
+  vehicleLabelActive: { color: colors.primary, fontFamily: typography.bold },
 
   errorText: { fontSize: typography.xs, color: colors.error, marginTop: -spacing[2] },
 
@@ -627,7 +627,7 @@ const s = StyleSheet.create({
   },
   docThumb: { width: 48, height: 48, borderRadius: radii.lg },
   docInfo: { flex: 1 },
-  docLabel: { fontSize: typography.base, fontWeight: typography.semibold, color: colors.ink },
+  docLabel: { fontSize: typography.base, fontFamily: typography.semibold, color: colors.ink },
   docSub: { fontSize: typography.xs, color: colors.inkMuted, marginTop: 2 },
   docStatus: { paddingLeft: spacing[2] },
 
@@ -637,5 +637,5 @@ const s = StyleSheet.create({
     marginTop: spacing[8],
   },
   footerText: { fontSize: typography.sm, color: colors.inkMuted },
-  loginLink: { fontSize: typography.sm, color: colors.primary, fontWeight: typography.semibold },
+  loginLink: { fontSize: typography.sm, color: colors.primary, fontFamily: typography.semibold },
 });

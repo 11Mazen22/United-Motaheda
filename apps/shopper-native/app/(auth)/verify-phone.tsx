@@ -11,8 +11,8 @@ import { Ionicons } from "@expo/vector-icons";
 import Animated, { FadeIn, FadeInUp } from "react-native-reanimated";
 import { useTranslation } from "react-i18next";
 import { PhoneVerifyModal, sendPhoneOtp } from "@/features/auth";
-import { Text } from "@/shared/ui";
-import { kit } from "@/shared/kit";
+import { Text } from "@pharmacy/ui-native";
+import { kit } from "@pharmacy/ui-native";
 import { flexRow, isRtl } from "@/utils/layout";
 
 const IS_RTL = isRtl();

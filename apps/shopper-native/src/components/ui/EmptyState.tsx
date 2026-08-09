@@ -1,10 +1,10 @@
 ﻿import React from "react";
 import { View } from "react-native";
-import { Text as UIText } from "@/shared/ui";
+import { Text as UIText } from "@pharmacy/ui-native";
 import { Ionicons } from "@expo/vector-icons";
 import Animated, { FadeInDown } from "react-native-reanimated";
-import { theme } from "@/shared/theme";
-import { Button, kit } from "@/shared/kit";
+import { theme } from "@pharmacy/design-tokens";
+import { Button, kit } from "@pharmacy/ui-native";
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>["name"];
 

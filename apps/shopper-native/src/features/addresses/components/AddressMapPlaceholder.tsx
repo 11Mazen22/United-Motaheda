@@ -20,7 +20,7 @@ import {
   StyleSheet,
   View,
 } from "react-native";
-import { Text as UIText } from "@/shared/ui";
+import { Text as UIText } from "@pharmacy/ui-native";
 import { Ionicons } from "@expo/vector-icons";
 import Animated, {
   useAnimatedStyle,
@@ -30,8 +30,8 @@ import Animated, {
 } from "react-native-reanimated";
 import { useTranslation } from "react-i18next";
 import { geocodeAddress } from "@/lib/geocoding";
-import { theme } from "@/shared/theme";
-import { kit } from "@/shared/kit";
+import { theme } from "@pharmacy/design-tokens";
+import { kit } from "@pharmacy/ui-native";
 import { flexRow, isRtl } from "@/utils/layout";
 
 const GEOAPIFY_KEY = "c6beba954a794cb49263d1679e4bc8bf";

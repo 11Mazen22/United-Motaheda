@@ -29,8 +29,8 @@ import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { useTranslation } from "react-i18next";
 import { useUnreadCount } from "@/features/notifications";
 import { useAuth } from "@/features/auth";
-import { theme } from "@/shared/theme";
-import { Text as UIText } from "@/shared/ui";
+import { theme } from "@pharmacy/design-tokens";
+import { Text as UIText } from "@pharmacy/ui-native";
 import { ArrivalOverlay } from "@/features/home/components/ArrivalOverlay";
 
 // Resets on each cold launch (JS reload); persists across in-app navigations.

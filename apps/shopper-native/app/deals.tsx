@@ -20,9 +20,9 @@ import { useTranslation }    from "react-i18next";
 import { Ionicons }          from "@expo/vector-icons";
 import { StatusBar }         from "expo-status-bar";
 
-import { Text as UIText }                   from "@/shared/ui";
-import { kit }                              from "@/shared/kit";
-import { theme }                            from "@/shared/theme";
+import { Text as UIText }                   from "@pharmacy/ui-native";
+import { kit }                              from "@pharmacy/ui-native";
+import { theme }                            from "@pharmacy/design-tokens";
 import { BACK_CHEVRON, flexRow, isRtl, textAlignStart } from "@/utils/layout";
 import { useScreenLayout }                  from "@/utils/responsive";
 import { useInfiniteProducts }              from "@/features/products";

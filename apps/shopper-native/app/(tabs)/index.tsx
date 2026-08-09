@@ -65,7 +65,7 @@ import { DailyEdit }              from "../../src/features/home/components/Daily
 import { SavingsStrip }           from "../../src/features/home/components/SavingsStrip";
 
 // ─── Kit ─────────────────────────────────────────────────────────────────────
-import { kit } from "../../src/shared/kit";
+import { kit } from "@pharmacy/ui-native";
 import { useTabSwipeGesture } from "../../src/shared/navigation/useTabSwipeGesture";
 
 // ─── HomeScreen ───────────────────────────────────────────────────────────────

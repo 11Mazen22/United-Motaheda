@@ -1,6 +1,6 @@
 import React from "react";
 import { Ionicons } from "@expo/vector-icons";
-import { kit } from "@/shared/kit";
+import { kit } from "@pharmacy/ui-native";
 import type { CheckoutPaymentMethod } from "./types";
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>["name"];

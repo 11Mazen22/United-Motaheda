@@ -17,8 +17,8 @@ import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import Animated, { FadeInUp } from "react-native-reanimated";
-import { Text as UIText } from "@/shared/ui";
-import { kit } from "@/shared/kit";
+import { Text as UIText } from "@pharmacy/ui-native";
+import { kit } from "@pharmacy/ui-native";
 import { isRtl, flexRow } from "@/utils/layout";
 
 export type SocialProvider = "google";

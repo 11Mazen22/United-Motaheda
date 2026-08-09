@@ -30,7 +30,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { kit } from "@/shared/kit";
+import { kit } from "@pharmacy/ui-native";
 import Animated, { FadeIn, FadeInDown, FadeInUp } from "react-native-reanimated";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/lib/supabase";
@@ -38,9 +38,9 @@ import { updatePassword, getAuthError } from "@/features/auth";
 import { track } from "@/lib/analytics";
 import { captureError } from "@/lib/crashReporter";
 import { Input } from "@/components/ui/Input";
-import { Button } from "@/shared/kit";
-import { Text } from "@/shared/ui";
-import { theme } from "@/shared/theme";
+import { Button } from "@pharmacy/ui-native";
+import { Text } from "@pharmacy/ui-native";
+import { theme } from "@pharmacy/design-tokens";
 import { flexRow, isRtl, textAlignStart, BACK_CHEVRON } from "@/utils/layout";
 
 const IS_RTL     = isRtl();

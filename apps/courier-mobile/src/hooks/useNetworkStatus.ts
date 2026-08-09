@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import NetInfo, { NetInfoState } from '@react-native-community/netinfo';
 import { queryClient } from '@/lib/queryClient';
-import { showToast } from '@/components/ui/Toast';
+import { showToast } from '@pharmacy/ui-native';
 
 export function useNetworkStatus() {
   const [isConnected, setIsConnected] = useState(true);

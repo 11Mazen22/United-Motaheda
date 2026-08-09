@@ -9,7 +9,7 @@
       "DOM"
     ],
     "moduleResolution": "bundler",
-    "baseUrl": ".",
+
     "noEmit": true,
     "resolveJsonModule": true,
     "skipLibCheck": true,
@@ -18,7 +18,6 @@
     
     // Override web-centric base config settings
     "types": [],
-    "ignoreDeprecations": null,
 
     "paths": {
       "@/*": [
@@ -26,7 +25,13 @@
       ],
       "@app/*": [
         "./app/*"
-      ]
+      ],
+      "react": ["./node_modules/@types/react"],
+      "react-native": ["./node_modules/react-native"],
+      "react-native-reanimated": ["./node_modules/react-native-reanimated"],
+      "react-native-safe-area-context": ["./node_modules/react-native-safe-area-context"],
+      "@expo/vector-icons": ["./node_modules/@expo/vector-icons"],
+      "expo-haptics": ["./node_modules/expo-haptics"]
     }
   },
   "include": [

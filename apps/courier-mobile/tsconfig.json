@@ -3,7 +3,13 @@
   "compilerOptions": {
     "strict": true,
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "react": ["./node_modules/@types/react"],
+      "react-native": ["./node_modules/react-native"],
+      "react-native-reanimated": ["./node_modules/react-native-reanimated"],
+      "react-native-safe-area-context": ["./node_modules/react-native-safe-area-context"],
+      "@expo/vector-icons": ["./node_modules/@expo/vector-icons"],
+      "expo-haptics": ["./node_modules/expo-haptics"]
     }
   },
   "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.d.ts", "expo-env.d.ts"]

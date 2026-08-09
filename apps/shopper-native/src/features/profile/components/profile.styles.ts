@@ -6,7 +6,7 @@
  *   PROFILE      — feature-specific accent colours without theme tokens
  */
 import { StyleSheet } from "react-native";
-import { theme } from "@/shared/theme";
+import { theme } from "@pharmacy/design-tokens";
 import { flexRow, isRtl } from "@/utils/layout";
 
 // ─── Glass overlay constants ──────────────────────────────────────────────────

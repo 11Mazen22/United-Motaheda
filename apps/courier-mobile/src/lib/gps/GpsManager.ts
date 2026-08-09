@@ -230,7 +230,7 @@ export const GpsManager = new GpsManagerClass();
 // This is called once when the module loads. The actual handler is set
 // up in the app entry point / root layout.
 if (!TaskManager.isTaskDefined(BACKGROUND_LOCATION_TASK)) {
-  TaskManager.defineTask(BACKGROUND_LOCATION_TASK, ({ data, error }: any) => {
+  TaskManager.defineTask(BACKGROUND_LOCATION_TASK, async ({ data, error }: any) => {
     if (error) {
       console.error('[BackgroundLocation]', error.message);
       return;

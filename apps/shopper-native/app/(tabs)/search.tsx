@@ -66,11 +66,11 @@ import { useScreenTrace } from "@/features/observability";
 import { useScreenLayout } from "@/utils/responsive";
 import { supabase } from "@/lib/supabase";
 import { ProductCardSkeleton } from "@/components/ui/Skeleton";
-import { Text as UIText } from "@/shared/ui";
-import { theme } from "@/shared/theme";
+import { Text as UIText } from "@pharmacy/ui-native";
+import { theme } from "@pharmacy/design-tokens";
 import { formatPrice } from "@/utils/format";
 import { flexRow, isRtl, textAlignStart, FORWARD_CHEVRON } from "@/utils/layout";
-import { kit } from "@/shared/kit";
+import { kit } from "@pharmacy/ui-native";
 import { useAuth } from "@/features/auth";
 import type { NativeProduct, NativeCategory } from "@/services/productsApi";
 

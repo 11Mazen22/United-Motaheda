@@ -22,6 +22,7 @@ import {
 import {
   searchProducts,
   getLowStockProducts,
+  getOutOfStockProducts,
 }                                      from "../api/inventory";
 import { pharmacistQueryKeys }         from "./queryKeys";
 import type { PrescriptionReviewStatus } from "../api/types";
@@ -110,6 +111,17 @@ export function useLowStockProducts() {
   return useQuery({
     queryKey: pharmacistQueryKeys.lowStock(),
     queryFn:  () => getLowStockProducts(5, 50),
+    staleTime: 5 * 60_000,
+    gcTime:    10 * 60_000,
+    retry:     2,
+    refetchOnWindowFocus: false,
+  });
+}
+
+export function useOutOfStockProducts() {
+  return useQuery({
+    queryKey: [...pharmacistQueryKeys.lowStock(), "out-of-stock"],
+    queryFn:  () => getOutOfStockProducts(100),
     staleTime: 5 * 60_000,
     gcTime:    10 * 60_000,
     retry:     2,

@@ -7,13 +7,13 @@
 
 import React, { memo, useCallback, useMemo } from "react";
 import { StyleSheet, View } from "react-native";
-import { Text as UIText } from "@/shared/ui";
+import { Text as UIText } from "@pharmacy/ui-native";
 import { Ionicons } from "@expo/vector-icons";
 import Animated, { FadeIn, FadeInDown, useAnimatedStyle, useSharedValue, withRepeat, withSequence, withTiming } from "react-native-reanimated";
 import { BranchCard } from "./BranchCard";
 import { useBranches } from "../branches/useBranches";
 import { sortBranchesByDistance, type Coordinates } from "../geofencing";
-import { theme } from "@/shared/theme";
+import { theme } from "@pharmacy/design-tokens";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
 import type { Branch } from "../branches/types";
 

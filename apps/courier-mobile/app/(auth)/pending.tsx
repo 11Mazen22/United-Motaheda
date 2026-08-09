@@ -10,8 +10,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
-import { colors, typography, spacing, radii, shadows } from '@/theme/tokens';
-import { Button } from '@/components/ui';
+import { colors, typography, spacing, radii, shadows } from '@pharmacy/ui-native/courier-tokens';
+import { Button } from '@pharmacy/ui-native';
 import { driverApi } from '@/lib/api';
 import { useAuthStore } from '@/stores/auth.store';
 
@@ -204,14 +204,14 @@ const s = StyleSheet.create({
   },
   statusTitle: {
     fontSize: typography['2xl'],
-    fontWeight: typography.extrabold,
+    fontFamily: typography.black,
     textAlign: 'center',
   },
   statusDesc: {
     fontSize: typography.base,
     color: colors.inkSoft,
     textAlign: 'center',
-    lineHeight: typography.base * typography.lineHeightNormal,
+    lineHeight: typography.base * typography.normal,
   },
   reasonBox: {
     backgroundColor: colors.surface,
@@ -222,7 +222,7 @@ const s = StyleSheet.create({
   },
   reasonLabel: {
     fontSize: typography.xs,
-    fontWeight: typography.bold,
+    fontFamily: typography.bold,
     color: colors.error,
     marginBottom: 4,
   },
@@ -239,7 +239,7 @@ const s = StyleSheet.create({
   },
   stepsTitle: {
     fontSize: typography.md,
-    fontWeight: typography.bold,
+    fontFamily: typography.bold,
     color: colors.ink,
     marginBottom: spacing[2],
   },
@@ -262,7 +262,7 @@ const s = StyleSheet.create({
     marginTop: spacing[2],
     padding: spacing[2],
   },
-  refreshText: { fontSize: typography.sm, color: colors.primary, fontWeight: typography.semibold },
+  refreshText: { fontSize: typography.sm, color: colors.primary, fontFamily: typography.semibold },
 
   startBtn: { marginBottom: spacing[4] },
 
@@ -275,5 +275,5 @@ const s = StyleSheet.create({
   supportText: { fontSize: typography.sm, color: colors.inkMuted },
 
   logoutBtn: { marginTop: spacing[6], padding: spacing[2] },
-  logoutText: { fontSize: typography.sm, color: colors.error, fontWeight: typography.medium },
+  logoutText: { fontSize: typography.sm, color: colors.error, fontFamily: typography.medium },
 });

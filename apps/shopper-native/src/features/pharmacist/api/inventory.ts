@@ -140,6 +140,28 @@ export async function getLowStockProducts(
 }
 
 /**
+ * Out-of-stock products — stock = 0.
+ * Used by the pharmacist inventory intelligence out-of-stock tab.
+ */
+export async function getOutOfStockProducts(
+  limit = 50,
+): Promise<PharmacistProduct[]> {
+  const { data, error } = await supabase
+    .from("product_effective_prices")
+    .select(
+      "id, code, barcode, name_ar, name_en, base_price, effective_price, " +
+      "stock, category_name, image_url, is_active, has_active_promotion",
+    )
+    .eq("is_active", true)
+    .eq("stock", 0)
+    .order("name_ar", { ascending: true })
+    .limit(limit);
+
+  if (error) throw error;
+  return ((data ?? []) as unknown as RawProductRow[]).map((r) => mapProduct(r));
+}
+
+/**
  * Count of low-stock products — dashboard widget.
  */
 export async function countLowStockProducts(threshold = 5): Promise<number> {

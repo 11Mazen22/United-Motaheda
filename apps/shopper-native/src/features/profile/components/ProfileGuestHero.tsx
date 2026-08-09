@@ -23,15 +23,15 @@
  */
 import React, { memo } from "react";
 import { StyleSheet, View } from "react-native";
-import { kit } from "@/shared/kit";
+import { kit } from "@pharmacy/ui-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import Animated, { FadeInUp, ReduceMotion } from "react-native-reanimated";
-import { Text as UIText } from "@/shared/ui";
+import { Text as UIText } from "@pharmacy/ui-native";
 import { AppLogo } from "@/shared/components/AppLogo";
 import { PressableScale } from "@/shared/motion";
-import { theme } from "@/shared/theme";
+import { theme } from "@pharmacy/design-tokens";
 import { HERO_GLASS } from "./profile.styles";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
 

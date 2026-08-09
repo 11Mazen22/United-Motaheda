@@ -14,9 +14,9 @@ import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
-import { Text as UIText } from "@/shared/ui";
+import { Text as UIText } from "@pharmacy/ui-native";
 import { AppHeader } from "@/shared/components";
-import { kit, Button } from "@/shared/kit";
+import { kit, Button } from "@pharmacy/ui-native";
 import { emptyS } from "./orders.styles";
 
 // Category chips — kit semantic tints

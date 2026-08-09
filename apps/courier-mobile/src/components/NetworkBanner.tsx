@@ -6,7 +6,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, typography, spacing } from '@/theme/tokens';
+import { colors, typography, spacing } from '@pharmacy/ui-native/courier-tokens';
 import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 
 export function NetworkBanner() {
@@ -44,5 +44,5 @@ const s = StyleSheet.create({
     paddingBottom: spacing[1],
     zIndex: 9998,
   },
-  text: { color: colors.white, fontSize: typography.sm, fontWeight: typography.medium },
+  text: { color: colors.white, fontSize: typography.sm, fontFamily: typography.medium },
 });

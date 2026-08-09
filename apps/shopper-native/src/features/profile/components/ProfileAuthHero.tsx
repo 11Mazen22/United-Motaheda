@@ -18,7 +18,7 @@
 import React, { memo, useCallback } from "react";
 import { Platform, Pressable, StyleSheet, View } from "react-native";
 import { Image } from "expo-image";
-import { kit } from "@/shared/kit";
+import { kit } from "@pharmacy/ui-native";
 import { Ionicons } from "@expo/vector-icons";
 import Animated, {
   useAnimatedStyle,
@@ -28,8 +28,8 @@ import Animated, {
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import * as Haptics from "expo-haptics";
-import { Text as UIText } from "@/shared/ui";
-import { theme } from "@/shared/theme";
+import { Text as UIText } from "@pharmacy/ui-native";
+import { theme } from "@pharmacy/design-tokens";
 import { flexRow, isRtl, FORWARD_CHEVRON } from "@/utils/layout";
 import { styles, HERO_GLASS, PROFILE } from "./profile.styles";
 

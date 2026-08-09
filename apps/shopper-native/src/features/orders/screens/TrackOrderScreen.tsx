@@ -46,9 +46,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 import { useQueryClient } from "@tanstack/react-query";
 
-import { Text as UIText } from "@/shared/ui";
-import { kit } from "@/shared/kit";
-import { theme } from "@/shared/theme";
+import { Text as UIText } from "@pharmacy/ui-native";
+import { kit } from "@pharmacy/ui-native";
+import { theme } from "@pharmacy/design-tokens";
 import { Badge } from "@/components/ui/Badge";
 import { BACK_CHEVRON, flexRow, isRtl, textAlignStart } from "@/utils/layout";
 import { useOrderDetail } from "../hooks/useOrders";

@@ -40,13 +40,13 @@ import { Badge } from "@/components/ui/Badge";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ProductCard } from "@/components/ProductCard";
-import { Text as UIText } from "@/shared/ui";
+import { Text as UIText } from "@pharmacy/ui-native";
 import { useCartStore } from "@/stores/cart";
 import { useWishlistStore } from "@/stores/wishlist";
-import { theme } from "@/shared/theme";
+import { theme } from "@pharmacy/design-tokens";
 import { formatPrice } from "@/utils/format";
 import { flexRow, isRtl, textAlignStart, textAlignEnd, BACK_CHEVRON, FORWARD_CHEVRON } from "@/utils/layout";
-import { kit, Button as KitButton } from "@/shared/kit";
+import { kit, Button as KitButton } from "@pharmacy/ui-native";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 

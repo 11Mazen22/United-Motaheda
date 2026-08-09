@@ -131,7 +131,8 @@ const palette = {
 
 // ─── Semantic Color Tokens ────────────────────────────────────────────────────
 
-export const colors = {
+/** Legacy shopper-native color tokens. Prefer the semantic `colors` export. */
+export const legacyColors = {
   // ── Brand
   brand: {
     lightest:  palette.teal[25],
@@ -234,7 +235,8 @@ export const colors = {
 
 // ─── Typography ───────────────────────────────────────────────────────────────
 
-export const typography = {
+/** Legacy shopper-native typography tokens. */
+export const legacyTypography = {
   fonts: {
     regular:   'Cairo_400Regular',
     medium:    'Cairo_400Regular',   // Cairo has no 500, use 400
@@ -276,7 +278,7 @@ export const typography = {
 } as const;
 
 // Shorthand font references (backward-compat)
-export const fonts = typography.fonts;
+export const fonts = legacyTypography.fonts;
 export const fontSize = {
   xs:    11,
   sm:    12,
@@ -293,7 +295,8 @@ export const fontSize = {
 
 // ─── Spacing (8-pt grid) ──────────────────────────────────────────────────────
 
-export const spacing = {
+/** Legacy shopper-native spacing tokens. */
+export const legacySpacing = {
   px:   1,
   0.5:  4,
   1:    8,
@@ -523,7 +526,8 @@ export const zIndex = {
 
 // ─── Layout constants ─────────────────────────────────────────────────────────
 
-export const layout = {
+/** Legacy shopper-native layout constants. */
+export const legacyLayout = {
   tabBarHeight:      96,   // floating bar: 62px height + safe-area + margin
   headerHeight:      56,
   bottomSheetRadius: 28,
@@ -539,12 +543,13 @@ export const layout = {
 
 // ─── Theme object (canonical export) ─────────────────────────────────────────
 
+/** Legacy shopper-native theme preserved for source compatibility. */
 export const theme = {
-  colors,
-  typography,
+  colors: legacyColors,
+  typography: legacyTypography,
   fonts,
   fontSize,
-  spacing,
+  spacing: legacySpacing,
   radius,
   fontWeight,
   shadow,
@@ -552,8 +557,9 @@ export const theme = {
   gradients,
   catGradients,
   zIndex,
-  layout,
+  layout: legacyLayout,
 } as const;
 
+/** Type of the legacy shopper-native `theme` export. */
 export type Theme = typeof theme;
 export default theme;

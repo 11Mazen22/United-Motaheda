@@ -28,8 +28,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { kit, Button } from "@/shared/kit";
-import { Text } from "@/shared/ui";
+import { kit, Button } from "@pharmacy/ui-native";
+import { Text } from "@pharmacy/ui-native";
 import { flexRow, isRtl, textAlignStart, BACK_CHEVRON } from "@/utils/layout";
 import { useAuth } from "@/features/auth";
 import {

@@ -35,9 +35,9 @@ import Animated, { FadeIn, FadeInUp } from "react-native-reanimated";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/lib/supabase";
 import { PHONE_VERIFICATION_ENABLED } from "@/features/auth";
-import { Text } from "@/shared/ui";
-import { Button } from "@/shared/kit";
-import { kit } from "@/shared/kit";
+import { Text } from "@pharmacy/ui-native";
+import { Button } from "@pharmacy/ui-native";
+import { kit } from "@pharmacy/ui-native";
 import { flexRow, isRtl } from "@/utils/layout";
 
 export default function AuthCallbackScreen() {

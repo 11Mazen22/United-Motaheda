@@ -23,9 +23,9 @@ import Animated, {
   withSpring,
 } from "react-native-reanimated";
 import { useTranslation } from "react-i18next";
-import { Text as UIText } from "@/shared/ui";
-import { theme } from "@/shared/theme";
-import { kit } from "@/shared/kit";
+import { Text as UIText } from "@pharmacy/ui-native";
+import { theme } from "@pharmacy/design-tokens";
+import { kit } from "@pharmacy/ui-native";
 import { useScreenLayout } from "@/utils/responsive";
 import { HomeSectionHeader } from "./HomeSectionHeader";
 import { sectionStyles } from "./home.styles";

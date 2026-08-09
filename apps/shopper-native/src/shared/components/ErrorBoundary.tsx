@@ -20,12 +20,12 @@
  *      fires on early boot. An unregistered fontFamily makes Text invisible
  *      on Android; the OS system font is always available.
  *
- *   2. NO theme import — @/shared/theme resolves through tokens.ts at module
+ *   2. NO theme import — @pharmacy/design-tokens resolves through tokens.ts at module
  *      load time. If the theme module itself throws (broken OTA asset, native
  *      module mismatch), the ErrorBoundary must still render. Keeping styles
  *      as hardcoded hex literals is the only way to guarantee this.
  *
- *   DO NOT add `import { theme } from "@/shared/theme"` here or replace
+ *   DO NOT add `import { theme } from "@pharmacy/design-tokens"` here or replace
  *   these hex values with token references. The styles below are intentionally
  *   hardcoded and must remain so.
  */

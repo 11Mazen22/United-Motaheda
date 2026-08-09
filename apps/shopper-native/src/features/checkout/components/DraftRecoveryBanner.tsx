@@ -14,9 +14,9 @@ import { Pressable, StyleSheet, View } from "react-native";
 import Animated, { FadeInDown, FadeOutUp } from "react-native-reanimated";
 import { Ionicons }       from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import { Text as UIText } from "@/shared/ui";
-import { kit }            from "@/shared/kit";
-import { theme }          from "@/shared/theme";
+import { Text as UIText } from "@pharmacy/ui-native";
+import { kit }            from "@pharmacy/ui-native";
+import { theme }          from "@pharmacy/design-tokens";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
 import type { CheckoutDraft }             from "../resilience";
 

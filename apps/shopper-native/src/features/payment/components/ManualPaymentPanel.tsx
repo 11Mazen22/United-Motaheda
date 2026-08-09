@@ -10,7 +10,7 @@ import {
   StyleSheet,
   View,
 } from "react-native";
-import { Text as UIText } from "@/shared/ui";
+import { Text as UIText } from "@pharmacy/ui-native";
 import { showSuccessSheet, showErrorSheet } from "@/shared/store/appSheetStore";
 import * as Clipboard from "expo-clipboard";
 import * as Haptics from "expo-haptics";
@@ -18,8 +18,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
 import { Input } from "@/components/ui/Input";
-import { theme } from "@/shared/theme";
-import { kit } from "@/shared/kit";
+import { theme } from "@pharmacy/design-tokens";
+import { kit } from "@pharmacy/ui-native";
 import { MANUAL_PAYMENT_WALLET_NUMBER } from "../constants";
 
 export interface ManualPaymentPanelProps {

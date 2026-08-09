@@ -27,8 +27,8 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { AppLogo }        from "@/shared/components/AppLogo";
-import { kit }            from "@/shared/kit";
-import { theme }          from "@/shared/theme";
+import { kit }            from "@pharmacy/ui-native";
+import { theme }          from "@pharmacy/design-tokens";
 import { onSplashExited } from "@/shared/splashBridge";
 import { isRtl }          from "@/utils/layout";
 

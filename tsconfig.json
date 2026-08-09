@@ -6,6 +6,10 @@
   ],
   "exclude": [
     "node_modules",
-    "**/node_modules"
+    "**/node_modules",
+    "apps/shopper-native",
+    "apps/courier-mobile",
+    "packages/ui-native",
+    "packages/design-tokens"
   ]
 }

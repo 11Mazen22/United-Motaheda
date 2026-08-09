@@ -18,7 +18,7 @@ function makeShadow(
   yOffset: number,
   opacity: number,
   blur: number,
-  elevation: number,
+  _elevation: number,
 ): object {
   const hex = color.replace('#', '');
   const n   = parseInt(hex.length === 3 ? hex.split('').map((c) => c + c).join('') : hex, 16);

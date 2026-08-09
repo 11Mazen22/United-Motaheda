@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
-import { colors, spacing, typography, radii } from '@/theme/tokens';
+import { colors, spacing, typography, radii } from '@pharmacy/ui-native/courier-tokens';
 
 interface State {
   hasError: boolean;
@@ -61,7 +61,7 @@ const s = StyleSheet.create({
   },
   title: {
     fontSize: typography.lg,
-    fontWeight: typography.bold,
+    fontFamily: typography.bold,
     color: colors.ink,
     marginBottom: spacing[2],
     textAlign: 'center',
@@ -71,7 +71,7 @@ const s = StyleSheet.create({
     color: colors.inkMuted,
     textAlign: 'center',
     marginBottom: spacing[6],
-    lineHeight: typography.base * typography.lineHeightNormal,
+    lineHeight: typography.base * typography.normal,
   },
   button: {
     backgroundColor: colors.primary,
@@ -81,7 +81,7 @@ const s = StyleSheet.create({
   },
   buttonText: {
     color: colors.white,
-    fontWeight: typography.semibold,
+    fontFamily: typography.semibold,
     fontSize: typography.base,
   },
 });

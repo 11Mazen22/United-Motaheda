@@ -11,9 +11,9 @@
  *   • Free-delivery icon well: 48×48 (was 42×42)
  */
 import { StyleSheet } from "react-native";
-import { theme } from "@/shared/theme";
+import { theme } from "@pharmacy/design-tokens";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
-import { kit } from "@/shared/kit";
+import { kit } from "@pharmacy/ui-native";
 
 const IS_RTL     = isRtl();
 const TEXT_START = textAlignStart(IS_RTL);

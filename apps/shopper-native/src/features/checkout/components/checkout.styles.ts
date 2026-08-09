@@ -1,7 +1,7 @@
 import { StyleSheet } from "react-native";
-import { theme } from "@/shared/theme";
+import { theme } from "@pharmacy/design-tokens";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
-import { kit } from "@/shared/kit";
+import { kit } from "@pharmacy/ui-native";
 
 // ─── Header ──────────────────────────────────────────────────────────────────
 export const headerStyles = StyleSheet.create({

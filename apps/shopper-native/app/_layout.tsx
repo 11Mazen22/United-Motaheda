@@ -36,6 +36,7 @@ import { LanguageProvider } from "@/i18n/LanguageProvider";
 import "@/i18n";
 import { useTranslation } from "react-i18next";
 import { useCartStore } from "@/stores/cart";
+import { ThemeProvider } from "@pharmacy/ui-native";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -139,6 +140,7 @@ export default function RootLayout() {
         <PersistQueryClientProvider client={queryClient} persistOptions={persistOptions}>
           <NetworkBridge />
           <LanguageProvider>
+          <ThemeProvider>
           <AuthProvider>
             {Platform.OS !== "web" && (
               <StatusBar style="light" translucent backgroundColor="transparent" />
@@ -179,6 +181,7 @@ export default function RootLayout() {
             <NotificationBanner />
             <AppSheet />
           </AuthProvider>
+          </ThemeProvider>
           </LanguageProvider>
         </PersistQueryClientProvider>
       </SafeAreaProvider>

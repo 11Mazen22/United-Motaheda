@@ -9,7 +9,7 @@
  *   • Realtime via usePharmacistRealtimeSync (mounted in layout)
  */
 
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -25,80 +25,20 @@ import { useTranslation }    from "react-i18next";
 import { useQueryClient }    from "@tanstack/react-query";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
-import { Screen, Text as UIText } from "@/shared/ui";
-import { kit }                    from "@/shared/kit";
-import { theme }                  from "@/shared/theme";
+import { Screen, Text as UIText } from "@pharmacy/ui-native";
+import { kit }                    from "@pharmacy/ui-native";
+import { theme }                  from "@pharmacy/design-tokens";
 import { useAuth }                from "@/features/auth";
-import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
+import { edgeEnd, flexRow, isRtl, textAlignStart } from "@/utils/layout";
 
 import { usePharmacistOrderQueue, usePharmacistDashboard } from "../hooks/usePharmacistQueries";
 import { pharmacistQueryKeys }  from "../hooks/queryKeys";
 import { OrderQueueCard }       from "../components/OrderQueueCard";
+import { StatCard }             from "../components/StatCard";
 import type { PharmacistOrder } from "../api/types";
 
 const IS_RTL     = isRtl();
 const TEXT_START = textAlignStart(IS_RTL);
-
-// ─── KPI Card ─────────────────────────────────────────────────────────────────
-
-function KpiCard({
-  value, label, icon, iconColor, iconBg, onPress,
-}: {
-  value:     number | string;
-  label:     string;
-  icon:      React.ComponentProps<typeof Ionicons>["name"];
-  iconColor: string;
-  iconBg:    string;
-  onPress?:  () => void;
-}) {
-  return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => [kpi.card, pressed && onPress && kpi.cardPressed]}
-      accessibilityRole={onPress ? "button" : "none"}
-    >
-      <View style={[kpi.iconWell, { backgroundColor: iconBg }]}>
-        <Ionicons name={icon} size={20} color={iconColor} />
-      </View>
-      <UIText style={kpi.value}>{value ?? "—"}</UIText>
-      <UIText style={kpi.label} numberOfLines={2}>{label}</UIText>
-    </Pressable>
-  );
-}
-
-const kpi = StyleSheet.create({
-  card: {
-    flex:            1,
-    backgroundColor: kit.color.surface,
-    borderRadius:    kit.radius.xl,
-    padding:         16,
-    gap:             8,
-    borderWidth:     1,
-    borderColor:     kit.color.line,
-    ...kit.shadow.card,
-    minWidth:        110,
-  },
-  cardPressed: { opacity: 0.85, transform: [{ scale: 0.97 }] },
-  iconWell: {
-    width: 44, height: 44, borderRadius: 14,
-    alignItems: "center", justifyContent: "center",
-  },
-  value: {
-    fontSize:           28,
-    lineHeight:         34,
-    fontFamily:         theme.fonts.black,
-    color:              kit.color.ink,
-    includeFontPadding: false,
-  },
-  label: {
-    fontSize:           12,
-    lineHeight:         16,
-    fontFamily:         theme.fonts.bold,
-    color:              kit.color.inkSoft,
-    textAlign:          TEXT_START,
-    includeFontPadding: false,
-  },
-});
 
 // ─── Quick action tile ────────────────────────────────────────────────────────
 
@@ -153,7 +93,7 @@ const qt = StyleSheet.create({
   badge: {
     position:          "absolute",
     top:               -4,
-    right:             -4,
+    [edgeEnd(IS_RTL)]: -4,
     minWidth:          18,
     height:            18,
     borderRadius:      9,
@@ -184,8 +124,9 @@ const qt = StyleSheet.create({
 export function WorkbenchScreen(): React.ReactElement {
   const { t }                = useTranslation();
   const router               = useRouter();
-  const { user, signOut }    = useAuth();
+  const { user }             = useAuth();
   const qc                   = useQueryClient();
+  const listRef              = useRef<FlatList<PharmacistOrder>>(null);
   const [refreshing, setRefreshing] = useState(false);
 
   const queueQ = usePharmacistOrderQueue();
@@ -215,6 +156,7 @@ export function WorkbenchScreen(): React.ReactElement {
   return (
     <Screen edgeTop background={kit.color.canvas}>
       <FlatList
+        ref={listRef}
         data={orders}
         keyExtractor={(o) => o.id}
         showsVerticalScrollIndicator={false}
@@ -256,8 +198,8 @@ export function WorkbenchScreen(): React.ReactElement {
                   >
                     <Ionicons name="notifications-outline" size={20} color="rgba(255,255,255,0.75)" />
                   </Pressable>
-                  <Pressable onPress={() => void signOut()} style={s.heroIconBtn}>
-                    <Ionicons name="log-out-outline" size={20} color="rgba(255,255,255,0.75)" />
+                  <Pressable onPress={() => router.push("/(pharmacist)/profile" as never)} style={s.heroIconBtn}>
+                    <Ionicons name="person-outline" size={20} color="rgba(255,255,255,0.75)" />
                   </Pressable>
                 </View>
               </View>
@@ -273,15 +215,15 @@ export function WorkbenchScreen(): React.ReactElement {
 
             {/* ── KPI Grid ──────────────────────────────────────────── */}
             <Animated.View entering={FadeInDown.delay(0).duration(320)} style={[s.kpiGrid, { flexDirection: flexRow(IS_RTL) }]}>
-              <KpiCard
+              <StatCard
                 value={stats?.activeOrders ?? 0}
                 label={t("pharmacist.statActiveOrders")}
                 icon="bag-handle-outline"
                 iconColor={kit.color.accentDeep}
                 iconBg={kit.color.accentTint}
-                onPress={() => {/* scroll to queue */}}
+                onPress={() => listRef.current?.scrollToOffset({ offset: 520, animated: true })}
               />
-              <KpiCard
+              <StatCard
                 value={stats?.pendingPrescriptions ?? 0}
                 label={t("pharmacist.statPendingRx")}
                 icon="document-text-outline"
@@ -292,14 +234,14 @@ export function WorkbenchScreen(): React.ReactElement {
             </Animated.View>
 
             <Animated.View entering={FadeInDown.delay(50).duration(320)} style={[s.kpiGrid, { flexDirection: flexRow(IS_RTL) }]}>
-              <KpiCard
+              <StatCard
                 value={stats?.preparing ?? 0}
                 label={t("pharmacist.statPreparing")}
                 icon="construct-outline"
                 iconColor={kit.color.accentDeep}
                 iconBg={kit.color.accentTint}
               />
-              <KpiCard
+              <StatCard
                 value={stats?.lowStockCount ?? 0}
                 label={t("pharmacist.statLowStock")}
                 icon="alert-circle-outline"
@@ -331,6 +273,11 @@ export function WorkbenchScreen(): React.ReactElement {
                 icon="bar-chart-outline"
                 label={t("pharmacist.qaAnalytics")}
                 onPress={() => router.push("/(pharmacist)/analytics" as never)}
+              />
+              <QuickTile
+                icon="person-outline"
+                label={t("pharmacist.qaProfile")}
+                onPress={() => router.push("/(pharmacist)/profile" as never)}
               />
             </Animated.View>
 
@@ -403,7 +350,7 @@ const s = StyleSheet.create({
   heroOrb: {
     position:        "absolute",
     top:             -60,
-    right:           -60,
+    [edgeEnd(IS_RTL)]: -60,
     width:           200,
     height:          200,
     borderRadius:    100,
@@ -475,11 +422,13 @@ const s = StyleSheet.create({
   // ── Quick actions ─────────────────────────────────────────────────────────
   quickCard: {
     flexDirection:   flexRow(IS_RTL),
-    justifyContent:  "space-around",
+    justifyContent:  "space-between",
     marginHorizontal: kit.inset.screen,
     marginTop:       14,
     paddingVertical: 16,
     paddingHorizontal: 8,
+    flexWrap:        "wrap",
+    rowGap:          12,
     backgroundColor: kit.color.surface,
     borderRadius:    kit.radius.xl,
     borderWidth:     1,

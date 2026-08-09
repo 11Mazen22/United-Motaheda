@@ -26,9 +26,9 @@ import { useTranslation }  from "react-i18next";
 import { useQueryClient }  from "@tanstack/react-query";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
-import { Screen, Text as UIText } from "@/shared/ui";
-import { kit }                    from "@/shared/kit";
-import { theme }                  from "@/shared/theme";
+import { Screen, Text as UIText } from "@pharmacy/ui-native";
+import { kit }                    from "@pharmacy/ui-native";
+import { theme }                  from "@pharmacy/design-tokens";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
 import { formatPrice }            from "@/utils/format";
 

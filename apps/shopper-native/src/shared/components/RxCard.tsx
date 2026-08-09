@@ -23,10 +23,10 @@ import { Pressable, StyleSheet, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
-import { kit } from "@/shared/kit";
-import { theme } from "@/shared/theme";
-import { Button } from "@/shared/kit";
-import { Text } from "@/shared/ui";
+import { kit } from "@pharmacy/ui-native";
+import { theme } from "@pharmacy/design-tokens";
+import { Button } from "@pharmacy/ui-native";
+import { Text } from "@pharmacy/ui-native";
 import type { Prescription, RxStatus } from "@/stores/prescriptionsStore";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
 

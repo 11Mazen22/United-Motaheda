@@ -33,9 +33,9 @@ import { Ionicons } from "@expo/vector-icons";
 import Animated, { FadeIn, SlideInDown, SlideOutDown } from "react-native-reanimated";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
-import { Text } from "@/shared/ui";
-import { Button } from "@/shared/kit";
-import { theme } from "@/shared/theme";
+import { Text } from "@pharmacy/ui-native";
+import { Button } from "@pharmacy/ui-native";
+import { theme } from "@pharmacy/design-tokens";
 import {
   OTP_RESEND_COOLDOWN_SECONDS,
   OTP_TTL_SECONDS,
@@ -300,7 +300,7 @@ interface CodeStepProps {
   code:               string;
   onChangeCode:       (v: string) => void;
   onPressBoxes:       () => void;
-  inputRef:           React.RefObject<TextInput>;
+  inputRef:           React.RefObject<TextInput | null>;
   onChangeNumber:     () => void;
   onResend:           () => void;
   onVerify:           () => void;
@@ -349,7 +349,7 @@ function CodeStep(props: CodeStepProps): React.ReactElement {
 
       {/* Hidden input drives the digit boxes */}
       <TextInput
-        ref={inputRef}
+        ref={(node) => { (inputRef as React.MutableRefObject<TextInput | null>).current = node; }}
         value={code}
         onChangeText={(v) => onChangeCode(v.replace(/\D/g, "").slice(0, DIGIT_COUNT))}
         keyboardType="number-pad"
@@ -448,7 +448,7 @@ function CodeStep(props: CodeStepProps): React.ReactElement {
 interface EditStepProps {
   value:      string;
   onChange:   (v: string) => void;
-  inputRef:   React.RefObject<TextInput>;
+  inputRef:   React.RefObject<TextInput | null>;
   onSend:     () => void;
   onBack:     () => void;
   sending:    boolean;
@@ -478,7 +478,7 @@ function EditStep({
         <Text variant="caption" weight="bold" align="right">{t("phoneVerify.phoneLabel")}</Text>
         <View style={[styles.phoneInputBox, error && styles.phoneInputBoxError]}>
           <TextInput
-            ref={inputRef}
+            ref={(node) => { (inputRef as React.MutableRefObject<TextInput | null>).current = node; }}
             value={value}
             onChangeText={onChange}
             keyboardType="phone-pad"

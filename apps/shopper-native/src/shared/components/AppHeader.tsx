@@ -9,21 +9,21 @@
  * heroes and do NOT mount AppHeader.
  *
  * // HANDOFF: deviated from §2.3 snippet which imports Text/Button from
- * // @/shared/ui — that atom doesn't exist yet (see SPEC §9.1). Using RN
+ * // @pharmacy/ui-native — that atom doesn't exist yet (see SPEC §9.1). Using RN
  * // <UIText> styled via theme.fonts/fontSize tokens until the Text atom
  * // lands on Day 2.
  */
 
 import React from "react";
 import { Pressable, StyleSheet, View } from "react-native";
-import { Text as UIText } from "@/shared/ui";
+import { Text as UIText } from "@pharmacy/ui-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { flexRow, isRtl, textAlignStart, BACK_ARROW } from "@/utils/layout";
 import { useCartStore } from "@/stores/cart";
-import { theme } from "@/shared/theme";
+import { theme } from "@pharmacy/design-tokens";
 
 const IS_RTL = isRtl();
 

@@ -15,9 +15,9 @@ import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
-import { Text as UIText } from "@/shared/ui";
-import { theme } from "@/shared/theme";
-import { kit, Button } from "@/shared/kit";
+import { Text as UIText } from "@pharmacy/ui-native";
+import { theme } from "@pharmacy/design-tokens";
+import { kit, Button } from "@pharmacy/ui-native";
 import { flexRow, isRtl, textAlignStart, BACK_CHEVRON } from "@/utils/layout";
 
 // ─── Feature rows — kit semantic tints ────────────────────────────────────────

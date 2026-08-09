@@ -32,8 +32,8 @@ import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import Animated, { FadeInDown } from "react-native-reanimated";
-import { kit, Button } from "@/shared/kit";
-import { Text } from "@/shared/ui";
+import { kit, Button } from "@pharmacy/ui-native";
+import { Text } from "@pharmacy/ui-native";
 import { flexRow, isRtl, textAlignStart, BACK_CHEVRON } from "@/utils/layout";
 import { useAuth } from "@/features/auth";
 import {

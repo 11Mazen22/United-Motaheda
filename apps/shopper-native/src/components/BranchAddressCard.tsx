@@ -4,7 +4,7 @@
 
 import React, { memo } from "react";
 import { View } from "react-native";
-import { Text as UIText } from "@/shared/ui";
+import { Text as UIText } from "@pharmacy/ui-native";
 import { BRANCH_ADDRESSES, type BranchAddress } from "@/data/branchAddresses";
 
 interface BranchAddressCardProps {

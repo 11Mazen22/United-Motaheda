@@ -33,8 +33,8 @@ import {
   type AppSheetAction,
   type AppSheetType,
 } from "@/shared/store/appSheetStore";
-import { Text as UIText } from "@/shared/ui";
-import { theme } from "@/shared/theme";
+import { Text as UIText } from "@pharmacy/ui-native";
+import { theme } from "@pharmacy/design-tokens";
 
 const { height: SCREEN_H } = Dimensions.get("window");
 const DISMISS_THRESHOLD     = 90;

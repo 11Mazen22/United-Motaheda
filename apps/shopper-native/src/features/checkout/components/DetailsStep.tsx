@@ -8,9 +8,9 @@ import { Controller, type Control, type FieldErrors } from "react-hook-form";
 import { Input } from "@/components/ui/Input";
 import { PlacesAutocompleteInput } from "@/components/ui/PlacesAutocompleteInput";
 import type { PlacesSuggestion } from "@/components/ui/PlacesAutocompleteInput";
-import { Text as UIText } from "@/shared/ui";
-import { theme } from "@/shared/theme";
-import { kit, SegmentedToggle } from "@/shared/kit";
+import { Text as UIText } from "@pharmacy/ui-native";
+import { theme } from "@pharmacy/design-tokens";
+import { kit, SegmentedToggle } from "@pharmacy/ui-native";
 import {
   BranchSelector,
   SUPPORTED_GOVERNORATE,

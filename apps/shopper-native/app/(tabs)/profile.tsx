@@ -1,5 +1,5 @@
 /**
- * ProfileScreen — VIP 2026 redesign on @/shared/kit.
+ * ProfileScreen — VIP 2026 redesign on @pharmacy/ui-native.
  *
  * LoyaltySummaryCard: LinearGradient removed → flat tier-colour fill + identity stripe.
  * SectionLabel: larger badge (32×32), bolder label.
@@ -29,9 +29,9 @@ import { useAuth } from "@/features/auth";
 import { useCartStore } from "@/stores/cart";
 import { useWishlistStore } from "@/stores/wishlist";
 import { useOrderStore } from "@/stores/orders";
-import { Text as UIText } from "@/shared/ui";
-import { theme } from "@/shared/theme";
-import { kit } from "@/shared/kit";
+import { Text as UIText } from "@pharmacy/ui-native";
+import { theme } from "@pharmacy/design-tokens";
+import { kit } from "@pharmacy/ui-native";
 import { useTranslation } from "react-i18next";
 import { useAppLanguage } from "@/i18n/LanguageProvider";
 import { ProfileAuthHero } from "@/features/profile/components/ProfileAuthHero";

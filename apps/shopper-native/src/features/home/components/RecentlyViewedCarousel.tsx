@@ -13,7 +13,7 @@ import React, { memo, useCallback } from "react";
 import { StyleSheet, View } from "react-native";
 import { FlashList, type ListRenderItem } from "@shopify/flash-list";
 import { useTranslation } from "react-i18next";
-import { kit } from "@/shared/kit";
+import { kit } from "@pharmacy/ui-native";
 import { ProductCard } from "@/components/ProductCard";
 import { useRecentlyViewedFeed } from "@/features/recommendations/hooks/useRecentlyViewedFeed";
 import { HomeSectionHeader } from "./HomeSectionHeader";

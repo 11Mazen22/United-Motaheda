@@ -21,8 +21,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { kit } from "@/shared/kit";
-import { Text } from "@/shared/ui";
+import { kit } from "@pharmacy/ui-native";
+import { Text } from "@pharmacy/ui-native";
 import {
   flexRow,
   isRtl,

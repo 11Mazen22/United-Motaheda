@@ -20,7 +20,7 @@ import { useAuthStore } from '@/stores/auth.store';
 import { socketManager } from '@/lib/socket';
 import { useGpsTracking } from '@/hooks/useGpsTracking';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
-import { Toast } from '@/components/ui/Toast';
+import { ThemeProvider, Toast } from '@pharmacy/ui-native';
 import { NetworkBanner } from '@/components/NetworkBanner';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
@@ -88,6 +88,7 @@ export default function RootLayout() {
     <ErrorBoundary>
       <GestureHandlerRootView style={{ flex: 1 }}>
         <SafeAreaProvider>
+          <ThemeProvider>
           <PersistQueryClientProvider
             client={queryClient}
             persistOptions={{ persister: asyncStoragePersister }}
@@ -114,6 +115,7 @@ export default function RootLayout() {
             {/* Network offline banner */}
             <NetworkBanner />
           </PersistQueryClientProvider>
+          </ThemeProvider>
         </SafeAreaProvider>
       </GestureHandlerRootView>
     </ErrorBoundary>

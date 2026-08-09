@@ -10,9 +10,9 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import * as ExpoLocation from "expo-location";
 import { useTranslation } from "react-i18next";
-import { Screen, Text as UIText } from "@/shared/ui";
-import { Button, kit } from "@/shared/kit";
-import { theme } from "@/shared/theme";
+import { Screen, Text as UIText } from "@pharmacy/ui-native";
+import { Button, kit } from "@pharmacy/ui-native";
+import { theme } from "@pharmacy/design-tokens";
 import { Badge } from "@/components/ui/Badge";
 import {
   DetailSection,

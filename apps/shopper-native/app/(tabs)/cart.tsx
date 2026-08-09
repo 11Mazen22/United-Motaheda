@@ -14,7 +14,7 @@ import {
   Pressable,
   View,
 } from "react-native";
-import { Text as UIText } from "@/shared/ui";
+import { Text as UIText } from "@pharmacy/ui-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -33,8 +33,8 @@ import {
 } from "@/features/delivery";
 import { showConfirmSheet } from "@/shared/store/appSheetStore";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { theme } from "@/shared/theme";
-import { kit } from "@/shared/kit";
+import { theme } from "@pharmacy/design-tokens";
+import { kit } from "@pharmacy/ui-native";
 import { FORWARD_CHEVRON } from "@/utils/layout";
 import { useScreenLayout } from "@/utils/responsive";
 import { s } from "@/features/cart/cart.styles";

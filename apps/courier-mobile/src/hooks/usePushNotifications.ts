@@ -5,7 +5,7 @@ import * as Device from 'expo-device';
 import { useRouter } from 'expo-router';
 import { driverApi } from '@/lib/api';
 import { useNotificationStore } from '@/stores/notification.store';
-import { showToast } from '@/components/ui/Toast';
+import { showToast } from '@pharmacy/ui-native';
 
 // Configure how notifications appear while app is in foreground
 Notifications.setNotificationHandler({

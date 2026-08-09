@@ -27,7 +27,7 @@ import {
 } from "react-native";
 import { FlashList } from "@shopify/flash-list";
 import { ProductCard } from "@/components/ProductCard";
-import { kit } from "@/shared/kit";
+import { kit } from "@pharmacy/ui-native";
 import { flexRow, isRtl } from "@/utils/layout";
 import { useScreenLayout } from "@/utils/responsive";
 import type { NativeProduct } from "../types";

@@ -24,8 +24,8 @@ import Animated, {
   withSpring,
 } from "react-native-reanimated";
 
-import { Text as UIText } from "../shared/ui/Text";
-import { kit } from "../shared/kit";
+import { Text as UIText } from "@pharmacy/ui-native";
+import { kit } from "@pharmacy/ui-native";
 import {
   isRtl,
   flexRow,

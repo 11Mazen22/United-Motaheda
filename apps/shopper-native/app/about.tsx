@@ -11,15 +11,15 @@ import {
   StyleSheet,
   View,
 } from "react-native";
-import { Text as UIText } from "@/shared/ui";
+import { Text as UIText } from "@pharmacy/ui-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import Animated, { FadeIn, FadeInDown, FadeInUp } from "react-native-reanimated";
-import { kit } from "@/shared/kit";
+import { kit } from "@pharmacy/ui-native";
 import { useTranslation } from "react-i18next";
-import { theme } from "@/shared/theme";
+import { theme } from "@pharmacy/design-tokens";
 import { AppLogo } from "@/shared/components/AppLogo";
 import { BranchMapList } from "@/components/BranchMapCard";
 import { useAppLanguage } from "@/i18n/LanguageProvider";

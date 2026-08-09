@@ -1,6 +1,6 @@
 ﻿import React, { useEffect } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
-import { Text as UIText } from "@/shared/ui";
+import { Text as UIText } from "@pharmacy/ui-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import Animated, {
@@ -18,8 +18,8 @@ import Animated, {
 import { useTranslation } from "react-i18next";
 import { fetchCatalogStats } from "@/services/productsApi";
 import type { CatalogStats } from "@/services/productsApi";
-import { theme } from "@/shared/theme";
-import { kit } from "@/shared/kit";
+import { theme } from "@pharmacy/design-tokens";
+import { kit } from "@pharmacy/ui-native";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>["name"];

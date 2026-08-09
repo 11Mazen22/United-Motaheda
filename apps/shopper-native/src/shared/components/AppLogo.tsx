@@ -13,7 +13,7 @@ import { StyleSheet, type StyleProp, type ViewStyle } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import Animated, { FadeIn, useReducedMotion } from "react-native-reanimated";
-import { kit } from "@/shared/kit";
+import { kit } from "@pharmacy/ui-native";
 
 const SIZE: Record<"xs" | "sm" | "md" | "lg" | "xl", number> = {
   xs: 24,

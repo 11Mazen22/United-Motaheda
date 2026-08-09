@@ -23,7 +23,7 @@ import Constants from "expo-constants";
 import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
 import { registerPushToken } from "../api";
-import { theme } from "@/shared/theme";
+import { theme } from "@pharmacy/design-tokens";
 
 // Foreground handler: show alert + play sound + show in tray even when active.
 // Guard: expo-notifications is a no-op on web and emits a warning if we register

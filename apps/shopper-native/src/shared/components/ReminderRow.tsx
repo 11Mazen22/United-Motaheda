@@ -9,10 +9,10 @@ import React from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import { kit } from "@/shared/kit";
-import { theme } from "@/shared/theme";
-import { Text } from "@/shared/ui";
-import { Button } from "@/shared/kit";
+import { kit } from "@pharmacy/ui-native";
+import { theme } from "@pharmacy/design-tokens";
+import { Text } from "@pharmacy/ui-native";
+import { Button } from "@pharmacy/ui-native";
 import { flexRow, isRtl } from "@/utils/layout";
 
 export interface Reminder {

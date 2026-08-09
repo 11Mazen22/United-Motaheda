@@ -13,8 +13,8 @@ import { useRouter } from 'expo-router';
 import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { formatDistanceToNow } from 'date-fns';
-import { colors, typography, fontWeight, spacing, radii, shadows } from '@/theme/tokens';
-import { Card, Badge, SkeletonCard, showToast } from '@/components/ui';
+import { colors, typography, fontWeight, spacing, radii, shadows } from '@pharmacy/ui-native/courier-tokens';
+import { Card, Badge, SkeletonCard, showToast } from '@pharmacy/ui-native';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { driverApi } from '@/lib/api';
 import { useAuthStore } from '@/stores/auth.store';
@@ -157,7 +157,7 @@ function EarningsTab() {
 
 const et = StyleSheet.create({
   scroll: { padding: spacing[4], gap: spacing[4], paddingBottom: spacing[10] },
-  sectionTitle: { fontSize: typography.base, fontWeight: typography.bold, color: colors.ink, marginBottom: spacing[1] },
+  sectionTitle: { fontSize: typography.base, fontFamily: typography.bold, color: colors.ink, marginBottom: spacing[1] },
   row: { flexDirection: 'row', gap: spacing[3] },
 });
 
@@ -260,10 +260,10 @@ const ht = StyleSheet.create({
   item: { padding: spacing[4] },
   itemRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
   itemLeft: { flex: 1, marginRight: spacing[3] },
-  itemAddress: { fontSize: typography.sm, fontWeight: typography.semibold, color: colors.ink },
+  itemAddress: { fontSize: typography.sm, fontFamily: typography.semibold, color: colors.ink },
   itemTime: { fontSize: typography.xs, color: colors.inkMuted, marginTop: 2 },
   itemRight: { alignItems: 'flex-end', gap: 4 },
-  itemEarnings: { fontSize: typography.base, fontWeight: typography.bold, color: colors.primary },
+  itemEarnings: { fontSize: typography.base, fontFamily: typography.bold, color: colors.primary },
   noRating: { fontSize: typography.xs, color: colors.inkFaint },
   durationRow: { flexDirection: 'row', alignItems: 'center', gap: spacing[2], marginTop: spacing[2] },
   duration: { fontSize: typography.xs, color: colors.inkFaint },
@@ -291,7 +291,7 @@ function DocBadge({ label, uploaded }: { label: string; uploaded: boolean }) {
 
 const db = StyleSheet.create({
   badge: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  label: { fontSize: typography.xs, fontWeight: typography.medium },
+  label: { fontSize: typography.xs, fontFamily: typography.medium },
 });
 
 // ─── Profile tab ──────────────────────────────────────────────────────────────
@@ -400,7 +400,7 @@ const pt = StyleSheet.create({
     borderRadius: radii.lg,
     marginBottom: spacing[2],
   },
-  pendingText: { fontSize: typography.sm, color: '#854D0E', fontWeight: typography.medium },
+  pendingText: { fontSize: typography.sm, color: '#854D0E', fontFamily: typography.medium },
   avatarSection: { alignItems: 'center', gap: spacing[2], marginBottom: spacing[2] },
   avatar: {
     width: 80,
@@ -522,6 +522,6 @@ const s = StyleSheet.create({
     borderBottomColor: 'transparent',
   },
   tabItemActive: { borderBottomColor: colors.primary },
-  tabLabel: { fontSize: typography.sm, color: colors.inkMuted, fontWeight: typography.medium },
-  tabLabelActive: { color: colors.primary, fontWeight: typography.bold },
+  tabLabel: { fontSize: typography.sm, color: colors.inkMuted, fontFamily: typography.medium },
+  tabLabelActive: { color: colors.primary, fontFamily: typography.bold },
 });

@@ -1,8 +1,8 @@
 ﻿import React from "react";
 import { View } from "react-native";
-import { Text as UIText } from "@/shared/ui";
-import { theme } from "@/shared/theme";
-import { kit } from "@/shared/kit";
+import { Text as UIText } from "@pharmacy/ui-native";
+import { theme } from "@pharmacy/design-tokens";
+import { kit } from "@pharmacy/ui-native";
 import { flexRow, isRtl } from "@/utils/layout";
 
 type Variant = "brand" | "success" | "warning" | "error" | "neutral" | "purple" | "info";

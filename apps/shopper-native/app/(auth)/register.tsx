@@ -57,10 +57,10 @@ import { track }          from "@/lib/analytics";
 import { captureError }   from "@/lib/crashReporter";
 import { requestAndStoreLocation } from "@/lib/requestLocation";
 import { Input }          from "@/components/ui/Input";
-import { Button }         from "@/shared/kit";
-import { Text as UIText } from "@/shared/ui";
-import { kit }            from "@/shared/kit";
-import { theme }          from "@/shared/theme";
+import { Button }         from "@pharmacy/ui-native";
+import { Text as UIText } from "@pharmacy/ui-native";
+import { kit }            from "@pharmacy/ui-native";
+import { theme }          from "@pharmacy/design-tokens";
 import { flexRow, isRtl, textAlignStart, BACK_CHEVRON, FORWARD_CHEVRON } from "@/utils/layout";
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>["name"];

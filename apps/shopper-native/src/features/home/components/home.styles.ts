@@ -10,7 +10,7 @@
  */
 
 import { StyleSheet } from "react-native";
-import { theme } from "@/shared/theme";
+import { theme } from "@pharmacy/design-tokens";
 import { flexRow, isRtl } from "@/utils/layout";
 
 const IS_RTL = isRtl();

@@ -15,9 +15,9 @@ import React from "react";
 import { View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import { theme } from "@/shared/theme";
-import { Card, Text } from "@/shared/ui";
-import { Button } from "@/shared/kit";
+import { theme } from "@pharmacy/design-tokens";
+import { Card, Text } from "@pharmacy/ui-native";
+import { Button } from "@pharmacy/ui-native";
 import { Badge } from "@/components/ui/Badge";
 import { flexRow, isRtl } from "@/utils/layout";
 

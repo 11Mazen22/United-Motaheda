@@ -8,9 +8,9 @@ import Svg, {
   Circle,
   Path,
 } from "react-native-svg";
-import { theme } from "@/shared/theme";
-import { kit } from "@/shared/kit";
-import { Text as UIText } from "@/shared/ui";
+import { theme } from "@pharmacy/design-tokens";
+import { kit } from "@pharmacy/ui-native";
+import { Text as UIText } from "@pharmacy/ui-native";
 
 type BrandMarkSize    = "sm" | "md" | "lg" | "xl";
 type BrandMarkVariant = "onHero" | "onLight";

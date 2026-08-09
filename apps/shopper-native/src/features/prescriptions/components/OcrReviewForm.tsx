@@ -24,9 +24,9 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import { kit, Button } from "@/shared/kit";
-import { theme } from "@/shared/theme";
-import { Text } from "@/shared/ui";
+import { kit, Button } from "@pharmacy/ui-native";
+import { theme } from "@pharmacy/design-tokens";
+import { Text } from "@pharmacy/ui-native";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
 import type { RxStatus } from "@/stores/prescriptionsStore";
 import type { ParsedRx } from "../lib/parseRxText";

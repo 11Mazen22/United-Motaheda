@@ -33,10 +33,10 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 
 import { ErrorBoundary } from "@/shared/components";
-import { Text as UIText } from "@/shared/ui";
+import { Text as UIText } from "@pharmacy/ui-native";
 import { CheckoutErrorFallback } from "@/features/checkout/components/CheckoutErrorFallback";
 
-import { kit, Button as KitButton } from "@/shared/kit";
+import { kit, Button as KitButton } from "@pharmacy/ui-native";
 import { isManualWalletPayment } from "@/features/checkout";
 import { BACK_CHEVRON, FORWARD_CHEVRON, textAlignStart, isRtl } from "@/utils/layout";
 import { PhoneVerifyModal } from "@/features/auth";
@@ -382,11 +382,13 @@ function CheckoutScreen() {
               isManualWalletPayment(flow.paymentMethod) &&
               (!flow.transferNumber.trim() || !flow.receiptUri))
           }
-          onPress={
-            flow.step === "details"
-              ? handleGoToReview
-              : flow.form.handleSubmit(flow.onSubmit)
-          }
+          onPress={() => {
+            if (flow.step === "details") {
+              void handleGoToReview();
+            } else {
+              void flow.form.handleSubmit(flow.onSubmit)();
+            }
+          }}
         />
       </View>
 
