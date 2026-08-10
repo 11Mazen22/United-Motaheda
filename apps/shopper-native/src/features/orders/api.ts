@@ -17,7 +17,7 @@
 
 import { supabase } from "@/lib/supabase";
 import { timed } from "@/lib/devTiming";
-import type { Order, OrderItem, OrderStatus } from "@/stores/orders";
+import { normalizeOrderStatus, type Order, type OrderItem, type OrderStatus } from "@/stores/orders";
 
 // ─── Raw row shapes ──────────────────────────────────────────────────────────
 
@@ -134,7 +134,7 @@ function rowToOrder(row: OrderRow): Order {
     },
     customerLat:     row.customer_lat ?? null,
     customerLng:     row.customer_lng ?? null,
-    status:          row.status as OrderStatus,
+    status:          normalizeOrderStatus(row.status) as OrderStatus,
     paymentMethod:   row.payment_method   ?? null,
     paymentStatus:   row.payment_status   ?? "pending",
     externalRef:     row.external_ref     ?? null,

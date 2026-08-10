@@ -22,10 +22,18 @@
 
 import { supabase } from "@/lib/supabase";
 
-const COPY: Record<"picked_up" | "delivered", { title: string; body: string }> = {
+const COPY: Record<"driver_accepted" | "picked_up" | "driver_arrived" | "delivered", { title: string; body: string }> = {
+  driver_accepted: {
+    title: "تم قبول الطلب من السائق",
+    body: "قبل السائق طلب التوصيل وسيبدأ التحرك إلى الصيدلية.",
+  },
   picked_up: {
     title: "طلبك في الطريق إليك",
     body: "انطلق طلبك للتوصيل. تابع حالته من صفحة الطلب.",
+  },
+  driver_arrived: {
+    title: "وصل السائق",
+    body: "وصل السائق إلى عنوانك. يرجى الاستعداد لاستلام الطلب.",
   },
   delivered: {
     title: "تم توصيل طلبك",
@@ -35,7 +43,7 @@ const COPY: Record<"picked_up" | "delivered", { title: string; body: string }> =
 
 /** Best-effort — a failed notification insert must never fail the pickup/
  * delivery confirmation itself (the order status update already succeeded). */
-export function notifyCustomerOrderUpdate(orderId: string, status: "picked_up" | "delivered"): void {
+export function notifyCustomerOrderUpdate(orderId: string, status: "driver_accepted" | "picked_up" | "driver_arrived" | "delivered"): void {
   void (async () => {
     try {
       const { data } = await supabase.from("orders").select("user_id").eq("id", orderId).maybeSingle();
@@ -49,9 +57,9 @@ export function notifyCustomerOrderUpdate(orderId: string, status: "picked_up" |
         p_category: "order_updates",
         p_title: copy.title,
         p_body: copy.body,
-        p_data: { kind: "order_status", status, orderId },
+        p_data: { kind: status === "driver_arrived" ? "driver_arrived" : "order_status", status: status === "picked_up" ? "out_for_delivery" : status, orderId },
         p_action_url: `/order/${orderId}`,
-        p_idempotency_key: `order:${orderId}:status:${status}`,
+        p_idempotency_key: `order:${orderId}:${status === "driver_arrived" ? "driver_arrived" : `status:${status === "picked_up" ? "out_for_delivery" : status}`}`,
       });
       if (error && __DEV__) {
         console.warn("[driver/customerNotify] insert failed:", error.message);

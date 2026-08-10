@@ -15,6 +15,7 @@ import { supabase } from "@/lib/supabase";
 import {
   subscribeToPharmacistOrders,
   subscribeToPharmacistPrescriptions,
+  subscribeToPharmacistInventory,
 } from "../realtime";
 import { pharmacistQueryKeys } from "./queryKeys";
 
@@ -26,6 +27,7 @@ export function usePharmacistRealtimeSync(userId: string | undefined): void {
 
     const invalidateOrders = () => {
       void queryClient.invalidateQueries({ queryKey: pharmacistQueryKeys.orderQueue() });
+      void queryClient.invalidateQueries({ queryKey: ["pharmacist", "orders"] });
       void queryClient.invalidateQueries({ queryKey: pharmacistQueryKeys.dashboard() });
     };
 
@@ -34,12 +36,19 @@ export function usePharmacistRealtimeSync(userId: string | undefined): void {
       void queryClient.invalidateQueries({ queryKey: pharmacistQueryKeys.dashboard() });
     };
 
+    const invalidateInventory = () => {
+      void queryClient.invalidateQueries({ queryKey: pharmacistQueryKeys.lowStock() });
+      void queryClient.invalidateQueries({ queryKey: ["pharmacist", "products"] });
+    };
+
     const ordersChannel = subscribeToPharmacistOrders(invalidateOrders);
     const rxChannel     = subscribeToPharmacistPrescriptions(invalidateRx);
+    const inventoryChannel = subscribeToPharmacistInventory(invalidateInventory);
 
     return () => {
       supabase.removeChannel(ordersChannel);
       supabase.removeChannel(rxChannel);
+      supabase.removeChannel(inventoryChannel);
     };
   }, [userId, queryClient]);
 }

@@ -23,6 +23,15 @@ interface CheckoutPayment {
   paymentProofUrl?: string;
 }
 
+interface CheckoutCartLine {
+  productId: string;
+  quantity: number;
+  unitPrice: number;
+  name: string;
+  code?: string;
+  reservationId?: string;
+}
+
 interface CheckoutCommand {
   idempotencyKey: string;
   customer: { userId?: string; email?: string; fullName: string; phone: string };
@@ -36,17 +45,135 @@ interface CheckoutCommand {
     shipping: number;
     total: number;
   };
-  cartLines: Array<{
-    productId: string;
-    quantity: number;
-    unitPrice: number;
-    name: string;
-    code?: string;
-  }>;
+  cartLines: CheckoutCartLine[];
+}
+
+async function enqueueOrderCreatedNotification(
+  admin: ReturnType<typeof createClient>,
+  userId: string,
+  orderId: string,
+): Promise<void> {
+  const eventKey = `order:${orderId}:created`;
+  const { data: notification, error: notificationError } = await admin
+    .from("notifications")
+    .insert({
+      user_id: userId,
+      type: "order",
+      category: "order_updates",
+      title: "تم استلام طلبك",
+      body: "تم استلام طلبك بنجاح وسنبدأ مراجعته قريبًا.",
+      data: { kind: "order_created", orderId },
+      action_url: `/order/${orderId}`,
+      is_read: false,
+      event_key: eventKey,
+    })
+    .select("id")
+    .single();
+
+  if (notificationError || !notification?.id) {
+    throw notificationError ?? new Error("order_notification_insert_failed");
+  }
+
+  const { error: outboxError } = await admin.from("notification_outbox").insert({
+    notification_id: notification.id,
+    recipient_id: userId,
+    event_type: "order",
+    category: "order_updates",
+    title: "تم استلام طلبك",
+    body: "تم استلام طلبك بنجاح وسنبدأ مراجعته قريبًا.",
+    payload: {
+      data: { kind: "order_created", orderId },
+      action_url: `/order/${orderId}`,
+      notification_id: notification.id,
+    },
+    idempotency_key: eventKey,
+  });
+
+  if (outboxError) throw outboxError;
+}
+
+async function enqueueStaffOrderNotification(
+  admin: ReturnType<typeof createClient>,
+  orderId: string,
+): Promise<void> {
+  const { data: staff, error: staffError } = await admin
+    .from("profiles")
+    .select("id")
+    .in("role", ["admin", "manager", "pharmacist"]);
+  if (staffError) throw staffError;
+
+  for (const recipient of staff ?? []) {
+    const eventKey = `order:${orderId}:staff:new:${recipient.id}`;
+    const title = "طلب جديد بانتظار المراجعة";
+    const body = "تم استلام طلب جديد ويحتاج إلى مراجعة الصيدلية.";
+    const { data: notification, error: notificationError } = await admin
+      .from("notifications")
+      .insert({
+        user_id: recipient.id,
+        type: "order",
+        category: "order_updates",
+        title,
+        body,
+        data: { kind: "new_order", orderId },
+        action_url: "/(pharmacist)/orders",
+        is_read: false,
+        event_key: eventKey,
+      })
+      .select("id")
+      .single();
+
+    if (notificationError) {
+      if (notificationError.code === "23505") continue;
+      throw notificationError;
+    }
+    if (!notification?.id) continue;
+
+    const { error: outboxError } = await admin.from("notification_outbox").insert({
+      notification_id: notification.id,
+      recipient_id: recipient.id,
+      event_type: "order",
+      category: "order_updates",
+      title,
+      body,
+      payload: {
+        data: { kind: "new_order", orderId },
+        action_url: "/(pharmacist)/orders",
+        notification_id: notification.id,
+      },
+      idempotency_key: eventKey,
+    });
+    if (outboxError && outboxError.code !== "23505") throw outboxError;
+  }
 }
 
 function isManualWallet(method: string): boolean {
   return method === "vodafone" || method === "instapay";
+}
+
+function extractReservationIds(lines: CheckoutCartLine[]) {
+  return lines
+    .map((line) => line.reservationId)
+    .filter((id): id is string => typeof id === "string" && id.length > 0);
+}
+
+async function commitOrderReservations(
+  caller: ReturnType<typeof createClient>,
+  cartLines: CheckoutCartLine[],
+  orderId: string,
+): Promise<void> {
+  const reservationIds = extractReservationIds(cartLines);
+  if (reservationIds.length === 0) return;
+
+  for (const reservationId of reservationIds) {
+    const { error: commitError } = await caller.rpc("commit_inventory", {
+      p_reservation_id:  reservationId,
+      p_order_id:        orderId,
+      p_idempotency_key: `order:${orderId}:commit:${reservationId}`,
+    });
+    if (commitError) {
+      throw commitError;
+    }
+  }
 }
 
 Deno.serve(async (req) => {
@@ -90,6 +217,10 @@ Deno.serve(async (req) => {
         .eq("user_id", user.id)
         .maybeSingle();
       if (existing?.id) {
+        await commitOrderReservations(userClient, body.cartLines ?? [], existing.id).catch((err) => {
+          console.error("commit_inventory replay failed:", err);
+          throw err;
+        });
         return new Response(
           JSON.stringify({
             order: {
@@ -180,6 +311,29 @@ Deno.serve(async (req) => {
         // client receives the order ID (items will fall back to hydration).
         console.error("order_items insert failed:", itemsError.message);
       }
+    }
+
+    try {
+      await commitOrderReservations(userClient, body.cartLines ?? [], orderId);
+    } catch (commitError) {
+      console.error("order reservation commit failed:", commitError);
+      return new Response(
+        JSON.stringify({ error: "order_commit_failed" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    try {
+      await enqueueOrderCreatedNotification(admin, user.id, orderId);
+    } catch (notificationError) {
+      // Order creation remains authoritative; delivery can be retried by the
+      // caller or operational tooling without rolling back a paid order.
+      console.error("order_created notification failed:", notificationError);
+    }
+    try {
+      await enqueueStaffOrderNotification(admin, orderId);
+    } catch (notificationError) {
+      console.error("new_order staff notification failed:", notificationError);
     }
 
     return new Response(

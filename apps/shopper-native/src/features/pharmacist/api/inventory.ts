@@ -11,6 +11,26 @@
  */
 
 import { supabase } from "@/lib/supabase";
+import {
+  adjustInventory as adjustInventoryRpc,
+  commitInventory as commitInventoryRpc,
+  extendReservation as extendReservationRpc,
+  releaseInventory as releaseInventoryRpc,
+  reserveInventory as reserveInventoryRpc,
+  rollbackCommittedReservation,
+} from "@/features/inventory/api/inventoryApi";
+import type {
+  CommitArgs,
+  CommitResponse,
+  AdjustArgs,
+  AdjustResponse,
+  ExtendArgs,
+  ExtendResponse,
+  ReleaseArgs,
+  ReleaseResponse,
+  ReserveArgs,
+  ReserveResponse,
+} from "@/features/inventory/api/inventoryApi";
 import type { PharmacistProduct } from "./types";
 
 // ─── Raw row shapes ─────────────────────────────────────────────────────────────
@@ -159,6 +179,31 @@ export async function getOutOfStockProducts(
 
   if (error) throw error;
   return ((data ?? []) as unknown as RawProductRow[]).map((r) => mapProduct(r));
+}
+
+// ─── Inventory mutations (pharmacist domain wrappers) ────────────────────────
+
+export { type ReserveArgs, type ReleaseArgs, type CommitArgs, type ExtendArgs };
+export type { ReserveResponse, ReleaseResponse, CommitResponse, ExtendResponse, AdjustArgs, AdjustResponse };
+
+export async function reserveInventory(args: ReserveArgs): Promise<ReserveResponse> {
+  return reserveInventoryRpc(args);
+}
+
+export async function releaseInventory(args: ReleaseArgs): Promise<ReleaseResponse> {
+  return releaseInventoryRpc(args);
+}
+
+export async function commitInventory(args: CommitArgs): Promise<CommitResponse> {
+  return commitInventoryRpc(args);
+}
+
+export async function extendReservation(args: ExtendArgs): Promise<ExtendResponse> {
+  return extendReservationRpc(args);
+}
+
+export async function adjustInventory(args: AdjustArgs): Promise<AdjustResponse> {
+  return adjustInventoryRpc(args);
 }
 
 /**

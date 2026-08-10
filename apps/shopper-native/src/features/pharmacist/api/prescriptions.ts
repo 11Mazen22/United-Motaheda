@@ -134,20 +134,12 @@ export async function reviewPrescription(
   id:    string,
   input: ReviewPrescriptionInput,
 ): Promise<PharmacistPrescription> {
-  const patch: Record<string, unknown> = {
-    review_status:    input.reviewStatus,
-    reviewed_at:      new Date().toISOString(),
-    updated_at:       new Date().toISOString(),
-  };
-  if (input.adminNotes     !== undefined) patch.admin_notes       = input.adminNotes;
-  if (input.rejectionReason !== undefined) patch.rejection_reason = input.rejectionReason;
-
-  const { data, error } = await supabase
-    .from("prescriptions")
-    .update(patch)
-    .eq("id", id)
-    .select(RX_SELECT)
-    .single();
+  const { data, error } = await supabase.rpc("review_prescription", {
+    p_prescription_id: id,
+    p_decision: input.reviewStatus,
+    p_admin_notes: input.adminNotes ?? null,
+    p_rejection_reason: input.rejectionReason ?? null,
+  });
 
   if (error) throw error;
   return mapRow(data as unknown as RawPrescriptionRow);

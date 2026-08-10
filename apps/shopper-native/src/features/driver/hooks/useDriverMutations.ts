@@ -12,6 +12,7 @@ import {
   declineAssignment,
   confirmPickup,
   completeDelivery,
+  markArrival,
   reportIssue,
   type IssueReasonCode,
 } from "../api";
@@ -60,6 +61,17 @@ export function useDriverMutations(driverId: string | undefined) {
     },
   });
 
+  const arrival = useMutation({
+    mutationFn: (args: { assignmentId: string; orderId: string; stage: "pharmacy" | "customer" }) =>
+      markArrival(args.assignmentId, args.orderId, args.stage),
+    onSuccess: (_data, args) => {
+      invalidateAll();
+      if (args.stage === "customer") {
+        void queryClient.invalidateQueries({ queryKey: driverQueryKeys.assignmentForOrder(args.orderId) });
+      }
+    },
+  });
+
   const report = useMutation({
     mutationFn: (args: { orderId: string; reasonCode: IssueReasonCode; note?: string }) =>
       reportIssue(args.orderId, requireDriverId(), args.reasonCode, args.note),
@@ -73,6 +85,7 @@ export function useDriverMutations(driverId: string | undefined) {
     decline: { mutateAsync: decline.mutateAsync, isPending: decline.isPending },
     pickup:  { mutateAsync: pickup.mutateAsync,  isPending: pickup.isPending },
     deliver: { mutateAsync: deliver.mutateAsync,  isPending: deliver.isPending },
+    arrival: { mutateAsync: arrival.mutateAsync, isPending: arrival.isPending },
     report:  { mutateAsync: report.mutateAsync,  isPending: report.isPending },
   };
 }

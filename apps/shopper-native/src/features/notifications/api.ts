@@ -90,11 +90,13 @@ export async function fetchUnreadCount(userId: string): Promise<number> {
   return count ?? 0;
 }
 
-export async function markNotificationRead(id: string): Promise<void> {
+export async function markNotificationRead(id: string, userId: string): Promise<void> {
   const { error } = await supabase
     .from("notifications")
     .update({ is_read: true })
-    .eq("id", id);
+    .eq("id", id)
+    .eq("user_id", userId);
+
   if (error) throw error;
 }
 
@@ -107,11 +109,12 @@ export async function markAllNotificationsRead(userId: string): Promise<void> {
   if (error) throw error;
 }
 
-export async function deleteNotification(id: string): Promise<void> {
+export async function deleteNotification(id: string, userId: string): Promise<void> {
   const { error } = await supabase
     .from("notifications")
     .delete()
-    .eq("id", id);
+    .eq("id", id)
+    .eq("user_id", userId);
   if (error) throw error;
 }
 

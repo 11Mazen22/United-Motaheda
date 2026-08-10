@@ -121,7 +121,9 @@ export const useAddressStore = create<AddressState>((set, get) => ({
     const prev = get().addresses;
     set((s) => ({ addresses: s.addresses.filter((a) => a.id !== id) }));
     try {
-      await deleteAddress(id);
+      const userId = get()._userId;
+      if (!userId) throw new Error("user_required");
+      await deleteAddress(id, userId);
     } catch {
       set({ addresses: prev });
     }

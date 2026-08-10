@@ -51,6 +51,7 @@ function getPharmacistActions(
 ): PharmacistTransitionTarget[] {
   switch (status) {
     case "pending":          return ["verification", "cancelled"];
+    case "confirmed":        return ["preparing", "cancelled"];
     case "verification":     return ["payment_pending", "payment_approved", "cancelled"];
     case "payment_pending":  return ["payment_approved", "cancelled"];
     case "payment_approved": return ["preparing", "cancelled"];

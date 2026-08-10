@@ -23,6 +23,7 @@ export type CheckoutLineInput = {
   unitPrice: number;
   name: string;
   code?: string;
+  reservationId?: string;
 };
 
 export type CheckoutPricingLine = CheckoutLineInput & {

@@ -47,7 +47,9 @@ function DriverModal({
 }) {
   const queryClient = useQueryClient();
   const [rejectReason, setRejectReason] = useState('');
+  const [suspendReason, setSuspendReason] = useState('');
   const [showRejectInput, setShowRejectInput] = useState(false);
+  const [showSuspendInput, setShowSuspendInput] = useState(false);
   const dp = driver.driverProfile;
 
   const approveMutation = useMutation({
@@ -68,6 +70,16 @@ function DriverModal({
       onClose();
     },
     onError: (err: any) => showToast(err?.response?.data?.message ?? 'Failed to reject', 'error'),
+  });
+
+  const suspendMutation = useMutation({
+    mutationFn: () => adminApi.suspendDriver(dp.id, suspendReason),
+    onSuccess: () => {
+      showToast('Driver suspended', 'info');
+      queryClient.invalidateQueries({ queryKey: ['admin', 'drivers'] });
+      onClose();
+    },
+    onError: (err: any) => showToast(err?.response?.data?.message ?? 'Failed to suspend', 'error'),
   });
 
   const docs = [
@@ -189,6 +201,40 @@ function DriverModal({
               )}
             </div>
           )}
+
+          {(dp.status === 'APPROVED' || dp.status === 'ACTIVE') && (
+            <div className="space-y-3">
+              {!showSuspendInput ? (
+                <button
+                  onClick={() => setShowSuspendInput(true)}
+                  className="btn-danger w-full"
+                >
+                  Suspend Driver
+                </button>
+              ) : (
+                <div className="space-y-2">
+                  <input
+                    className="input"
+                    placeholder="Suspension reason (required)"
+                    value={suspendReason}
+                    onChange={(e) => setSuspendReason(e.target.value)}
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => suspendMutation.mutate()}
+                      disabled={!suspendReason.trim() || suspendMutation.isPending}
+                      className="btn-danger flex-1 disabled:opacity-60"
+                    >
+                      {suspendMutation.isPending ? 'Suspending…' : 'Confirm Suspend'}
+                    </button>
+                    <button onClick={() => setShowSuspendInput(false)} className="btn-secondary flex-1">
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -200,7 +246,7 @@ export function DriversPage() {
   const [statusFilter, setStatusFilter] = useState('All');
   const [selectedDriver, setSelectedDriver] = useState<Driver | null>(null);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error } = useQuery({
     queryKey: ['admin', 'drivers', page, statusFilter],
     queryFn: () => adminApi.getAllDrivers(page, 20, statusFilter === 'All' ? undefined : statusFilter),
     staleTime: 30_000,
@@ -241,6 +287,10 @@ export function DriversPage() {
       <div className="card overflow-hidden">
         {isLoading ? (
           <SkeletonTable rows={8} cols={6} />
+        ) : isError ? (
+          <div className="px-4 py-12 text-center text-sm text-red-500">
+            {error instanceof Error ? error.message : 'Unable to load drivers'}
+          </div>
         ) : (
           <>
             <table className="w-full">

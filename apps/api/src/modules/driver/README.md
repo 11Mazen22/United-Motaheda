@@ -343,12 +343,10 @@ Other states:
 Required environment variables:
 
 ```env
-# JWT Authentication
-JWT_SECRET="your-super-secret-jwt-key"
-
-# Supabase (for file uploads)
+# Supabase Auth and file uploads
 SUPABASE_URL="https://your-project.supabase.co"
 SUPABASE_SERVICE_ROLE_KEY="your-service-role-key"
+SUPABASE_ANON_KEY="your-anon-key"
 
 # Database
 DATABASE_URL="postgresql://..."

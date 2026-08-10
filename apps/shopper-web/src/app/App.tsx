@@ -45,6 +45,7 @@ const ProductDetails       = lazy(() => import("./pages/ProductDetails"));
 const Products             = lazy(() => import("./pages/Products"));
 const Profile              = lazy(() => import("./pages/Profile"));
 const Register             = lazy(() => import("./pages/Register"));
+const Notifications       = lazy(() => import("./pages/Notifications"));
 const Returns              = lazy(() => import("./pages/Returns"));
 const SpecialOrders        = lazy(() => import("./pages/SpecialOrders"));
 const SupportPage          = lazy(() => import("./pages/SupportPage"));
@@ -169,6 +170,7 @@ function AppShell() {
             <Route path="special-orders"         element={withSuspense(<SpecialOrders />)} />
 
             <Route path="profile"  element={withSuspense(<ProtectedRoute><Profile /></ProtectedRoute>)} />
+            <Route path="notifications" element={withSuspense(<ProtectedRoute><Notifications /></ProtectedRoute>)} />
             <Route path="orders"   element={withSuspense(<ProtectedRoute><Orders /></ProtectedRoute>)} />
             <Route path="favorites" element={withSuspense(<ProtectedRoute><Favorites /></ProtectedRoute>)} />
             <Route path="wishlist"  element={withSuspense(<ProtectedRoute><Favorites /></ProtectedRoute>)} />

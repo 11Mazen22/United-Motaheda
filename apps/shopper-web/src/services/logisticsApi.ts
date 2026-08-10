@@ -682,6 +682,8 @@ export type DeliveryAssignment = {
   respondedAt: string | null;
   pickedUpAt: string | null;
   deliveredAt: string | null;
+  arrivedAtPharmacy: string | null;
+  arrivedAtCustomer: string | null;
 };
 
 export type DeliveryIssueStatus = "open" | "acknowledged" | "resolved";
@@ -711,6 +713,8 @@ interface RawAssignmentRow {
   responded_at: string | null;
   picked_up_at: string | null;
   delivered_at: string | null;
+  arrived_at_pharmacy: string | null;
+  arrived_at_customer: string | null;
 }
 
 interface RawIssueRow {
@@ -739,6 +743,8 @@ function mapAssignmentRow(row: RawAssignmentRow): DeliveryAssignment {
     respondedAt: row.responded_at,
     pickedUpAt: row.picked_up_at,
     deliveredAt: row.delivered_at,
+    arrivedAtPharmacy: row.arrived_at_pharmacy,
+    arrivedAtCustomer: row.arrived_at_customer,
   };
 }
 
@@ -758,7 +764,7 @@ function mapIssueRow(row: RawIssueRow): DeliveryIssue {
 }
 
 const ASSIGNMENT_COLUMNS =
-  "id, order_id, driver_id, assigned_by, assignment_kind, response_status, decline_reason, offered_at, responded_at, picked_up_at, delivered_at";
+  "id, order_id, driver_id, assigned_by, assignment_kind, response_status, decline_reason, offered_at, responded_at, picked_up_at, delivered_at, arrived_at_pharmacy, arrived_at_customer";
 const ISSUE_COLUMNS =
   "id, order_id, driver_id, reason_code, note, status, resolved_by, resolved_at, resolution_note, created_at";
 

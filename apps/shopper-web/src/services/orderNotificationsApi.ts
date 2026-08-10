@@ -2,52 +2,47 @@
  * orderNotificationsApi.ts — automated customer/driver notifications for
  * order & delivery lifecycle events.
  *
- * Mirrors the fire-and-forget pattern already established in
- * adminPrescriptionsApi.ts's notifyCustomer(): a failed notification insert
- * must never block or fail the underlying order/payment mutation, since the
- * DB write it's reporting on has already succeeded by the time this runs.
- *
- * The order-status vocabulary is not unified across the codebase yet
- * (OrdersManager.tsx writes pending/processing/shipped/delivered/cancelled,
- * while the Operations Hub / logistics board writes the canonical
- * pending/confirmed/preparing/ready/picked_up/delivered/cancelled via
- * mapLegacyToCanonicalOrderStatus) — classifyOrderStatus() below absorbs
- * that split so both call sites produce the correct customer-facing message.
+ * This code intentionally mirrors the canonical lifecycle contract in
+ * packages/contracts/src/orderStatus.ts and the database migration at
+ * supabase/migrations/20260715150000_canonical_order_lifecycle.sql.
+ * Legacy status words such as "processing" and "shipped" are only accepted as
+ * read-only aliases for older rows; all new notification events and order writes
+ * must use the canonical state names.
  */
 
+import { normalizeOrderStatus } from "@pharmacy/contracts";
 import { getSupabaseClient } from "../lib/supabaseClient";
 
-type OrderNotifBucket = "confirmed" | "preparing" | "out_for_delivery" | "delivered" | "cancelled";
+type OrderNotifBucket =
+  | "payment_approved"
+  | "preparing"
+  | "ready"
+  | "driver_assigned"
+  | "driver_accepted"
+  | "out_for_delivery"
+  | "delivered"
+  | "cancelled";
 
-function classifyOrderStatus(status: string): OrderNotifBucket | null {
-  switch (status) {
-    case "confirmed":
-      return "confirmed";
-    case "processing":
-    case "preparing":
-      return "preparing";
-    case "shipped":
-    case "picked_up":
-      return "out_for_delivery";
-    case "delivered":
-      return "delivered";
-    case "cancelled":
-      return "cancelled";
-    default:
-      // pending / pending_payment / ready / anything else: not a moment
-      // worth interrupting the customer for.
-      return null;
-  }
-}
-
-const STATUS_COPY: Record<OrderNotifBucket, { title: string; body: string }> = {
-  confirmed: {
-    title: "تم تأكيد طلبك",
-    body: "جارٍ تجهيز طلبك الآن.",
+const ORDER_NOTIFICATION_EVENT_MATRIX: Record<OrderNotifBucket, { title: string; body: string }> = {
+  payment_approved: {
+    title: "تم اعتماد الدفع",
+    body: "تمت الموافقة على الدفع وسيبدأ تجهيز طلبك قريبًا.",
   },
   preparing: {
     title: "طلبك قيد التجهيز",
     body: "بدأنا في تجهيز طلبك وسيتم إرساله قريبًا.",
+  },
+  ready: {
+    title: "طلبك جاهز للاستلام",
+    body: "تم تجهيز طلبك وانتظار السائق. يمكنك متابعة حالته من صفحة الطلب.",
+  },
+  driver_assigned: {
+    title: "تم تعيين سائق",
+    body: "تم تعيين سائق لتوصيل طلبك. سيتم تحديث حالته فور قبوله.",
+  },
+  driver_accepted: {
+    title: "استلم السائق الطلب",
+    body: "قام السائق بقبول الطلب وهو في طريقه إلى الصيدلية.",
   },
   out_for_delivery: {
     title: "طلبك في الطريق إليك",
@@ -62,6 +57,31 @@ const STATUS_COPY: Record<OrderNotifBucket, { title: string; body: string }> = {
     body: "تم إلغاء الطلب. تواصل معنا إذا كان لديك أي استفسار.",
   },
 };
+
+function classifyOrderStatus(status: string): OrderNotifBucket | null {
+  const normalized = normalizeOrderStatus(status);
+
+  switch (normalized) {
+    case "payment_approved":
+      return "payment_approved";
+    case "preparing":
+      return "preparing";
+    case "ready":
+      return "ready";
+    case "driver_assigned":
+      return "driver_assigned";
+    case "driver_accepted":
+      return "driver_accepted";
+    case "out_for_delivery":
+      return "out_for_delivery";
+    case "delivered":
+      return "delivered";
+    case "cancelled":
+      return "cancelled";
+    default:
+      return null;
+  }
+}
 
 async function fetchOrderUserId(orderId: string): Promise<string | null> {
   const { data } = await getSupabaseClient()
@@ -149,7 +169,7 @@ export function notifyOrderStatusChange(orderId: string, status: string): void {
       const userId = await fetchOrderUserId(orderId);
       if (!userId) return;
 
-      const copy = STATUS_COPY[bucket];
+      const copy = ORDER_NOTIFICATION_EVENT_MATRIX[bucket];
       await insertNotification({
         userId,
         title: copy.title,

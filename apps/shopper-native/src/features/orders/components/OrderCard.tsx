@@ -44,20 +44,23 @@ export const STATUS_META: Record<
     dot:      string;
   }
 > = {
-  pending:         { labelKey: "orders.pending",        variant: "warning", icon: "time-outline",             dot: kit.color.warn          },
-  pending_payment: { labelKey: "orders.pendingPayment", variant: "warning", icon: "card-outline",             dot: kit.color.warn          },
-  confirmed:       { labelKey: "orders.pending",        variant: "warning", icon: "checkmark-circle-outline", dot: kit.color.warn          },
-  processing:      { labelKey: "orders.processing",     variant: "brand",   icon: "refresh-outline",          dot: kit.color.accent        },
-  preparing:       { labelKey: "orders.processing",     variant: "brand",   icon: "refresh-outline",          dot: kit.color.accent        },
-  ready:           { labelKey: "orders.shipped",        variant: "brand",   icon: "cube-outline",             dot: kit.color.accent        },
-  shipped:         { labelKey: "orders.shipped",        variant: "brand",   icon: "car-outline",              dot: kit.color.accent        },
-  picked_up:       { labelKey: "orders.shipped",        variant: "brand",   icon: "car-outline",              dot: kit.color.accent        },
-  driver_assigned: { labelKey: "orders.shipped",        variant: "brand",   icon: "car-outline",              dot: kit.color.accent        },
-  driver_accepted: { labelKey: "orders.shipped",        variant: "brand",   icon: "car-outline",              dot: kit.color.accent        },
-  out_for_delivery:{ labelKey: "orders.shipped",        variant: "brand",   icon: "car-outline",              dot: kit.color.accent        },
-  delivered:       { labelKey: "orders.delivered",      variant: "success", icon: "checkmark-circle-outline", dot: kit.color.success       },
-  cancelled:       { labelKey: "orders.cancelled",      variant: "error",   icon: "close-circle-outline",     dot: kit.color.danger        },
-  archived:        { labelKey: "orders.delivered",      variant: "neutral", icon: "archive-outline",          dot: kit.color.inkFaint     },
+  pending:           { labelKey: "orders.pending",           variant: "warning", icon: "time-outline",             dot: kit.color.warn          },
+  pending_payment:   { labelKey: "orders.pendingPayment",    variant: "warning", icon: "card-outline",             dot: kit.color.warn          },
+  confirmed:         { labelKey: "orders.pending",           variant: "warning", icon: "checkmark-circle-outline", dot: kit.color.warn          },
+  verification:      { labelKey: "orders.processing",        variant: "brand",   icon: "shield-checkmark-outline", dot: kit.color.accent       },
+  payment_pending:   { labelKey: "orders.pendingPayment",    variant: "warning", icon: "card-outline",             dot: kit.color.warn          },
+  payment_approved:  { labelKey: "orders.processing",        variant: "brand",   icon: "checkmark-circle-outline", dot: kit.color.success      },
+  processing:        { labelKey: "orders.processing",        variant: "brand",   icon: "refresh-outline",          dot: kit.color.accent        },
+  preparing:         { labelKey: "orders.processing",        variant: "brand",   icon: "refresh-outline",          dot: kit.color.accent        },
+  ready:             { labelKey: "orders.shipped",           variant: "brand",   icon: "cube-outline",             dot: kit.color.accent        },
+  shipped:           { labelKey: "orders.shipped",           variant: "brand",   icon: "car-outline",              dot: kit.color.accent        },
+  picked_up:         { labelKey: "orders.shipped",           variant: "brand",   icon: "car-outline",              dot: kit.color.accent        },
+  driver_assigned:   { labelKey: "orders.shipped",           variant: "brand",   icon: "car-outline",              dot: kit.color.accent        },
+  driver_accepted:   { labelKey: "orders.shipped",           variant: "brand",   icon: "car-outline",              dot: kit.color.accent        },
+  out_for_delivery:  { labelKey: "orders.shipped",           variant: "brand",   icon: "car-outline",              dot: kit.color.accent        },
+  delivered:         { labelKey: "orders.delivered",         variant: "success", icon: "checkmark-circle-outline", dot: kit.color.success       },
+  cancelled:         { labelKey: "orders.cancelled",         variant: "error",   icon: "close-circle-outline",     dot: kit.color.danger        },
+  archived:          { labelKey: "orders.delivered",         variant: "neutral", icon: "archive-outline",          dot: kit.color.inkFaint     },
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

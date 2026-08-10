@@ -4,6 +4,7 @@ import L from 'leaflet';
 import { useQuery } from '@tanstack/react-query';
 import { adminApi } from '@/lib/api';
 import { adminSocket } from '@/lib/socket';
+import { getAdminSupabase } from '@/lib/supabase';
 import { SkeletonCard } from '@/components/SkeletonTable';
 
 // Fix leaflet marker icons
@@ -83,7 +84,36 @@ export function MapPage() {
 
   // Real-time location updates via WebSocket
   useEffect(() => {
-    const unsub = adminSocket.on<any>('location-update', (update) => {
+    const supabase = getAdminSupabase();
+    const locationChannel = supabase
+      .channel('admin-driver-locations')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'driver_locations' },
+        ({ new: location }) => {
+          const row = location as {
+            driver_id?: string;
+            lat?: number;
+            lng?: number;
+            captured_at?: string;
+          };
+          if (!row.driver_id || typeof row.lat !== 'number' || typeof row.lng !== 'number') return;
+
+          setDrivers((prev) => prev.map((driver) => (
+            driver.userId === row.driver_id || driver.id === row.driver_id
+              ? {
+                  ...driver,
+                  currentLat: row.lat!,
+                  currentLng: row.lng!,
+                  lastLocationAt: row.captured_at ?? new Date().toISOString(),
+                }
+              : driver
+          )));
+        },
+      )
+      .subscribe();
+
+    const unsub = adminSocket.on<any>('driver-location-update', (update) => {
       setDrivers((prev) =>
         prev.map((d) =>
           d.id === update.driverId
@@ -104,6 +134,7 @@ export function MapPage() {
     });
 
     return () => {
+      void supabase.removeChannel(locationChannel);
       unsub();
       unsubStatus();
     };

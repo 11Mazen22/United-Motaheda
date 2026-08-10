@@ -149,6 +149,38 @@ export async function extendReservation(args: ExtendArgs): Promise<ExtendRespons
   return ExtendResponseSchema.parse(data);
 }
 
+export interface AdjustArgs {
+  productId: string;
+  delta: number;
+  reason?: string;
+  idempotencyKey: string;
+}
+
+export interface AdjustResponse {
+  product_id: string;
+  delta: number;
+  total: number;
+  reserved: number;
+  committed: number;
+  available: number;
+  replay: boolean;
+}
+
+export async function adjustInventory(args: AdjustArgs): Promise<AdjustResponse> {
+  const data = await withTimeout(
+    (signal) =>
+      supabase
+        .rpc("adjust_inventory", {
+          p_product_id: args.productId,
+          p_delta: args.delta,
+          p_reason: args.reason ?? null,
+          p_idempotency_key: args.idempotencyKey,
+        })
+        .abortSignal(signal),
+  );
+  return data as AdjustResponse;
+}
+
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 function linkSignals(external: AbortSignal | undefined, timeout: AbortSignal): AbortSignal {

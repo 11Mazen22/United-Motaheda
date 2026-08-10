@@ -40,10 +40,10 @@ interface SuccessScreenProps {
 // this same dot/line language lives in order-detail.styles.ts (buildTimeline)
 // — reused here, not reinvented, so the two screens read as one system.
 const STEPS = [
-  { key: "placed",     labelKey: "orders.stepPlaced",     icon: "bag-check-outline" as const },
-  { key: "processing", labelKey: "orders.stepProcessing", icon: "cube-outline" as const },
-  { key: "shipped",    labelKey: "orders.stepShipped",    icon: "car-outline" as const },
-  { key: "delivered",  labelKey: "orders.stepDelivered",  icon: "checkmark-circle-outline" as const },
+  { key: "placed",           labelKey: "orders.stepPlaced",     icon: "bag-check-outline" as const },
+  { key: "preparing",        labelKey: "orders.stepProcessing", icon: "cube-outline" as const },
+  { key: "out_for_delivery", labelKey: "orders.stepShipped",    icon: "car-outline" as const },
+  { key: "delivered",        labelKey: "orders.stepDelivered",  icon: "checkmark-circle-outline" as const },
 ] as const;
 
 export const SuccessScreen = React.memo(function SuccessScreen({

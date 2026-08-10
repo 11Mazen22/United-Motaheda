@@ -31,25 +31,57 @@ export interface OrderItem {
 
 // Full canonical set (see packages/contracts/src/orderStatus.ts for the
 // shared lifecycle doc — not imported directly here to avoid wiring this
-// Expo app into the npm workspace's Metro resolution). "processing" and
-// "shipped" are legacy synonyms of "preparing"/"picked_up" still present in
-// historical rows; "confirmed"/"preparing"/"ready"/"picked_up" are written
-// by the web admin's Operations Hub and must render correctly here too.
+// Expo app into the npm workspace's Metro resolution). Legacy spellings such
+// as "processing", "shipped", and "pending_payment" are still accepted from
+// historical rows, but every runtime value should be normalized to the canonical
+// contract before the UI renders it.
+export const CANONICAL_ORDER_STATUSES = [
+  "pending",
+  "confirmed",
+  "verification",
+  "payment_pending",
+  "payment_approved",
+  "preparing",
+  "ready",
+  "driver_assigned",
+  "driver_accepted",
+  "out_for_delivery",
+  "delivered",
+  "cancelled",
+  "archived",
+] as const;
+
+export type CanonicalOrderStatus = (typeof CANONICAL_ORDER_STATUSES)[number];
+
 export type OrderStatus =
-  | "pending"
+  | CanonicalOrderStatus
   | "pending_payment"
-  | "confirmed"
   | "processing"
-  | "preparing"
-  | "ready"
-  | "driver_assigned"
-  | "driver_accepted"
-  | "out_for_delivery"
   | "shipped"
-  | "picked_up"
-  | "delivered"
-  | "cancelled"
-  | "archived";
+  | "picked_up";
+
+const LEGACY_STATUS_ALIASES: Record<string, CanonicalOrderStatus> = {
+  processing: "preparing",
+  shipped: "out_for_delivery",
+  pending_payment: "payment_pending",
+  picked_up: "out_for_delivery",
+  verified: "payment_approved",
+  packed: "ready",
+  ready_for_dispatch: "ready",
+  outfordelivery: "out_for_delivery",
+  canceled: "cancelled",
+  returned: "cancelled",
+  failed_delivery: "delivered",
+  faileddelivery: "delivered",
+};
+
+export function normalizeOrderStatus(value: string | null | undefined): CanonicalOrderStatus {
+  const normalized = String(value ?? "").trim().toLowerCase().replace(/\s+/g, "_");
+  if ((CANONICAL_ORDER_STATUSES as readonly string[]).includes(normalized)) {
+    return normalized as CanonicalOrderStatus;
+  }
+  return LEGACY_STATUS_ALIASES[normalized] ?? "pending";
+}
 
 export interface Order {
   id:        string;

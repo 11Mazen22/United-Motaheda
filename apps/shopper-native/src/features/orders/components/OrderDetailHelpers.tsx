@@ -32,20 +32,23 @@ export const ORDER_STATUS_META: Record<
   OrderStatus,
   { labelKey: string; variant: StatusVariant; icon: React.ComponentProps<typeof Ionicons>["name"] }
 > = {
-  pending:         { labelKey: "orders.pending",        variant: "warning", icon: "time-outline"             },
-  pending_payment: { labelKey: "orders.pendingPayment",  variant: "warning", icon: "card-outline"             },
-  confirmed:       { labelKey: "orders.pending",        variant: "warning", icon: "checkmark-circle-outline" },
-  processing:      { labelKey: "orders.processing",     variant: "brand",   icon: "refresh-outline"          },
-  preparing:       { labelKey: "orders.processing",     variant: "brand",   icon: "refresh-outline"          },
-  ready:           { labelKey: "orders.shipped",        variant: "brand",   icon: "cube-outline"             },
-  driver_assigned: { labelKey: "orders.shipped",        variant: "brand",   icon: "car-outline"              },
-  driver_accepted: { labelKey: "orders.shipped",        variant: "brand",   icon: "car-outline"              },
-  out_for_delivery:{ labelKey: "orders.shipped",        variant: "brand",   icon: "car-outline"              },
-  shipped:         { labelKey: "orders.shipped",        variant: "brand",   icon: "car-outline"              },
-  picked_up:       { labelKey: "orders.shipped",        variant: "brand",   icon: "car-outline"              },
-  delivered:       { labelKey: "orders.delivered",      variant: "success", icon: "checkmark-circle-outline" },
-  cancelled:       { labelKey: "orders.cancelled",      variant: "error",   icon: "close-circle-outline"     },
-  archived:        { labelKey: "orders.delivered",      variant: "neutral", icon: "archive-outline"           },
+  pending:          { labelKey: "orders.pending",          variant: "warning", icon: "time-outline"             },
+  pending_payment:  { labelKey: "orders.pendingPayment",   variant: "warning", icon: "card-outline"             },
+  confirmed:        { labelKey: "orders.pending",          variant: "warning", icon: "checkmark-circle-outline" },
+  verification:     { labelKey: "orders.processing",       variant: "brand",   icon: "shield-checkmark-outline" },
+  payment_pending:  { labelKey: "orders.pendingPayment",   variant: "warning", icon: "card-outline"             },
+  payment_approved: { labelKey: "orders.processing",       variant: "brand",   icon: "checkmark-circle-outline" },
+  processing:       { labelKey: "orders.processing",       variant: "brand",   icon: "refresh-outline"          },
+  preparing:        { labelKey: "orders.processing",       variant: "brand",   icon: "refresh-outline"          },
+  ready:            { labelKey: "orders.shipped",          variant: "brand",   icon: "cube-outline"             },
+  driver_assigned:  { labelKey: "orders.shipped",          variant: "brand",   icon: "car-outline"              },
+  driver_accepted:  { labelKey: "orders.shipped",          variant: "brand",   icon: "car-outline"              },
+  out_for_delivery: { labelKey: "orders.shipped",          variant: "brand",   icon: "car-outline"              },
+  shipped:          { labelKey: "orders.shipped",          variant: "brand",   icon: "car-outline"              },
+  picked_up:        { labelKey: "orders.shipped",          variant: "brand",   icon: "car-outline"              },
+  delivered:        { labelKey: "orders.delivered",        variant: "success", icon: "checkmark-circle-outline" },
+  cancelled:        { labelKey: "orders.cancelled",        variant: "error",   icon: "close-circle-outline"     },
+  archived:         { labelKey: "orders.delivered",        variant: "neutral", icon: "archive-outline"           },
 };
 
 export const PAYMENT_METHOD_META: Record<
@@ -102,9 +105,9 @@ export function buildTimeline(order: Order): TimelineStep[] {
   }
 
   base.push(
-    { key: "processing", labelKey: "orders.stepProcessing", done: done(["confirmed","processing","preparing","ready","driver_assigned","driver_accepted","out_for_delivery","shipped","picked_up","delivered","archived"].includes(s)), icon: "cube-outline"             },
-    { key: "shipped",    labelKey: "orders.stepShipped",    done: done(["driver_assigned","driver_accepted","out_for_delivery","shipped","picked_up","delivered","archived"].includes(s)),                                              icon: "car-outline"              },
-    { key: "delivered",  labelKey: "orders.stepDelivered",  done: done(s === "delivered" || s === "archived"),                                                       icon: "checkmark-circle-outline" },
+    { key: "processing", labelKey: "orders.stepProcessing", done: done(["confirmed","verification","payment_pending","payment_approved","processing","preparing","ready","driver_assigned","driver_accepted","out_for_delivery","shipped","picked_up","delivered","archived"].includes(s)), icon: "cube-outline"             },
+    { key: "shipped",    labelKey: "orders.stepShipped",    done: done(["driver_assigned","driver_accepted","out_for_delivery","shipped","picked_up","delivered","archived"].includes(s)),                                                                                                               icon: "car-outline"              },
+    { key: "delivered",  labelKey: "orders.stepDelivered",  done: done(s === "delivered" || s === "archived"),                                                                                                                 icon: "checkmark-circle-outline" },
   );
 
   if (s === "cancelled") {

@@ -1,10 +1,10 @@
-import { Controller, Get, Post, Param, Body, NotFoundException } from '@nestjs/common';
+import { Controller, Get, Post, Param, Body, NotFoundException, UseGuards } from '@nestjs/common';
 import { DriverLocationService } from './driver-location.service';
 import { PrismaService } from '../../prisma/prisma.service';
+import { AdminAuthGuard } from '../../auth/admin-auth.guard';
 
-// TODO: Implement proper admin authentication guard
-// For now, we'll create the endpoints without authentication
 @Controller('admin/drivers')
+@UseGuards(AdminAuthGuard)
 export class AdminDriverController {
   constructor(
     private readonly locationService: DriverLocationService,

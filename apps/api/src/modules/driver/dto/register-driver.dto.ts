@@ -3,6 +3,7 @@ import { IsEmail, IsString, IsOptional, MinLength, IsEnum } from 'class-validato
 export enum VehicleType {
   MOTORCYCLE = 'motorcycle',
   CAR = 'car',
+  VAN = 'van',
   BICYCLE = 'bicycle',
   SCOOTER = 'scooter',
 }

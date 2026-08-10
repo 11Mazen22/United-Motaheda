@@ -13,6 +13,8 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { useTranslation } from "react-i18next";
+import { useAuth } from "@/features/auth";
+import { markNotificationRead } from "../api";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
 import { useBannerStore } from "../banner-store";
 import { theme } from "@pharmacy/design-tokens";
@@ -55,6 +57,7 @@ const DRIVER_HEADER_CLEARANCE = 88;
 
 export function NotificationBanner() {
   const { t }         = useTranslation();
+  const { user }      = useAuth();
   const router        = useRouter();
   const insets        = useSafeAreaInsets();
   // useSegments() preserves raw route-group folder names (e.g. "(driver)")
@@ -121,6 +124,9 @@ export function NotificationBanner() {
   const handlePress = () => {
     if (timerRef.current) clearTimeout(timerRef.current);
     dismissBanner();
+    if (user?.id && !banner.isRead) {
+      void markNotificationRead(banner.id, user.id).catch(() => {});
+    }
     // Use the notification's own actionUrl (e.g. "/orders", "/wallet") when
     // present. Fall back to the notifications list — there is no per-notification
     // detail screen, so the old /notifications/${id} pattern was a dead route.

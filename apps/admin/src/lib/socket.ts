@@ -11,7 +11,7 @@ class AdminSocketManager {
     const token = useAdminStore.getState().token;
     if (!token || this.socket?.connected) return;
 
-    this.socket = io(BASE_URL, {
+    this.socket = io(`${BASE_URL}/driver-locations`, {
       auth: { token },
       transports: ['websocket'],
       reconnection: true,

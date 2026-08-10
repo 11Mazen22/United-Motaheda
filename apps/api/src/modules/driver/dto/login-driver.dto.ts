@@ -1,8 +1,13 @@
-import { IsString } from 'class-validator';
+import { IsOptional, IsString } from 'class-validator';
 
 export class LoginDriverDto {
   @IsString()
-  emailOrPhone: string;
+  @IsOptional()
+  identifier?: string;
+
+  @IsString()
+  @IsOptional()
+  emailOrPhone?: string;
 
   @IsString()
   password: string;

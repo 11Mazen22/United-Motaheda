@@ -128,6 +128,7 @@ export function buildCheckoutSubmitCommand(input: {
       unitPrice: line.unitPrice,
       name: line.name,
       code: line.code,
+      reservationId: line.reservationId,
     })),
   };
 }

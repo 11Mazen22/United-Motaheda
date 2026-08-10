@@ -9,6 +9,7 @@
 
 export type PharmacistOrderStatus =
   | "pending"
+  | "confirmed"
   | "verification"
   | "payment_pending"
   | "payment_approved"
@@ -24,6 +25,7 @@ export type PharmacistOrderStatus =
 /** Statuses that appear in the pharmacist active queue (not yet dispatched). */
 export const PHARMACIST_ACTIVE_STATUSES: PharmacistOrderStatus[] = [
   "pending",
+  "confirmed",
   "verification",
   "payment_pending",
   "payment_approved",

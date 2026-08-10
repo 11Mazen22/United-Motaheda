@@ -16,6 +16,7 @@
  */
 
 import { supabase } from "@/lib/supabase";
+import { normalizeOrderStatus } from "@/stores/orders";
 import type {
   PharmacistOrder,
   PharmacistOrderItem,
@@ -91,7 +92,7 @@ function mapOrder(row: RawOrderRow): PharmacistOrder {
 
   return {
     id:              row.id,
-    status:          row.status as PharmacistOrderStatus,
+    status:          normalizeOrderStatus(row.status) as PharmacistOrderStatus,
     customerName:    row.customer_name,
     customerPhone:   row.customer_phone,
     customerAddress: address,

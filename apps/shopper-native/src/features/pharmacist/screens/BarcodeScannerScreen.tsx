@@ -50,8 +50,9 @@ import { kit }                    from "@pharmacy/ui-native";
 import { theme }                  from "@pharmacy/design-tokens";
 import { BACK_CHEVRON, edgeEnd, edgeStart, flexRow, isRtl, textAlignStart } from "@/utils/layout";
 import { formatPrice }            from "@/utils/format";
+import { newIdempotencyKey }      from "@/lib/idempotency";
 
-import { getProductByBarcode } from "../api/inventory";
+import { adjustInventory, getProductByBarcode } from "../api/inventory";
 import { PharmacistScreenHeader } from "../components/PharmacistScreenHeader";
 import type { PharmacistProduct }  from "../api/types";
 
@@ -109,6 +110,8 @@ function ProductCard({
   mode,
   adjustment,
   onAdjust,
+  onSaveAdjustment,
+  savingAdjustment,
   onDismiss,
   onOpenInventory,
 }: {
@@ -116,6 +119,8 @@ function ProductCard({
   mode: ScanMode;
   adjustment: number;
   onAdjust: (delta: number) => void;
+  onSaveAdjustment: () => void;
+  savingAdjustment: boolean;
   onDismiss: () => void;
   onOpenInventory: () => void;
 }) {
@@ -211,13 +216,28 @@ function ProductCard({
             <View style={rc.adjustValueWrap}>
               <UIText style={rc.adjustValue}>{adjustment > 0 ? `+${adjustment}` : adjustment}</UIText>
               <UIText style={rc.adjustHint}>
-                {t("pharmacist.inventoryAdjustHint", "Session-only recount helper")}
+                {t("pharmacist.inventoryAdjustHint", "Adjusts available stock")}
               </UIText>
             </View>
             <Pressable onPress={() => onAdjust(1)} style={rc.adjustBtn} accessibilityRole="button">
               <Ionicons name="add" size={18} color={kit.color.accentDeep} />
             </Pressable>
           </View>
+          {adjustment !== 0 && (
+            <Pressable
+              onPress={onSaveAdjustment}
+              style={rc.saveAdjustmentBtn}
+              disabled={savingAdjustment}
+            >
+              {savingAdjustment ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <UIText style={rc.saveAdjustmentText}>
+                  {t("pharmacist.saveInventoryAdjustment", "Save adjustment")}
+                </UIText>
+              )}
+            </Pressable>
+          )}
         </View>
       )}
     </Animated.View>
@@ -313,6 +333,14 @@ const rc = StyleSheet.create({
     fontFamily: theme.fonts.regular,
     color:      kit.color.inkFaint,
   },
+  saveAdjustmentBtn: {
+    minHeight: 42,
+    borderRadius: kit.radius.lg,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: kit.color.accent,
+  },
+  saveAdjustmentText: { fontSize: 12, fontFamily: theme.fonts.bold, color: "#fff" },
 });
 
 // ─── Main screen ──────────────────────────────────────────────────────────────
@@ -329,6 +357,7 @@ export function BarcodeScannerScreen(): React.ReactElement {
   const [result,       setResult]       = useState<PharmacistProduct | null>(null);
   const [error,        setError]        = useState<string | null>(null);
   const [adjustment,   setAdjustment]   = useState(0);
+  const [savingAdjustment, setSavingAdjustment] = useState(false);
 
   // Debounce ref — stores the last scanned value + timestamp
   const lastScanRef = useRef<{ value: string; ts: number } | null>(null);
@@ -338,6 +367,7 @@ export function BarcodeScannerScreen(): React.ReactElement {
     setResult(null);
     setError(null);
     setAdjustment(0);
+    setSavingAdjustment(false);
   }, []);
 
   useEffect(() => {
@@ -401,6 +431,32 @@ export function BarcodeScannerScreen(): React.ReactElement {
     },
     [mode, router, t],
   );
+
+  const saveAdjustment = useCallback(async () => {
+    if (!result || adjustment === 0 || savingAdjustment) return;
+    setSavingAdjustment(true);
+    try {
+      await adjustInventory({
+        productId: result.id,
+        delta: adjustment,
+        reason: "pharmacist_barcode_recount",
+        idempotencyKey: newIdempotencyKey(),
+      });
+      setResult((current) => current ? {
+        ...current,
+        onHand: current.onHand + adjustment,
+        stock: current.stock + adjustment,
+        available: current.available + adjustment,
+      } : current);
+      setAdjustment(0);
+    } catch (saveError) {
+      setError(saveError instanceof Error
+        ? saveError.message
+        : t("pharmacist.scannerError", "حدث خطأ أثناء الحفظ."));
+    } finally {
+      setSavingAdjustment(false);
+    }
+  }, [adjustment, result, savingAdjustment, t]);
 
   useEffect(() => {
     if (!permission?.granted) return;
@@ -545,6 +601,8 @@ export function BarcodeScannerScreen(): React.ReactElement {
             mode={mode}
             adjustment={adjustment}
             onAdjust={(delta) => setAdjustment((value) => Math.max(-result.available, value + delta))}
+            onSaveAdjustment={() => void saveAdjustment()}
+            savingAdjustment={savingAdjustment}
             onDismiss={dismissResult}
             onOpenInventory={() => {
               dismissResult();

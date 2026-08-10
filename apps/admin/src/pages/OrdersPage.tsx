@@ -1,16 +1,19 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { adminApi } from '@/lib/api';
+import { getAdminSupabase } from '@/lib/supabase';
 import { showToast } from '@/components/Toast';
 import { SkeletonTable } from '@/components/SkeletonTable';
 import { formatDistanceToNow } from 'date-fns';
 
-const STATUS_OPTIONS = ['All', 'ready', 'picked_up', 'delivered', 'cancelled'];
+const STATUS_OPTIONS = ['All', 'pending', 'verification', 'payment_pending', 'payment_approved', 'preparing', 'ready', 'driver_assigned', 'driver_accepted', 'out_for_delivery', 'delivered', 'cancelled'];
 
 const statusBadge = (status: string) => {
   const map: Record<string, string> = {
     ready: 'badge-warning',
-    picked_up: 'badge-info',
+    driver_assigned: 'badge-info',
+    driver_accepted: 'badge-info',
+    out_for_delivery: 'badge-info',
     delivered: 'badge-success',
     cancelled: 'badge-error',
     pending: 'badge-neutral',
@@ -25,7 +28,50 @@ export function OrdersPage() {
 
   const queryClient = useQueryClient();
 
-  const { data, isLoading } = useQuery({
+  useEffect(() => {
+    const supabase = getAdminSupabase();
+    const channel = supabase
+      .channel('admin-orders-board')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
+        void queryClient.invalidateQueries({ queryKey: ['admin', 'orders'] });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'delivery_assignments' }, () => {
+        void queryClient.invalidateQueries({ queryKey: ['admin', 'orders'] });
+      })
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+
+  const { data: driversData } = useQuery({
+    queryKey: ['admin', 'drivers', 'assignable'],
+    queryFn: () => adminApi.getAllDrivers(1, 100, 'APPROVED'),
+    staleTime: 30_000,
+  });
+
+  const statusMutation = useMutation({
+    mutationFn: (status: string) => adminApi.updateOrderStatus(selectedOrder.id, status),
+    onSuccess: (_data, status) => {
+      showToast(`Order moved to ${status}`, 'success');
+      queryClient.invalidateQueries({ queryKey: ['admin', 'orders'] });
+      setSelectedOrder((order: any) => order ? { ...order, status } : order);
+    },
+    onError: (err: any) => showToast(err?.response?.data?.message ?? 'Failed to update order', 'error'),
+  });
+
+  const assignmentMutation = useMutation({
+    mutationFn: (driverId: string) => adminApi.assignOrder(selectedOrder.id, driverId),
+    onSuccess: (_data, driverId) => {
+      showToast('Driver assigned', 'success');
+      queryClient.invalidateQueries({ queryKey: ['admin', 'orders'] });
+      setSelectedOrder((order: any) => order ? { ...order, assigned_driver_id: driverId, status: 'driver_assigned' } : order);
+    },
+    onError: (err: any) => showToast(err?.response?.data?.message ?? 'Failed to assign driver', 'error'),
+  });
+
+  const { data, isLoading, isError, error } = useQuery({
     queryKey: ['admin', 'orders', page, statusFilter],
     queryFn: () => adminApi.getAllOrders(page, 20, statusFilter === 'All' ? undefined : statusFilter),
     staleTime: 15_000,
@@ -65,6 +111,10 @@ export function OrdersPage() {
       <div className="card overflow-hidden">
         {isLoading ? (
           <SkeletonTable rows={10} cols={6} />
+        ) : isError ? (
+          <div className="px-4 py-12 text-center text-sm text-red-500">
+            {error instanceof Error ? error.message : 'Unable to load orders'}
+          </div>
         ) : (
           <>
             <table className="w-full">
@@ -178,6 +228,37 @@ export function OrdersPage() {
                   </span>
                 </div>
               ))}
+
+              <label className="block pt-3 border-t border-gray-100 dark:border-slate-700">
+                <span className="text-sm text-gray-500">Change status</span>
+                <select
+                  className="input mt-1 w-full"
+                  value={selectedOrder.status}
+                  disabled={statusMutation.isPending}
+                  onChange={(event) => statusMutation.mutate(event.target.value)}
+                >
+                  {[selectedOrder.status, ...STATUS_OPTIONS.filter((status) => status !== 'All' && status !== selectedOrder.status)].map((status) => (
+                    <option key={status} value={status}>{status}</option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="block">
+                <span className="text-sm text-gray-500">Assign driver</span>
+                <select
+                  className="input mt-1 w-full"
+                  value={selectedOrder.assigned_driver_id ?? ''}
+                  disabled={assignmentMutation.isPending}
+                  onChange={(event) => {
+                    if (event.target.value) assignmentMutation.mutate(event.target.value);
+                  }}
+                >
+                  <option value="">Unassigned</option>
+                  {(driversData?.drivers ?? []).map((driver: any) => (
+                    <option key={driver.id} value={driver.id}>{driver.fullName}</option>
+                  ))}
+                </select>
+              </label>
             </div>
           </div>
         </div>

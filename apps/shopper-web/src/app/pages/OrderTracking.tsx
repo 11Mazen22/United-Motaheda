@@ -19,6 +19,7 @@ import {
   Zap,
 } from "lucide-react";
 import { fetchTrackingSnapshot } from "../../services/logisticsApi";
+import { normalizeOrderStatus } from "@pharmacy/contracts";
 import { useLanguage } from "../../contexts/LanguageContext";
 import { BrandActionGroup, StatusPanel } from "../components/BrandPrimitives";
 import { cn } from "../components/UI";
@@ -61,7 +62,7 @@ const STATUS_TIMELINE = [
     color: "amber",
   },
   {
-    key: "picked_up",
+    key: "out_for_delivery",
     labelEn: "Out for delivery",
     labelAr: "خارج للتسليم",
     descEn: "Driver is on the way",
@@ -495,9 +496,11 @@ export default function OrderTracking() {
     };
   }, [orderId, token, t, lang]);
 
-  const currentStatus = snapshot?.order.status ?? "";
+  const currentStatus = snapshot?.order.status
+    ? normalizeOrderStatus(snapshot.order.status)
+    : "";
   const isDelivered = currentStatus === "delivered";
-  const isOutForDelivery = currentStatus === "picked_up";
+  const isOutForDelivery = currentStatus === "out_for_delivery";
   const connectionState = snapshot?.connection.state ?? "order_lookup_fallback";
   const liveEnabled = !offline && connectionState === "token_live";
   const showLiveBadge = liveEnabled && !loading && !error;

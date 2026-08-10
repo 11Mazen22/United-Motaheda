@@ -27,6 +27,7 @@ const KEY = (userId: string) => ["notifications", userId] as const;
 
 export function useNotifications(userId: string | undefined) {
   const qc = useQueryClient();
+  type NotificationsCache = { pages: NotificationPage[]; pageParams: unknown[] };
 
   const query = useInfiniteQuery<NotificationPage>({
     queryKey: userId ? KEY(userId) : ["notifications", "anonymous"],
@@ -96,15 +97,29 @@ export function useNotifications(userId: string | undefined) {
   );
 
   const markRead = useMutation({
-    mutationFn: (id: string) => markNotificationRead(id),
-    onMutate: (id) => updateItem(id, (n) => ({ ...n, isRead: true })),
+    mutationFn: (id: string) => markNotificationRead(id, userId!),
+    onMutate: (id) => {
+      if (!userId) return undefined;
+      const previous = qc.getQueryData<NotificationsCache>(KEY(userId));
+      updateItem(id, (n) => ({ ...n, isRead: true }));
+      return { previous };
+    },
+    onError: (_error, _id, context) => {
+      if (userId && context?.previous) {
+        qc.setQueryData(KEY(userId), context.previous);
+      }
+    },
+    onSettled: () => {
+      if (userId) void qc.invalidateQueries({ queryKey: KEY(userId) });
+    },
   });
 
   const markAllRead = useMutation({
     mutationFn: () => markAllNotificationsRead(userId!),
     onMutate: () => {
       if (!userId) return;
-      qc.setQueryData<{ pages: NotificationPage[]; pageParams: unknown[] }>(
+      const previous = qc.getQueryData<NotificationsCache>(KEY(userId));
+      qc.setQueryData<NotificationsCache>(
         KEY(userId),
         (data) => {
           if (!data) return data;
@@ -117,12 +132,34 @@ export function useNotifications(userId: string | undefined) {
           };
         },
       );
+      return { previous };
+    },
+    onError: (_error, _variables, context) => {
+      if (userId && context?.previous) {
+        qc.setQueryData(KEY(userId), context.previous);
+      }
+    },
+    onSettled: () => {
+      if (userId) void qc.invalidateQueries({ queryKey: KEY(userId) });
     },
   });
 
   const dismiss = useMutation({
-    mutationFn: (id: string) => deleteNotification(id),
-    onMutate: (id) => removeItem(id),
+    mutationFn: (id: string) => deleteNotification(id, userId!),
+    onMutate: (id) => {
+      if (!userId) return undefined;
+      const previous = qc.getQueryData<NotificationsCache>(KEY(userId));
+      removeItem(id);
+      return { previous };
+    },
+    onError: (_error, _id, context) => {
+      if (userId && context?.previous) {
+        qc.setQueryData(KEY(userId), context.previous);
+      }
+    },
+    onSettled: () => {
+      if (userId) void qc.invalidateQueries({ queryKey: KEY(userId) });
+    },
   });
 
   return {

@@ -32,17 +32,17 @@ api.interceptors.response.use(
 
 export const adminApi = {
   login: (identifier: string, password: string) =>
-    api.post('/driver/login', { identifier, password }).then((r) => r.data),
+    api.post('/admin/login', { identifier, password }).then((r) => r.data.data ?? r.data),
 
   // Drivers
   getOnlineDriversLocations: () =>
-    api.get('/admin/drivers/online-locations').then((r) => r.data),
+    api.get('/admin/drivers/online').then((r) => r.data.data ?? r.data),
 
   getAllDrivers: (page = 1, limit = 20, status?: string) =>
-    api.get('/admin/drivers', { params: { page, limit, status } }).then((r) => r.data),
+    api.get('/admin/drivers', { params: { page, limit, status } }).then((r) => r.data.data ?? r.data),
 
   getDriver: (id: string) =>
-    api.get(`/admin/drivers/${id}`).then((r) => r.data),
+    api.get(`/admin/drivers/${id}`).then((r) => r.data.data ?? r.data),
 
   approveDriver: (id: string) =>
     api.patch(`/admin/drivers/${id}/approve`).then((r) => r.data),
@@ -55,21 +55,37 @@ export const adminApi = {
 
   // Orders
   getAllOrders: (page = 1, limit = 20, status?: string) =>
-    api.get('/admin/orders', { params: { page, limit, status } }).then((r) => r.data),
+    api.get('/admin/orders', { params: { page, limit, status } }).then((r) => r.data.data ?? r.data),
 
   assignOrder: (orderId: string, driverId: string) =>
     api.post(`/admin/orders/${orderId}/assign`, { driverId }).then((r) => r.data),
 
+  updateOrderStatus: (orderId: string, status: string) =>
+    api.patch(`/admin/orders/${orderId}/status`, { status }).then((r) => r.data),
+
   // Stats
   getDashboardStats: () =>
-    api.get('/admin/stats').then((r) => r.data),
+    api.get('/admin/stats').then((r) => r.data.data ?? r.data),
 
   // Notifications
   broadcastNotification: (data: { title: string; body: string; target: 'all' | 'online' | string }) =>
-    api.post('/notifications/broadcast', data).then((r) => r.data),
+    api.post('/notifications/broadcast', {
+      ...data,
+      target: data.target === 'all' ? 'all_drivers' : data.target === 'online' ? 'online_drivers' : data.target,
+    }).then((r) => {
+      const result = r.data.data ?? r.data;
+      return {
+        ...result,
+        successCount: result.sent ?? result.successCount ?? 0,
+        failureCount: result.failed ?? result.failureCount ?? 0,
+      };
+    }),
 
   getNotificationHistory: (page = 1) =>
-    api.get('/notifications/history', { params: { page } }).then((r) => r.data),
+    api.get('/notifications/admin/history', { params: { page } }).then((r) => {
+      const notifications = r.data.data ?? r.data;
+      return { notifications: Array.isArray(notifications) ? notifications : notifications.notifications ?? [] };
+    }),
 };
 
 // ─── Marketing API (direct Supabase — bypasses Railway) ────────────────────────

@@ -162,23 +162,15 @@ export default function RegisterScreen() {
     if (!result.canceled && result.assets[0]) {
       const uri = result.assets[0].uri;
       setDocuments((d) => ({ ...d, [type]: uri }));
-      setUploadProgress((p) => ({ ...p, [type]: 'uploading' }));
-
-      try {
-        await driverApi.uploadDocument(type, uri);
-        setUploadProgress((p) => ({ ...p, [type]: 'done' }));
-      } catch {
-        setUploadProgress((p) => ({ ...p, [type]: 'error' }));
-        showToast(`Failed to upload ${type} document`, 'error');
-      }
+      setUploadProgress((p) => ({ ...p, [type]: 'idle' }));
     }
   };
 
   // ─── Final submission ──────────────────────────────────────────────────────
 
   const handleFinalSubmit = async () => {
-    const allUploaded = DOCUMENTS.every((d) => uploadProgress[d.type] === 'done');
-    if (!allUploaded) {
+    const allSelected = DOCUMENTS.every((d) => documents[d.type]);
+    if (!allSelected) {
       showToast('Please upload all required documents', 'warning');
       return;
     }
@@ -198,6 +190,19 @@ export default function RegisterScreen() {
         vehicleColor: step2Data.vehicleColor,
       });
       setAuth(res.token, res.user);
+
+      for (const document of DOCUMENTS) {
+        const uri = documents[document.type];
+        if (!uri) continue;
+        setUploadProgress((p) => ({ ...p, [document.type]: 'uploading' }));
+        try {
+          await driverApi.uploadDocument(document.type, uri);
+          setUploadProgress((p) => ({ ...p, [document.type]: 'done' }));
+        } catch {
+          setUploadProgress((p) => ({ ...p, [document.type]: 'error' }));
+          throw new Error(`Failed to upload ${document.type} document`);
+        }
+      }
       router.replace('/(auth)/pending');
     } catch (err: any) {
       const message =

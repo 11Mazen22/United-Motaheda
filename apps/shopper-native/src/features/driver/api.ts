@@ -22,7 +22,7 @@
 
 import { supabase } from "@/lib/supabase";
 import { fetchOrderById } from "@/features/orders/api";
-import type { Order, OrderItem } from "@/stores/orders";
+import { normalizeOrderStatus, type Order, type OrderItem } from "@/stores/orders";
 import { notifyCustomerOrderUpdate } from "./customerNotify";
 
 export type { Order, OrderItem };
@@ -43,6 +43,8 @@ export interface DeliveryAssignment {
   respondedAt:    string | null;
   pickedUpAt:     string | null;
   deliveredAt:    string | null;
+  arrivedAtPharmacy: string | null;
+  arrivedAtCustomer: string | null;
 }
 
 export type IssueReasonCode =
@@ -105,6 +107,8 @@ interface RawAssignmentRow {
   responded_at:     string | null;
   picked_up_at:     string | null;
   delivered_at:     string | null;
+  arrived_at_pharmacy: string | null;
+  arrived_at_customer: string | null;
 }
 
 interface RawIssueRow {
@@ -131,7 +135,7 @@ interface RawManifestRow {
 }
 
 const ASSIGNMENT_COLUMNS =
-  "id, order_id, driver_id, assigned_by, assignment_kind, response_status, decline_reason, offered_at, responded_at, picked_up_at, delivered_at";
+  "id, order_id, driver_id, assigned_by, assignment_kind, response_status, decline_reason, offered_at, responded_at, picked_up_at, delivered_at, arrived_at_pharmacy, arrived_at_customer";
 const ISSUE_COLUMNS =
   "id, order_id, driver_id, reason_code, note, status, resolved_by, resolved_at, resolution_note, created_at";
 
@@ -154,6 +158,8 @@ function mapAssignmentRow(row: RawAssignmentRow): DeliveryAssignment {
     respondedAt: row.responded_at,
     pickedUpAt: row.picked_up_at,
     deliveredAt: row.delivered_at,
+    arrivedAtPharmacy: row.arrived_at_pharmacy,
+    arrivedAtCustomer: row.arrived_at_customer,
   };
 }
 
@@ -178,7 +184,7 @@ function mapManifestRow(row: RawManifestRow): ManifestOrder {
     ?? [addr.streetLine ?? addr.street, addr.city].filter(Boolean).join(", ");
   return {
     id: row.id,
-    status: row.status as Order["status"],
+    status: normalizeOrderStatus(row.status) as Order["status"],
     customerName: row.customer_name,
     customerPhone: row.customer_phone,
     customerAddress: formatted,
@@ -193,8 +199,9 @@ function mapManifestRow(row: RawManifestRow): ManifestOrder {
 // Includes the legacy "processing"/"shipped" synonyms (preparing/picked_up)
 // since old rows may still carry them (see packages/contracts/orderStatus.ts).
 const ACTIVE_ORDER_STATUSES = [
-  "pending", "pending_payment", "confirmed", "preparing",
-  "processing", "ready", "picked_up", "shipped",
+  "pending", "pending_payment", "confirmed", "verification",
+  "payment_pending", "payment_approved", "preparing", "ready",
+  "driver_assigned", "driver_accepted", "out_for_delivery",
 ];
 
 /** Orders where I have an ACCEPTED assignment and the order isn't finished
@@ -323,6 +330,7 @@ export async function acceptAssignment(assignmentId: string, driverId: string): 
   if (updated.responseStatus !== "accepted") {
     throw new Error("Acceptance did not persist; please try again.");
   }
+  notifyCustomerOrderUpdate(orderId, "driver_accepted");
   return updated;
 }
 
@@ -393,6 +401,20 @@ export async function confirmPickup(orderId: string, assignmentId: string, drive
     .eq("driver_id", driverId);
 
   notifyCustomerOrderUpdate(orderId, "picked_up");
+}
+
+export async function markArrival(
+  assignmentId: string,
+  orderId: string,
+  stage: "pharmacy" | "customer",
+): Promise<DeliveryAssignment> {
+  const { data, error } = await supabase.rpc("mark_delivery_arrival", {
+    p_assignment_id: assignmentId,
+    p_stage: stage,
+  });
+  if (error) throw error;
+  if (stage === "customer") notifyCustomerOrderUpdate(orderId, "driver_arrived");
+  return mapAssignmentRow(data as RawAssignmentRow);
 }
 
 export async function completeDelivery(orderId: string, assignmentId: string, driverId: string): Promise<void> {

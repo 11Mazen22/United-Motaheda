@@ -56,6 +56,19 @@ export function DeliveryExecutionScreen(): React.ReactElement {
     }
   };
 
+  const handleArrival = async (stage: "pharmacy" | "customer") => {
+    if (!orderId || !assignment) return;
+    try {
+      await mutations.arrival.mutateAsync({ orderId, assignmentId: assignment.id, stage });
+      showSuccessSheet(
+        stage === "pharmacy" ? t("driver.arrivedAtPharmacyTitle", "Arrived at pharmacy") : t("driver.arrivedAtCustomerTitle", "Arrived at customer"),
+        stage === "pharmacy" ? t("driver.arrivedAtPharmacyBody", "You can now confirm pickup.") : t("driver.arrivedAtCustomerBody", "You can now complete delivery."),
+      );
+    } catch (e) {
+      showErrorSheet(t("driver.actionFailedTitle"), e instanceof Error ? e.message : t("driver.actionFailedBody"));
+    }
+  };
+
   const handleDeliver = async () => {
     if (!orderId || !assignment) return;
     try {
@@ -67,8 +80,10 @@ export function DeliveryExecutionScreen(): React.ReactElement {
   };
 
   const loading = orderQuery.isLoading || assignmentQuery.isLoading;
-  const canConfirmPickup = order?.status === "ready" && assignment?.responseStatus === "accepted" && !assignment.pickedUpAt;
-  const canMarkDelivered = order?.status === "out_for_delivery";
+  const canArrivePharmacy = order?.status === "ready" && assignment?.responseStatus === "accepted" && !assignment.arrivedAtPharmacy;
+  const canConfirmPickup = order?.status === "ready" && assignment?.responseStatus === "accepted" && Boolean(assignment.arrivedAtPharmacy) && !assignment.pickedUpAt;
+  const canArriveCustomer = order?.status === "out_for_delivery" && Boolean(assignment?.pickedUpAt) && !assignment?.arrivedAtCustomer;
+  const canMarkDelivered = order?.status === "out_for_delivery" && Boolean(assignment?.arrivedAtCustomer);
   const address = order?.address.formatted || [order?.address.street, order?.address.city].filter(Boolean).join(", ");
   const destinationCoords = useMemo(() => {
     if (
@@ -85,7 +100,7 @@ export function DeliveryExecutionScreen(): React.ReactElement {
     Boolean(user?.id)
     && Boolean(orderId)
     && Boolean(assignment?.id)
-    && ["out_for_delivery", "picked_up", "shipped"].includes(order?.status ?? "");
+    && order?.status === "out_for_delivery";
 
   useEffect(() => {
     if (!shouldBroadcastLocation || !user?.id || !orderId) return;
@@ -126,10 +141,8 @@ export function DeliveryExecutionScreen(): React.ReactElement {
       }
     };
 
-    void syncCurrentLocation();
-    intervalId = setInterval(() => {
-      void syncCurrentLocation();
-    }, 20_000);
+    syncCurrentLocation();
+    intervalId = setInterval(syncCurrentLocation, 20_000);
 
     return () => {
       cancelled = true;
@@ -148,6 +161,7 @@ export function DeliveryExecutionScreen(): React.ReactElement {
     if (!address) return;
     void Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(address)}&travelmode=driving`);
   };
+
   const callCustomer = () => {
     const phone = order?.address.phone?.replace(/\s/g, "");
     if (phone) void Linking.openURL(`tel:${phone}`);
@@ -260,12 +274,32 @@ export function DeliveryExecutionScreen(): React.ReactElement {
           </DetailSection>
 
           <View style={s.actions}>
+            {canArrivePharmacy && (
+              <Button
+                label={t("driver.arrivedAtPharmacy", "Arrived at pharmacy")}
+                icon="location"
+                onPress={() => void handleArrival("pharmacy")}
+                loading={mutations.arrival.isPending}
+                full
+                size="lg"
+              />
+            )}
             {canConfirmPickup && (
               <Button
                 label={t("driver.confirmPickup")}
                 icon="cube-outline"
                 onPress={() => void handlePickup()}
                 loading={mutations.pickup.isPending}
+                full
+                size="lg"
+              />
+            )}
+            {canArriveCustomer && (
+              <Button
+                label={t("driver.arrivedAtCustomer", "Arrived at customer")}
+                icon="location"
+                onPress={() => void handleArrival("customer")}
+                loading={mutations.arrival.isPending}
                 full
                 size="lg"
               />
@@ -280,7 +314,7 @@ export function DeliveryExecutionScreen(): React.ReactElement {
                 size="lg"
               />
             )}
-            {!canConfirmPickup && !canMarkDelivered && (
+            {!canArrivePharmacy && !canConfirmPickup && !canArriveCustomer && !canMarkDelivered && (
               <View style={s.doneNotice}>
                 <Ionicons name="checkmark-done-circle" size={18} color={kit.color.success} />
                 <UIText variant="body-sm" color="success">{t("driver.noActionNeeded")}</UIText>

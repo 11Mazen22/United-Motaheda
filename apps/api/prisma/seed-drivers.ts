@@ -4,8 +4,14 @@
  */
 
 import { PrismaClient } from '@prisma/client';
+import { createClient } from '@supabase/supabase-js';
 
 const prisma = new PrismaClient();
+const supabase = createClient(
+  process.env.SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  { auth: { autoRefreshToken: false, persistSession: false } },
+);
 
 async function main() {
   console.log('🚀 Starting driver platform seed...');
@@ -52,20 +58,32 @@ async function main() {
       continue;
     }
 
-    // In a real app, you'd create the user through Supabase Auth
-    // For development, we'll create profiles directly
-    // Note: You'll need to create the auth.users entry separately or through Supabase UI
-
     console.log(`Creating driver: ${driverData.fullName}...`);
 
-    // Create profile (this assumes auth.users entry exists)
-    // In production, use Supabase Auth API to create users
-    const userId = crypto.randomUUID();
-
     try {
-      const profile = await prisma.profiles.create({
-        data: {
-          id: userId,
+      const seedPassword = process.env.SEED_DRIVER_PASSWORD;
+      if (!seedPassword) throw new Error('SEED_DRIVER_PASSWORD is required');
+
+      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+        email: driverData.email,
+        password: seedPassword,
+        phone: driverData.phone,
+        email_confirm: true,
+        user_metadata: { full_name: driverData.fullName, phone: driverData.phone },
+      });
+      if (authError || !authData.user) throw authError ?? new Error('Auth user creation failed');
+
+      const profile = await prisma.profiles.upsert({
+        where: { id: authData.user.id },
+        create: {
+          id: authData.user.id,
+          full_name: driverData.fullName,
+          email: driverData.email,
+          phone: driverData.phone,
+          role: 'driver',
+          status: 'Active',
+        },
+        update: {
           full_name: driverData.fullName,
           email: driverData.email,
           phone: driverData.phone,

@@ -121,6 +121,7 @@ export function TrackOrderScreen(): React.ReactElement {
   const driver       = snapshot?.driver   ?? null;
   const hasLocation  = Boolean(location);
   const locationAge  = location ? ageSeconds(location.captured_at) : null;
+  const locationStale = locationAge !== null && locationAge > 120;
 
   // ── Open in Google Maps ───────────────────────────────────────────────────
   const openInMaps = () => {
@@ -304,9 +305,12 @@ export function TrackOrderScreen(): React.ReactElement {
 
                 {/* Age indicator */}
                 <View style={s.ageRow}>
-                  <Ionicons name="time-outline" size={13} color={kit.color.inkFaint} />
-                  <UIText variant="caption" color="secondary">
-                    {t("tracking.updatedAt", "Updated")} {formatCapturedAt(location.captured_at)}
+                  <Ionicons name={locationStale ? "warning-outline" : "time-outline"} size={13} color={locationStale ? kit.color.warn : kit.color.inkFaint} />
+                  <UIText variant="caption" style={{ color: locationStale ? kit.color.warn : kit.color.inkSoft }}>
+                    {locationStale
+                      ? t("tracking.locationStale", "Location may be outdated")
+                      : t("tracking.updatedAt", "Updated")}
+                    {` ${formatCapturedAt(location.captured_at)}`}
                     {locationAge !== null && locationAge > 0
                       ? ` (${locationAge}${t("tracking.secondsAgo", "s ago")})`
                       : ""}

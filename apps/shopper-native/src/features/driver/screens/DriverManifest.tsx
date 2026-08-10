@@ -13,6 +13,7 @@ import { Screen, Text as UIText } from "@pharmacy/ui-native";
 import { kit } from "@pharmacy/ui-native";
 import { theme } from "@pharmacy/design-tokens";
 import { useAuth } from "@/features/auth";
+import { useUnreadCount } from "@/features/notifications";
 import { flexRow, isRtl, textAlignStart, FORWARD_CHEVRON } from "@/utils/layout";
 import { formatPrice } from "@/utils/format";
 import { useDriverManifest, useDriverOffers, driverQueryKeys } from "../hooks/useDriverManifest";
@@ -28,7 +29,7 @@ const TEXT_START = textAlignStart(IS_RTL);
 const STATUS_META: Record<string, { labelKey: string; color: string; bg: string; icon: React.ComponentProps<typeof Ionicons>["name"] }> = {
   preparing: { labelKey: "driver.statusPreparing", color: kit.color.inkSoft,    bg: kit.color.well,       icon: "time-outline" },
   ready:     { labelKey: "driver.statusReady",     color: kit.color.accentDeep, bg: kit.color.accentTint, icon: "cube-outline" },
-  picked_up: { labelKey: "driver.statusPickedUp",  color: kit.color.warn,       bg: kit.color.warnTint,   icon: "car-outline" },
+  out_for_delivery: { labelKey: "driver.statusPickedUp", color: kit.color.warn, bg: kit.color.warnTint, icon: "car-outline" },
 };
 
 function OfferBanner({ count, onPress }: { count: number; onPress: () => void }) {
@@ -54,7 +55,7 @@ function OfferBanner({ count, onPress }: { count: number; onPress: () => void })
 
 // "shipped" is the legacy synonym for "picked_up" (see
 // packages/contracts/src/orderStatus.ts) — old rows may still carry it.
-const STATUS_ALIASES: Record<string, string> = { shipped: "picked_up", processing: "preparing" };
+const STATUS_ALIASES: Record<string, string> = { shipped: "out_for_delivery", picked_up: "out_for_delivery", processing: "preparing" };
 
 function ManifestCard({ order, onPress }: { order: ManifestOrder; onPress: () => void }) {
   const { t } = useTranslation();
@@ -85,7 +86,7 @@ function ManifestCard({ order, onPress }: { order: ManifestOrder; onPress: () =>
 
 function ShiftSummary({ orders, offers }: { orders: ManifestOrder[]; offers: number }) {
   const { t } = useTranslation();
-  const inTransit = orders.filter((order) => (STATUS_ALIASES[order.status] ?? order.status) === "picked_up").length;
+  const inTransit = orders.filter((order) => (STATUS_ALIASES[order.status] ?? order.status) === "out_for_delivery").length;
   return (
     <View style={s.summaryCard}>
       <View style={s.summaryIntro}>
@@ -110,6 +111,7 @@ export function DriverManifest(): React.ReactElement {
   const { t } = useTranslation();
   const router = useRouter();
   const { user, signOut } = useAuth();
+  const unreadCount = useUnreadCount(user?.id);
   const queryClient = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
 
@@ -143,9 +145,15 @@ export function DriverManifest(): React.ReactElement {
             {t("driver.greeting", { name: user?.name ?? "" })}
           </UIText>
         </View>
-        <Pressable onPress={() => void signOut()} style={s.logoutBtn} accessibilityRole="button" accessibilityLabel={t("driver.signOut")}>
-          <Ionicons name="log-out-outline" size={20} color={kit.color.inkSoft} />
-        </Pressable>
+        <View style={s.headerActions}>
+          <Pressable onPress={() => router.push("/notifications" as never)} style={s.headerAction} accessibilityRole="button" accessibilityLabel={t("notifications.title")}>
+            <Ionicons name="notifications-outline" size={20} color={kit.color.inkSoft} />
+            {unreadCount > 0 && <View style={s.notificationDot} />}
+          </Pressable>
+          <Pressable onPress={() => void signOut()} style={s.logoutBtn} accessibilityRole="button" accessibilityLabel={t("driver.signOut")}>
+            <Ionicons name="log-out-outline" size={20} color={kit.color.inkSoft} />
+          </Pressable>
+        </View>
       </View>
 
       <FlatList
@@ -210,6 +218,9 @@ const s = StyleSheet.create({
     backgroundColor: kit.color.surface,
     borderWidth: 1, borderColor: kit.color.line,
   },
+  headerActions: { flexDirection: "row", alignItems: "center", gap: 8 },
+  headerAction: { position: "relative", width: 40, height: 40, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: kit.color.well },
+  notificationDot: { position: "absolute", top: 8, right: 8, width: 7, height: 7, borderRadius: 4, backgroundColor: kit.color.danger, borderWidth: 1, borderColor: kit.color.canvas },
   listContent: {
     paddingHorizontal: kit.inset.screen,
     paddingBottom: 40,

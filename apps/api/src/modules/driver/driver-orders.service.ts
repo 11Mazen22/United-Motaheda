@@ -236,13 +236,14 @@ export class DriverOrdersService {
         },
       });
 
-      // Update order
+      // Update order to the canonical driver-accepted lifecycle state.
       await tx.orders.update({
         where: { id: orderId },
         data: {
           assigned_driver_id: profile.id,
-          status: 'picked_up', // moves to "in progress" state
+          status: 'driver_accepted' as any,
           last_status_at: new Date(),
+          updated_at: new Date(),
         },
       });
 
@@ -568,9 +569,32 @@ export class DriverOrdersService {
       profile.driverProfile!.id, orderId, fromStatus,
     );
 
-    await this.prisma.deliveryAssignment.update({
-      where: { id: assignment.id },
-      data: { status: toStatus as any, ...extra },
+    const nextOrderStatus = {
+      ACCEPTED: 'driver_accepted',
+      EN_ROUTE_TO_PICKUP: 'driver_accepted',
+      ARRIVED_AT_PHARMACY: 'driver_accepted',
+      PICKED_UP: 'out_for_delivery',
+      EN_ROUTE_TO_CUSTOMER: 'out_for_delivery',
+      ARRIVED_AT_CUSTOMER: 'out_for_delivery',
+      DELIVERED: 'delivered',
+    }[toStatus] as string | undefined;
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.deliveryAssignment.update({
+        where: { id: assignment.id },
+        data: { status: toStatus as any, ...extra },
+      });
+
+      if (nextOrderStatus) {
+        await tx.orders.update({
+          where: { id: orderId },
+          data: {
+            status: nextOrderStatus as any,
+            last_status_at: new Date(),
+            updated_at: new Date(),
+          },
+        });
+      }
     });
 
     this._broadcastDeliveryUpdate(orderId, toStatus);

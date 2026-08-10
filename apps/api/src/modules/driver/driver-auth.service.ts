@@ -6,15 +6,14 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RegisterDriverDto, LoginDriverDto } from './dto';
-import * as bcrypt from 'bcrypt';
-import * as jwt from 'jsonwebtoken';
+import { SupabaseAuthService } from '../../auth/supabase-auth.service';
 
 @Injectable()
 export class DriverAuthService {
-  private readonly JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
-  private readonly JWT_EXPIRES_IN = '30d';
-
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly authService: SupabaseAuthService,
+  ) {}
 
   /**
    * Register a new driver with profile and vehicle information
@@ -34,18 +33,26 @@ export class DriverAuthService {
       throw new ConflictException('Email or phone already registered');
     }
 
-    // Hash password
-    const hashedPassword = await bcrypt.hash(dto.password, 10);
-
-    // In production, you'd use Supabase Auth API to create the auth.users entry
-    // For now, we'll create the profile directly
-    // NOTE: This requires the auth.users entry to exist first in production
-
     try {
+      const authUser = await this.authService.createUser({
+        email: dto.email,
+        password: dto.password,
+        phone: dto.phone,
+        fullName: dto.fullName,
+      });
+
       // Create profile with driver role
-      const profile = await this.prisma.profiles.create({
-        data: {
-          id: crypto.randomUUID(), // In production, this comes from Supabase Auth
+      const profile = await this.prisma.profiles.upsert({
+        where: { id: authUser.id },
+        create: {
+          id: authUser.id,
+          full_name: dto.fullName,
+          email: dto.email,
+          phone: dto.phone,
+          role: 'driver',
+          status: 'Active',
+        },
+        update: {
           full_name: dto.fullName,
           email: dto.email,
           phone: dto.phone,
@@ -68,27 +75,13 @@ export class DriverAuthService {
         },
       });
 
-      // Generate JWT token
-      const token = this.generateToken(profile.id, 'driver');
+      const session = await this.authService.signIn(dto.email, dto.password);
+      const driver = this.toDriverResponse(profile, driverProfile);
 
       return {
-        token,
-        driver: {
-          id: profile.id,
-          fullName: profile.full_name,
-          email: profile.email,
-          phone: profile.phone,
-          role: profile.role,
-          driverProfile: {
-            id: driverProfile.id,
-            vehicleType: driverProfile.vehicleType,
-            vehiclePlate: driverProfile.vehiclePlate,
-            vehicleModel: driverProfile.vehicleModel,
-            status: driverProfile.status,
-            rating: driverProfile.rating,
-            totalDeliveries: driverProfile.totalDeliveries,
-          },
-        },
+        token: session.session.access_token,
+        user: driver,
+        driver,
       };
     } catch (error) {
       console.error('Driver registration error:', error);
@@ -100,14 +93,11 @@ export class DriverAuthService {
    * Login driver with email/phone and password
    */
   async login(dto: LoginDriverDto) {
-    // Find driver by email or phone
+    const identifier = dto.emailOrPhone ?? dto.identifier;
+    const session = await this.authService.signIn(identifier, dto.password);
     const profile = await this.prisma.profiles.findFirst({
       where: {
-        OR: [
-          { email: dto.emailOrPhone },
-          { phone: dto.emailOrPhone },
-        ],
-        role: 'driver',
+        id: session.user.id,
       },
       include: {
         driverProfile: true,
@@ -115,18 +105,6 @@ export class DriverAuthService {
     });
 
     if (!profile || !profile.driverProfile) {
-      throw new UnauthorizedException('Invalid credentials');
-    }
-
-    // In production, verify password against Supabase Auth
-    // For now, we'll use a placeholder verification
-    // const isPasswordValid = await bcrypt.compare(dto.password, hashedPassword);
-    
-    // Temporarily allow any password for development
-    // TODO: Integrate with Supabase Auth for production
-    const isPasswordValid = true; // Replace with actual password verification
-
-    if (!isPasswordValid) {
       throw new UnauthorizedException('Invalid credentials');
     }
 
@@ -139,77 +117,34 @@ export class DriverAuthService {
       throw new UnauthorizedException('Your account has been suspended');
     }
 
-    // Generate JWT token
-    const token = this.generateToken(profile.id, 'driver');
-
+    const driver = this.toDriverResponse(profile, profile.driverProfile);
     return {
-      token,
-      driver: {
-        id: profile.id,
-        fullName: profile.full_name,
-        email: profile.email,
-        phone: profile.phone,
-        role: profile.role,
-        driverProfile: {
-          id: profile.driverProfile.id,
-          vehicleType: profile.driverProfile.vehicleType,
-          vehiclePlate: profile.driverProfile.vehiclePlate,
-          vehicleModel: profile.driverProfile.vehicleModel,
-          vehicleColor: profile.driverProfile.vehicleColor,
-          status: profile.driverProfile.status,
-          isOnline: profile.driverProfile.isOnline,
-          rating: profile.driverProfile.rating.toString(),
-          totalDeliveries: profile.driverProfile.totalDeliveries,
-          completionRate: profile.driverProfile.completionRate.toString(),
-          totalEarnings: profile.driverProfile.totalEarnings.toString(),
-        },
-      },
+      token: session.session.access_token,
+      user: driver,
+      driver,
     };
   }
 
-  /**
-   * Verify JWT token and return driver profile
-   */
-  async verifyToken(token: string) {
-    try {
-      const decoded = jwt.verify(token, this.JWT_SECRET) as { userId: string; role: string };
-      
-      if (decoded.role !== 'driver') {
-        throw new UnauthorizedException('Invalid token');
-      }
-
-      const profile = await this.prisma.profiles.findUnique({
-        where: { id: decoded.userId },
-        include: {
-          driverProfile: true,
-        },
-      });
-
-      if (!profile || !profile.driverProfile) {
-        throw new UnauthorizedException('Driver not found');
-      }
-
-      return {
-        id: profile.id,
-        fullName: profile.full_name,
-        email: profile.email,
-        phone: profile.phone,
-        role: profile.role,
-        driverProfile: profile.driverProfile,
-      };
-    } catch (error) {
-      throw new UnauthorizedException('Invalid or expired token');
-    }
-  }
-
-  /**
-   * Generate JWT token
-   */
-  private generateToken(userId: string, role: string): string {
-    return jwt.sign(
-      { userId, role },
-      this.JWT_SECRET,
-      { expiresIn: this.JWT_EXPIRES_IN }
-    );
+  private toDriverResponse(profile: any, driverProfile: any) {
+    return {
+      id: profile.id,
+      fullName: profile.full_name,
+      email: profile.email,
+      phone: profile.phone,
+      role: profile.role,
+      driverProfile: {
+        id: driverProfile.id,
+        vehicleType: driverProfile.vehicleType,
+        vehiclePlate: driverProfile.vehiclePlate,
+        vehicleModel: driverProfile.vehicleModel,
+        vehicleColor: driverProfile.vehicleColor,
+        status: driverProfile.status,
+        isOnline: driverProfile.isOnline,
+        rating: driverProfile.rating.toString(),
+        totalDeliveries: driverProfile.totalDeliveries,
+        completionRate: driverProfile.completionRate.toString(),
+        totalEarnings: driverProfile.totalEarnings.toString(),
+      },
+    };
   }
 }

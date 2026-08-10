@@ -42,7 +42,7 @@ export function NotificationsPage() {
       showToast(err?.response?.data?.message ?? 'Failed to send notification', 'error'),
   });
 
-  const { data: historyData, isLoading: historyLoading } = useQuery({
+  const { data: historyData, isLoading: historyLoading, isError: historyError } = useQuery({
     queryKey: ['admin', 'notifications'],
     queryFn: () => adminApi.getNotificationHistory(),
     staleTime: 30_000,
@@ -161,6 +161,10 @@ export function NotificationsPage() {
           {historyLoading ? (
             <div className="space-y-3">
               {[1, 2, 3].map((i) => <SkeletonCard key={i} lines={2} />)}
+            </div>
+          ) : historyError ? (
+            <div className="text-center py-12 text-red-500">
+              <p className="text-sm">Unable to load notification history</p>
             </div>
           ) : history.length === 0 ? (
             <div className="text-center py-12 text-gray-400">

@@ -10,6 +10,7 @@ import {
 import { Server, Socket } from 'socket.io';
 import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
 import { DriverLocationService } from './driver-location.service';
+import { SupabaseAuthService } from '../../auth/supabase-auth.service';
 
 interface LocationBroadcast {
   driverId: string;
@@ -51,12 +52,34 @@ export class LocationBroadcastGateway
   constructor(
     @Inject(forwardRef(() => DriverLocationService))
     private readonly locationService: DriverLocationService,
+    private readonly authService: SupabaseAuthService,
   ) {}
 
   /**
    * Handle client connection
    */
   async handleConnection(client: Socket) {
+    const token = this.readSocketToken(client);
+    if (!token) {
+      this.logger.warn(`Rejected unauthenticated socket ${client.id}`);
+      client.disconnect(true);
+      return;
+    }
+
+    try {
+      const authenticated = await this.authService.authenticateAccessToken(token);
+      if (!['admin', 'manager'].includes(authenticated.profile.role)) {
+        this.logger.warn(`Rejected non-admin socket ${client.id}`);
+        client.disconnect(true);
+        return;
+      }
+      client.data.user = authenticated;
+    } catch {
+      this.logger.warn(`Rejected invalid-token socket ${client.id}`);
+      client.disconnect(true);
+      return;
+    }
+
     this.logger.log(`Client connected: ${client.id}`);
     this.connectedClients.set(client.id, client);
 
@@ -67,6 +90,15 @@ export class LocationBroadcastGateway
     } catch (error) {
       this.logger.error('Error sending initial drivers data', error);
     }
+  }
+
+  private readSocketToken(client: Socket): string | null {
+    const authToken = client.handshake.auth?.token;
+    if (typeof authToken === 'string' && authToken.trim()) return authToken.trim();
+
+    const header = client.handshake.headers.authorization;
+    const match = typeof header === 'string' ? header.match(/^Bearer\s+(.+)$/i) : null;
+    return match?.[1]?.trim() || null;
   }
 
   /**

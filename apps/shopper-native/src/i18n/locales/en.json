@@ -1493,6 +1493,7 @@
         "statusPaymentApproved":  "Approved",
         "statusPreparing":        "Preparing",
         "statusReady":            "Ready",
+        "statusConfirmed":        "Confirmed",
         "statusDriverAssigned":   "Driver Assigned",
         "statusDriverAccepted":   "Driver En Route",
         "statusOutForDelivery":   "Out for Delivery",

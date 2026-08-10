@@ -126,6 +126,7 @@ async function fetchProfilesById(userIds: string[]): Promise<Map<string, Profile
 }
 
 function notifyCustomer(params: {
+  prescriptionId: string;
   userId: string;
   type: "prescription" | "refill";
   decision: ReviewDecision;
@@ -141,19 +142,19 @@ function notifyCustomer(params: {
     ? "يمكنك الآن متابعة تفاصيلها من التطبيق."
     : (params.rejectionReason ?? "يرجى التواصل مع الصيدلية لمزيد من التفاصيل.");
 
-  // Best-effort — a failed notification insert must never block the review
-  // action itself (the DB update already succeeded by the time this runs).
-  void supabase.from("notifications").insert({
-    user_id:    params.userId,
-    type:       "health",
-    category:   "health_reminders",
-    title:      titleAr,
-    body:       bodyAr,
-    data:       { kind: params.type, decision: params.decision },
-    action_url: params.actionUrl,
-    is_read:    false,
+  // Best-effort — review remains authoritative; enqueue_notification provides
+  // the durable outbox row and deduplicates against native pharmacist review.
+  void supabase.rpc("enqueue_notification", {
+    p_recipient_id: params.userId,
+    p_event_type: "health",
+    p_category: "health_reminders",
+    p_title: titleAr,
+    p_body: bodyAr,
+    p_data: { kind: params.type, decision: params.decision, prescriptionId: params.prescriptionId },
+    p_action_url: params.actionUrl,
+    p_idempotency_key: `prescription:${params.prescriptionId}:review:${params.decision}`,
   }).then(({ error }) => {
-    if (error) console.error("[adminPrescriptionsApi] notification insert failed:", error.message);
+    if (error) console.error("[adminPrescriptionsApi] notification enqueue failed:", error.message);
   });
 }
 
@@ -222,20 +223,17 @@ export async function fetchPrescriptions(
 export async function reviewPrescription(id: string, userId: string, payload: ReviewPayload): Promise<void> {
   const supabase = getSupabaseClient();
 
-  const { error } = await supabase
-    .from("prescriptions")
-    .update({
-      review_status: payload.decision,
-      reviewed_by: payload.adminId,
-      reviewed_at: new Date().toISOString(),
-      admin_notes: payload.adminNotes ?? null,
-      rejection_reason: payload.decision === "rejected" ? (payload.rejectionReason ?? null) : null,
-    })
-    .eq("id", id);
+  const { error } = await supabase.rpc("review_prescription", {
+    p_prescription_id: id,
+    p_decision: payload.decision,
+    p_admin_notes: payload.adminNotes ?? null,
+    p_rejection_reason: payload.rejectionReason ?? null,
+  });
 
   if (error) throw new Error(`[adminPrescriptionsApi.reviewPrescription] ${error.message}`);
 
   notifyCustomer({
+    prescriptionId: id,
     userId,
     type: "prescription",
     decision: payload.decision,
@@ -349,6 +347,7 @@ export async function reviewRefillRequest(id: string, userId: string, payload: R
   if (error) throw new Error(`[adminPrescriptionsApi.reviewRefillRequest] ${error.message}`);
 
   notifyCustomer({
+    prescriptionId: id,
     userId,
     type: "refill",
     decision: payload.decision,

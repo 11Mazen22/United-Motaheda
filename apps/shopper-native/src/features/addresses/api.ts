@@ -43,6 +43,7 @@ export async function updateAddress(id: string, userId: string, form: Partial<Ad
     .from("addresses")
     .update({ ...form, updated_at: new Date().toISOString() })
     .eq("id", id)
+    .eq("user_id", userId)
     .select()
     .single();
 
@@ -50,8 +51,12 @@ export async function updateAddress(id: string, userId: string, form: Partial<Ad
   return data as Address;
 }
 
-export async function deleteAddress(id: string): Promise<void> {
-  const { error } = await supabase.from("addresses").delete().eq("id", id);
+export async function deleteAddress(id: string, userId: string): Promise<void> {
+  const { error } = await supabase
+    .from("addresses")
+    .delete()
+    .eq("id", id)
+    .eq("user_id", userId);
   if (error) throw error;
 }
 
@@ -64,7 +69,8 @@ export async function setDefaultAddress(id: string, userId: string): Promise<voi
   const { error } = await supabase
     .from("addresses")
     .update({ is_default: true })
-    .eq("id", id);
+    .eq("id", id)
+    .eq("user_id", userId);
 
   if (error) throw error;
 }

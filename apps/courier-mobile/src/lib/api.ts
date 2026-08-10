@@ -44,27 +44,43 @@ api.interceptors.response.use(
 
 // ─── Typed API helpers ────────────────────────────────────────────────────────
 
+type ApiEnvelope<T> = { success: boolean; data: T; error: unknown };
+
+function unwrap<T>(payload: T | ApiEnvelope<T>): T {
+  if (
+    payload !== null &&
+    typeof payload === 'object' &&
+    'success' in payload &&
+    'data' in payload
+  ) {
+    return (payload as ApiEnvelope<T>).data;
+  }
+  return payload as T;
+}
+
 export const apiGet = <T>(url: string, params?: Record<string, any>) =>
-  api.get<T>(url, { params }).then((r) => r.data);
+  api.get<T | ApiEnvelope<T>>(url, { params }).then((r) => unwrap(r.data));
 
 export const apiPost = <T>(url: string, data?: any) =>
-  api.post<T>(url, data).then((r) => r.data);
+  api.post<T | ApiEnvelope<T>>(url, data).then((r) => unwrap(r.data));
 
 export const apiPatch = <T>(url: string, data?: any) =>
-  api.patch<T>(url, data).then((r) => r.data);
+  api.patch<T | ApiEnvelope<T>>(url, data).then((r) => unwrap(r.data));
 
 export const apiDelete = <T>(url: string) =>
-  api.delete<T>(url).then((r) => r.data);
+  api.delete<T | ApiEnvelope<T>>(url).then((r) => unwrap(r.data));
 
 // ─── Driver-specific API calls ────────────────────────────────────────────────
 
 export const driverApi = {
   // Auth
   login: (data: { identifier: string; password: string }) =>
-    apiPost<{ token: string; user: any }>('/driver/login', data),
+    api.post<{ success: boolean; data: { token: string; user: any } }>('/driver/login', data)
+      .then((r) => r.data.data),
 
   register: (data: any) =>
-    apiPost<{ token: string; user: any }>('/driver/register', data),
+    api.post<{ success: boolean; data: { token: string; user: any } }>('/driver/register', data)
+      .then((r) => r.data.data),
 
   // Profile
   getProfile: () => apiGet<any>('/driver/profile'),
@@ -134,10 +150,11 @@ export const driverApi = {
       body: formData,
     });
     if (!response.ok) throw new Error(`Upload failed: ${response.status}`);
-    return response.json();
+    const payload = await response.json();
+    return payload.data ?? payload;
   },
 
   // Notifications
   registerPushToken: (token: string, platform: 'ios' | 'android') =>
-    apiPost<any>('/notifications/token/register', { token, platform }),
+    apiPost<any>('/notifications/token', { token, platform }),
 };

@@ -11,6 +11,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { transitionOrder }              from "../api/orders";
 import { reviewPrescription }           from "../api/prescriptions";
+import { notifyCustomerOrderUpdate, notifyCustomerPrescriptionReview } from "../customerNotify";
 import { pharmacistQueryKeys }          from "./queryKeys";
 import type { PharmacistTransitionTarget, ReviewPrescriptionInput } from "../api/types";
 
@@ -30,6 +31,15 @@ export function usePharmacistMutations() {
     onSuccess: (_data, args) => {
       invalidateQueue();
       void queryClient.invalidateQueries({ queryKey: pharmacistQueryKeys.order(args.orderId) });
+
+      if (
+        args.nextStatus === "payment_approved" ||
+        args.nextStatus === "preparing" ||
+        args.nextStatus === "ready" ||
+        args.nextStatus === "cancelled"
+      ) {
+        notifyCustomerOrderUpdate(args.orderId, args.nextStatus);
+      }
     },
   });
 
@@ -44,6 +54,7 @@ export function usePharmacistMutations() {
       void queryClient.invalidateQueries({ queryKey: pharmacistQueryKeys.dashboard() });
       // Invalidate the "all prescriptions" list at every status so the
       // reviewed row moves out of the pending bucket instantly.
+      notifyCustomerPrescriptionReview(args.id, args.input.reviewStatus);
       void queryClient.invalidateQueries({ queryKey: ["pharmacist", "prescriptions"] });
     },
   });

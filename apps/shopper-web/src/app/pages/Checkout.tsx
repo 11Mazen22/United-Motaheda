@@ -29,6 +29,11 @@ import { useCatalog } from "../../contexts/CatalogContext";
 import { useLanguage } from "../../contexts/LanguageContext";
 import { createCheckoutOrder } from "../../services/shopperCheckoutApi";
 import {
+  fetchReservations,
+  parseReserveError,
+  reserveInventory,
+} from "../../services/shopperInventoryApi";
+import {
   isManualPaymentMethod,
   patchWebOrderManualPayment,
   uploadWebPaymentReceipt,
@@ -136,11 +141,124 @@ function itemCount(cart: Array<{ quantity: number }>) {
   return cart.reduce((total, item) => total + item.quantity, 0);
 }
 
-// ─── Main Checkout Component ──────────────────────────────────────────────────
+function toFriendlyInventoryMessage(reason: string, available?: number, productName?: string, lang?: "ar" | "en") {
+  if (reason === "insufficient_stock") {
+    if (available != null && available > 0) {
+      return lang === "ar"
+        ? `${productName ?? "المنتج"} متوفر فقط بكمية ${available}. يرجى تعديل الكمية.`
+        : `${productName ?? "This item"} is only available in quantity ${available}. Please update your cart.`;
+    }
+    return lang === "ar"
+      ? `${productName ?? "المنتج"} غير متوفر حالياً.`
+      : `${productName ?? "This item"} is out of stock.`;
+  }
+
+  if (reason === "product_not_found") {
+    return lang === "ar"
+      ? `${productName ?? "المنتج"} لم يعد متاحاً.`
+      : `${productName ?? "This item"} is no longer available.`;
+  }
+
+  if (reason === "invalid_quantity") {
+    return lang === "ar"
+      ? `الكمية التي اخترتها غير صالحة لـ${productName ?? "هذا المنتج"}.`
+      : `The quantity selected for ${productName ?? "this item"} is invalid.`;
+  }
+
+  return lang === "ar"
+    ? `تعذّر تأكيد الحجز. يرجى تحديث السلة ومحاولة مرة أخرى.`
+    : `Unable to confirm reservation. Please update your cart and try again.`;
+}
+
+async function prepareCheckoutReservations(
+  cart: Array<{ product_id: string; quantity: number; product: { name: string }; reservationId?: string }> ,
+  setCartReservation: (productId: string, reservationId?: string, reservationExpiresAt?: string) => void,
+  lang: "ar" | "en",
+) {
+  const validationErrors: { message: string; productId: string }[] = [];
+  const reservationUpdates: Array<{ productId: string; reservationId?: string; reservationExpiresAt?: string }> = [];
+
+  const cartItemsWithReservations = cart
+    .filter((item) => item.quantity > 0)
+    .map((item) => ({
+      productId: item.product_id,
+      quantity: item.quantity,
+      reservationId: item.reservationId,
+      productName: item.product.name,
+    }));
+
+  const existingReservationIds = Array.from(
+    new Set(cartItemsWithReservations.map((item) => item.reservationId).filter(Boolean) as string[]),
+  );
+  const fetchedReservations = existingReservationIds.length > 0
+    ? await fetchReservations(existingReservationIds)
+    : [];
+  const reservationsById = new Map(fetchedReservations.map((reservation) => [reservation.reservationId, reservation]));
+
+  for (const item of cartItemsWithReservations) {
+    const existing = item.reservationId ? reservationsById.get(item.reservationId) : undefined;
+    const isReservationValid = existing
+      && existing.productId === item.productId
+      && existing.state === "reserved"
+      && existing.quantity === item.quantity
+      && (existing.expiresAt ? Date.parse(existing.expiresAt) > Date.now() : true);
+
+    if (isReservationValid) {
+      reservationUpdates.push({
+        productId: item.productId,
+        reservationId: existing.reservationId,
+        reservationExpiresAt: existing.expiresAt,
+      });
+      continue;
+    }
+
+    if (item.reservationId) {
+      reservationUpdates.push({ productId: item.productId, reservationId: undefined, reservationExpiresAt: undefined });
+    }
+
+    try {
+      const reservation = await reserveInventory({
+        productId: item.productId,
+        quantity: item.quantity,
+        reservationKind: "cart",
+        reservationRef: undefined,
+        idempotencyKey: crypto.randomUUID(),
+        expiresInSecs: 15 * 60,
+      });
+
+      reservationUpdates.push({
+        productId: item.productId,
+        reservationId: reservation.reservation_id,
+        reservationExpiresAt: reservation.expires_at,
+      });
+    } catch (err) {
+      const parsed = parseReserveError(err);
+      validationErrors.push({
+        productId: item.productId,
+        message: toFriendlyInventoryMessage(parsed.reason, parsed.available, item.productName, lang),
+      });
+      break;
+    }
+  }
+
+  if (validationErrors.length > 0) {
+    return { success: false as const, errors: validationErrors };
+  }
+
+  reservationUpdates.forEach((update) => {
+    setCartReservation(update.productId, update.reservationId, update.reservationExpiresAt);
+  });
+
+  const reservationMap = new Map(reservationUpdates.map((update) => [update.productId, update.reservationId]));
+  return {
+    success: true as const,
+    reservationIds: cartItemsWithReservations.map((item) => reservationMap.get(item.productId)),
+  };
+}
 
 export default function Checkout() {
   const { user } = useAuth();
-  const { cart, clearCart } = useCart();
+  const { cart, clearCart, setCartReservation } = useCart();
   const { refreshCatalog } = useCatalog();
   const { t, lang } = useLanguage();
   const isShopperShell = useIsShopperShell();
@@ -288,6 +406,7 @@ export default function Checkout() {
         unitPrice: item.product?.price || 0,
         code: item.product?.code,
         name: item.product ? getLocalizedProductName(item.product, lang) : item.product_id,
+        reservationId: item.reservationId,
       })),
       itemCount: totalItems,
       subtotal,
@@ -639,11 +758,31 @@ export default function Checkout() {
       requestPosMachine,
       lang,
     });
-    const submitCommand = buildCheckoutSubmitCommand({
+
+    const reservationResult = await prepareCheckoutReservations(cart, setCartReservation, lang);
+    if (!reservationResult.success) {
+      setSubmitError(
+        reservationResult.errors[0]?.message ??
+          formatCheckoutError(new CheckoutRequestError("Reservation validation failed."), lang),
+      );
+      setIsSubmitting(false);
+      submitInProgressRef.current = false;
+      return;
+    }
+
+    const pricingWithReservationIds = {
+      ...pricing,
+      lines: pricing.lines.map((line, index) => ({
+        ...line,
+        reservationId: reservationResult.reservationIds[index] ?? line.reservationId,
+      })),
+    };
+
+    const checkoutCommandPayload = {
       idempotencyKey: idempotencyKeyRef.current,
       user,
       form,
-      pricing,
+      pricing: pricingWithReservationIds,
       coordinates: locationCoordinates,
       region: selectedArea || undefined,
       subRegion: (lang === "ar" ? selectedBranch?.nameAr : selectedBranch?.nameEn) || undefined,
@@ -653,7 +792,9 @@ export default function Checkout() {
       note: checkoutNote,
       transferNumber: isManual ? transferNumber.trim() : undefined,
       paymentProofUrl: isManual ? paymentProofUrl : undefined,
-    });
+    };
+
+    const submitCommand = buildCheckoutSubmitCommand(checkoutCommandPayload);
 
     try {
       const response = await createCheckoutOrder(submitCommand);

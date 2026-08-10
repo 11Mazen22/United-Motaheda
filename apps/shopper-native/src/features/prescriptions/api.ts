@@ -50,7 +50,15 @@ export async function createPrescription(
     .single();
 
   if (error) throw error;
-  return rowToPrescription(data as PrescriptionRow);
+  const prescription = rowToPrescription(data as PrescriptionRow);
+  try {
+    await supabase.rpc("notify_staff_prescription_submitted", {
+      p_prescription_id: prescription.id,
+    });
+  } catch (notificationError) {
+    if (__DEV__) console.warn("[prescriptions] staff notification failed:", notificationError);
+  }
+  return prescription;
 }
 
 /**

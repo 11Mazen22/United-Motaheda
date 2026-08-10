@@ -2,6 +2,7 @@ import { Controller, Post, Get, Body, Query, Request, UseGuards } from '@nestjs/
 import { NotificationsService } from './notifications.service';
 import { BroadcastNotificationDto, BroadcastTarget, RegisterTokenDto } from './dto/broadcast.dto';
 import { DriverAuthGuard } from '../driver/guards/driver-auth.guard';
+import { AdminAuthGuard } from '../../auth/admin-auth.guard';
 
 @Controller('notifications')
 export class NotificationsController {
@@ -26,7 +27,7 @@ export class NotificationsController {
   // ─── Admin: broadcast ─────────────────────────────────────────────────────
 
   @Post('broadcast')
-  // TODO: Add AdminAuthGuard when admin auth is implemented
+  @UseGuards(AdminAuthGuard)
   async broadcast(@Body() dto: BroadcastNotificationDto) {
     const payload = { title: dto.title, body: dto.body, imageUrl: dto.imageUrl, data: dto.data };
 
@@ -51,6 +52,7 @@ export class NotificationsController {
   // ─── Admin: notification log ──────────────────────────────────────────────
 
   @Get('admin/history')
+  @UseGuards(AdminAuthGuard)
   async getAdminHistory(@Query('limit') limit?: string) {
     return this.svc.getNotificationHistory(undefined, limit ? parseInt(limit, 10) : 100);
   }

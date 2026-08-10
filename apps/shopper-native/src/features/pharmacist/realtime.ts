@@ -57,3 +57,19 @@ export function subscribeToPharmacistPrescriptions(
     )
     .subscribe();
 }
+
+/** Listen for authoritative inventory_state changes so low-stock views stay
+ * current after reservations, commits, releases, and manual adjustments. */
+export function subscribeToPharmacistInventory(
+  onChange: () => void,
+): RealtimeChannel {
+  const channelName = `pharmacist-inventory-${nextSeq()}`;
+  return supabase
+    .channel(channelName)
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "inventory_state" },
+      () => onChange(),
+    )
+    .subscribe();
+}

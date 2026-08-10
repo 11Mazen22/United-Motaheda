@@ -68,6 +68,16 @@ const STATUS_MAP: Record<
     tone:     "brand",
     icon:     "bicycle",
   },
+  driver_assigned: {
+    fallback: "Driver Assigned",
+    tone:     "brand",
+    icon:     "bicycle",
+  },
+  driver_accepted: {
+    fallback: "Driver Accepted",
+    tone:     "brand",
+    icon:     "bicycle",
+  },
   on_the_way: {
     fallback: "On the Way",
     tone:     "brand",
@@ -88,8 +98,18 @@ const STATUS_MAP: Record<
     tone:     "info",
     icon:     "cube-outline",
   },
+  verification: {
+    fallback: "Verification",
+    tone:     "warning",
+    icon:     "hourglass-outline",
+  },
+  payment_approved: {
+    fallback: "Payment Approved",
+    tone:     "success",
+    icon:     "checkmark-circle",
+  },
   preparing: {
-    fallback: "Processing",
+    fallback: "Preparing",
     tone:     "info",
     icon:     "hourglass-outline",
   },
@@ -143,6 +163,11 @@ const STATUS_MAP: Record<
     tone:     "neutral",
     icon:     "refresh-circle",
   },
+  archived: {
+    fallback: "Archived",
+    tone:     "neutral",
+    icon:     "receipt-outline",
+  },
 };
 
 const UNKNOWN_VIEW = {
@@ -154,11 +179,15 @@ const STATUS_I18N_KEY: Record<string, string> = {
   delivered:         "orders.statusDelivered",
   completed:         "orders.statusCompleted",
   out_for_delivery:  "orders.statusOutForDelivery",
+  driver_assigned:   "orders.statusOutForDelivery",
+  driver_accepted:   "orders.statusOutForDelivery",
   on_the_way:        "orders.statusOnTheWay",
   shipped:           "orders.statusShipped",
   processing:        "orders.statusProcessing",
   preparing:         "orders.statusProcessing",
   confirmed:         "orders.statusConfirmed",
+  verification:      "orders.statusProcessing",
+  payment_approved:  "orders.statusConfirmed",
   packed:            "orders.statusPacked",
   ready:             "orders.statusReadyForPickup",
   ready_for_pickup:  "orders.statusReadyForPickup",
@@ -169,6 +198,7 @@ const STATUS_I18N_KEY: Record<string, string> = {
   cancelled:         "orders.statusCancelled",
   failed:            "orders.statusFailed",
   refunded:          "orders.statusRefunded",
+  archived:          "orders.statusDelivered",
 };
 
 export function mapOrderStatus(

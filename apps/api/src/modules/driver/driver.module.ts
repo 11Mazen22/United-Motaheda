@@ -7,8 +7,10 @@ import { DriverLocationService } from './driver-location.service';
 import { DriverOrdersService } from './driver-orders.service';
 import { FileUploadService } from './file-upload.service';
 import { LocationBroadcastGateway } from './location-broadcast.gateway';
+import { AuthModule } from '../../auth/auth.module';
 
 @Module({
+  imports: [AuthModule],
   controllers: [DriverController, AdminDriverController],
   providers: [
     DriverAuthService,

@@ -1438,6 +1438,7 @@
         "statusPaymentApproved":  "تمت الموافقة",
         "statusPreparing":        "قيد التحضير",
         "statusReady":            "جاهز",
+        "statusConfirmed":        "تم التأكيد",
         "statusDriverAssigned":   "تعيين السائق",
         "statusDriverAccepted":   "السائق في الطريق",
         "statusOutForDelivery":   "في طريق التسليم",

@@ -87,7 +87,7 @@ function PushBootstrap() {
       // backgrounded or killed) doesn't still show as unread once the user
       // is back in-app — same as tapping it from the in-app list does.
       const notificationId = typeof data.notification_id === "string" ? data.notification_id : undefined;
-      if (notificationId) markNotificationRead(notificationId).catch(() => {});
+      if (notificationId && user?.id) markNotificationRead(notificationId, user.id).catch(() => {});
       if (actionUrl) router.push(actionUrl as any);
     },
   });

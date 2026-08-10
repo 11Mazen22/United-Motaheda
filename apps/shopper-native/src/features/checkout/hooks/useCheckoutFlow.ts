@@ -297,11 +297,12 @@ export function useCheckoutFlow(): CheckoutFlowState {
       items
         .filter((i) => i.product && i.product.inStock && i.product.stock > 0)
         .map((i) => ({
-          productId: i.productId,
-          quantity:  i.quantity,
-          unitPrice: i.product.price ?? 0,
-          name:      i.product.name,
-          code:      i.product.code,
+          productId:    i.productId,
+          quantity:     i.quantity,
+          unitPrice:    i.product.price ?? 0,
+          name:         i.product.name,
+          code:         i.product.code,
+          reservationId: i.reservationId,
         })),
     [items],
   );

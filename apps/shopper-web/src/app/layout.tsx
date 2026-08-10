@@ -6,6 +6,7 @@
 import { Link, Outlet, useLocation, useNavigate, useNavigationType } from "react-router-dom";
 import { MobileBottomNav } from "./components/MobileBottomNav";
 import {
+  Bell,
   ChevronDown,
   ChevronRight,
   ClipboardList,
@@ -941,6 +942,15 @@ export default function Layout() {
                         >
                           <Settings className="h-4 w-4 text-slate-400" />
                           {t("personal_info")}
+                        </Link>
+
+                        <Link
+                          to="/notifications"
+                          onClick={() => setUserMenuOpen(false)}
+                          className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-[13px] font-bold text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900"
+                        >
+                          <Bell className="h-4 w-4 text-slate-400" />
+                          {lang === "ar" ? "الإشعارات" : "Notifications"}
                         </Link>
 
                         <Link
