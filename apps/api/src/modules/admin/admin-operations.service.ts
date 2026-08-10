@@ -354,7 +354,7 @@ export class AdminOperationsService {
     return {
       activeDeliveries,
       todayDeliveries,
-      todayRevenue: revenue._sum.totalEarnings?.toString() ?? '0',
+      todayRevenue: revenue._sum.total?.toString() ?? '0',
     };
   }
 

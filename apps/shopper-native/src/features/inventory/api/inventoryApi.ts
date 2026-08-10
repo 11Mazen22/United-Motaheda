@@ -26,6 +26,13 @@ import {
   type ValidateInventoryResult,
 } from "../types";
 
+export type {
+  CommitResponse,
+  ExtendResponse,
+  ReleaseResponse,
+  ReserveResponse,
+} from "../types";
+
 // ─── Reads ──────────────────────────────────────────────────────────────────
 
 export async function fetchInventoryState(productId: string, signal?: AbortSignal): Promise<AvailableInventory | null> {

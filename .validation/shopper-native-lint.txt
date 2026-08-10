@@ -1,0 +1,12 @@
+
+> @pharmacy/shopper-native@1.0.0 lint
+> npm run typecheck && npm run typecheck:tests && node scripts/check-no-console.mjs
+
+
+> @pharmacy/shopper-native@1.0.0 typecheck
+> tsc --noEmit
+
+src/features/pharmacist/api/inventory.ts(23,3): error TS2459: Module '"@/features/inventory/api/inventoryApi"' declares 'CommitResponse' locally, but it is not exported.
+src/features/pharmacist/api/inventory.ts(27,3): error TS2459: Module '"@/features/inventory/api/inventoryApi"' declares 'ExtendResponse' locally, but it is not exported.
+src/features/pharmacist/api/inventory.ts(29,3): error TS2459: Module '"@/features/inventory/api/inventoryApi"' declares 'ReleaseResponse' locally, but it is not exported.
+src/features/pharmacist/api/inventory.ts(31,3): error TS2459: Module '"@/features/inventory/api/inventoryApi"' declares 'ReserveResponse' locally, but it is not exported.

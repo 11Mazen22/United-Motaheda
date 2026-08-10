@@ -22,7 +22,7 @@ interface ChipMeta {
 
 const STATUS_MAP: Record<PharmacistOrderStatus, ChipMeta> = {
   pending:         { labelKey: "pharmacist.statusPending",        color: kit.color.warn,       bg: kit.color.warnTint,    icon: "time-outline"              },
-  confirmed:       { labelKey: "pharmacist.statusConfirmed",      color: kit.color.brand,      bg: "#EFF6FF",             icon: "checkmark-circle-outline"  },
+  confirmed:       { labelKey: "pharmacist.statusConfirmed",      color: kit.color.accentDeep, bg: "#EFF6FF",             icon: "checkmark-circle-outline"  },
   verification:    { labelKey: "pharmacist.statusVerification",   color: "#7C3AED",             bg: "#F5F3FF",             icon: "shield-checkmark-outline"  },
   payment_pending: { labelKey: "pharmacist.statusPaymentPending", color: "#B45309",             bg: "#FFFBEB",             icon: "card-outline"              },
   payment_approved:{ labelKey: "pharmacist.statusPaymentApproved",color: kit.color.success,    bg: kit.color.successTint, icon: "checkmark-circle-outline"  },

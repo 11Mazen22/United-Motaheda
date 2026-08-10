@@ -17,7 +17,6 @@ import {
   extendReservation as extendReservationRpc,
   releaseInventory as releaseInventoryRpc,
   reserveInventory as reserveInventoryRpc,
-  rollbackCommittedReservation,
 } from "@/features/inventory/api/inventoryApi";
 import type {
   CommitArgs,
