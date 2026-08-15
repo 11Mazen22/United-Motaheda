@@ -6,11 +6,26 @@ app_root="$repo_root/apps/shopper-native"
 packages_root="$repo_root/packages"
 cd "$app_root"
 
+# Railpack executes the root workspace command from the monorepo root. Pin the
+# Expo/Expo Router project roots to this app so Metro never resolves the entry
+# point against /app/node_modules.
+export EXPO_PROJECT_ROOT="$app_root"
+export EXPO_ROUTER_ABS_APP_ROOT="$app_root/app"
+
+if router_entry="$(node -p "require.resolve('expo-router/entry')" 2>/dev/null)"; then
+  export EXPO_ROUTER_APP_ROOT="$(node -e "const path=require('path'); console.log(path.relative(path.dirname(process.argv[1]), process.argv[2]))" "$router_entry" "$app_root/app")"
+else
+  echo "ERROR: expo-router/entry could not be resolved from shopper-native" >&2
+  exit 1
+fi
+
+echo "==> [shopper-native] Expo project root: $EXPO_PROJECT_ROOT"
+echo "==> [shopper-native] Expo Router app root: $EXPO_ROUTER_ABS_APP_ROOT"
+echo "==> [shopper-native] Expo Router relative app root: $EXPO_ROUTER_APP_ROOT"
+
 echo "==> [shopper-native] Installing dependencies…"
 npm install --include=dev --production=false --no-audit --no-fund
 
-# Link the shared monorepo packages explicitly because shopper-native owns its
-# own Expo dependency graph while consuming source packages from /packages.
 for package_name in ui-native design-tokens; do
   package_dir="$packages_root/$package_name"
   if [[ ! -f "$package_dir/package.json" ]]; then
@@ -21,11 +36,6 @@ for package_name in ui-native design-tokens; do
   ln -sfn "$package_dir" "$app_root/node_modules/@pharmacy/$package_name"
 done
 
-# Keep the shared package source compatible with the Expo Web resolver. Babel
-# may intentionally rewrite `react-native` imports to react-native-web export
-# modules, so those modules must resolve from the app's dependency graph.
-# This guard only removes genuinely stale internal imports that may appear in
-# a staged/shared-package snapshot. It does not rewrite valid public imports.
 node <<'NODE'
 const fs = require('fs');
 const path = require('path');
@@ -63,37 +73,9 @@ echo "==> [shopper-native] Verifying shared native packages…"
 node -e "console.log('@pharmacy/ui-native:', require.resolve('@pharmacy/ui-native'))"
 node -e "console.log('@pharmacy/design-tokens:', require.resolve('@pharmacy/design-tokens'))"
 
-# Metro resolves the real path of symlinked packages. Explicitly map every web
-# runtime dependency back to the shopper-native dependency graph so imports
-# originating under /packages/ui-native cannot accidentally search a separate
-# /packages/ui-native/node_modules tree.
 cat > metro.config.js <<EOF
-const path = require('path');
 const { getDefaultConfig } = require('expo/metro-config');
-
-const projectRoot = __dirname;
-const repoRoot = path.resolve(projectRoot, '../..');
-const appNodeModules = path.resolve(projectRoot, 'node_modules');
-const config = getDefaultConfig(projectRoot);
-
-config.watchFolders = [
-  path.resolve(repoRoot, 'packages/ui-native'),
-  path.resolve(repoRoot, 'packages/design-tokens'),
-];
-
-config.resolver.nodeModulesPaths = [appNodeModules];
-config.resolver.disableHierarchicalLookup = true;
-
-config.resolver.extraNodeModules = {
-  ...(config.resolver.extraNodeModules || {}),
-  react: path.resolve(appNodeModules, 'react'),
-  'react-dom': path.resolve(appNodeModules, 'react-dom'),
-  'react-native': path.resolve(appNodeModules, 'react-native'),
-  'react-native-web': path.resolve(appNodeModules, 'react-native-web'),
-  '@pharmacy/ui-native': path.resolve(repoRoot, 'packages/ui-native'),
-  '@pharmacy/design-tokens': path.resolve(repoRoot, 'packages/design-tokens'),
-};
-
+const config = getDefaultConfig(__dirname);
 module.exports = config;
 EOF
 
