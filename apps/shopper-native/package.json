@@ -4,7 +4,7 @@
   "main": "expo-router/entry",
   "scripts": {
     "postinstall": "patch-package",
-    "eas-build-pre-install": "curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash - && sudo apt-get install -y nodejs",
+    "eas-build-pre-install": "curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash - && sudo apt-get install -y nodejs",
     "start": "expo start --lan",
     "start:tunnel": "expo start --tunnel",
     "android": "expo run:android",
