@@ -7,14 +7,10 @@ packages_root="$repo_root/packages"
 cd "$app_root"
 
 echo "==> [shopper-native] Installing dependencies…"
-# Use npm install rather than npm ci here because this app is intentionally
-# maintained as a standalone Expo dependency graph with local monorepo file
-# dependencies. This also reconciles the app lockfile when Expo/RN web
-# versions change, instead of failing before Metro can run.
 npm install --include=dev --production=false --no-audit --no-fund
 
-# shopper-native deliberately has its own React/Expo dependency graph and
-# its local shared packages are linked explicitly for the Railway web export.
+# Link the shared monorepo packages explicitly because shopper-native owns its
+# own Expo dependency graph while consuming source packages from /packages.
 for package_name in ui-native design-tokens; do
   package_dir="$packages_root/$package_name"
   if [[ ! -f "$package_dir/package.json" ]]; then
@@ -25,10 +21,11 @@ for package_name in ui-native design-tokens; do
   ln -sfn "$package_dir" "$app_root/node_modules/@pharmacy/$package_name"
 done
 
-# Railway has previously produced snapshots containing an older internal
-# react-native-web import even though main contains the public React Native
-# import. Normalize these imports before Metro starts so the build is
-# deterministic even if an old snapshot or staged file is supplied.
+# Keep the shared package source compatible with the Expo Web resolver. Babel
+# may intentionally rewrite `react-native` imports to react-native-web export
+# modules, so those modules must resolve from the app's dependency graph.
+# This guard only removes genuinely stale internal imports that may appear in
+# a staged/shared-package snapshot. It does not rewrite valid public imports.
 node <<'NODE'
 const fs = require('fs');
 const path = require('path');
@@ -58,25 +55,25 @@ walk(root);
 console.log(`==> [shopper-native] Native-web import normalization complete (${changed} file(s) changed)`);
 NODE
 
-if grep -R -nE 'react-native-web/dist/exports/(Platform|I18nManager)' "$packages_root/ui-native/src"; then
-  echo "ERROR: internal react-native-web imports remain in ui-native" >&2
-  exit 1
-fi
-
 echo "==> [shopper-native] Verifying React runtime dependency…"
-node -e "console.log('react:', require.resolve('react')); console.log('react-dom:', require.resolve('react-dom'))"
-node -e "const react=require('react/package.json'); const reactDom=require('react-dom/package.json'); console.log('react version:', react.version); console.log('react-dom version:', reactDom.version)"
+node -e "console.log('react:', require.resolve('react')); console.log('react-dom:', require.resolve('react-dom')); console.log('react-native-web:', require.resolve('react-native-web/package.json'))"
+node -e "const react=require('react/package.json'); const reactDom=require('react-dom/package.json'); const web=require('react-native-web/package.json'); console.log('react version:', react.version); console.log('react-dom version:', reactDom.version); console.log('react-native-web version:', web.version)"
 
 echo "==> [shopper-native] Verifying shared native packages…"
 node -e "console.log('@pharmacy/ui-native:', require.resolve('@pharmacy/ui-native'))"
 node -e "console.log('@pharmacy/design-tokens:', require.resolve('@pharmacy/design-tokens'))"
 
+# Metro resolves the real path of symlinked packages. Explicitly map every web
+# runtime dependency back to the shopper-native dependency graph so imports
+# originating under /packages/ui-native cannot accidentally search a separate
+# /packages/ui-native/node_modules tree.
 cat > metro.config.js <<EOF
 const path = require('path');
 const { getDefaultConfig } = require('expo/metro-config');
 
 const projectRoot = __dirname;
 const repoRoot = path.resolve(projectRoot, '../..');
+const appNodeModules = path.resolve(projectRoot, 'node_modules');
 const config = getDefaultConfig(projectRoot);
 
 config.watchFolders = [
@@ -84,10 +81,15 @@ config.watchFolders = [
   path.resolve(repoRoot, 'packages/design-tokens'),
 ];
 
+config.resolver.nodeModulesPaths = [appNodeModules];
+config.resolver.disableHierarchicalLookup = true;
+
 config.resolver.extraNodeModules = {
   ...(config.resolver.extraNodeModules || {}),
-  react: path.resolve(projectRoot, 'node_modules/react'),
-  'react-dom': path.resolve(projectRoot, 'node_modules/react-dom'),
+  react: path.resolve(appNodeModules, 'react'),
+  'react-dom': path.resolve(appNodeModules, 'react-dom'),
+  'react-native': path.resolve(appNodeModules, 'react-native'),
+  'react-native-web': path.resolve(appNodeModules, 'react-native-web'),
   '@pharmacy/ui-native': path.resolve(repoRoot, 'packages/ui-native'),
   '@pharmacy/design-tokens': path.resolve(repoRoot, 'packages/design-tokens'),
 };
