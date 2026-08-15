@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useMemo, useState } from "react";
-import { I18nManager, Platform, type ViewStyle } from "react-native";
+import { Platform, type ViewStyle } from "react-native";
 import {
   darkTheme,
   lightTheme,
@@ -9,6 +9,8 @@ import {
 } from "@pharmacy/design-tokens";
 
 // Keep shared theme code on the public React Native API so Expo Web can bundle it.
+// RTL is supplied by the app's language layer rather than I18nManager because
+// react-native-web does not expose I18nManager as a stable public web module.
 export type ThemePreference = ThemeName | "system";
 
 export type NativeTheme = Omit<SemanticTheme, "shadows"> & {
@@ -57,12 +59,12 @@ function toNativeTheme(base: SemanticTheme, isRTL: boolean): NativeTheme {
   };
 }
 
-const defaultTheme = toNativeTheme(lightTheme, I18nManager.isRTL);
+const defaultTheme = toNativeTheme(lightTheme, false);
 const ThemeContext = createContext<ThemeContextValue>({
   theme: defaultTheme,
   mode: "light",
   preference: "light",
-  isRTL: I18nManager.isRTL,
+  isRTL: false,
   setPreference: () => undefined,
   toggleTheme: () => undefined,
 });
@@ -72,7 +74,7 @@ export function ThemeProvider({
   children,
   initialPreference = "system",
   systemColorScheme = "light",
-  isRTL = I18nManager.isRTL,
+  isRTL = false,
 }: ThemeProviderProps): React.ReactElement {
   const [preference, setPreference] = useState<ThemePreference>(initialPreference);
   const mode: ThemeName = preference === "system" ? systemColorScheme ?? "light" : preference;
