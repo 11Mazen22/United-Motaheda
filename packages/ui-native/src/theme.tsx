@@ -8,6 +8,7 @@ import {
   type ThemeName,
 } from "@pharmacy/design-tokens";
 
+// Keep shared theme code on the public React Native API so Expo Web can bundle it.
 export type ThemePreference = ThemeName | "system";
 
 export type NativeTheme = Omit<SemanticTheme, "shadows"> & {
