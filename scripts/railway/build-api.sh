@@ -1,44 +1,17 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ensure_node22() {
-  local major node_bin npm_bin
-  node_bin="$(command -v node)"
-  major="$("$node_bin" -p "process.versions.node.split('.')[0]")"
-  if [[ "$major" -ge 22 ]]; then
-    return
-  fi
+# Railway must provision the runtime from .nvmrc / NODE_VERSION. Do not
+# install another Node distribution inside the build container because that
+# can leave Railpack's original binary earlier in PATH.
+node_major="$(node -p "process.versions.node.split('.')[0]")"
+if [[ "$node_major" -lt 24 ]]; then
+  echo "ERROR: Pharmacy API requires Node.js 24+." >&2
+  echo "Detected: $(node --version) at $(command -v node)" >&2
+  echo "Railway must use the repository .nvmrc (24) or NODE_VERSION=24." >&2
+  exit 1
+fi
 
-  echo "==> [api] Railway supplied Node.js $("$node_bin" --version); installing Node.js 22…"
-  if ! command -v apt-get >/dev/null 2>&1 || ! command -v curl >/dev/null 2>&1; then
-    echo "ERROR: Node.js 22 is required, but the Railway build image lacks apt-get or curl." >&2
-    exit 1
-  fi
-
-  curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
-  apt-get install -y nodejs
-
-  # Railway's original Node installation can appear earlier in PATH than the
-  # NodeSource installation. Put /usr/bin first so every subsequent command
-  # in this build uses the Node 22 binaries we just installed.
-  export PATH="/usr/bin:$PATH"
-  hash -r
-
-  node_bin="$(command -v node)"
-  npm_bin="$(command -v npm)"
-  major="$("$node_bin" -p "process.versions.node.split('.')[0]")"
-  if [[ "$major" -lt 22 ]]; then
-    echo "ERROR: Failed to switch the API build environment to Node.js 22+." >&2
-    echo "node=$(command -v node) version=$(node --version)" >&2
-    echo "npm=$(command -v npm) version=$(npm --version)" >&2
-    exit 1
-  fi
-
-  echo "==> [api] Using Node.js 22 from $node_bin"
-  echo "==> [api] Using npm from $npm_bin"
-}
-
-ensure_node22
 echo "==> [api] Node runtime: $(node --version)"
 echo "==> [api] npm runtime: $(npm --version)"
 
