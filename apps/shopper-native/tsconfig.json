@@ -9,16 +9,12 @@
       "DOM"
     ],
     "moduleResolution": "bundler",
-
     "noEmit": true,
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "strict": true,
     "target": "ESNext",
-    
-    // Override web-centric base config settings
     "types": [],
-
     "paths": {
       "@/*": [
         "./src/*"
@@ -26,7 +22,6 @@
       "@app/*": [
         "./app/*"
       ],
-      "react": ["./node_modules/@types/react"],
       "react-native": ["./node_modules/react-native"],
       "react-native-reanimated": ["./node_modules/react-native-reanimated"],
       "react-native-safe-area-context": ["./node_modules/react-native-safe-area-context"],
