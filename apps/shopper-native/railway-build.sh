@@ -7,7 +7,11 @@ packages_root="$repo_root/packages"
 cd "$app_root"
 
 echo "==> [shopper-native] Installing dependencies…"
-npm ci --include=dev --production=false --no-audit --no-fund
+# Use npm install rather than npm ci here because this app is intentionally
+# maintained as a standalone Expo dependency graph with local monorepo file
+# dependencies. This also reconciles the app lockfile when Expo/RN web
+# versions change, instead of failing before Metro can run.
+npm install --include=dev --production=false --no-audit --no-fund
 
 # shopper-native deliberately has its own React/Expo dependency graph and is
 # not a root npm workspace. Its local file dependencies therefore need explicit
