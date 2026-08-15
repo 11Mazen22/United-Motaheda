@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "expo-router/entry",
   "scripts": {
-    "postinstall": "patch-package",
+    "postinstall": "node scripts/apply-worklets-patch.cjs",
     "start": "expo start --lan",
     "start:tunnel": "expo start --tunnel",
     "android": "expo run:android",
