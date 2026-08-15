@@ -1,0 +1,45 @@
+name: Sync Shopper Native Lockfile
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - apps/shopper-native/package-lock.json
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync-lockfile:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/shopper-native
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: apps/shopper-native/package.json
+
+      - name: Generate native app lockfile
+        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+
+      - name: Commit generated lockfile
+        working-directory: .
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/shopper-native/package-lock.json
+          if git diff --cached --quiet; then
+            echo "No lockfile changes."
+            exit 0
+          fi
+          git commit -m "chore: sync shopper-native package lock"
+          git push
