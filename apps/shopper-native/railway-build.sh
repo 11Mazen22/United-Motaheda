@@ -9,17 +9,18 @@ cd "$app_root"
 echo "==> [shopper-native] Installing dependencies…"
 npm ci --include=dev --production=false --no-audit --no-fund
 
-# The native app is intentionally not a root npm workspace because it has a
-# different React/Expo dependency graph. Its local file dependencies therefore
-# need explicit Metro aliases when Railway performs the Expo web export.
-if [[ ! -f "$packages_root/ui-native/package.json" ]]; then
-  echo "ERROR: packages/ui-native/package.json is missing" >&2
-  exit 1
-fi
-if [[ ! -f "$packages_root/design-tokens/package.json" ]]; then
-  echo "ERROR: packages/design-tokens/package.json is missing" >&2
-  exit 1
-fi
+# shopper-native deliberately has its own React/Expo dependency graph and is
+# not a root npm workspace. Its local file dependencies therefore need explicit
+# links for the Railway web export.
+for package_name in ui-native design-tokens; do
+  package_dir="$packages_root/$package_name"
+  if [[ ! -f "$package_dir/package.json" ]]; then
+    echo "ERROR: packages/$package_name/package.json is missing" >&2
+    exit 1
+  fi
+  mkdir -p "$app_root/node_modules/@pharmacy"
+  ln -sfn "$package_dir" "$app_root/node_modules/@pharmacy/$package_name"
+done
 
 echo "==> [shopper-native] Verifying React runtime dependency…"
 node -e "console.log('react:', require.resolve('react')); console.log('react-dom:', require.resolve('react-dom'))"
