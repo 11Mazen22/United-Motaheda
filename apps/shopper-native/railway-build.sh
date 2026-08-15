@@ -26,8 +26,8 @@ node -e "console.log('react:', require.resolve('react')); console.log('react-dom
 node -e "const react=require('react/package.json'); const reactDom=require('react-dom/package.json'); console.log('react version:', react.version); console.log('react-dom version:', reactDom.version)"
 
 echo "==> [shopper-native] Verifying shared native packages…"
-node -e "console.log('@pharmacy/ui-native:', require.resolve('@pharmacy/ui-native/package.json'))"
-node -e "console.log('@pharmacy/design-tokens:', require.resolve('@pharmacy/design-tokens/package.json'))"
+node -e "console.log('@pharmacy/ui-native:', require.resolve('@pharmacy/ui-native'))"
+node -e "console.log('@pharmacy/design-tokens:', require.resolve('@pharmacy/design-tokens'))"
 
 cat > metro.config.js <<EOF
 const path = require('path');
