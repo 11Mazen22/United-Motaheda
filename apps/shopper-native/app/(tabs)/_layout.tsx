@@ -48,6 +48,7 @@ interface TabConfig {
 const TAB_CONFIG: Record<string, TabConfig> = {
   index:    { active: "home",          inactive: "home-outline"          },
   meds:     { active: "medkit",        inactive: "medkit-outline"        },
+  map:      { active: "navigate",      inactive: "navigate-outline"      },
   products: { active: "grid",          inactive: "grid-outline"          },
   orders:   { active: "cube",          inactive: "cube-outline"          },
   profile:  { active: "person-circle", inactive: "person-circle-outline" },
@@ -55,6 +56,7 @@ const TAB_CONFIG: Record<string, TabConfig> = {
 
 const TAB_LABEL_KEY: Record<string, string> = {
   index:    "tabs.home",
+  map:      "tabs.map",
   meds:     "tabs.meds",
   products: "tabs.shop",
   orders:   "tabs.orders",
@@ -261,13 +263,14 @@ export default function TabLayout() {
       <Tabs
         tabBar={(props) => <BottomTabBar {...props} />}
         screenOptions={{ headerShown: false }}>
-        <Tabs.Screen name="index"    />
-        <Tabs.Screen name="meds"     />
-        <Tabs.Screen name="products" />
-        <Tabs.Screen name="orders"   />
-        <Tabs.Screen name="profile"  />
-        <Tabs.Screen name="cart"   options={{ href: null }} />
-        <Tabs.Screen name="search" options={{ href: null }} />
+          <Tabs.Screen name="index"    />
+          <Tabs.Screen name="map"      />
+          <Tabs.Screen name="meds"     />
+          <Tabs.Screen name="products" />
+          <Tabs.Screen name="orders"   />
+          <Tabs.Screen name="profile"  />
+          <Tabs.Screen name="cart"     options={{ href: null }} />
+          <Tabs.Screen name="search"   options={{ href: null }} />
       </Tabs>
 
       {/* Cinematic arrival — sits above tab bar + content, dissolves once */}

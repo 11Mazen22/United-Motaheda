@@ -43,8 +43,7 @@ import {
   useProductSearch,
 } from "../hooks/usePharmacistQueries";
 import { pharmacistQueryKeys } from "../hooks/queryKeys";
-import { PharmacistScreenHeader } from "../components/PharmacistScreenHeader";
-import type { PharmacistProduct } from "../api/types";
+import { PharmacistScreenHeader } from "../components/PharmacistScreenHeader";import EmptyState from "@/components/EmptyState";import type { PharmacistProduct } from "../api/types";
 
 const IS_RTL     = isRtl();
 const TEXT_START = textAlignStart(IS_RTL);
@@ -305,26 +304,18 @@ export function InventoryIntelligenceScreen(): React.ReactElement {
               <ActivityIndicator size="large" color={kit.color.accent} />
             </View>
           ) : isError ? (
-            <View style={s.empty}>
-              <Ionicons name="cloud-offline-outline" size={44} color={kit.color.inkFaint} />
-              <UIText variant="card-title" style={{ marginTop: 12, textAlign: "center" }}>
-                {t("errors.network")}
-              </UIText>
-              <Pressable onPress={() => void onRefresh()} style={s.retryBtn}>
-                <UIText variant="body-sm" color="brand">
-                  {t("common.retry")}
-                </UIText>
-              </Pressable>
-            </View>
+            <EmptyState
+              icon="wifi-outline"
+              title={t("errors.network").split(".")[0]}
+              subtitle={t("errors.network")}
+              actionLabel={t("common.retry")}
+              onAction={() => void onRefresh()}
+            />
           ) : (
-            <View style={s.empty}>
-              <Ionicons name="cube-outline" size={44} color={kit.color.inkFaint} />
-              <UIText variant="card-title" style={{ marginTop: 12, textAlign: "center" }}>
-                {tab === "search" && query.length === 0
-                  ? t("pharmacist.inventorySearchPrompt", "اكتب للبحث…")
-                  : t("pharmacist.emptySearch")}
-              </UIText>
-            </View>
+            <EmptyState
+              icon="cube-outline"
+              title={tab === "search" && query.length === 0 ? t("pharmacist.inventorySearchPrompt", "اكتب للبحث…") : t("pharmacist.emptySearch")}
+            />
           )
         }
       />

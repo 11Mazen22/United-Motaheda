@@ -12,6 +12,7 @@ import * as ExpoLocation from "expo-location";
 import { useTranslation } from "react-i18next";
 import { Screen, Text as UIText } from "@pharmacy/ui-native";
 import { Button, kit } from "@pharmacy/ui-native";
+import MetricCard from "@/components/MetricCard";
 import { theme } from "@pharmacy/design-tokens";
 import { Badge } from "@/components/ui/Badge";
 import {
@@ -27,6 +28,9 @@ import { useDriverOrderDetail, useMyAssignmentForOrder } from "../hooks/useDrive
 import { useDriverMutations } from "../hooks/useDriverMutations";
 import { pushDriverLocation } from "../api";
 import { DriverScreenHeader } from "../components/DriverScreenHeader";
+import ActionDock from "../components/ActionDock";
+import ProgressTracker from "../components/ProgressTracker";
+import RouteSummary from "../components/RouteSummary";
 
 const IS_RTL = isRtl();
 const TEXT_START = textAlignStart(IS_RTL);
@@ -186,6 +190,11 @@ export function DeliveryExecutionScreen(): React.ReactElement {
         </View>
       ) : (
         <>
+          {/* Compact KPI row for quick glance */}
+          <View style={s.metricsRow}>
+            <MetricCard label={t("driver.estimatedEarnings")} value={formatPrice(order?.total ?? 0)} compact />
+            <MetricCard label={t("driver.itemsCount") as string} value={String(order?.items.length ?? 0)} compact />
+          </View>
           <View style={s.commandCard}>
             <View style={{ flex: 1 }}>
               <UIText variant="caption" color="brand" style={{ textAlign: TEXT_START }}>ACTIVE DELIVERY</UIText>
@@ -238,19 +247,18 @@ export function DeliveryExecutionScreen(): React.ReactElement {
             </UIText>
           </View>
 
-          <View style={s.timeline}>
-            {[
-              { label: t("driver.statusPreparing"), done: true },
-              { label: t("driver.statusPickedUp"), done: order.status === "out_for_delivery" || order.status === "delivered" },
-              { label: t("driver.deliveredTitle"), done: order.status === "delivered" },
-            ].map((step, index) => (
-              <View key={step.label} style={s.timelineStep}>
-                <View style={[s.timelineDot, step.done && s.timelineDotDone]}>{step.done && <Ionicons name="checkmark" size={11} color="#fff" />}</View>
-                {index < 2 && <View style={[s.timelineLine, step.done && s.timelineLineDone]} />}
-                <UIText style={[s.timelineText, step.done && s.timelineTextDone]}>{step.label}</UIText>
-              </View>
-            ))}
-          </View>
+          <RouteSummary
+            driverCoords={undefined}
+            destCoords={destinationCoords ?? undefined}
+          />
+
+          <ProgressTracker
+            steps={[
+              { id: "accepted", label: t("driver.statusPreparing"), done: true },
+              { id: "picked", label: t("driver.statusPickedUp"), done: order.status === "out_for_delivery" || order.status === "delivered" },
+              { id: "delivered", label: t("driver.deliveredTitle"), done: order.status === "delivered" },
+            ]}
+          />
 
           <DetailSection title={t("driver.customerSection")} icon="person-outline" delay={0}>
             <InfoRow label={t("driver.name")} value={order.address.name || "—"} />
@@ -273,61 +281,60 @@ export function DeliveryExecutionScreen(): React.ReactElement {
             <InfoRow label={t("driver.total")} value={formatPrice(order.total)} valueColor={kit.color.accentDeep} />
           </DetailSection>
 
-          <View style={s.actions}>
-            {canArrivePharmacy && (
+          {/* Actions are now docked for reachability */}
+          <ActionDock>
+            <View style={s.actions}>
+              {canArrivePharmacy && (
+                <Button
+                  label={t("driver.arrivedAtPharmacy", "Arrived at pharmacy")}
+                  icon="location"
+                  onPress={() => void handleArrival("pharmacy")}
+                  loading={mutations.arrival.isPending}
+                  full
+                  size="lg"
+                />
+              )}
+              {canConfirmPickup && (
+                <Button
+                  label={t("driver.confirmPickup")}
+                  icon="cube-outline"
+                  onPress={() => void handlePickup()}
+                  loading={mutations.pickup.isPending}
+                  full
+                  size="lg"
+                />
+              )}
+              {canArriveCustomer && (
+                <Button
+                  label={t("driver.arrivedAtCustomer", "Arrived at customer")}
+                  icon="location"
+                  onPress={() => void handleArrival("customer")}
+                  loading={mutations.arrival.isPending}
+                  full
+                  size="lg"
+                />
+              )}
+              {canMarkDelivered && (
+                <Button
+                  label={t("driver.markDelivered")}
+                  icon="checkmark-circle"
+                  onPress={() => void handleDeliver()}
+                  loading={mutations.deliver.isPending}
+                  full
+                  size="lg"
+                />
+              )}
+            </View>
+            <View style={{ marginTop: 8 }}>
               <Button
-                label={t("driver.arrivedAtPharmacy", "Arrived at pharmacy")}
-                icon="location"
-                onPress={() => void handleArrival("pharmacy")}
-                loading={mutations.arrival.isPending}
+                label={t("driver.reportIssue")}
+                icon="warning-outline"
+                variant="ghost"
+                onPress={() => router.push(`/(driver)/issue/${orderId}` as never)}
                 full
-                size="lg"
               />
-            )}
-            {canConfirmPickup && (
-              <Button
-                label={t("driver.confirmPickup")}
-                icon="cube-outline"
-                onPress={() => void handlePickup()}
-                loading={mutations.pickup.isPending}
-                full
-                size="lg"
-              />
-            )}
-            {canArriveCustomer && (
-              <Button
-                label={t("driver.arrivedAtCustomer", "Arrived at customer")}
-                icon="location"
-                onPress={() => void handleArrival("customer")}
-                loading={mutations.arrival.isPending}
-                full
-                size="lg"
-              />
-            )}
-            {canMarkDelivered && (
-              <Button
-                label={t("driver.markDelivered")}
-                icon="checkmark-circle"
-                onPress={() => void handleDeliver()}
-                loading={mutations.deliver.isPending}
-                full
-                size="lg"
-              />
-            )}
-            {!canArrivePharmacy && !canConfirmPickup && !canArriveCustomer && !canMarkDelivered && (
-              <View style={s.doneNotice}>
-                <Ionicons name="checkmark-done-circle" size={18} color={kit.color.success} />
-                <UIText variant="body-sm" color="success">{t("driver.noActionNeeded")}</UIText>
-              </View>
-            )}
-            <Button
-              label={t("driver.reportIssue")}
-              icon="warning-outline"
-              variant="ghost"
-              onPress={() => router.push(`/(driver)/issue/${orderId}` as never)}
-              full
-            />
-          </View>
+            </View>
+          </ActionDock>
         </>
       )}
     </Screen>
@@ -381,4 +388,5 @@ const s = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 14,
   },
+  metricsRow: { flexDirection: flexRow(IS_RTL), gap: 8, paddingHorizontal: kit.inset.screen, marginTop: 8 },
 });

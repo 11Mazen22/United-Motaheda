@@ -4,108 +4,30 @@
  * (accepted orders still being prepared/delivered).
  */
 import React, { useCallback, useState } from "react";
-import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, View } from "react-native";
+import { FlatList, Pressable, RefreshControl, StyleSheet, View } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
-import { Screen, Text as UIText } from "@pharmacy/ui-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { Screen, Text as UIText, SkeletonCard } from "@pharmacy/ui-native";
 import { kit } from "@pharmacy/ui-native";
 import { theme } from "@pharmacy/design-tokens";
 import { useAuth } from "@/features/auth";
 import { useUnreadCount } from "@/features/notifications";
-import { flexRow, isRtl, textAlignStart, FORWARD_CHEVRON } from "@/utils/layout";
+import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
 import { formatPrice } from "@/utils/format";
+import MetricCard from "@/components/MetricCard";
+import DriverMapPreview from "./DriverMap";
+import EmptyState from "@/components/EmptyState";
+import { OrderCardNew } from "../components/OrderCardNew";
 import { useDriverManifest, useDriverOffers, driverQueryKeys } from "../hooks/useDriverManifest";
-import type { ManifestOrder } from "../api";
 
 const IS_RTL = isRtl();
 const TEXT_START = textAlignStart(IS_RTL);
 
-// "preparing" is the fallback bucket for every pre-ready stage (pending,
-// pending_payment, confirmed, preparing, and the legacy "processing" synonym)
-// — the driver doesn't need pharmacy-internal stage distinctions, just
-// "not yet" vs "go pick it up" vs "already picked up".
-const STATUS_META: Record<string, { labelKey: string; color: string; bg: string; icon: React.ComponentProps<typeof Ionicons>["name"] }> = {
-  preparing: { labelKey: "driver.statusPreparing", color: kit.color.inkSoft,    bg: kit.color.well,       icon: "time-outline" },
-  ready:     { labelKey: "driver.statusReady",     color: kit.color.accentDeep, bg: kit.color.accentTint, icon: "cube-outline" },
-  out_for_delivery: { labelKey: "driver.statusPickedUp", color: kit.color.warn, bg: kit.color.warnTint, icon: "car-outline" },
-};
-
-function OfferBanner({ count, onPress }: { count: number; onPress: () => void }) {
-  const { t } = useTranslation();
-  if (count === 0) return null;
-  return (
-    <Pressable onPress={onPress} style={s.offerBanner}>
-      <View style={s.offerIconWell}>
-        <Ionicons name="notifications" size={18} color={kit.color.onInk} />
-      </View>
-      <View style={{ flex: 1 }}>
-        <UIText variant="card-title" color="inverse" style={{ textAlign: TEXT_START }}>
-          {t("driver.newOfferTitle", { count })}
-        </UIText>
-        <UIText variant="body-sm" color="inverse-muted" style={{ textAlign: TEXT_START }}>
-          {t("driver.newOfferBody")}
-        </UIText>
-      </View>
-      <Ionicons name={FORWARD_CHEVRON} size={18} color={kit.color.onInk} />
-    </Pressable>
-  );
-}
-
-// "shipped" is the legacy synonym for "picked_up" (see
-// packages/contracts/src/orderStatus.ts) — old rows may still carry it.
-const STATUS_ALIASES: Record<string, string> = { shipped: "out_for_delivery", picked_up: "out_for_delivery", processing: "preparing" };
-
-function ManifestCard({ order, onPress }: { order: ManifestOrder; onPress: () => void }) {
-  const { t } = useTranslation();
-  const key = STATUS_ALIASES[order.status] ?? order.status;
-  const meta = STATUS_META[key] ?? STATUS_META.preparing;
-  return (
-    <Pressable onPress={onPress} style={s.card}>
-      <View style={s.cardHeader}>
-        <View style={[s.statusPill, { backgroundColor: meta.bg }]}>
-          <Ionicons name={meta.icon} size={13} color={meta.color} />
-          <UIText variant="caption" style={{ color: meta.color }}>{t(meta.labelKey)}</UIText>
-        </View>
-        <Ionicons name={FORWARD_CHEVRON} size={16} color={kit.color.inkFaint} />
-      </View>
-      <UIText variant="card-title" style={{ textAlign: TEXT_START, marginTop: 8 }}>
-        {order.customerName || t("driver.unknownCustomer")}
-      </UIText>
-      <UIText variant="body-sm" color="secondary" style={{ textAlign: TEXT_START, marginTop: 2 }} numberOfLines={2}>
-        {order.customerAddress || "—"}
-      </UIText>
-      <View style={s.cardFooter}>
-        <UIText variant="body-sm" color="muted">#{order.id.slice(-8).toUpperCase()}</UIText>
-        <UIText variant="card-title" color="brand">{formatPrice(order.total)}</UIText>
-      </View>
-    </Pressable>
-  );
-}
-
-function ShiftSummary({ orders, offers }: { orders: ManifestOrder[]; offers: number }) {
-  const { t } = useTranslation();
-  const inTransit = orders.filter((order) => (STATUS_ALIASES[order.status] ?? order.status) === "out_for_delivery").length;
-  return (
-    <View style={s.summaryCard}>
-      <View style={s.summaryIntro}>
-        <View style={s.summaryIcon}><Ionicons name="speedometer-outline" size={20} color={kit.color.onInk} /></View>
-        <View style={{ flex: 1 }}>
-          <UIText variant="card-title" color="inverse" style={{ textAlign: TEXT_START }}>{t("driver.manifestTitle")}</UIText>
-          <UIText variant="body-sm" color="inverse-muted" style={{ textAlign: TEXT_START, marginTop: 2 }}>{t("driver.newOfferBody")}</UIText>
-        </View>
-      </View>
-      <View style={s.summaryMetrics}>
-        <View style={s.metric}><UIText style={s.metricValue}>{orders.length}</UIText><UIText style={s.metricLabel}>{t("driver.items")}</UIText></View>
-        <View style={s.metricDivider} />
-        <View style={s.metric}><UIText style={s.metricValue}>{inTransit}</UIText><UIText style={s.metricLabel}>{t("driver.statusPickedUp")}</UIText></View>
-        <View style={s.metricDivider} />
-        <View style={s.metric}><UIText style={s.metricValue}>{offers}</UIText><UIText style={s.metricLabel}>{t("driver.newOfferTitle", { count: offers })}</UIText></View>
-      </View>
-    </View>
-  );
-}
+// NOTE: DriverHero and inline offer banner were removed during redesign —
+// keep this file focused on manifest rendering.
 
 export function DriverManifest(): React.ReactElement {
   const { t } = useTranslation();
@@ -136,23 +58,51 @@ export function DriverManifest(): React.ReactElement {
 
   return (
     <Screen edgeTop background={kit.color.canvas}>
-      <View style={s.header}>
-        <View>
-          <UIText variant="caption" color="brand" style={{ textAlign: TEXT_START }}>
-            {t("driver.eyebrow")}
-          </UIText>
-          <UIText variant="screen-title" style={{ textAlign: TEXT_START, marginTop: 2 }}>
-            {t("driver.greeting", { name: user?.name ?? "" })}
-          </UIText>
+      {/* Header + KPIs */}
+      <View style={s.heroWrap}>
+        <LinearGradient colors={[kit.color.accentDeep, kit.color.accent]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.heroGradient}>
+          <View style={s.heroTopRow}>
+            <View style={{ flex: 1 }}>
+              <UIText variant="eyebrow" color="inverse">{t("driver.eyebrow")}</UIText>
+              <UIText style={s.heroTitle}>{t("driver.greeting", { name: user?.name ?? "" })}</UIText>
+            </View>
+
+            <View style={s.headerActions}>
+              <Pressable onPress={() => router.push("/notifications" as never)} style={s.headerAction} accessibilityRole="button" accessibilityLabel={t("notifications.title")}>
+                <Ionicons name="notifications-outline" size={22} color="#fff" />
+                {unreadCount > 0 && <View style={s.notificationDot} />}
+              </Pressable>
+              <Pressable onPress={() => void signOut()} style={s.logoutBtn} accessibilityRole="button" accessibilityLabel={t("driver.signOut")}>
+                <Ionicons name="log-out-outline" size={20} color="#fff" />
+              </Pressable>
+            </View>
+          </View>
+
+          <View style={s.kpiRow}>
+            <MetricCard label={t("driver.todayEarnings")} value={formatPrice(orders.reduce((s, o) => s + Number(o.total ?? 0), 0))} compact icon={<Ionicons name="cash-outline" size={18} color={kit.color.accentDeep} />} inverse />
+            <MetricCard label={t("driver.completed")} value={orders.filter((o) => o.status === "delivered").length} compact icon={<Ionicons name="checkmark-done-outline" size={18} color={kit.color.success} />} inverse />
+            <MetricCard label={t("driver.activeOrders")} value={orders.length} compact icon={<Ionicons name="list-outline" size={18} color="#fff" />} inverse />
+          </View>
+        </LinearGradient>
+
+        <View style={s.quickActionsRow}>
+          <Pressable onPress={() => router.push("/(driver)/offers" as never)} style={s.quickTile} accessibilityRole="button">
+            <Ionicons name="notifications" size={20} color={kit.color.accentDeep} />
+            <UIText variant="caption" color="secondary">{t("driver.offers")}</UIText>
+            {offerCount > 0 && <View style={s.offerCount}><UIText style={s.offerCountText}>{offerCount}</UIText></View>}
+          </Pressable>
+          <Pressable onPress={() => router.push("/(driver)/map" as never)} style={s.quickTile} accessibilityRole="button">
+            <Ionicons name="map-outline" size={20} color={kit.color.accentDeep} />
+            <UIText variant="caption" color="secondary">{t("driver.map")}</UIText>
+          </Pressable>
+          <Pressable onPress={() => router.push("/(driver)/profile" as never)} style={s.quickTile} accessibilityRole="button">
+            <Ionicons name="person-circle" size={20} color={kit.color.accentDeep} />
+            <UIText variant="caption" color="secondary">{t("driver.profile")}</UIText>
+          </Pressable>
         </View>
-        <View style={s.headerActions}>
-          <Pressable onPress={() => router.push("/notifications" as never)} style={s.headerAction} accessibilityRole="button" accessibilityLabel={t("notifications.title")}>
-            <Ionicons name="notifications-outline" size={20} color={kit.color.inkSoft} />
-            {unreadCount > 0 && <View style={s.notificationDot} />}
-          </Pressable>
-          <Pressable onPress={() => void signOut()} style={s.logoutBtn} accessibilityRole="button" accessibilityLabel={t("driver.signOut")}>
-            <Ionicons name="log-out-outline" size={20} color={kit.color.inkSoft} />
-          </Pressable>
+
+        <View style={s.mapPreviewWrap}>
+          <DriverMapPreview compact />
         </View>
       </View>
 
@@ -163,41 +113,40 @@ export function DriverManifest(): React.ReactElement {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={kit.color.accent} />}
         ListHeaderComponent={
           <>
-            <ShiftSummary orders={orders} offers={offerCount} />
-            <OfferBanner count={offerCount} onPress={() => router.push("/(driver)/offers" as never)} />
-            <UIText variant="section-head" style={{ textAlign: TEXT_START, marginTop: 4, marginBottom: 10 }}>
-              {t("driver.manifestTitle")}
-            </UIText>
+            <View style={s.sectionHeaderRow}>
+              <UIText variant="section-head" style={{ textAlign: TEXT_START }}>{t("driver.manifestTitle")}</UIText>
+              <Pressable onPress={() => onRefresh()} style={s.smallRefresh} accessibilityRole="button"><Ionicons name="refresh" size={16} color={kit.color.inkFaint} /></Pressable>
+            </View>
           </>
         }
         renderItem={({ item }) => (
-          <ManifestCard order={item} onPress={() => router.push(`/(driver)/delivery/${item.id}` as never)} />
+          <OrderCardNew
+            order={item}
+            onPress={() => router.push(`/(driver)/delivery/${item.id}` as never)}
+          />
         )}
         ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
-        ListEmptyComponent={
-          manifestQuery.isLoading ? (
-            <View style={s.emptyState}>
-              <ActivityIndicator size="large" color={kit.color.accent} />
-              <UIText variant="body-sm" color="secondary" style={{ marginTop: 12 }}>{t("common.loading")}</UIText>
-            </View>
-          ) : manifestQuery.isError ? (
-            <View style={s.emptyState}>
-              <Ionicons name="cloud-offline-outline" size={40} color={kit.color.inkFaint} />
-              <UIText variant="card-title" style={{ marginTop: 10, textAlign: "center" }}>{t("errors.network")}</UIText>
-              <Pressable onPress={() => void onRefresh()} style={s.retryBtn}><UIText variant="body-sm" color="brand">{t("common.retry")}</UIText></Pressable>
-            </View>
-          ) : !manifestQuery.isLoading ? (
-            <View style={s.emptyState}>
-              <Ionicons name="checkmark-done-circle-outline" size={40} color={kit.color.inkFaint} />
-              <UIText variant="card-title" style={{ marginTop: 10, textAlign: "center" }}>
-                {t("driver.emptyManifestTitle")}
-              </UIText>
-              <UIText variant="body-sm" color="secondary" style={{ marginTop: 4, textAlign: "center" }}>
-                {t("driver.emptyManifestBody")}
-              </UIText>
-            </View>
-          ) : null
-        }
+        ListEmptyComponent={manifestQuery.isLoading ? (
+          <View style={{ paddingHorizontal: kit.inset.screen, paddingTop: 8 }}>
+            {[1,2,3].map((i) => <SkeletonCard key={i} lines={4} style={{ marginBottom: 10 }} />)}
+          </View>
+        ) : manifestQuery.isError ? (
+          <EmptyState
+            icon="cloud-offline-outline"
+            title={t("errors.network")}
+            subtitle={t("driver.emptyRetryHint")}
+            actionLabel={t("common.retry")}
+            onAction={() => void onRefresh()}
+          />
+        ) : (
+          <EmptyState
+            icon="checkmark-done-circle-outline"
+            title={t("driver.emptyManifestTitle")}
+            subtitle={t("driver.emptyManifestBody")}
+            actionLabel={t("driver.checkOffers")}
+            onAction={() => router.push("/(driver)/offers" as never)}
+          />
+        )}
       />
     </Screen>
   );
@@ -276,10 +225,28 @@ const s = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: kit.color.line,
   },
+  summaryRow: {
+    marginTop: 14,
+    flexDirection: flexRow(IS_RTL),
+    gap: 10,
+    paddingHorizontal: kit.inset.screen,
+  },
   emptyState: {
     alignItems: "center",
     paddingVertical: 60,
     paddingHorizontal: 24,
   },
   retryBtn: { marginTop: 14, paddingHorizontal: 16, paddingVertical: 10, borderRadius: kit.radius.pill, backgroundColor: kit.color.accentTint },
+  heroWrap: { marginBottom: 8 },
+  heroGradient: { paddingHorizontal: kit.inset.screen, paddingTop: 14, paddingBottom: 18, borderRadius: kit.radius.xl, marginHorizontal: kit.inset.screen, overflow: 'hidden', ...kit.shadow.raised },
+  heroTopRow: { flexDirection: flexRow(IS_RTL), alignItems: 'center', gap: 8 },
+  heroTitle: { fontSize: 20, fontFamily: theme.fonts.black, color: '#fff', marginTop: 6 },
+  kpiRow: { flexDirection: flexRow(IS_RTL), gap: 8, marginTop: 12 },
+  quickActionsRow: { flexDirection: flexRow(IS_RTL), gap: 10, paddingHorizontal: kit.inset.screen, marginTop: 12 },
+  quickTile: { flex: 1, backgroundColor: kit.color.surface, paddingVertical: 10, borderRadius: kit.radius.lg, alignItems: 'center', justifyContent: 'center', ...kit.shadow.card },
+  offerCount: { position: 'absolute', top: -6, right: -6, minWidth: 22, height: 22, borderRadius: 11, backgroundColor: kit.color.danger, alignItems: 'center', justifyContent: 'center' },
+  offerCountText: { color: '#fff', fontSize: 11, fontFamily: theme.fonts.black },
+  mapPreviewWrap: { marginTop: 12, marginHorizontal: kit.inset.screen, borderRadius: kit.radius.xl, overflow: 'hidden', height: 120, ...kit.shadow.card },
+  sectionHeaderRow: { flexDirection: flexRow(IS_RTL), alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: kit.inset.screen, marginTop: 16, marginBottom: 8 },
+  smallRefresh: { padding: 8 },
 });

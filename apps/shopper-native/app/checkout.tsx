@@ -378,6 +378,7 @@ function CheckoutScreen() {
           disabled={
             flow.pricing.subtotal === 0 ||
             !flow.deliveryQuote.isDeliverable ||
+            (flow.step === "details" && Object.keys(flow.form.formState.errors).length > 0) ||
             (flow.step === "review" &&
               isManualWalletPayment(flow.paymentMethod) &&
               (!flow.transferNumber.trim() || !flow.receiptUri))

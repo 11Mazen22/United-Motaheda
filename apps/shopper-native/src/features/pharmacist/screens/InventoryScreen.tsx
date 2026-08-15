@@ -11,13 +11,13 @@
  */
 import React, { useState, useCallback, useMemo } from "react";
 import {
-  ActivityIndicator, FlatList, Pressable, StyleSheet,
-  TextInput, View,
+  ActivityIndicator, FlatList, StyleSheet,
+  View,
 } from "react-native";
 import { Ionicons }       from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 
-import { Screen, Text as UIText }  from "@pharmacy/ui-native";
+import { Screen, Text as UIText, Card, Input, Badge, Chip } from "@pharmacy/ui-native";
 import { kit }                     from "@pharmacy/ui-native";
 import { theme }                   from "@pharmacy/design-tokens";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
@@ -25,6 +25,7 @@ import { formatPrice }             from "@/utils/format";
 
 import { useProductSearch, useLowStockProducts } from "../hooks/usePharmacistQueries";
 import { PharmacistScreenHeader }                from "../components/PharmacistScreenHeader";
+import EmptyState from "@/components/EmptyState";
 import type { PharmacistProduct }                from "../api/types";
 
 const IS_RTL     = isRtl();
@@ -43,6 +44,7 @@ function normalise(s: string): string {
     .trim();
 }
 
+    
 /**
  * Levenshtein distance (capped at maxDist + 1 for early exit).
  * O(min(a,b)) space, O(a*b) time — fast enough for short strings.
@@ -130,15 +132,10 @@ function fuzzyRank(products: PharmacistProduct[], query: string): PharmacistProd
 function ProductCard({ product }: { product: PharmacistProduct; query?: string }) {
   const { t } = useTranslation();
   const isLow = product.available <= 5;
-
-  // Highlight the matched portion in nameAr
   const displayName = product.nameAr ?? product.nameEn ?? product.name;
 
   return (
-    <View style={[s.card, isLow && s.cardLow]}>
-      {/* Low-stock accent bar */}
-      {isLow && <View style={s.lowBar} />}
-
+    <Card style={[s.card, isLow && s.cardLow]} elevation="sm">
       <View style={[s.cardRow, { flexDirection: flexRow(IS_RTL) }]}>
         {/* Identity */}
         <View style={{ flex: 1 }}>
@@ -196,7 +193,7 @@ function ProductCard({ product }: { product: PharmacistProduct; query?: string }
           {formatPrice(product.effectivePrice)}
         </UIText>
       </View>
-    </View>
+    </Card>
   );
 }
 
@@ -240,57 +237,45 @@ export function InventoryScreen(): React.ReactElement {
         subtitle={t("pharmacist.inventorySubtitle")}
       />
 
-      {/* Search bar */}
-      <View style={[s.searchBar, { flexDirection: flexRow(IS_RTL) }]}>
-        <Ionicons name="search-outline" size={18} color={kit.color.inkFaint} />
-        <TextInput
+<View style={s.searchWrap}>
+        <Input
           value={query}
           onChangeText={handleQueryChange}
           placeholder={t("pharmacist.inventorySearch")}
-          placeholderTextColor={kit.color.inkFaint}
+          clearButton
+          prefixIcon={<Ionicons name="search-outline" size={18} color={kit.color.inkFaint} />}
           autoCorrect={false}
           autoCapitalize="none"
           style={s.searchInput}
-          returnKeyType="search"
-          textAlign={TEXT_START as "left" | "right"}
         />
-        {query.length > 0 ? (
-          <Pressable onPress={() => { setQuery(""); setMode("lowstock"); }} hitSlop={8}>
-            <Ionicons name="close-circle" size={18} color={kit.color.inkFaint} />
-          </Pressable>
-        ) : null}
       </View>
 
-      {/* Search hint when in search mode */}
-      {mode === "search" && query.length >= 1 && !isLoading && (
-        <View style={[s.searchHint, { flexDirection: flexRow(IS_RTL) }]}>
-          <Ionicons name="sparkles-outline" size={13} color={kit.color.accentDeep} />
-          <UIText variant="caption" color="brand">
+      <View style={s.summaryRow}> 
+        <Badge label={t("pharmacist.lowStockCount", { count: lowStockQuery.data?.length ?? 0 })} variant="warning" />
+        <Badge label={t("pharmacist.mode", { mode: mode === "search" ? t("pharmacist.modeSearch") : t("pharmacist.modeLowStock") })} variant="info" />
+        {mode === "search" && query.length >= 1 && !isLoading ? (
+          <UIText variant="caption" color="secondary" style={s.summaryText}>
             {items.length > 0
               ? t("pharmacist.searchResultsCount", { count: items.length, defaultValue: `${items.length} نتيجة` })
               : t("pharmacist.searchNoResults", "لم يُعثر على نتائج — جرّب مصطلحاً آخر")}
           </UIText>
-        </View>
-      )}
+        ) : null}
+      </View>
 
       {/* Mode tabs */}
-      <View style={[s.modeTabs, { flexDirection: flexRow(IS_RTL) }]}>
+      <View style={[s.modeTabs, { flexDirection: flexRow(IS_RTL) }]}> 
         {TABS.map((tab) => (
-          <Pressable
+          <Chip
             key={tab.key}
+            label={tab.label}
+            selected={mode === tab.key}
+            selectable
             onPress={() => {
               setMode(tab.key as "search" | "lowstock");
               if (tab.key !== "search") setQuery("");
             }}
-            style={[s.modeTab, mode === tab.key && s.modeTabActive]}
-          >
-            <UIText
-              variant="caption"
-              style={{ color: mode === tab.key ? kit.color.onAccent : kit.color.inkSoft }}
-            >
-              {tab.label}
-            </UIText>
-          </Pressable>
+            style={[s.modeChip, mode === tab.key && s.modeChipActive]}
+          />
         ))}
       </View>
 
@@ -310,21 +295,15 @@ export function InventoryScreen(): React.ReactElement {
               </UIText>
             </View>
           ) : mode === "search" && query.length < 1 ? (
-            <View style={s.empty}>
-              <Ionicons name="search-outline" size={44} color={kit.color.inkFaint} />
-              <UIText variant="card-title" style={{ marginTop: 10, textAlign: "center" }}>
-                {t("pharmacist.searchPrompt", "اكتب للبحث…")}
-              </UIText>
-            </View>
+            <EmptyState
+              icon="search-outline"
+              title={t("pharmacist.searchPrompt", "اكتب للبحث…")}
+            />
           ) : (
-            <View style={s.empty}>
-              <Ionicons name="cube-outline" size={44} color={kit.color.inkFaint} />
-              <UIText variant="card-title" style={{ marginTop: 10, textAlign: "center" }}>
-                {mode === "lowstock"
-                  ? t("pharmacist.emptyLowStock")
-                  : t("pharmacist.emptySearch")}
-              </UIText>
-            </View>
+            <EmptyState
+              icon="cube-outline"
+              title={mode === "lowstock" ? t("pharmacist.emptyLowStock") : t("pharmacist.emptySearch")}
+            />
           )
         }
       />
@@ -361,21 +340,32 @@ const s = StyleSheet.create({
     paddingHorizontal: kit.inset.screen,
     marginBottom:      4,
   },
+  searchWrap: {
+    marginHorizontal:  kit.inset.screen,
+    marginBottom:     12,
+  },
+  summaryRow: {
+    flexDirection:    flexRow(IS_RTL),
+    alignItems:       "center",
+    gap:              8,
+    marginHorizontal: kit.inset.screen,
+    marginBottom:     8,
+    flexWrap:         "wrap",
+  },
+  summaryText: {
+    flex: 1,
+  },
   modeTabs: {
     gap:               8,
     paddingHorizontal: kit.inset.screen,
     marginBottom:      8,
   },
-  modeTab: {
-    paddingHorizontal: 16,
-    paddingVertical:   8,
-    borderRadius:      kit.radius.pill,
-    backgroundColor:   kit.color.well,
-    borderWidth:       1,
-    borderColor:       kit.color.line,
+  modeChip: {
+    borderColor:     kit.color.line,
+    backgroundColor: kit.color.surface,
   },
-  modeTabActive: {
-    backgroundColor: kit.color.accent,
+  modeChipActive: {
+    backgroundColor: kit.color.accentTint,
     borderColor:     kit.color.accent,
   },
   list: {

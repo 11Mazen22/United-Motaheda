@@ -8,12 +8,17 @@ import { ActivityIndicator, FlatList, Pressable, StyleSheet, View } from "react-
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import { Screen, Text as UIText } from "@pharmacy/ui-native";
+import { Screen, Text as UIText, Card } from "@pharmacy/ui-native";
+import { formatPrice } from "@/utils/format";
 import { kit } from "@pharmacy/ui-native";
 import { useAuth } from "@/features/auth";
-import { flexRow, isRtl, textAlignStart, FORWARD_CHEVRON } from "@/utils/layout";
+import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
 import { useDriverOffers } from "../hooks/useDriverManifest";
+import { useDriverMutations } from "../hooks/useDriverMutations";
+import { showErrorSheet, showSuccessSheet } from "@/shared/store/appSheetStore";
 import { DriverScreenHeader } from "../components/DriverScreenHeader";
+import ConfirmationSheet from "@/components/ConfirmationSheet";
+import EmptyState from "@/components/EmptyState";
 
 const IS_RTL = isRtl();
 const TEXT_START = textAlignStart(IS_RTL);
@@ -24,6 +29,33 @@ export function AssignmentOffersList(): React.ReactElement {
   const { user } = useAuth();
   const offersQuery = useDriverOffers(user?.id);
   const offers = offersQuery.data ?? [];
+  const mutations = useDriverMutations(user?.id);
+  const [pendingAccept, setPendingAccept] = React.useState<string | null>(null);
+  const [pendingDecline, setPendingDecline] = React.useState<string | null>(null);
+
+  const handleAccept = async (assignmentId: string) => {
+    setPendingAccept(assignmentId);
+    try {
+      await mutations.accept.mutateAsync(assignmentId);
+      showSuccessSheet(t("driver.acceptedTitle"), t("driver.acceptedBody"), () => router.replace("/(driver)" as never));
+    } catch (e) {
+      showErrorSheet(t("driver.actionFailedTitle"), e instanceof Error ? e.message : String(e));
+    } finally {
+      setPendingAccept(null);
+    }
+  };
+
+  const handleDecline = async (assignmentId: string, orderId: string) => {
+    setPendingDecline(assignmentId);
+    try {
+      await mutations.decline.mutateAsync({ assignmentId, orderId, reason: "Declined from list" });
+      showSuccessSheet(t("driver.declinedTitle"), t("driver.declinedBody"));
+    } catch (e) {
+      showErrorSheet(t("driver.actionFailedTitle"), e instanceof Error ? e.message : String(e));
+    } finally {
+      setPendingDecline(null);
+    }
+  };
 
   return (
     <Screen edgeTop background={kit.color.canvas}>
@@ -34,42 +66,65 @@ export function AssignmentOffersList(): React.ReactElement {
         keyExtractor={(o) => o.id}
         contentContainerStyle={s.listContent}
         renderItem={({ item }) => (
-          <Pressable
-            onPress={() => router.push(`/(driver)/offer/${item.id}` as never)}
-            style={s.card}>
-            <View style={s.offerIcon}><Ionicons name="flash-outline" size={19} color={kit.color.warn} /></View>
-            <View style={{ flex: 1 }}>
+          <Card style={s.card} elevation="sm">
+            <View style={s.offerLeft}>
+              <View style={s.offerIcon}><Ionicons name="flash-outline" size={20} color={kit.color.warn} /></View>
+            </View>
+
+            <View style={s.offerBody}>
               <View style={s.cardTitleRow}>
-                <UIText variant="card-title" style={{ textAlign: TEXT_START }}>#{item.orderId.slice(-8).toUpperCase()}</UIText>
+                <UIText variant="card-title" style={{ textAlign: TEXT_START }}>#{item.orderId?.slice(-8).toUpperCase()}</UIText>
                 <View style={s.newPill}><Ionicons name="time-outline" size={12} color={kit.color.warn} /></View>
               </View>
-              <UIText variant="body-sm" color="secondary" style={{ textAlign: TEXT_START, marginTop: 2 }}>
-                {t("driver.tapToRespond")}
+
+              <UIText variant="body-sm" color="secondary" style={{ marginTop: 6, textAlign: TEXT_START }}>
+                {t("driver.offerSubtitle", "New delivery offer — tap to view details or respond quickly")}
               </UIText>
+
+              <View style={s.metaRow}>
+                <View style={s.metaItem}><Ionicons name="pricetag-outline" size={14} color={kit.color.inkFaint} /><UIText variant="caption" color="secondary">{(item as any).fee ? formatPrice((item as any).fee) : t("driver.estimatedFee")}</UIText></View>
+                <View style={s.metaItem}><Ionicons name="time-outline" size={14} color={kit.color.inkFaint} /><UIText variant="caption" color="secondary">{t("driver.quickResponseHint")}</UIText></View>
+              </View>
             </View>
-            <Ionicons name={FORWARD_CHEVRON} size={18} color={kit.color.inkFaint} />
-          </Pressable>
+
+            <View style={s.offerActionsCol}>
+              <Pressable onPress={() => void handleAccept(item.id)} style={[s.acceptBtn, pendingAccept === item.id && s.btnBusy]} disabled={Boolean(pendingAccept === item.id)}>
+                <UIText color="#fff">{pendingAccept === item.id ? t("common.accepting") : t("driver.accept")}</UIText>
+              </Pressable>
+              <Pressable onPress={() => void handleDecline(item.id, item.orderId)} style={[s.declineBtn, pendingDecline === item.id && s.btnBusy]} disabled={Boolean(pendingDecline === item.id)}>
+                <UIText color="danger">{pendingDecline === item.id ? t("common.declining") : t("driver.decline")}</UIText>
+              </Pressable>
+              <Pressable onPress={() => router.push(`/(driver)/offer/${item.id}` as never)} style={s.viewBtn}>
+                <UIText variant="caption">{t("common.view")}</UIText>
+              </Pressable>
+            </View>
+          </Card>
         )}
         ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
-        ListEmptyComponent={
-          offersQuery.isLoading ? (
-            <View style={s.emptyState}><ActivityIndicator color={kit.color.accent} /></View>
-          ) : offersQuery.isError ? (
-            <View style={s.emptyState}>
-              <Ionicons name="cloud-offline-outline" size={40} color={kit.color.inkFaint} />
-              <UIText variant="card-title" style={{ marginTop: 10, textAlign: "center" }}>{t("errors.network")}</UIText>
-              <Pressable onPress={() => void offersQuery.refetch()} style={s.retryBtn}><UIText variant="body-sm" color="brand">{t("common.retry")}</UIText></Pressable>
-            </View>
-          ) : (
-            <View style={s.emptyState}>
-              <Ionicons name="checkmark-circle-outline" size={40} color={kit.color.inkFaint} />
-              <UIText variant="card-title" style={{ marginTop: 10, textAlign: "center" }}>
-                {t("driver.noOffersTitle")}
-              </UIText>
-            </View>
-          )
-        }
+        ListEmptyComponent={offersQuery.isLoading ? (
+          <View style={s.emptyState}><ActivityIndicator color={kit.color.accent} /></View>
+        ) : offersQuery.isError ? (
+          <EmptyState icon="cloud-offline-outline" title={t("errors.network")} subtitle={t("common.retryShort")} />
+        ) : (
+          <EmptyState icon="checkmark-circle-outline" title={t("driver.noOffersTitle")} />
+        )}
       />
+
+      {/* Decline confirmation sheet rendered inline for accessibility */}
+      {pendingDecline ? (
+        <ConfirmationSheet
+          title={t("driver.confirmDeclineTitle")}
+          body={t("driver.confirmDeclineBody")}
+          confirmLabel={t("driver.decline")}
+          cancelLabel={t("common.cancel")}
+          onConfirm={() => {
+            // find the offer to decline and call original handler
+            const offer = offers.find((o) => o.id === pendingDecline);
+            if (offer) void handleDecline(offer.id, offer.orderId);
+          }}
+          onCancel={() => setPendingDecline(null)}
+        />
+      ) : null}
     </Screen>
   );
 }
@@ -90,6 +145,10 @@ const s = StyleSheet.create({
     borderColor: kit.color.warnTint,
     ...kit.shadow.card,
   },
+  offerActions: { flexDirection: flexRow(IS_RTL), alignItems: 'center', gap: 8 },
+  acceptBtn: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: kit.radius.lg, backgroundColor: kit.color.accentTint },
+  declineBtn: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: kit.radius.lg, backgroundColor: kit.color.surface },
+  viewBtn: { paddingHorizontal: 10, paddingVertical: 8, borderRadius: kit.radius.lg, backgroundColor: 'transparent' },
   offerIcon: { width: 42, height: 42, borderRadius: 14, backgroundColor: kit.color.warnTint, alignItems: "center", justifyContent: "center" },
   cardTitleRow: { flexDirection: flexRow(IS_RTL), alignItems: "center", justifyContent: "space-between", gap: 8 },
   newPill: { width: 24, height: 24, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: kit.color.warnTint },
@@ -99,4 +158,10 @@ const s = StyleSheet.create({
     paddingHorizontal: 24,
   },
   retryBtn: { marginTop: 14, paddingHorizontal: 16, paddingVertical: 10, borderRadius: kit.radius.pill, backgroundColor: kit.color.accentTint },
+  offerLeft: { width: 58, alignItems: 'center', justifyContent: 'center' },
+  offerBody: { flex: 1 },
+  metaRow: { flexDirection: flexRow(IS_RTL), gap: 10, marginTop: 8, alignItems: 'center' },
+  metaItem: { flexDirection: flexRow(IS_RTL), gap: 6, alignItems: 'center' },
+  offerActionsCol: { flexDirection: 'column', gap: 8, marginLeft: 8, alignItems: 'flex-end' },
+  btnBusy: { opacity: 0.7 },
 });

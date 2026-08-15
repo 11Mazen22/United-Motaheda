@@ -4,13 +4,16 @@
  * this is an internal staff-visible note, not a customer-facing form).
  */
 import React, { useState } from "react";
-import { StyleSheet, TextInput, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import { Screen, Text as UIText } from "@pharmacy/ui-native";
+import { Screen, Text as UIText, Card, Input } from "@pharmacy/ui-native";
 import { Button, kit } from "@pharmacy/ui-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { InfoRow } from "@/features/orders/components/OrderDetailHelpers";
+import RouteSummary from "../components/RouteSummary";
+import MetricCard from "@/components/MetricCard";
 import { useAuth } from "@/features/auth";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
 import { formatPrice } from "@/utils/format";
@@ -75,20 +78,26 @@ export function AssignmentOfferDetail(): React.ReactElement {
         </View>
       ) : (
         <>
+          <LinearGradient colors={[kit.color.accentTint, kit.color.canvas]} style={s.heroBanner}>
+            <View style={{ flexDirection: flexRow(IS_RTL), alignItems: 'center', justifyContent: 'space-between' }}>
+              <View style={{ flex: 1 }}>
+                <UIText variant="caption" color="brand" style={{ textAlign: TEXT_START }}>{t("driver.orderRef")} #{String(offer.orderId).slice(-8).toUpperCase()}</UIText>
+                <UIText variant="card-title" style={{ marginTop: 6, textAlign: TEXT_START }}>{order?.address.name ?? "—"}</UIText>
+              </View>
+              <View style={{ width: 120, marginLeft: 12 }}>
+                <MetricCard label={t("driver.estimatedEarnings")} value={order ? formatPrice(order.total) : "—"} />
+              </View>
+            </View>
+            <View style={s.heroSubRow}>
+              <InfoRow label={t("driver.items")} value={String(order?.items.length ?? 0)} />
+              <InfoRow label={t("driver.phone")} value={order?.address.phone ?? "—"} />
+            </View>
+          </LinearGradient>
+
           <View style={s.card}>
-            <UIText variant="caption" color="brand" style={{ textAlign: TEXT_START }}>
-              {t("driver.orderRef")} #{offer.orderId.slice(-8).toUpperCase()}
-            </UIText>
-            <UIText variant="card-title" style={{ textAlign: TEXT_START, marginTop: 8 }}>
-              {order?.address.name ?? "—"}
-            </UIText>
-            <InfoRow label={t("driver.phone")} value={order?.address.phone ?? "—"} />
-            <InfoRow
-              label={t("driver.address")}
-              value={(order?.address.formatted || [order?.address.street, order?.address.city].filter(Boolean).join(", ")) || "—"}
-            />
-            <InfoRow label={t("driver.total")} value={order ? formatPrice(order.total) : "—"} />
-            <InfoRow label={t("driver.items")} value={String(order?.items.length ?? 0)} />
+            <Card style={s.detailCard} elevation="sm">
+              <RouteSummary driverCoords={undefined} destCoords={order && typeof order.customerLat === 'number' && typeof order.customerLng === 'number' ? { lat: order.customerLat, lng: order.customerLng } : undefined} />
+            </Card>
           </View>
 
           {!declining ? (
@@ -122,11 +131,11 @@ export function AssignmentOfferDetail(): React.ReactElement {
                 style={{ textAlign: TEXT_START, marginTop: 4, marginBottom: 10 }}>
                 {t("driver.declineReasonBody")}
               </UIText>
-              <TextInput
+              <Input
                 value={reason}
                 onChangeText={setReason}
                 placeholder={t("driver.declineReasonPlaceholder")}
-                placeholderTextColor={kit.color.inkFaint}
+                clearButton
                 multiline
                 numberOfLines={3}
                 style={s.declineInput}
@@ -153,6 +162,14 @@ const s = StyleSheet.create({
   centered: { alignItems: "center", paddingTop: 60, paddingHorizontal: 24 },
   card: {
     marginHorizontal: kit.inset.screen,
+    backgroundColor: kit.color.surface,
+    borderRadius: kit.radius.xl,
+    padding: 16,
+    ...kit.shadow.card,
+  },
+  detailCard: {
+    marginHorizontal: kit.inset.screen,
+    marginTop: 12,
     backgroundColor: kit.color.surface,
     borderRadius: kit.radius.xl,
     padding: 16,
@@ -188,4 +205,13 @@ const s = StyleSheet.create({
     gap: 10,
     marginTop: 14,
   },
+  heroBanner: {
+    marginHorizontal: kit.inset.screen,
+    marginTop: 12,
+    backgroundColor: kit.color.surface,
+    borderRadius: kit.radius.xl,
+    padding: 12,
+    ...kit.shadow.raised,
+  },
+  heroSubRow: { marginTop: 10, flexDirection: flexRow(IS_RTL), gap: 12 },
 });

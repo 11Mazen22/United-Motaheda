@@ -49,15 +49,51 @@ export class NotificationsService implements OnModuleInit {
 
   // ─── Token Management ─────────────────────────────────────────────────────
 
+  /**
+   * Register a push notification token for the user.
+   * Ensures only one token per device/platform by deactivating other tokens.
+   *
+   * When a user logs in on a new device:
+   *  1. Old tokens for the same platform are deactivated (user likely signed out)
+   *  2. Multiple deviceIds on same platform are pruned (user switched devices)
+   *  3. New token is upserted
+   *
+   * This prevents notifications from being sent to old/discarded devices.
+   */
   async registerToken(userId: string, token: string, platform: string, deviceId?: string, deviceName?: string) {
+    // Deactivate all other tokens for this user on this platform
+    // This ensures notifications only go to the current device
+    await this.prisma.notificationToken.updateMany({
+      where: {
+        userId,
+        platform,
+        token: { not: token }, // Keep the token we're about to upsert
+        isActive: true,
+      },
+      data: { isActive: false },
+    });
+
+    // If deviceId is provided, also deactivate other tokens with same deviceId
+    // (in case the app was reinstalled and generated a new FCM token)
     if (deviceId) {
-      await this.prisma.notificationToken.updateMany({ where: { userId, deviceId, isActive: true }, data: { isActive: false } });
+      await this.prisma.notificationToken.updateMany({
+        where: {
+          userId,
+          deviceId,
+          token: { not: token },
+          isActive: true,
+        },
+        data: { isActive: false },
+      });
     }
+
+    // Upsert the new token
     await this.prisma.notificationToken.upsert({
       where: { token },
-      update: { isActive: true, lastUsedAt: new Date(), deviceId, deviceName },
+      update: { userId, isActive: true, lastUsedAt: new Date(), deviceId, deviceName, platform },
       create: { userId, token, platform, deviceId, deviceName, isActive: true },
     });
+
     return { message: 'Token registered' };
   }
 

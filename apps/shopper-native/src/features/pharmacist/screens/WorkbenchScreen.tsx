@@ -35,6 +35,7 @@ import { usePharmacistOrderQueue, usePharmacistDashboard } from "../hooks/usePha
 import { pharmacistQueryKeys }  from "../hooks/queryKeys";
 import { OrderQueueCard }       from "../components/OrderQueueCard";
 import { StatCard }             from "../components/StatCard";
+import EmptyState from "@/components/EmptyState";
 import type { PharmacistOrder } from "../api/types";
 
 const IS_RTL     = isRtl();
@@ -216,37 +217,41 @@ export function WorkbenchScreen(): React.ReactElement {
             {/* ── KPI Grid ──────────────────────────────────────────── */}
             <Animated.View entering={FadeInDown.delay(0).duration(320)} style={[s.kpiGrid, { flexDirection: flexRow(IS_RTL) }]}>
               <StatCard
-                value={stats?.activeOrders ?? 0}
+                value={statsQ.isLoading ? '…' : stats?.activeOrders ?? 0}
                 label={t("pharmacist.statActiveOrders")}
                 icon="bag-handle-outline"
                 iconColor={kit.color.accentDeep}
                 iconBg={kit.color.accentTint}
+                style={statsQ.isLoading ? { opacity: 0.65 } : undefined}
                 onPress={() => listRef.current?.scrollToOffset({ offset: 520, animated: true })}
               />
               <StatCard
-                value={stats?.pendingPrescriptions ?? 0}
+                value={statsQ.isLoading ? '…' : stats?.pendingPrescriptions ?? 0}
                 label={t("pharmacist.statPendingRx")}
                 icon="document-text-outline"
                 iconColor="#7C3AED"
                 iconBg="#F5F3FF"
+                style={statsQ.isLoading ? { opacity: 0.65 } : undefined}
                 onPress={() => router.push("/(pharmacist)/prescriptions" as never)}
               />
             </Animated.View>
 
             <Animated.View entering={FadeInDown.delay(50).duration(320)} style={[s.kpiGrid, { flexDirection: flexRow(IS_RTL) }]}>
               <StatCard
-                value={stats?.preparing ?? 0}
+                value={statsQ.isLoading ? '…' : stats?.preparing ?? 0}
                 label={t("pharmacist.statPreparing")}
                 icon="construct-outline"
                 iconColor={kit.color.accentDeep}
                 iconBg={kit.color.accentTint}
+                style={statsQ.isLoading ? { opacity: 0.65 } : undefined}
               />
               <StatCard
-                value={stats?.lowStockCount ?? 0}
+                value={statsQ.isLoading ? '…' : stats?.lowStockCount ?? 0}
                 label={t("pharmacist.statLowStock")}
                 icon="alert-circle-outline"
                 iconColor={kit.color.danger}
                 iconBg={kit.color.dangerTint}
+                style={statsQ.isLoading ? { opacity: 0.65 } : undefined}
                 onPress={() => router.push("/(pharmacist)/inventory" as never)}
               />
             </Animated.View>
@@ -304,27 +309,19 @@ export function WorkbenchScreen(): React.ReactElement {
               <ActivityIndicator size="large" color={kit.color.accent} />
             </View>
           ) : queueQ.isError ? (
-            <View style={s.empty}>
-              <Ionicons name="cloud-offline-outline" size={40} color={kit.color.inkFaint} />
-              <UIText variant="card-title" style={{ marginTop: 10, textAlign: "center" }}>
-                {t("errors.network")}
-              </UIText>
-              <Pressable onPress={onRefresh} style={s.retryBtn}>
-                <UIText variant="body-sm" color="brand">{t("common.retry")}</UIText>
-              </Pressable>
-            </View>
+            <EmptyState
+              icon="cloud-offline-outline"
+              title={t("errors.network")}
+              subtitle={t("pharmacist.emptyRetryHint")}
+              actionLabel={t("common.retry")}
+              onAction={onRefresh}
+            />
           ) : (
-            <View style={s.empty}>
-              <View style={s.emptyIcon}>
-                <Ionicons name="checkmark-done-circle-outline" size={40} color={kit.color.accentDeep} />
-              </View>
-              <UIText variant="card-title" style={{ marginTop: 10, textAlign: "center" }}>
-                {t("pharmacist.emptyQueueTitle")}
-              </UIText>
-              <UIText variant="body-sm" color="secondary" style={{ marginTop: 4, textAlign: "center" }}>
-                {t("pharmacist.emptyQueueBody")}
-              </UIText>
-            </View>
+            <EmptyState
+              icon="checkmark-done-circle-outline"
+              title={t("pharmacist.emptyQueueTitle")}
+              subtitle={t("pharmacist.emptyQueueBody")}
+            />
           )
         }
       />

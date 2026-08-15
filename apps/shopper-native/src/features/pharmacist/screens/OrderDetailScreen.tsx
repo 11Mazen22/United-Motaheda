@@ -27,8 +27,7 @@ import { useLocalSearchParams } from "expo-router";
 import { Ionicons }             from "@expo/vector-icons";
 import { useTranslation }       from "react-i18next";
 
-import { Screen, Text as UIText } from "@pharmacy/ui-native";
-import { Button, kit }            from "@pharmacy/ui-native";
+import { Screen, Text as UIText, kit } from "@pharmacy/ui-native";
 import { theme }                  from "@pharmacy/design-tokens";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
 import { formatPrice }            from "@/utils/format";
@@ -38,7 +37,68 @@ import { usePharmacistOrder }    from "../hooks/usePharmacistQueries";
 import { usePharmacistMutations} from "../hooks/usePharmacistMutations";
 import { PharmacistScreenHeader} from "../components/PharmacistScreenHeader";
 import { OrderStatusChip }       from "../components/OrderStatusChip";
-import type { PharmacistOrder, PharmacistTransitionTarget } from "../api/types";
+import { StatCard }              from "../components/StatCard";
+import { PharmacistActionDock }  from "../components/PharmacistActionDock";
+import type { PharmacistOrder, PharmacistOrderStatus, PharmacistTransitionTarget } from "../api/types";
+
+const TIMELINE_STATUS: PharmacistOrderStatus[] = [
+  "pending",
+  "confirmed",
+  "verification",
+  "payment_pending",
+  "payment_approved",
+  "preparing",
+  "ready",
+];
+
+const TIMELINE_LABELS: Record<PharmacistOrderStatus, string> = {
+  pending:          "Pending",
+  confirmed:        "Confirmed",
+  verification:     "Verify Payment",
+  payment_pending:  "Awaiting Payment",
+  payment_approved: "Payment Approved",
+  preparing:        "Preparing",
+  ready:            "Ready",
+  driver_assigned:  "Driver Assigned",
+  driver_accepted:  "Driver Accepted",
+  out_for_delivery: "Out for Delivery",
+  delivered:        "Delivered",
+  cancelled:        "Cancelled",
+  archived:         "Archived",
+};
+
+function WorkflowTimeline({ status }: { status: PharmacistOrderStatus }) {
+  const currentIndex = TIMELINE_STATUS.indexOf(status);
+  return (
+    <View style={sr.timelineCard}>
+      <View style={sr.timelineHeader}>
+        <UIText variant="body-sm" weight="bold" style={sr.timelineTitle}>
+          Progress tracker
+        </UIText>
+        <OrderStatusChip status={status} size="sm" />
+      </View>
+      {TIMELINE_STATUS.map((step, index) => {
+        const done = index < currentIndex || status === "ready" && step === "ready";
+        const active = index === currentIndex;
+        return (
+          <View key={step} style={sr.timelineStep}>
+            <View style={sr.timelineMarker}>
+              <View style={[sr.timelineDot, done && sr.timelineDotDone, active && sr.timelineDotActive]} />
+              {index < TIMELINE_STATUS.length - 1 && (
+                <View style={[sr.timelineLine, done && sr.timelineLineDone]} />
+              )}
+            </View>
+            <View style={sr.timelineTextWrap}>
+              <UIText variant={active ? "body-sm" : "caption"} style={[sr.timelineText, active && sr.timelineTextActive]}>
+                {TIMELINE_LABELS[step]}
+              </UIText>
+            </View>
+          </View>
+        );
+      })}
+    </View>
+  );
+}
 
 const IS_RTL     = isRtl();
 const TEXT_START = textAlignStart(IS_RTL);
@@ -173,10 +233,20 @@ export function PharmacistOrderDetailScreen(): React.ReactElement {
         trailing={<OrderStatusChip status={order.status} size="sm" />}
       />
 
+      {/* Compact KPI row */}
+      <View style={{ paddingHorizontal: kit.inset.screen, marginTop: 12 }}>
+        <View style={{ flexDirection: flexRow(IS_RTL), gap: 10 }}>
+          <StatCard value={order.items.length} label={t("pharmacist.itemsCount", "Items")} icon="layers-outline" />
+          <StatCard value={formatPrice(order.total)} label={t("pharmacist.total", "Total")} icon="cash-outline" />
+          <StatCard value={order.paymentStatus} label={t("pharmacist.paymentStatusShort", "Payment")} icon="card-outline" />
+        </View>
+      </View>
+
       <ScrollView
-        contentContainerStyle={sr.scroll}
+        contentContainerStyle={[sr.scroll, { paddingBottom: 140 }]}
         showsVerticalScrollIndicator={false}
       >
+        <WorkflowTimeline status={order.status} />
         {/* Customer */}
         <Section title={t("pharmacist.sectionCustomer")} icon="person-outline">
           <InfoRow label={t("pharmacist.name")}  value={order.customerName}  />
@@ -262,23 +332,14 @@ export function PharmacistOrderDetailScreen(): React.ReactElement {
           ) : null}
         </Section>
 
-        {/* Actions */}
-        {actions.length > 0 && (
-          <Section title={t("pharmacist.sectionActions")} icon="checkmark-circle-outline">
-            {actions.map((target) => (
-              <Button
-                key={target}
-                label={actionLabel(target, t)}
-                variant={target === "cancelled" ? "ghost" : "primary"}
-                full
-                loading={mutations.advance.isPending}
-                onPress={() => void handleAdvance(target)}
-                style={{ marginBottom: 10 }}
-              />
-            ))}
-          </Section>
-        )}
+        {/* Actions are rendered in a sticky dock */}
       </ScrollView>
+
+      <PharmacistActionDock
+        actions={actions.map((a) => ({ key: a, label: actionLabel(a, t), variant: a === "cancelled" ? "ghost" : "primary" }))}
+        loading={mutations.advance.isPending}
+        onAction={(key) => void handleAdvance(key as PharmacistTransitionTarget)}
+      />
     </Screen>
   );
 }
@@ -315,6 +376,74 @@ const sr = StyleSheet.create({
   sectionBody: {
     padding: kit.inset.card,
     gap:     8,
+  },
+  timelineCard: {
+    margin:            kit.inset.screen,
+    marginTop:         14,
+    padding:           16,
+    borderRadius:      kit.radius.xl,
+    backgroundColor:   kit.color.surface,
+    borderWidth:       1,
+    borderColor:       kit.color.line,
+    ...kit.shadow.card,
+  },
+  timelineHeader: {
+    flexDirection:     flexRow(IS_RTL),
+    alignItems:        "center",
+    justifyContent:    "space-between",
+    marginBottom:      12,
+    gap:               8,
+  },
+  timelineTitle: {
+    fontFamily:        theme.fonts.black,
+    fontSize:          14,
+    color:             kit.color.ink,
+  },
+  timelineStep: {
+    flexDirection:     flexRow(IS_RTL),
+    alignItems:        "flex-start",
+    gap:               10,
+    marginBottom:      12,
+  },
+  timelineMarker: {
+    width:        24,
+    alignItems:   "center",
+  },
+  timelineDot: {
+    width:           10,
+    height:          10,
+    borderRadius:    5,
+    backgroundColor: kit.color.line,
+    marginTop:       2,
+  },
+  timelineDotActive: {
+    backgroundColor: kit.color.accent,
+  },
+  timelineDotDone: {
+    backgroundColor: kit.color.success,
+  },
+  timelineLine: {
+    width:           2,
+    flex:            1,
+    backgroundColor: kit.color.line,
+    marginTop:       4,
+  },
+  timelineLineDone: {
+    backgroundColor: kit.color.success,
+  },
+  timelineTextWrap: {
+    flex: 1,
+  },
+  timelineText: {
+    fontSize:           12,
+    fontFamily:         theme.fonts.regular,
+    color:              kit.color.inkFaint,
+    lineHeight:         18,
+    textAlign:          TEXT_START,
+    includeFontPadding: false,
+  },
+  timelineTextActive: {
+    color: kit.color.ink,
   },
   infoRow: {
     alignItems:  "flex-start",

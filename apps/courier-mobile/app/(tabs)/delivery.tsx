@@ -16,7 +16,7 @@ import Animated, {
   useSharedValue, useAnimatedStyle, withSpring, withTiming,
 } from 'react-native-reanimated';
 import { colors, typography, spacing, radii, shadows } from '@pharmacy/ui-native/courier-tokens';
-import { Button, showToast } from '@pharmacy/ui-native';
+import { Button, Card, Input, showToast } from '@pharmacy/ui-native';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { driverApi } from '@/lib/api';
 import {
@@ -130,7 +130,7 @@ function PrimaryActionArea({
 
   if (st === 'ARRIVED_AT_CUSTOMER') {
     return (
-      <View style={ac.card}>
+      <Card style={ac.card} elevation="sm">
         <Text style={ac.title}>إتمام التوصيل</Text>
         <Text style={ac.desc}>التقط صورة إثبات التسليم ثم اضغط للإتمام.</Text>
         <TouchableOpacity style={[ac.proof, proofUri && ac.proofFilled]} onPress={() => setShowModal(true)} activeOpacity={0.75}>
@@ -138,7 +138,7 @@ function PrimaryActionArea({
             ? <Image source={{ uri: proofUri }} style={ac.proofImg} />
             : <View style={ac.proofPh}><Ionicons name="camera-outline" size={28} color={colors.primary} /><Text style={ac.proofTip}>اضغط لالتقاط صورة</Text></View>}
         </TouchableOpacity>
-        <TextInput style={ac.notes} placeholder="ملاحظات التوصيل" placeholderTextColor={colors.inkFaint} value={notes} onChangeText={setNotes} multiline numberOfLines={2} textAlign="right" />
+        <Input style={ac.notes} placeholder="ملاحظات التوصيل" placeholderTextColor={colors.inkFaint} value={notes} onChangeText={setNotes} multiline numberOfLines={2} textAlign="right" />
         <Button title="تأكيد التوصيل ✓" onPress={() => { if (!proofUri) { showToast('يرجى التقاط صورة إثبات', 'warning'); return; } onAction('complete', { proofUri, notes }); }} loading={loading} fullWidth />
         <Modal visible={showModal} transparent animationType="slide">
           <View style={ac.overlay}><View style={ac.sheet}>
@@ -155,14 +155,14 @@ function PrimaryActionArea({
   const c = CFG[st];
   if (!c) return null;
   return (
-    <View style={ac.card}>
+    <Card style={ac.card} elevation="sm">
       <Text style={ac.title}>{c.title}</Text>
       <Text style={ac.desc}>{c.desc}</Text>
       {st === 'ARRIVED_AT_PHARMACY' && (
-        <TextInput style={ac.notes} placeholder="ملاحظات الاستلام" placeholderTextColor={colors.inkFaint} value={notes} onChangeText={setNotes} multiline numberOfLines={2} textAlign="right" />
+        <Input style={ac.notes} placeholder="ملاحظات الاستلام" placeholderTextColor={colors.inkFaint} value={notes} onChangeText={setNotes} multiline numberOfLines={2} textAlign="right" />
       )}
       <Button title={c.btn} onPress={c.act} loading={loading} fullWidth leftIcon={<Ionicons name={c.icon} size={18} color="#fff" />} />
-    </View>
+    </Card>
   );
 }
 
@@ -302,8 +302,7 @@ export default function DeliveryScreen() {
               </View>
               <Text style={s.customerName}>{d.order.customerName}</Text>
               <Text style={s.customerAddr} numberOfLines={2}>{d.order.customerAddress}</Text>
-            </View>
-          </View>
+          <Text style={s.pharmacyName} numberOfLines={1}>{d.pharmacyName}</Text>
 
           <View style={s.stepperCard}><WorkflowStepper status={d.status} /></View>
 
@@ -373,6 +372,7 @@ const s = StyleSheet.create({
   actionBtn: { width: 38, height: 38, borderRadius: 19, backgroundColor: colors.primaryLight, alignItems: 'center', justifyContent: 'center' },
   customerName: { fontFamily: typography.bold, fontSize: typography.md, color: colors.ink, textAlign: 'right' },
   customerAddr: { fontFamily: typography.regular, fontSize: typography.sm, color: colors.inkMuted, textAlign: 'right' },
+  pharmacyName: { fontFamily: typography.medium, fontSize: typography.sm, color: colors.primary, marginTop: 4, textAlign: 'right' },
   stepperCard: { backgroundColor: colors.surface, marginTop: spacing[3], borderTopWidth: 1, borderBottomWidth: 1, borderColor: colors.borderSoft },
   actionCard: { backgroundColor: colors.surface, borderRadius: radii['2xl'], overflow: 'hidden', ...shadows.sm },
   infoCard: { backgroundColor: colors.surface, borderRadius: radii['2xl'], overflow: 'hidden', ...shadows.sm, borderWidth: 1, borderColor: colors.borderSoft },

@@ -9,7 +9,6 @@ import React, { useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
-  Pressable,
   RefreshControl,
   StyleSheet,
   View,
@@ -19,8 +18,9 @@ import { Ionicons }        from "@expo/vector-icons";
 import { useTranslation }  from "react-i18next";
 import { useQueryClient }  from "@tanstack/react-query";
 
-import { Screen, Text as UIText }  from "@pharmacy/ui-native";
-import { kit }                     from "@pharmacy/ui-native";
+import { Screen, Text as UIText, Card, Chip } from "@pharmacy/ui-native";
+import EmptyState from "@/components/EmptyState";
+import { kit } from "@pharmacy/ui-native";
 import { flexRow, isRtl, textAlignStart, FORWARD_CHEVRON } from "@/utils/layout";
 
 import { useAllPrescriptions }     from "../hooks/usePharmacistQueries";
@@ -54,11 +54,7 @@ function RxCard({ rx, onPress }: { rx: PharmacistPrescription; onPress: () => vo
         : kit.color.warnTint;
 
   return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => [s.card, pressed && s.cardPressed]}
-      accessibilityRole="button"
-    >
+    <Card onPress={onPress} style={s.card} elevation="sm">
       <View style={[s.cardHeader, { flexDirection: flexRow(IS_RTL) }]}>
         <View style={[s.statusDot, { backgroundColor: chipBg, borderColor: chipColor }]}>
           <UIText variant="eyebrow" style={{ color: chipColor }}>
@@ -80,7 +76,7 @@ function RxCard({ rx, onPress }: { rx: PharmacistPrescription; onPress: () => vo
       <UIText variant="caption" color="muted" style={{ textAlign: TEXT_START, marginTop: 4 }}>
         {new Date(rx.addedAt).toLocaleDateString()}
       </UIText>
-    </Pressable>
+    </Card>
   );
 }
 
@@ -110,19 +106,14 @@ export function PrescriptionQueueScreen(): React.ReactElement {
       {/* Filter tabs */}
       <View style={[s.filterRow, { flexDirection: flexRow(IS_RTL) }]}>
         {STATUS_FILTERS.map((f) => (
-          <Pressable
+          <Chip
             key={f.key}
+            label={t(f.labelKey)}
+            selected={filter === f.key}
+            selectable
             onPress={() => setFilter(f.key)}
-            style={[s.filterTab, filter === f.key && s.filterTabActive]}
-            accessibilityRole="button"
-          >
-            <UIText
-              variant="caption"
-              style={{ color: filter === f.key ? kit.color.onAccent : kit.color.inkSoft }}
-            >
-              {t(f.labelKey)}
-            </UIText>
-          </Pressable>
+            style={[s.filterChip, filter === f.key && s.filterChipActive]}
+          />
         ))}
       </View>
 
@@ -151,12 +142,11 @@ export function PrescriptionQueueScreen(): React.ReactElement {
               <ActivityIndicator size="large" color={kit.color.accent} />
             </View>
           ) : (
-            <View style={s.empty}>
-              <Ionicons name="document-text-outline" size={40} color={kit.color.inkFaint} />
-              <UIText variant="card-title" style={{ marginTop: 10, textAlign: "center" }}>
-                {t("pharmacist.emptyRxTitle")}
-              </UIText>
-            </View>
+            <EmptyState
+              icon="document-text-outline"
+              title={t("pharmacist.emptyRxTitle")}
+              subtitle={t("pharmacist.emptyRxSubtitle")}
+            />
           )
         }
       />
@@ -171,16 +161,12 @@ const s = StyleSheet.create({
     paddingVertical:   12,
     flexWrap:          "wrap",
   },
-  filterTab: {
-    paddingHorizontal: 14,
-    paddingVertical:   7,
-    borderRadius:      kit.radius.pill,
-    backgroundColor:   kit.color.well,
-    borderWidth:       1,
-    borderColor:       kit.color.line,
+  filterChip: {
+    borderColor:     kit.color.line,
+    backgroundColor: kit.color.surface,
   },
-  filterTabActive: {
-    backgroundColor: kit.color.accent,
+  filterChipActive: {
+    backgroundColor: kit.color.accentTint,
     borderColor:     kit.color.accent,
   },
   listContent: {

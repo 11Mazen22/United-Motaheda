@@ -39,57 +39,42 @@ interface EdgeFunctionResponse {
 }
 
 // Timeout applied to the two Supabase calls inside ensureUserProfile.
-const PROFILE_TIMEOUT_MS = 8_000;
 
 /**
  * Ensures a profiles row exists for the authenticated user before we call
  * the Edge Function. Self-heals users whose signup trigger was broken.
  *
- * Behavior (changed from prior silent-fail version):
- *   - select fails → log + still attempt upsert (RLS quirks shouldn't block
- *     a write attempt; if the row exists, on-conflict makes it a no-op)
- *   - upsert fails → THROW a typed CheckoutRequestError(code: "AUTH") so
- *     checkout shows a precise error instead of letting the Edge Function
- *     return a generic 403 "profile not found"
+ * Behavior:
+ *   - Attempts to fetch profile; if successful, returns early
+ *   - On any error (network, RLS, etc), proceeds to upsert attempt
+ *   - Upsert failure is thrown as a CheckoutRequestError("AUTH")
  *
- * Previously this function swallowed both kinds of failure in dev-only
- * console warnings, which meant users hit the misleading
- * "sign out and sign back in" UI even when the real problem was a NOT NULL
- * constraint or RLS policy needing attention.
+ * This avoids Promise.race which can timeout aggressively on slow networks.
+ * Instead, we proceed directly to upsert and rely on on-conflict clause for
+ * idempotency.
  */
 
 async function ensureUserProfile(command: CheckoutSubmitCommand): Promise<void> {
   const { userId, email, fullName, phone } = command.customer;
   if (!userId) return;
 
-  // Step 1: probe for an existing row. We log selectError but DO NOT bail —
-  // the upsert below would have worked even if the select failed (e.g.,
-  // transient network blip, edge RLS denial on read-but-not-write).
-  // Timeout: 8 s so we never hang the checkout button indefinitely.
+  // Step 1: probe for an existing row. Log errors but proceed to upsert
+  // regardless — if the row exists, on-conflict makes it a no-op.
   let exists = false;
   try {
-    // Use Promise.race so TypeScript infers the return type from the Supabase
-    // query directly. withTimeout<T> hits a wall against Supabase's deeply
-    // nested conditional generics; race() is the cleaner alternative.
-    const { data, error } = await Promise.race([
-      supabase.from("profiles").select("id").eq("id", userId).maybeSingle(),
-      new Promise<never>((_, rej) =>
-        setTimeout(
-          () => rej(new CheckoutRequestError(
-            "انتهت مهلة الاتصال أثناء التحقق من الملف الشخصي. أعد المحاولة.",
-            [], false, "TIMEOUT", true,
-          )),
-          PROFILE_TIMEOUT_MS,
-        ),
-      ),
-    ]);
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("id", userId)
+      .maybeSingle();
+    
     if (error && __DEV__) {
       console.warn("[checkout] ensureUserProfile select failed:", error.message);
     }
     exists = !!data;
   } catch (err) {
-    if (err instanceof CheckoutRequestError) throw err;
     if (__DEV__) console.warn("[checkout] ensureUserProfile select threw:", err);
+    // Continue to upsert on select error
   }
 
   if (exists) return;
@@ -101,29 +86,29 @@ async function ensureUserProfile(command: CheckoutSubmitCommand): Promise<void> 
   // 20260518_fix_signup_trigger migration, so we don't need to set them
   // here (and shouldn't, to avoid trampling values the trigger may have set
   // for older accounts).
-  const { error: upsertError } = await Promise.race([
-    supabase.from("profiles").upsert(
-      {
-        id:        userId,
-        email:     email ?? "",
-        full_name: fullName,
-        phone:     phone ?? null,
-      },
-      { onConflict: "id", ignoreDuplicates: false },
-    ),
-    new Promise<never>((_, rej) =>
-      setTimeout(
-        () => rej(new CheckoutRequestError(
-          "انتهت مهلة الاتصال أثناء تهيئة الملف الشخصي. أعد المحاولة.",
-          [], false, "TIMEOUT", true,
-        )),
-        PROFILE_TIMEOUT_MS,
-      ),
-    ),
-  ]);
+  try {
+    const { error: upsertError } = await supabase
+      .from("profiles")
+      .upsert(
+        {
+          id:        userId,
+          email:     email ?? "",
+          full_name: fullName,
+          phone:     phone ?? null,
+        },
+        { onConflict: "id", ignoreDuplicates: false },
+      );
 
-  if (upsertError) {
-    if (__DEV__) console.error("[checkout] ensureUserProfile upsert failed:", upsertError.message);
+    if (upsertError) {
+      if (__DEV__) console.error("[checkout] ensureUserProfile upsert failed:", upsertError.message);
+      throw new CheckoutRequestError(
+        "تعذّر تهيئة ملفك الشخصي. حاول مجدداً أو تواصل مع الدعم.",
+        [], false, "AUTH", false,
+      );
+    }
+  } catch (err) {
+    if (err instanceof CheckoutRequestError) throw err;
+    if (__DEV__) console.error("[checkout] ensureUserProfile upsert threw:", err);
     throw new CheckoutRequestError(
       "تعذّر تهيئة ملفك الشخصي. حاول مجدداً أو تواصل مع الدعم.",
       [], false, "AUTH", false,

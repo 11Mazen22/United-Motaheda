@@ -53,14 +53,15 @@ export default function PharmacistLayout() {
   return (
     <Stack screenOptions={{ headerShown: false, animation: "slide_from_right" }}>
       <Stack.Screen name="index"              options={{ animation: "fade" }} />
+      {/* Promote analytics higher in the stack so it's easier to deep-link */}
+      <Stack.Screen name="analytics"          options={{ animation: "fade" }} />
       <Stack.Screen name="order/[id]"         />
       <Stack.Screen name="prescriptions"      />
       <Stack.Screen name="prescription/[id]"  />
       <Stack.Screen name="inventory"          />
       <Stack.Screen name="scanner"            />
-      <Stack.Screen name="analytics"          />
       <Stack.Screen name="search"             />
-      <Stack.Screen name="notifications"      />
+      <Stack.Screen name="notifications"      options={{ animation: "slide_from_bottom" }} />
       <Stack.Screen name="profile"            />
     </Stack>
   );

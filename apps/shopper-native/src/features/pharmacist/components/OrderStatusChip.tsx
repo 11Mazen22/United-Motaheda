@@ -51,7 +51,7 @@ export function OrderStatusChip({ status, size = "md" }: Props) {
       s.chip,
       { backgroundColor: meta.bg },
       small && s.chipSm,
-    ]}>
+    ]} accessible accessibilityRole="text" accessibilityLabel={t(meta.labelKey)}>
       <Ionicons
         name={meta.icon}
         size={small ? 11 : 13}
@@ -71,9 +71,9 @@ const s = StyleSheet.create({
   chip: {
     flexDirection:     flexRow(IS_RTL),
     alignItems:        "center",
-    gap:               5,
-    paddingHorizontal: 10,
-    paddingVertical:   5,
+    gap:               6,
+    paddingHorizontal: 12,
+    paddingVertical:   6,
     borderRadius:      kit.radius.pill,
   },
   chipSm: {

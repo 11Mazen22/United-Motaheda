@@ -16,7 +16,9 @@ interface StatCardProps {
   iconColor?: string;
   iconBg?:   string;
   accent?:   string;
+  trend?:    number; // positive -> up, negative -> down
   onPress?:  () => void;
+  style?:    any;
 }
 
 export function StatCard({
@@ -25,27 +27,41 @@ export function StatCard({
   icon,
   iconColor = kit.color.accentDeep,
   iconBg    = kit.color.accentTint,
+  accent,
+  trend,
   onPress,
+  style,
 }: StatCardProps) {
-  const Wrapper = onPress ? Pressable : View;
+  const Wrapper: any = onPress ? Pressable : View;
+
   return (
     <Wrapper
       onPress={onPress}
       style={({ pressed }: { pressed: boolean }) => [
         s.card,
         pressed && onPress && s.cardPressed,
+        style,
       ]}
       accessibilityRole={onPress ? "button" : undefined}
     >
-      <View style={[s.iconWell, { backgroundColor: iconBg }]}>
+      <View style={[s.iconWell, { backgroundColor: iconBg }]}> 
         <Ionicons name={icon} size={18} color={iconColor} />
       </View>
-      <UIText style={s.value}>{value}</UIText>
+      <UIText style={[s.value, accent ? { color: accent } : undefined]}>{value}</UIText>
+      {typeof trend === "number" && (
+        <View style={s.trendRow}>
+          <Ionicons
+            name={trend >= 0 ? "caret-up" : "caret-down"}
+            size={12}
+            color={trend >= 0 ? kit.color.success : kit.color.danger}
+          />
+          <UIText style={[s.trendText, { color: trend >= 0 ? kit.color.success : kit.color.danger }]}> {Math.abs(trend)}%</UIText>
+        </View>
+      )}
       <UIText variant="caption" color="secondary" style={s.label}>{label}</UIText>
     </Wrapper>
   );
 }
-
 const s = StyleSheet.create({
   card: {
     flex:              1,
@@ -61,6 +77,15 @@ const s = StyleSheet.create({
   cardPressed: {
     opacity:   0.85,
     transform: [{ scale: 0.98 }],
+  },
+  trendRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  trendText: {
+    fontSize: 12,
+    fontFamily: theme.fonts.bold,
   },
   iconWell: {
     width:           36,

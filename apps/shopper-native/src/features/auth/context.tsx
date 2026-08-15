@@ -22,8 +22,15 @@ import { normalizeRole } from "./role";
  *
  *  Also tolerates the legacy hash-fragment form
  *  (`#access_token=...&refresh_token=...`) by seeding the session directly,
- *  in case the project's email template is still on the implicit flow. */
+ *  in case the project's email template is still on the implicit flow.
+ *
+ *  Errors are logged but not shown to user at this stage — the deep link
+ *  handler runs before the UI is ready. Navigation errors are caught and
+ *  logged so we don't crash.
+ */
 async function handleAuthDeepLink(url: string): Promise<void> {
+  if (!url) return;
+
   try {
     const parsed = Linking.parse(url);
 
@@ -35,7 +42,11 @@ async function handleAuthDeepLink(url: string): Promise<void> {
     if (isResetPassword) {
       const code = (parsed.queryParams?.code as string | undefined) ?? undefined;
       if (code) {
-        router.replace({ pathname: "/reset-password", params: { code } });
+        try {
+          router.replace({ pathname: "/reset-password", params: { code } });
+        } catch (navErr) {
+          if (__DEV__) console.error("[auth] reset-password router.replace failed:", navErr);
+        }
       }
       return;
     }
@@ -51,24 +62,44 @@ async function handleAuthDeepLink(url: string): Promise<void> {
     // routing (verify-phone vs tabs) stays in one place.
     const code = (parsed.queryParams?.code as string | undefined) ?? undefined;
     if (code) {
-      router.replace({ pathname: "/auth-callback", params: { code } });
+      try {
+        router.replace({ pathname: "/auth-callback", params: { code } });
+      } catch (navErr) {
+        if (__DEV__) console.error("[auth] auth-callback router.replace failed:", navErr);
+      }
       return;
     }
 
     // Legacy implicit flow: #access_token=...&refresh_token=...
+    // Only attempt if both tokens are present and non-empty
     const hashIdx = url.indexOf("#");
     if (hashIdx >= 0) {
-      const frag = new URLSearchParams(url.slice(hashIdx + 1));
-      const access_token  = frag.get("access_token")  ?? undefined;
-      const refresh_token = frag.get("refresh_token") ?? undefined;
-      if (access_token && refresh_token) {
-        const { error } = await supabase.auth.setSession({ access_token, refresh_token });
-        if (error && __DEV__) console.warn("[auth] setSession from fragment:", error.message);
-        else router.replace("/(tabs)");
+      try {
+        const frag = new URLSearchParams(url.slice(hashIdx + 1));
+        const access_token  = frag.get("access_token") ?? "";
+        const refresh_token = frag.get("refresh_token") ?? "";
+        
+        if (access_token.trim() && refresh_token.trim()) {
+          const { error } = await supabase.auth.setSession({ access_token, refresh_token });
+          if (error) {
+            if (__DEV__) console.warn("[auth] setSession from fragment failed:", error.message);
+            return; // Don't navigate on session error
+          }
+          try {
+            router.replace("/(tabs)");
+          } catch (navErr) {
+            if (__DEV__) console.error("[auth] router.replace to tabs failed after legacy setSession:", navErr);
+          }
+        } else if (__DEV__) {
+          console.warn("[auth] Legacy fragment tokens present but empty");
+        }
+      } catch (fragErr) {
+        if (__DEV__) console.warn("[auth] Failed to parse legacy hash fragment:", fragErr);
       }
     }
   } catch (e) {
-    if (__DEV__) console.warn("[auth] handleAuthDeepLink threw:", e);
+    if (__DEV__) console.error("[auth] handleAuthDeepLink fatal error:", e);
+    // Don't rethrow — this runs at app startup and we don't want to crash
   }
 }
 

@@ -80,11 +80,20 @@ export class DriverOrdersService {
     const profile = await this.getDriverProfile(userId);
     this.requireOnline(profile.driverProfile!.isOnline);
 
+    // Get orders that are ready and not currently assigned.
+    // Include orders that were previously rejected/cancelled (they can be retried).
     const orders = await this.prisma.orders.findMany({
       where: {
         status: 'ready',
         assigned_driver_id: null,
-        deliveryAssignment: null,
+        OR: [
+          { deliveryAssignment: null },
+          {
+            deliveryAssignment: {
+              status: { in: ['REJECTED', 'CANCELLED', 'FAILED'] },
+            },
+          },
+        ],
       },
       include: { order_items: true },
       orderBy: { created_at: 'asc' },

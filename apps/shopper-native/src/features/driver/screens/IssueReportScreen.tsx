@@ -73,19 +73,22 @@ export function IssueReportScreen(): React.ReactElement {
           {t("driver.whatWentWrong")}
         </UIText>
 
-        <View style={{ paddingHorizontal: kit.inset.screen, marginTop: 10, gap: 8 }}>
-          {REASONS.map((r) => {
-            const active = selected === r.code;
-            return (
-              <ReasonRow
-                key={r.code}
-                active={active}
-                icon={r.icon}
-                label={t(r.labelKey)}
-                onPress={() => setSelected(r.code)}
-              />
-            );
-          })}
+        <View style={{ paddingHorizontal: kit.inset.screen, marginTop: 10 }}>
+          <View style={s.reasonGrid}>
+            {REASONS.map((r) => {
+              const active = selected === r.code;
+              return (
+                <View key={r.code} style={s.reasonGridCell}>
+                  <ReasonRow
+                    active={active}
+                    icon={r.icon}
+                    label={t(r.labelKey)}
+                    onPress={() => setSelected(r.code)}
+                  />
+                </View>
+              );
+            })}
+          </View>
         </View>
 
         <UIText variant="card-title" style={{ paddingHorizontal: kit.inset.screen, marginTop: 20, textAlign: TEXT_START }}>
@@ -112,6 +115,19 @@ export function IssueReportScreen(): React.ReactElement {
             size="lg"
           />
         </View>
+
+        {/* Prior reports for context */}
+        {(priorIssuesQuery.data ?? []).length > 0 && (
+          <View style={{ paddingHorizontal: kit.inset.screen, marginTop: 14 }}>
+            <UIText variant="caption" color="secondary">{t("driver.yourPreviousReports")}</UIText>
+            {(priorIssuesQuery.data ?? []).map((p) => (
+              <View key={p.id} style={s.priorItem}>
+                <UIText variant="body-sm">{p.reasonCode}</UIText>
+                {p.note ? <UIText variant="caption" color="secondary">{p.note}</UIText> : null}
+              </View>
+            ))}
+          </View>
+        )}
       </ScrollView>
     </Screen>
   );
@@ -194,4 +210,7 @@ const s = StyleSheet.create({
     marginHorizontal: kit.inset.screen,
     marginTop: 20,
   },
+  reasonGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  reasonGridCell: { width: '48%', marginBottom: 8 },
+  priorItem: { marginTop: 8, padding: 10, backgroundColor: kit.color.surface, borderRadius: kit.radius.lg, borderWidth: 1, borderColor: kit.color.line },
 });

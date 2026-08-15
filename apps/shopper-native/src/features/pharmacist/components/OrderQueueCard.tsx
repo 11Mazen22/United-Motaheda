@@ -77,7 +77,7 @@ export function OrderQueueCard({ order, onPress }: Props) {
       </UIText>
 
       {/* Footer: payment method + total */}
-      <View style={[s.row, { justifyContent: "space-between", marginTop: 10, paddingTop: 10, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: kit.color.line }]}>
+      <View style={[s.row, { justifyContent: "space-between", marginTop: 12, paddingTop: 12, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: kit.color.line }]}>
         <View style={[s.row, { gap: 5 }]}>
           <Ionicons
             name={order.paymentMethod === "cod" ? "cash-outline" : "card-outline"}
@@ -98,7 +98,7 @@ const s = StyleSheet.create({
   card: {
     backgroundColor: kit.color.surface,
     borderRadius:    kit.radius.xl,
-    padding:         16,
+    padding:         18,
     borderWidth:     1,
     borderColor:     kit.color.line,
     ...kit.shadow.card,
@@ -129,5 +129,8 @@ const s = StyleSheet.create({
     fontSize:   15,
     fontFamily: theme.fonts.black,
     color:      kit.color.accentDeep,
+  },
+  min: {
+    minHeight: 84,
   },
 });
