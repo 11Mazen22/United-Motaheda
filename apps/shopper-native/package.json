@@ -4,7 +4,6 @@
   "main": "expo-router/entry",
   "scripts": {
     "postinstall": "patch-package",
-    "eas-build-pre-install": "curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash - && sudo apt-get install -y nodejs && npm install --package-lock-only --ignore-scripts --no-audit --no-fund",
     "start": "expo start --lan",
     "start:tunnel": "expo start --tunnel",
     "android": "expo run:android",
@@ -22,8 +21,8 @@
     "@expo/vector-icons": "^15.0.3",
     "@gorhom/bottom-sheet": "^5.2.14",
     "@hookform/resolvers": "^5.2.2",
-    "@pharmacy/design-tokens": "file:../../packages/design-tokens",
-    "@pharmacy/ui-native": "file:../../packages/ui-native",
+    "@pharmacy/design-tokens": "workspace:*",
+    "@pharmacy/ui-native": "workspace:*",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-community/netinfo": "11.4.1",
     "@react-native-ml-kit/text-recognition": "^2.0.0",
