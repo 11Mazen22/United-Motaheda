@@ -3,6 +3,9 @@
   "private": true,
   "version": "0.1.0",
   "type": "commonjs",
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "scripts": {
     "start:dev": "nest start --watch",
     "build": "nest build",
