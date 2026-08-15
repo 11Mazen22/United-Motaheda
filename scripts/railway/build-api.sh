@@ -2,36 +2,45 @@
 set -euo pipefail
 
 ensure_node22() {
-  local major
-  major="$(node -p "process.versions.node.split('.')[0]")"
+  local major node_bin npm_bin
+  node_bin="$(command -v node)"
+  major="$("$node_bin" -p "process.versions.node.split('.')[0]")"
   if [[ "$major" -ge 22 ]]; then
     return
   fi
 
-  echo "==> [api] Railway supplied Node.js $(node --version); installing Node.js 22…"
-  if ! command -v apt-get >/dev/null 2>&1; then
-    echo "ERROR: Node.js 22 is required, but apt-get is unavailable in the Railway build image." >&2
-    exit 1
-  fi
-  if ! command -v curl >/dev/null 2>&1; then
-    echo "ERROR: Node.js 22 is required, but curl is unavailable in the Railway build image." >&2
+  echo "==> [api] Railway supplied Node.js $("$node_bin" --version); installing Node.js 22…"
+  if ! command -v apt-get >/dev/null 2>&1 || ! command -v curl >/dev/null 2>&1; then
+    echo "ERROR: Node.js 22 is required, but the Railway build image lacks apt-get or curl." >&2
     exit 1
   fi
 
   curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
   apt-get install -y nodejs
+
+  # Railway's original Node installation can appear earlier in PATH than the
+  # NodeSource installation. Put /usr/bin first so every subsequent command
+  # in this build uses the Node 22 binaries we just installed.
+  export PATH="/usr/bin:$PATH"
   hash -r
 
-  major="$(node -p "process.versions.node.split('.')[0]")"
+  node_bin="$(command -v node)"
+  npm_bin="$(command -v npm)"
+  major="$("$node_bin" -p "process.versions.node.split('.')[0]")"
   if [[ "$major" -lt 22 ]]; then
-    echo "ERROR: Failed to switch the API build environment to Node.js 22+. Found $(node --version)." >&2
+    echo "ERROR: Failed to switch the API build environment to Node.js 22+." >&2
+    echo "node=$(command -v node) version=$(node --version)" >&2
+    echo "npm=$(command -v npm) version=$(npm --version)" >&2
     exit 1
   fi
+
+  echo "==> [api] Using Node.js 22 from $node_bin"
+  echo "==> [api] Using npm from $npm_bin"
 }
 
 ensure_node22
 echo "==> [api] Node runtime: $(node --version)"
-npm --version
+echo "==> [api] npm runtime: $(npm --version)"
 
 echo "==> [api] Installing contracts…"
 (cd packages/contracts && npm install --no-audit --no-fund --ignore-scripts)
