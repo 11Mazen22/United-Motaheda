@@ -5,11 +5,11 @@
  * shopper-native palette remains available as `legacyColors`, while `theme`
  * and the default export preserve the legacy shopper theme contract.
  */
-export * from "./semantic.js";
-export * from "./legacy.js";
+export * from "./semantic";
+export * from "./legacy";
 
-import { lightTheme } from "./semantic.js";
-import { theme } from "./legacy.js";
+import { lightTheme } from "./semantic";
+import { theme } from "./legacy";
 
 /** Backward-compatible aggregate alias for the default semantic token set. */
 export const designTokens = lightTheme;
