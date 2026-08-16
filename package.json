@@ -3,8 +3,14 @@
   "private": true,
   "version": "0.1.0",
   "packageManager": "npm@11.6.0",
-  "engines": {"node": ">=22.22.2 <23"},
-  "workspaces": ["apps/shopper-web", "apps/shopper-native", "packages/*"],
+  "engines": {
+    "node": ">=22.22.2 <23"
+  },
+  "workspaces": [
+    "apps/shopper-web",
+    "apps/shopper-native",
+    "packages/*"
+  ],
   "scripts": {
     "dev": "npm run dev --workspace @pharmacy/shopper-web",
     "build": "npm run build --workspace @pharmacy/shopper-web",
@@ -38,7 +44,7 @@
     "@radix-ui/react-dropdown-menu": "2.1.6",
     "@radix-ui/react-hover-card": "1.1.6",
     "@radix-ui/react-label": "2.1.2",
-    "@radix-ui/react-menubar": "1.2.6",
+    "@radix-ui/react-menubar": "1.1.6",
     "@radix-ui/react-navigation-menu": "1.2.5",
     "@radix-ui/react-popover": "1.1.6",
     "@radix-ui/react-progress": "1.1.2",
@@ -94,16 +100,25 @@
     "zustand": "^5.0.5"
   },
   "devDependencies": {
-    "@tailwindcss/vite": "4.1.12",
     "@types/node": "^25.6.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "4.7.0",
     "expo": "~55.0.25",
-    "tailwindcss": "4.1.12",
+    "expo-router": "^4.0.22",
+    "react-native": "0.81.5",
+    "tailwindcss": "^3.4.19",
     "typescript": "^6.0.2",
     "vite": "^6.4.1"
   },
-  "pnpm": {"overrides": {"vite": "6.3.5"}},
-  "overrides": {"expo": "~55.0.25", "expo-font": "~55.0.8", "expo-splash-screen": "~55.0.21"}
+  "pnpm": {
+    "overrides": {
+      "vite": "6.3.5"
+    }
+  },
+  "overrides": {
+    "expo": "~55.0.25",
+    "expo-font": "~55.0.8",
+    "expo-splash-screen": "~55.0.21"
+  }
 }
