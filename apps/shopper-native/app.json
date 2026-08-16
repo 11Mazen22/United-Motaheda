@@ -41,7 +41,7 @@
         "backgroundColor": "transparent",
         "translucent": true
       },
-      "versionCode": 44
+      "versionCode": 46
     },
     "web": {
       "bundler": "metro",
