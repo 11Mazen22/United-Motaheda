@@ -18,16 +18,20 @@ if (!workletsPath) {
   process.exit(0);
 }
 
-const patchPackageBin = path.join(appDir, 'node_modules', '.bin', process.platform === 'win32' ? 'patch-package.cmd' : 'patch-package');
-if (!fs.existsSync(patchPackageBin)) {
+let patchPackageEntry;
+try {
+  patchPackageEntry = require.resolve('patch-package', { paths: [repoDir, appDir] });
+} catch {
   console.log('[shopper-native] patch-package is not installed; skipping patch.');
   process.exit(0);
 }
 
-const result = spawnSync(patchPackageBin, ['--patch-dir', 'apps/shopper-native/patches'], {
-  cwd: repoDir,
+const patchDir = path.join(appDir, 'patches');
+const result = spawnSync(process.execPath, [patchPackageEntry, '--patch-dir', patchDir], {
+  cwd: appDir,
   stdio: 'inherit',
-  shell: process.platform === 'win32',
+  shell: false,
+  env: process.env,
 });
 
 if (result.error) {
@@ -35,4 +39,4 @@ if (result.error) {
   process.exit(result.status ?? 1);
 }
 
-process.exit(result.status ?? 1);
+process.exit(result.status ?? 0);
