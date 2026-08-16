@@ -6,6 +6,7 @@ on:
     paths:
       - package.json
       - apps/shopper-native/package.json
+      - .github/workflows/sync-npm-lockfile.yml
   workflow_dispatch:
 
 permissions:
