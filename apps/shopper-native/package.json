@@ -59,7 +59,7 @@
     "expo-video": "~3.0.16",
     "expo-web-browser": "~15.0.11",
     "i18next": "^26.2.0",
-    "lodash.debounce": "^4.0.0",
+    "lodash.debounce": "^4.0.8",
     "nativewind": "^4.2.4",
     "react": "19.1.0",
     "react-dom": "19.1.0",
