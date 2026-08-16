@@ -3,6 +3,7 @@ dist/
 .env
 .DS_Store
 *.log
+**/local.properties
 
 # Build outputs
 apps/api/dist/

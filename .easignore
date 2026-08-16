@@ -12,6 +12,8 @@ apps/shopper-native/android/build/
 apps/shopper-native/android/.gradle/
 apps/shopper-native/android/.cxx/
 apps/shopper-native/android/.kotlin/
+apps/shopper-native/android/local.properties
+**/local.properties
 
 # ─── iOS build artifacts ──────────────────────────────────────────────────────
 apps/shopper-native/ios/build/

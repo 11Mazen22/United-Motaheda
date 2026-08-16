@@ -5,6 +5,8 @@ android/app/.cxx/
 android/build/
 android/.gradle/
 android/.kotlin/
+android/local.properties
+**/local.properties
 
 ios/build/
 ios/Pods/
