@@ -34,6 +34,7 @@
     },
     "production-apk": {
       "autoIncrement": true,
+      "node": "22.22.2",
       "android": {
         "buildType": "apk"
       },
@@ -44,6 +45,7 @@
     },
     "verify": {
       "autoIncrement": true,
+      "node": "22.22.2",
       "android": {
         "buildType": "apk"
       },
@@ -54,10 +56,11 @@
     },
     "production": {
       "autoIncrement": true,
+      "node": "22.22.2",
       "credentialsSource": "local",
       "channel": "production",
       "env": {
-        "CMAKE_VERSION": "3.22.1"
+        "CMAKE_VERSION": "3.22.2"
       }
     }
   },
