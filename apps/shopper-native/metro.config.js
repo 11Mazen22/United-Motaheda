@@ -2,11 +2,18 @@ const { getDefaultConfig } = require("expo/metro-config");
 const { withNativeWind } = require("nativewind/metro");
 const path = require("path");
 
-const config = getDefaultConfig(__dirname);
-const workspaceRoot = path.resolve(__dirname, "../..");
+const projectRoot = __dirname;
+const workspaceRoot = path.resolve(projectRoot, "../..");
+
+const config = getDefaultConfig(projectRoot);
 
 // Shared design-system packages live outside this app's install root.
 config.watchFolders = [workspaceRoot];
+config.resolver.nodeModulesPaths = [
+  path.resolve(projectRoot, "node_modules"),
+  path.resolve(workspaceRoot, "node_modules"),
+];
+config.resolver.disableHierarchicalLookup = true;
 
 // ─── Web bundle: avoid ESM variants that ship `import.meta` ──────────────────
 //
