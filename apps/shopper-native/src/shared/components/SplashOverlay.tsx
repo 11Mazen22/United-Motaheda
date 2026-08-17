@@ -203,7 +203,6 @@ function SplashSequenceView({ onExited }: { onExited: () => void }): React.React
         style={styles.video}
         contentFit="cover"
         nativeControls={false}
-        allowsFullscreen={false}
         allowsPictureInPicture={false}
       />
 
