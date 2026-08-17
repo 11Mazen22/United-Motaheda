@@ -41,7 +41,7 @@
         "backgroundColor": "transparent",
         "translucent": true
       },
-      "versionCode": 52
+      "versionCode": 54
     },
     "web": {
       "bundler": "metro",
@@ -114,7 +114,7 @@
     },
     "runtimeVersion": "1.0.0",
     "updates": {
-      "url": ""
+      "url": "https://u.expo.dev/cc0dea9d-00d1-4ac8-9923-426fe3ba1c52"
     },
     "owner": "mazen-moham"
   }
