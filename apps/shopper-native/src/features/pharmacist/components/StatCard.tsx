@@ -3,7 +3,7 @@
  * Displays a large metric number, a label, an optional trend, and an icon.
  */
 import React from "react";
-import { Pressable, StyleSheet, View } from "react-native";
+import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
 import { Ionicons }       from "@expo/vector-icons";
 import { Text as UIText } from "@pharmacy/ui-native";
 import { kit }            from "@pharmacy/ui-native";
@@ -18,7 +18,7 @@ interface StatCardProps {
   accent?:   string;
   trend?:    number; // positive -> up, negative -> down
   onPress?:  () => void;
-  style?:    any;
+  style?:    StyleProp<ViewStyle>;
 }
 
 export function StatCard({
@@ -32,19 +32,9 @@ export function StatCard({
   onPress,
   style,
 }: StatCardProps) {
-  const Wrapper: any = onPress ? Pressable : View;
-
-  return (
-    <Wrapper
-      onPress={onPress}
-      style={({ pressed }: { pressed: boolean }) => [
-        s.card,
-        pressed && onPress && s.cardPressed,
-        style,
-      ]}
-      accessibilityRole={onPress ? "button" : undefined}
-    >
-      <View style={[s.iconWell, { backgroundColor: iconBg }]}> 
+  const inner = (
+    <>
+      <View style={[s.iconWell, { backgroundColor: iconBg }]}>
         <Ionicons name={icon} size={18} color={iconColor} />
       </View>
       <UIText style={[s.value, accent ? { color: accent } : undefined]}>{value}</UIText>
@@ -55,12 +45,28 @@ export function StatCard({
             size={12}
             color={trend >= 0 ? kit.color.success : kit.color.danger}
           />
-          <UIText style={[s.trendText, { color: trend >= 0 ? kit.color.success : kit.color.danger }]}> {Math.abs(trend)}%</UIText>
+          <UIText style={[s.trendText, { color: trend >= 0 ? kit.color.success : kit.color.danger }]}>
+            {" "}{Math.abs(trend)}%
+          </UIText>
         </View>
       )}
       <UIText variant="caption" color="secondary" style={s.label}>{label}</UIText>
-    </Wrapper>
+    </>
   );
+
+  if (onPress) {
+    return (
+      <Pressable
+        onPress={onPress}
+        style={({ pressed }) => [s.card, pressed && s.cardPressed, style]}
+        accessibilityRole="button"
+      >
+        {inner}
+      </Pressable>
+    );
+  }
+
+  return <View style={[s.card, style]}>{inner}</View>;
 }
 const s = StyleSheet.create({
   card: {

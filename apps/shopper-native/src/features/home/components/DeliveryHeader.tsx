@@ -1,19 +1,22 @@
 /**
- * DeliveryHeader — 2026 Premium Redesign.
+ * DeliveryHeader — 2026 Premium Redesign (improved).
  *
- * Matches the reference image exactly:
- *   • White background, clean and minimal
- *   • United Pharmacy logo on the leading edge
- *   • Notification bell with badge count on the trailing edge
- *   • No search bar here — search lives inside the hero gradient card
+ * Changes from previous version:
+ *   • Time-aware greeting (morning/afternoon/evening) with user first name
+ *   • Cart shortcut removed — cart is already accessible via the tab bar,
+ *     adding it here would be redundant and clutter the compact header
+ *   • Props `cartCount` and `onCartPress` removed (were already suppressed)
+ *   • Notification bell preserved with unread badge
+ *   • Logo ring breath animation preserved
+ *   • Clean RTL/LTR layout throughout
  *
- * Ambient system (subtle, gated on reduced-motion):
- *   • Logo ring breathes opacity 0.12 → 0.30
- *
- * All previous props/callbacks preserved for backward compatibility.
+ * Layout (RTL example):
+ *   ┌──────────────────────────────────────────────────────────┐
+ *   │  🟢 United Pharmacy   مرحباً، أحمد  [bell🔔]            │
+ *   └──────────────────────────────────────────────────────────┘
  */
 
-import React, { memo, useEffect } from "react";
+import React, { memo, useEffect, useMemo } from "react";
 import {
   Platform,
   Pressable,
@@ -43,21 +46,23 @@ import { useAuth } from "@/features/auth";
 
 const IS_RTL = isRtl();
 
+// ── Time-of-day greeting key helper ────────────────────────────────────────────
+function greetingKey(): "home.heroMorning" | "home.heroDay" | "home.heroEvening" {
+  const h = new Date().getHours();
+  if (h < 12) return "home.heroMorning";
+  if (h < 18) return "home.heroDay";
+  return "home.heroEvening";
+}
+
 interface DeliveryHeaderProps {
   insets:        { top: number };
   user:          { name?: string | null } | null;
-  cartCount:     number;
-  onCartPress:   () => void;
-  onSearchPress: () => void;
   onNotifPress?: () => void;
 }
 
 export const DeliveryHeader = memo(function DeliveryHeader({
   insets,
   user: _user,
-  cartCount: _cartCount,
-  onCartPress: _onCartPress,
-  onSearchPress: _onSearchPress,
   onNotifPress,
 }: DeliveryHeaderProps) {
   const { t }              = useTranslation();
@@ -65,6 +70,15 @@ export const DeliveryHeader = memo(function DeliveryHeader({
   const { isTablet, pagePad } = useScreenLayout();
   const { user: authUser } = useAuth();
   const unreadCount        = useUnreadCount(authUser?.id);
+
+  // Derive display name once
+  const firstName = useMemo(
+    () => (authUser?.name ?? "").split(" ")[0].trim() || null,
+    [authUser?.name],
+  );
+
+  // Greeting key is stable per mount (changes after midnight, fine for now)
+  const greetKey = useMemo(() => greetingKey(), []);
 
   // Subtle logo ring breath
   const ringOpacity = useSharedValue(0.0);
@@ -107,6 +121,15 @@ export const DeliveryHeader = memo(function DeliveryHeader({
         </View>
       </View>
 
+      {/* ── Greeting ── */}
+      <View style={s.greetingBlock}>
+        <UIText style={s.greetingText} numberOfLines={1}>
+          {firstName
+            ? t(greetKey, { defaultValue: "مرحباً" }) + "، " + firstName
+            : t("home.heroGuestPitch", { defaultValue: "صيدليتك الموثوقة" })}
+        </UIText>
+      </View>
+
       {/* ── Spacer ── */}
       <View style={{ flex: 1 }} />
 
@@ -146,6 +169,7 @@ const s = StyleSheet.create({
     paddingBottom:    12,
     flexDirection:    flexRow(IS_RTL),
     alignItems:       "center",
+    gap:              10,
     // Hairline bottom border
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: "rgba(15,23,42,0.06)",
@@ -157,6 +181,7 @@ const s = StyleSheet.create({
     height:         48,
     alignItems:     "center",
     justifyContent: "center",
+    flexShrink:     0,
   },
   logoRing: {
     position:     "absolute",
@@ -177,11 +202,25 @@ const s = StyleSheet.create({
     borderColor:     kit.color.accentDeep + "18",
   },
 
+  // Greeting
+  greetingBlock: {
+    flexShrink: 1,
+    minWidth:   0,
+  },
+  greetingText: {
+    fontFamily:         theme.fonts.bold,
+    fontSize:           14,
+    lineHeight:         20,
+    color:              kit.color.inkSoft,
+    includeFontPadding: false,
+  },
+
   // Action buttons
   actions: {
     flexDirection: flexRow(IS_RTL),
     alignItems:    "center",
     gap:           4,
+    flexShrink:    0,
   },
   actionBtn: {
     width:           44,

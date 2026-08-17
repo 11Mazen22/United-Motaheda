@@ -1,22 +1,29 @@
 /**
- * HomeHero — 2026 Premium Redesign.
+ * HomeHero — 2026 Premium Redesign (improved).
  *
- * Matches the reference image exactly:
- *   ┌──────────────────────────────────────────────────────┐
- *   │  🖐  مرحباً بك                                       │  ← greeting eyebrow
- *   │  كيف يمكننا مساعدتك اليوم؟                          │  ← large headline
- *   │  صيدليتك المفضلة، دارماً في خدمتك                  │  ← subtitle                │
- *   │  ┌────────────────────────────────────────────────┐  │
- *   │  │ 🔍  ابحث عن دواء أو منتج...          [scan]   │  │  ← white search bar
- *   │  └────────────────────────────────────────────────┘  │
- *   │  ┌──────────┐  ┌──────────┐  ┌──────────┐           │
- *   │  │ رفع وصفة │  │توصيل سريع│  │عروض حصرية│           │  ← 3 quick-action pills
- *   │  └──────────┘  └──────────┘  └──────────┘           │
- *   └──────────────────────────────────────────────────────┘
+ * Changes from previous version:
+ *   • Greeting removed from hero — now lives in DeliveryHeader for
+ *     immediate first-viewport context (no scroll needed)
+ *   • Search bar promoted visually — slightly larger (52px) + stronger
+ *     typography for the placeholder (14px instead of 13px)
+ *   • Quick-action sub-labels bumped from 9px to 11px — readable on small phones
+ *   • Quick-action card minimum height added to prevent layout shift
+ *   • `onFastDeliv` no-op fallback replaced with a real guard
+ *   • Ambient orb breathing animation preserved (gated on reduced motion)
+ *   • All existing callbacks preserved (onScanRx, onDeals, onSearch, onFastDeliv)
  *
- * Background: deep teal-to-navy gradient (matches reference)
- * All existing callbacks preserved (onScanRx, onDeals + new ones)
- * Breathing halo on the wave decoration — gated on reduced motion
+ * Layout:
+ *   ┌──────────────────────────────────────────────────────────────┐
+ *   │  ╔══════════════════════════════════════════════════════╗    │
+ *   │  ║  كيف يمكننا مساعدتك اليوم؟          [subtitle]     ║    │
+ *   │  ║  ┌────────────────────────────────────────────────┐ ║    │
+ *   │  ║  │ 🔍  ابحث عن دواء أو منتج...          [scan]   │ ║    │
+ *   │  ║  └────────────────────────────────────────────────┘ ║    │
+ *   │  ║  ┌──────────┐  ┌──────────┐  ┌──────────┐          ║    │
+ *   │  ║  │ رفع وصفة │  │توصيل سريع│  │عروض حصرية│          ║    │
+ *   │  ║  └──────────┘  └──────────┘  └──────────┘          ║    │
+ *   │  ╚══════════════════════════════════════════════════════╝    │
+ *   └──────────────────────────────────────────────────────────────┘
  */
 
 import React, {
@@ -48,7 +55,6 @@ import { Text as UIText } from "@pharmacy/ui-native";
 import { theme } from "@pharmacy/design-tokens";
 import { kit } from "@pharmacy/ui-native";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
-import { useAuth } from "@/features/auth";
 import { useScreenLayout } from "@/utils/responsive";
 
 const IS_RTL     = isRtl();
@@ -84,10 +90,7 @@ export const HomeHero = memo(function HomeHero({
 }: HomeHeroProps) {
   const { t }       = useTranslation();
   const reduced     = useReducedMotion() ?? false;
-  const { user }    = useAuth();
   const { pagePad } = useScreenLayout();
-
-  const displayName = (user?.name ?? "").split(" ")[0] || null;
 
   // ── Animated orb (decorative, top-trailing corner) ───────────────────────
   const orbScale   = useSharedValue(1);
@@ -128,7 +131,8 @@ export const HomeHero = memo(function HomeHero({
       icon:    "bicycle-outline" as IoniconsName,
       label:   t("home.heroFastDeliv"),
       sub:     t("home.heroFastDelivSub"),
-      onPress: onFastDeliv ?? (() => {}),
+      // Guard against undefined — fall through to goAllProducts if not provided
+      onPress: onFastDeliv ?? onDeals,
     },
     {
       icon:    "pricetag-outline" as IoniconsName,
@@ -139,7 +143,7 @@ export const HomeHero = memo(function HomeHero({
   ], [t, onScanRx, onFastDeliv, onDeals]);
 
   return (
-    <View style={{ paddingHorizontal: pagePad, paddingTop: 16, paddingBottom: 8 }}>
+    <View style={{ paddingHorizontal: pagePad, paddingTop: 12, paddingBottom: 8 }}>
       <LinearGradient
         colors={["#0A5F58", "#0E7E74", "#0A9A8C"]}
         start={{ x: 0, y: 0 }}
@@ -154,16 +158,8 @@ export const HomeHero = memo(function HomeHero({
           accessibilityElementsHidden
         />
 
-        {/* ── Greeting block ── */}
-        <View style={s.greetBlock}>
-          <View style={s.greetRow}>
-            <UIText style={s.greetWave}>👋</UIText>
-            <UIText style={s.greetEyebrow}>
-              {displayName
-                ? t("home.greeting", { name: displayName })
-                : t("home.greetingGuest")}
-            </UIText>
-          </View>
+        {/* ── Headline block — pharmacy context, no greeting (moved to header) ── */}
+        <View style={s.headlineBlock}>
           <UIText style={s.headline} numberOfLines={2}>
             {t("home.heroHeadline")}
           </UIText>
@@ -183,13 +179,13 @@ export const HomeHero = memo(function HomeHero({
           style={s.searchBar}
         >
           <View style={s.searchIcon}>
-            <Ionicons name="search" size={18} color={kit.color.inkFaint} />
+            <Ionicons name="search" size={20} color={kit.color.inkFaint} />
           </View>
           <UIText style={s.searchPlaceholder} numberOfLines={1}>
             {t("search.placeholder")}
           </UIText>
           <View style={s.searchScan}>
-            <Ionicons name="scan-outline" size={18} color={kit.color.accentDeep} />
+            <Ionicons name="scan-outline" size={20} color={kit.color.accentDeep} />
           </View>
         </Pressable>
 
@@ -244,7 +240,7 @@ const QuickActionCard = memo(function QuickActionCard({
         <UIText style={s.actionLabel} numberOfLines={2}>
           {action.label}
         </UIText>
-        <UIText style={s.actionSub} numberOfLines={1}>
+        <UIText style={s.actionSub} numberOfLines={2}>
           {action.sub}
         </UIText>
       </Animated.View>
@@ -257,12 +253,12 @@ const QuickActionCard = memo(function QuickActionCard({
 const s = StyleSheet.create({
   // Hero card — rounded, clipped, full-bleed gradient
   card: {
-    borderRadius:   24,
-    overflow:       "hidden",
-    paddingTop:     28,
-    paddingBottom:  24,
+    borderRadius:      24,
+    overflow:          "hidden",
+    paddingTop:        24,
+    paddingBottom:     20,
     paddingHorizontal: 20,
-    gap:            20,
+    gap:               16,
     // Soft brand shadow
     shadowColor:    "#0A5F58",
     shadowOffset:   { width: 0, height: 8 },
@@ -282,26 +278,9 @@ const s = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.10)",
   },
 
-  // ── Greeting ──────────────────────────────────────────────────────────
-  greetBlock: {
-    gap: 6,
-  },
-  greetRow: {
-    flexDirection: flexRow(IS_RTL),
-    alignItems:    "center",
-    gap:           8,
-  },
-  greetWave: {
-    fontSize:   18,
-    lineHeight: 22,
-  },
-  greetEyebrow: {
-    fontFamily:         theme.fonts.bold,
-    fontSize:           14,
-    lineHeight:         20,
-    color:              "rgba(255,255,255,0.82)",
-    textAlign:          TEXT_START,
-    includeFontPadding: false,
+  // ── Headline block ────────────────────────────────────────────────────
+  headlineBlock: {
+    gap: 4,
   },
   headline: {
     fontFamily:         theme.fonts.black,
@@ -328,9 +307,8 @@ const s = StyleSheet.create({
     backgroundColor:   "#FFFFFF",
     borderRadius:      14,
     paddingHorizontal: 12,
-    height:            48,
+    height:            52,  // increased from 48 for better touch target
     gap:               10,
-    // Subtle inner shadow feel
     shadowColor:       "#000",
     shadowOffset:      { width: 0, height: 1 },
     shadowOpacity:     0.08,
@@ -338,24 +316,24 @@ const s = StyleSheet.create({
     elevation:         2,
   },
   searchIcon: {
-    width:          28,
-    height:         28,
+    width:          32,
+    height:         32,
     alignItems:     "center",
     justifyContent: "center",
   },
   searchPlaceholder: {
     flex:               1,
     fontFamily:         theme.fonts.regular,
-    fontSize:           13,
-    lineHeight:         19,
+    fontSize:           14,  // increased from 13 for better readability
+    lineHeight:         20,
     color:              kit.color.inkFaint,
     textAlign:          TEXT_START,
     includeFontPadding: false,
   },
   searchScan: {
-    width:           36,
-    height:          36,
-    borderRadius:    10,
+    width:           40,
+    height:          40,
+    borderRadius:    12,
     backgroundColor: kit.color.accentTint,
     alignItems:      "center",
     justifyContent:  "center",
@@ -364,7 +342,7 @@ const s = StyleSheet.create({
   // ── Quick actions row ─────────────────────────────────────────────────
   actionsRow: {
     flexDirection: flexRow(IS_RTL),
-    gap:           10,
+    gap:           8,
   },
   actionOuter: {
     flex: 1,
@@ -374,12 +352,12 @@ const s = StyleSheet.create({
     borderRadius:      14,
     borderWidth:       1,
     borderColor:       "rgba(255,255,255,0.22)",
-    paddingHorizontal: 10,
+    paddingHorizontal: 8,
     paddingVertical:   12,
     alignItems:        "center",
     gap:               6,
-    // Glassmorphism feel
-    backdropFilter:    "blur(8px)",
+    minHeight:         100,  // stable height to prevent layout shift
+    justifyContent:    "center",
   },
   actionIconWrap: {
     width:           40,
@@ -391,17 +369,17 @@ const s = StyleSheet.create({
   },
   actionLabel: {
     fontFamily:         theme.fonts.bold,
-    fontSize:           11,
-    lineHeight:         15,
+    fontSize:           12,  // increased from 11 for readability
+    lineHeight:         16,
     color:              "#FFFFFF",
     textAlign:          "center",
     includeFontPadding: false,
   },
   actionSub: {
     fontFamily:         theme.fonts.regular,
-    fontSize:           9,
-    lineHeight:         13,
-    color:              "rgba(255,255,255,0.65)",
+    fontSize:           11,  // increased from 9 — was too small to read
+    lineHeight:         15,
+    color:              "rgba(255,255,255,0.72)",
     textAlign:          "center",
     includeFontPadding: false,
   },

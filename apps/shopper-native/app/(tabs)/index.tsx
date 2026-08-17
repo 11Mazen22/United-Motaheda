@@ -43,7 +43,6 @@ import { useTranslation } from "react-i18next";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 // ─── Stores ───────────────────────────────────────────────────────────────────
-import { useCartStore, selectItemCount } from "../../src/stores/cart";
 import { useAuth } from "../../src/features/auth";
 
 // ─── API ──────────────────────────────────────────────────────────────────────
@@ -63,6 +62,7 @@ import { FlashSaleSection }       from "../../src/features/home/components/Flash
 import { RecentlyViewedCarousel } from "../../src/features/home/components/RecentlyViewedCarousel";
 import { DailyEdit }              from "../../src/features/home/components/DailyEdit";
 import { SavingsStrip }           from "../../src/features/home/components/SavingsStrip";
+import { HomeSkeleton }           from "../../src/features/home/components/HomeSkeleton";
 
 // ─── Kit ─────────────────────────────────────────────────────────────────────
 import { kit } from "@pharmacy/ui-native";
@@ -76,12 +76,11 @@ export default function HomeScreen() {
   const router     = useRouter();
   const { i18n }   = useTranslation();
   const { user }   = useAuth();
-  const cartCount  = useCartStore(selectItemCount);
   const qc         = useQueryClient();
 
   const lang = (i18n.language === "en" ? "en" : "ar") as "ar" | "en";
 
-  // ── Scroll-driven header opacity ──────────────────────────────────────────
+  // ── Scroll-driven header opacity ────────────────────────────────────────────
   const scrollY         = useSharedValue(0);
   const scrollHandler   = useAnimatedScrollHandler((e) => {
     scrollY.value = e.contentOffset.y;
@@ -92,7 +91,7 @@ export default function HomeScreen() {
     opacity: interpolate(scrollY.value, [0, 40], [0, 1], Extrapolation.CLAMP),
   }));
 
-  // ── Lazy below-fold ───────────────────────────────────────────────────────
+  // ── Lazy below-fold ──────────────────────────────────────────────────────────
   const [belowFold, setBelowFold] = useState(false);
   const onScrollBeginDrag = useCallback(() => {
     if (!belowFold) setBelowFold(true);
@@ -121,7 +120,6 @@ export default function HomeScreen() {
 
   // ── Navigation callbacks ──────────────────────────────────────────────────
 
-  const goCart      = useCallback(() => router.push("/(tabs)/cart" as any), [router]);
   const goSearch    = useCallback(() => router.push("/search" as any), [router]);
   const goNotifs    = useCallback(() => router.push("/notifications" as any), [router]);
   const goAllCats   = useCallback(() => router.push("/(tabs)/products"), [router]);
@@ -166,9 +164,6 @@ export default function HomeScreen() {
         <DeliveryHeader
           insets={insets}
           user={user}
-          cartCount={cartCount}
-          onCartPress={goCart}
-          onSearchPress={goSearch}
           onNotifPress={goNotifs}
         />
 
@@ -194,41 +189,47 @@ export default function HomeScreen() {
             />
           }
         >
-          {/* 1. Hero — greeting + search + quick actions */}
-          <HomeHero
-            onScanRx={goScanRx}
-            onDeals={goOffers}
-            onSearch={goSearch}
-            onFastDeliv={goFastDeliv}
-          />
+          {categoriesQ.isLoading ? (
+            <HomeSkeleton />
+          ) : (
+            <>
+              {/* 1. Hero — greeting + search + quick actions */}
+              <HomeHero
+                onScanRx={goScanRx}
+                onDeals={goOffers}
+                onSearch={goSearch}
+                onFastDeliv={goFastDeliv}
+              />
 
-          {/* 2. Anticipatory care (authed only) */}
-          {Boolean(user) && <TodayCare />}
+              {/* 2. Anticipatory care (authed only) */}
+              {Boolean(user) && <TodayCare />}
 
-          {/* 3. Categories */}
-          <CategoryStrip
-            categories={categoriesQ.data ?? []}
-            isLoading={categoriesQ.isLoading}
-            lang={lang}
-            onCategoryPress={(id, _name, _nameEn) => goCategory(id)}
-            onViewAll={goAllCats}
-          />
+              {/* 3. Categories */}
+              <CategoryStrip
+                categories={categoriesQ.data ?? []}
+                isLoading={categoriesQ.isLoading}
+                lang={lang}
+                onCategoryPress={(id, _name, _nameEn) => goCategory(id)}
+                onViewAll={goAllCats}
+              />
 
-          {/* 4. Flash sale / Exclusive Offers */}
-          {(saleProducts.length > 0 || saleLoading) && (
-            <FlashSaleSection
-              products={saleProducts}
-              onProductPress={goProduct}
-              onViewAll={goOffers}
-            />
+              {/* 4. Flash sale / Exclusive Offers */}
+              {(saleProducts.length > 0 || saleLoading) && (
+                <FlashSaleSection
+                  products={saleProducts}
+                  onProductPress={goProduct}
+                  onViewAll={goOffers}
+                />
+              )}
+
+              {/* 5. Daily edit — editorial featured products */}
+              <DailyEdit
+                lang={lang}
+                onProductPress={goProduct}
+                onViewAll={goOffers}
+              />
+            </>
           )}
-
-          {/* 5. Daily edit — editorial featured products */}
-          <DailyEdit
-            lang={lang}
-            onProductPress={goProduct}
-            onViewAll={goOffers}
-          />
 
           {/* ── Below-fold: lazy-mount after first scroll drag ── */}
           {belowFold && (
@@ -251,7 +252,7 @@ export default function HomeScreen() {
 const s = StyleSheet.create({
   root: {
     flex:            1,
-    backgroundColor: "#F4F7FA",
+    backgroundColor: kit.color.canvas,
   },
   scroll: {
     flex: 1,

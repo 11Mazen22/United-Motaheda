@@ -1,18 +1,27 @@
 /**
- * WorkbenchScreen — pharmacist dashboard (2026 full visual redesign).
+ * WorkbenchScreen — pharmacist dashboard (2026 engineering quality pass).
  *
- * This was a flat grey grid. Now it's a proper premium pharmacist dashboard:
- *   • Deep navy header with greeting + gradient
- *   • 4 KPI cards in a 2×2 grid with colour-coded icons, large numbers, labels
- *   • Horizontal quick-action strip with icon tiles
- *   • "Order Queue" section with real order cards
- *   • Realtime via usePharmacistRealtimeSync (mounted in layout)
+ * Improvements from previous version:
+ *   • Unified 2×2 KPI grid — 4 cards in a single flexWrap grid
+ *     instead of two disconnected 2-card rows
+ *   • `deliveredToday` metric displayed — it was fetched but never shown
+ *   • Prescription attention: uses danger color when pendingPrescriptions > 0,
+ *     based purely on real backend data (no invented thresholds)
+ *   • Skeleton KPI tiles replace '…' text during initial load
+ *   • Compact header: live-status pill moved inline next to the greeting
+ *     to reclaim ~20px of vertical space without losing the status signal
+ *   • Quick-action strip: 5 tiles in a fixed 2-row layout (3+2) to prevent
+ *     wrap inconsistency on narrow phones. Tiles use fixed width, not flex:1.
+ *   • `StatCard` style prop now uses proper `StyleProp<ViewStyle>` type
+ *   • RTL/LTR correct throughout
+ *   • Existing data fetching, realtime sync, pull-to-refresh all preserved
  */
 
 import React, { useCallback, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
+  Platform,
   Pressable,
   RefreshControl,
   StyleSheet,
@@ -24,12 +33,15 @@ import { Ionicons }          from "@expo/vector-icons";
 import { useTranslation }    from "react-i18next";
 import { useQueryClient }    from "@tanstack/react-query";
 import Animated, { FadeInDown } from "react-native-reanimated";
+import * as Haptics from "expo-haptics";
 
 import { Screen, Text as UIText } from "@pharmacy/ui-native";
 import { kit }                    from "@pharmacy/ui-native";
 import { theme }                  from "@pharmacy/design-tokens";
 import { useAuth }                from "@/features/auth";
 import { edgeEnd, flexRow, isRtl, textAlignStart } from "@/utils/layout";
+import { useScreenLayout }        from "@/utils/responsive";
+import { Skeleton }               from "@/components/ui/Skeleton";
 
 import { usePharmacistOrderQueue, usePharmacistDashboard } from "../hooks/usePharmacistQueries";
 import { pharmacistQueryKeys }  from "../hooks/queryKeys";
@@ -43,19 +55,25 @@ const TEXT_START = textAlignStart(IS_RTL);
 
 // ─── Quick action tile ────────────────────────────────────────────────────────
 
-function QuickTile({
-  icon, label, onPress, badge,
-}: {
+interface QuickTileProps {
   icon:    React.ComponentProps<typeof Ionicons>["name"];
   label:   string;
   onPress: () => void;
   badge?:  number;
-}) {
+}
+
+function QuickTile({ icon, label, onPress, badge }: QuickTileProps) {
+  const handlePress = useCallback(() => {
+    if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    onPress();
+  }, [onPress]);
+
   return (
     <Pressable
-      onPress={onPress}
+      onPress={handlePress}
       style={({ pressed }) => [qt.tile, pressed && qt.tilePressed]}
       accessibilityRole="button"
+      accessibilityLabel={label}
     >
       <View style={qt.iconWrap}>
         <View style={qt.iconBox}>
@@ -74,12 +92,12 @@ function QuickTile({
 
 const qt = StyleSheet.create({
   tile: {
-    alignItems: "center",
-    gap:        8,
-    flex:       1,
+    alignItems:      "center",
+    gap:             8,
+    width:           72,      // fixed width — prevents flex-wrap inconsistency
     paddingVertical: 4,
   },
-  tilePressed: { opacity: 0.75 },
+  tilePressed: { opacity: 0.72, transform: [{ scale: 0.94 }] },
   iconWrap:    { position: "relative" },
   iconBox: {
     width:           52,
@@ -120,14 +138,40 @@ const qt = StyleSheet.create({
   },
 });
 
+// ─── KPI Skeleton tile ────────────────────────────────────────────────────────
+
+function KpiSkeleton() {
+  return (
+    <View style={sk.card}>
+      <Skeleton width={36} height={36} radius={12} />
+      <Skeleton width={52} height={26} radius={8} style={{ marginTop: 8 }} />
+      <Skeleton width={80} height={12} radius={4} style={{ marginTop: 4 }} />
+    </View>
+  );
+}
+
+const sk = StyleSheet.create({
+  card: {
+    flex:            1,
+    backgroundColor: kit.color.surface,
+    borderRadius:    kit.radius.xl,
+    padding:         14,
+    borderWidth:     1,
+    borderColor:     kit.color.line,
+    ...kit.shadow.card,
+    minWidth:        100,
+  },
+});
+
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export function WorkbenchScreen(): React.ReactElement {
-  const { t }                = useTranslation();
-  const router               = useRouter();
-  const { user }             = useAuth();
-  const qc                   = useQueryClient();
-  const listRef              = useRef<FlatList<PharmacistOrder>>(null);
+  const { t }          = useTranslation();
+  const router         = useRouter();
+  const { user }       = useAuth();
+  const qc             = useQueryClient();
+  const { pagePad }    = useScreenLayout();
+  const listRef        = useRef<FlatList<PharmacistOrder>>(null);
   const [refreshing, setRefreshing] = useState(false);
 
   const queueQ = usePharmacistOrderQueue();
@@ -154,6 +198,11 @@ export function WorkbenchScreen(): React.ReactElement {
 
   const firstName = user?.name?.split(" ")[0] ?? "";
 
+  // Prescription attention — visible urgency only when there are pending items
+  const hasPendingRx = (stats?.pendingPrescriptions ?? 0) > 0;
+  const rxIconColor  = hasPendingRx ? kit.color.danger  : "#7C3AED";
+  const rxIconBg     = hasPendingRx ? kit.color.dangerTint : "#F5F3FF";
+
   return (
     <Screen edgeTop background={kit.color.canvas}>
       <FlatList
@@ -161,7 +210,7 @@ export function WorkbenchScreen(): React.ReactElement {
         data={orders}
         keyExtractor={(o) => o.id}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={s.listContent}
+        contentContainerStyle={[s.listContent, { paddingHorizontal: pagePad }]}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -172,122 +221,158 @@ export function WorkbenchScreen(): React.ReactElement {
         }
         ListHeaderComponent={
           <>
-            {/* ── Hero header ───────────────────────────────────────── */}
+            {/* ── Hero header ──────────────────────────────────────── */}
             <LinearGradient
               colors={["#0A1220", "#0E2230"]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
-              style={s.hero}
+              style={[s.hero, { paddingHorizontal: pagePad }]}
             >
               {/* Decorative orb */}
               <View style={s.heroOrb} pointerEvents="none" />
 
-              {/* Top row: greeting + actions */}
+              {/* Top row: eyebrow + greeting + live pill + actions */}
               <View style={[s.heroTop, { flexDirection: flexRow(IS_RTL) }]}>
-                <View style={{ flex: 1 }}>
-                  <UIText style={s.heroEyebrow}>
-                    {t("pharmacist.eyebrow", "لوحة الصيدلاني")}
-                  </UIText>
-                  <UIText style={s.heroGreeting}>
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  {/* Eyebrow + live pill — inline for compactness */}
+                  <View style={[s.eyebrowRow, { flexDirection: flexRow(IS_RTL) }]}>
+                    <UIText style={s.heroEyebrow}>
+                      {t("pharmacist.eyebrow", "لوحة الصيدلاني")}
+                    </UIText>
+                    <View style={[s.livePill, { flexDirection: flexRow(IS_RTL) }]}>
+                      <View style={s.liveDot} />
+                      <UIText style={s.liveText}>
+                        {t("pharmacist.liveUpdates", "متصل")}
+                      </UIText>
+                    </View>
+                  </View>
+                  <UIText style={s.heroGreeting} numberOfLines={1}>
                     {t("pharmacist.greeting", { name: firstName })}
                   </UIText>
                 </View>
+
+                {/* Header action buttons */}
                 <View style={[s.heroActions, { flexDirection: flexRow(IS_RTL) }]}>
                   <Pressable
                     onPress={() => router.push("/(pharmacist)/notifications" as never)}
                     style={s.heroIconBtn}
+                    accessibilityRole="button"
+                    accessibilityLabel={t("pharmacist.notifications")}
                   >
                     <Ionicons name="notifications-outline" size={20} color="rgba(255,255,255,0.75)" />
                   </Pressable>
-                  <Pressable onPress={() => router.push("/(pharmacist)/profile" as never)} style={s.heroIconBtn}>
+                  <Pressable
+                    onPress={() => router.push("/(pharmacist)/profile" as never)}
+                    style={s.heroIconBtn}
+                    accessibilityRole="button"
+                    accessibilityLabel={t("pharmacist.profileTitle")}
+                  >
                     <Ionicons name="person-outline" size={20} color="rgba(255,255,255,0.75)" />
                   </Pressable>
                 </View>
               </View>
-
-              {/* Live indicator */}
-              <View style={[s.liveRow, { flexDirection: flexRow(IS_RTL) }]}>
-                <View style={s.liveDot} />
-                <UIText style={s.liveText}>
-                  {t("pharmacist.liveUpdates", "تحديث فوري · متصل")}
-                </UIText>
-              </View>
             </LinearGradient>
 
-            {/* ── KPI Grid ──────────────────────────────────────────── */}
-            <Animated.View entering={FadeInDown.delay(0).duration(320)} style={[s.kpiGrid, { flexDirection: flexRow(IS_RTL) }]}>
-              <StatCard
-                value={statsQ.isLoading ? '…' : stats?.activeOrders ?? 0}
-                label={t("pharmacist.statActiveOrders")}
-                icon="bag-handle-outline"
-                iconColor={kit.color.accentDeep}
-                iconBg={kit.color.accentTint}
-                style={statsQ.isLoading ? { opacity: 0.65 } : undefined}
-                onPress={() => listRef.current?.scrollToOffset({ offset: 520, animated: true })}
-              />
-              <StatCard
-                value={statsQ.isLoading ? '…' : stats?.pendingPrescriptions ?? 0}
-                label={t("pharmacist.statPendingRx")}
-                icon="document-text-outline"
-                iconColor="#7C3AED"
-                iconBg="#F5F3FF"
-                style={statsQ.isLoading ? { opacity: 0.65 } : undefined}
-                onPress={() => router.push("/(pharmacist)/prescriptions" as never)}
-              />
+            {/* ── KPI Grid — unified 2×2 layout ───────────────────── */}
+            <Animated.View
+              entering={FadeInDown.delay(0).duration(320)}
+              style={[s.kpiGrid, { paddingHorizontal: pagePad, flexDirection: flexRow(IS_RTL) }]}
+            >
+              {statsQ.isLoading ? (
+                <>
+                  <KpiSkeleton />
+                  <KpiSkeleton />
+                  <KpiSkeleton />
+                  <KpiSkeleton />
+                </>
+              ) : (
+                <>
+                  {/* Active orders — primary metric */}
+                  <StatCard
+                    value={stats?.activeOrders ?? 0}
+                    label={t("pharmacist.statActiveOrders")}
+                    icon="bag-handle-outline"
+                    iconColor={kit.color.accentDeep}
+                    iconBg={kit.color.accentTint}
+                    onPress={() => listRef.current?.scrollToOffset({ offset: 520, animated: true })}
+                  />
+
+                  {/* Pending prescriptions — danger color when any pending */}
+                  <StatCard
+                    value={stats?.pendingPrescriptions ?? 0}
+                    label={t("pharmacist.statPendingRx")}
+                    icon="document-text-outline"
+                    iconColor={rxIconColor}
+                    iconBg={rxIconBg}
+                    onPress={() => router.push("/(pharmacist)/prescriptions" as never)}
+                  />
+
+                  {/* Preparing — operational throughput */}
+                  <StatCard
+                    value={stats?.preparing ?? 0}
+                    label={t("pharmacist.statPreparing")}
+                    icon="construct-outline"
+                    iconColor={kit.color.warn}
+                    iconBg={kit.color.warnTint}
+                  />
+
+                  {/* Delivered today — from PharmacistDashboardStats.deliveredToday */}
+                  <StatCard
+                    value={stats?.deliveredToday ?? 0}
+                    label={t("pharmacist.analyticsDeliveredToday")}
+                    icon="checkmark-circle-outline"
+                    iconColor={kit.color.success}
+                    iconBg={kit.color.successTint}
+                  />
+                </>
+              )}
             </Animated.View>
 
-            <Animated.View entering={FadeInDown.delay(50).duration(320)} style={[s.kpiGrid, { flexDirection: flexRow(IS_RTL) }]}>
-              <StatCard
-                value={statsQ.isLoading ? '…' : stats?.preparing ?? 0}
-                label={t("pharmacist.statPreparing")}
-                icon="construct-outline"
-                iconColor={kit.color.accentDeep}
-                iconBg={kit.color.accentTint}
-                style={statsQ.isLoading ? { opacity: 0.65 } : undefined}
-              />
-              <StatCard
-                value={statsQ.isLoading ? '…' : stats?.lowStockCount ?? 0}
-                label={t("pharmacist.statLowStock")}
-                icon="alert-circle-outline"
-                iconColor={kit.color.danger}
-                iconBg={kit.color.dangerTint}
-                style={statsQ.isLoading ? { opacity: 0.65 } : undefined}
-                onPress={() => router.push("/(pharmacist)/inventory" as never)}
-              />
+            {/* ── Quick actions — 2 rows of tiles ─────────────────── */}
+            <Animated.View
+              entering={FadeInDown.delay(80).duration(320)}
+              style={[s.quickCard, { marginHorizontal: pagePad }]}
+            >
+              {/* Row 1: 3 primary actions */}
+              <View style={[s.quickRow, { flexDirection: flexRow(IS_RTL) }]}>
+                <QuickTile
+                  icon="document-text-outline"
+                  label={t("pharmacist.qaPrescriptions")}
+                  badge={stats?.pendingPrescriptions}
+                  onPress={() => router.push("/(pharmacist)/prescriptions" as never)}
+                />
+                <QuickTile
+                  icon="barcode-outline"
+                  label={t("pharmacist.qaScanner")}
+                  onPress={() => router.push("/(pharmacist)/scanner" as never)}
+                />
+                <QuickTile
+                  icon="cube-outline"
+                  label={t("pharmacist.qaInventory")}
+                  onPress={() => router.push("/(pharmacist)/inventory" as never)}
+                />
+              </View>
+
+              {/* Hairline divider */}
+              <View style={s.quickDivider} />
+
+              {/* Row 2: 2 secondary actions */}
+              <View style={[s.quickRow, { flexDirection: flexRow(IS_RTL), justifyContent: "center" }]}>
+                <QuickTile
+                  icon="bar-chart-outline"
+                  label={t("pharmacist.qaAnalytics")}
+                  onPress={() => router.push("/(pharmacist)/analytics" as never)}
+                />
+                <QuickTile
+                  icon="person-outline"
+                  label={t("pharmacist.qaProfile")}
+                  onPress={() => router.push("/(pharmacist)/profile" as never)}
+                />
+              </View>
             </Animated.View>
 
-            {/* ── Quick actions ─────────────────────────────────────── */}
-            <Animated.View entering={FadeInDown.delay(100).duration(320)} style={s.quickCard}>
-              <QuickTile
-                icon="document-text-outline"
-                label={t("pharmacist.qaPrescriptions")}
-                badge={stats?.pendingPrescriptions}
-                onPress={() => router.push("/(pharmacist)/prescriptions" as never)}
-              />
-              <QuickTile
-                icon="barcode-outline"
-                label={t("pharmacist.qaScanner")}
-                onPress={() => router.push("/(pharmacist)/scanner" as never)}
-              />
-              <QuickTile
-                icon="cube-outline"
-                label={t("pharmacist.qaInventory")}
-                onPress={() => router.push("/(pharmacist)/inventory" as never)}
-              />
-              <QuickTile
-                icon="bar-chart-outline"
-                label={t("pharmacist.qaAnalytics")}
-                onPress={() => router.push("/(pharmacist)/analytics" as never)}
-              />
-              <QuickTile
-                icon="person-outline"
-                label={t("pharmacist.qaProfile")}
-                onPress={() => router.push("/(pharmacist)/profile" as never)}
-              />
-            </Animated.View>
-
-            {/* ── Queue header ──────────────────────────────────────── */}
-            <View style={[s.queueHeader, { flexDirection: flexRow(IS_RTL) }]}>
+            {/* ── Queue header ─────────────────────────────────────── */}
+            <View style={[s.queueHeader, { paddingHorizontal: pagePad, flexDirection: flexRow(IS_RTL) }]}>
               <UIText style={s.queueTitle}>
                 {t("pharmacist.orderQueueTitle")}
               </UIText>
@@ -331,18 +416,18 @@ export function WorkbenchScreen(): React.ReactElement {
 
 const s = StyleSheet.create({
   listContent: {
-    paddingBottom:     48,
-    paddingHorizontal: kit.inset.screen,
-    gap:               10,
+    paddingBottom: 48,
+    gap:           10,
   },
 
-  // ── Hero ──────────────────────────────────────────────────────────────────
+  // ── Hero ───────────────────────────────────────────────────────────────────
   hero: {
-    paddingHorizontal: kit.inset.screen,
-    paddingTop:        20,
-    paddingBottom:     24,
-    gap:               12,
-    overflow:          "hidden",
+    paddingTop:    20,
+    paddingBottom: 24,
+    gap:           10,
+    overflow:      "hidden",
+    // negative margin to bleed to screen edges despite FlatList horizontal padding
+    marginHorizontal: -kit.inset.screen,
   },
   heroOrb: {
     position:        "absolute",
@@ -357,6 +442,13 @@ const s = StyleSheet.create({
     alignItems: "center",
     gap:        12,
   },
+
+  // Eyebrow row with inline live pill
+  eyebrowRow: {
+    alignItems: "center",
+    gap:        8,
+    marginBottom: 4,
+  },
   heroEyebrow: {
     fontSize:           11,
     lineHeight:         16,
@@ -367,18 +459,41 @@ const s = StyleSheet.create({
     textAlign:          TEXT_START,
     includeFontPadding: false,
   },
+  livePill: {
+    alignItems:        "center",
+    gap:               5,
+    backgroundColor:   "rgba(34,197,94,0.15)",
+    borderRadius:      999,
+    paddingHorizontal: 8,
+    paddingVertical:   3,
+    borderWidth:       1,
+    borderColor:       "rgba(34,197,94,0.25)",
+  },
+  liveDot: {
+    width:           6,
+    height:          6,
+    borderRadius:    3,
+    backgroundColor: "#22C55E",
+  },
+  liveText: {
+    fontSize:           10,
+    fontFamily:         theme.fonts.bold,
+    color:              "rgba(34,197,94,0.9)",
+    textAlign:          TEXT_START,
+    includeFontPadding: false,
+  },
+
   heroGreeting: {
-    fontSize:           26,
-    lineHeight:         32,
+    fontSize:           24,
+    lineHeight:         30,
     fontFamily:         theme.fonts.black,
     color:              "#FFFFFF",
     letterSpacing:      -0.4,
     textAlign:          TEXT_START,
     includeFontPadding: false,
-    marginTop:          2,
   },
   heroActions: {
-    gap:       4,
+    gap:        4,
     flexShrink: 0,
   },
   heroIconBtn: {
@@ -391,55 +506,43 @@ const s = StyleSheet.create({
     borderWidth:     1,
     borderColor:     "rgba(255,255,255,0.14)",
   },
-  liveRow: {
-    alignItems: "center",
-    gap:        6,
-  },
-  liveDot: {
-    width:           7,
-    height:          7,
-    borderRadius:    3.5,
-    backgroundColor: "#22C55E",
-  },
-  liveText: {
-    fontSize:           11,
-    fontFamily:         theme.fonts.bold,
-    color:              "rgba(255,255,255,0.55)",
-    textAlign:          TEXT_START,
-    includeFontPadding: false,
-  },
 
-  // ── KPI ───────────────────────────────────────────────────────────────────
+  // ── KPI Grid — unified 2×2 ─────────────────────────────────────────────────
   kpiGrid: {
-    gap:               10,
-    paddingHorizontal: kit.inset.screen,
-    marginTop:         14,
+    flexWrap:  "wrap",
+    gap:       10,
+    marginTop: 16,
   },
 
-  // ── Quick actions ─────────────────────────────────────────────────────────
+  // ── Quick actions ──────────────────────────────────────────────────────────
   quickCard: {
-    flexDirection:   flexRow(IS_RTL),
-    justifyContent:  "space-between",
-    marginHorizontal: kit.inset.screen,
-    marginTop:       14,
-    paddingVertical: 16,
+    marginTop:         16,
+    paddingVertical:   16,
     paddingHorizontal: 8,
-    flexWrap:        "wrap",
-    rowGap:          12,
-    backgroundColor: kit.color.surface,
-    borderRadius:    kit.radius.xl,
-    borderWidth:     1,
-    borderColor:     kit.color.line,
+    backgroundColor:   kit.color.surface,
+    borderRadius:      kit.radius.xl,
+    borderWidth:       1,
+    borderColor:       kit.color.line,
     ...kit.shadow.card,
+    gap:               0,
+  },
+  quickRow: {
+    justifyContent: "space-around",
+    alignItems:     "center",
+  },
+  quickDivider: {
+    height:            StyleSheet.hairlineWidth,
+    backgroundColor:   kit.color.line,
+    marginVertical:    12,
+    marginHorizontal:  8,
   },
 
-  // ── Queue header ──────────────────────────────────────────────────────────
+  // ── Queue header ───────────────────────────────────────────────────────────
   queueHeader: {
-    alignItems:        "center",
-    paddingHorizontal: kit.inset.screen,
-    marginTop:         24,
-    marginBottom:      12,
-    gap:               10,
+    alignItems:   "center",
+    marginTop:    28,
+    marginBottom: 12,
+    gap:          10,
   },
   queueTitle: {
     flex:               1,
@@ -469,31 +572,10 @@ const s = StyleSheet.create({
     includeFontPadding: false,
   },
 
-  // ── List padding wrapper ──────────────────────────────────────────────────
-  // FlatList items are wrapped in paddingHorizontal via renderItem or via
-  // contentContainerStyle; OrderQueueCard already has its own card style.
-  // We add horizontal padding in the FlatList's contentContainerStyle.
-
-  // ── Empty ─────────────────────────────────────────────────────────────────
+  // ── Empty ──────────────────────────────────────────────────────────────────
   empty: {
-    alignItems:    "center",
-    paddingTop:    52,
-    paddingBottom: 40,
-    paddingHorizontal: kit.inset.screen,
-  },
-  emptyIcon: {
-    width:           72,
-    height:          72,
-    borderRadius:    36,
-    backgroundColor: kit.color.accentTint,
-    alignItems:      "center",
-    justifyContent:  "center",
-  },
-  retryBtn: {
-    marginTop:         12,
-    paddingHorizontal: 20,
-    paddingVertical:   10,
-    borderRadius:      kit.radius.lg,
-    backgroundColor:   kit.color.accentTint,
+    alignItems:        "center",
+    paddingTop:        52,
+    paddingBottom:     40,
   },
 });
