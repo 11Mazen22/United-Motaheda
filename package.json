@@ -6,10 +6,11 @@
   "engines": {
     "node": ">=22.22.2 <23"
   },
-  "workspaces": [
-    "apps/shopper-web",
-    "packages/*"
-  ],
+ "workspaces": {
+   "apps/shopper-web",
+   "apps/shopper-native",
+   "packages/*"
+ },
   "scripts": {
     "dev": "npm run dev --workspace @pharmacy/shopper-web",
     "build": "npm run build --workspace @pharmacy/shopper-web",
