@@ -8,7 +8,6 @@
   },
   "workspaces": [
     "apps/shopper-web",
-    "apps/shopper-native",
     "packages/*"
   ],
   "scripts": {
@@ -104,9 +103,6 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "4.7.0",
-    "expo": "~55.0.25",
-    "expo-router": "^4.0.22",
-    "react-native": "0.81.5",
     "tailwindcss": "^3.4.19",
     "typescript": "^6.0.2",
     "vite": "^6.4.1"
@@ -115,10 +111,5 @@
     "overrides": {
       "vite": "6.3.5"
     }
-  },
-  "overrides": {
-    "expo": "~55.0.25",
-    "expo-font": "~55.0.8",
-    "expo-splash-screen": "~55.0.21"
   }
 }
