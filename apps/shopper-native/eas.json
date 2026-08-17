@@ -1,21 +1,75 @@
 {
   "cli": {
-    "version": ">= 22.0.0",
+    "version": ">= 19.0.8",
     "appVersionSource": "remote"
   },
   "build": {
     "development": {
       "developmentClient": true,
-      "distribution": "internal"
+      "distribution": "internal",
+      "channel": "development",
+      "env": {
+        "CMAKE_VERSION": "3.22.1"
+      }
     },
     "preview": {
-      "distribution": "internal"
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "channel": "preview",
+      "env": {
+        "CMAKE_VERSION": "3.22.1"
+      }
+    },
+    "preview-aab": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "app-bundle"
+      },
+      "channel": "preview",
+      "env": {
+        "CMAKE_VERSION": "3.22.1"
+      }
+    },
+    "production-apk": {
+      "autoIncrement": true,
+      "node": "22.22.2",
+      "android": {
+        "buildType": "apk"
+      },
+      "channel": "production-apk",
+      "env": {
+        "CMAKE_VERSION": "3.22.1"
+      }
+    },
+    "verify": {
+      "autoIncrement": true,
+      "node": "22.22.2",
+      "android": {
+        "buildType": "apk"
+      },
+      "channel": "verify",
+      "env": {
+        "CMAKE_VERSION": "3.22.1"
+      }
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "node": "22.22.2",
+      "credentialsSource": "local",
+      "channel": "production",
+      "env": {
+        "CMAKE_VERSION": "3.22.1"
+      }
     }
   },
   "submit": {
-    "production": {}
+    "production": {
+      "android": {
+        "serviceAccountKeyPath": "./google-service-account.json",
+        "track": "production"
+      }
+    }
   }
 }
