@@ -17,7 +17,6 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.unitedpharmacy.app",
       "buildNumber": "1",
-      "jsEngine": "hermes",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSLocationWhenInUseUsageDescription": "نستخدم موقعك الحالي لتحديد عنوان التوصيل بدقة ومساعدة السائق في الوصول الصحيح."
@@ -30,17 +29,12 @@
       },
       "package": "com.unitedpharmacy.app",
       "googleServicesFile": "./google-services.json",
-      "jsEngine": "hermes",
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO",
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION"
       ],
-      "statusBar": {
-        "backgroundColor": "transparent",
-        "translucent": true
-      },
       "versionCode": 54
     },
     "web": {
