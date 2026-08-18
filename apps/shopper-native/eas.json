@@ -57,8 +57,13 @@
     "production": {
       "autoIncrement": true,
       "node": "22.22.2",
-      "credentialsSource": "local",
       "channel": "production",
+      "android": {
+        "credentialsSource": "local"
+      },
+      "ios": {
+        "credentialsSource": "remote"
+      },
       "env": {
         "CMAKE_VERSION": "3.22.1"
       }
