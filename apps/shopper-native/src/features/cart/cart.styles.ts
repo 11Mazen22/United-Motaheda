@@ -1,636 +1,636 @@
-/**
- * Cart screen styles — VIP 2026 kit design language.
- *
- * VIP upgrades from previous version:
- *   • Header: 52×52 icon tile, 28px display title (was 42/24), surface bg + shadow
- *   • Eyebrow: accentDeep + letterSpacing 0.5 (was inkFaint, no tracking)
- *   • All cards: kit.radius.lg (16) instead of kit.radius.card (12)
- *   • Product image box: 80×80 (was 72×72)
- *   • Line total: 20px black (was 18px)
- *   • Stepper buttons: 34×34 (was 32×32)
- *   • Free-delivery icon well: 48×48 (was 42×42)
- */
-import { StyleSheet } from "react-native";
-import { theme } from "@pharmacy/design-tokens";
-import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
-import { kit } from "@pharmacy/ui-native";
-
-const IS_RTL     = isRtl();
-const TEXT_START = textAlignStart(IS_RTL);
-
-export const s = StyleSheet.create({
-  screen: {
-    flex:            1,
-    backgroundColor: kit.color.canvas,
-  },
-
-  // ── Header — VIP editorial ─────────────────────────────────────────────────
-  header: {
-    paddingHorizontal: theme.layout.pagePaddingH,
-    paddingBottom:     18,
-    backgroundColor:   kit.color.surface,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: kit.color.line,
-    ...kit.shadow.raised,
-  },
-  headerRow: {
-    flexDirection:  flexRow(IS_RTL),
-    alignItems:     "center",
-    justifyContent: "space-between",
-  },
-  headerLeft: {
-    flexDirection: flexRow(IS_RTL),
-    alignItems:    "center",
-    gap:           14,
-  },
-  headerIcon: {
-    width:           52,
-    height:          52,
-    borderRadius:    16,
-    backgroundColor: kit.color.accentTint,
-    alignItems:      "center",
-    justifyContent:  "center",
-    borderWidth:     1,
-    borderColor:     kit.color.line,
-    flexShrink:      0,
-  },
-  headerEyebrow: {
-    fontFamily:         theme.fonts.bold,
-    fontSize:           10,
-    lineHeight:         14,
-    color:              kit.color.accentDeep,
-    letterSpacing:      0.5,
-    textAlign:          TEXT_START,
-    includeFontPadding: false,
-  },
-  headerTitle: {
-    fontFamily:         theme.fonts.black,
-    fontSize:           28,
-    lineHeight:         36,
-    color:              kit.color.ink,
-    letterSpacing:      -0.6,
-    textAlign:          TEXT_START,
-    includeFontPadding: false,
-  },
-  headerActions: {
-    flexDirection: flexRow(IS_RTL),
-    alignItems:    "center",
-    gap:           10,
-  },
-  countBadge: {
-    backgroundColor:   kit.color.accentTint,
-    borderRadius:      kit.radius.pill,
-    paddingHorizontal: 12,
-    paddingVertical:   7,
-    borderWidth:       1,
-    borderColor:       kit.color.line,
-  },
-  countText: {
-    fontFamily:         theme.fonts.bold,
-    fontSize:           11,
-    lineHeight:         16,
-    color:              kit.color.accentDeep,
-    includeFontPadding: false,
-  },
-  // Touchable wrapper carries only sizing/radius — visual styling lives on
-  // the plain View inside instead of on the Pressable's own function-computed
-  // style, which is unreliable under this app's RN/Fabric setup.
-  clearBtnTouchable: {
-    borderRadius: kit.radius.pill,
-  },
-  clearBtn: {
-    flexDirection:     flexRow(IS_RTL),
-    alignItems:        "center",
-    gap:               5,
-    paddingHorizontal: 12,
-    height:            36,
-    borderRadius:      kit.radius.pill,
-    backgroundColor:   kit.color.dangerTint,
-    borderWidth:       1,
-    borderColor:       "rgba(179,38,30,0.18)",
-  },
-  clearBtnPressed: {
-    opacity:   0.85,
-    transform: [{ scale: 0.97 }],
-  },
-  clearText: {
-    fontFamily:         theme.fonts.bold,
-    fontSize:           11,
-    lineHeight:         16,
-    color:              kit.color.danger,
-    includeFontPadding: false,
-  },
-
-  // ── List header components ─────────────────────────────────────────────────
-  warnBanner: {
-    flexDirection:     flexRow(IS_RTL),
-    alignItems:        "center",
-    gap:               10,
-    backgroundColor:   kit.color.warnTint,
-    borderRadius:      kit.radius.lg,
-    paddingHorizontal: 14,
-    paddingVertical:   12,
-    marginBottom:      10,
-    borderWidth:       1,
-    borderColor:       "rgba(217,119,6,0.22)",
-  },
-  warnText: {
-    flex:               1,
-    fontFamily:         theme.fonts.semibold,
-    fontSize:           12,
-    lineHeight:         18,
-    color:              kit.color.warn,
-    textAlign:          TEXT_START,
-    includeFontPadding: false,
-  },
-  branchPill: {
-    flexDirection:     flexRow(IS_RTL),
-    alignItems:        "center",
-    gap:               14,
-    backgroundColor:   kit.color.surface,
-    borderRadius:      kit.radius.lg,
-    paddingHorizontal: 14,
-    paddingVertical:   14,
-    marginBottom:      10,
-    borderWidth:       1,
-    borderColor:       kit.color.line,
-    ...kit.shadow.raised,
-  },
-  branchIconBox: {
-    width:           38,
-    height:          38,
-    borderRadius:    13,
-    backgroundColor: kit.color.accentTint,
-    alignItems:      "center",
-    justifyContent:  "center",
-    borderWidth:     1,
-    borderColor:     kit.color.line,
-  },
-  branchEyebrow: {
-    fontFamily:         theme.fonts.regular,
-    fontSize:           10,
-    lineHeight:         14,
-    color:              kit.color.inkFaint,
-    textAlign:          TEXT_START,
-    includeFontPadding: false,
-  },
-  branchName: {
-    fontFamily:         theme.fonts.black,
-    fontSize:           13,
-    lineHeight:         19,
-    color:              kit.color.ink,
-    textAlign:          TEXT_START,
-    marginTop:          2,
-    includeFontPadding: false,
-  },
-  deliveryCard: {
-    backgroundColor: kit.color.surface,
-    borderRadius:    kit.radius.lg,
-    padding:         16,
-    marginBottom:    10,
-    borderWidth:     1,
-    borderColor:     kit.color.line,
-    overflow:        "hidden",
-    ...kit.shadow.raised,
-  },
-  freeRow: {
-    flexDirection: flexRow(IS_RTL),
-    alignItems:    "center",
-    gap:           14,
-  },
-  freeIconBox: {
-    width:           48,
-    height:          48,
-    borderRadius:    16,
-    alignItems:      "center",
-    justifyContent:  "center",
-    backgroundColor: kit.color.success,
-    flexShrink:      0,
-  },
-  freeTitle: {
-    fontFamily:         theme.fonts.black,
-    fontSize:           15,
-    lineHeight:         22,
-    color:              kit.color.success,
-    textAlign:          TEXT_START,
-    includeFontPadding: false,
-  },
-  freeSub: {
-    fontFamily:         theme.fonts.regular,
-    fontSize:           11,
-    lineHeight:         17,
-    color:              kit.color.inkSoft,
-    textAlign:          TEXT_START,
-    marginTop:          3,
-    includeFontPadding: false,
-  },
-  progressHeader: {
-    flexDirection:  flexRow(IS_RTL),
-    alignItems:     "center",
-    justifyContent: "space-between",
-    marginBottom:   10,
-  },
-  progressLeft: {
-    flexDirection: flexRow(IS_RTL),
-    alignItems:    "center",
-    gap:           7,
-    flex:          1,
-  },
-  progressLabel: {
-    fontFamily:         theme.fonts.semibold,
-    fontSize:           12,
-    lineHeight:         18,
-    color:              kit.color.inkSoft,
-    textAlign:          TEXT_START,
-    flex:               1,
-    includeFontPadding: false,
-  },
-  progressPct: {
-    fontFamily:         theme.fonts.black,
-    fontSize:           13,
-    lineHeight:         19,
-    color:              kit.color.ink,
-    marginStart:        8,
-    includeFontPadding: false,
-  },
-  track: {
-    height:          7,
-    backgroundColor: kit.color.well,
-    borderRadius:    4,
-    overflow:        "hidden",
-  },
-  fill: {
-    height:          "100%",
-    backgroundColor: kit.color.accent,
-    borderRadius:    4,
-  },
-  trustRow: {
-    flexDirection:     flexRow(IS_RTL),
-    backgroundColor:   kit.color.surface,
-    borderRadius:      kit.radius.lg,
-    paddingVertical:   16,
-    paddingHorizontal: 8,
-    marginBottom:      10,
-    borderWidth:       1,
-    borderColor:       kit.color.line,
-    ...kit.shadow.raised,
-  },
-  trustCell: {
-    flex:              1,
-    alignItems:        "center",
-    gap:               7,
-    paddingHorizontal: 8,
-  },
-  trustDivider: {
-    borderEndWidth: StyleSheet.hairlineWidth,
-    borderEndColor: kit.color.lineStrong,
-  },
-  trustIconBox: {
-    width:          32,
-    height:         32,
-    borderRadius:   11,
-    alignItems:     "center",
-    justifyContent: "center",
-  },
-  trustLabel: {
-    fontFamily:         theme.fonts.bold,
-    fontSize:           9,
-    lineHeight:         13,
-    color:              kit.color.inkSoft,
-    textAlign:          "center",
-    includeFontPadding: false,
-  },
-
-  // ── Cart item card ──────────────────────────────────────────────────────────
-  card: {
-    backgroundColor:   kit.color.surface,
-    borderRadius:      kit.radius.lg,
-    paddingHorizontal: 14,
-    paddingTop:        14,
-    paddingBottom:     14,
-    gap:               12,
-    borderWidth:       1,
-    borderColor:       kit.color.line,
-    ...kit.shadow.raised,
-  },
-  cardTopRow: {
-    flexDirection:  flexRow(IS_RTL),
-    alignItems:     "center",
-    justifyContent: "space-between",
-  },
-  catLabel: {
-    fontFamily:         theme.fonts.bold,
-    fontSize:           10,
-    lineHeight:         14,
-    color:              kit.color.inkFaint,
-    textAlign:          TEXT_START,
-    includeFontPadding: false,
-    letterSpacing:      0.3,
-  },
-  deleteBtnTouchable: {
-    borderRadius: 10,
-  },
-  deleteBtn: {
-    width:           32,
-    height:          32,
-    borderRadius:    10,
-    backgroundColor: kit.color.dangerTint,
-    borderWidth:     1,
-    borderColor:     "rgba(179,38,30,0.18)",
-    alignItems:      "center",
-    justifyContent:  "center",
-  },
-  deleteBtnPressed: {
-    opacity:   0.82,
-    transform: [{ scale: 0.94 }],
-  },
-  cardMidRow: {
-    flexDirection: flexRow(IS_RTL),
-    alignItems:    "flex-start",
-    gap:           14,
-  },
-  imgBox: {
-    width:           80,
-    height:          80,
-    borderRadius:    16,
-    overflow:        "hidden",
-    backgroundColor: kit.color.well,
-    flexShrink:      0,
-  },
-  imgFallback: {
-    flex:           1,
-    alignItems:     "center",
-    justifyContent: "center",
-  },
-  productName: {
-    flex:               1,
-    fontFamily:         theme.fonts.black,
-    fontSize:           14,
-    lineHeight:         21,
-    color:              kit.color.ink,
-    textAlign:          TEXT_START,
-    includeFontPadding: false,
-  },
-  cardBottomRow: {
-    flexDirection:  flexRow(IS_RTL),
-    alignItems:     "center",
-    justifyContent: "space-between",
-    paddingTop:     4,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: kit.color.line,
-  },
-  priceWrap: {
-    flexDirection: flexRow(IS_RTL),
-    alignItems:    "baseline",
-    gap:           4,
-  },
-  lineTotal: {
-    fontFamily:         theme.fonts.black,
-    fontSize:           20,
-    lineHeight:         28,
-    color:              kit.color.ink,
-    letterSpacing:      -0.4,
-    includeFontPadding: false,
-  },
-  currency: {
-    fontFamily:         theme.fonts.bold,
-    fontSize:           11,
-    lineHeight:         16,
-    color:              kit.color.inkSoft,
-    includeFontPadding: false,
-  },
-  unitHint: {
-    fontFamily:         theme.fonts.regular,
-    fontSize:           10,
-    lineHeight:         15,
-    color:              kit.color.inkFaint,
-    marginStart:        4,
-    includeFontPadding: false,
-  },
-
-  // ── Stepper — product-detail parity: square wells, neutral −, accent + ─────
-  // Outer well holds three children of equal height (36): minus, value, plus.
-  // RTL flow is handled by flexRow(IS_RTL) so the accent + always sits on the
-  // logical END, mirroring the product detail page.
-  stepper: {
-    flexDirection:   flexRow(IS_RTL),
-    alignItems:      "center",
-    gap:             3,
-    backgroundColor: kit.color.well,
-    borderRadius:    12,
-    borderWidth:     1,
-    borderColor:     kit.color.line,
-    padding:         3,
-  },
-  // Touchable wrapper carries only sizing/radius for both stepper variants —
-  // visual styling (bg, border, glyph) lives on the plain View inside instead
-  // of on the Pressable's own function-computed style, which is unreliable
-  // under this app's RN/Fabric setup.
-  stepBtnTouchable: {
-    width:        36,
-    height:       36,
-    borderRadius: 9,
-  },
-  // Decrement — neutral surface chip
-  stepBtn: {
-    width:           36,
-    height:          36,
-    borderRadius:    9,
-    backgroundColor: kit.color.surface,
-    alignItems:      "center",
-    justifyContent:  "center",
-    borderWidth:     1,
-    borderColor:     kit.color.line,
-  },
-  stepBtnPressed: {
-    backgroundColor: kit.color.accentTint,
-    borderColor:     kit.color.accent,
-    transform:       [{ scale: 0.96 }],
-  },
-  stepBtnDisabled: {
-    opacity: 0.45,
-  },
-  // Increment — primary accent (mirrors product detail)
-  stepBtnPrimary: {
-    width:           36,
-    height:          36,
-    borderRadius:    9,
-    backgroundColor: kit.color.accentDeep,
-    alignItems:      "center",
-    justifyContent:  "center",
-    borderWidth:     1,
-    borderColor:     kit.color.accentDeep,
-  },
-  stepBtnPrimaryPressed: {
-    opacity:   0.88,
-    transform: [{ scale: 0.96 }],
-  },
-  qtyCell: {
-    minWidth:       36,
-    height:         36,
-    alignItems:     "center",
-    justifyContent: "center",
-  },
-  qtyNum: {
-    fontFamily:         theme.fonts.black,
-    fontSize:           16,
-    lineHeight:         22,
-    color:              kit.color.ink,
-    minWidth:           24,
-    textAlign:          "center",
-    letterSpacing:      -0.3,
-    includeFontPadding: false,
-  },
-  qtyNumMax: {
-    color: kit.color.warn,
-  },
-  maxHint: {
-    flexDirection:     flexRow(IS_RTL),
-    alignItems:        "center",
-    gap:               5,
-    alignSelf:         "flex-start",
-    paddingHorizontal: 10,
-    paddingVertical:   4,
-    backgroundColor:   kit.color.warnTint,
-    borderRadius:      kit.radius.pill,
-    borderWidth:       1,
-    borderColor:       "rgba(217,119,6,0.22)",
-  },
-  maxHintText: {
-    fontFamily:         theme.fonts.bold,
-    fontSize:           10,
-    lineHeight:         15,
-    color:              kit.color.warn,
-    includeFontPadding: false,
-  },
-
-  // ── Checkout Footer — sticky, elevated ────────────────────────────────────
-  footer: {
-    backgroundColor:   kit.color.surface,
-    paddingHorizontal: theme.layout.pagePaddingH,
-    paddingTop:        16,
-    borderTopWidth:    StyleSheet.hairlineWidth,
-    borderTopColor:    kit.color.line,
-    shadowColor:       kit.color.ink,
-    shadowOffset:      { width: 0, height: -6 },
-    shadowOpacity:     0.06,
-    shadowRadius:      16,
-    elevation:         14,
-    boxShadow:         "0px -6px 16px rgba(7,18,42,0.06)",
-  },
-  footerHandle: {
-    width:           36,
-    height:          3,
-    borderRadius:    2,
-    backgroundColor: kit.color.lineStrong,
-    alignSelf:       "center",
-    marginBottom:    14,
-  },
-  totalsBlock: {
-    gap:               6,
-    marginBottom:      12,
-    paddingBottom:     12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: kit.color.line,
-  },
-  totalRow: {
-    flexDirection:  flexRow(IS_RTL),
-    alignItems:     "center",
-    justifyContent: "space-between",
-  },
-  totalLabel: {
-    fontFamily:         theme.fonts.regular,
-    fontSize:           12,
-    lineHeight:         18,
-    color:              kit.color.inkFaint,
-    includeFontPadding: false,
-  },
-  totalValue: {
-    fontFamily:         theme.fonts.semibold,
-    fontSize:           12,
-    lineHeight:         18,
-    color:              kit.color.inkSoft,
-    includeFontPadding: false,
-  },
-  totalFree: {
-    fontFamily:         theme.fonts.black,
-    fontSize:           12,
-    lineHeight:         18,
-    color:              kit.color.success,
-    includeFontPadding: false,
-  },
-  totalDiscount: {
-    fontFamily:         theme.fonts.semibold,
-    fontSize:           12,
-    lineHeight:         18,
-    color:              kit.color.danger,
-    includeFontPadding: false,
-  },
-
-  // ── Checkout row — price block + solid-ink pill CTA ───────────────────────
-  checkoutRow: {
-    flexDirection:  flexRow(IS_RTL),
-    alignItems:     "center",
-    justifyContent: "space-between",
-    gap:            14,
-  },
-  priceBlock: { gap: 2 },
-  priceLabel: {
-    fontFamily:         theme.fonts.regular,
-    fontSize:           11,
-    lineHeight:         16,
-    color:              kit.color.inkFaint,
-    textAlign:          TEXT_START,
-    includeFontPadding: false,
-  },
-  priceRow: {
-    flexDirection: "row",
-    alignItems:    "baseline",
-    gap:           4,
-  },
-  priceTotal: {
-    fontFamily:         theme.fonts.black,
-    fontSize:           28,
-    lineHeight:         36,
-    color:              kit.color.ink,
-    letterSpacing:      -0.8,
-    includeFontPadding: false,
-  },
-  priceCurrency: {
-    fontFamily:         theme.fonts.bold,
-    fontSize:           13,
-    lineHeight:         19,
-    color:              kit.color.inkSoft,
-    includeFontPadding: false,
-  },
-  checkoutOuter: {
-    flex:         1,
-    borderRadius: kit.radius.pill,
-    overflow:     "hidden",
-    maxWidth:     220,
-  },
-  checkoutInner: {
-    flexDirection:     flexRow(IS_RTL),
-    alignItems:        "center",
-    justifyContent:    "center",
-    gap:               8,
-    paddingVertical:   17,
-    paddingHorizontal: 20,
-    borderRadius:      kit.radius.pill,
-    backgroundColor:   kit.color.ink,
-  },
-  checkoutInnerDisabled: {
-    backgroundColor: kit.color.inkFaint,
-  },
-  checkoutInnerPressed: {
-    opacity:   0.92,
-    transform: [{ scale: 0.98 }],
-  },
-  checkoutText: {
-    fontFamily:         theme.fonts.black,
-    fontSize:           14,
-    lineHeight:         20,
-    color:              kit.color.onInk,
-    includeFontPadding: false,
-  },
-});
+/**
+ * Cart screen styles — VIP 2026 kit design language.
+ *
+ * VIP upgrades from previous version:
+ *   • Header: 52×52 icon tile, 28px display title (was 42/24), surface bg + shadow
+ *   • Eyebrow: accentDeep + letterSpacing 0.5 (was inkFaint, no tracking)
+ *   • All cards: kit.radius.lg (16) instead of kit.radius.card (12)
+ *   • Product image box: 80×80 (was 72×72)
+ *   • Line total: 20px black (was 18px)
+ *   • Stepper buttons: 34×34 (was 32×32)
+ *   • Free-delivery icon well: 48×48 (was 42×42)
+ */
+import { StyleSheet } from "react-native";
+import { theme } from "@pharmacy/design-tokens";
+import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
+import { kit } from "@pharmacy/ui-native";
+
+const IS_RTL     = isRtl();
+const TEXT_START = textAlignStart(IS_RTL);
+
+export const s = StyleSheet.create({
+  screen: {
+    flex:            1,
+    backgroundColor: kit.color.canvas,
+  },
+
+  // ── Header — VIP editorial ─────────────────────────────────────────────────
+  header: {
+    paddingHorizontal: theme.layout.pagePaddingH,
+    paddingBottom:     18,
+    backgroundColor:   kit.color.surface,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: kit.color.line,
+    ...kit.shadow.raised,
+  },
+  headerRow: {
+    flexDirection:  flexRow(IS_RTL),
+    alignItems:     "center",
+    justifyContent: "space-between",
+  },
+  headerLeft: {
+    flexDirection: flexRow(IS_RTL),
+    alignItems:    "center",
+    gap:           14,
+  },
+  headerIcon: {
+    width:           52,
+    height:          52,
+    borderRadius:    16,
+    backgroundColor: kit.color.accentTint,
+    alignItems:      "center",
+    justifyContent:  "center",
+    borderWidth:     1,
+    borderColor:     kit.color.line,
+    flexShrink:      0,
+  },
+  headerEyebrow: {
+    fontFamily:         theme.fonts.bold,
+    fontSize:           10,
+    lineHeight:         14,
+    color:              kit.color.accentDeep,
+    letterSpacing:      0.5,
+    textAlign:          TEXT_START,
+    includeFontPadding: false,
+  },
+  headerTitle: {
+    fontFamily:         theme.fonts.black,
+    fontSize:           28,
+    lineHeight:         36,
+    color:              kit.color.ink,
+    letterSpacing:      -0.6,
+    textAlign:          TEXT_START,
+    includeFontPadding: false,
+  },
+  headerActions: {
+    flexDirection: flexRow(IS_RTL),
+    alignItems:    "center",
+    gap:           10,
+  },
+  countBadge: {
+    backgroundColor:   kit.color.accentTint,
+    borderRadius:      kit.radius.pill,
+    paddingHorizontal: 12,
+    paddingVertical:   7,
+    borderWidth:       1,
+    borderColor:       kit.color.line,
+  },
+  countText: {
+    fontFamily:         theme.fonts.bold,
+    fontSize:           11,
+    lineHeight:         16,
+    color:              kit.color.accentDeep,
+    includeFontPadding: false,
+  },
+  // Touchable wrapper carries only sizing/radius — visual styling lives on
+  // the plain View inside instead of on the Pressable's own function-computed
+  // style, which is unreliable under this app's RN/Fabric setup.
+  clearBtnTouchable: {
+    borderRadius: kit.radius.pill,
+  },
+  clearBtn: {
+    flexDirection:     flexRow(IS_RTL),
+    alignItems:        "center",
+    gap:               5,
+    paddingHorizontal: 12,
+    height:            36,
+    borderRadius:      kit.radius.pill,
+    backgroundColor:   kit.color.dangerTint,
+    borderWidth:       1,
+    borderColor:       "rgba(179,38,30,0.18)",
+  },
+  clearBtnPressed: {
+    opacity:   0.85,
+    transform: [{ scale: 0.97 }],
+  },
+  clearText: {
+    fontFamily:         theme.fonts.bold,
+    fontSize:           11,
+    lineHeight:         16,
+    color:              kit.color.danger,
+    includeFontPadding: false,
+  },
+
+  // ── List header components ─────────────────────────────────────────────────
+  warnBanner: {
+    flexDirection:     flexRow(IS_RTL),
+    alignItems:        "center",
+    gap:               10,
+    backgroundColor:   kit.color.warnTint,
+    borderRadius:      kit.radius.lg,
+    paddingHorizontal: 14,
+    paddingVertical:   12,
+    marginBottom:      10,
+    borderWidth:       1,
+    borderColor:       "rgba(217,119,6,0.22)",
+  },
+  warnText: {
+    flex:               1,
+    fontFamily:         theme.fonts.semibold,
+    fontSize:           12,
+    lineHeight:         18,
+    color:              kit.color.warn,
+    textAlign:          TEXT_START,
+    includeFontPadding: false,
+  },
+  branchPill: {
+    flexDirection:     flexRow(IS_RTL),
+    alignItems:        "center",
+    gap:               14,
+    backgroundColor:   kit.color.surface,
+    borderRadius:      kit.radius.lg,
+    paddingHorizontal: 14,
+    paddingVertical:   14,
+    marginBottom:      10,
+    borderWidth:       1,
+    borderColor:       kit.color.line,
+    ...kit.shadow.raised,
+  },
+  branchIconBox: {
+    width:           38,
+    height:          38,
+    borderRadius:    13,
+    backgroundColor: kit.color.accentTint,
+    alignItems:      "center",
+    justifyContent:  "center",
+    borderWidth:     1,
+    borderColor:     kit.color.line,
+  },
+  branchEyebrow: {
+    fontFamily:         theme.fonts.regular,
+    fontSize:           10,
+    lineHeight:         14,
+    color:              kit.color.inkFaint,
+    textAlign:          TEXT_START,
+    includeFontPadding: false,
+  },
+  branchName: {
+    fontFamily:         theme.fonts.black,
+    fontSize:           13,
+    lineHeight:         19,
+    color:              kit.color.ink,
+    textAlign:          TEXT_START,
+    marginTop:          2,
+    includeFontPadding: false,
+  },
+  deliveryCard: {
+    backgroundColor: kit.color.surface,
+    borderRadius:    kit.radius.lg,
+    padding:         16,
+    marginBottom:    10,
+    borderWidth:     1,
+    borderColor:     kit.color.line,
+    overflow:        "hidden",
+    ...kit.shadow.raised,
+  },
+  freeRow: {
+    flexDirection: flexRow(IS_RTL),
+    alignItems:    "center",
+    gap:           14,
+  },
+  freeIconBox: {
+    width:           48,
+    height:          48,
+    borderRadius:    16,
+    alignItems:      "center",
+    justifyContent:  "center",
+    backgroundColor: kit.color.success,
+    flexShrink:      0,
+  },
+  freeTitle: {
+    fontFamily:         theme.fonts.black,
+    fontSize:           15,
+    lineHeight:         22,
+    color:              kit.color.success,
+    textAlign:          TEXT_START,
+    includeFontPadding: false,
+  },
+  freeSub: {
+    fontFamily:         theme.fonts.regular,
+    fontSize:           11,
+    lineHeight:         17,
+    color:              kit.color.inkSoft,
+    textAlign:          TEXT_START,
+    marginTop:          3,
+    includeFontPadding: false,
+  },
+  progressHeader: {
+    flexDirection:  flexRow(IS_RTL),
+    alignItems:     "center",
+    justifyContent: "space-between",
+    marginBottom:   10,
+  },
+  progressLeft: {
+    flexDirection: flexRow(IS_RTL),
+    alignItems:    "center",
+    gap:           7,
+    flex:          1,
+  },
+  progressLabel: {
+    fontFamily:         theme.fonts.semibold,
+    fontSize:           12,
+    lineHeight:         18,
+    color:              kit.color.inkSoft,
+    textAlign:          TEXT_START,
+    flex:               1,
+    includeFontPadding: false,
+  },
+  progressPct: {
+    fontFamily:         theme.fonts.black,
+    fontSize:           13,
+    lineHeight:         19,
+    color:              kit.color.ink,
+    marginStart:        8,
+    includeFontPadding: false,
+  },
+  track: {
+    height:          7,
+    backgroundColor: kit.color.well,
+    borderRadius:    4,
+    overflow:        "hidden",
+  },
+  fill: {
+    height:          "100%",
+    backgroundColor: kit.color.accent,
+    borderRadius:    4,
+  },
+  trustRow: {
+    flexDirection:     flexRow(IS_RTL),
+    backgroundColor:   kit.color.surface,
+    borderRadius:      kit.radius.lg,
+    paddingVertical:   16,
+    paddingHorizontal: 8,
+    marginBottom:      10,
+    borderWidth:       1,
+    borderColor:       kit.color.line,
+    ...kit.shadow.raised,
+  },
+  trustCell: {
+    flex:              1,
+    alignItems:        "center",
+    gap:               7,
+    paddingHorizontal: 8,
+  },
+  trustDivider: {
+    borderEndWidth: StyleSheet.hairlineWidth,
+    borderEndColor: kit.color.lineStrong,
+  },
+  trustIconBox: {
+    width:          32,
+    height:         32,
+    borderRadius:   11,
+    alignItems:     "center",
+    justifyContent: "center",
+  },
+  trustLabel: {
+    fontFamily:         theme.fonts.bold,
+    fontSize:           9,
+    lineHeight:         13,
+    color:              kit.color.inkSoft,
+    textAlign:          "center",
+    includeFontPadding: false,
+  },
+
+  // ── Cart item card ──────────────────────────────────────────────────────────
+  card: {
+    backgroundColor:   kit.color.surface,
+    borderRadius:      kit.radius.lg,
+    paddingHorizontal: 14,
+    paddingTop:        14,
+    paddingBottom:     14,
+    gap:               12,
+    borderWidth:       1,
+    borderColor:       kit.color.line,
+    ...kit.shadow.raised,
+  },
+  cardTopRow: {
+    flexDirection:  flexRow(IS_RTL),
+    alignItems:     "center",
+    justifyContent: "space-between",
+  },
+  catLabel: {
+    fontFamily:         theme.fonts.bold,
+    fontSize:           10,
+    lineHeight:         14,
+    color:              kit.color.inkFaint,
+    textAlign:          TEXT_START,
+    includeFontPadding: false,
+    letterSpacing:      0.3,
+  },
+  deleteBtnTouchable: {
+    borderRadius: 10,
+  },
+  deleteBtn: {
+    width:           32,
+    height:          32,
+    borderRadius:    10,
+    backgroundColor: kit.color.dangerTint,
+    borderWidth:     1,
+    borderColor:     "rgba(179,38,30,0.18)",
+    alignItems:      "center",
+    justifyContent:  "center",
+  },
+  deleteBtnPressed: {
+    opacity:   0.82,
+    transform: [{ scale: 0.94 }],
+  },
+  cardMidRow: {
+    flexDirection: flexRow(IS_RTL),
+    alignItems:    "flex-start",
+    gap:           14,
+  },
+  imgBox: {
+    width:           80,
+    height:          80,
+    borderRadius:    16,
+    overflow:        "hidden",
+    backgroundColor: kit.color.well,
+    flexShrink:      0,
+  },
+  imgFallback: {
+    flex:           1,
+    alignItems:     "center",
+    justifyContent: "center",
+  },
+  productName: {
+    flex:               1,
+    fontFamily:         theme.fonts.black,
+    fontSize:           14,
+    lineHeight:         21,
+    color:              kit.color.ink,
+    textAlign:          TEXT_START,
+    includeFontPadding: false,
+  },
+  cardBottomRow: {
+    flexDirection:  flexRow(IS_RTL),
+    alignItems:     "center",
+    justifyContent: "space-between",
+    paddingTop:     4,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: kit.color.line,
+  },
+  priceWrap: {
+    flexDirection: flexRow(IS_RTL),
+    alignItems:    "baseline",
+    gap:           4,
+  },
+  lineTotal: {
+    fontFamily:         theme.fonts.black,
+    fontSize:           20,
+    lineHeight:         28,
+    color:              kit.color.ink,
+    letterSpacing:      -0.4,
+    includeFontPadding: false,
+  },
+  currency: {
+    fontFamily:         theme.fonts.bold,
+    fontSize:           11,
+    lineHeight:         16,
+    color:              kit.color.inkSoft,
+    includeFontPadding: false,
+  },
+  unitHint: {
+    fontFamily:         theme.fonts.regular,
+    fontSize:           10,
+    lineHeight:         15,
+    color:              kit.color.inkFaint,
+    marginStart:        4,
+    includeFontPadding: false,
+  },
+
+  // ── Stepper — product-detail parity: square wells, neutral −, accent + ─────
+  // Outer well holds three children of equal height (36): minus, value, plus.
+  // RTL flow is handled by flexRow(IS_RTL) so the accent + always sits on the
+  // logical END, mirroring the product detail page.
+  stepper: {
+    flexDirection:   flexRow(IS_RTL),
+    alignItems:      "center",
+    gap:             3,
+    backgroundColor: kit.color.well,
+    borderRadius:    12,
+    borderWidth:     1,
+    borderColor:     kit.color.line,
+    padding:         3,
+  },
+  // Touchable wrapper carries only sizing/radius for both stepper variants —
+  // visual styling (bg, border, glyph) lives on the plain View inside instead
+  // of on the Pressable's own function-computed style, which is unreliable
+  // under this app's RN/Fabric setup.
+  stepBtnTouchable: {
+    width:        36,
+    height:       36,
+    borderRadius: 9,
+  },
+  // Decrement — neutral surface chip
+  stepBtn: {
+    width:           36,
+    height:          36,
+    borderRadius:    9,
+    backgroundColor: kit.color.surface,
+    alignItems:      "center",
+    justifyContent:  "center",
+    borderWidth:     1,
+    borderColor:     kit.color.line,
+  },
+  stepBtnPressed: {
+    backgroundColor: kit.color.accentTint,
+    borderColor:     kit.color.accent,
+    transform:       [{ scale: 0.96 }],
+  },
+  stepBtnDisabled: {
+    opacity: 0.45,
+  },
+  // Increment — primary accent (mirrors product detail)
+  stepBtnPrimary: {
+    width:           36,
+    height:          36,
+    borderRadius:    9,
+    backgroundColor: kit.color.accentDeep,
+    alignItems:      "center",
+    justifyContent:  "center",
+    borderWidth:     1,
+    borderColor:     kit.color.accentDeep,
+  },
+  stepBtnPrimaryPressed: {
+    opacity:   0.88,
+    transform: [{ scale: 0.96 }],
+  },
+  qtyCell: {
+    minWidth:       36,
+    height:         36,
+    alignItems:     "center",
+    justifyContent: "center",
+  },
+  qtyNum: {
+    fontFamily:         theme.fonts.black,
+    fontSize:           16,
+    lineHeight:         22,
+    color:              kit.color.ink,
+    minWidth:           24,
+    textAlign:          "center",
+    letterSpacing:      -0.3,
+    includeFontPadding: false,
+  },
+  qtyNumMax: {
+    color: kit.color.warn,
+  },
+  maxHint: {
+    flexDirection:     flexRow(IS_RTL),
+    alignItems:        "center",
+    gap:               5,
+    alignSelf:         "flex-start",
+    paddingHorizontal: 10,
+    paddingVertical:   4,
+    backgroundColor:   kit.color.warnTint,
+    borderRadius:      kit.radius.pill,
+    borderWidth:       1,
+    borderColor:       "rgba(217,119,6,0.22)",
+  },
+  maxHintText: {
+    fontFamily:         theme.fonts.bold,
+    fontSize:           10,
+    lineHeight:         15,
+    color:              kit.color.warn,
+    includeFontPadding: false,
+  },
+
+  // ── Checkout Footer — sticky, elevated ────────────────────────────────────
+  footer: {
+    backgroundColor:   kit.color.surface,
+    paddingHorizontal: theme.layout.pagePaddingH,
+    paddingTop:        16,
+    borderTopWidth:    StyleSheet.hairlineWidth,
+    borderTopColor:    kit.color.line,
+    shadowColor:       kit.color.ink,
+    shadowOffset:      { width: 0, height: -6 },
+    shadowOpacity:     0.06,
+    shadowRadius:      16,
+    elevation:         14,
+    boxShadow:         "0px -6px 16px rgba(7,18,42,0.06)",
+  },
+  footerHandle: {
+    width:           36,
+    height:          3,
+    borderRadius:    2,
+    backgroundColor: kit.color.lineStrong,
+    alignSelf:       "center",
+    marginBottom:    14,
+  },
+  totalsBlock: {
+    gap:               6,
+    marginBottom:      12,
+    paddingBottom:     12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: kit.color.line,
+  },
+  totalRow: {
+    flexDirection:  flexRow(IS_RTL),
+    alignItems:     "center",
+    justifyContent: "space-between",
+  },
+  totalLabel: {
+    fontFamily:         theme.fonts.regular,
+    fontSize:           12,
+    lineHeight:         18,
+    color:              kit.color.inkFaint,
+    includeFontPadding: false,
+  },
+  totalValue: {
+    fontFamily:         theme.fonts.semibold,
+    fontSize:           12,
+    lineHeight:         18,
+    color:              kit.color.inkSoft,
+    includeFontPadding: false,
+  },
+  totalFree: {
+    fontFamily:         theme.fonts.black,
+    fontSize:           12,
+    lineHeight:         18,
+    color:              kit.color.success,
+    includeFontPadding: false,
+  },
+  totalDiscount: {
+    fontFamily:         theme.fonts.semibold,
+    fontSize:           12,
+    lineHeight:         18,
+    color:              kit.color.danger,
+    includeFontPadding: false,
+  },
+
+  // ── Checkout row — price block + solid-ink pill CTA ───────────────────────
+  checkoutRow: {
+    flexDirection:  flexRow(IS_RTL),
+    alignItems:     "center",
+    justifyContent: "space-between",
+    gap:            14,
+  },
+  priceBlock: { gap: 2 },
+  priceLabel: {
+    fontFamily:         theme.fonts.regular,
+    fontSize:           11,
+    lineHeight:         16,
+    color:              kit.color.inkFaint,
+    textAlign:          TEXT_START,
+    includeFontPadding: false,
+  },
+  priceRow: {
+    flexDirection: "row",
+    alignItems:    "baseline",
+    gap:           4,
+  },
+  priceTotal: {
+    fontFamily:         theme.fonts.black,
+    fontSize:           28,
+    lineHeight:         36,
+    color:              kit.color.ink,
+    letterSpacing:      -0.8,
+    includeFontPadding: false,
+  },
+  priceCurrency: {
+    fontFamily:         theme.fonts.bold,
+    fontSize:           13,
+    lineHeight:         19,
+    color:              kit.color.inkSoft,
+    includeFontPadding: false,
+  },
+  checkoutOuter: {
+    flex:         1,
+    borderRadius: kit.radius.pill,
+    overflow:     "hidden",
+    maxWidth:     220,
+  },
+  checkoutInner: {
+    flexDirection:     flexRow(IS_RTL),
+    alignItems:        "center",
+    justifyContent:    "center",
+    gap:               8,
+    paddingVertical:   17,
+    paddingHorizontal: 20,
+    borderRadius:      kit.radius.pill,
+    backgroundColor:   kit.color.ink,
+  },
+  checkoutInnerDisabled: {
+    backgroundColor: kit.color.inkFaint,
+  },
+  checkoutInnerPressed: {
+    opacity:   0.92,
+    transform: [{ scale: 0.98 }],
+  },
+  checkoutText: {
+    fontFamily:         theme.fonts.black,
+    fontSize:           14,
+    lineHeight:         20,
+    color:              kit.color.onInk,
+    includeFontPadding: false,
+  },
+});

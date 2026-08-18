@@ -1,556 +1,553 @@
-/**
- * Cart Screen — Premium RTL-Ready Edition
- *
- * Architecture:
- *   • Granular Zustand selectors — no re-render cascades
- *   • renderItem extracted + memoized — stable FlatList identity
- *   • All colours/spacing via theme tokens or named CART_* constants
- *   • Full RTL (row-reverse layouts), a11y, haptics, Reanimated animations
- */
-import React, { memo, useCallback, useMemo } from "react";
-import { useDarkColors } from '@/hooks/useDarkColors';
-import {
-  FlatList,
-  Platform,
-  Pressable,
-  View,
-} from "react-native";
-import { Text as UIText } from "@pharmacy/ui-native";
-import { Image } from "expo-image";
-import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import * as Haptics from "expo-haptics";
-import Animated, {
-  FadeInDown,
-  FadeOutRight,
-  Layout,
-} from "react-native-reanimated";
-import { useTranslation } from "react-i18next";
-import { useCartStore, selectPricing, selectItemCount, type CartItem } from "@/stores/cart";
-import {
-  useDeliveryContext,
-  FREE_DELIVERY_THRESHOLD,
-} from "@/features/delivery";
-import { showConfirmSheet } from "@/shared/store/appSheetStore";
-import { EmptyState } from "@/components/ui/EmptyState";
-import { kit } from "@pharmacy/ui-native";
-import { FORWARD_CHEVRON } from "@/utils/layout";
-import { useScreenLayout } from "@/utils/responsive";
-import { s } from "@/features/cart/cart.styles";
-
-// ─── StepBtn — product-detail-parity quantity button ──────────────────────────
-// Two visual variants:
-//   • "minus" — neutral surface chip with line border, ink-soft glyph
-//   • "plus"  — accentDeep primary chip with onAccent glyph
-// Pressed feedback comes from Pressable's `pressed` state (tint + scale).
-// The light haptic still fires for tactile confirmation.
-
-const StepBtn = memo(function StepBtn({
-  variant,
-  onPress,
-  disabled,
-  accessibilityLabel,
-}: {
-  variant:             "plus" | "minus";
-  onPress:             () => void;
-  disabled?:           boolean;
-  accessibilityLabel?: string;
-}) {
-  const handlePress = useCallback(() => {
-    if (disabled) return;
-    if (Platform.OS !== "web") {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-    }
-    onPress();
-  }, [disabled, onPress]);
-
-  const isPrimary = variant === "plus";
-  const baseStyle = isPrimary ? s.stepBtnPrimary : s.stepBtn;
-  const pressStyle = isPrimary ? s.stepBtnPrimaryPressed : s.stepBtnPressed;
-  const glyphColor = isPrimary
-    ? c.onAccent
-    : disabled
-    ? c.inkFaint
-    : c.inkSoft;
-
-  return (
-    <Pressable
-      onPress={handlePress}
-      disabled={disabled}
-      hitSlop={8}
-      pressRetentionOffset={12}
-      accessibilityRole="button"
-      accessibilityLabel={accessibilityLabel}
-      accessibilityState={{ disabled }}
-      style={s.stepBtnTouchable}>
-      {({ pressed }) => (
-        <View
-          style={[
-            baseStyle,
-            pressed && !disabled && pressStyle,
-            disabled && s.stepBtnDisabled,
-          ]}>
-          <Ionicons name={isPrimary ? "add" : "remove"} size={18} color={glyphColor} />
-        </View>
-      )}
-    </Pressable>
-  );
-});
-
-// ─── CartItemCard — zero store subscriptions, all data via props ──────────────
-
-interface CartItemCardProps {
-  item:       CartItem;
-  updateQty:  (productId: string, qty: number) => void;
-  removeItem: (productId: string) => void;
-}
-
-const CartItemCard = memo(function CartItemCard({
-  item,
-  updateQty,
-  removeItem,
-}: CartItemCardProps) {
+/**
+ * Cart Screen — Premium RTL-Ready Edition
+ *
+ * Architecture:
+ *   • Granular Zustand selectors — no re-render cascades
+ *   • renderItem extracted + memoized — stable FlatList identity
+ *   • All colours/spacing via theme tokens or named CART_* constants
+ *   • Full RTL (row-reverse layouts), a11y, haptics, Reanimated animations
+ */
+import React, { memo, useCallback, useMemo } from "react";
+import { useDarkColors } from '@/hooks/useDarkColors';
+import {
+  FlatList,
+  Platform,
+  Pressable,
+  View,
+} from "react-native";
+import { Text as UIText } from "@pharmacy/ui-native";
+import { Image } from "expo-image";
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import * as Haptics from "expo-haptics";
+import Animated, {
+  FadeInDown,
+  FadeOutRight,
+  Layout,
+} from "react-native-reanimated";
+import { useTranslation } from "react-i18next";
+import { useCartStore, selectPricing, selectItemCount, type CartItem } from "@/stores/cart";
+import {
+  useDeliveryContext,
+  FREE_DELIVERY_THRESHOLD,
+} from "@/features/delivery";
+import { showConfirmSheet } from "@/shared/store/appSheetStore";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { kit } from "@pharmacy/ui-native";
+import { FORWARD_CHEVRON } from "@/utils/layout";
+import { useScreenLayout } from "@/utils/responsive";
+import { s } from "@/features/cart/cart.styles";
+
+// ─── StepBtn — product-detail-parity quantity button ──────────────────────────
+// Two visual variants:
+//   • "minus" — neutral surface chip with line border, ink-soft glyph
+//   • "plus"  — accentDeep primary chip with onAccent glyph
+// Pressed feedback comes from Pressable's `pressed` state (tint + scale).
+// The light haptic still fires for tactile confirmation.
+
+const StepBtn = memo(function StepBtn({
+  variant,
+  onPress,
+  disabled,
+  accessibilityLabel,
+}: {
+  variant:             "plus" | "minus";
+  onPress:             () => void;
+  disabled?:           boolean;
+  accessibilityLabel?: string;
+}) {
+  const handlePress = useCallback(() => {
+    if (disabled) return;
+    if (Platform.OS !== "web") {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    }
+    onPress();
+  }, [disabled, onPress]);
+
+  const isPrimary = variant === "plus";
+  const baseStyle = isPrimary ? s.stepBtnPrimary : s.stepBtn;
+  const pressStyle = isPrimary ? s.stepBtnPrimaryPressed : s.stepBtnPressed;
+  const glyphColor = isPrimary
+    ? c.onAccent
+    : disabled
+    ? c.inkFaint
+    : c.inkSoft;
+
+  return (
+    <Pressable
+      onPress={handlePress}
+      disabled={disabled}
+      hitSlop={8}
+      pressRetentionOffset={12}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      accessibilityState={{ disabled }}
+      style={s.stepBtnTouchable}>
+      {({ pressed }) => (
+        <View
+          style={[
+            baseStyle,
+            pressed && !disabled && pressStyle,
+            disabled && s.stepBtnDisabled,
+          ]}>
+          <Ionicons name={isPrimary ? "add" : "remove"} size={18} color={glyphColor} />
+        </View>
+      )}
+    </Pressable>
+  );
+});
+
+// ─── CartItemCard — zero store subscriptions, all data via props ──────────────
+
+interface CartItemCardProps {
+  item:       CartItem;
+  updateQty:  (productId: string, qty: number) => void;
+  removeItem: (productId: string) => void;
+}
+
+const CartItemCard = memo(function CartItemCard({
+  item,
+  updateQty,
+  removeItem,
+}: CartItemCardProps) {
   const { c } = useDarkColors();
-
-  const { c } = useDarkColors();
-
-  const { t } = useTranslation();
-  const product = item.product;
-  const maxQty  = product.stock > 0 ? Math.floor(product.stock) : item.quantity;
-  const isAtMax = item.quantity >= maxQty;
-  const lineTotal = (product.price * item.quantity).toFixed(2);
-  const name = product.nameAr ?? product.name;
-
-  const handleInc = useCallback(() => {
-    if (isAtMax) {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
-      return;
-    }
-    updateQty(item.productId, item.quantity + 1);
-  }, [isAtMax, item.productId, item.quantity, updateQty]);
-
-  const handleDec = useCallback(() => {
-    if (item.quantity > 1) {
-      updateQty(item.productId, item.quantity - 1);
-    } else {
-      removeItem(item.productId);
-    }
-  }, [item.productId, item.quantity, removeItem, updateQty]);
-
-  const handleRemove = useCallback(() => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-    showConfirmSheet(
-      t("cart.removeItemTitle"),
-      t("cart.removeItemMessage", { name }),
-      () => {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
-        removeItem(item.productId);
-      },
-      { confirmLabel: t("cart.removeItem"), danger: true },
-    );
-  }, [item.productId, name, removeItem, t]);
-
-  return (
-    <Animated.View
-      exiting={FadeOutRight.duration(220)}
-      layout={Layout.springify().damping(18)}
-      style={s.card}>
-
-      <View style={s.cardTopRow}>
-        <UIText style={s.catLabel} numberOfLines={1}>{product.categoryName}</UIText>
-        <Pressable
-          onPress={handleRemove}
-          hitSlop={10}
-          accessibilityRole="button"
-          accessibilityLabel={t("cart.removeItem")}
-          style={s.deleteBtnTouchable}>
-          {({ pressed }) => (
-            <View style={[s.deleteBtn, pressed && s.deleteBtnPressed]}>
-              <Ionicons name="trash-outline" size={13} color={c.danger} />
-            </View>
-          )}
-        </Pressable>
-      </View>
-
-      <View style={s.cardMidRow}>
-        <View style={s.imgBox}>
-          {product.imageUrl ? (
-            <Image
-              source={{ uri: product.imageUrl }}
-              style={{ width: "100%", height: "100%" }}
-              contentFit="contain"
-              transition={150}
-            />
-          ) : (
-            <View style={s.imgFallback}>
-              <Ionicons name="medkit-outline" size={26} color={c.inkFaint} />
-            </View>
-          )}
-        </View>
-        <UIText style={s.productName} numberOfLines={3}>{name}</UIText>
-      </View>
-
-      <View style={s.cardBottomRow}>
-        <View style={s.priceWrap}>
-          <UIText style={s.lineTotal}>{lineTotal}</UIText>
-          <UIText style={s.currency}>{t("common.currency")}</UIText>
-          {item.quantity > 1 && (
-            <UIText style={s.unitHint}>{product.price.toFixed(0)} × {item.quantity}</UIText>
-          )}
-        </View>
-        <View style={s.stepper}>
-          <StepBtn
-            variant="minus"
-            onPress={handleDec}
-            accessibilityLabel={t("product.decrement")}
-          />
-          <View style={s.qtyCell}>
-            <UIText style={[s.qtyNum, isAtMax && s.qtyNumMax]}>{item.quantity}</UIText>
-          </View>
-          <StepBtn
-            variant="plus"
-            onPress={handleInc}
-            disabled={isAtMax}
-            accessibilityLabel={t("product.increment")}
-          />
-        </View>
-      </View>
-
-      {isAtMax && product.stock > 0 && (
-        <Animated.View entering={FadeInDown.duration(160)} style={s.maxHint}>
-          <Ionicons name="alert-circle" size={10} color={c.warn} />
-          <UIText style={s.maxHintText}>{t("common.maxQty")}</UIText>
-        </Animated.View>
-      )}
-    </Animated.View>
-  );
-});
-
-// ─── CartHeader ───────────────────────────────────────────────────────────────
-
-const CartHeader = memo(function CartHeader({
-  t,
-  insetsTop,
-  count,
-  onClearPress,
-}: {
-  t:            (key: string, options?: Record<string, unknown>) => string;
-  insetsTop:    number;
-  count:        number;
-  onClearPress: () => void;
-}) {
-  const { pagePad } = useScreenLayout();
-  return (
-    <View style={[s.header, { paddingTop: insetsTop + 14, paddingHorizontal: pagePad }]}>
-      <View style={s.headerRow}>
-        <View style={s.headerLeft}>
-          <View style={s.headerIcon}>
-            <Ionicons name="bag-outline" size={18} color={c.accentDeep} />
-          </View>
-          <View>
-            <UIText style={s.headerEyebrow}>{t("cart.eyebrow")}</UIText>
-            <UIText style={s.headerTitle}>{t("cart.title")}</UIText>
-          </View>
-        </View>
-        <View style={s.headerActions}>
-          <View style={s.countBadge}>
-            <UIText style={s.countText}>{t("cart.itemCount", { count })}</UIText>
-          </View>
-          <Pressable
-            hitSlop={8}
-            accessibilityRole="button"
-            accessibilityLabel={t("cart.clearCart")}
-            style={s.clearBtnTouchable}
-            onPress={onClearPress}>
-            {({ pressed }) => (
-              <View style={[s.clearBtn, pressed && s.clearBtnPressed]}>
-                <Ionicons name="trash-outline" size={13} color={c.danger} />
-                <UIText style={s.clearText}>{t("common.clear")}</UIText>
-              </View>
-            )}
-          </Pressable>
-        </View>
-      </View>
-    </View>
-  );
-});
-
-// ─── CartListHeader ───────────────────────────────────────────────────────────
-
-const CartListHeader = memo(function CartListHeader({
-  t,
-  delivery,
-  progress,
-  remaining,
-}: {
-  t:         (key: string, options?: Record<string, unknown>) => string;
-  delivery:  ReturnType<typeof useDeliveryContext>;
-  progress:  number;
-  remaining: string;
-}) {
-  return (
-    <>
-      {delivery.outOfServiceMessage && (
-        <Animated.View entering={FadeInDown.duration(220)} style={s.warnBanner}>
-          <Ionicons name="alert-circle" size={15} color={c.warn} />
-          <UIText style={s.warnText}>{delivery.outOfServiceMessage}</UIText>
-        </Animated.View>
-      )}
-
-      {delivery.branch && delivery.isDeliverable && (
-        <Animated.View entering={FadeInDown.duration(240)} style={s.branchPill}>
-          <View style={s.branchIconBox}>
-            <Ionicons name="storefront-outline" size={14} color={c.accentDeep} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <UIText style={s.branchEyebrow}>{t("cart.deliveringFrom")}</UIText>
-            <UIText style={s.branchName} numberOfLines={1}>
-              {delivery.branch.fullNameAr ?? delivery.branch.nameAr}
-              {delivery.distanceKm != null &&
-                ` · ${delivery.distanceKm.toFixed(1)} ${t("home.kmUnit")}`}
-            </UIText>
-          </View>
-          <Ionicons name="checkmark-circle" size={18} color={c.success} />
-        </Animated.View>
-      )}
-
-      <View style={s.deliveryCard}>
-        {delivery.isFree ? (
-          <View style={s.freeRow}>
-            <View style={s.freeIconBox}>
-              <Ionicons name="checkmark-circle-outline" size={18} color={c.onInk} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <UIText style={s.freeTitle}>{t("cart.freeDelivery")}</UIText>
-              <UIText style={s.freeSub}>
-                {t("cart.freeDeliverySubtitle", { threshold: FREE_DELIVERY_THRESHOLD })}
-              </UIText>
-            </View>
-          </View>
-        ) : (
-          <>
-            <View style={s.progressHeader}>
-              <View style={s.progressLeft}>
-                <Ionicons name="bicycle-outline" size={15} color={c.warn} />
-                <UIText style={s.progressLabel}>
-                  {t("cart.addForFreeDelivery", { remaining })}
-                </UIText>
-              </View>
-              <UIText style={s.progressPct}>{Math.round(progress * 100)}%</UIText>
-            </View>
-            <View style={s.track}>
-              <View style={[s.fill, { width: `${Math.max(progress * 100, 2)}%` as `${number}%` }]} />
-            </View>
-          </>
-        )}
-      </View>
-
-      <View style={s.trustRow}>
-        {(
-          [
-            {
-              icon:  "flash-outline" as const,
-              label: t("cart.fastDelivery"),
-              tint:  c.warnTint,
-              fg:    c.warn,
-            },
-            {
-              icon:  "shield-checkmark-outline" as const,
-              label: t("cart.securePayment"),
-              tint:  c.successTint,
-              fg:    c.success,
-            },
-            {
-              icon:  "refresh-outline" as const,
-              label: t("cart.guaranteedReturns"),
-              tint:  c.accentTint,
-              fg:    c.accentDeep,
-            },
-          ] as const
-        ).map((b, i, arr) => (
-          <View key={b.label} style={[s.trustCell, i < arr.length - 1 && s.trustDivider]}>
-            <View style={[s.trustIconBox, { backgroundColor: b.tint }]}>
-              <Ionicons name={b.icon} size={13} color={b.fg} />
-            </View>
-            <UIText style={s.trustLabel}>{b.label}</UIText>
-          </View>
-        ))}
-      </View>
-    </>
-  );
-});
-
-// ─── CartScreen ───────────────────────────────────────────────────────────────
-
-export default function CartScreen() {
-  const { c } = useDarkColors();
-
-  const { t }      = useTranslation();
-  const router     = useRouter();
-  const insets     = useSafeAreaInsets();
-  const { pagePad } = useScreenLayout();
-
-  // Granular selectors — no whole-store subscription
-  const items      = useCartStore((s) => s.items);
-  const clearCart  = useCartStore((s) => s.clearCart);
-  const updateQty  = useCartStore((s) => s.updateQty);
-  const removeItem = useCartStore((s) => s.removeItem);
-  const pricing    = useCartStore(selectPricing);
-  const count      = useCartStore(selectItemCount);
-
-  const delivery     = useDeliveryContext();
-  // Re-calculate pricing if delivery context provides a different cost than the store's default
-  const deliveryCost = delivery.isFree ? 0 : delivery.cost;
-  const finalPricing = deliveryCost !== pricing.shipping
-    ? { ...pricing, shipping: deliveryCost, total: pricing.total - pricing.shipping + deliveryCost }
-    : pricing;
-
-  const progress = useMemo(() => Math.min(finalPricing.subtotal / FREE_DELIVERY_THRESHOLD, 1), [finalPricing.subtotal]);
-  const remaining = delivery.isFree
-    ? "0.00"
-    : (delivery.amountToFreeDelivery?.toFixed(2) ?? "0.00");
-
-  const handleClearCart = useCallback(() => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-    showConfirmSheet(
-      t("cart.clearCartTitle"),
-      t("cart.clearCartMessage"),
-      () => {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
-        clearCart();
-      },
-      { confirmLabel: t("cart.clearAll"), danger: true },
-    );
-  }, [clearCart, t]);
-
-  const handleCheckout = useCallback(() => {
-    if (delivery.isDeliverable) router.push("/checkout");
-  }, [delivery.isDeliverable, router]);
-
-  // Stable renderItem — no inline arrow function
-  const renderItem = useCallback(
-    ({ item }: { item: CartItem }) => (
-      <CartItemCard
-        item={item}
-        updateQty={updateQty}
-        removeItem={removeItem}
-      />
-    ),
-    [updateQty, removeItem],
-  );
-
-  // ── Empty state ──────────────────────────────────────────────────────────
-  if (items.length === 0) {
-    return (
-      <View style={[s.screen, { paddingTop: insets.top }]}>
-        <View style={[s.header, { paddingTop: 16, paddingHorizontal: pagePad }]}>
-          <View style={s.headerLeft}>
-            <View style={s.headerIcon}>
-              <Ionicons name="bag-outline" size={18} color={c.accentDeep} />
-            </View>
-            <View>
-              <UIText style={s.headerEyebrow}>{t("cart.eyebrow")}</UIText>
-              <UIText style={s.headerTitle}>{t("cart.title")}</UIText>
-            </View>
-          </View>
-        </View>
-        <EmptyState
-          icon="cart-outline"
-          title={t("cart.emptyTitle")}
-          description={t("cart.emptyDescription")}
-          actionLabel={t("cart.emptyAction")}
-          onAction={() => router.push("/(tabs)/products")}
-        />
-      </View>
-    );
-  }
-
-  // ── Populated ────────────────────────────────────────────────────────────
-  return (
-    <View style={s.screen}>
-      <CartHeader t={t} insetsTop={insets.top} count={count} onClearPress={handleClearCart} />
-
-      <FlatList
-        data={items}
-        keyExtractor={(i) => i.productId}
-        style={{ flex: 1 }}
-        contentContainerStyle={{
-          paddingHorizontal: kit.sp(4),
-          paddingTop:        14,
-          paddingBottom:     kit.sp(4),
-          gap:               10,
-        }}
-        showsVerticalScrollIndicator={false}
-        ListHeaderComponent={
-          <CartListHeader t={t} delivery={delivery} progress={progress} remaining={remaining} />
-        }
-        renderItem={renderItem}
-      />
-
-      <View style={[s.footer, { paddingBottom: Math.max(insets.bottom, 12) + 4, paddingHorizontal: pagePad }]}>
-        <View style={s.footerHandle} />
-
-        {/* Condensed subtotal + delivery rows */}
-        <View style={s.totalsBlock}>
-          <View style={s.totalRow}>
-            <UIText style={s.totalLabel}>{t("cart.subtotal")}</UIText>
-            <UIText style={s.totalValue}>{finalPricing.subtotal.toFixed(2)} {t("common.currency")}</UIText>
-          </View>
-          <View style={s.totalRow}>
-            <UIText style={s.totalLabel}>{t("cart.delivery")}</UIText>
-            {delivery.isFree ? (
-              <UIText style={s.totalFree}>{t("common.free")}</UIText>
-            ) : (
-              <UIText style={s.totalValue}>{deliveryCost.toFixed(2)} {t("common.currency")}</UIText>
-            )}
-          </View>
-          {finalPricing.discount > 0 && (
-            <View style={s.totalRow}>
-              <UIText style={s.totalLabel}>{t("cart.discount")}</UIText>
-              <UIText style={s.totalDiscount}>-{finalPricing.discount.toFixed(2)} {t("common.currency")}</UIText>
-            </View>
-          )}
-        </View>
-
-        {/* Conversion row — total price + massive pill CTA side-by-side */}
-        <View style={s.checkoutRow}>
-          {/* Total price block (RTL: appears on right) */}
-          <View style={s.priceBlock}>
-            <UIText style={s.priceLabel}>{t("cart.total")}</UIText>
-            <View style={s.priceRow}>
-              <UIText style={s.priceTotal}>{finalPricing.total.toFixed(2)}</UIText>
-              <UIText style={s.priceCurrency}>{t("common.currency")}</UIText>
-            </View>
-          </View>
-
-          {/* Pill checkout button (RTL: appears on left) */}
-          <Pressable
-            onPress={handleCheckout}
-            disabled={!delivery.isDeliverable}
-            accessibilityRole="button"
-            accessibilityLabel={t("cart.checkoutBtn", { total: finalPricing.total.toFixed(2) })}
-            accessibilityState={{ disabled: !delivery.isDeliverable }}
-            hitSlop={6}
-            style={s.checkoutOuter}>
-            {({ pressed }) => (
-              <View
-                style={[
-                  s.checkoutInner,
-                  !delivery.isDeliverable && s.checkoutInnerDisabled,
-                  pressed && delivery.isDeliverable && s.checkoutInnerPressed,
-                ]}>
-                <Ionicons name={FORWARD_CHEVRON} size={17} color={c.onInk} />
-                <UIText style={s.checkoutText} numberOfLines={1}>
-                  {delivery.isDeliverable
-                    ? t("cart.checkoutBtnShort")
-                    : t("cart.outsideDelivery")}
-                </UIText>
-              </View>
-            )}
-          </Pressable>
-        </View>
-      </View>
-    </View>
-  );
-}
+  const { t } = useTranslation();
+  const product = item.product;
+  const maxQty  = product.stock > 0 ? Math.floor(product.stock) : item.quantity;
+  const isAtMax = item.quantity >= maxQty;
+  const lineTotal = (product.price * item.quantity).toFixed(2);
+  const name = product.nameAr ?? product.name;
+
+  const handleInc = useCallback(() => {
+    if (isAtMax) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
+      return;
+    }
+    updateQty(item.productId, item.quantity + 1);
+  }, [isAtMax, item.productId, item.quantity, updateQty]);
+
+  const handleDec = useCallback(() => {
+    if (item.quantity > 1) {
+      updateQty(item.productId, item.quantity - 1);
+    } else {
+      removeItem(item.productId);
+    }
+  }, [item.productId, item.quantity, removeItem, updateQty]);
+
+  const handleRemove = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    showConfirmSheet(
+      t("cart.removeItemTitle"),
+      t("cart.removeItemMessage", { name }),
+      () => {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
+        removeItem(item.productId);
+      },
+      { confirmLabel: t("cart.removeItem"), danger: true },
+    );
+  }, [item.productId, name, removeItem, t]);
+
+  return (
+    <Animated.View
+      exiting={FadeOutRight.duration(220)}
+      layout={Layout.springify().damping(18)}
+      style={s.card}>
+
+      <View style={s.cardTopRow}>
+        <UIText style={s.catLabel} numberOfLines={1}>{product.categoryName}</UIText>
+        <Pressable
+          onPress={handleRemove}
+          hitSlop={10}
+          accessibilityRole="button"
+          accessibilityLabel={t("cart.removeItem")}
+          style={s.deleteBtnTouchable}>
+          {({ pressed }) => (
+            <View style={[s.deleteBtn, pressed && s.deleteBtnPressed]}>
+              <Ionicons name="trash-outline" size={13} color={c.danger} />
+            </View>
+          )}
+        </Pressable>
+      </View>
+
+      <View style={s.cardMidRow}>
+        <View style={s.imgBox}>
+          {product.imageUrl ? (
+            <Image
+              source={{ uri: product.imageUrl }}
+              style={{ width: "100%", height: "100%" }}
+              contentFit="contain"
+              transition={150}
+            />
+          ) : (
+            <View style={s.imgFallback}>
+              <Ionicons name="medkit-outline" size={26} color={c.inkFaint} />
+            </View>
+          )}
+        </View>
+        <UIText style={s.productName} numberOfLines={3}>{name}</UIText>
+      </View>
+
+      <View style={s.cardBottomRow}>
+        <View style={s.priceWrap}>
+          <UIText style={s.lineTotal}>{lineTotal}</UIText>
+          <UIText style={s.currency}>{t("common.currency")}</UIText>
+          {item.quantity > 1 && (
+            <UIText style={s.unitHint}>{product.price.toFixed(0)} × {item.quantity}</UIText>
+          )}
+        </View>
+        <View style={s.stepper}>
+          <StepBtn
+            variant="minus"
+            onPress={handleDec}
+            accessibilityLabel={t("product.decrement")}
+          />
+          <View style={s.qtyCell}>
+            <UIText style={[s.qtyNum, isAtMax && s.qtyNumMax]}>{item.quantity}</UIText>
+          </View>
+          <StepBtn
+            variant="plus"
+            onPress={handleInc}
+            disabled={isAtMax}
+            accessibilityLabel={t("product.increment")}
+          />
+        </View>
+      </View>
+
+      {isAtMax && product.stock > 0 && (
+        <Animated.View entering={FadeInDown.duration(160)} style={s.maxHint}>
+          <Ionicons name="alert-circle" size={10} color={c.warn} />
+          <UIText style={s.maxHintText}>{t("common.maxQty")}</UIText>
+        </Animated.View>
+      )}
+    </Animated.View>
+  );
+});
+
+// ─── CartHeader ───────────────────────────────────────────────────────────────
+
+const CartHeader = memo(function CartHeader({
+  t,
+  insetsTop,
+  count,
+  onClearPress,
+}: {
+  t:            (key: string, options?: Record<string, unknown>) => string;
+  insetsTop:    number;
+  count:        number;
+  onClearPress: () => void;
+}) {
+  const { pagePad } = useScreenLayout();
+  return (
+    <View style={[s.header, { paddingTop: insetsTop + 14, paddingHorizontal: pagePad }]}>
+      <View style={s.headerRow}>
+        <View style={s.headerLeft}>
+          <View style={s.headerIcon}>
+            <Ionicons name="bag-outline" size={18} color={c.accentDeep} />
+          </View>
+          <View>
+            <UIText style={s.headerEyebrow}>{t("cart.eyebrow")}</UIText>
+            <UIText style={s.headerTitle}>{t("cart.title")}</UIText>
+          </View>
+        </View>
+        <View style={s.headerActions}>
+          <View style={s.countBadge}>
+            <UIText style={s.countText}>{t("cart.itemCount", { count })}</UIText>
+          </View>
+          <Pressable
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel={t("cart.clearCart")}
+            style={s.clearBtnTouchable}
+            onPress={onClearPress}>
+            {({ pressed }) => (
+              <View style={[s.clearBtn, pressed && s.clearBtnPressed]}>
+                <Ionicons name="trash-outline" size={13} color={c.danger} />
+                <UIText style={s.clearText}>{t("common.clear")}</UIText>
+              </View>
+            )}
+          </Pressable>
+        </View>
+      </View>
+    </View>
+  );
+});
+
+// ─── CartListHeader ───────────────────────────────────────────────────────────
+
+const CartListHeader = memo(function CartListHeader({
+  t,
+  delivery,
+  progress,
+  remaining,
+}: {
+  t:         (key: string, options?: Record<string, unknown>) => string;
+  delivery:  ReturnType<typeof useDeliveryContext>;
+  progress:  number;
+  remaining: string;
+}) {
+  return (
+    <>
+      {delivery.outOfServiceMessage && (
+        <Animated.View entering={FadeInDown.duration(220)} style={s.warnBanner}>
+          <Ionicons name="alert-circle" size={15} color={c.warn} />
+          <UIText style={s.warnText}>{delivery.outOfServiceMessage}</UIText>
+        </Animated.View>
+      )}
+
+      {delivery.branch && delivery.isDeliverable && (
+        <Animated.View entering={FadeInDown.duration(240)} style={s.branchPill}>
+          <View style={s.branchIconBox}>
+            <Ionicons name="storefront-outline" size={14} color={c.accentDeep} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <UIText style={s.branchEyebrow}>{t("cart.deliveringFrom")}</UIText>
+            <UIText style={s.branchName} numberOfLines={1}>
+              {delivery.branch.fullNameAr ?? delivery.branch.nameAr}
+              {delivery.distanceKm != null &&
+                ` · ${delivery.distanceKm.toFixed(1)} ${t("home.kmUnit")}`}
+            </UIText>
+          </View>
+          <Ionicons name="checkmark-circle" size={18} color={c.success} />
+        </Animated.View>
+      )}
+
+      <View style={s.deliveryCard}>
+        {delivery.isFree ? (
+          <View style={s.freeRow}>
+            <View style={s.freeIconBox}>
+              <Ionicons name="checkmark-circle-outline" size={18} color={c.onInk} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <UIText style={s.freeTitle}>{t("cart.freeDelivery")}</UIText>
+              <UIText style={s.freeSub}>
+                {t("cart.freeDeliverySubtitle", { threshold: FREE_DELIVERY_THRESHOLD })}
+              </UIText>
+            </View>
+          </View>
+        ) : (
+          <>
+            <View style={s.progressHeader}>
+              <View style={s.progressLeft}>
+                <Ionicons name="bicycle-outline" size={15} color={c.warn} />
+                <UIText style={s.progressLabel}>
+                  {t("cart.addForFreeDelivery", { remaining })}
+                </UIText>
+              </View>
+              <UIText style={s.progressPct}>{Math.round(progress * 100)}%</UIText>
+            </View>
+            <View style={s.track}>
+              <View style={[s.fill, { width: `${Math.max(progress * 100, 2)}%` as `${number}%` }]} />
+            </View>
+          </>
+        )}
+      </View>
+
+      <View style={s.trustRow}>
+        {(
+          [
+            {
+              icon:  "flash-outline" as const,
+              label: t("cart.fastDelivery"),
+              tint:  c.warnTint,
+              fg:    c.warn,
+            },
+            {
+              icon:  "shield-checkmark-outline" as const,
+              label: t("cart.securePayment"),
+              tint:  c.successTint,
+              fg:    c.success,
+            },
+            {
+              icon:  "refresh-outline" as const,
+              label: t("cart.guaranteedReturns"),
+              tint:  c.accentTint,
+              fg:    c.accentDeep,
+            },
+          ] as const
+        ).map((b, i, arr) => (
+          <View key={b.label} style={[s.trustCell, i < arr.length - 1 && s.trustDivider]}>
+            <View style={[s.trustIconBox, { backgroundColor: b.tint }]}>
+              <Ionicons name={b.icon} size={13} color={b.fg} />
+            </View>
+            <UIText style={s.trustLabel}>{b.label}</UIText>
+          </View>
+        ))}
+      </View>
+    </>
+  );
+});
+
+// ─── CartScreen ───────────────────────────────────────────────────────────────
+
+export default function CartScreen() {
+  const { c } = useDarkColors();
+
+  const { t }      = useTranslation();
+  const router     = useRouter();
+  const insets     = useSafeAreaInsets();
+  const { pagePad } = useScreenLayout();
+
+  // Granular selectors — no whole-store subscription
+  const items      = useCartStore((s) => s.items);
+  const clearCart  = useCartStore((s) => s.clearCart);
+  const updateQty  = useCartStore((s) => s.updateQty);
+  const removeItem = useCartStore((s) => s.removeItem);
+  const pricing    = useCartStore(selectPricing);
+  const count      = useCartStore(selectItemCount);
+
+  const delivery     = useDeliveryContext();
+  // Re-calculate pricing if delivery context provides a different cost than the store's default
+  const deliveryCost = delivery.isFree ? 0 : delivery.cost;
+  const finalPricing = deliveryCost !== pricing.shipping
+    ? { ...pricing, shipping: deliveryCost, total: pricing.total - pricing.shipping + deliveryCost }
+    : pricing;
+
+  const progress = useMemo(() => Math.min(finalPricing.subtotal / FREE_DELIVERY_THRESHOLD, 1), [finalPricing.subtotal]);
+  const remaining = delivery.isFree
+    ? "0.00"
+    : (delivery.amountToFreeDelivery?.toFixed(2) ?? "0.00");
+
+  const handleClearCart = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    showConfirmSheet(
+      t("cart.clearCartTitle"),
+      t("cart.clearCartMessage"),
+      () => {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
+        clearCart();
+      },
+      { confirmLabel: t("cart.clearAll"), danger: true },
+    );
+  }, [clearCart, t]);
+
+  const handleCheckout = useCallback(() => {
+    if (delivery.isDeliverable) router.push("/checkout");
+  }, [delivery.isDeliverable, router]);
+
+  // Stable renderItem — no inline arrow function
+  const renderItem = useCallback(
+    ({ item }: { item: CartItem }) => (
+      <CartItemCard
+        item={item}
+        updateQty={updateQty}
+        removeItem={removeItem}
+      />
+    ),
+    [updateQty, removeItem],
+  );
+
+  // ── Empty state ──────────────────────────────────────────────────────────
+  if (items.length === 0) {
+    return (
+      <View style={[s.screen, { paddingTop: insets.top }]}>
+        <View style={[s.header, { paddingTop: 16, paddingHorizontal: pagePad }]}>
+          <View style={s.headerLeft}>
+            <View style={s.headerIcon}>
+              <Ionicons name="bag-outline" size={18} color={c.accentDeep} />
+            </View>
+            <View>
+              <UIText style={s.headerEyebrow}>{t("cart.eyebrow")}</UIText>
+              <UIText style={s.headerTitle}>{t("cart.title")}</UIText>
+            </View>
+          </View>
+        </View>
+        <EmptyState
+          icon="cart-outline"
+          title={t("cart.emptyTitle")}
+          description={t("cart.emptyDescription")}
+          actionLabel={t("cart.emptyAction")}
+          onAction={() => router.push("/(tabs)/products")}
+        />
+      </View>
+    );
+  }
+
+  // ── Populated ────────────────────────────────────────────────────────────
+  return (
+    <View style={s.screen}>
+      <CartHeader t={t} insetsTop={insets.top} count={count} onClearPress={handleClearCart} />
+
+      <FlatList
+        data={items}
+        keyExtractor={(i) => i.productId}
+        style={{ flex: 1 }}
+        contentContainerStyle={{
+          paddingHorizontal: kit.sp(4),
+          paddingTop:        14,
+          paddingBottom:     kit.sp(4),
+          gap:               10,
+        }}
+        showsVerticalScrollIndicator={false}
+        ListHeaderComponent={
+          <CartListHeader t={t} delivery={delivery} progress={progress} remaining={remaining} />
+        }
+        renderItem={renderItem}
+      />
+
+      <View style={[s.footer, { paddingBottom: Math.max(insets.bottom, 12) + 4, paddingHorizontal: pagePad }]}>
+        <View style={s.footerHandle} />
+
+        {/* Condensed subtotal + delivery rows */}
+        <View style={s.totalsBlock}>
+          <View style={s.totalRow}>
+            <UIText style={s.totalLabel}>{t("cart.subtotal")}</UIText>
+            <UIText style={s.totalValue}>{finalPricing.subtotal.toFixed(2)} {t("common.currency")}</UIText>
+          </View>
+          <View style={s.totalRow}>
+            <UIText style={s.totalLabel}>{t("cart.delivery")}</UIText>
+            {delivery.isFree ? (
+              <UIText style={s.totalFree}>{t("common.free")}</UIText>
+            ) : (
+              <UIText style={s.totalValue}>{deliveryCost.toFixed(2)} {t("common.currency")}</UIText>
+            )}
+          </View>
+          {finalPricing.discount > 0 && (
+            <View style={s.totalRow}>
+              <UIText style={s.totalLabel}>{t("cart.discount")}</UIText>
+              <UIText style={s.totalDiscount}>-{finalPricing.discount.toFixed(2)} {t("common.currency")}</UIText>
+            </View>
+          )}
+        </View>
+
+        {/* Conversion row — total price + massive pill CTA side-by-side */}
+        <View style={s.checkoutRow}>
+          {/* Total price block (RTL: appears on right) */}
+          <View style={s.priceBlock}>
+            <UIText style={s.priceLabel}>{t("cart.total")}</UIText>
+            <View style={s.priceRow}>
+              <UIText style={s.priceTotal}>{finalPricing.total.toFixed(2)}</UIText>
+              <UIText style={s.priceCurrency}>{t("common.currency")}</UIText>
+            </View>
+          </View>
+
+          {/* Pill checkout button (RTL: appears on left) */}
+          <Pressable
+            onPress={handleCheckout}
+            disabled={!delivery.isDeliverable}
+            accessibilityRole="button"
+            accessibilityLabel={t("cart.checkoutBtn", { total: finalPricing.total.toFixed(2) })}
+            accessibilityState={{ disabled: !delivery.isDeliverable }}
+            hitSlop={6}
+            style={s.checkoutOuter}>
+            {({ pressed }) => (
+              <View
+                style={[
+                  s.checkoutInner,
+                  !delivery.isDeliverable && s.checkoutInnerDisabled,
+                  pressed && delivery.isDeliverable && s.checkoutInnerPressed,
+                ]}>
+                <Ionicons name={FORWARD_CHEVRON} size={17} color={c.onInk} />
+                <UIText style={s.checkoutText} numberOfLines={1}>
+                  {delivery.isDeliverable
+                    ? t("cart.checkoutBtnShort")
+                    : t("cart.outsideDelivery")}
+                </UIText>
+              </View>
+            )}
+          </Pressable>
+        </View>
+      </View>
+    </View>
+  );
+}
