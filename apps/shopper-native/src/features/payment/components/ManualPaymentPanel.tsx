@@ -102,7 +102,7 @@ export const ManualPaymentPanel = memo(function ManualPaymentPanel({
               <Image source={{ uri: receiptUri }} style={styles.preview} resizeMode="cover" />
             ) : (
               <View style={styles.uploadPlaceholder}>
-                <Ionicons name="image-outline" size={32} color={theme.colors.slate[400]} />
+                <Ionicons name="image-outline" size={32} color={kit.color.slate[400]} />
                 <UIText style={styles.uploadPlaceholderText}>{t("payment.pickReceipt")}</UIText>
               </View>
             )}
@@ -120,7 +120,7 @@ const styles = StyleSheet.create({
   hint: {
     fontSize: 12,
     fontFamily: theme.fonts.semibold,
-    color: theme.colors.slate[600],
+    color: kit.color.slate[600],
     textAlign: textAlignStart(isRtl()),
     lineHeight: 18,
   },
@@ -132,7 +132,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     backgroundColor: kit.color.accentTint,
     borderWidth: 1,
-    borderColor: theme.colors.border.brandSoft,
+    borderColor: kit.color.border.brandSoft,
   },
   walletNumber: {
     fontSize: 32,
@@ -164,7 +164,7 @@ const styles = StyleSheet.create({
   uploadLabel: {
     fontSize: 12,
     fontFamily: theme.fonts.bold,
-    color: theme.colors.text.secondary,
+    color: kit.color.text.secondary,
     textAlign: textAlignStart(isRtl()),
   },
   uploadBoxTouchable: {
@@ -174,10 +174,10 @@ const styles = StyleSheet.create({
     minHeight: 160,
     borderRadius: 14,
     borderWidth: 1.5,
-    borderColor: theme.colors.border.default,
+    borderColor: kit.color.border.default,
     borderStyle: "dashed",
     overflow: "hidden",
-    backgroundColor: theme.colors.surfaceSunken,
+    backgroundColor: kit.color.surfaceSunken,
   },
   uploadBoxFilled: {
     borderStyle: "solid",
@@ -199,7 +199,7 @@ const styles = StyleSheet.create({
   uploadPlaceholderText: {
     fontSize: 12,
     fontFamily: theme.fonts.semibold,
-    color: theme.colors.slate[500],
+    color: kit.color.slate[500],
     textAlign: "center",
   },
   preview: {
@@ -209,7 +209,7 @@ const styles = StyleSheet.create({
   errorText: {
     fontSize: 12,
     fontFamily: theme.fonts.semibold,
-    color: theme.colors.error.strong,
+    color: kit.color.error.strong,
     textAlign: textAlignStart(isRtl()),
   },
 });

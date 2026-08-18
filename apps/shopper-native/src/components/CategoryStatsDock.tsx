@@ -84,7 +84,7 @@ function StatsError({ onRetry }: { onRetry: () => void }) {
   const { t } = useTranslation();
   return (
     <Pressable onPress={onRetry} style={styles.errorDock}>
-      <Ionicons name="refresh-outline" size={16} color={theme.colors.amber[600]} />
+      <Ionicons name="refresh-outline" size={16} color={kit.color.amber[600]} />
       <UIText style={styles.errorText}>{t("products.statsError")}</UIText>
     </Pressable>
   );
@@ -190,23 +190,23 @@ export function CategoryStatsDock({ categoriesCount }: CategoryStatsDockProps) {
       icon: "cube-outline",
       value: prodCount,
       label: t("products.statItems"),
-      accent: theme.colors.purple[600],
-      bg: theme.colors.purple[50],
+      accent: kit.color.purple[600],
+      bg: kit.color.purple[50],
       isNumeric: true,
     },
     {
       icon: "flash-outline",
       value: t("products.statFastValue"),
       label: t("products.statFastLabel"),
-      accent: theme.colors.amber[600],
-      bg: theme.colors.amber[50],
+      accent: kit.color.amber[600],
+      bg: kit.color.amber[50],
     },
     {
       icon: "shield-checkmark-outline",
       value: t("products.statOriginalValue"),
       label: t("products.statOriginalLabel"),
-      accent: theme.colors.green[600],
-      bg: theme.colors.green[50],
+      accent: kit.color.green[600],
+      bg: kit.color.green[50],
     },
   ];
 
@@ -242,7 +242,7 @@ const styles = StyleSheet.create({
     flexDirection: flexRow(isRtl()),
     ...theme.shadow.lg,
     borderWidth: 1,
-    borderColor: theme.colors.slate[100],
+    borderColor: kit.color.slate[100],
   },
   statCell: {
     flex: 1,
@@ -250,8 +250,8 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   cellBorder: {
-    borderRightWidth: 1,
-    borderRightColor: theme.colors.slate[100],
+    borderEndWidth: 1,
+    borderRightColor: kit.color.slate[100],
   },
   statIcon: {
     width: 30,
@@ -263,12 +263,12 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 14,
     fontFamily: theme.fonts.black,
-    color: theme.colors.slate[900],
+    color: kit.color.slate[900],
   },
   statLabel: {
     fontSize: 9,
     fontFamily: theme.fonts.semibold,
-    color: theme.colors.slate[400],
+    color: kit.color.slate[400],
   },
 
   // Skeleton
@@ -276,24 +276,24 @@ const styles = StyleSheet.create({
     width: 30,
     height: 30,
     borderRadius: 10,
-    backgroundColor: theme.colors.slate[100],
+    backgroundColor: kit.color.slate[100],
   },
   skeletonValue: {
     width: 32,
     height: 14,
     borderRadius: 6,
-    backgroundColor: theme.colors.slate[100],
+    backgroundColor: kit.color.slate[100],
   },
   skeletonLabel: {
     width: 24,
     height: 10,
     borderRadius: 4,
-    backgroundColor: theme.colors.slate[100],
+    backgroundColor: kit.color.slate[100],
   },
 
   // Error
   errorDock: {
-    backgroundColor: theme.colors.amber[50],
+    backgroundColor: kit.color.amber[50],
     borderRadius: 16,
     paddingVertical: 12,
     paddingHorizontal: 16,
@@ -302,12 +302,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 8,
     borderWidth: 1,
-    borderColor: theme.colors.amber[100],
+    borderColor: kit.color.amber[100],
   },
   errorText: {
     fontSize: 11,
     fontFamily: theme.fonts.semibold,
-    color: theme.colors.amber[700],
+    color: kit.color.amber[700],
     textAlign: textAlignStart(isRtl()),
   },
 });

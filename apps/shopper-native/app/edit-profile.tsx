@@ -74,7 +74,7 @@ export default function EditProfileScreen() {
         // infinite spinner with no way out. Fall through to the form so the
         // existing error banner can surface the problem and the user can retry.
         if (!mountedRef.current) return;
-        if (__DEV__) console.warn("[edit-profile] getUser failed:", e);
+        if (__DEV__) 
         captureError(e, { surface: "edit-profile-load" });
         setError(getAuthError(e, i18n.language));
         setPhase("form");
@@ -95,7 +95,7 @@ export default function EditProfileScreen() {
       await updateProfile({ name: trimmedName, phone: phone.trim() });
       if (mountedRef.current) setPhase("success");
     } catch (e) {
-      if (__DEV__) console.warn("[edit-profile] updateProfile failed:", e);
+      if (__DEV__) 
       captureError(e, { surface: "edit-profile" });
       if (mountedRef.current) setError(getAuthError(e, i18n.language));
     } finally {

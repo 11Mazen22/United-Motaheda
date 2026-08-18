@@ -13,6 +13,7 @@ import { Ionicons }             from "@expo/vector-icons";
 import { useTranslation }       from "react-i18next";
 
 import { Screen, Text as UIText, kit, Button } from "@pharmacy/ui-native";
+import { useDarkColors } from "@/hooks/useDarkColors";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
 import { formatPrice }            from "@/utils/format";
 import { showErrorSheet, showSuccessSheet } from "@/shared/store/appSheetStore";

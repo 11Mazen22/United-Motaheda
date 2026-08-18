@@ -1,4 +1,4 @@
-﻿/**
+/**
  * AppHeader — reusable top bar for non-tab routes.
  *
  * Spec: HANDOFF.md §2.3. Used by future pharmacy routes (/prescriptions,
@@ -14,6 +14,7 @@
  * // lands on Day 2.
  */
 
+import { kit } from "@pharmacy/ui-native";
 import React from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { Text as UIText } from "@pharmacy/ui-native";
@@ -55,8 +56,8 @@ export function AppHeader({
   const cartCount = useCartStore((s) => s.itemCount());
 
   const isHero = variant === "hero";
-  const fg     = isHero ? theme.colors.white : theme.colors.text.primary;
-  const subtle = isHero ? "rgba(255,255,255,0.85)" : theme.colors.text.primary;
+  const fg     = isHero ? kit.color.white : kit.color.text.primary;
+  const subtle = isHero ? "rgba(255,255,255,0.85)" : kit.color.text.primary;
 
   return (
     <View
@@ -110,8 +111,8 @@ export function AppHeader({
                     styles.badge,
                     {
                       borderColor: isHero
-                        ? theme.colors.hero
-                        : theme.colors.surface,
+                        ? kit.color.hero
+                        : kit.color.surface,
                     },
                   ]}>
                   <UIText style={styles.badgeText}>
@@ -132,7 +133,7 @@ const styles = StyleSheet.create({
     backgroundColor: "transparent",
   },
   containerDefault: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: kit.color.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: "rgba(10,18,32,0.10)",
   },
@@ -167,12 +168,12 @@ const styles = StyleSheet.create({
     top:               6,
     // RTL: badge on right edge; LTR: badge on left edge (matches ProductCard's
     // top-start badge convention — mirrors instead of double-flipping in RTL).
-    ...(IS_RTL ? { right: 4 } : { left: 4 }),
+    ...(IS_RTL ? { end: 4 } : { start: 4 }),
     minWidth:          18,
     height:            18,
     paddingHorizontal: 4,
     borderRadius:      9,
-    backgroundColor:   theme.colors.error.base,
+    backgroundColor:   kit.color.error.base,
     borderWidth:       2,
     alignItems:        "center",
     justifyContent:    "center",

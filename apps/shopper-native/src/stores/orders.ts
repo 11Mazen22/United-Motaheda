@@ -146,7 +146,7 @@ export const useOrderStore = create<OrdersState>((set) => ({
       set({ orders, isHydrated: true, loading: false });
       AsyncStorage.setItem(ORDERS_KEY, JSON.stringify(orders)).catch(() => {});
     } catch (e) {
-      if (__DEV__) console.warn("[orders.hydrate] fetch failed, falling back to cache:", e);
+      if (__DEV__) 
       try {
         const raw = await AsyncStorage.getItem(ORDERS_KEY);
         if (raw) {

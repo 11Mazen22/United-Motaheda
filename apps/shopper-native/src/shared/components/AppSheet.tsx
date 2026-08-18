@@ -34,7 +34,7 @@ import {
   type AppSheetType,
 } from "@/shared/store/appSheetStore";
 import { Text as UIText } from "@pharmacy/ui-native";
-import { theme } from "@pharmacy/design-tokens";
+import { kit } from "@pharmacy/ui-native";
 
 const { height: SCREEN_H } = Dimensions.get("window");
 const DISMISS_THRESHOLD     = 90;
@@ -53,14 +53,14 @@ type TypeCfg = {
 const TYPE_CFG: Record<AppSheetType, TypeCfg> = {
   error: {
     icon:    "close-circle",
-    grad:    ["#FF7676", theme.colors.red[500]],
+    grad:    ["#FF7676", kit.color.danger],
     glow:    "rgba(239,68,68,0.28)",
     badge:   "sheet.badge.error",
     badgeBg: "rgba(239,68,68,0.12)",
   },
   warning: {
     icon:    "warning",
-    grad:    [theme.colors.amber[300], theme.colors.amber[500]],
+    grad:    [kit.color.warn, kit.color.warn],
     glow:    "rgba(245,158,11,0.28)",
     badge:   "sheet.badge.warning",
     badgeBg: "rgba(245,158,11,0.12)",
@@ -95,7 +95,7 @@ const TYPE_CFG: Record<AppSheetType, TypeCfg> = {
   },
   confirm: {
     icon:    "alert-circle",
-    grad:    [theme.colors.amber[400], theme.colors.amber[600]],
+    grad:    [kit.color.warn[400], kit.color.warn[600]],
     glow:    "rgba(217,119,6,0.28)",
     badge:   "sheet.badge.confirm",
     badgeBg: "rgba(217,119,6,0.12)",
@@ -131,7 +131,7 @@ function ActionBtn({ action, cfg }: { action: AppSheetAction; cfg: TypeCfg }) {
       <Animated.View style={anim}>
         {isP || isD ? (
           <LinearGradient
-            colors={isD ? ["#FF7676", theme.colors.red[500]] : cfg.grad}
+            colors={isD ? ["#FF7676", kit.color.danger[500]] : cfg.grad}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={s.btnPrimary}>
@@ -285,11 +285,11 @@ const s = StyleSheet.create({
   sheet: {
     position:        "absolute",
     bottom:          0,
-    left:            0,
-    right:           0,
+    start: 0,
+    end: 0,
     backgroundColor: "#FFFFFF",
-    borderTopLeftRadius:  32,
-    borderTopRightRadius: 32,
+    borderTopStartRadius:  32,
+    borderTopEndRadius: 32,
     shadowColor:     "#0A1628",
     shadowOffset:    { width: 0, height: -6 },
     shadowOpacity:   0.16,
@@ -404,9 +404,9 @@ const s = StyleSheet.create({
   btnSecTxt: {
     fontSize:   14,
     fontFamily: "Cairo_700Bold",
-    color:      theme.colors.slate[700],
+    color:      kit.color.inkSoft,
   },
   btnGhostTxt: {
-    color: theme.colors.slate[400],
+    color: kit.color.inkSoft,
   },
 });

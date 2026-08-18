@@ -23,7 +23,6 @@ import { useAuth } from "@/features/auth";
 import { useNotifications, type AppNotification, type NotifType } from "@/features/notifications";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { theme } from "@pharmacy/design-tokens";
 import { useDarkColors } from "@/hooks/useDarkColors";
 import { flexRow, isRtl, textAlignStart, BACK_CHEVRON } from "@/utils/layout";
 
@@ -34,10 +33,10 @@ const TEXT_START = textAlignStart(IS_RTL);
 
 // ─── Type config — all kit tokens ────────────────────────────────────────────
 const TYPE_CONFIG: Record<NotifType, { icon: IoniconsName; color: string; bg: string; labelKey: string }> = {
-  order:  { icon: "bag-handle",       color: kit.color.accentDeep,  bg: kit.color.accentTint,        labelKey: "notifications.typeOrder"  },
-  offer:  { icon: "pricetag",         color: kit.color.warn,         bg: kit.color.warnTint,          labelKey: "notifications.typeOffer"  },
-  health: { icon: "heart",            color: kit.color.danger,       bg: kit.color.dangerTint,        labelKey: "notifications.typeHealth" },
-  system: { icon: "settings-outline", color: kit.color.inkSoft,     bg: kit.color.well,               labelKey: "notifications.typeSystem" },
+  order:  { icon: "bag-handle",       color: c.accentDeep,  bg: c.accentTint,        labelKey: "notifications.typeOrder"  },
+  offer:  { icon: "pricetag",         color: c.warn,         bg: c.warnTint,          labelKey: "notifications.typeOffer"  },
+  health: { icon: "heart",            color: c.danger,       bg: c.dangerTint,        labelKey: "notifications.typeHealth" },
+  system: { icon: "settings-outline", color: c.inkSoft,     bg: c.well,               labelKey: "notifications.typeSystem" },
 };
 
 type Filter = "all" | NotifType;
@@ -117,6 +116,8 @@ function groupByDate(
 
 // ─── Skeleton list ────────────────────────────────────────────────────────────
 function NotificationsSkeleton({ insetsBottom }: { insetsBottom: number }) {
+  const { c } = useDarkColors();
+
   return (
     <ScrollView
       contentContainerStyle={[
@@ -178,7 +179,7 @@ const NotificationRow = React.memo(function NotificationRow({
       onPress={onPress}
       scaleTo={0.985}
       hitSlop={6}
-      android_ripple={{ color: kit.color.well }}
+      android_ripple={{ color: c.well }}
       accessibilityRole="button"
       accessibilityLabel={`${item.title}. ${item.body}`}
       accessibilityState={{ selected: !item.isRead }}
@@ -237,6 +238,8 @@ const NotificationRow = React.memo(function NotificationRow({
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 export default function NotificationsScreen() {
+  const { c } = useDarkColors();
+
   const router   = useRouter();
   const insets   = useSafeAreaInsets();
   const { t }    = useTranslation();
@@ -308,11 +311,11 @@ export default function NotificationsScreen() {
             style={s.backBtn}
             accessibilityRole="button"
             accessibilityLabel={t("common.back")}>
-            <Ionicons name={BACK_CHEVRON} size={18} color={kit.color.inkSoft} />
+            <Ionicons name={BACK_CHEVRON} size={18} color={c.inkSoft} />
           </Pressable>
 
           <View style={s.iconTile}>
-            <Ionicons name="notifications-outline" size={22} color={kit.color.accentDeep} />
+            <Ionicons name="notifications-outline" size={22} color={c.accentDeep} />
           </View>
 
           <View style={{ flex: 1 }}>
@@ -330,7 +333,7 @@ export default function NotificationsScreen() {
             style={s.settingsBtn}
             hitSlop={6}
             accessibilityRole="button">
-            <Ionicons name="settings-outline" size={17} color={kit.color.inkSoft} />
+            <Ionicons name="settings-outline" size={17} color={c.inkSoft} />
           </Pressable>
         </View>
 
@@ -396,13 +399,13 @@ export default function NotificationsScreen() {
             <RefreshControl
               refreshing={loading}
               onRefresh={() => refetch()}
-              tintColor={kit.color.accent}
+              tintColor={c.accent}
             />
           }
           ListFooterComponent={
             isFetchingNextPage ? (
               <View style={{ paddingVertical: 16 }}>
-                <ActivityIndicator color={kit.color.accent} />
+                <ActivityIndicator color={c.accent} />
               </View>
             ) : null
           }
@@ -425,16 +428,16 @@ export default function NotificationsScreen() {
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const s = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: kit.color.canvas },
+  screen: { flex: 1, backgroundColor: c.canvas },
 
   // Header
   header: {
     paddingHorizontal: 16,
     paddingBottom:     14,
     gap:               12,
-    backgroundColor:   kit.color.surface,
+    backgroundColor:   c.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: kit.color.line,
+    borderBottomColor: c.line,
     ...kit.shadow.raised,
   },
   headerTopRow: { alignItems: "center", gap: 12 },
@@ -442,11 +445,11 @@ const s = StyleSheet.create({
     width:           40,
     height:          40,
     borderRadius:    20,
-    backgroundColor: kit.color.surface,
+    backgroundColor: c.surface,
     alignItems:      "center",
     justifyContent:  "center",
     borderWidth:     1,
-    borderColor:     kit.color.line,
+    borderColor:     c.line,
     ...kit.shadow.raised,
     flexShrink:      0,
   },
@@ -454,9 +457,9 @@ const s = StyleSheet.create({
     width:           52,
     height:          52,
     borderRadius:    16,
-    backgroundColor: kit.color.accentTint,
+    backgroundColor: c.accentTint,
     borderWidth:     1,
-    borderColor:     kit.color.line,
+    borderColor:     c.line,
     alignItems:      "center",
     justifyContent:  "center",
     flexShrink:      0,
@@ -465,7 +468,7 @@ const s = StyleSheet.create({
     fontFamily:         theme.fonts.black,
     fontSize:           18,
     letterSpacing:      -0.4,
-    color:              kit.color.ink,
+    color:              c.ink,
     textAlign:          TEXT_START,
     includeFontPadding: false,
   },
@@ -478,24 +481,24 @@ const s = StyleSheet.create({
     width:           6,
     height:          6,
     borderRadius:    3,
-    backgroundColor: kit.color.accent,
+    backgroundColor: c.accent,
     flexShrink:      0,
   },
   unreadText: {
     fontSize:           10,
     fontFamily:         theme.fonts.bold,
-    color:              kit.color.accentDeep,
+    color:              c.accentDeep,
     includeFontPadding: false,
   },
   settingsBtn: {
     width:           40,
     height:          40,
     borderRadius:    20,
-    backgroundColor: kit.color.well,
+    backgroundColor: c.well,
     alignItems:      "center",
     justifyContent:  "center",
     borderWidth:     1,
-    borderColor:     kit.color.line,
+    borderColor:     c.line,
     flexShrink:      0,
   },
 
@@ -506,18 +509,18 @@ const s = StyleSheet.create({
     paddingHorizontal: 13,
     paddingVertical:   7,
     borderRadius:      20,
-    backgroundColor:   kit.color.well,
+    backgroundColor:   c.well,
     borderWidth:       1,
-    borderColor:       kit.color.line,
+    borderColor:       c.line,
   },
   filterChipActive: {
-    backgroundColor: kit.color.ink,
-    borderColor:     kit.color.ink,
+    backgroundColor: c.ink,
+    borderColor:     c.ink,
   },
   filterChipText: {
     fontSize:           10.5,
     fontFamily:         theme.fonts.bold,
-    color:              kit.color.inkSoft,
+    color:              c.inkSoft,
     includeFontPadding: false,
   },
   filterChipTextActive: {
@@ -527,7 +530,7 @@ const s = StyleSheet.create({
   markAllText: {
     fontSize:           11,
     fontFamily:         theme.fonts.bold,
-    color:              kit.color.accentDeep,
+    color:              c.accentDeep,
     includeFontPadding: false,
     flexShrink:         0,
   },
@@ -537,7 +540,7 @@ const s = StyleSheet.create({
   loadingText: {
     fontSize:   13,
     fontFamily: theme.fonts.semibold,
-    color:      kit.color.inkFaint,
+    color:      c.inkFaint,
   },
 
   // List + card row
@@ -550,7 +553,7 @@ const s = StyleSheet.create({
     fontFamily:         theme.fonts.black,
     letterSpacing:      0.4,
     textTransform:      "uppercase",
-    color:              kit.color.inkFaint,
+    color:              c.inkFaint,
     paddingTop:         14,
     paddingBottom:      8,
   },
@@ -563,7 +566,7 @@ const s = StyleSheet.create({
     width:           48,
     height:          48,
     borderRadius:    14,
-    backgroundColor: kit.color.danger,
+    backgroundColor: c.danger,
     alignItems:      "center",
     justifyContent:  "center",
   },
@@ -573,19 +576,19 @@ const s = StyleSheet.create({
     gap:               14,
     paddingHorizontal: 16,
     paddingVertical:   16,
-    backgroundColor:   kit.color.surface,
+    backgroundColor:   c.surface,
     borderRadius:      18,
     borderWidth:       1,
-    borderColor:       kit.color.line,
+    borderColor:       c.line,
     ...kit.shadow.raised,
   },
   notifCardUnread: {
-    backgroundColor:  kit.color.accentTint,
-    borderColor:      `${kit.color.accent}22`,
+    backgroundColor:  c.accentTint,
+    borderColor:      `${c.accent}22`,
     borderStartWidth: 3,
-    borderStartColor: kit.color.accent,
+    borderStartColor: c.accent,
   },
-  notifCardRead: { backgroundColor: kit.color.surface },
+  notifCardRead: { backgroundColor: c.surface },
   notifIcon: {
     width:          46,
     height:         46,
@@ -606,17 +609,17 @@ const s = StyleSheet.create({
     flex:               1,
     fontSize:           13.5,
     fontFamily:         theme.fonts.bold,
-    color:              kit.color.inkSoft,
+    color:              c.inkSoft,
     includeFontPadding: false,
   },
   notifTitleUnread: {
     fontFamily: theme.fonts.black,
-    color:      kit.color.ink,
+    color:      c.ink,
   },
   notifTime: {
     fontSize:           10,
     fontFamily:         theme.fonts.semibold,
-    color:              kit.color.inkFaint,
+    color:              c.inkFaint,
     includeFontPadding: false,
     writingDirection:   "ltr",
     fontVariant:        ["tabular-nums"],
@@ -624,7 +627,7 @@ const s = StyleSheet.create({
   notifBody: {
     fontSize:           12.5,
     fontFamily:         theme.fonts.regular,
-    color:              kit.color.inkSoft,
+    color:              c.inkSoft,
     lineHeight:         19,
     includeFontPadding: false,
   },

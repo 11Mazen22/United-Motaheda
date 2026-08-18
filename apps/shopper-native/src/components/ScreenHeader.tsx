@@ -21,7 +21,7 @@ export default function ScreenHeader({ title, subtitle, onBack, rightAction, tra
       style={[
         s.container,
         { flexDirection: flexRow(rtl) },
-        !transparent && { backgroundColor: theme.colors.canvas.surface, borderBottomWidth: 1, borderBottomColor: theme.colors.border.default }
+        !transparent && { backgroundColor: kit.color.canvas.surface, borderBottomWidth: 1, borderBottomColor: kit.color.border.default }
       ]}
     >
       <View style={[s.sideContainer, { alignItems: rtl ? "flex-end" : "flex-start" }]}>
@@ -32,17 +32,17 @@ export default function ScreenHeader({ title, subtitle, onBack, rightAction, tra
             onPress={onBack}
             style={s.iconButton}
           >
-            <Ionicons name={BACK_CHEVRON} size={24} color={theme.colors.text.primary} />
+            <Ionicons name={BACK_CHEVRON} size={24} color={kit.color.text.primary} />
           </TouchableOpacity>
         )}
       </View>
 
       <View style={s.centerContainer}>
-        <Text variant="screen-title" align="center" style={{ color: theme.colors.text.primary }} numberOfLines={1}>
+        <Text variant="screen-title" align="center" style={{ color: kit.color.text.primary }} numberOfLines={1}>
           {title}
         </Text>
         {subtitle && (
-          <Text variant="caption" align="center" style={{ color: theme.colors.text.secondary }} numberOfLines={1}>
+          <Text variant="caption" align="center" style={{ color: kit.color.text.secondary }} numberOfLines={1}>
             {subtitle}
           </Text>
         )}
@@ -56,7 +56,7 @@ export default function ScreenHeader({ title, subtitle, onBack, rightAction, tra
             onPress={rightAction.onPress}
             style={s.iconButton}
           >
-            <Ionicons name={rightAction.icon} size={24} color={theme.colors.text.primary} />
+            <Ionicons name={rightAction.icon} size={24} color={kit.color.text.primary} />
             {rightAction.badge !== undefined && rightAction.badge > 0 && (
               <View style={[s.badge, { backgroundColor: kit.color.danger }]}>
                 <Text variant="badge" style={{ color: kit.color.white, fontSize: 10 }}>
@@ -93,7 +93,7 @@ const s = StyleSheet.create({
   badge: {
     position: "absolute",
     top: 4,
-    right: 4,
+    end: 4,
     minWidth: 16,
     height: 16,
     borderRadius: 8,

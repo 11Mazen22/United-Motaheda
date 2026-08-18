@@ -93,17 +93,17 @@ function DriverModal({
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
       <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-slate-700">
+        <div className="flex items-center justify-between p-6 border-b border-pharmacy-line dark:border-slate-700">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-brand-500 flex items-center justify-center text-white font-bold text-lg">
+            <div className="w-12 h-12 rounded-full bg-pharmacy-primary flex items-center justify-center text-white font-bold text-lg">
               {driver.fullName?.[0] ?? 'D'}
             </div>
             <div>
-              <h2 className="font-bold text-gray-900 dark:text-white">{driver.fullName}</h2>
-              <p className="text-sm text-gray-500">{driver.phone}</p>
+              <h2 className="font-bold text-pharmacy-ink dark:text-white">{driver.fullName}</h2>
+              <p className="text-sm text-pharmacy-inkSoft">{driver.phone}</p>
             </div>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl">×</button>
+          <button onClick={onClose} className="text-gray-400 hover:text-pharmacy-inkSoft text-xl">×</button>
         </div>
 
         <div className="p-6 space-y-5">
@@ -115,8 +115,8 @@ function DriverModal({
               { label: 'Earnings', value: parseFloat(dp.totalEarnings).toFixed(0) + ' EGP' },
             ].map(({ label, value }) => (
               <div key={label} className="card p-3 text-center">
-                <p className="text-lg font-bold text-gray-900 dark:text-white">{value}</p>
-                <p className="text-xs text-gray-500 mt-0.5">{label}</p>
+                <p className="text-lg font-bold text-pharmacy-ink dark:text-white">{value}</p>
+                <p className="text-xs text-pharmacy-inkSoft mt-0.5">{label}</p>
               </div>
             ))}
           </div>
@@ -124,12 +124,12 @@ function DriverModal({
           {/* Status + vehicle */}
           <div className="card p-4 space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-500">Status</span>
+              <span className="text-sm text-pharmacy-inkSoft">Status</span>
               <span className={statusBadge(dp.status)}>{dp.status}</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-500">Vehicle</span>
-              <span className="text-sm font-medium text-gray-900 dark:text-white">
+              <span className="text-sm text-pharmacy-inkSoft">Vehicle</span>
+              <span className="text-sm font-medium text-pharmacy-ink dark:text-white">
                 {dp.vehicleType} · {dp.vehiclePlate}
               </span>
             </div>
@@ -137,17 +137,17 @@ function DriverModal({
 
           {/* Documents */}
           <div>
-            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Documents</h3>
+            <h3 className="text-sm font-semibold text-pharmacy-inkSoft dark:text-gray-300 mb-3">Documents</h3>
             <div className="grid grid-cols-2 gap-3">
               {docs.map(({ label, url }) => (
                 <div key={label} className="card p-3">
-                  <p className="text-xs text-gray-500 mb-2">{label}</p>
+                  <p className="text-xs text-pharmacy-inkSoft mb-2">{label}</p>
                   {url ? (
                     <a href={url} target="_blank" rel="noopener noreferrer">
                       <img src={url} alt={label} className="w-full h-24 object-cover rounded-lg" />
                     </a>
                   ) : (
-                    <div className="w-full h-24 bg-gray-100 dark:bg-slate-700 rounded-lg flex items-center justify-center text-gray-400 text-xs">
+                    <div className="w-full h-24 bg-pharmacy-canvas dark:bg-slate-700 rounded-lg flex items-center justify-center text-gray-400 text-xs">
                       Not uploaded
                     </div>
                   )}
@@ -259,8 +259,8 @@ export function DriversPage() {
     <div className="p-6 space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Drivers</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+          <h1 className="text-2xl font-bold text-pharmacy-ink dark:text-white">Drivers</h1>
+          <p className="text-sm text-pharmacy-inkSoft dark:text-gray-400 mt-1">
             Manage driver accounts and approvals
           </p>
         </div>
@@ -274,8 +274,8 @@ export function DriversPage() {
             onClick={() => { setStatusFilter(s); setPage(1); }}
             className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
               statusFilter === s
-                ? 'bg-brand-500 text-white'
-                : 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-600'
+                ? 'bg-pharmacy-primary text-white'
+                : 'bg-pharmacy-canvas dark:bg-slate-700 text-pharmacy-inkSoft dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-600'
             }`}
           >
             {s}
@@ -295,9 +295,9 @@ export function DriversPage() {
           <>
             <table className="w-full">
               <thead>
-                <tr className="bg-gray-50 dark:bg-slate-700">
+                <tr className="bg-pharmacy-canvas dark:bg-slate-700">
                   {['Name', 'Phone', 'Vehicle', 'Status', 'Rating', 'Deliveries', ''].map((h) => (
-                    <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-pharmacy-inkSoft dark:text-gray-400 uppercase tracking-wider">
                       {h}
                     </th>
                   ))}
@@ -314,21 +314,21 @@ export function DriversPage() {
                   drivers.map((driver) => (
                     <tr
                       key={driver.id}
-                      className="hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+                      className="hover:bg-pharmacy-canvas dark:hover:bg-slate-700 transition-colors cursor-pointer"
                       onClick={() => setSelectedDriver(driver)}
                     >
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-full bg-brand-500 flex items-center justify-center text-white text-xs font-bold">
+                          <div className="w-8 h-8 rounded-full bg-pharmacy-primary flex items-center justify-center text-white text-xs font-bold">
                             {driver.fullName?.[0]}
                           </div>
-                          <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                          <span className="text-sm font-semibold text-pharmacy-ink dark:text-white">
                             {driver.fullName}
                           </span>
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">{driver.phone}</td>
-                      <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400 capitalize">
+                      <td className="px-4 py-3 text-sm text-pharmacy-inkSoft dark:text-gray-400">{driver.phone}</td>
+                      <td className="px-4 py-3 text-sm text-pharmacy-inkSoft dark:text-gray-400 capitalize">
                         {driver.driverProfile?.vehicleType} · {driver.driverProfile?.vehiclePlate}
                       </td>
                       <td className="px-4 py-3">
@@ -336,14 +336,14 @@ export function DriversPage() {
                           {driver.driverProfile?.status}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
+                      <td className="px-4 py-3 text-sm text-pharmacy-inkSoft dark:text-gray-400">
                         ⭐ {parseFloat(driver.driverProfile?.rating ?? '0').toFixed(1)}
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
+                      <td className="px-4 py-3 text-sm text-pharmacy-inkSoft dark:text-gray-400">
                         {driver.driverProfile?.totalDeliveries}
                       </td>
                       <td className="px-4 py-3">
-                        <button className="text-brand-500 hover:text-brand-600 text-sm font-medium">
+                        <button className="text-pharmacy-primary hover:text-pharmacy-primaryDark text-sm font-medium">
                           View →
                         </button>
                       </td>
@@ -355,8 +355,8 @@ export function DriversPage() {
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 dark:border-slate-700">
-                <p className="text-sm text-gray-500">Page {page} of {totalPages}</p>
+              <div className="flex items-center justify-between px-4 py-3 border-t border-pharmacy-line dark:border-slate-700">
+                <p className="text-sm text-pharmacy-inkSoft">Page {page} of {totalPages}</p>
                 <div className="flex gap-2">
                   <button
                     onClick={() => setPage((p) => Math.max(1, p - 1))}

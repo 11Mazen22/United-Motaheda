@@ -20,7 +20,7 @@ export default function DriverProfile(): React.ReactElement {
     <Screen edgeTop background={kit.color.canvas}>
       <View style={s.header}>
         <Avatar size={72} />
-        <View style={{ flex: 1, marginLeft: 12 }}>
+        <View style={{ flex: 1, marginStart: 12 }}>
           <UIText variant="screen-title" style={{ textAlign: TEXT_START }}>{user?.name}</UIText>
           <UIText color="secondary" style={{ marginTop: 4, textAlign: TEXT_START }}>{user?.email}</UIText>
           <View style={{ flexDirection: flexRow(IS_RTL), gap: 8, marginTop: 10 }}>
@@ -28,7 +28,7 @@ export default function DriverProfile(): React.ReactElement {
             <Button label={"Vehicle & Docs"} onPress={() => router.push('/(driver)/profile/vehicle' as never)} />
           </View>
         </View>
-        <View style={{ marginLeft: 8 }}>
+        <View style={{ marginStart: 8 }}>
           <Pressable onPress={() => signOut()} style={s.signOutBtn} accessibilityRole="button"><Ionicons name="log-out-outline" size={20} color={kit.color.ink} /></Pressable>
         </View>
       </View>
@@ -75,5 +75,5 @@ const s = StyleSheet.create({
   metricCol: { alignItems: 'center', flex: 1 },
   section: { paddingHorizontal: kit.inset.screen, marginTop: 20 },
   quickTilesRow: { flexDirection: flexRow(IS_RTL), gap: 10, justifyContent: 'space-between' },
-  quickTile: { flex: 1, backgroundColor: kit.color.surface, paddingVertical: 12, borderRadius: kit.radius.lg, alignItems: 'center', justifyContent: 'center', marginRight: 8 },
+  quickTile: { flex: 1, backgroundColor: kit.color.surface, paddingVertical: 12, borderRadius: kit.radius.lg, alignItems: 'center', justifyContent: 'center', marginEnd: 8 },
 });

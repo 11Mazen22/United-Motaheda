@@ -152,8 +152,8 @@ const pinS = StyleSheet.create({
     width:                       3,
     height:                      10,
     backgroundColor:             kit.color.accent,
-    borderBottomLeftRadius:      2,
-    borderBottomRightRadius:     2,
+    borderBottomStartRadius:      2,
+    borderBottomEndRadius:     2,
   },
 });
 
@@ -250,7 +250,7 @@ const bmS = StyleSheet.create({
   badges: {
     position:       "absolute",
     top:            -6,
-    right:          -6,
+    end: -6,
     flexDirection:  "row",
     gap:            2,
   },
@@ -282,7 +282,7 @@ const bmS = StyleSheet.create({
   distChip: {
     position:          "absolute",
     bottom:            -14,
-    left:              "50%",
+    start: "50%",
     transform:         [{ translateX: -16 }],
     backgroundColor:   kit.color.ink,
     paddingHorizontal: 5,
@@ -489,7 +489,7 @@ export function DeliveryMap({
     if (deliveryBranches.length === 0) return;
     mapRef.current?.fitToCoordinates(
       deliveryBranches.map((b) => ({ latitude: b.lat, longitude: b.lng })),
-      { edgePadding: { top: 60, right: 60, bottom: 160, left: 60 }, animated: true },
+      { edgePadding: { top: 60, end: 60, bottom: 160, start: 60 }, animated: true },
     );
   }, [deliveryBranches]);
 
@@ -669,8 +669,8 @@ const s = StyleSheet.create({
     top:      12,
     gap:      8,
   },
-  controlsLtr: { right: 12 },
-  controlsRtl: { left:  12 },
+  controlsLtr: { end: 12 },
+  controlsRtl: { start: 12 },
   controlBtn: {
     width:           42,
     height:          42,
@@ -695,8 +695,8 @@ const s = StyleSheet.create({
     alignItems:    "flex-start",
     gap:           6,
   },
-  calloutPanelLtr: { left:  62 },
-  calloutPanelRtl: { right: 62 },
+  calloutPanelLtr: { start: 62 },
+  calloutPanelRtl: { end: 62 },
   calloutClose: {
     marginTop: 4,
   },
@@ -704,8 +704,8 @@ const s = StyleSheet.create({
   // ── Bottom overlay ────────────────────────────────────────────────────
   overlay: {
     position:          "absolute",
-    left:              12,
-    right:             12,
+    start: 12,
+    end: 12,
     bottom:            12,
     backgroundColor:   kit.color.ink,
     borderRadius:      kit.radius.xl,

@@ -59,7 +59,7 @@ export default function ForgotPasswordScreen() {
       track("forgot_password_email_sent");
       setSent(true);
     } catch (e) {
-      if (__DEV__) console.warn("[forgot-password] failed:", e);
+      if (__DEV__) 
       captureError(e, { surface: "forgot-password" });
       setError(getAuthError(e, i18n.language));
     } finally {

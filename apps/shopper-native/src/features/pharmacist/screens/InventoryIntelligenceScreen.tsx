@@ -32,8 +32,9 @@ import { useQueryClient } from "@tanstack/react-query";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
 import { Screen, Text as UIText } from "@pharmacy/ui-native";
+import { useDarkColors } from "@/hooks/useDarkColors";
 import { kit }                    from "@pharmacy/ui-native";
-import { theme }                  from "@pharmacy/design-tokens";
+
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
 import { formatPrice }            from "@/utils/format";
 
@@ -53,7 +54,7 @@ type InventoryTab = "lowstock" | "search" | "outofstock";
 // ─── Urgency band ────────────────────────────────────────────────────────────
 
 function urgencyColor(available: number): string {
-  if (available === 0) return kit.color.danger;
+  if (available === 0) return c.danger;
   if (available <= 3)  return "#F59E0B"; // amber
   return "#EAB308";                      // yellow
 }
@@ -95,20 +96,20 @@ function ProductCard({
         <View style={[s.metaRow, { flexDirection: flexRow(IS_RTL) }]}>
           {product.code && (
             <View style={[s.chip, { flexDirection: flexRow(IS_RTL) }]}>
-              <Ionicons name="barcode-outline" size={10} color={kit.color.inkSoft} />
+              <Ionicons name="barcode-outline" size={10} color={c.inkSoft} />
               <UIText style={s.chipText}>{product.code}</UIText>
             </View>
           )}
           {product.categoryName && (
             <View style={[s.chip, { flexDirection: flexRow(IS_RTL) }]}>
-              <Ionicons name="folder-outline" size={10} color={kit.color.inkSoft} />
+              <Ionicons name="folder-outline" size={10} color={c.inkSoft} />
               <UIText style={s.chipText}>{product.categoryName}</UIText>
             </View>
           )}
           {isOut && (
             <View style={[s.chip, s.chipDanger, { flexDirection: flexRow(IS_RTL) }]}>
-              <Ionicons name="close-circle" size={10} color={kit.color.danger} />
-              <UIText style={[s.chipText, { color: kit.color.danger }]}>
+              <Ionicons name="close-circle" size={10} color={c.danger} />
+              <UIText style={[s.chipText, { color: c.danger }]}>
                 {t("pharmacist.stockExhausted", "نفد المخزون")}
               </UIText>
             </View>
@@ -143,7 +144,7 @@ function ProductCard({
               accessibilityRole="button"
               accessibilityLabel={t("pharmacist.scannerTitle")}
             >
-              <Ionicons name="barcode-outline" size={14} color={kit.color.accentDeep} />
+              <Ionicons name="barcode-outline" size={14} color={c.accentDeep} />
             </Pressable>
           )}
         </View>
@@ -155,6 +156,8 @@ function ProductCard({
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export function InventoryIntelligenceScreen(): React.ReactElement {
+  const { c } = useDarkColors();
+  const s = useSStyles(c);
   const { t }       = useTranslation();
   const router      = useRouter();
   const params      = useLocalSearchParams<{ query?: string }>();
@@ -217,7 +220,7 @@ export function InventoryIntelligenceScreen(): React.ReactElement {
     (query.length > 0 && searchQuery.isError);
 
   return (
-    <Screen edgeTop background={kit.color.canvas}>
+    <Screen edgeTop background={c.canvas}>
       <PharmacistScreenHeader
         title={t("pharmacist.inventoryTitle")}
         subtitle={t("pharmacist.inventorySubtitle")}
@@ -228,19 +231,19 @@ export function InventoryIntelligenceScreen(): React.ReactElement {
             accessibilityRole="button"
             accessibilityLabel={t("pharmacist.scannerTitle")}
           >
-            <Ionicons name="barcode-outline" size={18} color={kit.color.accentDeep} />
+            <Ionicons name="barcode-outline" size={18} color={c.accentDeep} />
           </Pressable>
         }
       />
 
       {/* Search bar — always visible */}
       <View style={[s.searchBar, { flexDirection: flexRow(IS_RTL) }]}>
-        <Ionicons name="search-outline" size={16} color={kit.color.inkFaint} />
+        <Ionicons name="search-outline" size={16} color={c.inkFaint} />
         <TextInput
           value={rawQuery}
           onChangeText={(v) => { setRawQuery(v); if (v.trim()) setTab('search'); }}
           placeholder={t('pharmacist.inventorySearch')}
-          placeholderTextColor={kit.color.inkFaint}
+          placeholderTextColor={c.inkFaint}
           autoCorrect={false}
           autoCapitalize="none"
           style={s.searchInput}
@@ -248,7 +251,7 @@ export function InventoryIntelligenceScreen(): React.ReactElement {
         />
         {rawQuery.length > 0 && (
           <Pressable onPress={() => { setRawQuery(''); setTab('lowstock'); }} hitSlop={8}>
-            <Ionicons name="close-circle" size={16} color={kit.color.inkFaint} />
+            <Ionicons name="close-circle" size={16} color={c.inkFaint} />
           </Pressable>
         )}
       </View>
@@ -290,8 +293,8 @@ export function InventoryIntelligenceScreen(): React.ReactElement {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor={kit.color.accent}
-            colors={[kit.color.accent]}
+            tintColor={c.accent}
+            colors={[c.accent]}
           />
         }
         renderItem={({ item, index }) => (
@@ -301,7 +304,7 @@ export function InventoryIntelligenceScreen(): React.ReactElement {
         ListEmptyComponent={
           isLoading ? (
             <View style={s.empty}>
-              <ActivityIndicator size="large" color={kit.color.accent} />
+              <ActivityIndicator size="large" color={c.accent} />
             </View>
           ) : isError ? (
             <EmptyState
@@ -323,12 +326,12 @@ export function InventoryIntelligenceScreen(): React.ReactElement {
   );
 }
 
-const s = StyleSheet.create({
+const useSStyles = (c: any) => StyleSheet.create({
   scannerBtn: {
     width: 38, height: 38, borderRadius: 12,
-    backgroundColor: kit.color.accentTint,
+    backgroundColor: c.accentTint,
     alignItems: "center", justifyContent: "center",
-    borderWidth: 1, borderColor: kit.color.accentDeep,
+    borderWidth: 1, borderColor: c.accentDeep,
   },
   searchBar: {
     alignItems:        "center",
@@ -337,16 +340,16 @@ const s = StyleSheet.create({
     marginVertical:    10,
     paddingHorizontal: 14,
     paddingVertical:   11,
-    backgroundColor:   kit.color.well,
+    backgroundColor:   c.well,
     borderRadius:      kit.radius.xl,
     borderWidth:       1,
-    borderColor:       kit.color.line,
+    borderColor:       c.line,
   },
   searchInput: {
     flex:       1,
     fontSize:   14,
-    fontFamily: theme.fonts.regular,
-    color:      kit.color.ink,
+    fontFamily: kit.font.regular,
+    color:      c.ink,
     padding:    0,
     textAlign:  TEXT_START,
   },
@@ -360,28 +363,28 @@ const s = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical:   7,
     borderRadius:      kit.radius.pill,
-    backgroundColor:   kit.color.well,
+    backgroundColor:   c.well,
     borderWidth:       1,
-    borderColor:       kit.color.line,
+    borderColor:       c.line,
   },
   tabActive: {
-    backgroundColor: kit.color.accent,
-    borderColor:     kit.color.accent,
+    backgroundColor: c.accent,
+    borderColor:     c.accent,
   },
-  tabText:       { fontSize: 12, fontFamily: theme.fonts.bold, color: kit.color.inkSoft },
+  tabText:       { fontSize: 12, fontFamily: kit.font.bold, color: c.inkSoft },
   tabTextActive: { color: "#fff" },
   list: { paddingHorizontal: kit.inset.screen, paddingBottom: 60 },
   card: {
-    backgroundColor: kit.color.surface,
+    backgroundColor: c.surface,
     borderRadius:    kit.radius.xl,
     padding:         14,
     borderWidth:     1,
-    borderColor:     kit.color.line,
+    borderColor:     c.line,
     ...kit.shadow.card,
     gap:             8,
   },
   cardHeader: { alignItems: "flex-start", gap: 12 },
-  price:       { fontSize: 14, fontFamily: theme.fonts.black, color: kit.color.accentDeep, flexShrink: 0 },
+  price:       { fontSize: 14, fontFamily: kit.font.black, color: c.accentDeep, flexShrink: 0 },
   metaRow:     { alignItems: "center", gap: 6, flexWrap: "wrap" },
   chip: {
     alignItems:        "center",
@@ -389,27 +392,27 @@ const s = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical:   3,
     borderRadius:      kit.radius.pill,
-    backgroundColor:   kit.color.well,
+    backgroundColor:   c.well,
     borderWidth:       1,
-    borderColor:       kit.color.line,
+    borderColor:       c.line,
   },
-  chipDanger: { backgroundColor: kit.color.dangerTint, borderColor: kit.color.danger },
-  chipText:   { fontSize: 10, fontFamily: theme.fonts.bold, color: kit.color.inkSoft },
+  chipDanger: { backgroundColor: c.dangerTint, borderColor: c.danger },
+  chipText:   { fontSize: 10, fontFamily: kit.font.bold, color: c.inkSoft },
   stockRow: {
     alignItems:  "center",
     gap:         6,
     paddingTop:  8,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: kit.color.line,
+    borderTopColor: c.line,
   },
-  stockCell:   { flex: 1, alignItems: "center", backgroundColor: kit.color.well, borderRadius: 10, paddingVertical: 8 },
-  stockValue:  { fontSize: 18, fontFamily: theme.fonts.black, color: kit.color.ink },
-  stockLabel:  { fontSize: 9,  fontFamily: theme.fonts.bold,  color: kit.color.inkSoft, marginTop: 2 },
+  stockCell:   { flex: 1, alignItems: "center", backgroundColor: c.well, borderRadius: 10, paddingVertical: 8 },
+  stockValue:  { fontSize: 18, fontFamily: kit.font.black, color: c.ink },
+  stockLabel:  { fontSize: 9,  fontFamily: kit.font.bold,  color: c.inkSoft, marginTop: 2 },
   scanBtn: {
     width: 40, height: 40, borderRadius: 12,
-    backgroundColor: kit.color.accentTint,
+    backgroundColor: c.accentTint,
     alignItems: "center", justifyContent: "center",
-    borderWidth: 1, borderColor: kit.color.line,
+    borderWidth: 1, borderColor: c.line,
     flexShrink: 0,
   },
   empty: { alignItems: "center", paddingTop: 60, paddingBottom: 40 },
@@ -418,6 +421,6 @@ const s = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical:   10,
     borderRadius:      kit.radius.lg,
-    backgroundColor:   kit.color.accentTint,
+    backgroundColor:   c.accentTint,
   },
 });

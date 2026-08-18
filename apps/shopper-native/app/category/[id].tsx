@@ -300,8 +300,8 @@ const s = StyleSheet.create({
   wash: {
     position: "absolute",
     top:      0,
-    left:     0,
-    right:    0,
+    start: 0,
+    end: 0,
     bottom:   0,
     opacity:  0.45,
   },
@@ -385,7 +385,7 @@ const s = StyleSheet.create({
   // ── Filter chips
   chipsRow: {
     gap:          8,
-    paddingRight: 4,
+    paddingEnd: 4,
   },
   chip: {
     flexDirection:     flexRow(IS_RTL),

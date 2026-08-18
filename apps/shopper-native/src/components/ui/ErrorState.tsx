@@ -38,12 +38,12 @@ export function ErrorState({
   const message = overrideMessage || defaultMessage;
 
   return (
-    <View style={[s.container, { backgroundColor: theme.colors.canvas.background }]}>
-      <Ionicons name={iconName} size={48} color={theme.colors.status.error} />
-      <Text variant="h3" align="center" style={{ color: theme.colors.text.primary, marginTop: kit.sp(4) }}>
+    <View style={[s.container, { backgroundColor: kit.color.canvas.background }]}>
+      <Ionicons name={iconName} size={48} color={kit.color.status.error} />
+      <Text variant="h3" align="center" style={{ color: kit.color.text.primary, marginTop: kit.sp(4) }}>
         {title}
       </Text>
-      <Text variant="body" align="center" style={{ color: theme.colors.text.secondary, marginTop: kit.sp(2) }}>
+      <Text variant="body" align="center" style={{ color: kit.color.text.secondary, marginTop: kit.sp(2) }}>
         {message}
       </Text>
       

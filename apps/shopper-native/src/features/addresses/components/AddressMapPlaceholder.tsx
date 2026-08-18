@@ -102,7 +102,7 @@ function MapPlaceholder({ height }: { height: number }) {
           <View key={`h${t}`} style={[styles.road, { top: `${t}%` as any }]} />
         ))}
         {[20, 45, 70].map((l) => (
-          <View key={`v${l}`} style={[styles.roadV, { left: `${l}%` as any }]} />
+          <View key={`v${l}`} style={[styles.roadV, { start: `${l}%` as any }]} />
         ))}
       </Animated.View>
 
@@ -243,23 +243,23 @@ const styles = StyleSheet.create({
     borderRadius: kit.radius.lg,
     overflow: "hidden",
     position: "relative",
-    backgroundColor: theme.colors.slate[100],
+    backgroundColor: kit.color.slate[100],
   },
 
   // ── Loading ──
   loadingBox: {
     borderRadius:   kit.radius.lg,
-    backgroundColor: theme.colors.slate[50],
+    backgroundColor: kit.color.slate[50],
     alignItems:     "center",
     justifyContent: "center",
     gap:            10,
     borderWidth:    1,
-    borderColor:    theme.colors.border.default,
+    borderColor:    kit.color.border.default,
   },
   loadingText: {
     fontSize:   12,
     fontFamily: theme.fonts.semibold,
-    color:      theme.colors.text.tertiary,
+    color:      kit.color.text.tertiary,
   },
   // ── Placeholder ──
   placeholder: {
@@ -269,12 +269,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: "#EEF5F9",
     borderWidth:    1,
-    borderColor:    theme.colors.border.default,
+    borderColor:    kit.color.border.default,
   },
   road: {
     position: "absolute",
-    left:     0,
-    right:    0,
+    start: 0,
+    end: 0,
     height:   8,
     backgroundColor: "rgba(255,255,255,0.7)",
     borderRadius: 4,
@@ -333,19 +333,19 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius:    20,
     borderWidth:     1,
-    borderColor:     theme.colors.border.default,
+    borderColor:     kit.color.border.default,
   },
   placeholderText: {
     fontSize:   11,
     fontFamily: theme.fonts.semibold,
-    color:      theme.colors.text.secondary,
+    color:      kit.color.text.secondary,
   },
 
   // ── Real map overlays ──
   coordBadge: {
     position:          "absolute",
     bottom:            10,
-    left:              10,
+    start: 10,
     flexDirection:     flexRow(isRtl()),
     alignItems:        "center",
     gap:               4,
@@ -354,12 +354,12 @@ const styles = StyleSheet.create({
     paddingVertical:   4,
     borderRadius:      8,
     borderWidth:       1,
-    borderColor:       theme.colors.border.default,
+    borderColor:       kit.color.border.default,
   },
   coordText: {
     fontSize:   9,
     fontFamily: theme.fonts.semibold,
-    color:      theme.colors.slate[500],
+    color:      kit.color.slate[500],
   },
   // Touchable wrapper carries only positioning/radius — visual styling (row,
   // gap, background) lives on the plain View inside instead of on the
@@ -367,7 +367,7 @@ const styles = StyleSheet.create({
   openMapsBtnTouchable: {
     position:     "absolute",
     bottom:       10,
-    right:        10,
+    end: 10,
     borderRadius: 10,
   },
   openMapsBtn: {
@@ -384,7 +384,7 @@ const styles = StyleSheet.create({
     shadowRadius:      4,
     elevation:         3,
     borderWidth:       1,
-    borderColor:       theme.colors.border.brandSoft,
+    borderColor:       kit.color.border.brandSoft,
   },
   openMapsBtnPressed: {
     backgroundColor: kit.color.accentTint,
@@ -397,7 +397,7 @@ const styles = StyleSheet.create({
   verifiedBadge: {
     position:          "absolute",
     top:               10,
-    right:             10,
+    end: 10,
     flexDirection:     flexRow(isRtl()),
     alignItems:        "center",
     gap:               4,

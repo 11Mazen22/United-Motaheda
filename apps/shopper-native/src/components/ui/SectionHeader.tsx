@@ -16,11 +16,11 @@ export function SectionHeader({ title, subtitle, action }: SectionHeaderProps) {
   return (
     <View style={[s.container, { flexDirection: flexRow(rtl) }]}>
       <View style={s.textContainer}>
-        <Text variant="section-head" style={{ color: theme.colors.text.primary, textAlign: textAlignStart(rtl) }}>
+        <Text variant="section-head" style={{ color: kit.color.text.primary, textAlign: textAlignStart(rtl) }}>
           {title}
         </Text>
         {subtitle && (
-          <Text variant="body-sm" style={{ color: theme.colors.text.secondary, textAlign: textAlignStart(rtl), marginTop: 2 }}>
+          <Text variant="body-sm" style={{ color: kit.color.text.secondary, textAlign: textAlignStart(rtl), marginTop: 2 }}>
             {subtitle}
           </Text>
         )}

@@ -84,7 +84,7 @@ export function AssignmentOfferDetail(): React.ReactElement {
                 <UIText variant="caption" color="brand" style={{ textAlign: TEXT_START }}>{t("driver.orderRef")} #{String(offer.orderId).slice(-8).toUpperCase()}</UIText>
                 <UIText variant="card-title" style={{ marginTop: 6, textAlign: TEXT_START }}>{order?.address.name ?? "—"}</UIText>
               </View>
-              <View style={{ width: 120, marginLeft: 12 }}>
+              <View style={{ width: 120, marginStart: 12 }}>
                 <MetricCard label={t("driver.estimatedEarnings")} value={order ? formatPrice(order.total) : "—"} />
               </View>
             </View>

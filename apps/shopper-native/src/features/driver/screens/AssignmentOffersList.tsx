@@ -162,6 +162,6 @@ const s = StyleSheet.create({
   offerBody: { flex: 1 },
   metaRow: { flexDirection: flexRow(IS_RTL), gap: 10, marginTop: 8, alignItems: 'center' },
   metaItem: { flexDirection: flexRow(IS_RTL), gap: 6, alignItems: 'center' },
-  offerActionsCol: { flexDirection: 'column', gap: 8, marginLeft: 8, alignItems: 'flex-end' },
+  offerActionsCol: { flexDirection: 'column', gap: 8, marginStart: 8, alignItems: 'flex-end' },
   btnBusy: { opacity: 0.7 },
 });

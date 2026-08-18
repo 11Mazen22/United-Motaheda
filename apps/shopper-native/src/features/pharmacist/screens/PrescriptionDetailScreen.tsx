@@ -6,6 +6,7 @@ import { useLocalSearchParams } from "expo-router";
 import { useTranslation }       from "react-i18next";
 
 import { Screen, Text as UIText, Button, kit } from "@pharmacy/ui-native";
+import { useDarkColors } from "@/hooks/useDarkColors";
 import { flexRow, isRtl } from "@/utils/layout";
 import { showErrorSheet, showSuccessSheet } from "@/shared/store/appSheetStore";
 

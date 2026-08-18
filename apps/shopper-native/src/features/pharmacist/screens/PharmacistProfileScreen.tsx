@@ -8,8 +8,9 @@ import { useRouter }      from "expo-router";
 import { useTranslation } from "react-i18next";
 
 import { Screen, Text as UIText } from "@pharmacy/ui-native";
+import { useDarkColors } from "@/hooks/useDarkColors";
 import { kit }                    from "@pharmacy/ui-native";
-import { theme }                  from "@pharmacy/design-tokens";
+
 import { useAuth }                from "@/features/auth";
 import { useAppLanguage }         from "@/i18n/LanguageProvider";
 import { FORWARD_CHEVRON, flexRow, isRtl, textAlignStart } from "@/utils/layout";
@@ -33,21 +34,23 @@ function MenuRow({ icon, label, onPress, danger = false }: MenuRowProps) {
       style={({ pressed }) => [s.menuRow, pressed && s.menuRowPressed, { flexDirection: flexRow(IS_RTL) }]}
       accessibilityRole="button"
     >
-      <View style={[s.menuIcon, { backgroundColor: danger ? kit.color.dangerTint : kit.color.accentTint }]}>
-        <Ionicons name={icon} size={16} color={danger ? kit.color.danger : kit.color.accentDeep} />
+      <View style={[s.menuIcon, { backgroundColor: danger ? c.dangerTint : c.accentTint }]}>
+        <Ionicons name={icon} size={16} color={danger ? c.danger : c.accentDeep} />
       </View>
       <UIText
         variant="body-sm"
-        style={{ flex: 1, textAlign: TEXT_START, color: danger ? kit.color.danger : kit.color.ink }}
+        style={{ flex: 1, textAlign: TEXT_START, color: danger ? c.danger : c.ink }}
       >
         {label}
       </UIText>
-      {!danger && <Ionicons name={FORWARD_CHEVRON} size={14} color={kit.color.inkFaint} />}
+      {!danger && <Ionicons name={FORWARD_CHEVRON} size={14} color={c.inkFaint} />}
     </Pressable>
   );
 }
 
 export function PharmacistProfileScreen(): React.ReactElement {
+  const { c } = useDarkColors();
+  const s = useSStyles(c);
   const { t }              = useTranslation();
   const router             = useRouter();
   const { user, signOut }  = useAuth();
@@ -59,8 +62,8 @@ export function PharmacistProfileScreen(): React.ReactElement {
       label: t("pharmacist.statActiveOrders"),
       value: statsQ.data?.activeOrders ?? 0,
       icon: "bag-handle-outline" as const,
-      color: kit.color.accentDeep,
-      bg: kit.color.accentTint,
+      color: c.accentDeep,
+      bg: c.accentTint,
     },
     {
       label: t("pharmacist.statPendingRx"),
@@ -73,8 +76,8 @@ export function PharmacistProfileScreen(): React.ReactElement {
       label: t("pharmacist.statLowStock"),
       value: statsQ.data?.lowStockCount ?? 0,
       icon: "alert-circle-outline" as const,
-      color: kit.color.danger,
-      bg: kit.color.dangerTint,
+      color: c.danger,
+      bg: c.dangerTint,
     },
   ];
 
@@ -82,7 +85,7 @@ export function PharmacistProfileScreen(): React.ReactElement {
   const languageLabel = language === "ar" ? "العربية" : "English";
 
   return (
-    <Screen edgeTop background={kit.color.canvas}>
+    <Screen edgeTop background={c.canvas}>
       <PharmacistScreenHeader title={t("pharmacist.profileTitle")} />
       <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
 
@@ -100,8 +103,8 @@ export function PharmacistProfileScreen(): React.ReactElement {
             {user?.email || ""}
           </UIText>
           <View style={s.roleBadge}>
-            <Ionicons name="shield-checkmark-outline" size={12} color={kit.color.accentDeep} />
-            <UIText variant="eyebrow" style={{ color: kit.color.accentDeep }}>
+            <Ionicons name="shield-checkmark-outline" size={12} color={c.accentDeep} />
+            <UIText variant="eyebrow" style={{ color: c.accentDeep }}>
               {t("pharmacist.roleLabel")}
             </UIText>
           </View>
@@ -168,21 +171,21 @@ export function PharmacistProfileScreen(): React.ReactElement {
   );
 }
 
-const s = StyleSheet.create({
+const useSStyles = (c: any) => StyleSheet.create({
   scroll:        { paddingBottom: 60 },
   avatarSection: { alignItems: "center", gap: 8, paddingVertical: 28 },
   avatar: {
     width:           80,
     height:          80,
     borderRadius:    40,
-    backgroundColor: kit.color.accent,
+    backgroundColor: c.accent,
     alignItems:      "center",
     justifyContent:  "center",
     ...kit.shadow.brandGlow,
   },
   avatarLetter: {
     fontSize:   34,
-    fontFamily: theme.fonts.black,
+    fontFamily: kit.font.black,
     color:      "#fff",
   },
   roleBadge: {
@@ -192,27 +195,27 @@ const s = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical:   5,
     borderRadius:      kit.radius.pill,
-    backgroundColor:   kit.color.accentTint,
+    backgroundColor:   c.accentTint,
     borderWidth:       1,
-    borderColor:       kit.color.accent,
+    borderColor:       c.accent,
     marginTop:         4,
   },
   card: {
     marginHorizontal: kit.inset.screen,
-    backgroundColor:  kit.color.surface,
+    backgroundColor:  c.surface,
     borderRadius:     kit.radius.xl,
     borderWidth:      1,
-    borderColor:      kit.color.line,
+    borderColor:      c.line,
     overflow:         "hidden",
     ...kit.shadow.card,
   },
   statsCard: {
     marginHorizontal: kit.inset.screen,
     marginBottom:     12,
-    backgroundColor:  kit.color.surface,
+    backgroundColor:  c.surface,
     borderRadius:     kit.radius.xl,
     borderWidth:      1,
-    borderColor:      kit.color.line,
+    borderColor:      c.line,
     overflow:         "hidden",
     ...kit.shadow.card,
   },
@@ -224,12 +227,12 @@ const s = StyleSheet.create({
   },
   statRowBorder: {
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: kit.color.line,
+    borderBottomColor: c.line,
   },
   statValue: {
     fontSize:   16,
-    fontFamily: theme.fonts.black,
-    color:      kit.color.ink,
+    fontFamily: kit.font.black,
+    color:      c.ink,
   },
   menuRow: {
     alignItems:        "center",
@@ -237,7 +240,7 @@ const s = StyleSheet.create({
     paddingHorizontal: kit.inset.card,
     paddingVertical:   14,
   },
-  menuRowPressed: { backgroundColor: kit.color.well },
+  menuRowPressed: { backgroundColor: c.well },
   menuIcon: {
     width:           34,
     height:          34,
@@ -247,7 +250,7 @@ const s = StyleSheet.create({
   },
   divider: {
     height:           StyleSheet.hairlineWidth,
-    backgroundColor:  kit.color.line,
+    backgroundColor:  c.line,
     marginHorizontal: kit.inset.card,
   },
 });

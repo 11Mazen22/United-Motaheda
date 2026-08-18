@@ -297,8 +297,8 @@ const styles = StyleSheet.create({
   scrimTop: {
     position: "absolute",
     top:      0,
-    left:     0,
-    right:    0,
+    start: 0,
+    end: 0,
     height:   140,
     zIndex:   40,
   },
@@ -419,8 +419,8 @@ const styles = StyleSheet.create({
   skipSafe: {
     position: "absolute",
     top:      0,
-    left:     0,
-    right:    0,
+    start: 0,
+    end: 0,
     zIndex:   50,
   },
   skipRow: {

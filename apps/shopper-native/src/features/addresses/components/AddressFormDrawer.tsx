@@ -372,18 +372,18 @@ export function AddressFormDrawer({
               onPress={handleCloseRequest}
               style={styles.closeBtnTouchable}
               hitSlop={24}
-              pressRetentionOffset={{ top: 18, bottom: 18, left: 18, right: 18 }}
+              pressRetentionOffset={{ top: 18, bottom: 18, start: 18, end: 18 }}
               accessibilityRole="button"
               accessibilityLabel={t("common.close")}
               android_ripple={{
-                color: theme.colors.slate[200],
+                color: kit.color.slate[200],
                 borderless: false,
                 radius: 18,
               }}
             >
               {({ pressed }) => (
                 <View style={[styles.closeBtn, pressed && styles.closeBtnPressed]}>
-                  <Ionicons name="close" size={18} color={theme.colors.slate[600]} />
+                  <Ionicons name="close" size={18} color={kit.color.slate[600]} />
                 </View>
               )}
             </Pressable>
@@ -431,7 +431,7 @@ export function AddressFormDrawer({
                             ? "#fff"
                             : isCompleted
                             ? kit.color.accentDeep
-                            : theme.colors.slate[400]
+                            : kit.color.slate[400]
                         }
                       />
                       <UIText
@@ -488,14 +488,14 @@ export function AddressFormDrawer({
                 accessibilityLabel={t("common.previous")}
                 style={styles.navBtnTouchable}
                 android_ripple={{
-                  color: theme.colors.slate[200],
+                  color: kit.color.slate[200],
                   borderless: false,
                   radius: 14,
                 }}
               >
                 {({ pressed }) => (
                   <View style={[styles.navBtn, pressed && styles.navBtnPressed]}>
-                    <Ionicons name={BACK_ARROW} size={16} color={theme.colors.slate[600]} />
+                    <Ionicons name={BACK_ARROW} size={16} color={kit.color.slate[600]} />
                     <UIText style={styles.navBtnText}>{t("common.previous")}</UIText>
                   </View>
                 )}
@@ -683,7 +683,7 @@ function StepContent({
                           name={l.icon as IoniconsName}
                           size={18}
                           color={
-                            active ? kit.color.accentDeep : theme.colors.slate[400]
+                            active ? kit.color.accentDeep : kit.color.slate[400]
                           }
                         />
                         <UIText
@@ -756,7 +756,7 @@ function StepContent({
                     <Ionicons
                       name="lock-closed"
                       size={14}
-                      color={theme.colors.slate[400]}
+                      color={kit.color.slate[400]}
                     />
                     <UIText style={[fieldStyles.input, styles.readonlyText]}>
                       {cityDisplay}
@@ -915,7 +915,7 @@ function StepContent({
                   color={
                     form.is_default
                       ? kit.color.accentDeep
-                      : theme.colors.slate[300]
+                      : kit.color.slate[300]
                   }
                 />
                 <View>
@@ -986,7 +986,7 @@ function FloatingLabelInput({
         style={[
           fieldStyles.floatingLabel,
           isFloating && fieldStyles.floatingLabelActive,
-          error && { color: theme.colors.red[500] },
+          error && { color: kit.color.red[500] },
         ]}
       >
         {label}
@@ -996,7 +996,7 @@ function FloatingLabelInput({
           <Ionicons
             name={icon}
             size={16}
-            color={error ? theme.colors.red[400] : theme.colors.slate[400]}
+            color={error ? kit.color.red[400] : kit.color.slate[400]}
             style={fieldStyles.icon}
           />
         )}
@@ -1005,7 +1005,7 @@ function FloatingLabelInput({
           value={value}
           onChangeText={onChange}
           placeholder={isFloating ? placeholder : undefined}
-          placeholderTextColor={theme.colors.slate[300]}
+          placeholderTextColor={kit.color.slate[300]}
           keyboardType={keyboardType ?? "default"}
           style={fieldStyles.input}
           textAlign={textAlignStart(_isRtl) as "left" | "right"}
@@ -1028,7 +1028,7 @@ function FloatingLabelInput({
                 <Ionicons
                   name="close-circle"
                   size={16}
-                  color={theme.colors.slate[300]}
+                  color={kit.color.slate[300]}
                 />
               </View>
             )}
@@ -1048,7 +1048,7 @@ function FloatingLabelInput({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.bg,
+    backgroundColor: kit.color.bg,
   },
   header: {
     flexDirection: flexRow(isRtl()),
@@ -1057,7 +1057,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing[2.5],
     paddingBottom: theme.spacing.md,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.slate[100],
+    borderBottomColor: kit.color.slate[100],
   },
   headerCenter: {
     alignItems: "center",
@@ -1067,13 +1067,13 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 17,
     fontFamily: theme.fonts.black,
-    color: theme.colors.text.primary,
+    color: kit.color.text.primary,
     marginBottom: 2,
   },
   headerStepSubtitle: {
     fontSize: 11,
     fontFamily: theme.fonts.semibold,
-    color: theme.colors.slate[400],
+    color: kit.color.slate[400],
     textAlign: "center",
   },
   // Bare touchable — no function-style, just the ripple/press-target shape.
@@ -1085,7 +1085,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 12,
-    backgroundColor: theme.colors.slate[50],
+    backgroundColor: kit.color.slate[50],
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
@@ -1113,9 +1113,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 20,
-    backgroundColor: theme.colors.slate[50],
+    backgroundColor: kit.color.slate[50],
     borderWidth: 1,
-    borderColor: theme.colors.border.default,
+    borderColor: kit.color.border.default,
     gap: theme.spacing.xs,
   },
   stepPillPressed: {
@@ -1138,7 +1138,7 @@ const styles = StyleSheet.create({
   stepPillText: {
     fontSize: 10,
     fontFamily: theme.fonts.bold,
-    color: theme.colors.slate[500],
+    color: kit.color.slate[500],
   },
   stepPillTextActive: {
     color: "#fff",
@@ -1159,7 +1159,7 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 4,
     borderRadius: 2,
-    backgroundColor: theme.colors.slate[200],
+    backgroundColor: kit.color.slate[200],
     overflow: "hidden",
   },
   progressFill: {
@@ -1183,18 +1183,18 @@ const styles = StyleSheet.create({
   },
 
   card: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: kit.color.surface,
     borderRadius: kit.radius.xl,
     padding: theme.spacing.lg,
     gap: theme.spacing.md,
     borderWidth: 1,
-    borderColor: theme.colors.border.default,
+    borderColor: kit.color.border.default,
     ...kit.shadow.card,
   },
   cardTitle: {
     fontSize: 13,
     fontFamily: theme.fonts.black,
-    color: theme.colors.text.primary,
+    color: kit.color.text.primary,
     textAlign: textAlignStart(isRtl()),
     marginBottom: -4,
   },
@@ -1246,9 +1246,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 14,
-    backgroundColor: theme.colors.slate[50],
+    backgroundColor: kit.color.slate[50],
     borderWidth: 1.5,
-    borderColor: theme.colors.border.default,
+    borderColor: kit.color.border.default,
     overflow: "hidden",
   },
   labelChipActive: {
@@ -1263,7 +1263,7 @@ const styles = StyleSheet.create({
   labelChipText: {
     fontSize: 12,
     fontFamily: theme.fonts.bold,
-    color: theme.colors.slate[500],
+    color: kit.color.slate[500],
   },
   labelChipTextActive: {
     color: kit.color.accentDeep,
@@ -1283,9 +1283,9 @@ const styles = StyleSheet.create({
     gap: theme.spacing.md,
     padding: theme.spacing.lg,
     borderRadius: 20,
-    backgroundColor: theme.colors.slate[50],
+    backgroundColor: kit.color.slate[50],
     borderWidth: 1.5,
-    borderColor: theme.colors.border.default,
+    borderColor: kit.color.border.default,
     overflow: "hidden",
   },
   toggleCardActive: {
@@ -1299,13 +1299,13 @@ const styles = StyleSheet.create({
   toggleTitle: {
     fontSize: 13,
     fontFamily: theme.fonts.bold,
-    color: theme.colors.text.primary,
+    color: kit.color.text.primary,
     textAlign: textAlignStart(isRtl()),
   },
   toggleDesc: {
     fontSize: 10,
     fontFamily: theme.fonts.regular,
-    color: theme.colors.slate[400],
+    color: kit.color.slate[400],
     textAlign: textAlignStart(isRtl()),
     marginTop: 2,
   },
@@ -1319,17 +1319,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 6,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.slate[100],
+    borderBottomColor: kit.color.slate[100],
   },
   summaryLabel: {
     fontSize: 12,
     fontFamily: theme.fonts.bold,
-    color: theme.colors.slate[500],
+    color: kit.color.slate[500],
   },
   summaryValue: {
     fontSize:   12,
     fontFamily: theme.fonts.semibold,
-    color:      theme.colors.text.primary,
+    color:      kit.color.text.primary,
     textAlign:  textAlignStart(isRtl()),
     flex:       1,
     // Logical end gutter — leaves space from the value back to the label cell
@@ -1343,7 +1343,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing[2.5],
     paddingTop: 10,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: theme.colors.slate[100],
+    borderTopColor: kit.color.slate[100],
     gap: theme.spacing.md,
   },
   navBtnTouchable: {
@@ -1356,9 +1356,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing.lg,
     paddingVertical: theme.spacing.md,
     borderRadius: 14,
-    backgroundColor: theme.colors.slate[50],
+    backgroundColor: kit.color.slate[50],
     borderWidth: 1,
-    borderColor: theme.colors.border.default,
+    borderColor: kit.color.border.default,
   },
   navBtnPressed: {
     opacity: 0.86,
@@ -1367,7 +1367,7 @@ const styles = StyleSheet.create({
   navBtnText: {
     fontSize: 13,
     fontFamily: theme.fonts.bold,
-    color: theme.colors.slate[600],
+    color: kit.color.slate[600],
   },
   navBtnPrimaryTouchable: {
     borderRadius: 14,
@@ -1428,11 +1428,11 @@ const styles = StyleSheet.create({
     color: "#fff",
   },
   readonlyField: {
-    backgroundColor: theme.colors.slate[50],
-    borderColor: theme.colors.border.default,
+    backgroundColor: kit.color.slate[50],
+    borderColor: kit.color.border.default,
   },
   readonlyText: {
-    color: theme.colors.slate[600],
+    color: kit.color.slate[600],
   },
 
   // ── Discard confirmation (in-tree Modal, sits above parent Modal z-order) ──
@@ -1468,13 +1468,13 @@ const styles = StyleSheet.create({
   discardTitle: {
     fontSize: 18,
     fontFamily: theme.fonts.bold,
-    color: theme.colors.text.primary,
+    color: kit.color.text.primary,
     textAlign: "center" as const,
   },
   discardMsg: {
     fontSize: 14,
     fontFamily: theme.fonts.regular,
-    color: theme.colors.text.secondary,
+    color: kit.color.text.secondary,
     textAlign: "center" as const,
     lineHeight: 22,
   },
@@ -1513,7 +1513,7 @@ const styles = StyleSheet.create({
   discardCancelText: {
     fontSize: 14,
     fontFamily: theme.fonts.medium,
-    color: theme.colors.text.secondary,
+    color: kit.color.text.secondary,
   },
 });
 
@@ -1524,7 +1524,7 @@ const fieldStyles = StyleSheet.create({
   floatingLabel: {
     fontSize: 11,
     fontFamily: theme.fonts.bold,
-    color: theme.colors.slate[500],
+    color: kit.color.slate[500],
     textAlign: textAlignStart(isRtl()),
     paddingEnd: theme.spacing.xs,
     opacity: 0,
@@ -1539,17 +1539,17 @@ const fieldStyles = StyleSheet.create({
   label: {
     fontSize: 11,
     fontFamily: theme.fonts.bold,
-    color: theme.colors.slate[500],
+    color: kit.color.slate[500],
     textAlign: textAlignStart(isRtl()),
     paddingEnd: 2,
   },
   inputContainer: {
     flexDirection: flexRow(isRtl()),
     alignItems: "center",
-    backgroundColor: theme.colors.surface,
+    backgroundColor: kit.color.surface,
     borderRadius: 16,
     borderWidth: 1.5,
-    borderColor: theme.colors.border.default,
+    borderColor: kit.color.border.default,
     paddingHorizontal: 14,
     minHeight: 52,
     gap: theme.spacing.sm,
@@ -1558,16 +1558,16 @@ const fieldStyles = StyleSheet.create({
     marginStart: -2,
   },
   inputError: {
-    borderColor: theme.colors.red[400],
-    backgroundColor: theme.colors.red[50],
+    borderColor: kit.color.red[400],
+    backgroundColor: kit.color.red[50],
   },
   inputWrap: {
     flexDirection: flexRow(isRtl()),
     alignItems: "center",
-    backgroundColor: theme.colors.surface,
+    backgroundColor: kit.color.surface,
     borderRadius: 16,
     borderWidth: 1.5,
-    borderColor: theme.colors.border.default,
+    borderColor: kit.color.border.default,
     paddingHorizontal: 14,
     minHeight: 52,
     gap: theme.spacing.sm,
@@ -1576,7 +1576,7 @@ const fieldStyles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
     fontFamily: theme.fonts.medium,
-    color: theme.colors.text.primary,
+    color: kit.color.text.primary,
     paddingVertical: theme.spacing.md,
   },
   clearBtnTouchable: {
@@ -1591,7 +1591,7 @@ const fieldStyles = StyleSheet.create({
   errorText: {
     fontSize: 10,
     fontFamily: theme.fonts.bold,
-    color: theme.colors.red[500],
+    color: kit.color.red[500],
     textAlign: textAlignStart(isRtl()),
     paddingEnd: theme.spacing.xs,
     marginTop: 2,

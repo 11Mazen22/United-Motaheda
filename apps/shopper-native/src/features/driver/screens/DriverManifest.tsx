@@ -169,7 +169,7 @@ const s = StyleSheet.create({
   },
   headerActions: { flexDirection: "row", alignItems: "center", gap: 8 },
   headerAction: { position: "relative", width: 40, height: 40, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: kit.color.well },
-  notificationDot: { position: "absolute", top: 8, right: 8, width: 7, height: 7, borderRadius: 4, backgroundColor: kit.color.danger, borderWidth: 1, borderColor: kit.color.canvas },
+  notificationDot: { position: "absolute", top: 8, end: 8, width: 7, height: 7, borderRadius: 4, backgroundColor: kit.color.danger, borderWidth: 1, borderColor: kit.color.canvas },
   listContent: {
     paddingHorizontal: kit.inset.screen,
     paddingBottom: 40,
@@ -244,7 +244,7 @@ const s = StyleSheet.create({
   kpiRow: { flexDirection: flexRow(IS_RTL), gap: 8, marginTop: 12 },
   quickActionsRow: { flexDirection: flexRow(IS_RTL), gap: 10, paddingHorizontal: kit.inset.screen, marginTop: 12 },
   quickTile: { flex: 1, backgroundColor: kit.color.surface, paddingVertical: 10, borderRadius: kit.radius.lg, alignItems: 'center', justifyContent: 'center', ...kit.shadow.card },
-  offerCount: { position: 'absolute', top: -6, right: -6, minWidth: 22, height: 22, borderRadius: 11, backgroundColor: kit.color.danger, alignItems: 'center', justifyContent: 'center' },
+  offerCount: { position: 'absolute', top: -6, end: -6, minWidth: 22, height: 22, borderRadius: 11, backgroundColor: kit.color.danger, alignItems: 'center', justifyContent: 'center' },
   offerCountText: { color: '#fff', fontSize: 11, fontFamily: theme.fonts.black },
   mapPreviewWrap: { marginTop: 12, marginHorizontal: kit.inset.screen, borderRadius: kit.radius.xl, overflow: 'hidden', height: 120, ...kit.shadow.card },
   sectionHeaderRow: { flexDirection: flexRow(IS_RTL), alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: kit.inset.screen, marginTop: 16, marginBottom: 8 },

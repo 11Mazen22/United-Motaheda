@@ -73,7 +73,7 @@ export const BranchCard = memo(function BranchCard({
             <UIText style={styles.address} numberOfLines={2}>{branch.addressAr}</UIText>
             <View style={styles.metaRow}>
               <View style={styles.metaPill}>
-                <Ionicons name="time-outline" size={10} color={theme.colors.slate[500]} />
+                <Ionicons name="time-outline" size={10} color={kit.color.slate[500]} />
                 <UIText style={styles.metaText}>{branch.hoursAr}</UIText>
               </View>
             </View>
@@ -107,7 +107,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     backgroundColor: "#fff",
     borderWidth: 1.5,
-    borderColor: theme.colors.border.default,
+    borderColor: kit.color.border.default,
   },
   cardCompact: { paddingVertical: 10 },
   cardSelected: {
@@ -126,28 +126,28 @@ const styles = StyleSheet.create({
   iconWrapSelected: { backgroundColor: kit.color.accentDeep },
   body: { flex: 1, gap: 3 },
   titleRow: { flexDirection: flexRow(isRtl()), alignItems: "center", gap: 6 },
-  title: { fontSize: 13, fontFamily: theme.fonts.black, color: theme.colors.text.primary, textAlign: textAlignStart(isRtl()) },
+  title: { fontSize: 13, fontFamily: theme.fonts.black, color: kit.color.text.primary, textAlign: textAlignStart(isRtl()) },
   primaryBadge: {
-    backgroundColor: theme.colors.amber[50],
+    backgroundColor: kit.color.amber[50],
     paddingHorizontal: 7,
     paddingVertical: 2,
     borderRadius: 999,
   },
-  primaryBadgeText: { fontSize: 9, fontFamily: theme.fonts.bold, color: theme.colors.amber[700] },
+  primaryBadgeText: { fontSize: 9, fontFamily: theme.fonts.bold, color: kit.color.amber[700] },
   area: { fontSize: 11, fontFamily: theme.fonts.bold, color: kit.color.accent, textAlign: textAlignStart(isRtl()) },
-  address: { fontSize: 11, fontFamily: theme.fonts.regular, color: theme.colors.slate[500], textAlign: textAlignStart(isRtl()), lineHeight: 16 },
+  address: { fontSize: 11, fontFamily: theme.fonts.regular, color: kit.color.slate[500], textAlign: textAlignStart(isRtl()), lineHeight: 16 },
   metaRow: { flexDirection: flexRow(isRtl()), flexWrap: "wrap", gap: 6, marginTop: 4 },
   metaPill: {
     flexDirection: flexRow(isRtl()),
     alignItems: "center",
     gap: 4,
-    backgroundColor: theme.colors.slate[50],
+    backgroundColor: kit.color.slate[50],
     paddingHorizontal: 7,
     paddingVertical: 3,
     borderRadius: 999,
   },
-  metaText: { fontSize: 9, fontFamily: theme.fonts.semibold, color: theme.colors.slate[500] },
-  right: { alignItems: "center", gap: 8 },
+  metaText: { fontSize: 9, fontFamily: theme.fonts.semibold, color: kit.color.slate[500] },
+  end: { alignItems: "center", gap: 8 },
   distPill: {
     flexDirection: flexRow(isRtl()),
     alignItems: "center",
@@ -163,7 +163,7 @@ const styles = StyleSheet.create({
     height: 18,
     borderRadius: 9,
     borderWidth: 2,
-    borderColor: theme.colors.slate[300],
+    borderColor: kit.color.slate[300],
     alignItems: "center",
     justifyContent: "center",
   },

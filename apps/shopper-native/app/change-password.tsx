@@ -77,7 +77,7 @@ export default function ChangePasswordScreen() {
       await updatePassword(newPass);
       if (mountedRef.current) setPhase("success");
     } catch (e) {
-      if (__DEV__) console.warn("[change-password] updatePassword failed:", e);
+      if (__DEV__) 
       captureError(e, { surface: "change-password" });
       if (mountedRef.current) setError(getAuthError(e, i18n.language));
     } finally {

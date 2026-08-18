@@ -352,7 +352,7 @@ const cs = StyleSheet.create({
     borderRadius:    70,
     backgroundColor: "rgba(255,255,255,0.07)",
     top:             -40,
-    ...(IS_RTL ? { left: -30 } : { right: -30 }),
+    ...(IS_RTL ? { start: -30 } : { end: -30 }),
   },
   decCircle2: {
     position:        "absolute",
@@ -361,7 +361,7 @@ const cs = StyleSheet.create({
     borderRadius:    40,
     backgroundColor: "rgba(255,255,255,0.05)",
     bottom:          -20,
-    ...(IS_RTL ? { right: 60 } : { left: 60 }),
+    ...(IS_RTL ? { end: 60 } : { start: 60 }),
   },
 
   // ── Text content ────────────────────────────────────────────────────────
@@ -432,6 +432,6 @@ const cs = StyleSheet.create({
   },
   dotInactive: {
     width:           6,
-    backgroundColor: theme.colors.border.hairline,
+    backgroundColor: kit.color.border.hairline,
   },
 });

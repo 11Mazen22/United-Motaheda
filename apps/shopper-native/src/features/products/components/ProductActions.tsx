@@ -1,0 +1,116 @@
+import React from "react";
+import { StyleSheet, View, Pressable } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import Animated from "react-native-reanimated";
+import { kit, Text as UIText, Button as KitButton } from "@pharmacy/ui-native";
+import { isRtl, flexRow, FORWARD_CHEVRON } from "@/utils/layout";
+import { formatPrice } from "@/utils/format";
+
+const IS_RTL = isRtl();
+
+export const ProductActions = React.memo(function ProductActions({
+  product,
+  qty,
+  maxQty,
+  inCart,
+  btnAnim,
+  setCtaHeight,
+  insets,
+  router,
+  t,
+  lang,
+  handleAdd,
+  handleIncrement,
+  handleDecrement
+}: any) {
+  if (!product) return null;
+
+  return (
+    <View
+      onLayout={(e) => setCtaHeight(e.nativeEvent.layout.height)}
+      style={[cta.outer, { paddingBottom: insets.bottom + 12 }]}>
+      {inCart && (
+        <Pressable
+          onPress={() => router.push("/(tabs)/cart")}
+          accessibilityRole="button"
+          accessibilityLabel={t("product.viewCart")}
+          style={cta.viewCartTouchable}>
+          {({ pressed }) => (
+            <View style={[cta.viewCart, { flexDirection: flexRow(IS_RTL) }, pressed && cta.viewCartPressed]}>
+              <Ionicons name="cart-outline" size={14} color={kit.color.accentDeep} />
+              <UIText variant="body-sm" weight="black" style={{ color: kit.color.accentDeep }}>{t("product.viewCart")}</UIText>
+              <Ionicons name={FORWARD_CHEVRON} size={12} color={kit.color.accentDeep} />
+            </View>
+          )}
+        </Pressable>
+      )}
+      
+      <View style={[cta.actionsRow, { flexDirection: flexRow(IS_RTL) }]}>
+        <View style={action.stepper}>
+          <Pressable
+            onPress={handleDecrement}
+            disabled={qty === 1}
+            accessibilityRole="button"
+            accessibilityLabel={t("product.decrement")}
+            style={({ pressed }) => [action.stepBtn, pressed && !(qty === 1) && action.stepBtnPressed, qty === 1 && action.stepBtnDisabled]}>
+            <Ionicons name="remove" size={20} color={qty === 1 ? kit.color.inkFaint : kit.color.inkSoft} />
+          </Pressable>
+
+          <View style={action.stepValue}>
+            <UIText variant="title-sm" weight="black">{qty}</UIText>
+          </View>
+
+          <Pressable
+            onPress={handleIncrement}
+            disabled={qty >= maxQty}
+            accessibilityRole="button"
+            accessibilityLabel={t("product.increment")}
+            style={({ pressed }) => [action.stepBtnPrimary, pressed && !(qty >= maxQty) && action.stepBtnPrimaryPressed, qty >= maxQty && action.stepBtnDisabled]}>
+            <Ionicons name="add" size={20} color={kit.color.onAccent} />
+          </Pressable>
+        </View>
+
+        <Animated.View style={[btnAnim, { flex: 1 }]}>
+          <KitButton
+            label={
+              inCart
+                ? t("product.inCartAddMore")
+                : product.inStock
+                ? t("product.addWithPrice", { price: formatPrice(product.price * qty, lang) })
+                : t("product.unavailable")
+            }
+            icon={inCart ? "add" : "cart-outline"}
+            onPress={handleAdd}
+            variant={inCart ? "secondary" : "primary"}
+            size="lg"
+            full
+            disabled={!product.inStock}
+          />
+        </Animated.View>
+      </View>
+      {product.inStock && product.stock > 0 && product.stock <= 10 && (
+        <UIText variant="caption" weight="bold" style={{ color: qty >= maxQty ? kit.color.danger : kit.color.warn, textAlign: "center" }}>
+          {qty >= maxQty ? t("product.stockMax") : t("product.stockRemaining", { count: product.stock })}
+        </UIText>
+      )}
+    </View>
+  );
+});
+
+const cta = StyleSheet.create({
+  outer: { position: "absolute", bottom: 0, start: 0, end: 0, backgroundColor: kit.color.surface, paddingHorizontal: 16, paddingTop: 14, gap: 10, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: kit.color.line, shadowColor: "#0C2240", shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.10, shadowRadius: 18, elevation: 8 },
+  viewCartTouchable: { alignSelf: "center" },
+  viewCart: { alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 6, paddingHorizontal: 12, borderRadius: kit.radius.pill, backgroundColor: "transparent", alignSelf: "center" },
+  viewCartPressed: { backgroundColor: kit.color.accentTint },
+  actionsRow: { alignItems: "center", gap: 12 },
+});
+
+const action = StyleSheet.create({
+  stepper: { flexDirection: flexRow(IS_RTL), alignItems: "center", backgroundColor: kit.color.well, borderRadius: 14, borderWidth: 1, borderColor: kit.color.line, padding: 3, gap: 3 },
+  stepBtn: { width: 42, height: 42, borderRadius: 11, alignItems: "center", justifyContent: "center", backgroundColor: kit.color.surface, borderWidth: 1, borderColor: kit.color.line },
+  stepBtnPressed: { backgroundColor: kit.color.accentTint, borderColor: kit.color.accent, transform: [{ scale: 0.96 }] },
+  stepBtnDisabled: { opacity: 0.45 },
+  stepBtnPrimary: { width: 42, height: 42, borderRadius: 11, alignItems: "center", justifyContent: "center", backgroundColor: kit.color.accentDeep, borderWidth: 1, borderColor: kit.color.accentDeep },
+  stepBtnPrimaryPressed: { opacity: 0.88, transform: [{ scale: 0.96 }] },
+  stepValue: { minWidth: 40, height: 42, alignItems: "center", justifyContent: "center" },
+});

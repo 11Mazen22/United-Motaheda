@@ -112,7 +112,7 @@ export const CartDrawer = forwardRef<CartDrawerRef>(function CartDrawer(_, ref) 
             accessibilityRole="button"
             accessibilityLabel={t("common.close")}
             style={styles.closeBtn}>
-            <Ionicons name="close" size={16} color={theme.colors.slate[700]} />
+            <Ionicons name="close" size={16} color={kit.color.slate[700]} />
           </Pressable>
         </View>
 
@@ -140,16 +140,16 @@ export const CartDrawer = forwardRef<CartDrawerRef>(function CartDrawer(_, ref) 
                 <UIText
                   variant="body-sm"
                   weight="bold"
-                  style={delivery.isFree ? { color: theme.colors.success.strong } : undefined}>
+                  style={delivery.isFree ? { color: kit.color.success.strong } : undefined}>
                   {delivery.isFree ? t("common.free") : formatPrice(delivery.cost)}
                 </UIText>
               </View>
               {pricing.discount > 0 && (
                 <View style={styles.totalsRow}>
-                  <UIText variant="body-sm" style={{ color: theme.colors.success.strong }}>
+                  <UIText variant="body-sm" style={{ color: kit.color.success.strong }}>
                     {t("cart.discount")}
                   </UIText>
-                  <UIText variant="body-sm" weight="bold" style={{ color: theme.colors.success.strong }}>
+                  <UIText variant="body-sm" weight="bold" style={{ color: kit.color.success.strong }}>
                     −{formatPrice(pricing.discount)}
                   </UIText>
                 </View>
@@ -226,7 +226,7 @@ function CartDrawerRow({
         <Image source={{ uri: product.imageUrl }} style={styles.rowImage} contentFit="contain" />
       ) : (
         <View style={[styles.rowImage, styles.rowImageFallback]}>
-          <Ionicons name="medkit-outline" size={20} color={theme.colors.slate[400]} />
+          <Ionicons name="medkit-outline" size={20} color={kit.color.slate[400]} />
         </View>
       )}
 
@@ -282,7 +282,7 @@ function CartDrawerRow({
             accessibilityRole="button"
             accessibilityLabel={t("cart.removeItem")}
             style={styles.removeBtn}>
-            <Ionicons name="trash-outline" size={14} color={theme.colors.error.base} />
+            <Ionicons name="trash-outline" size={14} color={kit.color.error.base} />
           </Pressable>
         </View>
       </View>
@@ -313,12 +313,12 @@ function EmptyCartBody() {
 
 const styles = StyleSheet.create({
   background: {
-    backgroundColor:      theme.colors.surface,
-    borderTopLeftRadius:  24,
-    borderTopRightRadius: 24,
+    backgroundColor:      kit.color.surface,
+    borderTopStartRadius:  24,
+    borderTopEndRadius: 24,
   },
   handle: {
-    backgroundColor: theme.colors.slate[300],
+    backgroundColor: kit.color.slate[300],
     width:           44,
     height:          4,
   },
@@ -332,7 +332,7 @@ const styles = StyleSheet.create({
     paddingTop:       4,
     paddingBottom:    16,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border.hairline,
+    borderBottomColor: kit.color.border.hairline,
   },
   headerLeft: {
     flexDirection: flexRow(isRtl()),
@@ -343,9 +343,9 @@ const styles = StyleSheet.create({
     width:           38,
     height:          38,
     borderRadius:    11,
-    backgroundColor: theme.colors.brand.lighter,
+    backgroundColor: kit.color.brand.lighter,
     borderWidth:     1,
-    borderColor:     theme.colors.border.brandSoft,
+    borderColor:     kit.color.border.brandSoft,
     alignItems:      "center",
     justifyContent:  "center",
   },
@@ -362,7 +362,7 @@ const styles = StyleSheet.create({
     width:           34,
     height:          34,
     borderRadius:    11,
-    backgroundColor: theme.colors.surfaceSunken,
+    backgroundColor: kit.color.surfaceSunken,
     alignItems:      "center",
     justifyContent:  "center",
   },
@@ -379,7 +379,7 @@ const styles = StyleSheet.create({
     flexDirection:   flexRow(isRtl()),
     gap:             14,
     padding:         14,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: kit.color.surface,
     borderRadius:    16,
     ...theme.shadow.card,
   },
@@ -387,7 +387,7 @@ const styles = StyleSheet.create({
     width:           68,
     height:          68,
     borderRadius:    theme.radius.lg,
-    backgroundColor: theme.colors.surfaceSunken,
+    backgroundColor: kit.color.surfaceSunken,
   },
   rowImageFallback: {
     alignItems:     "center",
@@ -416,17 +416,17 @@ const styles = StyleSheet.create({
     flexDirection:   flexRow(isRtl()),
     alignItems:      "center",
     gap:             4,
-    backgroundColor: theme.colors.brand.lighter,
+    backgroundColor: kit.color.brand.lighter,
     borderRadius:    10,
     padding:         3,
     borderWidth:     1,
-    borderColor:     theme.colors.border.brandSoft,
+    borderColor:     kit.color.border.brandSoft,
   },
   qtyBtn: {
     width:           26,
     height:          26,
     borderRadius:    7,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: kit.color.surface,
     alignItems:      "center",
     justifyContent:  "center",
   },
@@ -438,9 +438,9 @@ const styles = StyleSheet.create({
     width:           30,
     height:          30,
     borderRadius:    9,
-    backgroundColor: theme.colors.error.bg,
+    backgroundColor: kit.color.error.bg,
     borderWidth:     1,
-    borderColor:     theme.colors.error.light,
+    borderColor:     kit.color.error.light,
     alignItems:      "center",
     justifyContent:  "center",
   },
@@ -469,8 +469,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop:        16,
     borderTopWidth:    StyleSheet.hairlineWidth,
-    borderTopColor:    theme.colors.border.hairline,
-    backgroundColor:   theme.colors.surface,
+    borderTopColor:    kit.color.border.hairline,
+    backgroundColor:   kit.color.surface,
   },
   totalsRow: {
     flexDirection:  flexRow(isRtl()),
@@ -480,7 +480,7 @@ const styles = StyleSheet.create({
   },
   divider: {
     height:          StyleSheet.hairlineWidth,
-    backgroundColor: theme.colors.border.hairline,
+    backgroundColor: kit.color.border.hairline,
     marginVertical:  10,
   },
   grandTotalRow: {
@@ -514,9 +514,9 @@ const styles = StyleSheet.create({
   secondaryBtn: {
     paddingVertical: 14,
     borderRadius:    14,
-    backgroundColor: theme.colors.surfaceSunken,
+    backgroundColor: kit.color.surfaceSunken,
     borderWidth:     1,
-    borderColor:     theme.colors.border.hairline,
+    borderColor:     kit.color.border.hairline,
     alignItems:      "center",
     justifyContent:  "center",
   },
@@ -556,9 +556,9 @@ const styles = StyleSheet.create({
     width:           80,
     height:          80,
     borderRadius:    24,
-    backgroundColor: theme.colors.brand.lighter,
+    backgroundColor: kit.color.brand.lighter,
     borderWidth:     1,
-    borderColor:     theme.colors.border.brandSoft,
+    borderColor:     kit.color.border.brandSoft,
     alignItems:      "center",
     justifyContent:  "center",
     marginBottom:    12,

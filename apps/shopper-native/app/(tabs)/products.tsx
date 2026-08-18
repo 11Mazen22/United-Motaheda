@@ -1,4 +1,5 @@
 import React, { useCallback } from "react";
+import { useDarkColors } from '@/hooks/useDarkColors';
 import { FlatList, Platform, Pressable, StyleSheet, View } from "react-native";
 import { GestureDetector } from "react-native-gesture-handler";
 import Animated from "react-native-reanimated";
@@ -13,7 +14,6 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { Text as UIText } from "@pharmacy/ui-native";
 import { useCartStore } from "@/stores/cart";
 import { useMountTiming } from "@/lib/devTiming";
-import { theme } from "@pharmacy/design-tokens";
 import { kit } from "@pharmacy/ui-native";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
 import { HomeSectionHeader } from "@/features/home/components/HomeSectionHeader";
@@ -28,12 +28,14 @@ const GRID_GAP = 12;
 // ─── Stats strip ─────────────────────────────────────────────────────────────
 
 function StatsStrip({ catCount, loading }: { catCount: number; loading: boolean }) {
+  const { c } = useDarkColors();
+
   const { t }       = useTranslation();
   const { pagePad } = useScreenLayout();
   const items = [
-    { icon: "grid-outline"             as const, value: "",      label: t("products.statCategories"), color: kit.color.accentDeep, tint: kit.color.accentTint  },
-    { icon: "cube-outline"             as const, value: "5000+", label: t("products.statItems"),      color: kit.color.success,    tint: kit.color.successTint },
-    { icon: "flash-outline"            as const, value: IS_RTL ? "30د" : "30min", label: t("products.statFastLabel"), color: kit.color.warn, tint: kit.color.warnTint },
+    { icon: "grid-outline"             as const, value: "",      label: t("products.statCategories"), color: c.accentDeep, tint: c.accentTint  },
+    { icon: "cube-outline"             as const, value: "5000+", label: t("products.statItems"),      color: c.success,    tint: c.successTint },
+    { icon: "flash-outline"            as const, value: IS_RTL ? "30د" : "30min", label: t("products.statFastLabel"), color: c.warn, tint: c.warnTint },
     { icon: "shield-checkmark-outline" as const, value: "100%",  label: t("products.statOriginalLabel"), color: "#7c3aed",         tint: "#f5f3ff"             },
   ];
   return (
@@ -60,6 +62,8 @@ function StatsStrip({ catCount, loading }: { catCount: number; loading: boolean 
 const SKELETON_CELL = { flex: 1, minWidth: "30%" as const, padding: 4 };
 
 function GridSkeleton() {
+  const { c } = useDarkColors();
+
   return (
     <View style={s.grid}>
       {Array(6).fill(null).map((_, i) => (
@@ -81,6 +85,8 @@ function GridSkeleton() {
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function ProductsScreen() {
+  const { c } = useDarkColors();
+
   useMountTiming("ProductsScreen");
   const { gesture, animatedStyle } = useTabSwipeGesture("products");
   const { t, i18n } = useTranslation();
@@ -145,7 +151,7 @@ export default function ProductsScreen() {
                 {/* Leading: icon tile + title stack */}
                 <View style={[s.headerLeft, { flexDirection: flexRow(IS_RTL) }]}>
                   <View style={s.headerIconTile}>
-                    <Ionicons name="grid" size={20} color={kit.color.accentDeep} />
+                    <Ionicons name="grid" size={20} color={c.accentDeep} />
                   </View>
                   <View>
                     <UIText style={s.headerEyebrow}>
@@ -169,7 +175,7 @@ export default function ProductsScreen() {
                   accessibilityLabel={cartCount > 0 ? `${t("tabs.cart")}, ${cartCount}` : t("tabs.cart")}
                   style={s.cartBtn}
                 >
-                  <Ionicons name="bag-outline" size={19} color={kit.color.inkSoft} />
+                  <Ionicons name="bag-outline" size={19} color={c.inkSoft} />
                   {cartCount > 0 && (
                     <View style={s.cartBadge}>
                       <UIText style={s.cartBadgeText}>{cartCount > 9 ? "9+" : cartCount}</UIText>
@@ -186,7 +192,7 @@ export default function ProductsScreen() {
                 style={[s.searchBar, { flexDirection: flexRow(IS_RTL) }]}
               >
                 <View style={s.searchIconWell}>
-                  <Ionicons name="search" size={16} color={kit.color.accentDeep} />
+                  <Ionicons name="search" size={16} color={c.accentDeep} />
                 </View>
                 <UIText style={[s.searchHint, { textAlign: TEXT_START }]}>
                   {t("search.placeholder")}
@@ -260,16 +266,16 @@ export default function ProductsScreen() {
 const s = StyleSheet.create({
   root: {
     flex:            1,
-    backgroundColor: kit.color.canvas,
+    backgroundColor: c.canvas,
   },
 
   // ── Header (paddingHorizontal applied inline via pagePad)
   header: {
-    backgroundColor: kit.color.surface,
+    backgroundColor: c.surface,
     paddingBottom:   18,
     gap:               16,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: kit.color.line,
+    borderBottomColor: c.line,
     ...kit.shadow.raised,
   },
   headerRow: {
@@ -285,9 +291,9 @@ const s = StyleSheet.create({
     width:           52,
     height:          52,
     borderRadius:    16,
-    backgroundColor: kit.color.accentTint,
+    backgroundColor: c.accentTint,
     borderWidth:     1,
-    borderColor:     kit.color.accentDeep + "22",
+    borderColor:     c.accentDeep + "22",
     alignItems:      "center",
     justifyContent:  "center",
     flexShrink:      0,
@@ -297,7 +303,7 @@ const s = StyleSheet.create({
     fontFamily:         theme.fonts.bold,
     fontSize:           10,
     lineHeight:         14,
-    color:              kit.color.accentDeep,
+    color:              c.accentDeep,
     letterSpacing:      0.7,
     textAlign:          TEXT_START,
     includeFontPadding: false,
@@ -306,7 +312,7 @@ const s = StyleSheet.create({
     fontFamily:         theme.fonts.black,
     fontSize:           28,
     lineHeight:         34,
-    color:              kit.color.ink,
+    color:              c.ink,
     letterSpacing:      -0.6,
     textAlign:          TEXT_START,
     includeFontPadding: false,
@@ -316,7 +322,7 @@ const s = StyleSheet.create({
     fontFamily:         theme.fonts.regular,
     fontSize:           12,
     lineHeight:         17,
-    color:              kit.color.inkFaint,
+    color:              c.inkFaint,
     textAlign:          TEXT_START,
     includeFontPadding: false,
     marginTop:          2,
@@ -326,9 +332,9 @@ const s = StyleSheet.create({
     width:           46,
     height:          46,
     borderRadius:    15,
-    backgroundColor: kit.color.well,
+    backgroundColor: c.well,
     borderWidth:     1,
-    borderColor:     kit.color.line,
+    borderColor:     c.line,
     alignItems:      "center",
     justifyContent:  "center",
     ...kit.shadow.raised,
@@ -336,14 +342,14 @@ const s = StyleSheet.create({
   cartBadge: {
     position:          "absolute",
     top:               -4,
-    ...(IS_RTL ? { left: -4 } : { right: -4 }),
+    ...(IS_RTL ? { start: -4 } : { end: -4 }),
     minWidth:          18,
     height:            18,
     paddingHorizontal: 4,
     borderRadius:      9,
-    backgroundColor:   kit.color.danger,
+    backgroundColor:   c.danger,
     borderWidth:       2,
-    borderColor:       kit.color.surface,
+    borderColor:       c.surface,
     alignItems:        "center",
     justifyContent:    "center",
   },
@@ -360,18 +366,18 @@ const s = StyleSheet.create({
   searchBar: {
     alignItems:        "center",
     gap:               10,
-    backgroundColor:   kit.color.well,
+    backgroundColor:   c.well,
     borderRadius:      kit.radius.xl,
     paddingHorizontal: 14,
     paddingVertical:   14,
     borderWidth:       1,
-    borderColor:       kit.color.line,
+    borderColor:       c.line,
   },
   searchIconWell: {
     width:           32,
     height:          32,
     borderRadius:    10,
-    backgroundColor: kit.color.accentTint,
+    backgroundColor: c.accentTint,
     alignItems:      "center",
     justifyContent:  "center",
   },
@@ -380,23 +386,23 @@ const s = StyleSheet.create({
     flex:               1,
     fontSize:           14,
     lineHeight:         20,
-    color:              kit.color.inkFaint,
+    color:              c.inkFaint,
     includeFontPadding: false,
   },
   searchKbd: {
-    backgroundColor:   kit.color.surface,
+    backgroundColor:   c.surface,
     borderRadius:      kit.radius.md,
     paddingHorizontal: 10,
     paddingVertical:   5,
     borderWidth:       1,
-    borderColor:       kit.color.line,
+    borderColor:       c.line,
     ...kit.shadow.raised,
   },
   searchKbdText: {
     fontFamily:         theme.fonts.semibold,
     fontSize:           10,
     lineHeight:         14,
-    color:              kit.color.inkSoft,
+    color:              c.inkSoft,
     includeFontPadding: false,
   },
 
@@ -418,10 +424,10 @@ const s = StyleSheet.create({
 const st = StyleSheet.create({
   row: {
     marginTop:       20,
-    backgroundColor: kit.color.surface,
+    backgroundColor: c.surface,
     borderRadius:      kit.radius.lg,
     borderWidth:       1,
-    borderColor:       kit.color.line,
+    borderColor:       c.line,
     overflow:          "hidden",
     ...kit.shadow.raised,
   },
@@ -434,12 +440,12 @@ const st = StyleSheet.create({
     paddingHorizontal: 10,
   },
   itemBorderLeft: {
-    borderLeftWidth:  StyleSheet.hairlineWidth,
-    borderLeftColor:  kit.color.line,
+    borderStartWidth:  StyleSheet.hairlineWidth,
+    borderLeftColor:  c.line,
   },
   itemBorderRight: {
-    borderRightWidth: StyleSheet.hairlineWidth,
-    borderRightColor: kit.color.line,
+    borderEndWidth: StyleSheet.hairlineWidth,
+    borderRightColor: c.line,
   },
   icon: {
     width:          28,
@@ -461,7 +467,7 @@ const st = StyleSheet.create({
     fontFamily:         theme.fonts.regular,
     fontSize:           9,
     lineHeight:         13,
-    color:              kit.color.inkFaint,
+    color:              c.inkFaint,
     includeFontPadding: false,
   },
 });
@@ -469,15 +475,15 @@ const st = StyleSheet.create({
 // ── Grid skeleton styles
 const sk = StyleSheet.create({
   card: {
-    backgroundColor: kit.color.surface,
+    backgroundColor: c.surface,
     borderRadius:    kit.radius.lg,
     borderWidth:     1,
-    borderColor:     kit.color.line,
+    borderColor:     c.line,
     overflow:        "hidden",
   },
   stripe: {
     height:          5,
-    backgroundColor: kit.color.well,
+    backgroundColor: c.well,
   },
   body: {
     padding: 16,
@@ -487,12 +493,12 @@ const sk = StyleSheet.create({
     width:           58,
     height:          58,
     borderRadius:    18,
-    backgroundColor: kit.color.well,
+    backgroundColor: c.well,
   },
   line: {
     height:          11,
     borderRadius:    6,
-    backgroundColor: kit.color.well,
+    backgroundColor: c.well,
   },
   lineShort: {
     width: "60%",

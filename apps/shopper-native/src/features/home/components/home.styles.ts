@@ -53,7 +53,7 @@ export const shStyles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
   },
-  left: {
+  start: {
     flex: 1,
     flexShrink: 1,
     flexDirection: flexRow(IS_RTL),

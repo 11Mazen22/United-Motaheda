@@ -19,6 +19,7 @@ import { useTranslation }  from "react-i18next";
 import { useQueryClient }  from "@tanstack/react-query";
 
 import { Screen, Text as UIText, Card, Chip } from "@pharmacy/ui-native";
+import { useDarkColors } from "@/hooks/useDarkColors";
 import EmptyState from "@/components/EmptyState";
 import { kit } from "@pharmacy/ui-native";
 import { flexRow, isRtl, textAlignStart, FORWARD_CHEVRON } from "@/utils/layout";

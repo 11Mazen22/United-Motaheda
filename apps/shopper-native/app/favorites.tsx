@@ -21,7 +21,6 @@ import type { NativeProduct } from "@/services/productsApi";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Badge } from "@/components/ui/Badge";
 import { Text as UIText } from "@pharmacy/ui-native";
-import { theme } from "@pharmacy/design-tokens";
 import { useDarkColors } from "@/hooks/useDarkColors";
 import { formatPrice } from "@/utils/format";
 import { flexRow, isRtl, textAlignStart, BACK_CHEVRON } from "@/utils/layout";
@@ -33,6 +32,10 @@ const TEXT_START = textAlignStart(IS_RTL);
 // Mirrors FavoriteCard's row geometry (82×82 image, 14 padding, 16 radius) so
 // the loading → loaded transition doesn't reflow the list.
 const FavoriteCardSkeleton = memo(function FavoriteCardSkeleton() {
+  const { c } = useDarkColors();
+
+  const { c } = useDarkColors();
+
   const { c } = useDarkColors();
   return (
     <View style={[s.card, s.skeletonCard, { flexDirection: flexRow(IS_RTL), backgroundColor: c.surface, borderColor: c.line }]}>
@@ -52,6 +55,10 @@ const FavoriteCardSkeleton = memo(function FavoriteCardSkeleton() {
 
 // ─── FavoriteCard ─────────────────────────────────────────────────────────────
 const FavoriteCard = memo(function FavoriteCard({ product, index }: { product: NativeProduct; index: number }) {
+  const { c } = useDarkColors();
+
+  const { c } = useDarkColors();
+
   const { c } = useDarkColors();
   const router  = useRouter();
   const { t }   = useTranslation();
@@ -84,8 +91,8 @@ const FavoriteCard = memo(function FavoriteCard({ product, index }: { product: N
             <Image source={{ uri: product.imageUrl }} style={{ width: "100%", height: "100%" }} contentFit="contain" transition={180} />
           ) : (
             <>
-              <View style={[StyleSheet.absoluteFill, { backgroundColor: kit.color.accentTint }]} />
-              <Ionicons name="medkit-outline" size={28} color={kit.color.lineStrong} />
+              <View style={[StyleSheet.absoluteFill, { backgroundColor: c.accentTint }]} />
+              <Ionicons name="medkit-outline" size={28} color={c.lineStrong} />
             </>
           )}
           {!product.inStock && (
@@ -137,7 +144,7 @@ const FavoriteCard = memo(function FavoriteCard({ product, index }: { product: N
           <Ionicons
             name={inCart ? "checkmark" : "cart-outline"}
             size={16}
-            color={inCart ? "#fff" : product.inStock ? kit.color.accentDeep : kit.color.inkFaint}
+            color={inCart ? "#fff" : product.inStock ? c.accentDeep : c.inkFaint}
           />
         </Pressable>
       </View>
@@ -147,6 +154,8 @@ const FavoriteCard = memo(function FavoriteCard({ product, index }: { product: N
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 export default function FavoritesScreen() {
+  const { c } = useDarkColors();
+
   const { c, isDark } = useDarkColors();
   const { t }      = useTranslation();
   const router     = useRouter();
@@ -161,7 +170,7 @@ export default function FavoritesScreen() {
       clear();
       if (userId) {
         void clearUserWishlist(userId).catch((e) => {
-          if (__DEV__) console.warn("[favorites] clearUserWishlist failed:", e);
+          // empty
         });
       }
     };
@@ -189,7 +198,7 @@ export default function FavoritesScreen() {
           style={s.backBtn}
           hitSlop={10}
           accessibilityRole="button">
-          <Ionicons name={BACK_CHEVRON} size={18} color={kit.color.inkSoft} />
+          <Ionicons name={BACK_CHEVRON} size={18} color={c.inkSoft} />
         </Pressable>
 
         <View style={s.iconTile}>
@@ -269,7 +278,7 @@ const favoriteItemType     = () => "favorite-card";
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const s = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: kit.color.canvas },
+  screen: { flex: 1, backgroundColor: c.canvas },
   cardWrap: { paddingBottom: 12 },
 
   // Header
@@ -279,20 +288,20 @@ const s = StyleSheet.create({
     gap:               14,
     paddingHorizontal: 20,
     paddingBottom:     16,
-    backgroundColor:   kit.color.surface,
+    backgroundColor:   c.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: kit.color.line,
+    borderBottomColor: c.line,
     ...kit.shadow.raised,
   },
   backBtn: {
     width:           40,
     height:          40,
     borderRadius:    20,
-    backgroundColor: kit.color.surface,
+    backgroundColor: c.surface,
     alignItems:      "center",
     justifyContent:  "center",
     borderWidth:     1,
-    borderColor:     kit.color.line,
+    borderColor:     c.line,
     ...kit.shadow.raised,
     flexShrink:      0,
   },
@@ -311,14 +320,14 @@ const s = StyleSheet.create({
     fontFamily:         theme.fonts.black,
     fontSize:           18,
     letterSpacing:      -0.4,
-    color:              kit.color.ink,
+    color:              c.ink,
     includeFontPadding: false,
     textAlign:          TEXT_START,
   },
   headerSubtitle: {
     fontFamily:         theme.fonts.semibold,
     fontSize:           11,
-    color:              kit.color.inkFaint,
+    color:              c.inkFaint,
     includeFontPadding: false,
     textAlign:          TEXT_START,
     marginTop:          1,
@@ -340,9 +349,9 @@ const s = StyleSheet.create({
     gap:               8,
     paddingHorizontal: 20,
     paddingVertical:   10,
-    backgroundColor:   kit.color.surface,
+    backgroundColor:   c.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: kit.color.line,
+    borderBottomColor: c.line,
   },
   statChip: {
     alignItems:        "center",
@@ -368,18 +377,18 @@ const s = StyleSheet.create({
   card: {
     alignItems:      "center",
     gap:             14,
-    backgroundColor: kit.color.surface,
+    backgroundColor: c.surface,
     borderRadius:    16,
     padding:         14,
     borderWidth:     1,
-    borderColor:     kit.color.line,
+    borderColor:     c.line,
     ...kit.shadow.raised,
   },
   imgBox: {
     width:           82,
     height:          82,
     borderRadius:    14,
-    backgroundColor: kit.color.well,
+    backgroundColor: c.well,
     alignItems:      "center",
     justifyContent:  "center",
     overflow:        "hidden",
@@ -395,7 +404,7 @@ const s = StyleSheet.create({
   priceLabel: {
     fontSize:           15,
     fontFamily:         theme.fonts.black,
-    color:              kit.color.accentDeep,
+    color:              c.accentDeep,
     letterSpacing:      -0.3,
     marginTop:          2,
     includeFontPadding: false,
@@ -417,20 +426,20 @@ const s = StyleSheet.create({
     width:           40,
     height:          40,
     borderRadius:    13,
-    backgroundColor: kit.color.accentTint,
+    backgroundColor: c.accentTint,
     borderWidth:     1,
-    borderColor:     kit.color.line,
+    borderColor:     c.line,
     alignItems:      "center",
     justifyContent:  "center",
     ...kit.shadow.raised,
   },
   cartBtnActive: {
-    backgroundColor: kit.color.accentDeep,
-    borderColor:     kit.color.accentDeep,
+    backgroundColor: c.accentDeep,
+    borderColor:     c.accentDeep,
   },
   cartBtnDisabled: {
-    backgroundColor: kit.color.well,
-    borderColor:     kit.color.line,
+    backgroundColor: c.well,
+    borderColor:     c.line,
   },
 
   // Skeleton (loading state)
@@ -438,10 +447,10 @@ const s = StyleSheet.create({
     borderColor: "transparent",
   },
   skeletonBlock: {
-    backgroundColor: kit.color.well,
+    backgroundColor: c.well,
   },
   skeletonLine: {
     borderRadius:    6,
-    backgroundColor: kit.color.well,
+    backgroundColor: c.well,
   },
 });

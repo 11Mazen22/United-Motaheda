@@ -127,8 +127,8 @@ const cs = StyleSheet.create({
   accentStripe: {
     position:     "absolute",
     top:          0,
-    left:         0,
-    right:        0,
+    start: 0,
+    end: 0,
     height:       3,
   },
   iconWell: {

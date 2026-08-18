@@ -58,7 +58,7 @@ export async function signInWithProvider(
   });
 
   if (error || !data?.url) {
-    if (__DEV__) console.warn("[socialAuth] signInWithOAuth error:", error);
+    if (__DEV__) 
     return "error";
   }
 

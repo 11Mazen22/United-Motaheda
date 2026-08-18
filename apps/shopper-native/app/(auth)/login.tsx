@@ -107,7 +107,7 @@ export default function LoginScreen() {
       requestAndStoreLocation();
       router.replace("/(tabs)");
     } catch (e) {
-      if (__DEV__) console.warn("[login] signIn failed:", e);
+      if (__DEV__) 
       captureError(e, { surface: "login" });
       track("login_failed", { reason: e instanceof Error ? e.message.slice(0, 80) : "unknown" });
       setError(getAuthError(e, i18n.language));

@@ -46,8 +46,9 @@ import Animated, {
 } from "react-native-reanimated";
 
 import { Screen, Text as UIText } from "@pharmacy/ui-native";
+import { useDarkColors } from "@/hooks/useDarkColors";
 import { kit }                    from "@pharmacy/ui-native";
-import { theme }                  from "@pharmacy/design-tokens";
+
 import { BACK_CHEVRON, edgeEnd, edgeStart, flexRow, isRtl, textAlignStart } from "@/utils/layout";
 import { formatPrice }            from "@/utils/format";
 import { newIdempotencyKey }      from "@/lib/idempotency";
@@ -71,7 +72,7 @@ function PermissionGate({ onRequest }: { onRequest: () => void }) {
   return (
     <View style={pg.root}>
       <View style={pg.iconWell}>
-        <Ionicons name="camera-outline" size={48} color={kit.color.accentDeep} />
+        <Ionicons name="camera-outline" size={48} color={c.accentDeep} />
       </View>
       <UIText variant="section-head" style={{ textAlign: "center" }}>
         {t("pharmacist.scannerPermissionTitle", "إذن الكاميرا مطلوب")}
@@ -95,12 +96,12 @@ function PermissionGate({ onRequest }: { onRequest: () => void }) {
   );
 }
 
-const pg = StyleSheet.create({
+const usePgStyles = (c: any) => StyleSheet.create({
   root:       { flex: 1, alignItems: "center", justifyContent: "center", gap: 16, padding: 32 },
-  iconWell:   { width: 80, height: 80, borderRadius: 24, backgroundColor: kit.color.accentTint, alignItems: "center", justifyContent: "center" },
-  btn:        { paddingHorizontal: 32, paddingVertical: 14, borderRadius: kit.radius.lg, backgroundColor: kit.color.accent, ...kit.shadow.brandGlow },
+  iconWell:   { width: 80, height: 80, borderRadius: 24, backgroundColor: c.accentTint, alignItems: "center", justifyContent: "center" },
+  btn:        { paddingHorizontal: 32, paddingVertical: 14, borderRadius: kit.radius.lg, backgroundColor: c.accent, ...kit.shadow.brandGlow },
   btnPressed: { opacity: 0.85, transform: [{ scale: 0.98 }] },
-  btnText:    { fontSize: 14, fontFamily: theme.fonts.black, color: "#fff" },
+  btnText:    { fontSize: 14, fontFamily: kit.font.black, color: "#fff" },
 });
 
 // ─── Product result card ───────────────────────────────────────────────────────
@@ -136,13 +137,13 @@ function ProductCard({
     >
       {/* Dismiss */}
       <Pressable onPress={onDismiss} style={rc.close} hitSlop={12} accessibilityRole="button">
-        <Ionicons name="close-circle" size={22} color={kit.color.inkFaint} />
+        <Ionicons name="close-circle" size={22} color={c.inkFaint} />
       </Pressable>
 
       {/* Header */}
       <View style={[rc.header, { flexDirection: flexRow(IS_RTL) }]}>
         <View style={rc.barcodeIcon}>
-          <Ionicons name="barcode-outline" size={18} color={kit.color.accentDeep} />
+          <Ionicons name="barcode-outline" size={18} color={c.accentDeep} />
         </View>
         <View style={{ flex: 1 }}>
           <UIText variant="card-title" numberOfLines={2} style={{ textAlign: TEXT_START }}>
@@ -174,7 +175,7 @@ function ProductCard({
       {/* Low-stock warning */}
       {isLow && (
         <Animated.View entering={FadeIn.duration(200)} style={rc.warnRow}>
-          <Ionicons name="warning-outline" size={13} color={kit.color.danger} />
+          <Ionicons name="warning-outline" size={13} color={c.danger} />
           <UIText style={rc.warnText}>
             {product.available === 0
               ? t("pharmacist.stockExhausted", "نفد المخزون")
@@ -186,7 +187,7 @@ function ProductCard({
       {/* Category */}
       {product.categoryName && (
         <View style={[rc.catRow, { flexDirection: flexRow(IS_RTL) }]}>
-          <Ionicons name="folder-outline" size={12} color={kit.color.inkFaint} />
+          <Ionicons name="folder-outline" size={12} color={c.inkFaint} />
           <UIText variant="caption" color="secondary">{product.categoryName}</UIText>
         </View>
       )}
@@ -211,7 +212,7 @@ function ProductCard({
 
           <View style={[rc.adjustRow, { flexDirection: flexRow(IS_RTL) }]}>
             <Pressable onPress={() => onAdjust(-1)} style={rc.adjustBtn} accessibilityRole="button">
-              <Ionicons name="remove" size={18} color={kit.color.accentDeep} />
+              <Ionicons name="remove" size={18} color={c.accentDeep} />
             </Pressable>
             <View style={rc.adjustValueWrap}>
               <UIText style={rc.adjustValue}>{adjustment > 0 ? `+${adjustment}` : adjustment}</UIText>
@@ -220,7 +221,7 @@ function ProductCard({
               </UIText>
             </View>
             <Pressable onPress={() => onAdjust(1)} style={rc.adjustBtn} accessibilityRole="button">
-              <Ionicons name="add" size={18} color={kit.color.accentDeep} />
+              <Ionicons name="add" size={18} color={c.accentDeep} />
             </Pressable>
           </View>
           {adjustment !== 0 && (
@@ -244,15 +245,15 @@ function ProductCard({
   );
 }
 
-const rc = StyleSheet.create({
+const useRcStyles = (c: any) => StyleSheet.create({
   root: {
     position:          "absolute",
     bottom:            0,
-    left:              0,
-    right:             0,
-    backgroundColor:   kit.color.surface,
-    borderTopLeftRadius:  kit.radius.xl,
-    borderTopRightRadius: kit.radius.xl,
+    start:              0,
+    end:             0,
+    backgroundColor:   c.surface,
+    borderTopStartRadius:  kit.radius.xl,
+    borderTopEndRadius: kit.radius.xl,
     padding:           kit.inset.card,
     paddingBottom:     28,
     gap:               12,
@@ -267,26 +268,26 @@ const rc = StyleSheet.create({
   header: { alignItems: "flex-start", gap: 12 },
   barcodeIcon: {
     width: 42, height: 42, borderRadius: 12,
-    backgroundColor: kit.color.accentTint,
+    backgroundColor: c.accentTint,
     alignItems: "center", justifyContent: "center",
     flexShrink: 0,
   },
-  price:     { fontSize: 18, fontFamily: theme.fonts.black, color: kit.color.accentDeep },
+  price:     { fontSize: 18, fontFamily: kit.font.black, color: c.accentDeep },
   stockGrid: { gap: 8 },
-  stockCell: { flex: 1, alignItems: "center", backgroundColor: kit.color.well, borderRadius: kit.radius.lg, paddingVertical: 10 },
-  stockVal:  { fontSize: 22, fontFamily: theme.fonts.black, color: kit.color.ink },
-  stockValWarn: { color: kit.color.danger },
-  stockLabel:{ fontSize: 10, fontFamily: theme.fonts.bold, color: kit.color.inkSoft, marginTop: 2 },
-  warnRow:   { flexDirection: "row", alignItems: "center", gap: 6, padding: 10, borderRadius: kit.radius.lg, backgroundColor: kit.color.dangerTint },
-  warnText:  { fontSize: 12, fontFamily: theme.fonts.bold, color: kit.color.danger, flex: 1 },
+  stockCell: { flex: 1, alignItems: "center", backgroundColor: c.well, borderRadius: kit.radius.lg, paddingVertical: 10 },
+  stockVal:  { fontSize: 22, fontFamily: kit.font.black, color: c.ink },
+  stockValWarn: { color: c.danger },
+  stockLabel:{ fontSize: 10, fontFamily: kit.font.bold, color: c.inkSoft, marginTop: 2 },
+  warnRow:   { flexDirection: "row", alignItems: "center", gap: 6, padding: 10, borderRadius: kit.radius.lg, backgroundColor: c.dangerTint },
+  warnText:  { fontSize: 12, fontFamily: kit.font.bold, color: c.danger, flex: 1 },
   catRow:    { alignItems: "center", gap: 6 },
   adjustCard: {
     gap:             12,
     padding:         12,
     borderRadius:    kit.radius.lg,
-    backgroundColor: kit.color.well,
+    backgroundColor: c.well,
     borderWidth:     1,
-    borderColor:     kit.color.line,
+    borderColor:     c.line,
   },
   adjustHeader: {
     alignItems: "center",
@@ -296,12 +297,12 @@ const rc = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical:   8,
     borderRadius:      kit.radius.pill,
-    backgroundColor:   kit.color.accentTint,
+    backgroundColor:   c.accentTint,
   },
   openInventoryText: {
     fontSize:   11,
-    fontFamily: theme.fonts.bold,
-    color:      kit.color.accentDeep,
+    fontFamily: kit.font.bold,
+    color:      c.accentDeep,
   },
   adjustRow: {
     alignItems:     "center",
@@ -312,9 +313,9 @@ const rc = StyleSheet.create({
     width:           42,
     height:          42,
     borderRadius:    14,
-    backgroundColor: kit.color.surface,
+    backgroundColor: c.surface,
     borderWidth:     1,
-    borderColor:     kit.color.line,
+    borderColor:     c.line,
     alignItems:      "center",
     justifyContent:  "center",
   },
@@ -325,27 +326,31 @@ const rc = StyleSheet.create({
   },
   adjustValue: {
     fontSize:   22,
-    fontFamily: theme.fonts.black,
-    color:      kit.color.ink,
+    fontFamily: kit.font.black,
+    color:      c.ink,
   },
   adjustHint: {
     fontSize:   10,
-    fontFamily: theme.fonts.regular,
-    color:      kit.color.inkFaint,
+    fontFamily: kit.font.regular,
+    color:      c.inkFaint,
   },
   saveAdjustmentBtn: {
     minHeight: 42,
     borderRadius: kit.radius.lg,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: kit.color.accent,
+    backgroundColor: c.accent,
   },
-  saveAdjustmentText: { fontSize: 12, fontFamily: theme.fonts.bold, color: "#fff" },
+  saveAdjustmentText: { fontSize: 12, fontFamily: kit.font.bold, color: "#fff" },
 });
 
 // ─── Main screen ──────────────────────────────────────────────────────────────
 
 export function BarcodeScannerScreen(): React.ReactElement {
+  const { c } = useDarkColors();
+  const s = useSStyles(c);
+  const rc = useRcStyles(c);
+  const pg = usePgStyles(c);
   const { t }    = useTranslation();
   const router   = useRouter();
   const params   = useLocalSearchParams<{ barcode?: string; mode?: ScanMode }>();
@@ -468,16 +473,16 @@ export function BarcodeScannerScreen(): React.ReactElement {
 
   if (!permission) {
     return (
-      <Screen edgeTop background={kit.color.canvas}>
+      <Screen edgeTop background={c.canvas}>
         <PharmacistScreenHeader title={t("pharmacist.scannerTitle", "الماسح الضوئي")} />
-        <View style={s.centered}><ActivityIndicator size="large" color={kit.color.accent} /></View>
+        <View style={s.centered}><ActivityIndicator size="large" color={c.accent} /></View>
       </Screen>
     );
   }
 
   if (!permission.granted) {
     return (
-      <Screen edgeTop background={kit.color.canvas}>
+      <Screen edgeTop background={c.canvas}>
         <PharmacistScreenHeader title={t("pharmacist.scannerTitle", "الماسح الضوئي")} />
         <PermissionGate onRequest={requestPermission} />
       </Screen>
@@ -559,7 +564,7 @@ export function BarcodeScannerScreen(): React.ReactElement {
           <Ionicons
             name={torchOn ? "flashlight" : "flashlight-outline"}
             size={20}
-            color={torchOn ? kit.color.accent : "#fff"}
+            color={torchOn ? c.accent : "#fff"}
           />
         </Pressable>
 
@@ -580,7 +585,7 @@ export function BarcodeScannerScreen(): React.ReactElement {
           exiting={FadeOut.duration(150)}
           style={s.errorBanner}
         >
-          <Ionicons name="alert-circle-outline" size={16} color={kit.color.danger} />
+          <Ionicons name="alert-circle-outline" size={16} color={c.danger} />
           <UIText style={s.errorText}>{error}</UIText>
           {lastScanRef.current?.value ? (
             <Pressable onPress={() => void handleBarcode(lastScanRef.current!.value)} hitSlop={10} style={s.retryPill}>
@@ -588,7 +593,7 @@ export function BarcodeScannerScreen(): React.ReactElement {
             </Pressable>
           ) : null}
           <Pressable onPress={dismissResult} hitSlop={10}>
-            <Ionicons name="close" size={14} color={kit.color.danger} />
+            <Ionicons name="close" size={14} color={c.danger} />
           </Pressable>
         </Animated.View>
       )}
@@ -622,7 +627,7 @@ export function BarcodeScannerScreen(): React.ReactElement {
 
 const WINDOW_SIZE = 240;
 
-const s = StyleSheet.create({
+const useSStyles = (c: any) => StyleSheet.create({
   centered: { flex: 1, alignItems: "center", justifyContent: "center" },
 
   backBtn: {
@@ -646,50 +651,50 @@ const s = StyleSheet.create({
     paddingVertical:   8,
     borderRadius:      kit.radius.pill,
   },
-  modeBtnActive: { backgroundColor: kit.color.accent },
-  modeBtnText: { fontSize: 12, fontFamily: theme.fonts.bold, color: "rgba(255,255,255,0.7)" },
+  modeBtnActive: { backgroundColor: c.accent },
+  modeBtnText: { fontSize: 12, fontFamily: kit.font.bold, color: "rgba(255,255,255,0.7)" },
   modeBtnTextActive: { color: "#fff" },
 
   scanWindow: {
     position:      "absolute",
     top:           "50%",
-    left:          "50%",
+    start:          "50%",
     width:         WINDOW_SIZE,
     height:        WINDOW_SIZE,
     marginTop:     -(WINDOW_SIZE / 2) - 30,
-    marginLeft:    -(WINDOW_SIZE / 2),
+    marginStart:    -(WINDOW_SIZE / 2),
   },
   corner: {
     position:  "absolute",
     width:     28,
     height:    28,
-    borderColor: kit.color.accent,
+    borderColor: c.accent,
     borderWidth: 3,
   },
-  cornerTL: { top: 0, left: 0,  borderRightWidth: 0, borderBottomWidth: 0, borderTopLeftRadius:     8 },
-  cornerTR: { top: 0, right: 0, borderLeftWidth:  0, borderBottomWidth: 0, borderTopRightRadius:    8 },
-  cornerBL: { bottom: 0, left: 0,  borderRightWidth: 0, borderTopWidth: 0, borderBottomLeftRadius:  8 },
-  cornerBR: { bottom: 0, right: 0, borderLeftWidth:  0, borderTopWidth: 0, borderBottomRightRadius: 8 },
+  cornerTL: { top: 0, start: 0,  borderEndWidth: 0, borderBottomWidth: 0, borderTopStartRadius:     8 },
+  cornerTR: { top: 0, end: 0, borderStartWidth:  0, borderBottomWidth: 0, borderTopEndRadius:    8 },
+  cornerBL: { bottom: 0, start: 0,  borderEndWidth: 0, borderTopWidth: 0, borderBottomStartRadius:  8 },
+  cornerBR: { bottom: 0, end: 0, borderStartWidth:  0, borderTopWidth: 0, borderBottomEndRadius: 8 },
   scanLine: {
     position:        "absolute",
-    left:            8,
-    right:           8,
+    start:            8,
+    end:           8,
     top:             "50%",
     height:          2,
-    backgroundColor: kit.color.accent,
+    backgroundColor: c.accent,
     opacity:         0.8,
   },
 
   instructionRow: {
     position:   "absolute",
     bottom:     180,
-    left:       0,
-    right:      0,
+    start:       0,
+    end:      0,
     alignItems: "center",
   },
   instruction: {
     fontSize:          13,
-    fontFamily:        theme.fonts.bold,
+    fontFamily:        kit.font.bold,
     color:             "rgba(255,255,255,0.85)",
     backgroundColor:   "rgba(0,0,0,0.4)",
     paddingHorizontal: 16,
@@ -700,8 +705,8 @@ const s = StyleSheet.create({
   controls: {
     position:          "absolute",
     bottom:            48,
-    left:              24,
-    right:             24,
+    start:              24,
+    end:             24,
     justifyContent:    "space-between",
     alignItems:        "center",
   },
@@ -717,7 +722,7 @@ const s = StyleSheet.create({
   },
   iconCircleActive: {
     backgroundColor: "rgba(255,255,255,0.18)",
-    borderColor:     kit.color.accent,
+    borderColor:     c.accent,
   },
   scanningPill: {
     flexDirection:     "row",
@@ -728,24 +733,24 @@ const s = StyleSheet.create({
     paddingVertical:   10,
     borderRadius:      kit.radius.pill,
   },
-  scanningText: { fontSize: 12, fontFamily: theme.fonts.bold, color: "#fff" },
+  scanningText: { fontSize: 12, fontFamily: kit.font.bold, color: "#fff" },
 
   errorBanner: {
     position:          "absolute",
     bottom:            120,
-    left:              24,
-    right:             24,
+    start:              24,
+    end:             24,
     flexDirection:     "row",
     alignItems:        "center",
     gap:               8,
-    backgroundColor:   kit.color.dangerTint,
+    backgroundColor:   c.dangerTint,
     borderRadius:      kit.radius.lg,
     borderWidth:       1,
-    borderColor:       kit.color.danger,
+    borderColor:       c.danger,
     paddingHorizontal: 14,
     paddingVertical:   12,
   },
-  errorText: { flex: 1, fontSize: 12, fontFamily: theme.fonts.bold, color: kit.color.danger },
+  errorText: { flex: 1, fontSize: 12, fontFamily: kit.font.bold, color: c.danger },
   retryPill: {
     paddingHorizontal: 10,
     paddingVertical:   6,
@@ -754,7 +759,7 @@ const s = StyleSheet.create({
   },
   retryPillText: {
     fontSize:   10,
-    fontFamily: theme.fonts.bold,
-    color:      kit.color.danger,
+    fontFamily: kit.font.bold,
+    color:      c.danger,
   },
 });

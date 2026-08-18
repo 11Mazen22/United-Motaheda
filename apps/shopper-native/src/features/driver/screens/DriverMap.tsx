@@ -58,10 +58,10 @@ const s = StyleSheet.create({
   container: { paddingHorizontal: kit.inset.screen, paddingTop: 12 },
   mapBox: { borderRadius: 12, overflow: 'hidden', backgroundColor: kit.color.surface, borderWidth: 1, borderColor: kit.color.line, height: 320, justifyContent: 'center', alignItems: 'center', ...kit.shadow.card },
   mapPlaceholder: { width: '100%', height: '100%', backgroundColor: kit.color.well },
-  mapOverlayRow: { position: 'absolute', bottom: 12, left: 12, right: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  mapOverlayRow: { position: 'absolute', bottom: 12, start: 12, end: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   navigateBtn: { paddingHorizontal: 12 },
   routeWrap: { marginTop: 12 },
   mapPreviewCompact: { borderRadius: 12, overflow: 'hidden', height: 120, justifyContent: 'center' },
   mapPlaceholderCompact: { width: '100%', height: '100%', backgroundColor: kit.color.well },
-  compactOverlay: { position: 'absolute', left: 12, bottom: 12, backgroundColor: kit.color.accent, padding: 8, borderRadius: 10 },
+  compactOverlay: { position: 'absolute', start: 12, bottom: 12, backgroundColor: kit.color.accent, padding: 8, borderRadius: 10 },
 });

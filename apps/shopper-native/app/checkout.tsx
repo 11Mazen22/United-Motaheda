@@ -75,7 +75,7 @@ export default function CheckoutScreenBoundary() {
 
   useEffect(() => {
     if (__DEV__) {
-      console.log("[CheckoutScreenBoundary] Mounted");
+      
     }
   }, []);
 
@@ -106,7 +106,7 @@ function CheckoutScreen() {
 
   useEffect(() => {
     if (__DEV__) {
-      console.log("[CheckoutScreen] Mounted, step:", flow.step, "itemCount:", flow.items.length);
+      
     }
   }, [flow.step, flow.items.length]);
 

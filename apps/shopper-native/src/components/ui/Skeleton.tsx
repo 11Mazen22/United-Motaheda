@@ -75,7 +75,7 @@ export function Skeleton({ width = "100%", height = 16, radius = theme.radius.md
           width,
           height,
           borderRadius:    radius,
-          backgroundColor: theme.colors.slate[100],
+          backgroundColor: kit.color.slate[100],
           overflow:        "hidden",
         },
         style,
@@ -99,15 +99,15 @@ export function Skeleton({ width = "100%", height = 16, radius = theme.radius.md
 export function ProductCardSkeleton() {
   return (
     <View style={{
-      backgroundColor: theme.colors.surface,
+      backgroundColor: kit.color.surface,
       borderRadius:    18,                // matches ProductCard.gridCard
       overflow:        "hidden",
       ...theme.shadow.card,
     }}>
       {/* Image area — matches ProductCard.imgBox (170h, surfaceSunken bg) */}
-      <View style={{ height: 170, backgroundColor: theme.colors.surfaceSunken, padding: 14, gap: 8, justifyContent: "flex-end" }}>
+      <View style={{ height: 170, backgroundColor: kit.color.surfaceSunken, padding: 14, gap: 8, justifyContent: "flex-end" }}>
         {/* Wishlist heart tile placeholder (top-right) */}
-        <View style={{ position: "absolute", top: 10, right: 10 }}>
+        <View style={{ position: "absolute", top: 10, end: 10 }}>
           <Skeleton width={32} height={32} radius={11} />
         </View>
       </View>
@@ -135,7 +135,7 @@ export function CategoryCardSkeleton() {
 export function OrderCardSkeleton() {
   return (
     <View style={{
-      backgroundColor: theme.colors.surface,
+      backgroundColor: kit.color.surface,
       borderRadius:    18,
       padding:         18,
       gap:             14,
@@ -155,7 +155,7 @@ export function OrderCardSkeleton() {
       </View>
       {/* Items preview row */}
       <View style={{
-        backgroundColor: theme.colors.surfaceSunken,
+        backgroundColor: kit.color.surfaceSunken,
         borderRadius: theme.radius.lg,
         padding: 12,
         flexDirection: flexRow(_isRtl),
@@ -175,7 +175,7 @@ export function OrderCardSkeleton() {
         alignItems: "center",
         paddingTop: 12,
         borderTopWidth: StyleSheet.hairlineWidth,
-        borderTopColor: theme.colors.border.hairline,
+        borderTopColor: kit.color.border.hairline,
       }}>
         <Skeleton width={56} height={11} radius={5} />
         <Skeleton width={88} height={17} radius={6} />

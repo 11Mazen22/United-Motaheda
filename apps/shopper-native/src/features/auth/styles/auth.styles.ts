@@ -28,7 +28,7 @@ export const authStyles = StyleSheet.create({
   closeBtn: {
     position:        "absolute",
     top:             spacing.lg,          // 16
-    left:            layout.pagePaddingH,
+    start: layout.pagePaddingH,
     width:           38,
     height:          38,
     borderRadius:    12,
@@ -68,8 +68,8 @@ export const authStyles = StyleSheet.create({
   // ── Pull-up form card ────────────────────────────────────────────────────────
   formCard: {
     backgroundColor:      colors.surface,
-    borderTopLeftRadius:  28,
-    borderTopRightRadius: 28,
+    borderTopStartRadius:  28,
+    borderTopEndRadius: 28,
     marginTop:            -22,
     flex:                 1,
     padding:              layout.pagePaddingH,

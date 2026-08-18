@@ -1,4 +1,4 @@
-﻿/**
+/**
  * ComingSoonScreen — minimal placeholder for route stubs.
  *
  * Used while a real screen is still on the roadmap (e.g., prescription
@@ -7,6 +7,7 @@
  * obvious to dev + QA that the page isn't real yet.
  */
 
+import { kit } from "@pharmacy/ui-native";
 import React from "react";
 import { StyleSheet, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -32,7 +33,7 @@ export function ComingSoonScreen({
       <AppHeader title={title} showBack />
       <View style={styles.body}>
         <View style={styles.iconWrap}>
-          <Ionicons name={icon} size={32} color={theme.colors.brand.base} />
+          <Ionicons name={icon} size={32} color={kit.color.accent.base} />
         </View>
         <Text variant="eyebrow" color="brand">{t("common.comingSoon")}</Text>
         <Text variant="sheet-title" align="center">{title}</Text>
@@ -49,7 +50,7 @@ export function ComingSoonScreen({
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: theme.colors.bg,
+    backgroundColor: kit.color.canvas,
   },
   body: {
     flex:           1,
@@ -62,7 +63,7 @@ const styles = StyleSheet.create({
     width:           72,
     height:          72,
     borderRadius:    theme.radius["2xl"],
-    backgroundColor: theme.colors.brand.lighter,
+    backgroundColor: kit.color.accent.lighter,
     alignItems:      "center",
     justifyContent:  "center",
     marginBottom:    theme.spacing[1],

@@ -352,7 +352,7 @@ const s = StyleSheet.create({
 
   chipsRow: {
     gap:          8,
-    paddingRight: 4,
+    paddingEnd: 4,
   },
   chip: {
     flexDirection:     flexRow(IS_RTL),

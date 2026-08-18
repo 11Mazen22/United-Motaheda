@@ -46,7 +46,7 @@ export function StatusBadge({ status, size = "sm" }: StatusBadgeProps) {
       ]}
     >
       <Ionicons name={config.icon} size={iconSize} color={config.color} />
-      <Text variant={textVariant} style={{ color: config.color, marginLeft: rtl ? 0 : 4, marginRight: rtl ? 4 : 0 }}>
+      <Text variant={textVariant} style={{ color: config.color, marginStart: rtl ? 0 : 4, marginEnd: rtl ? 4 : 0 }}>
         {config.label}
       </Text>
     </View>

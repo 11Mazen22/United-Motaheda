@@ -28,8 +28,8 @@ export function FAQCategoryRail({ selected, onSelect, counts }: Props) {
       <CategoryChip
         label="الكل"
         icon="apps-outline"
-        color={theme.colors.slate[600]}
-        bg={theme.colors.slate[100]}
+        color={kit.color.slate[600]}
+        bg={kit.color.slate[100]}
         count={counts.all}
         active={selected === "all"}
         onPress={() => onSelect("all")}
@@ -66,8 +66,8 @@ function CategoryChip({
         styles.chip,
         active && { backgroundColor: bg, borderColor: color + "40" },
       ]}>
-      <View style={[styles.chipIcon, { backgroundColor: active ? color + "18" : theme.colors.slate[50] }]}>
-        <Ionicons name={icon as IoniconsName} size={13} color={active ? color : theme.colors.slate[400]} />
+      <View style={[styles.chipIcon, { backgroundColor: active ? color + "18" : kit.color.slate[50] }]}>
+        <Ionicons name={icon as IoniconsName} size={13} color={active ? color : kit.color.slate[400]} />
       </View>
       <UIText style={[styles.chipLabel, active && { color, fontFamily: theme.fonts.black }]}>
         {label}
@@ -97,7 +97,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     backgroundColor: "#fff",
     borderWidth: 1.5,
-    borderColor: theme.colors.border.default,
+    borderColor: kit.color.border.default,
   },
   chipIcon: {
     width: 26,
@@ -109,7 +109,7 @@ const styles = StyleSheet.create({
   chipLabel: {
     fontSize: 11,
     fontFamily: theme.fonts.bold,
-    color: theme.colors.slate[500],
+    color: kit.color.slate[500],
   },
   chipCount: {
     paddingHorizontal: 6,

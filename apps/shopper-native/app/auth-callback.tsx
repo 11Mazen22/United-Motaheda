@@ -74,7 +74,7 @@ export default function AuthCallbackScreen() {
         timeout,
       ]);
       if ("timedOut" in raced) {
-        if (__DEV__) console.warn("[auth-callback] exchangeCodeForSession timed out after", TIMEOUT_MS, "ms");
+        if (__DEV__) 
         // The exchange may still complete in the background and persist a
         // session even though we stopped waiting — check before declaring
         // failure so we don't show an error over a login that quietly succeeded.
@@ -100,7 +100,7 @@ export default function AuthCallbackScreen() {
         if (existing.session) {
           data = { session: existing.session, user: existing.session.user };
         } else {
-          if (__DEV__) console.warn("[auth-callback] exchangeCodeForSession:", exErr.message);
+          if (__DEV__) 
           setError(t("authCallback.confirmFailed"));
           return;
         }
@@ -228,8 +228,8 @@ const styles = StyleSheet.create({
   trustFootnote: {
     position:      "absolute",
     bottom:        56,
-    left:          0,
-    right:         0,
+    start: 0,
+    end: 0,
     flexDirection: flexRow(isRtl()),
     alignItems:    "center",
     justifyContent:"center",

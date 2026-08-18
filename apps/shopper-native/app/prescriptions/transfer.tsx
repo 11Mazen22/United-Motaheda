@@ -1,3 +1,4 @@
+import { useDarkColors } from "@/hooks/useDarkColors";
 /**
  * Pharmacy transfer flow — Day-9 placeholder.
  *
@@ -10,7 +11,10 @@ import { useTranslation } from "react-i18next";
 import { ComingSoonScreen } from "@/shared/components";
 
 export default function Page(): React.ReactElement {
-  const { t } = useTranslation();
+  
+  
+  const { c } = useDarkColors();
+const { t } = useTranslation();
   return (
     <ComingSoonScreen
       title={t("prescriptions.transferTitle")}

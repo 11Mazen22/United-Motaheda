@@ -54,7 +54,7 @@ export function AddressCard({ address, onEdit, onDelete, onSetDefault }: Props) 
           </View>
           {address.is_default && (
             <View style={styles.defaultBadge}>
-              <Ionicons name="checkmark-circle" size={11} color={theme.colors.green[600]} />
+              <Ionicons name="checkmark-circle" size={11} color={kit.color.green[600]} />
               <UIText style={styles.defaultText}>{t("address.default")}</UIText>
             </View>
           )}
@@ -74,7 +74,7 @@ export function AddressCard({ address, onEdit, onDelete, onSetDefault }: Props) 
 
         {/* Phone */}
         <View style={styles.phoneRow}>
-          <Ionicons name="call-outline" size={11} color={theme.colors.slate[400]} />
+          <Ionicons name="call-outline" size={11} color={kit.color.slate[400]} />
           <UIText style={styles.phoneText}>{address.phone}</UIText>
         </View>
 

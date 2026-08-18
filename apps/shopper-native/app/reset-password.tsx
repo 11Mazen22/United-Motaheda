@@ -129,7 +129,7 @@ export default function ResetPasswordScreen() {
             // On success the PASSWORD_RECOVERY event fires → finish(true).
             // On error we move to expired directly.
             if (exErr) {
-              if (__DEV__) console.warn("[reset-password] exchange failed:", exErr.message);
+              if (__DEV__) 
               finish(false);
             }
             // Intentionally no `finish(true)` here — let the event do it so
@@ -169,7 +169,7 @@ export default function ResetPasswordScreen() {
       track("reset_password_completed");
       setPhase("success");
     } catch (e) {
-      if (__DEV__) console.warn("[reset-password] updatePassword failed:", e);
+      if (__DEV__) 
       captureError(e, { surface: "reset-password" });
       setError(getAuthError(e, i18n.language));
     } finally {

@@ -197,8 +197,8 @@ export function NotificationBanner() {
 const styles = StyleSheet.create({
   container: {
     position: "absolute",
-    left:     12,
-    right:    12,
+    start: 12,
+    end: 12,
     zIndex:   1000,
   },
   card: {
@@ -217,12 +217,12 @@ const styles = StyleSheet.create({
   },
   accentStrip: {
     position:                   "absolute",
-    right:                      0,
+    end: 0,
     top:                        0,
     bottom:                     0,
     width:                      5,
-    borderTopRightRadius:       24,
-    borderBottomRightRadius:    24,
+    borderTopEndRadius:       24,
+    borderBottomEndRadius:    24,
   },
   iconCircle: {
     width:           44,
@@ -251,8 +251,8 @@ const styles = StyleSheet.create({
   progressTrack: {
     position:        "absolute",
     bottom:          0,
-    left:            0,
-    right:           0,
+    start: 0,
+    end: 0,
     height:          2.5,
     backgroundColor: kit.color.line,
   },

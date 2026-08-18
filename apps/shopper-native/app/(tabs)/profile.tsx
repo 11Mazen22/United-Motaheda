@@ -30,7 +30,6 @@ import { useCartStore } from "@/stores/cart";
 import { useWishlistStore } from "@/stores/wishlist";
 import { useOrderStore } from "@/stores/orders";
 import { Text as UIText } from "@pharmacy/ui-native";
-import { theme } from "@pharmacy/design-tokens";
 import { kit } from "@pharmacy/ui-native";
 import { useDarkColors } from "@/hooks/useDarkColors";
 import { useTranslation } from "react-i18next";
@@ -60,12 +59,16 @@ function waUrl(lang: string): string {
 // ─── SectionLabel ─────────────────────────────────────────────────────────────
 
 const SectionLabel = memo(function SectionLabel({
-  icon, label, accent = kit.color.accentDeep,
+  icon, label, accent = c.accentDeep,
 }: {
   icon:    IoniconsName;
   label:   string;
   accent?: string;
 }) {
+  const { c } = useDarkColors();
+
+  const { c } = useDarkColors();
+
   const { c } = useDarkColors();
   return (
     <View style={[sl.row, { flexDirection: flexRow(IS_RTL) }]}>
@@ -93,7 +96,11 @@ interface MenuRowProps {
 const MenuRow = memo(function MenuRow({
   icon, label, subtitle, onPress, badge, color, danger, last,
 }: MenuRowProps) {
-  const ic    = danger ? kit.color.danger : (color ?? kit.color.accentDeep);
+  const { c } = useDarkColors();
+
+  const { c } = useDarkColors();
+
+  const ic    = danger ? c.danger : (color ?? c.accentDeep);
   const scale = useSharedValue(1);
   const anim  = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
 
@@ -115,7 +122,7 @@ const MenuRow = memo(function MenuRow({
 
         {/* Leading icon tile */}
         <View style={[mr.iconTile, {
-          backgroundColor: danger ? kit.color.dangerTint  : `${ic}14`,
+          backgroundColor: danger ? c.dangerTint  : `${ic}14`,
           borderColor:     danger ? "rgba(179,38,30,0.28)" : `${ic}26`,
         }]}>
           <Ionicons name={icon} size={20} color={ic} />
@@ -128,7 +135,7 @@ const MenuRow = memo(function MenuRow({
         <View style={mr.textGroup}>
           <UIText
             weight="bold"
-            style={[mr.label, danger && { color: kit.color.danger }]}
+            style={[mr.label, danger && { color: c.danger }]}
             numberOfLines={1}>
             {label}
           </UIText>
@@ -143,13 +150,13 @@ const MenuRow = memo(function MenuRow({
         <View style={mr.trailing}>
           {badge != null && (
             <View style={[mr.badgePill, danger && mr.badgeDanger]}>
-              <UIText weight="black" style={[mr.badgeText, { color: danger ? kit.color.danger : kit.color.accentDeep }]}>
+              <UIText weight="black" style={[mr.badgeText, { color: danger ? c.danger : c.accentDeep }]}>
                 {badge}
               </UIText>
             </View>
           )}
           <View style={mr.chevronWell}>
-            <Ionicons name={FORWARD_CHEVRON} size={14} color={kit.color.inkFaint} />
+            <Ionicons name={FORWARD_CHEVRON} size={14} color={c.inkFaint} />
           </View>
         </View>
       </Animated.View>
@@ -161,6 +168,8 @@ const MenuRow = memo(function MenuRow({
 // ─── ProfileScreen ────────────────────────────────────────────────────────────
 
 export default function ProfileScreen() {
+  const { c } = useDarkColors();
+
   const { gesture, animatedStyle } = useTabSwipeGesture("profile");
   const router  = useRouter();
   const insets  = useSafeAreaInsets();
@@ -223,11 +232,11 @@ export default function ProfileScreen() {
 
         {/* ── Settings ── */}
         <View style={s.section}>
-          <SectionLabel icon="settings-outline" label={t("profile.settingsSection")} accent={kit.color.accentDeep} />
+          <SectionLabel icon="settings-outline" label={t("profile.settingsSection")} accent={c.accentDeep} />
           <View style={s.card}>
             {user && (
               <MenuRow
-                icon="create-outline" color={kit.color.accent}
+                icon="create-outline" color={c.accent}
                 label={t("profile.menuEditProfile")} subtitle={t("profile.menuEditProfileSubtitle")}
                 onPress={goEditProfile}
               />
@@ -238,19 +247,19 @@ export default function ProfileScreen() {
               onPress={toggleLanguage}
             />
             <MenuRow
-              icon="notifications-outline" color={kit.color.warn}
+              icon="notifications-outline" color={c.warn}
               label={t("profile.notifications")} subtitle={t("profile.notificationsSubtitle")}
               onPress={goNotifications}
             />
             {user && (
               <MenuRow
-                icon="lock-closed-outline" color={kit.color.inkSoft}
+                icon="lock-closed-outline" color={c.inkSoft}
                 label={t("profile.menuSecurity")} subtitle={t("profile.menuSecuritySubtitle")}
                 onPress={goSecurity}
               />
             )}
             <MenuRow
-              icon="location-outline" color={kit.color.success}
+              icon="location-outline" color={c.success}
               label={t("profile.menuAddresses")} subtitle={t("profile.menuAddressesSubtitle")}
               onPress={goAddresses}
             />
@@ -273,7 +282,7 @@ export default function ProfileScreen() {
               onPress={callWhatsApp}
             />
             <MenuRow
-              icon="call-outline" color={kit.color.accent}
+              icon="call-outline" color={c.accent}
               label={t("profile.callUs")} subtitle="01112343212"
               onPress={callPhone}
             />
@@ -287,11 +296,11 @@ export default function ProfileScreen() {
 
         {/* ── About ── */}
         <View style={s.section}>
-          <SectionLabel icon="information-circle-outline" label={t("profile.sectionAbout")} accent={kit.color.inkSoft} />
+          <SectionLabel icon="information-circle-outline" label={t("profile.sectionAbout")} accent={c.inkSoft} />
           <View style={s.card}>
-            <MenuRow icon="business-outline"         color={kit.color.accent}   label={t("profile.aboutPharmacy")} onPress={goAbout}   />
-            <MenuRow icon="document-text-outline"    color={kit.color.inkSoft}  label={t("profile.privacy")}       onPress={goPrivacy} />
-            <MenuRow icon="shield-checkmark-outline" color={kit.color.success}  label={t("profile.terms")}         onPress={goTerms}   last />
+            <MenuRow icon="business-outline"         color={c.accent}   label={t("profile.aboutPharmacy")} onPress={goAbout}   />
+            <MenuRow icon="document-text-outline"    color={c.inkSoft}  label={t("profile.privacy")}       onPress={goPrivacy} />
+            <MenuRow icon="shield-checkmark-outline" color={c.success}  label={t("profile.terms")}         onPress={goTerms}   last />
           </View>
         </View>
 
@@ -309,7 +318,7 @@ export default function ProfileScreen() {
                   {/* Leading cluster: icon + label/subtitle stack */}
                   <View style={s.dangerLeading}>
                     <View style={s.dangerIconWell}>
-                      <Ionicons name="log-out-outline" size={20} color={kit.color.danger} />
+                      <Ionicons name="log-out-outline" size={20} color={c.danger} />
                     </View>
                     <View style={s.dangerTextStack}>
                       <UIText style={s.dangerLabel} numberOfLines={1}>
@@ -335,7 +344,7 @@ export default function ProfileScreen() {
         {/* ── Footer ── */}
         <View style={s.footer}>
           <View style={[s.footerPill, { flexDirection: flexRow(IS_RTL) }]}>
-            <Ionicons name="medkit" size={12} color={kit.color.accentDeep} />
+            <Ionicons name="medkit" size={12} color={c.accentDeep} />
             <UIText style={s.footerBrand}>{t("profile.footerName")}</UIText>
           </View>
           <UIText style={s.footerName}>United Pharmacies</UIText>
@@ -382,13 +391,13 @@ const mr = StyleSheet.create({
     alignItems:        "center",
     paddingVertical:   14,
     paddingHorizontal: 16,
-    backgroundColor:   kit.color.surface,
+    backgroundColor:   c.surface,
     gap:               14,
     minHeight:         64,
   },
   sep: {
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: kit.color.line,
+    borderBottomColor: c.line,
   },
   iconTile: {
     width:          44,
@@ -408,7 +417,7 @@ const mr = StyleSheet.create({
   label: {
     fontSize:           14,
     lineHeight:         20,
-    color:              kit.color.ink,
+    color:              c.ink,
     letterSpacing:      -0.1,
     textAlign:          TEXT_START,
     includeFontPadding: false,
@@ -416,7 +425,7 @@ const mr = StyleSheet.create({
   sub: {
     fontSize:           11,
     lineHeight:         16,
-    color:              kit.color.inkFaint,
+    color:              c.inkFaint,
     textAlign:          TEXT_START,
     letterSpacing:      0.1,
     includeFontPadding: false,
@@ -440,12 +449,12 @@ const mr = StyleSheet.create({
     alignItems:        "center",
     justifyContent:    "center",
     paddingHorizontal: 8,
-    backgroundColor:   kit.color.accentTint,
+    backgroundColor:   c.accentTint,
     borderWidth:       1,
     borderColor:       "rgba(14,126,116,0.18)",
   },
   badgeDanger: {
-    backgroundColor: kit.color.dangerTint,
+    backgroundColor: c.dangerTint,
     borderColor:     "rgba(179,38,30,0.3)",
   },
   badgeText: {
@@ -462,7 +471,7 @@ const mr = StyleSheet.create({
 const s = StyleSheet.create({
   screen: {
     flex:            1,
-    backgroundColor: kit.color.canvas,
+    backgroundColor: c.canvas,
   },
   scroll: {},
 
@@ -472,11 +481,11 @@ const s = StyleSheet.create({
 
   card: {
     marginHorizontal: theme.layout.pagePaddingH,
-    backgroundColor:  kit.color.surface,
+    backgroundColor:  c.surface,
     borderRadius:     kit.radius.lg,
     overflow:         "hidden",
     borderWidth:      1,
-    borderColor:      kit.color.line,
+    borderColor:      c.line,
     ...kit.shadow.raised,
   },
 
@@ -498,7 +507,7 @@ const s = StyleSheet.create({
     alignItems:        "center",
     justifyContent:    "space-between",
     gap:               12,
-    backgroundColor:   kit.color.dangerTint,
+    backgroundColor:   c.dangerTint,
     borderRadius:      kit.radius.lg,
     paddingVertical:   14,
     paddingHorizontal: 16,
@@ -537,7 +546,7 @@ const s = StyleSheet.create({
     fontSize:           14,
     lineHeight:         20,
     letterSpacing:      -0.1,
-    color:              kit.color.danger,
+    color:              c.danger,
     textAlign:          TEXT_START,
     includeFontPadding: false,
   },
@@ -559,32 +568,32 @@ const s = StyleSheet.create({
   footerPill: {
     alignItems:        "center",
     gap:               6,
-    backgroundColor:   kit.color.accentTint,
+    backgroundColor:   c.accentTint,
     borderRadius:      kit.radius.pill,
     paddingHorizontal: 14,
     paddingVertical:   7,
     borderWidth:       1,
-    borderColor:       kit.color.line,
+    borderColor:       c.line,
   },
   footerBrand: {
     fontFamily:         theme.fonts.bold,
     fontSize:           12,
     lineHeight:         17,
-    color:              kit.color.accentDeep,
+    color:              c.accentDeep,
     includeFontPadding: false,
   },
   footerName: {
     fontFamily:         theme.fonts.regular,
     fontSize:           11,
     lineHeight:         16,
-    color:              kit.color.inkFaint,
+    color:              c.inkFaint,
     includeFontPadding: false,
   },
   footerVersion: {
     fontFamily:         theme.fonts.regular,
     fontSize:           10,
     lineHeight:         14,
-    color:              kit.color.inkFaint,
+    color:              c.inkFaint,
     includeFontPadding: false,
     marginTop:          kit.sp(1),
   },

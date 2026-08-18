@@ -46,7 +46,7 @@ export function LoadingState({ message }: LoadingStateProps) {
   });
 
   return (
-    <View style={[s.container, { backgroundColor: theme.colors.canvas.background }]}>
+    <View style={[s.container, { backgroundColor: kit.color.canvas.background }]}>
       <Animated.View
         style={[
           s.circle,
@@ -55,7 +55,7 @@ export function LoadingState({ message }: LoadingStateProps) {
         ]}
       />
       {message && (
-        <Text variant="body" align="center" style={{ color: theme.colors.text.secondary, marginTop: kit.sp(6) }}>
+        <Text variant="body" align="center" style={{ color: kit.color.text.secondary, marginTop: kit.sp(6) }}>
           {message}
         </Text>
       )}

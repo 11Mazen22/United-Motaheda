@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useDarkColors } from '@/hooks/useDarkColors';
 import {
   FlatList,
   Platform,
@@ -32,7 +33,6 @@ import {
 } from "@/features/addresses";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Text as UIText } from "@pharmacy/ui-native";
-import { theme } from "@pharmacy/design-tokens";
 import { flexRow, isRtl, textAlignStart, BACK_CHEVRON, FORWARD_CHEVRON } from "@/utils/layout";
 
 const IS_RTL     = isRtl();
@@ -40,6 +40,8 @@ const TEXT_START = textAlignStart(IS_RTL);
 
 // ─── Skeleton shimmer ─────────────────────────────────────────────────────────
 function ShimmerCard() {
+  const { c } = useDarkColors();
+
   const opacity = useSharedValue(0.5);
   useEffect(() => {
     opacity.value = withRepeat(withTiming(1, { duration: 800 }), -1, true);
@@ -82,6 +84,8 @@ const AddressCardRow = React.memo(function AddressCardRow({
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 export default function AddressesScreen() {
+  const { c } = useDarkColors();
+
   const router   = useRouter();
   const insets   = useSafeAreaInsets();
   const { t }    = useTranslation();
@@ -221,13 +225,13 @@ export default function AddressesScreen() {
           accessibilityLabel={t("common.back")}>
           {({ pressed }) => (
             <View style={[s.backBtn, pressed && s.backBtnPressed]}>
-              <Ionicons name={BACK_CHEVRON} size={18} color={kit.color.inkSoft} />
+              <Ionicons name={BACK_CHEVRON} size={18} color={c.inkSoft} />
             </View>
           )}
         </Pressable>
 
         <View style={s.iconTile}>
-          <Ionicons name="location-outline" size={22} color={kit.color.accentDeep} />
+          <Ionicons name="location-outline" size={22} color={c.accentDeep} />
         </View>
 
         <View style={{ flex: 1 }}>
@@ -247,7 +251,7 @@ export default function AddressesScreen() {
           accessibilityLabel={t("addresses.addNew")}>
           {({ pressed }) => (
             <View style={[s.addBtnHeader, pressed && s.addBtnHeaderPressed]}>
-              <Ionicons name="add" size={20} color={kit.color.accentDeep} />
+              <Ionicons name="add" size={20} color={c.accentDeep} />
             </View>
           )}
         </Pressable>
@@ -257,13 +261,13 @@ export default function AddressesScreen() {
       {addresses.length > 0 && (
         <Animated.View entering={FadeIn.duration(280)} style={[s.statsRow, { flexDirection: flexRow(IS_RTL) }]}>
           <View style={[s.statChip, { flexDirection: flexRow(IS_RTL) }]}>
-            <Ionicons name="location" size={12} color={kit.color.accentDeep} />
+            <Ionicons name="location" size={12} color={c.accentDeep} />
             <UIText style={s.statText}>{t("addresses.count", { count: addresses.length })}</UIText>
           </View>
           {defaultAddr && (
             <View style={[s.statChip, s.statChipSuccess, { flexDirection: flexRow(IS_RTL) }]}>
-              <Ionicons name="checkmark-circle" size={12} color={kit.color.success} />
-              <UIText style={[s.statText, { color: kit.color.success }]}>
+              <Ionicons name="checkmark-circle" size={12} color={c.success} />
+              <UIText style={[s.statText, { color: c.success }]}>
                 {defaultAddr.city}  •  {t("addresses.default")}
               </UIText>
             </View>
@@ -308,16 +312,16 @@ export default function AddressesScreen() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={handleRefresh}
-              tintColor={kit.color.accent}
-              colors={[kit.color.accent]}
-              progressBackgroundColor={kit.color.surface}
+              tintColor={c.accent}
+              colors={[c.accent]}
+              progressBackgroundColor={c.surface}
             />
           }
           ListHeaderComponent={
             addresses.length > 1 ? (
               <View style={[s.sectionLabel, { flexDirection: flexRow(IS_RTL) }]}>
                 <View style={s.sectionBadge}>
-                  <Ionicons name="map-outline" size={14} color={kit.color.accentDeep} />
+                  <Ionicons name="map-outline" size={14} color={c.accentDeep} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <UIText style={s.sectionEyebrow}>{t("addresses.allLocations")}</UIText>
@@ -342,13 +346,13 @@ export default function AddressesScreen() {
                       pressed && s.addCardBtnPressed,
                     ]}>
                     <View style={s.addCardIcon}>
-                      <Ionicons name="add" size={22} color={kit.color.accentDeep} />
+                      <Ionicons name="add" size={22} color={c.accentDeep} />
                     </View>
                     <View style={{ flex: 1 }}>
                       <UIText style={[s.addCardLabel, { textAlign: TEXT_START }]}>{t("addresses.addNew")}</UIText>
                       <UIText style={[s.addCardDesc, { textAlign: TEXT_START }]}>{t("addresses.addNewDesc")}</UIText>
                     </View>
-                    <Ionicons name={FORWARD_CHEVRON} size={14} color={kit.color.accentDeep} />
+                    <Ionicons name={FORWARD_CHEVRON} size={14} color={c.accentDeep} />
                   </View>
                 )}
               </Pressable>
@@ -371,7 +375,7 @@ export default function AddressesScreen() {
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const s = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: kit.color.canvas },
+  screen: { flex: 1, backgroundColor: c.canvas },
 
   // Header
   header: {
@@ -380,9 +384,9 @@ const s = StyleSheet.create({
     gap:               14,
     paddingHorizontal: 20,
     paddingBottom:     16,
-    backgroundColor:   kit.color.surface,
+    backgroundColor:   c.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: kit.color.line,
+    borderBottomColor: c.line,
     ...kit.shadow.raised,
   },
   // Touchable wrapper carries only sizing/radius — visual styling lives on
@@ -396,24 +400,24 @@ const s = StyleSheet.create({
     width:           40,
     height:          40,
     borderRadius:    20,
-    backgroundColor: kit.color.surface,
+    backgroundColor: c.surface,
     alignItems:      "center",
     justifyContent:  "center",
     borderWidth:     1,
-    borderColor:     kit.color.line,
+    borderColor:     c.line,
     ...kit.shadow.raised,
   },
   backBtnPressed: {
-    backgroundColor: kit.color.well,
+    backgroundColor: c.well,
     transform:       [{ scale: 0.94 }],
   },
   iconTile: {
     width:           52,
     height:          52,
     borderRadius:    16,
-    backgroundColor: kit.color.accentTint,
+    backgroundColor: c.accentTint,
     borderWidth:     1,
-    borderColor:     kit.color.line,
+    borderColor:     c.line,
     alignItems:      "center",
     justifyContent:  "center",
     flexShrink:      0,
@@ -422,14 +426,14 @@ const s = StyleSheet.create({
     fontFamily:         theme.fonts.black,
     fontSize:           18,
     letterSpacing:      -0.4,
-    color:              kit.color.ink,
+    color:              c.ink,
     includeFontPadding: false,
     textAlign:          TEXT_START,
   },
   headerSubtitle: {
     fontFamily:         theme.fonts.semibold,
     fontSize:           11,
-    color:              kit.color.inkFaint,
+    color:              c.inkFaint,
     includeFontPadding: false,
     textAlign:          TEXT_START,
     marginTop:          1,
@@ -442,9 +446,9 @@ const s = StyleSheet.create({
     width:           42,
     height:          42,
     borderRadius:    13,
-    backgroundColor: kit.color.accentTint,
+    backgroundColor: c.accentTint,
     borderWidth:     1,
-    borderColor:     kit.color.line,
+    borderColor:     c.line,
     alignItems:      "center",
     justifyContent:  "center",
     ...kit.shadow.raised,
@@ -458,28 +462,28 @@ const s = StyleSheet.create({
     gap:               8,
     paddingHorizontal: 20,
     paddingVertical:   10,
-    backgroundColor:   kit.color.surface,
+    backgroundColor:   c.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: kit.color.line,
+    borderBottomColor: c.line,
   },
   statChip: {
     alignItems:        "center",
     gap:               5,
-    backgroundColor:   kit.color.accentTint,
+    backgroundColor:   c.accentTint,
     paddingHorizontal: 10,
     paddingVertical:   5,
     borderRadius:      999,
     borderWidth:       1,
-    borderColor:       kit.color.line,
+    borderColor:       c.line,
   },
   statChipSuccess: {
-    backgroundColor: kit.color.successTint,
-    borderColor:     kit.color.success + "30",
+    backgroundColor: c.successTint,
+    borderColor:     c.success + "30",
   },
   statText: {
     fontSize:           10,
     fontFamily:         theme.fonts.bold,
-    color:              kit.color.accentDeep,
+    color:              c.accentDeep,
     includeFontPadding: false,
   },
 
@@ -488,7 +492,7 @@ const s = StyleSheet.create({
   skeletonCard: {
     height:          180,
     borderRadius:    20,
-    backgroundColor: kit.color.well,
+    backgroundColor: c.well,
   },
 
   // Empty state
@@ -511,9 +515,9 @@ const s = StyleSheet.create({
     width:           34,
     height:          34,
     borderRadius:    11,
-    backgroundColor: kit.color.accentTint,
+    backgroundColor: c.accentTint,
     borderWidth:     1,
-    borderColor:     kit.color.line,
+    borderColor:     c.line,
     alignItems:      "center",
     justifyContent:  "center",
     flexShrink:      0,
@@ -521,7 +525,7 @@ const s = StyleSheet.create({
   sectionEyebrow: {
     fontSize:           10,
     fontFamily:         theme.fonts.bold,
-    color:              kit.color.accentDeep,
+    color:              c.accentDeep,
     letterSpacing:      0.4,
     textAlign:          TEXT_START,
     includeFontPadding: false,
@@ -529,7 +533,7 @@ const s = StyleSheet.create({
   sectionTitle: {
     fontSize:           14,
     fontFamily:         theme.fonts.black,
-    color:              kit.color.ink,
+    color:              c.ink,
     letterSpacing:      -0.2,
     textAlign:          TEXT_START,
     marginTop:          1,
@@ -546,23 +550,23 @@ const s = StyleSheet.create({
     gap:             14,
     padding:         16,
     borderRadius:    18,
-    backgroundColor: kit.color.surface,
+    backgroundColor: c.surface,
     borderWidth:     1.5,
-    borderColor:     kit.color.line,
+    borderColor:     c.line,
     borderStyle:     "dashed",
     ...kit.shadow.raised,
   },
   addCardBtnPressed: {
-    backgroundColor: kit.color.accentTint,
+    backgroundColor: c.accentTint,
     borderColor:     "rgba(14,126,116,0.30)",
   },
   addCardIcon: {
     width:           48,
     height:          48,
     borderRadius:    14,
-    backgroundColor: kit.color.accentTint,
+    backgroundColor: c.accentTint,
     borderWidth:     1,
-    borderColor:     kit.color.line,
+    borderColor:     c.line,
     alignItems:      "center",
     justifyContent:  "center",
     flexShrink:      0,
@@ -570,13 +574,13 @@ const s = StyleSheet.create({
   addCardLabel: {
     fontSize:           13,
     fontFamily:         theme.fonts.bold,
-    color:              kit.color.ink,
+    color:              c.ink,
     includeFontPadding: false,
   },
   addCardDesc: {
     fontSize:           11,
     fontFamily:         theme.fonts.regular,
-    color:              kit.color.inkFaint,
+    color:              c.inkFaint,
     marginTop:          2,
     includeFontPadding: false,
   },

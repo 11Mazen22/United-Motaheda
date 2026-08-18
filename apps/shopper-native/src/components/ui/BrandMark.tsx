@@ -43,7 +43,7 @@ function PharmacyLogoMark({ size }: { size: number }) {
       <Defs>
         {/* Deep navy background */}
         <LinearGradient id="bgGrad" x1="0" y1="0" x2="1" y2="1">
-          <Stop offset="0%"   stopColor={theme.colors.hero} />
+          <Stop offset="0%"   stopColor={kit.color.hero} />
           <Stop offset="100%" stopColor="#053348" />
         </LinearGradient>
         {/* Teal cross gradient */}
@@ -101,8 +101,8 @@ export function BrandMark({
 }: BrandMarkProps) {
   const s          = SIZE_MAP[size];
   const isOnHero   = variant === "onHero";
-  const textColor  = isOnHero ? "#fff" : theme.colors.slate[900];
-  const subtleColor = isOnHero ? "rgba(255,255,255,0.50)" : theme.colors.slate[400];
+  const textColor  = isOnHero ? "#fff" : kit.color.slate[900];
+  const subtleColor = isOnHero ? "rgba(255,255,255,0.50)" : kit.color.slate[400];
 
   return (
     <View style={{ alignItems: "center", gap: s.gap }}>

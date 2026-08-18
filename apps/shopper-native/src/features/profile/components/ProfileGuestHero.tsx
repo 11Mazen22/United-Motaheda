@@ -46,8 +46,8 @@ interface ProfileGuestHeroProps {
 
 // What the user unlocks by creating an account.
 const BENEFITS: { icon: IoniconsName; labelKey: string; tint: string; bg: string }[] = [
-  { icon: "bag-check-outline", labelKey: "profile.featureOrders",   tint: theme.colors.teal[300],   bg: "rgba(13,184,168,0.16)" },
-  { icon: "heart-outline",     labelKey: "profile.featureWishlist", tint: theme.colors.rose[400],   bg: "rgba(244,63,94,0.16)"  },
+  { icon: "bag-check-outline", labelKey: "profile.featureOrders",   tint: kit.color.teal[300],   bg: "rgba(13,184,168,0.16)" },
+  { icon: "heart-outline",     labelKey: "profile.featureWishlist", tint: kit.color.rose[400],   bg: "rgba(244,63,94,0.16)"  },
 ];
 
 // Staggered entrance helper — respects OS reduce-motion.
@@ -148,7 +148,7 @@ const s = StyleSheet.create({
   decorA: {
     position:        "absolute",
     top:             -70,
-    right:           -60,
+    end: -60,
     width:           200,
     height:          200,
     borderRadius:    100,
@@ -157,7 +157,7 @@ const s = StyleSheet.create({
   decorB: {
     position:        "absolute",
     bottom:          -60,
-    left:            -50,
+    start: -50,
     width:           170,
     height:          170,
     borderRadius:    85,
@@ -214,7 +214,7 @@ const s = StyleSheet.create({
     width:        "100%",
     borderRadius: 16,
     overflow:     "hidden",
-    shadowColor:  theme.colors.teal[500],
+    shadowColor:  kit.color.accent,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.32,
     shadowRadius:  16,
@@ -230,7 +230,7 @@ const s = StyleSheet.create({
     borderRadius:    16,
   },
   primaryText: {
-    color:              theme.colors.surface,
+    color:              kit.color.surface,
     fontSize:           15,
     letterSpacing:      0.2,
     includeFontPadding: false,

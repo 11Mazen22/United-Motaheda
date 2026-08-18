@@ -343,7 +343,7 @@ const s = StyleSheet.create({
   divider: {
     height:           1,
     marginHorizontal: theme.layout.pagePaddingH,
-    backgroundColor:  theme.colors.border.hairline,
+    backgroundColor:  kit.color.border.hairline,
     marginVertical:   kit.sp(2),  // 8 px
     opacity:          0.6,
   },

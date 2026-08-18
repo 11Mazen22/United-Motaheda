@@ -84,7 +84,7 @@ export default function ComponentPreview(): React.ReactElement | null {
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
-      <SafeAreaView edges={["bottom"]} style={{ flex: 1, backgroundColor: theme.colors.bg }}>
+      <SafeAreaView edges={["bottom"]} style={{ flex: 1, backgroundColor: kit.color.bg }}>
         <AppHeader title="معاينة المكونات" showBack showCart={false} />
         <ScrollView
           style={{ flex: 1 }}
@@ -110,9 +110,9 @@ export default function ComponentPreview(): React.ReactElement | null {
           </Section>
 
           <Section title="ReminderRow">
-            <View style={{ backgroundColor: theme.colors.surface, borderRadius: theme.layout.cardRadius, borderWidth: 1, borderColor: theme.colors.border.default }}>
+            <View style={{ backgroundColor: kit.color.surface, borderRadius: theme.layout.cardRadius, borderWidth: 1, borderColor: kit.color.border.default }}>
               {reminders.map((r, i) => (
-                <View key={r.id} style={{ borderTopWidth: i === 0 ? 0 : 1, borderTopColor: theme.colors.border.default }}>
+                <View key={r.id} style={{ borderTopWidth: i === 0 ? 0 : 1, borderTopColor: kit.color.border.default }}>
                   <ReminderRow
                     reminder={r}
                     onToggle={toggleReminder}
@@ -188,7 +188,7 @@ export default function ComponentPreview(): React.ReactElement | null {
 
 
           <Section title="PrescriptionsList · empty state (static)">
-            <View style={{ height: 320, backgroundColor: theme.colors.surface, borderRadius: theme.layout.cardRadius, borderWidth: 1, borderColor: theme.colors.border.default, overflow: "hidden" }}>
+            <View style={{ height: 320, backgroundColor: kit.color.surface, borderRadius: theme.layout.cardRadius, borderWidth: 1, borderColor: kit.color.border.default, overflow: "hidden" }}>
               <EmptyState
                 icon="medkit-outline"
                 title="لا توجد وصفات حالياً"

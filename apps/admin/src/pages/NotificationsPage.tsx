@@ -56,8 +56,8 @@ export function NotificationsPage() {
   return (
     <div className="p-6 space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Notifications</h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+        <h1 className="text-2xl font-bold text-pharmacy-ink dark:text-white">Notifications</h1>
+        <p className="text-sm text-pharmacy-inkSoft dark:text-gray-400 mt-1">
           Broadcast push notifications to drivers
         </p>
       </div>
@@ -65,14 +65,14 @@ export function NotificationsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Compose form */}
         <div className="card p-6">
-          <h2 className="text-base font-bold text-gray-900 dark:text-white mb-5">
+          <h2 className="text-base font-bold text-pharmacy-ink dark:text-white mb-5">
             📢 Send Notification
           </h2>
 
           <form onSubmit={handleSubmit((data) => broadcastMutation.mutate(data))} className="space-y-4">
             {/* Target */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-pharmacy-inkSoft dark:text-gray-300 mb-2">
                 Target Audience
               </label>
               <div className="grid grid-cols-2 gap-3">
@@ -84,7 +84,7 @@ export function NotificationsPage() {
                     key={opt.value}
                     className={`card p-3 cursor-pointer border-2 transition-colors ${
                       watch('target') === opt.value
-                        ? 'border-brand-500 bg-brand-50 dark:bg-brand-900/20'
+                        ? 'border-pharmacy-primary bg-brand-50 dark:bg-brand-900/20'
                         : 'border-transparent'
                     }`}
                   >
@@ -94,8 +94,8 @@ export function NotificationsPage() {
                       {...register('target')}
                       className="sr-only"
                     />
-                    <p className="text-sm font-semibold text-gray-900 dark:text-white">{opt.label}</p>
-                    <p className="text-xs text-gray-500 mt-0.5">{opt.desc}</p>
+                    <p className="text-sm font-semibold text-pharmacy-ink dark:text-white">{opt.label}</p>
+                    <p className="text-xs text-pharmacy-inkSoft mt-0.5">{opt.desc}</p>
                   </label>
                 ))}
               </div>
@@ -103,7 +103,7 @@ export function NotificationsPage() {
 
             {/* Title */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-pharmacy-inkSoft dark:text-gray-300 mb-1">
                 Title *
               </label>
               <input
@@ -119,7 +119,7 @@ export function NotificationsPage() {
 
             {/* Body */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-pharmacy-inkSoft dark:text-gray-300 mb-1">
                 Message *
               </label>
               <textarea
@@ -135,10 +135,10 @@ export function NotificationsPage() {
 
             {/* Preview */}
             {(titleValue || bodyValue) && (
-              <div className="bg-gray-50 dark:bg-slate-700 rounded-xl p-4 border-l-4 border-brand-500">
-                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2">PREVIEW</p>
-                <p className="text-sm font-bold text-gray-900 dark:text-white">{titleValue || 'Notification Title'}</p>
-                <p className="text-sm text-gray-600 dark:text-gray-300 mt-0.5">{bodyValue || 'Notification body…'}</p>
+              <div className="bg-pharmacy-canvas dark:bg-slate-700 rounded-xl p-4 border-l-4 border-pharmacy-primary">
+                <p className="text-xs font-semibold text-pharmacy-inkSoft dark:text-gray-400 mb-2">PREVIEW</p>
+                <p className="text-sm font-bold text-pharmacy-ink dark:text-white">{titleValue || 'Notification Title'}</p>
+                <p className="text-sm text-pharmacy-inkSoft dark:text-gray-300 mt-0.5">{bodyValue || 'Notification body…'}</p>
               </div>
             )}
 
@@ -154,7 +154,7 @@ export function NotificationsPage() {
 
         {/* History */}
         <div className="card p-6">
-          <h2 className="text-base font-bold text-gray-900 dark:text-white mb-5">
+          <h2 className="text-base font-bold text-pharmacy-ink dark:text-white mb-5">
             📋 Recent Broadcasts
           </h2>
 
@@ -174,16 +174,16 @@ export function NotificationsPage() {
           ) : (
             <div className="space-y-3">
               {history.map((n: any, i: number) => (
-                <div key={n.id ?? i} className="p-4 rounded-xl bg-gray-50 dark:bg-slate-700 space-y-1">
+                <div key={n.id ?? i} className="p-4 rounded-xl bg-pharmacy-canvas dark:bg-slate-700 space-y-1">
                   <div className="flex items-start justify-between gap-3">
-                    <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                    <p className="text-sm font-semibold text-pharmacy-ink dark:text-white">
                       {n.title}
                     </p>
                     <span className="badge badge-neutral text-xs flex-shrink-0">
                       {n.target}
                     </span>
                   </div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2">{n.body}</p>
+                  <p className="text-xs text-pharmacy-inkSoft dark:text-gray-400 line-clamp-2">{n.body}</p>
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-gray-400">
                       {n.sentAt

@@ -13,6 +13,7 @@ import { useTranslation }    from "react-i18next";
 import { useQueryClient }    from "@tanstack/react-query";
 
 import { Screen, Text as UIText } from "@pharmacy/ui-native";
+import { useDarkColors } from "@/hooks/useDarkColors";
 import { kit }                    from "@pharmacy/ui-native";
 import { useAuth }                from "@/features/auth";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";

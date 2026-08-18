@@ -1,3 +1,4 @@
+import { useDarkColors } from "@/hooks/useDarkColors";
 /**
  * Refill flow — request a refill for an existing prescription.
  *
@@ -51,7 +52,11 @@ interface DeliveryOption {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export default function RefillPage(): React.ReactElement {
-  const { t, i18n } = useTranslation();
+  
+  
+  const { c } = useDarkColors();
+  const s = React.useMemo(() => get_s(c), [c]);
+const { t, i18n } = useTranslation();
   const { id }      = useLocalSearchParams<{ id: string }>();
   const router      = useRouter();
   const insets      = useSafeAreaInsets();
@@ -69,24 +74,24 @@ export default function RefillPage(): React.ReactElement {
       icon:   "flash-outline",
       title:  t("prescriptions.refillSameDay"),
       eta:    t("prescriptions.refillSameDayEta"),
-      tone:   kit.color.warn,
-      toneBg: kit.color.warnTint,
+      tone:   c.warn,
+      toneBg: c.warnTint,
     },
     {
       key:    "standard",
       icon:   "bicycle-outline",
       title:  t("prescriptions.refillStandard"),
       eta:    t("prescriptions.refillStandardEta"),
-      tone:   kit.color.accentDeep,
-      toneBg: kit.color.accentTint,
+      tone:   c.accentDeep,
+      toneBg: c.accentTint,
     },
     {
       key:    "pickup",
       icon:   "storefront-outline",
       title:  t("prescriptions.refillPickup"),
       eta:    t("prescriptions.refillPickupEta"),
-      tone:   kit.color.success,
-      toneBg: kit.color.successTint,
+      tone:   c.success,
+      toneBg: c.successTint,
     },
   ], [t]);
 
@@ -117,7 +122,7 @@ export default function RefillPage(): React.ReactElement {
         <Header insets={insets} onBack={() => router.back()} />
         <View style={s.centered}>
           <View style={s.notFoundIcon}>
-            <Ionicons name="medkit-outline" size={36} color={kit.color.inkFaint} />
+            <Ionicons name="medkit-outline" size={36} color={c.inkFaint} />
           </View>
           <Text weight="black" style={s.notFoundTitle}>
             {t("prescriptions.notFound")}
@@ -145,8 +150,8 @@ export default function RefillPage(): React.ReactElement {
 
         {/* ── Rx summary card ──────────────────────────────────────── */}
         <Animated.View entering={FadeInDown.duration(280)} style={s.rxCard}>
-          <View style={[s.rxTile, { backgroundColor: kit.color.accentTint }]}>
-            <Ionicons name="medkit" size={26} color={kit.color.accentDeep} />
+          <View style={[s.rxTile, { backgroundColor: c.accentTint }]}>
+            <Ionicons name="medkit" size={26} color={c.accentDeep} />
           </View>
           <View style={s.rxText}>
             <Text weight="bold" style={s.rxEyebrow}>
@@ -180,8 +185,8 @@ export default function RefillPage(): React.ReactElement {
         {/* ── Pickup branch summary ───────────────────────────────── */}
         <Animated.View entering={FadeInDown.delay(120).duration(280)} style={s.summaryCard}>
           <View style={s.summaryRow}>
-            <View style={[s.summaryIconWell, { backgroundColor: kit.color.well }]}>
-              <Ionicons name="location-outline" size={16} color={kit.color.inkSoft} />
+            <View style={[s.summaryIconWell, { backgroundColor: c.well }]}>
+              <Ionicons name="location-outline" size={16} color={c.inkSoft} />
             </View>
             <View style={s.summaryText}>
               <Text weight="bold" style={s.summaryLabel}>
@@ -198,7 +203,7 @@ export default function RefillPage(): React.ReactElement {
         <Animated.View entering={FadeInDown.delay(180).duration(280)} style={s.trustCard}>
           <View style={s.trustHead}>
             <View style={s.trustIconWell}>
-              <Ionicons name="shield-checkmark" size={14} color={kit.color.accentDeep} />
+              <Ionicons name="shield-checkmark" size={14} color={c.accentDeep} />
             </View>
             <Text weight="black" style={s.trustTitle}>
               {t("prescriptions.refillTrustTitle")}
@@ -252,7 +257,10 @@ interface DeliveryOptionCardProps {
 function DeliveryOptionCard({
   option, selected, onSelect,
 }: DeliveryOptionCardProps): React.ReactElement {
-  return (
+  
+  const { c } = useDarkColors();
+  const s = React.useMemo(() => get_s(c), [c]);
+return (
     <Pressable
       onPress={onSelect}
       accessibilityRole="radio"
@@ -294,14 +302,14 @@ function Header({ insets, onBack }: { insets: { top: number }; onBack: () => voi
           accessibilityRole="button"
           accessibilityLabel={t("common.back")}
           style={({ pressed }) => [s.backBtn, pressed && s.backBtnPressed]}>
-          <Ionicons name={BACK_CHEVRON} size={20} color={kit.color.ink} />
+          <Ionicons name={BACK_CHEVRON} size={20} color={c.ink} />
         </Pressable>
         <View style={{ flex: 1 }} />
       </View>
 
       <View style={s.identityRow}>
         <View style={s.heroTile}>
-          <Ionicons name="refresh" size={22} color={kit.color.accentDeep} />
+          <Ionicons name="refresh" size={22} color={c.accentDeep} />
         </View>
         <View style={s.identityText}>
           <Text weight="bold" style={s.eyebrow}>
@@ -320,17 +328,17 @@ function Header({ insets, onBack }: { insets: { top: number }; onBack: () => voi
 // Styles
 // ═══════════════════════════════════════════════════════════════════════════════
 
-const s = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: kit.color.canvas },
+function get_s(c: any) { return StyleSheet.create({
+  screen: { flex: 1, backgroundColor: c.canvas },
 
   // ── Header ─────────────────────────────────────────────────────────────
   header: {
     paddingHorizontal: 20,
     paddingBottom:     20,
     gap:               18,
-    backgroundColor:   kit.color.surface,
+    backgroundColor:   c.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: kit.color.line,
+    borderBottomColor: c.line,
     ...kit.shadow.raised,
   },
   headerRow: {
@@ -342,9 +350,9 @@ const s = StyleSheet.create({
     width:           38,
     height:          38,
     borderRadius:    14,
-    backgroundColor: kit.color.well,
+    backgroundColor: c.well,
     borderWidth:     1,
-    borderColor:     kit.color.line,
+    borderColor:     c.line,
     alignItems:      "center",
     justifyContent:  "center",
   },
@@ -361,9 +369,9 @@ const s = StyleSheet.create({
     width:           56,
     height:          56,
     borderRadius:    18,
-    backgroundColor: kit.color.accentTint,
+    backgroundColor: c.accentTint,
     borderWidth:     1,
-    borderColor:     kit.color.line,
+    borderColor:     c.line,
     alignItems:      "center",
     justifyContent:  "center",
     flexShrink:      0,
@@ -375,7 +383,7 @@ const s = StyleSheet.create({
   eyebrow: {
     fontSize:           10,
     lineHeight:         14,
-    color:              kit.color.accentDeep,
+    color:              c.accentDeep,
     letterSpacing:      0.6,
     textTransform:      "uppercase",
     textAlign:          TEXT_START,
@@ -384,7 +392,7 @@ const s = StyleSheet.create({
   title: {
     fontSize:           26,
     lineHeight:         32,
-    color:              kit.color.ink,
+    color:              c.ink,
     letterSpacing:      -0.5,
     textAlign:          TEXT_START,
     includeFontPadding: false,
@@ -396,10 +404,10 @@ const s = StyleSheet.create({
     alignItems:        "center",
     gap:               14,
     padding:           18,
-    backgroundColor:   kit.color.surface,
+    backgroundColor:   c.surface,
     borderRadius:      kit.radius.xl,
     borderWidth:       1,
-    borderColor:       kit.color.line,
+    borderColor:       c.line,
     ...kit.shadow.raised,
   },
   rxTile: {
@@ -417,7 +425,7 @@ const s = StyleSheet.create({
   rxEyebrow: {
     fontSize:           10,
     lineHeight:         14,
-    color:              kit.color.inkFaint,
+    color:              c.inkFaint,
     letterSpacing:      0.5,
     textTransform:      "uppercase",
     textAlign:          TEXT_START,
@@ -426,7 +434,7 @@ const s = StyleSheet.create({
   rxName: {
     fontSize:           18,
     lineHeight:         24,
-    color:              kit.color.ink,
+    color:              c.ink,
     letterSpacing:      -0.3,
     textAlign:          TEXT_START,
     includeFontPadding: false,
@@ -434,7 +442,7 @@ const s = StyleSheet.create({
   rxDose: {
     fontSize:           13,
     lineHeight:         18,
-    color:              kit.color.inkSoft,
+    color:              c.inkSoft,
     textAlign:          TEXT_START,
     includeFontPadding: false,
   },
@@ -443,7 +451,7 @@ const s = StyleSheet.create({
   sectionLabel: {
     fontSize:           11,
     lineHeight:         16,
-    color:              kit.color.inkFaint,
+    color:              c.inkFaint,
     letterSpacing:      0.5,
     textTransform:      "uppercase",
     textAlign:          TEXT_START,
@@ -457,10 +465,10 @@ const s = StyleSheet.create({
     gap:               14,
     paddingHorizontal: 16,
     paddingVertical:   14,
-    backgroundColor:   kit.color.surface,
+    backgroundColor:   c.surface,
     borderRadius:      kit.radius.lg,
     borderWidth:       1.5,
-    borderColor:       kit.color.line,
+    borderColor:       c.line,
     ...kit.shadow.raised,
   },
   optionCardSelected: {
@@ -486,7 +494,7 @@ const s = StyleSheet.create({
   optionTitle: {
     fontSize:           15,
     lineHeight:         20,
-    color:              kit.color.ink,
+    color:              c.ink,
     letterSpacing:      -0.2,
     textAlign:          TEXT_START,
     includeFontPadding: false,
@@ -494,7 +502,7 @@ const s = StyleSheet.create({
   optionEta: {
     fontSize:           12,
     lineHeight:         16,
-    color:              kit.color.inkSoft,
+    color:              c.inkSoft,
     textAlign:          TEXT_START,
     includeFontPadding: false,
   },
@@ -503,16 +511,16 @@ const s = StyleSheet.create({
     height:       22,
     borderRadius: 11,
     borderWidth:  1.5,
-    borderColor:  kit.color.lineStrong,
+    borderColor:  c.lineStrong,
     flexShrink:   0,
   },
 
   // ── Branch summary card ───────────────────────────────────────────────
   summaryCard: {
-    backgroundColor: kit.color.surface,
+    backgroundColor: c.surface,
     borderRadius:    kit.radius.lg,
     borderWidth:     1,
-    borderColor:     kit.color.line,
+    borderColor:     c.line,
     padding:         14,
   },
   summaryRow: {
@@ -535,7 +543,7 @@ const s = StyleSheet.create({
   summaryLabel: {
     fontSize:           10,
     lineHeight:         14,
-    color:              kit.color.inkFaint,
+    color:              c.inkFaint,
     letterSpacing:      0.4,
     textTransform:      "uppercase",
     textAlign:          TEXT_START,
@@ -544,14 +552,14 @@ const s = StyleSheet.create({
   summaryValue: {
     fontSize:           14,
     lineHeight:         19,
-    color:              kit.color.ink,
+    color:              c.ink,
     textAlign:          TEXT_START,
     includeFontPadding: false,
   },
 
   // ── Trust card ────────────────────────────────────────────────────────
   trustCard: {
-    backgroundColor: kit.color.accentTint,
+    backgroundColor: c.accentTint,
     borderRadius:    kit.radius.lg,
     borderWidth:     1,
     borderColor:     "rgba(14,126,116,0.18)",
@@ -574,7 +582,7 @@ const s = StyleSheet.create({
   trustTitle: {
     fontSize:           12,
     lineHeight:         16,
-    color:              kit.color.accentDeep,
+    color:              c.accentDeep,
     letterSpacing:      0.5,
     textTransform:      "uppercase",
     includeFontPadding: false,
@@ -582,7 +590,7 @@ const s = StyleSheet.create({
   trustBody: {
     fontSize:           13,
     lineHeight:         20,
-    color:              kit.color.inkSoft,
+    color:              c.inkSoft,
     textAlign:          TEXT_START,
     includeFontPadding: false,
   },
@@ -596,9 +604,9 @@ const s = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop:        14,
     gap:               10,
-    backgroundColor:   kit.color.surface,
+    backgroundColor:   c.surface,
     borderTopWidth:    StyleSheet.hairlineWidth,
-    borderTopColor:    kit.color.line,
+    borderTopColor:    c.line,
   },
   ctaEyebrowRow: {
     flexDirection: flexRow(IS_RTL),
@@ -608,7 +616,7 @@ const s = StyleSheet.create({
   ctaEyebrow: {
     fontSize:           10,
     lineHeight:         14,
-    color:              kit.color.inkFaint,
+    color:              c.inkFaint,
     letterSpacing:      0.5,
     textTransform:      "uppercase",
     includeFontPadding: false,
@@ -640,9 +648,9 @@ const s = StyleSheet.create({
     width:           84,
     height:          84,
     borderRadius:    28,
-    backgroundColor: kit.color.well,
+    backgroundColor: c.well,
     borderWidth:     1,
-    borderColor:     kit.color.line,
+    borderColor:     c.line,
     alignItems:      "center",
     justifyContent:  "center",
     marginBottom:    4,
@@ -650,7 +658,7 @@ const s = StyleSheet.create({
   notFoundTitle: {
     fontSize:           19,
     lineHeight:         26,
-    color:              kit.color.ink,
+    color:              c.ink,
     letterSpacing:      -0.3,
     textAlign:          "center",
     includeFontPadding: false,
@@ -658,9 +666,9 @@ const s = StyleSheet.create({
   notFoundBody: {
     fontSize:           14,
     lineHeight:         21,
-    color:              kit.color.inkSoft,
+    color:              c.inkSoft,
     textAlign:          "center",
     maxWidth:           320,
     includeFontPadding: false,
   },
-});
+}); }

@@ -1,3 +1,4 @@
+import { useDarkColors } from "@/hooks/useDarkColors";
 /**
  * Secure Prescription Image Upload Flow
  *
@@ -31,7 +32,11 @@ const TEXT_START = textAlignStart(IS_RTL);
 type ScreenPhase = "camera" | "preview" | "uploading";
 
 export default function ScanScreen(): React.ReactElement {
-  const router   = useRouter();
+  
+  
+  const { c } = useDarkColors();
+  const s = React.useMemo(() => get_s(c), [c]);
+const router   = useRouter();
   const insets   = useSafeAreaInsets();
   const { t }    = useTranslation();
   const { user } = useAuth();
@@ -56,7 +61,7 @@ export default function ScanScreen(): React.ReactElement {
         setUploadErr(null);
       }
     } catch (err) {
-      if (__DEV__) console.error("Camera capture failed", err);
+      
     }
   }, []);
 
@@ -108,7 +113,7 @@ export default function ScanScreen(): React.ReactElement {
     } catch (err: any) {
       setPhase("preview");
       setUploadErr(t("prescriptions.uploadError", "Failed to upload the prescription document. Please try again."));
-      if (__DEV__) console.error(err);
+      
     }
   }, [user?.id, imageUri, t, router, create]);
 
@@ -123,7 +128,7 @@ export default function ScanScreen(): React.ReactElement {
         <ScanHeader insets={insets} onBack={() => router.back()} title={t("prescriptions.scanTitle")} />
         <View style={s.permissionWrap}>
           <View style={s.permissionIcon}>
-            <Ionicons name="camera-outline" size={36} color={kit.color.accentDeep} />
+            <Ionicons name="camera-outline" size={36} color={c.accentDeep} />
           </View>
           <Text weight="black" style={s.permissionTitle}>
             {t("prescriptions.scanPermissionTitle")}
@@ -289,7 +294,7 @@ function ScanHeader({
           style={s.backBtnTouchable}>
           {({ pressed }) => (
             <View style={[s.backBtn, pressed && s.backBtnPressed]}>
-              <Ionicons name={BACK_CHEVRON} size={20} color={kit.color.ink} />
+              <Ionicons name={BACK_CHEVRON} size={20} color={c.ink} />
             </View>
           )}
         </Pressable>
@@ -304,19 +309,19 @@ function ScanHeader({
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
-const s = StyleSheet.create({
+function get_s(c: any) { return StyleSheet.create({
   screen: {
     flex:            1,
-    backgroundColor: kit.color.canvas,
+    backgroundColor: c.canvas,
   },
 
   // ── Shared header ───────────────────────────────────────────────────────
   header: {
     paddingHorizontal: 20,
     paddingBottom:     16,
-    backgroundColor:   kit.color.surface,
+    backgroundColor:   c.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: kit.color.line,
+    borderBottomColor: c.line,
     ...kit.shadow.raised,
   },
   headerRow: {
@@ -329,9 +334,9 @@ const s = StyleSheet.create({
     width:           38,
     height:          38,
     borderRadius:    14,
-    backgroundColor: kit.color.well,
+    backgroundColor: c.well,
     borderWidth:     1,
-    borderColor:     kit.color.line,
+    borderColor:     c.line,
     alignItems:      "center",
     justifyContent:  "center",
   },
@@ -340,7 +345,7 @@ const s = StyleSheet.create({
     flex:               1,
     fontSize:           17,
     lineHeight:         22,
-    color:              kit.color.ink,
+    color:              c.ink,
     textAlign:          "center",
     letterSpacing:      -0.2,
     includeFontPadding: false,
@@ -358,9 +363,9 @@ const s = StyleSheet.create({
     width:           84,
     height:          84,
     borderRadius:    28,
-    backgroundColor: kit.color.accentTint,
+    backgroundColor: c.accentTint,
     borderWidth:     1,
-    borderColor:     kit.color.line,
+    borderColor:     c.line,
     alignItems:      "center",
     justifyContent:  "center",
     marginBottom:    4,
@@ -368,7 +373,7 @@ const s = StyleSheet.create({
   permissionTitle: {
     fontSize:           19,
     lineHeight:         26,
-    color:              kit.color.ink,
+    color:              c.ink,
     textAlign:          "center",
     letterSpacing:      -0.3,
     includeFontPadding: false,
@@ -376,7 +381,7 @@ const s = StyleSheet.create({
   permissionBody: {
     fontSize:           14,
     lineHeight:         22,
-    color:              kit.color.inkSoft,
+    color:              c.inkSoft,
     textAlign:          "center",
     maxWidth:           320,
     includeFontPadding: false,
@@ -488,9 +493,9 @@ const s = StyleSheet.create({
     flex: 1,
     borderRadius: kit.radius.lg,
     overflow: "hidden",
-    backgroundColor: kit.color.well,
+    backgroundColor: c.well,
     borderWidth: 1,
-    borderColor: kit.color.line,
+    borderColor: c.line,
   },
   uploadingOverlay: {
     ...StyleSheet.absoluteFillObject,
@@ -508,7 +513,7 @@ const s = StyleSheet.create({
   },
   previewNotice: {
     fontSize: 13,
-    color: kit.color.inkSoft,
+    color: c.inkSoft,
     textAlign: "center",
     marginBottom: 16,
   },
@@ -527,4 +532,4 @@ const s = StyleSheet.create({
     color: "#fff",
     textAlign: TEXT_START,
   },
-});
+}); }

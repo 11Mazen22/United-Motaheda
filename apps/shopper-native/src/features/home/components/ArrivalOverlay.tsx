@@ -106,7 +106,7 @@ const AmbientParticle = memo(function AmbientParticle({
         anim,
         {
           position:        "absolute",
-          left:            def.x * W,
+          start: def.x * W,
           top:             def.y * H,
           width:           def.size,
           height:          def.size,
@@ -266,7 +266,7 @@ export function ArrivalOverlay({ topInset, onComplete }: ArrivalOverlayProps) {
         style={[
           s.sweepLine,
           sweepAnim,
-          IS_RTL ? { right: 0 } : { left: 0 },
+          IS_RTL ? { end: 0 } : { start: 0 },
           { top: landY - 0.75 },
         ]}
         pointerEvents="none"
@@ -285,7 +285,7 @@ const s = StyleSheet.create({
   logoTile: {
     position: "absolute",
     top:      H / 2 - LOGO_HALF,
-    left:     W / 2 - LOGO_HALF,
+    start: W / 2 - LOGO_HALF,
     width:    LOGO_PX,
     height:   LOGO_PX,
     ...kit.shadow.floating,

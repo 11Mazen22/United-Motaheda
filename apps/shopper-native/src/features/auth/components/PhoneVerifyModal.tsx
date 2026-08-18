@@ -329,7 +329,7 @@ function CodeStep(props: CodeStepProps): React.ReactElement {
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.iconTile}>
-          <Ionicons name="phone-portrait-outline" size={22} color={theme.colors.brand.base} />
+          <Ionicons name="phone-portrait-outline" size={22} color={kit.color.brand.base} />
         </View>
         <Text variant="sheet-title" align="center">{t("phoneVerify.title")}</Text>
         <Text variant="caption" color="secondary" align="center" style={{ marginTop: theme.spacing[0.5] }}>
@@ -341,7 +341,7 @@ function CodeStep(props: CodeStepProps): React.ReactElement {
           accessibilityRole="button"
           accessibilityLabel={t("phoneVerify.changeNumberA11y")}
           style={{ marginTop: theme.spacing[1] }}>
-          <Text variant="caption" weight="bold" style={{ color: theme.colors.brand.base }}>
+          <Text variant="caption" weight="bold" style={{ color: kit.color.brand.base }}>
             {t("phoneVerify.changeNumber")}
           </Text>
         </Pressable>
@@ -389,10 +389,10 @@ function CodeStep(props: CodeStepProps): React.ReactElement {
       {/* Error */}
       {error && (
         <View style={styles.errorRow}>
-          <Ionicons name="alert-circle" size={16} color={theme.colors.error.base} />
+          <Ionicons name="alert-circle" size={16} color={kit.color.error.base} />
           <Text
             variant="caption"
-            style={{ flex: 1, color: theme.colors.error.text, textAlign: textAlignStart(isRtl()) }}>
+            style={{ flex: 1, color: kit.color.error.text, textAlign: textAlignStart(isRtl()) }}>
             {error}
           </Text>
         </View>
@@ -416,7 +416,7 @@ function CodeStep(props: CodeStepProps): React.ReactElement {
             variant="caption"
             weight="bold"
             style={{
-              color: canResend ? theme.colors.brand.base : theme.colors.text.disabled,
+              color: canResend ? kit.color.brand.base : kit.color.text.disabled,
             }}>
             {resending
               ? t("phoneVerify.sending")
@@ -466,7 +466,7 @@ function EditStep({
     <>
       <View style={styles.header}>
         <View style={styles.iconTile}>
-          <Ionicons name="create-outline" size={22} color={theme.colors.brand.base} />
+          <Ionicons name="create-outline" size={22} color={kit.color.brand.base} />
         </View>
         <Text variant="sheet-title" align="center">{t("phoneVerify.editTitle")}</Text>
         <Text variant="caption" color="secondary" align="center" style={{ marginTop: theme.spacing[0.5] }}>
@@ -483,13 +483,13 @@ function EditStep({
             onChangeText={onChange}
             keyboardType="phone-pad"
             placeholder="01XXXXXXXXX"
-            placeholderTextColor={theme.colors.text.tertiary}
+            placeholderTextColor={kit.color.text.tertiary}
             textAlign={textAlignStart(isRtl()) as "left" | "right"}
             maxLength={14}
             style={styles.phoneInput}
             accessibilityLabel={t("phoneVerify.phoneA11y")}
           />
-          <Ionicons name="call-outline" size={18} color={theme.colors.text.tertiary} />
+          <Ionicons name="call-outline" size={18} color={kit.color.text.tertiary} />
         </View>
         <Text variant="eyebrow" color="tertiary" align="right">
           {t("phoneVerify.phoneHint")}
@@ -498,8 +498,8 @@ function EditStep({
 
       {error && (
         <View style={styles.errorRow}>
-          <Ionicons name="alert-circle" size={16} color={theme.colors.error.base} />
-          <Text variant="caption" align="right" style={{ flex: 1, color: theme.colors.error.text }}>
+          <Ionicons name="alert-circle" size={16} color={kit.color.error.base} />
+          <Text variant="caption" align="right" style={{ flex: 1, color: kit.color.error.text }}>
             {error}
           </Text>
         </View>
@@ -518,16 +518,16 @@ function EditStep({
 const styles = StyleSheet.create({
   scrim: {
     flex:            1,
-    backgroundColor: theme.colors.overlay,
+    backgroundColor: kit.color.overlay,
     justifyContent:  "flex-end",
   },
   kbContainer: {
     width: "100%",
   },
   sheet: {
-    backgroundColor: theme.colors.surface,
-    borderTopLeftRadius:  theme.layout.bottomSheetRadius,
-    borderTopRightRadius: theme.layout.bottomSheetRadius,
+    backgroundColor: kit.color.surface,
+    borderTopStartRadius:  theme.layout.bottomSheetRadius,
+    borderTopEndRadius: theme.layout.bottomSheetRadius,
     paddingHorizontal: theme.layout.pagePaddingH,
     paddingTop:        theme.spacing[1],
     paddingBottom:     theme.spacing[3.5],
@@ -538,7 +538,7 @@ const styles = StyleSheet.create({
     width:           44,
     height:          4,
     borderRadius:    2,
-    backgroundColor: theme.colors.border.strong,
+    backgroundColor: kit.color.border.strong,
     alignSelf:       "center",
     marginBottom:    theme.spacing[1.5],
     opacity:         0.5,
@@ -551,12 +551,12 @@ const styles = StyleSheet.create({
     width:           56,
     height:          56,
     borderRadius:    theme.radius["2xl"],
-    backgroundColor: theme.colors.brand.lighter,
+    backgroundColor: kit.color.brand.lighter,
     alignItems:      "center",
     justifyContent:  "center",
     marginBottom:    theme.spacing[1],
     borderWidth:     1,
-    borderColor:     theme.colors.brand.light,
+    borderColor:     kit.color.brand.light,
   },
   hiddenInput: {
     position: "absolute",
@@ -580,25 +580,25 @@ const styles = StyleSheet.create({
     width:           44,
     height:          56,
     borderRadius:    theme.radius.md,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: kit.color.surface,
     borderWidth:     1,
-    borderColor:     theme.colors.border.default,
+    borderColor:     kit.color.border.default,
     alignItems:      "center",
     justifyContent:  "center",
   },
   boxFilled: {
-    borderColor:     theme.colors.brand.base,
-    backgroundColor: theme.colors.brand.lighter,
+    borderColor:     kit.color.brand.base,
+    backgroundColor: kit.color.brand.lighter,
   },
   // Active cell — brand glow + thicker border for clear focus signal.
   boxCursor: {
-    borderColor:     theme.colors.brand.base,
+    borderColor:     kit.color.brand.base,
     borderWidth:     1.5,
     ...theme.shadow.brandGlow,
   },
   boxError: {
-    borderColor:     theme.colors.error.base,
-    backgroundColor: theme.colors.error.bg,
+    borderColor:     kit.color.error.base,
+    backgroundColor: kit.color.error.bg,
   },
   errorRow: {
     flexDirection: flexRow(isRtl()),
@@ -624,19 +624,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing[2],
     height:            theme.layout.inputHeight,
     borderRadius:      theme.radius.lg,
-    backgroundColor:   theme.colors.muted,
+    backgroundColor:   kit.color.muted,
     borderWidth:       1,
-    borderColor:       theme.colors.border.default,
+    borderColor:       kit.color.border.default,
   },
   phoneInputBoxError: {
-    borderColor:     theme.colors.error.base,
-    backgroundColor: theme.colors.error.bg,
+    borderColor:     kit.color.error.base,
+    backgroundColor: kit.color.error.bg,
   },
   phoneInput: {
     flex:           1,
     fontSize:       theme.fontSize.md,
     fontFamily:     theme.fonts.regular,
-    color:          theme.colors.text.primary,
+    color:          kit.color.text.primary,
     paddingVertical: 0,
   },
 });

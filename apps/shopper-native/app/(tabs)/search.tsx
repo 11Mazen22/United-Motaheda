@@ -491,8 +491,7 @@ export default function SearchScreen() {
             p_result_count: totalCount,
             p_source:       "native",
           });
-          if (error && __DEV__) console.warn("[search] analytics:", error.message);
-        } catch {
+        } catch (err) {
           // best-effort
         }
       })();

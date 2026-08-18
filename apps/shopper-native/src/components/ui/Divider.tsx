@@ -20,13 +20,13 @@ export function Divider({ strength = "default", label, spacing = 0 }: DividerPro
     }
   };
 
-  const lineColor = theme.colors.border.default;
+  const lineColor = kit.color.border.default;
 
   return (
     <View style={[s.container, { marginVertical: spacing }]}>
       <View style={[s.line, { backgroundColor: lineColor, opacity: getOpacity() }]} />
       {label && (
-        <Text variant="caption" style={{ color: theme.colors.text.muted, marginHorizontal: kit.sp(3) }}>
+        <Text variant="caption" style={{ color: kit.color.text.muted, marginHorizontal: kit.sp(3) }}>
           {label}
         </Text>
       )}

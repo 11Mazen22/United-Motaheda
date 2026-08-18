@@ -37,7 +37,7 @@ export default function VerifyPhoneScreen() {
         await sendPhoneOtp(phoneStr);
         if (!cancelled) setStage("modal");
       } catch (e) {
-        if (__DEV__) console.warn("[verify-phone] sendPhoneOtp failed:", e);
+        if (__DEV__) 
         if (cancelled) return;
         setErrorMsg(t("verifyPhone.errorDefault"));
         setStage("error");
@@ -154,8 +154,8 @@ const s = StyleSheet.create({
   trustFootnote: {
     position:       "absolute",
     bottom:         56,
-    left:           0,
-    right:          0,
+    start: 0,
+    end: 0,
     alignItems:     "center",
     justifyContent: "center",
     gap:            6,

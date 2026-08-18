@@ -17,6 +17,7 @@ import { useTranslation }    from "react-i18next";
 import { useRouter }         from "expo-router";
 
 import { Screen, Text as UIText }  from "@pharmacy/ui-native";
+import { useDarkColors } from "@/hooks/useDarkColors";
 import { kit }                     from "@pharmacy/ui-native";
 import { isRtl, textAlignStart }   from "@/utils/layout";
 import { useAuth }                 from "@/features/auth";
@@ -43,6 +44,8 @@ function timeAgo(
 }
 
 export default function PharmacistNotificationsScreen() {
+  const { c } = useDarkColors();
+  const s = useSStyles(c);
   const { t }   = useTranslation();
   const router  = useRouter();
   const insets  = useSafeAreaInsets();
@@ -78,7 +81,7 @@ export default function PharmacistNotificationsScreen() {
   }, [notifications, t]);
 
   return (
-    <Screen edgeTop background={kit.color.canvas}>
+    <Screen edgeTop background={c.canvas}>
       <PharmacistScreenHeader
         title={t("notifications.title")}
         trailing={
@@ -96,11 +99,11 @@ export default function PharmacistNotificationsScreen() {
 
       {isLoading ? (
         <View style={s.centered}>
-          <ActivityIndicator size="large" color={kit.color.accent} />
+          <ActivityIndicator size="large" color={c.accent} />
         </View>
       ) : notifications.length === 0 ? (
         <View style={s.centered}>
-          <Ionicons name="notifications-off-outline" size={44} color={kit.color.inkFaint} />
+          <Ionicons name="notifications-off-outline" size={44} color={c.inkFaint} />
           <UIText variant="card-title" style={{ marginTop: 12, textAlign: "center" }}>
             {t("notifications.emptyTitle")}
           </UIText>
@@ -158,14 +161,14 @@ export default function PharmacistNotificationsScreen() {
   );
 }
 
-const s = StyleSheet.create({
+const useSStyles = (c: any) => StyleSheet.create({
   centered:    { flex: 1, alignItems: "center", justifyContent: "center" },
   markAllBtn:  { paddingHorizontal: 10, paddingVertical: 6 },
   sectionHeader: {
     paddingHorizontal: kit.inset.screen,
     paddingTop:        14,
     paddingBottom:     6,
-    backgroundColor:   kit.color.canvas,
+    backgroundColor:   c.canvas,
   },
   card: {
     flexDirection:     "row",
@@ -174,15 +177,15 @@ const s = StyleSheet.create({
     paddingHorizontal: kit.inset.screen,
     paddingVertical:   14,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: kit.color.line,
-    backgroundColor:   kit.color.surface,
+    borderBottomColor: c.line,
+    backgroundColor:   c.surface,
   },
-  cardUnread: { backgroundColor: kit.color.accentTint },
+  cardUnread: { backgroundColor: c.accentTint },
   dotCol:     { width: 8, paddingTop: 5 },
   unreadDot:  {
     width:           8,
     height:          8,
     borderRadius:    4,
-    backgroundColor: kit.color.accent,
+    backgroundColor: c.accent,
   },
 });

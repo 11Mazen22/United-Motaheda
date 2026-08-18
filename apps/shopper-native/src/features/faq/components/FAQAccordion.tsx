@@ -77,7 +77,7 @@ export const FAQAccordion = memo(function FAQAccordion({
             <Ionicons
               name="chevron-down"
               size={14}
-              color={expanded ? kit.color.accent : theme.colors.slate[400]}
+              color={expanded ? kit.color.accent : kit.color.slate[400]}
             />
           </Animated.View>
         </View>
@@ -106,7 +106,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     padding: 16,
     borderWidth: 1,
-    borderColor: theme.colors.border.default,
+    borderColor: kit.color.border.default,
     ...theme.shadow.xs,
   },
   cardExpanded: {
@@ -128,7 +128,7 @@ const styles = StyleSheet.create({
     flex:       1,
     fontSize:   14,                        // bumped from 13 → more readable
     fontFamily: theme.fonts.black,         // bold by default (was: bold)
-    color:      theme.colors.text.primary, // was slate[700]
+    color:      kit.color.text.primary, // was slate[700]
     textAlign:  textAlignStart(isRtl()),
     lineHeight: 22,                        // generous rhythm
   },
@@ -139,7 +139,7 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 9,
-    backgroundColor: theme.colors.slate[50],
+    backgroundColor: kit.color.slate[50],
     alignItems: "center",
     justifyContent: "center",
   },
@@ -152,18 +152,18 @@ const styles = StyleSheet.create({
   },
   answerDivider: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: theme.colors.slate[100],
+    backgroundColor: kit.color.slate[100],
   },
   answer: {
     fontSize:   13,
     fontFamily: theme.fonts.regular,
-    color:      theme.colors.text.muted,   // softer hierarchy vs question (theme.colors.text.muted)
+    color:      kit.color.text.muted,   // softer hierarchy vs question (kit.color.text.muted)
     textAlign:  textAlignStart(isRtl()),
     lineHeight: 24,                        // editorial rhythm
   },
   catPill: {
     alignSelf: "flex-end",
-    backgroundColor: theme.colors.slate[50],
+    backgroundColor: kit.color.slate[50],
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 999,

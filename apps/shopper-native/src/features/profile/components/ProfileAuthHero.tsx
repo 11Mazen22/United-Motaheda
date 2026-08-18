@@ -393,8 +393,8 @@ const qt = StyleSheet.create({
 
 // Top-bar flex rows
 const tb = StyleSheet.create({
-  left:  { flexDirection: flexRow(isRtl()), alignItems: "center", gap: 8 },
-  right: { flexDirection: flexRow(isRtl()), alignItems: "center", gap: 8 },
+  start: { flexDirection: flexRow(isRtl()), alignItems: "center", gap: 8 },
+  end: { flexDirection: flexRow(isRtl()), alignItems: "center", gap: 8 },
 });
 
 // Last-order info block

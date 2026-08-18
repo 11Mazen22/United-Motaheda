@@ -276,8 +276,8 @@ const s = StyleSheet.create({
   dropdown: {
     position:          "absolute",
     top:               "100%",
-    left:              0,
-    right:             0,
+    start: 0,
+    end: 0,
     marginTop:         4,
     backgroundColor:   kit.color.surface,
     borderRadius:      kit.radius.lg,

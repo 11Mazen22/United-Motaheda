@@ -277,7 +277,7 @@ const s = StyleSheet.create({
   ambientOrb: {
     position:        "absolute",
     top:             -60,
-    ...(IS_RTL ? { left: -60 } : { right: -60 }),
+    ...(IS_RTL ? { start: -60 } : { end: -60 }),
     width:           200,
     height:          200,
     borderRadius:    100,

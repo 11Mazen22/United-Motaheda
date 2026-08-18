@@ -115,7 +115,7 @@ const oc = StyleSheet.create({
   routeLabel: { flex: 1, textAlign: 'left' },
   routeArrow: { width: 20, alignItems: 'center' },
   metaRow: { flexDirection: 'row', gap: 10, paddingTop: 10, alignItems: 'center', flexWrap: 'wrap' },
-  actionsCol: { marginLeft: 12, justifyContent: 'center', gap: 8, minWidth: 100 },
+  actionsCol: { marginStart: 12, justifyContent: 'center', gap: 8, minWidth: 100 },
 });
 
 export default OrderCardNew;

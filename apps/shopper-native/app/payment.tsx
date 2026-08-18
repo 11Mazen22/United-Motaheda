@@ -4,6 +4,7 @@
  */
 
 import React from "react";
+import { useDarkColors } from '@/hooks/useDarkColors';
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { kit } from "@pharmacy/ui-native";
@@ -13,7 +14,6 @@ import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 import { useTranslation } from "react-i18next";
 import { PaymentMethodSelector, usePaymentStore } from "@/features/payment";
 import { Text as UIText } from "@pharmacy/ui-native";
-import { theme } from "@pharmacy/design-tokens";
 import { flexRow, isRtl, textAlignStart, BACK_CHEVRON } from "@/utils/layout";
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>["name"];
@@ -29,6 +29,8 @@ const TRUST_ITEMS: { icon: IoniconsName; labelKey: string }[] = [
 ];
 
 export default function PaymentScreen() {
+  const { c } = useDarkColors();
+
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { t }  = useTranslation();
@@ -54,11 +56,11 @@ export default function PaymentScreen() {
           accessibilityRole="button"
           accessibilityLabel={t("common.back")}
           style={s.backBtn}>
-          <Ionicons name={BACK_CHEVRON} size={18} color={kit.color.inkSoft} />
+          <Ionicons name={BACK_CHEVRON} size={18} color={c.inkSoft} />
         </Pressable>
 
         <View style={s.iconTile}>
-          <Ionicons name="card-outline" size={22} color={kit.color.accentDeep} />
+          <Ionicons name="card-outline" size={22} color={c.accentDeep} />
         </View>
 
         <View style={{ flex: 1 }}>
@@ -89,7 +91,7 @@ export default function PaymentScreen() {
         <Animated.View entering={FadeInDown.delay(80).duration(280)}>
           <View style={s.sectionLabel}>
             <View style={[s.sectionBadge, { flexDirection: flexRow(IS_RTL) }]}>
-              <Ionicons name="list-outline" size={14} color={kit.color.accentDeep} />
+              <Ionicons name="list-outline" size={14} color={c.accentDeep} />
             </View>
             <UIText style={[s.sectionTitle, { textAlign: TEXT_START }]}>{t("payment.methodsTitle")}</UIText>
           </View>
@@ -101,7 +103,7 @@ export default function PaymentScreen() {
           {TRUST_ITEMS.map((item) => (
             <View key={item.labelKey} style={s.trustItem}>
               <View style={s.trustIcon}>
-                <Ionicons name={item.icon} size={14} color={kit.color.accentDeep} />
+                <Ionicons name={item.icon} size={14} color={c.accentDeep} />
               </View>
               <UIText style={s.trustText} numberOfLines={1}>{t(item.labelKey)}</UIText>
             </View>
@@ -110,7 +112,7 @@ export default function PaymentScreen() {
 
         {/* ── Info note ── */}
         <Animated.View entering={FadeInDown.delay(240).duration(280)} style={[s.infoNote, { flexDirection: flexRow(IS_RTL) }]}>
-          <Ionicons name="information-circle-outline" size={16} color={kit.color.accentDeep} />
+          <Ionicons name="information-circle-outline" size={16} color={c.accentDeep} />
           <UIText style={[s.infoText, { textAlign: TEXT_START }]}>{t("payment.infoNote")}</UIText>
         </Animated.View>
       </ScrollView>
@@ -120,7 +122,7 @@ export default function PaymentScreen() {
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const s = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: kit.color.canvas },
+  screen: { flex: 1, backgroundColor: c.canvas },
 
   // Header
   header: {
@@ -129,20 +131,20 @@ const s = StyleSheet.create({
     gap:               14,
     paddingHorizontal: 20,
     paddingBottom:     16,
-    backgroundColor:   kit.color.surface,
+    backgroundColor:   c.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: kit.color.line,
+    borderBottomColor: c.line,
     ...kit.shadow.raised,
   },
   backBtn: {
     width:           40,
     height:          40,
     borderRadius:    20,
-    backgroundColor: kit.color.surface,
+    backgroundColor: c.surface,
     alignItems:      "center",
     justifyContent:  "center",
     borderWidth:     1,
-    borderColor:     kit.color.line,
+    borderColor:     c.line,
     ...kit.shadow.raised,
     flexShrink:      0,
   },
@@ -150,9 +152,9 @@ const s = StyleSheet.create({
     width:           52,
     height:          52,
     borderRadius:    16,
-    backgroundColor: kit.color.accentTint,
+    backgroundColor: c.accentTint,
     borderWidth:     1,
-    borderColor:     kit.color.line,
+    borderColor:     c.line,
     alignItems:      "center",
     justifyContent:  "center",
     flexShrink:      0,
@@ -161,14 +163,14 @@ const s = StyleSheet.create({
     fontFamily:         theme.fonts.black,
     fontSize:           18,
     letterSpacing:      -0.4,
-    color:              kit.color.ink,
+    color:              c.ink,
     includeFontPadding: false,
     textAlign:          TEXT_START,
   },
   headerSubtitle: {
     fontFamily:         theme.fonts.semibold,
     fontSize:           11,
-    color:              kit.color.inkFaint,
+    color:              c.inkFaint,
     includeFontPadding: false,
     textAlign:          TEXT_START,
     marginTop:          1,
@@ -183,9 +185,9 @@ const s = StyleSheet.create({
     gap:             14,
     padding:         16,
     borderRadius:    16,
-    backgroundColor: kit.color.accentTint,
+    backgroundColor: c.accentTint,
     borderWidth:     1,
-    borderColor:     kit.color.line,
+    borderColor:     c.line,
     overflow:        "hidden",
     ...kit.shadow.raised,
   },
@@ -193,7 +195,7 @@ const s = StyleSheet.create({
     width:           34,
     height:          34,
     borderRadius:    11,
-    backgroundColor: kit.color.accentDeep,
+    backgroundColor: c.accentDeep,
     alignItems:      "center",
     justifyContent:  "center",
     flexShrink:      0,
@@ -202,13 +204,13 @@ const s = StyleSheet.create({
     fontFamily:         theme.fonts.bold,
     fontSize:           10,
     letterSpacing:      0.5,
-    color:              kit.color.accentDeep,
+    color:              c.accentDeep,
     includeFontPadding: false,
   },
   currentValue: {
     fontFamily:         theme.fonts.black,
     fontSize:           14,
-    color:              kit.color.ink,
+    color:              c.ink,
     lineHeight:         19,
     includeFontPadding: false,
   },
@@ -218,7 +220,7 @@ const s = StyleSheet.create({
     bottom:          0,
     start:           0,
     width:           3,
-    backgroundColor: kit.color.accentDeep,
+    backgroundColor: c.accentDeep,
   },
 
   // Section label
@@ -232,9 +234,9 @@ const s = StyleSheet.create({
     width:           32,
     height:          32,
     borderRadius:    11,
-    backgroundColor: kit.color.accentTint,
+    backgroundColor: c.accentTint,
     borderWidth:     1,
-    borderColor:     kit.color.line,
+    borderColor:     c.line,
     alignItems:      "center",
     justifyContent:  "center",
   },
@@ -242,7 +244,7 @@ const s = StyleSheet.create({
     fontFamily:         theme.fonts.black,
     fontSize:           13,
     letterSpacing:      0.3,
-    color:              kit.color.inkSoft,
+    color:              c.inkSoft,
     includeFontPadding: false,
   },
 
@@ -254,9 +256,9 @@ const s = StyleSheet.create({
     paddingVertical:   14,
     paddingHorizontal: 8,
     borderRadius:      16,
-    backgroundColor:   kit.color.surface,
+    backgroundColor:   c.surface,
     borderWidth:       1,
-    borderColor:       kit.color.line,
+    borderColor:       c.line,
     ...kit.shadow.raised,
   },
   trustItem: {
@@ -268,16 +270,16 @@ const s = StyleSheet.create({
     width:           34,
     height:          34,
     borderRadius:    11,
-    backgroundColor: kit.color.accentTint,
+    backgroundColor: c.accentTint,
     borderWidth:     1,
-    borderColor:     kit.color.line,
+    borderColor:     c.line,
     alignItems:      "center",
     justifyContent:  "center",
   },
   trustText: {
     fontFamily:         theme.fonts.bold,
     fontSize:           9,
-    color:              kit.color.inkSoft,
+    color:              c.inkSoft,
     textAlign:          "center",
     includeFontPadding: false,
   },
@@ -288,16 +290,16 @@ const s = StyleSheet.create({
     gap:             10,
     padding:         14,
     borderRadius:    14,
-    backgroundColor: kit.color.accentTint,
+    backgroundColor: c.accentTint,
     borderWidth:     1,
-    borderColor:     kit.color.line,
+    borderColor:     c.line,
   },
   infoText: {
     flex:               1,
     fontFamily:         theme.fonts.regular,
     fontSize:           12,
     lineHeight:         18,
-    color:              kit.color.accentDeep,
+    color:              c.accentDeep,
     includeFontPadding: false,
   },
 });

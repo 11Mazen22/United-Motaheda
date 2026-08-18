@@ -44,7 +44,7 @@ export const PROFILE = {
 // ─── StyleSheet ───────────────────────────────────────────────────────────────
 
 export const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: theme.colors.bg },
+  screen: { flex: 1, backgroundColor: kit.color.bg },
 
   // ── Hero (logged in) ──
   hero: {
@@ -56,7 +56,7 @@ export const styles = StyleSheet.create({
   // heroDecor1: larger (220) with stronger teal opacity for more bloom presence
   heroDecor1: {
     position:        "absolute",
-    right:           -60,
+    end: -60,
     top:             -60,
     width:           220,
     height:          220,
@@ -65,7 +65,7 @@ export const styles = StyleSheet.create({
   },
   heroDecor2: {
     position:        "absolute",
-    left:            -50,
+    start: -50,
     bottom:          -60,
     width:           180,
     height:          180,
@@ -75,7 +75,7 @@ export const styles = StyleSheet.create({
   // heroDecor3: slightly larger (80×80) for better visual balance
   heroDecor3: {
     position:        "absolute",
-    right:           70,
+    end: 70,
     top:             50,
     width:           80,
     height:          80,
@@ -85,7 +85,7 @@ export const styles = StyleSheet.create({
   // heroDecor4: new — subtle light orb on the opposite corner for depth
   heroDecor4: {
     position:        "absolute",
-    left:            30,
+    start: 30,
     top:             80,
     width:           100,
     height:          100,
@@ -96,8 +96,8 @@ export const styles = StyleSheet.create({
   heroDecorStripe: {
     position:        "absolute",
     top:             -20,
-    left:            -120,
-    right:           -120,
+    start: -120,
+    end: -120,
     height:          1.5,
     backgroundColor: HERO_GLASS.w04,
     transform:       [{ rotate: "-8deg" }],
@@ -132,14 +132,14 @@ export const styles = StyleSheet.create({
     height:            18,
     paddingHorizontal: theme.spacing.xs,
     borderRadius:      9,
-    backgroundColor:   theme.colors.error.base,
+    backgroundColor:   kit.color.error.base,
     borderWidth:       2,
-    borderColor:       theme.colors.hero,
+    borderColor:       kit.color.hero,
     alignItems:        "center",
     justifyContent:    "center",
   },
   heroIconBadgeText: {
-    color:              theme.colors.surface,
+    color:              kit.color.surface,
     fontSize:           10,
     lineHeight:         12,
     fontFamily:         theme.fonts.extrabold,
@@ -166,8 +166,8 @@ export const styles = StyleSheet.create({
   avatarGlow: {
     position:     "absolute",
     top:          -4,
-    left:         -4,
-    right:        -4,
+    start: -4,
+    end: -4,
     bottom:       -4,
     borderRadius: 35,
     opacity:      0.75,
@@ -177,8 +177,8 @@ export const styles = StyleSheet.create({
   avatarRing: {
     position:     "absolute",
     top:          -6,
-    left:         -6,
-    right:        -6,
+    start: -6,
+    end: -6,
     bottom:       -6,
     borderRadius: 37,
     borderWidth:  1,
@@ -189,7 +189,7 @@ export const styles = StyleSheet.create({
     width:           90,
     height:          90,
     borderRadius:    30,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: kit.color.surface,
     alignItems:      "center",
     justifyContent:  "center",
     borderWidth:     3,
@@ -199,7 +199,7 @@ export const styles = StyleSheet.create({
   avatarLetter: {
     fontSize:           38,
     fontFamily:         theme.fonts.black,
-    color:              theme.colors.heroMid,
+    color:              kit.color.heroMid,
     includeFontPadding: false,
     textAlignVertical:  "center",
     lineHeight:         46,
@@ -240,7 +240,7 @@ export const styles = StyleSheet.create({
     gap:       9,
   },
   guestPrimaryBtn: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: kit.color.surface,
     borderRadius:    16,
     paddingVertical: 14,
     alignItems:      "center",
@@ -260,7 +260,7 @@ export const styles = StyleSheet.create({
   // borderRadius: 24, paddingVertical: 22 — more generous, premium proportions.
   statsCard: {
     flexDirection:     flexRow(isRtl()),
-    backgroundColor:   theme.colors.surface,
+    backgroundColor:   kit.color.surface,
     marginHorizontal:  theme.layout.pagePaddingH,
     marginTop:         -40,
     borderRadius:      24,
@@ -269,7 +269,7 @@ export const styles = StyleSheet.create({
     ...theme.shadow.xl,
     shadowOpacity:     0.12,
     borderWidth:       1,
-    borderColor:       theme.colors.border.hairline,
+    borderColor:       kit.color.border.hairline,
   },
   statCol: {
     flex:       1,
@@ -288,7 +288,7 @@ export const styles = StyleSheet.create({
   },
   statDivider: {
     width:           StyleSheet.hairlineWidth,
-    backgroundColor: theme.colors.border.default,
+    backgroundColor: kit.color.border.default,
     marginVertical:  10,
   },
   // letterSpacing: -0.4 (was -0.3) — tighter for premium numerals
@@ -303,7 +303,7 @@ export const styles = StyleSheet.create({
     flexDirection:   flexRow(isRtl()),
     alignItems:      "center",
     gap:             theme.spacing.md,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: kit.color.surface,
     borderRadius:    16,
     padding:         14,
     ...theme.shadow.card,
@@ -312,9 +312,9 @@ export const styles = StyleSheet.create({
     width:           42,
     height:          42,
     borderRadius:    13,
-    backgroundColor: theme.colors.brand.lighter,
+    backgroundColor: kit.color.brand.lighter,
     borderWidth:     1,
-    borderColor:     theme.colors.border.brandSoft,
+    borderColor:     kit.color.border.brandSoft,
     alignItems:      "center",
     justifyContent:  "center",
     overflow:        "hidden",
@@ -328,7 +328,7 @@ export const styles = StyleSheet.create({
     width:           7,
     height:          7,
     borderRadius:    3.5,
-    backgroundColor: theme.colors.success.base,
+    backgroundColor: kit.color.success.base,
   },
 
   // ── Quick action grid ──
@@ -341,19 +341,19 @@ export const styles = StyleSheet.create({
   },
   quickGridItem: {
     flex:              1,
-    backgroundColor:   theme.colors.surface,
+    backgroundColor:   kit.color.surface,
     borderRadius:      20,
     paddingVertical:   22,
     paddingHorizontal: theme.spacing.sm,
     alignItems:        "center",
     gap:               12,
-    shadowColor:       theme.colors.hero,
+    shadowColor:       kit.color.hero,
     shadowOffset:      { width: 0, height: 6 },
     shadowOpacity:     0.10,
     shadowRadius:      14,
     elevation:         5,
     borderWidth:       1,
-    borderColor:       theme.colors.border.hairline,
+    borderColor:       kit.color.border.hairline,
   },
   quickGridIconShadow: {
     borderRadius:  20,
@@ -376,12 +376,12 @@ export const styles = StyleSheet.create({
   quickGridShine: {
     position:             "absolute",
     top:                  0,
-    left:                 0,
-    right:                0,
+    start: 0,
+    end: 0,
     height:               "44%",
     backgroundColor:      "rgba(255,255,255,0.15)",
-    borderTopLeftRadius:  20,
-    borderTopRightRadius: 20,
+    borderTopStartRadius:  20,
+    borderTopEndRadius: 20,
   },
 
   // ── Sections ──
@@ -396,7 +396,7 @@ export const styles = StyleSheet.create({
 
   // ── Menu card — pure white surface for premium iOS Settings look ──
   menuCard: {
-    backgroundColor: theme.colors.surface,   // white card on bg background
+    backgroundColor: kit.color.surface,   // white card on bg background
     borderRadius:    16,
     overflow:        "hidden",
     ...theme.shadow.sm,
@@ -415,7 +415,7 @@ export const styles = StyleSheet.create({
   },
   menuRowBorder: {
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border.hairline,
+    borderBottomColor: kit.color.border.hairline,
   },
   menuIcon: {
     width:          40,
@@ -438,9 +438,9 @@ export const styles = StyleSheet.create({
     minWidth:          24,
     height:            24,
     borderRadius:      12,
-    backgroundColor:   theme.colors.brand.lighter,
+    backgroundColor:   kit.color.brand.lighter,
     borderWidth:       1,
-    borderColor:       theme.colors.border.brandSoft,
+    borderColor:       kit.color.border.brandSoft,
     alignItems:        "center",
     justifyContent:    "center",
     paddingHorizontal: theme.spacing.sm,
@@ -457,12 +457,12 @@ export const styles = StyleSheet.create({
     flexDirection:     flexRow(isRtl()),
     alignItems:        "center",
     gap:               6,
-    backgroundColor:   theme.colors.brand.lighter,
+    backgroundColor:   kit.color.brand.lighter,
     borderRadius:      999,
     paddingHorizontal: 14,
     paddingVertical:   6,
     borderWidth:       1,
-    borderColor:       theme.colors.border.brandSoft,
+    borderColor:       kit.color.border.brandSoft,
   },
   footerVersionNew: {
     marginTop: theme.spacing.xs,

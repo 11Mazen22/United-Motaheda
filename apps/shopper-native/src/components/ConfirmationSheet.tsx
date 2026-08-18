@@ -24,7 +24,7 @@ export default function ConfirmationSheet({ title, body, confirmLabel = "Confirm
 }
 
 const s = StyleSheet.create({
-  wrap: { padding: 18, borderTopLeftRadius: kit.radius.xl, borderTopRightRadius: kit.radius.xl, backgroundColor: kit.color.canvas },
+  wrap: { padding: 18, borderTopStartRadius: kit.radius.xl, borderTopEndRadius: kit.radius.xl, backgroundColor: kit.color.canvas },
   title: { fontFamily: theme.fonts.semibold, fontSize: 16 },
   actions: { marginTop: 14, flexDirection: "row", gap: 10, justifyContent: "flex-end" },
 });

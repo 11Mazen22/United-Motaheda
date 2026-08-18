@@ -19,8 +19,9 @@ import { Ionicons }       from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 
 import { Screen, Text as UIText, Card, Input, Badge, Chip } from "@pharmacy/ui-native";
+import { useDarkColors } from "@/hooks/useDarkColors";
 import { kit }                     from "@pharmacy/ui-native";
-import { theme }                   from "@pharmacy/design-tokens";
+
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
 import { formatPrice }             from "@/utils/format";
 
@@ -151,7 +152,7 @@ function ProductCard({ product }: { product: PharmacistProduct; query?: string }
           <View style={[s.tagRow, { flexDirection: flexRow(IS_RTL) }]}>
             {product.code ? (
               <View style={s.tag}>
-                <Ionicons name="barcode-outline" size={11} color={kit.color.inkFaint} />
+                <Ionicons name="barcode-outline" size={11} color={c.inkFaint} />
                 <UIText variant="eyebrow" color="muted" style={{ includeFontPadding: false } as any}>
                   {product.code}
                 </UIText>
@@ -159,7 +160,7 @@ function ProductCard({ product }: { product: PharmacistProduct; query?: string }
             ) : null}
             {product.categoryName ? (
               <View style={s.tag}>
-                <Ionicons name="folder-outline" size={11} color={kit.color.inkFaint} />
+                <Ionicons name="folder-outline" size={11} color={c.inkFaint} />
                 <UIText variant="eyebrow" color="muted" style={{ includeFontPadding: false } as any}>
                   {product.categoryName}
                 </UIText>
@@ -171,7 +172,7 @@ function ProductCard({ product }: { product: PharmacistProduct; query?: string }
         {/* Stock badge */}
         <View style={[s.stockBadge, isLow && s.stockBadgeLow]}>
           <UIText
-            style={[s.stockNumber, { color: isLow ? kit.color.danger : kit.color.accentDeep }]}
+            style={[s.stockNumber, { color: isLow ? c.danger : c.accentDeep }]}
           >
             {product.available}
           </UIText>
@@ -190,7 +191,7 @@ function ProductCard({ product }: { product: PharmacistProduct; query?: string }
             {t("pharmacist.reserved")}: {product.reserved}
           </UIText>
         </View>
-        <UIText variant="body-sm" weight="bold" style={{ color: kit.color.accentDeep }}>
+        <UIText variant="body-sm" weight="bold" style={{ color: c.accentDeep }}>
           {formatPrice(product.effectivePrice)}
         </UIText>
       </View>
@@ -199,6 +200,8 @@ function ProductCard({ product }: { product: PharmacistProduct; query?: string }
 }
 
 export function InventoryScreen(): React.ReactElement {
+  const { c } = useDarkColors();
+  const s = useSStyles(c);
   const { t }       = useTranslation();
   const [query, setQuery]   = useState("");
   const [mode,  setMode]    = useState<"search" | "lowstock">("lowstock");
@@ -232,7 +235,7 @@ export function InventoryScreen(): React.ReactElement {
   ];
 
   return (
-    <Screen edgeTop background={kit.color.canvas}>
+    <Screen edgeTop background={c.canvas}>
       <PharmacistScreenHeader
         title={t("pharmacist.inventoryTitle")}
         subtitle={t("pharmacist.inventorySubtitle")}
@@ -244,7 +247,7 @@ export function InventoryScreen(): React.ReactElement {
           onChangeText={handleQueryChange}
           placeholder={t("pharmacist.inventorySearch")}
           clearButton
-          prefixIcon={<Ionicons name="search-outline" size={18} color={kit.color.inkFaint} />}
+          prefixIcon={<Ionicons name="search-outline" size={18} color={c.inkFaint} />}
           autoCorrect={false}
           autoCapitalize="none"
           style={s.searchInput}
@@ -293,7 +296,7 @@ export function InventoryScreen(): React.ReactElement {
         ListEmptyComponent={
           isLoading ? (
             <View style={s.empty}>
-              <ActivityIndicator size="large" color={kit.color.accent} />
+              <ActivityIndicator size="large" color={c.accent} />
               <UIText variant="caption" color="secondary" style={{ marginTop: 10 }}>
                 {t("common.loading")}
               </UIText>
@@ -315,7 +318,7 @@ export function InventoryScreen(): React.ReactElement {
   );
 }
 
-const s = StyleSheet.create({
+const useSStyles = (c: any) => StyleSheet.create({
   searchBar: {
     alignItems:        "center",
     gap:               10,
@@ -323,17 +326,17 @@ const s = StyleSheet.create({
     marginVertical:    12,
     paddingHorizontal: 14,
     paddingVertical:   12,
-    backgroundColor:   kit.color.surface,
+    backgroundColor:   c.surface,
     borderRadius:      kit.radius.xl,
     borderWidth:       1.5,
-    borderColor:       kit.color.line,
+    borderColor:       c.line,
     ...kit.shadow.raised,
   },
   searchInput: {
     flex:       1,
     fontSize:   14,
-    fontFamily: theme.fonts.regular,
-    color:      kit.color.ink,
+    fontFamily: kit.font.regular,
+    color:      c.ink,
     padding:    0,
     textAlign:  TEXT_START,
     minHeight:  22,
@@ -365,12 +368,12 @@ const s = StyleSheet.create({
     marginBottom:      8,
   },
   modeChip: {
-    borderColor:     kit.color.line,
-    backgroundColor: kit.color.surface,
+    borderColor:     c.line,
+    backgroundColor: c.surface,
   },
   modeChipActive: {
-    backgroundColor: kit.color.accentTint,
-    borderColor:     kit.color.accent,
+    backgroundColor: c.accentTint,
+    borderColor:     c.accent,
   },
   list: {
     paddingHorizontal: kit.inset.screen,
@@ -379,17 +382,17 @@ const s = StyleSheet.create({
 
   // ── Card ────────────────────────────────────────────────────────────────
   card: {
-    backgroundColor: kit.color.surface,
+    backgroundColor: c.surface,
     borderRadius:    kit.radius.xl,
     padding:         14,
     borderWidth:     1,
-    borderColor:     kit.color.line,
+    borderColor:     c.line,
     ...kit.shadow.card,
     gap:             8,
     overflow:        "hidden",
   },
   cardLow: {
-    borderColor: kit.color.danger + "60",
+    borderColor: c.danger + "60",
     borderWidth: 1.5,
   },
   lowBar: {
@@ -398,7 +401,7 @@ const s = StyleSheet.create({
     start:           0,
     bottom:          0,
     width:           4,
-    backgroundColor: kit.color.danger,
+    backgroundColor: c.danger,
     borderTopStartRadius: kit.radius.xl,
     borderBottomStartRadius: kit.radius.xl,
   },
@@ -419,23 +422,23 @@ const s = StyleSheet.create({
     paddingHorizontal: 7,
     paddingVertical:   3,
     borderRadius:      kit.radius.pill,
-    backgroundColor:   kit.color.well,
+    backgroundColor:   c.well,
   },
   stockBadge: {
     alignItems:        "center",
     paddingHorizontal: 12,
     paddingVertical:   8,
     borderRadius:      kit.radius.lg,
-    backgroundColor:   kit.color.well,
+    backgroundColor:   c.well,
     minWidth:          56,
     gap:               2,
   },
   stockBadgeLow: {
-    backgroundColor: kit.color.dangerTint,
+    backgroundColor: c.dangerTint,
   },
   stockNumber: {
     fontSize:           20,
-    fontFamily:         theme.fonts.black,
+    fontFamily:         kit.font.black,
     lineHeight:         24,
     includeFontPadding: false,
   },
@@ -444,7 +447,7 @@ const s = StyleSheet.create({
     alignItems:     "center",
     paddingTop:     8,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: kit.color.line,
+    borderTopColor: c.line,
   },
   footerStats: {
     alignItems: "center",
@@ -454,7 +457,7 @@ const s = StyleSheet.create({
     width:           3,
     height:          3,
     borderRadius:    1.5,
-    backgroundColor: kit.color.inkFaint,
+    backgroundColor: c.inkFaint,
   },
 
   empty: {

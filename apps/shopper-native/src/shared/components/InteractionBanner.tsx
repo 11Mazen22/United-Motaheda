@@ -1,4 +1,4 @@
-﻿/**
+/**
  * InteractionBanner — drug-interaction safety surface.
  *
  * Spec: HANDOFF.md §3.3 + SPEC §9.2.
@@ -11,6 +11,7 @@
  * severe=danger. All copy Arabic.
  */
 
+import { kit } from "@pharmacy/ui-native";
 import React from "react";
 import { View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -51,28 +52,28 @@ const SEVERITY_CONFIG: Record<InteractionSeverity, {
   accent:   string;
 }> = {
   mild: {
-    bannerBg: theme.colors.warning.bg,
-    bannerFg: theme.colors.warning.text,
-    pinBg:    theme.colors.warning.base,
+    bannerBg: kit.color.warn.bg,
+    bannerFg: kit.color.warn.text,
+    pinBg:    kit.color.warn.base,
     badge:    "neutral",
     labelKey: "interaction.severity.mild",
-    accent:   theme.colors.warning.base,
+    accent:   kit.color.warn.base,
   },
   moderate: {
-    bannerBg: theme.colors.warning.bg,
-    bannerFg: theme.colors.warning.text,
-    pinBg:    theme.colors.warning.base,
+    bannerBg: kit.color.warn.bg,
+    bannerFg: kit.color.warn.text,
+    pinBg:    kit.color.warn.base,
     badge:    "warning",
     labelKey: "interaction.severity.moderate",
-    accent:   theme.colors.warning.base,
+    accent:   kit.color.warn.base,
   },
   severe: {
-    bannerBg: theme.colors.error.bg,
-    bannerFg: theme.colors.error.text,
-    pinBg:    theme.colors.error.base,
+    bannerBg: kit.color.danger.bg,
+    bannerFg: kit.color.danger.text,
+    pinBg:    kit.color.danger.base,
     badge:    "error",
     labelKey: "interaction.severity.severe",
-    accent:   theme.colors.error.base,
+    accent:   kit.color.danger.base,
   },
 };
 
@@ -82,11 +83,11 @@ function DrugPip({ drug }: { drug: DrugRef }): React.ReactElement {
     <View style={{ flex: 1, alignItems: "center" }}>
       <View style={{
         width: 48, height: 48, borderRadius: theme.radius.lg,
-        backgroundColor: theme.colors.brand.lighter,
+        backgroundColor: kit.color.accent.lighter,
         alignItems: "center", justifyContent: "center",
         marginBottom: theme.spacing[1],
       }}>
-        <Ionicons name="medkit" size={22} color={theme.colors.brand.base} />
+        <Ionicons name="medkit" size={22} color={kit.color.accent.base} />
       </View>
       <Text variant="caption" weight="extrabold" align="center">{drug.name}</Text>
       {drug.dose && <Text variant="eyebrow" color="tertiary" align="center">{drug.dose}</Text>}

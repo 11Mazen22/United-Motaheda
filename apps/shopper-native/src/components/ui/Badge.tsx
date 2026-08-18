@@ -17,12 +17,12 @@ interface BadgeProps {
 
 const CONFIGS: Record<Variant, { bg: string; text: string; dot: string }> = {
   brand:   { bg: kit.color.accentTint,       text: kit.color.accentDeep,    dot: kit.color.accent   },
-  success: { bg: theme.colors.success.bg,      text: theme.colors.success.text,  dot: theme.colors.success.base },
-  warning: { bg: theme.colors.warning.bg,      text: theme.colors.warning.text,  dot: theme.colors.warning.base },
-  error:   { bg: theme.colors.error.bg,        text: theme.colors.error.text,    dot: theme.colors.error.base   },
-  neutral: { bg: theme.colors.slate[100],      text: theme.colors.slate[700],    dot: theme.colors.slate[400]   },
-  purple:  { bg: theme.colors.purple[100],     text: theme.colors.purple[800],   dot: theme.colors.purple[500]  },
-  info:    { bg: theme.colors.info.bg,         text: theme.colors.info.text,     dot: theme.colors.info.base    },
+  success: { bg: kit.color.success.bg,      text: kit.color.success.text,  dot: kit.color.success.base },
+  warning: { bg: kit.color.warning.bg,      text: kit.color.warning.text,  dot: kit.color.warning.base },
+  error:   { bg: kit.color.error.bg,        text: kit.color.error.text,    dot: kit.color.error.base   },
+  neutral: { bg: kit.color.slate[100],      text: kit.color.slate[700],    dot: kit.color.slate[400]   },
+  purple:  { bg: kit.color.purple[100],     text: kit.color.purple[800],   dot: kit.color.purple[500]  },
+  info:    { bg: kit.color.info.bg,         text: kit.color.info.text,     dot: kit.color.info.base    },
 };
 
 const SIZE_MAP: Record<Size, { px: number; py: number; fontSize: number; radius: number; dotSize: number }> = {

@@ -24,7 +24,7 @@ export function EmptyState({ icon = "cube-outline", title, subtitle, description
       entering={FadeInDown.duration(350).delay(80)}
       style={[
         s.container,
-        { backgroundColor: theme.colors.canvas.background },
+        { backgroundColor: kit.color.canvas.background },
         style
       ]}
     >
@@ -39,11 +39,11 @@ export function EmptyState({ icon = "cube-outline", title, subtitle, description
       >
         <Ionicons name={icon} size={36} color={kit.color.accent} />
       </View>
-      <Text variant="h3" align="center" style={{ color: theme.colors.text.primary, marginTop: kit.sp(4) }}>
+      <Text variant="h3" align="center" style={{ color: kit.color.text.primary, marginTop: kit.sp(4) }}>
         {title}
       </Text>
       {displaySubtitle ? (
-        <Text variant="body" align="center" style={{ color: theme.colors.text.secondary, marginTop: kit.sp(2) }}>
+        <Text variant="body" align="center" style={{ color: kit.color.text.secondary, marginTop: kit.sp(2) }}>
           {displaySubtitle}
         </Text>
       ) : null}

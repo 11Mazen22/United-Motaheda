@@ -15,8 +15,8 @@ export function ActionDock({ children }: { children: React.ReactNode }) {
 const styles = StyleSheet.create({
   dock: {
     position: 'absolute',
-    left: 0,
-    right: 0,
+    start: 0,
+    end: 0,
     bottom: 0,
     paddingHorizontal: kit.inset.screen,
     paddingTop: 12,

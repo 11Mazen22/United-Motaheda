@@ -58,7 +58,7 @@ export function BranchSelector({
   if (visible.length === 0) {
     return (
       <Animated.View entering={FadeIn.duration(200)} style={styles.emptyCard}>
-        <Ionicons name="storefront-outline" size={20} color={theme.colors.slate[400]} />
+        <Ionicons name="storefront-outline" size={20} color={kit.color.slate[400]} />
         <UIText style={styles.emptyText}>لا توجد فروع متاحة للتوصيل حالياً</UIText>
       </Animated.View>
     );
@@ -121,7 +121,7 @@ const styles = StyleSheet.create({
   skel: {
     height: 76,
     borderRadius: 16,
-    backgroundColor: theme.colors.slate[100],
+    backgroundColor: kit.color.slate[100],
   },
   emptyCard: {
     flexDirection: flexRow(isRtl()),
@@ -129,16 +129,16 @@ const styles = StyleSheet.create({
     gap: 10,
     padding: 14,
     borderRadius: 16,
-    backgroundColor: theme.colors.slate[50],
+    backgroundColor: kit.color.slate[50],
     borderWidth: 1,
     borderStyle: "dashed",
-    borderColor: theme.colors.slate[200],
+    borderColor: kit.color.slate[200],
   },
   emptyText: {
     flex: 1,
     fontSize: 12,
     fontFamily: theme.fonts.semibold,
-    color: theme.colors.slate[500],
+    color: kit.color.slate[500],
     textAlign: textAlignStart(isRtl()),
   },
 });

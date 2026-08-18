@@ -378,7 +378,7 @@ const cs = StyleSheet.create({
   badge: {
     position:          "absolute",
     top:               8,
-    ...(IS_RTL ? { right: 8 } : { left: 8 }),
+    ...(IS_RTL ? { end: 8 } : { start: 8 }),
     paddingHorizontal: 7,
     paddingVertical:   3,
     borderRadius:      6,
@@ -395,7 +395,7 @@ const cs = StyleSheet.create({
   heartBtn: {
     position:        "absolute",
     top:             8,
-    ...(IS_RTL ? { left: 8 } : { right: 8 }),
+    ...(IS_RTL ? { start: 8 } : { end: 8 }),
     width:           28,
     height:          28,
     borderRadius:    14,

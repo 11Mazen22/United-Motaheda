@@ -375,7 +375,7 @@ const s = StyleSheet.create({
   timelineStep: { flex: 1, alignItems: "center", position: "relative" },
   timelineDot: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: kit.color.line, backgroundColor: kit.color.surface, alignItems: "center", justifyContent: "center", zIndex: 1 },
   timelineDotDone: { borderColor: kit.color.accent, backgroundColor: kit.color.accent },
-  timelineLine: { position: "absolute", height: 2, backgroundColor: kit.color.line, top: 10, left: "50%", right: "-50%" },
+  timelineLine: { position: "absolute", height: 2, backgroundColor: kit.color.line, top: 10, start: "50%", end: "-50%" },
   timelineLineDone: { backgroundColor: kit.color.accent },
   timelineText: { marginTop: 6, fontSize: 10, fontFamily: theme.fonts.semibold, color: kit.color.inkFaint, textAlign: "center" },
   timelineTextDone: { color: kit.color.accentDeep },
