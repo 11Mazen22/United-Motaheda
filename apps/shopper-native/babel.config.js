@@ -33,7 +33,6 @@ module.exports = function (api) {
     ],
     plugins: [
       "react-native-reanimated/plugin",
-      ["babel-plugin-transform-import-meta", { module: "ES6" }],
     ],
   };
 };
