@@ -292,10 +292,6 @@ const FavoriteCard = memo(function FavoriteCard({ product, index }: { product: N
 
 export default function FavoritesScreen() {
 
-  const { c } = useDarkColors();
-
-
-
   const { c, isDark } = useDarkColors();
 
   const { t }      = useTranslation();
