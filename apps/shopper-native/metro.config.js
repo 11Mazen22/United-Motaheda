@@ -22,4 +22,11 @@ config.resolver.extraNodeModules = {
   "@pharmacy/design-tokens": path.resolve(workspaceRoot, "packages/design-tokens"),
 };
 
+// 4. Deprioritize .mjs so we use CommonJS modules that do not contain import.meta.env
+const mjsIdx = config.resolver.sourceExts.indexOf('mjs');
+if (mjsIdx > -1) {
+  config.resolver.sourceExts.splice(mjsIdx, 1);
+  config.resolver.sourceExts.push('mjs');
+}
+
 module.exports = withNativeWind(config, { input: "./global.css" });
