@@ -1,87 +1,73 @@
-﻿import React from "react";
-import { View } from "react-native";
-import { Text as UIText } from "@pharmacy/ui-native";
+import React from "react";
+import { View, StyleSheet, StyleProp, ViewStyle } from "react-native";
+import { Text, Button, useTheme, kit } from "@pharmacy/ui-native";
 import { Ionicons } from "@expo/vector-icons";
 import Animated, { FadeInDown } from "react-native-reanimated";
-import { theme } from "@pharmacy/design-tokens";
-import { Button, kit } from "@pharmacy/ui-native";
+import { isRtl } from "@/utils/layout";
 
-type IoniconsName = React.ComponentProps<typeof Ionicons>["name"];
-
-interface EmptyStateProps {
-  icon?:          IoniconsName;
-  title:          string;
-  description?:   string;
-  actionLabel?:   string;
-  onAction?:      () => void;
-  compact?:       boolean;
+export interface EmptyStateProps {
+  icon?: React.ComponentProps<typeof Ionicons>["name"];
+  title: string;
+  subtitle?: string;
+  action?: { label: string; onPress: () => void };
+  style?: StyleProp<ViewStyle>;
 }
 
-export function EmptyState({
-  icon        = "cube-outline",
-  title,
-  description,
-  actionLabel,
-  onAction,
-  compact     = false,
-}: EmptyStateProps) {
+export function EmptyState({ icon = "cube-outline", title, subtitle, action, style }: EmptyStateProps) {
+  const { theme } = useTheme();
+  const rtl = isRtl();
+
   return (
     <Animated.View
       entering={FadeInDown.duration(350).delay(80)}
-      style={{
-        flex:           compact ? 0 : 1,
-        alignItems:     "center",
-        justifyContent: "center",
-        paddingHorizontal: 32,
-        paddingVertical:   compact ? 32 : 64,
-        gap:            16,
-      }}>
-      {/* Icon circle */}
+      style={[
+        s.container,
+        { backgroundColor: theme.colors.canvas.background },
+        style
+      ]}
+    >
       <View
-        style={{
-          width:           compact ? 64 : 80,
-          height:          compact ? 64 : 80,
-          borderRadius:    compact ? 20 : 24,
-          backgroundColor: kit.color.accentTint,
-          alignItems:      "center",
-          justifyContent:  "center",
-          borderWidth:     1,
-          borderColor:     kit.color.line,
-        }}>
-        <Ionicons
-          name={icon}
-          size={compact ? 28 : 34}
-          color={kit.color.accent}
-        />
+        style={[
+          s.iconWrap,
+          {
+            backgroundColor: `${kit.color.accent}15`,
+            borderColor: kit.color.line,
+          }
+        ]}
+      >
+        <Ionicons name={icon} size={36} color={kit.color.accent} />
       </View>
-
-      {/* Text */}
-      <View style={{ alignItems: "center", gap: 6 }}>
-        <UIText style={{
-          fontSize:   compact ? theme.fontSize.lg : theme.fontSize['2xl'],
-          fontFamily: theme.fonts.bold,
-          color:      theme.colors.text.primary,
-          textAlign:  "center",
-        }}>
-          {title}
-        </UIText>
-        {description && (
-          <UIText style={{
-            fontSize:   theme.fontSize.sm,
-            fontFamily: theme.fonts.regular,
-            color:      theme.colors.text.tertiary,
-            textAlign:  "center",
-            lineHeight: 20,
-          }}>
-            {description}
-          </UIText>
-        )}
-      </View>
-
-      {/* Action */}
-      {actionLabel && onAction && (
-        <Button variant="primary" size="sm" onPress={onAction} label={actionLabel} />
-      )}
+      <Text variant="h3" align="center" style={{ color: theme.colors.text.primary, marginTop: kit.sp(4) }}>
+        {title}
+      </Text>
+      {subtitle ? (
+        <Text variant="body" align="center" style={{ color: theme.colors.text.secondary, marginTop: kit.sp(2) }}>
+          {subtitle}
+        </Text>
+      ) : null}
+      {action ? (
+        <View style={{ marginTop: kit.sp(6) }}>
+          <Button label={action.label} onPress={action.onPress} />
+        </View>
+      ) : null}
     </Animated.View>
   );
 }
+
+const s = StyleSheet.create({
+  container: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: kit.sp(8),
+    paddingVertical: kit.sp(12),
+  },
+  iconWrap: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+  },
+});

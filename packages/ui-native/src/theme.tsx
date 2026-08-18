@@ -8,15 +8,19 @@ import {
   type ThemeName,
 } from "@pharmacy/design-tokens";
 
+import { kit } from "./kit";
+
 // Keep shared theme code on the public React Native API so Expo Web can bundle it.
 // RTL is supplied by the app's language layer rather than I18nManager because
 // react-native-web does not expose I18nManager as a stable public web module.
 export type ThemePreference = ThemeName | "system";
 
-export type NativeTheme = Omit<SemanticTheme, "shadows"> & {
+export type NativeTheme = Omit<SemanticTheme, "shadows" | "colors"> & {
   isRTL: boolean;
+  isDark: boolean;
   direction: "rtl" | "ltr";
   shadows: ReadonlyArray<ViewStyle>;
+  colors: SemanticTheme["colors"] & typeof kit.color;
 };
 
 export interface ThemeContextValue {
@@ -24,6 +28,7 @@ export interface ThemeContextValue {
   mode: ThemeName;
   preference: ThemePreference;
   isRTL: boolean;
+  isDark: boolean;
   setPreference: (preference: ThemePreference) => void;
   toggleTheme: () => void;
 }
@@ -48,23 +53,29 @@ function nativeShadow(elevation: number, color: string, opacity: number, radius:
   }) ?? {};
 }
 
-function toNativeTheme(base: SemanticTheme, isRTL: boolean): NativeTheme {
+function toNativeTheme(base: SemanticTheme, isRTL: boolean, isDark: boolean): NativeTheme {
   return {
     ...base,
     isRTL,
+    isDark,
     direction: isRTL ? "rtl" : "ltr",
     shadows: Object.values(base.shadows).map((value) =>
       nativeShadow(value.elevation, value.color, value.opacity, value.blur),
     ),
+    colors: {
+      ...base.colors,
+      ...(isDark ? kit.darkColor : kit.color),
+    },
   };
 }
 
-const defaultTheme = toNativeTheme(lightTheme, false);
+const defaultTheme = toNativeTheme(lightTheme, false, false);
 const ThemeContext = createContext<ThemeContextValue>({
   theme: defaultTheme,
   mode: "light",
   preference: "light",
-  isRTL: false,
+    isRTL: false,
+  isDark: false,
   setPreference: () => undefined,
   toggleTheme: () => undefined,
 });
@@ -78,17 +89,19 @@ export function ThemeProvider({
 }: ThemeProviderProps): React.ReactElement {
   const [preference, setPreference] = useState<ThemePreference>(initialPreference);
   const mode: ThemeName = preference === "system" ? systemColorScheme ?? "light" : preference;
+  const isDark = mode === "dark";
   const value = useMemo<ThemeContextValue>(() => ({
-    theme: toNativeTheme(resolveTheme(mode), isRTL),
+    theme: toNativeTheme(resolveTheme(mode), isRTL, isDark),
     mode,
     preference,
     isRTL,
+    isDark,
     setPreference,
     toggleTheme: () => setPreference((current) => {
       const resolved = current === "system" ? mode : current;
       return resolved === "light" ? "dark" : "light";
     }),
-  }), [isRTL, mode, preference]);
+  }), [isRTL, mode, preference, isDark]);
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }

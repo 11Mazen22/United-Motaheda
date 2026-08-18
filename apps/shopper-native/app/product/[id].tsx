@@ -680,7 +680,7 @@ export default function ProductDetailScreen() {
                 <View style={[identity.nameBlock, { flexDirection: flexRow(IS_RTL) }]}>
                   <View style={identity.nameAccent} />
                   <View style={{ flex: 1, paddingStart: 14, gap: 5 }}>
-                    <UIText style={identity.nameAr}>{product.nameAr ?? product.name}</UIText>
+                    <UIText style={identity.nameAr} numberOfLines={3}>{product.nameAr ?? product.name}</UIText>
                     {product.nameEn && (
                       <UIText style={identity.nameEn}>{product.nameEn}</UIText>
                     )}
@@ -1316,11 +1316,8 @@ const identity = StyleSheet.create({
     flexShrink:      0,
   },
   nameAr: {
-    fontSize:      26,
-    fontFamily:    theme.fonts.black,
+    ...kit.type.heading,
     color:         kit.color.ink,
-    letterSpacing: -0.5,
-    lineHeight:    34,
     textAlign:     TEXT_START,
   },
   nameEn: {
@@ -1392,19 +1389,13 @@ const action = StyleSheet.create({
     flexWrap:   "wrap",
   },
   priceValue: {
-    fontSize:           30,
-    lineHeight:         36,
-    fontFamily:         theme.fonts.black,
-    color:              kit.color.ink,
-    letterSpacing:      -0.8,
+    ...kit.type.priceLg,
+    color:              kit.color.accent,
     includeFontPadding: false,
   },
   priceCurrency: {
-    fontSize:           14,
-    lineHeight:         18,
-    fontFamily:         theme.fonts.bold,
+    ...kit.type.price,
     color:              kit.color.inkSoft,
-    letterSpacing:      0.2,
     includeFontPadding: false,
   },
   // Compare row — original price (strikethrough) + discount chip
@@ -1415,9 +1406,7 @@ const action = StyleSheet.create({
     marginTop:  2,
   },
   priceOriginal: {
-    fontSize:           13,
-    lineHeight:         18,
-    fontFamily:         theme.fonts.regular,
+    ...kit.type.price,
     color:              kit.color.inkFaint,
     textDecorationLine: "line-through",
     includeFontPadding: false,

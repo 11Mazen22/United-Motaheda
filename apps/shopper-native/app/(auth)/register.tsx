@@ -60,6 +60,7 @@ import { Input }          from "@/components/ui/Input";
 import { Button }         from "@pharmacy/ui-native";
 import { Text as UIText } from "@pharmacy/ui-native";
 import { kit }            from "@pharmacy/ui-native";
+import { useDarkColors } from "@/hooks/useDarkColors";
 import { theme }          from "@pharmacy/design-tokens";
 import { flexRow, isRtl, textAlignStart, BACK_CHEVRON, FORWARD_CHEVRON } from "@/utils/layout";
 
@@ -77,6 +78,7 @@ const TOTAL_STEPS = 4;
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function ProgressBar({ current }: { current: number }) {
+  const { c } = useDarkColors();
   return (
     <View style={pb.wrap}>
       {Array.from({ length: TOTAL_STEPS }, (_, i) => {
@@ -339,6 +341,7 @@ const STEP_SUB_KEYS   = ["auth.step1Sub",   "auth.step2Sub",   "auth.step3Sub", 
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export default function RegisterScreen() {
+  const { c, isDark } = useDarkColors();
   const { t, i18n } = useTranslation();
   const router  = useRouter();
   const insets  = useSafeAreaInsets();

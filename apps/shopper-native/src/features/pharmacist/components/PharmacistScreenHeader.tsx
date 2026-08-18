@@ -42,7 +42,7 @@ export function PharmacistScreenHeader({
           accessibilityRole="button"
           accessibilityLabel="Back"
         >
-          <Ionicons name={BACK_CHEVRON} size={18} color={kit.color.accentDeep} />
+          <Ionicons name={BACK_CHEVRON} size={22} color={kit.color.ink} />
         </Pressable>
       )}
 
@@ -75,9 +75,6 @@ const s = StyleSheet.create({
     borderRadius:    20,
     alignItems:      "center",
     justifyContent:  "center",
-    backgroundColor: kit.color.accentTint,
-    borderWidth:     1,
-    borderColor:     kit.color.accentDeep + "22",
     flexShrink:      0,
   },
   titles: {

@@ -1,26 +1,104 @@
 import React from "react";
-import { View, StyleSheet } from "react-native";
-import { Text as UIText } from "@pharmacy/ui-native";
-import { kit } from "@pharmacy/ui-native";
-import { flexRow, isRtl } from "@/utils/layout";
+import { View, StyleSheet, TouchableOpacity } from "react-native";
+import { Text, useTheme, kit } from "@pharmacy/ui-native";
+import { Ionicons } from "@expo/vector-icons";
+import { isRtl, flexRow, BACK_CHEVRON } from "@/utils/layout";
 
-const IS_RTL = isRtl();
+export interface ScreenHeaderProps {
+  title: string;
+  subtitle?: string;
+  onBack?: () => void;
+  rightAction?: { icon: React.ComponentProps<typeof Ionicons>["name"]; onPress: () => void; badge?: number };
+  transparent?: boolean;
+}
 
-export default function ScreenHeader({ eyebrow, title, trailing }: { eyebrow?: string; title: string; trailing?: React.ReactNode }) {
+export default function ScreenHeader({ title, subtitle, onBack, rightAction, transparent }: ScreenHeaderProps) {
+  const { theme } = useTheme();
+  const rtl = isRtl();
+
   return (
-    <View style={s.wrap}>
-      <View style={s.left}>
-        {eyebrow ? <UIText variant="caption" color="brand">{eyebrow}</UIText> : null}
-        <UIText variant="screen-title" style={s.title}>{title}</UIText>
+    <View 
+      style={[
+        s.container,
+        { flexDirection: flexRow(rtl) },
+        !transparent && { backgroundColor: theme.colors.canvas.surface, borderBottomWidth: 1, borderBottomColor: theme.colors.border.default }
+      ]}
+    >
+      <View style={[s.sideContainer, { alignItems: rtl ? "flex-end" : "flex-start" }]}>
+        {onBack && (
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+            onPress={onBack}
+            style={s.iconButton}
+          >
+            <Ionicons name={BACK_CHEVRON} size={24} color={theme.colors.text.primary} />
+          </TouchableOpacity>
+        )}
       </View>
-      {trailing ? <View style={s.trailing}>{trailing}</View> : null}
+
+      <View style={s.centerContainer}>
+        <Text variant="screen-title" align="center" style={{ color: theme.colors.text.primary }} numberOfLines={1}>
+          {title}
+        </Text>
+        {subtitle && (
+          <Text variant="caption" align="center" style={{ color: theme.colors.text.secondary }} numberOfLines={1}>
+            {subtitle}
+          </Text>
+        )}
+      </View>
+
+      <View style={[s.sideContainer, { alignItems: rtl ? "flex-start" : "flex-end" }]}>
+        {rightAction && (
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="Action"
+            onPress={rightAction.onPress}
+            style={s.iconButton}
+          >
+            <Ionicons name={rightAction.icon} size={24} color={theme.colors.text.primary} />
+            {rightAction.badge !== undefined && rightAction.badge > 0 && (
+              <View style={[s.badge, { backgroundColor: kit.color.danger }]}>
+                <Text variant="badge" style={{ color: kit.color.white, fontSize: 10 }}>
+                  {rightAction.badge > 99 ? '99+' : rightAction.badge}
+                </Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        )}
+      </View>
     </View>
   );
 }
 
 const s = StyleSheet.create({
-  wrap: { flexDirection: flexRow(IS_RTL), alignItems: "center", justifyContent: "space-between", paddingHorizontal: kit.inset.screen, paddingTop: 12, paddingBottom: 6 },
-  left: { flex: 1, minWidth: 0 },
-  title: { marginTop: 4 },
-  trailing: { marginLeft: 12 },
+  container: {
+    height: 56,
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: kit.sp(2),
+  },
+  sideContainer: {
+    width: 48,
+    justifyContent: "center",
+  },
+  centerContainer: {
+    flex: 1,
+    justifyContent: "center",
+    paddingHorizontal: kit.sp(2),
+  },
+  iconButton: {
+    padding: kit.sp(2),
+  },
+  badge: {
+    position: "absolute",
+    top: 4,
+    right: 4,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 4,
+  }
 });

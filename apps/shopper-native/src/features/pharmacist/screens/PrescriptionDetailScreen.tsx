@@ -1,17 +1,12 @@
-/**
- * PrescriptionDetailScreen — pharmacist review of a single prescription.
- * Shows patient name, Rx details, submission source, and approve/reject actions.
- */
 import React, { useState } from "react";
 import {
-  ActivityIndicator, ScrollView, StyleSheet, TextInput, View, Image
+  ActivityIndicator, ScrollView, StyleSheet, TextInput, View, Image, Dimensions
 } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { Ionicons }             from "@expo/vector-icons";
 import { useTranslation }       from "react-i18next";
 
-import { Screen, Text as UIText }  from "@pharmacy/ui-native";
-import { Button, kit }             from "@pharmacy/ui-native";
+import { Screen, Text as UIText, Button, kit } from "@pharmacy/ui-native";
 import { theme }                   from "@pharmacy/design-tokens";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
 import { showErrorSheet, showSuccessSheet } from "@/shared/store/appSheetStore";
@@ -22,6 +17,7 @@ import { PharmacistScreenHeader }  from "../components/PharmacistScreenHeader";
 
 const IS_RTL     = isRtl();
 const TEXT_START = textAlignStart(IS_RTL);
+const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 export function PrescriptionDetailScreen(): React.ReactElement {
   const { t }  = useTranslation();
@@ -69,7 +65,7 @@ export function PrescriptionDetailScreen(): React.ReactElement {
   if (rxQuery.isLoading) {
     return (
       <Screen edgeTop background={kit.color.canvas}>
-        <PharmacistScreenHeader title={t("pharmacist.prescriptionDetail")} />
+        <PharmacistScreenHeader title={t("pharmacist.prescriptionDetail", "Prescription Detail")} />
         <View style={s.centered}><ActivityIndicator size="large" color={kit.color.accent} /></View>
       </Screen>
     );
@@ -78,9 +74,9 @@ export function PrescriptionDetailScreen(): React.ReactElement {
   if (!rx) {
     return (
       <Screen edgeTop background={kit.color.canvas}>
-        <PharmacistScreenHeader title={t("pharmacist.prescriptionDetail")} />
+        <PharmacistScreenHeader title={t("pharmacist.prescriptionDetail", "Prescription Detail")} />
         <View style={s.centered}>
-          <UIText variant="card-title">{t("pharmacist.rxNotFound")}</UIText>
+          <UIText variant="card-title">{t("pharmacist.rxNotFound", "Prescription not found")}</UIText>
         </View>
       </Screen>
     );
@@ -88,189 +84,168 @@ export function PrescriptionDetailScreen(): React.ReactElement {
 
   return (
     <Screen edgeTop background={kit.color.canvas}>
-      <PharmacistScreenHeader title={t("pharmacist.prescriptionDetail")} subtitle={rx.customerName} />
+      <PharmacistScreenHeader title={t("pharmacist.prescriptionDetail", "Prescription Detail")} hideBack={false} />
+      
       <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
-
-        {/* Status banner */}
-        <View style={[
-          s.statusBanner,
-          { backgroundColor:
-            rx.reviewStatus === "approved" ? kit.color.successTint :
-            rx.reviewStatus === "rejected" ? kit.color.dangerTint :
-            kit.color.warnTint }
-        ]}>
-          <Ionicons
-            name={rx.reviewStatus === "approved" ? "checkmark-circle" : rx.reviewStatus === "rejected" ? "close-circle" : "time"}
-            size={18}
-            color={rx.reviewStatus === "approved" ? kit.color.success : rx.reviewStatus === "rejected" ? kit.color.danger : kit.color.warn}
-          />
-          <UIText variant="body-sm" weight="bold" style={{
-            color: rx.reviewStatus === "approved" ? kit.color.success : rx.reviewStatus === "rejected" ? kit.color.danger : kit.color.warn,
-            flex: 1,
-          }}>
-            {rx.reviewStatus === "approved" ? t("pharmacist.rxApproved") : rx.reviewStatus === "rejected" ? t("pharmacist.rxRejected") : t("pharmacist.rxPending")}
-          </UIText>
+        {/* Document viewer (Takes min 50% height) */}
+        <View style={s.imageViewer}>
+          {imageQuery.isLoading ? (
+            <ActivityIndicator size="large" color={kit.color.accent} />
+          ) : imageQuery.error ? (
+            <UIText variant="caption" color="danger">{t("pharmacist.rxDocumentError", "Failed to load document")}</UIText>
+          ) : imageQuery.data ? (
+            <Image
+              source={{ uri: imageQuery.data }}
+              style={StyleSheet.absoluteFill}
+              resizeMode="contain"
+            />
+          ) : (
+            <UIText variant="caption" color="secondary">{t("pharmacist.noDocument", "No document available")}</UIText>
+          )}
         </View>
 
-        {/* Details card */}
-        <View style={s.card}>
-          {[
-            { label: t("pharmacist.rxName"),    value: rx.name    },
-            { label: t("pharmacist.rxDose"),    value: rx.dose    },
-            { label: t("pharmacist.rxDoctor"),  value: rx.doctor  },
-            { label: t("pharmacist.rxNumber"),  value: rx.rxNumber ?? "—" },
-            { label: t("pharmacist.rxRefills"), value: String(rx.refills) },
-            { label: t("pharmacist.rxSource"),  value: rx.submissionSource },
-            { label: t("pharmacist.rxDate"),    value: new Date(rx.addedAt).toLocaleString() },
-          ].map(({ label, value }) => (
-            <View key={label} style={[s.row, { flexDirection: flexRow(IS_RTL) }]}>
-              <UIText variant="body-sm" color="secondary" style={{ flex: 1, textAlign: TEXT_START }}>{label}</UIText>
-              <UIText variant="body-sm" weight="bold" style={{ maxWidth: "55%", textAlign: TEXT_START }}>{value || "—"}</UIText>
+        <View style={s.content}>
+          {/* Patient info */}
+          <View style={[s.row, { justifyContent: "space-between", marginBottom: 12 }]}>
+            <View>
+              <UIText variant="h4">{rx.customerName}</UIText>
+              <UIText variant="caption" color="secondary">
+                {new Date(rx.addedAt).toLocaleString()}
+              </UIText>
             </View>
-          ))}
-          {rx.rejectionReason ? (
-            <View style={s.rejectionRow}>
-              <UIText variant="caption" color="danger">{t("pharmacist.rejectionReason")}: {rx.rejectionReason}</UIText>
+            {/* Status */}
+            <View style={[s.statusBadge, {
+              backgroundColor: rx.reviewStatus === "approved" ? kit.color.successTint :
+                               rx.reviewStatus === "rejected" ? kit.color.dangerTint :
+                               kit.color.warnTint
+            }]}>
+              <UIText variant="caption" weight="bold" style={{
+                color: rx.reviewStatus === "approved" ? kit.color.success :
+                       rx.reviewStatus === "rejected" ? kit.color.danger :
+                       kit.color.warn
+              }}>
+                {rx.reviewStatus === "approved" ? t("pharmacist.rxApproved", "Approved") :
+                 rx.reviewStatus === "rejected" ? t("pharmacist.rxRejected", "Rejected") :
+                 t("pharmacist.rxPending", "Pending")}
+              </UIText>
             </View>
-          ) : null}
+          </View>
+
+          {/* Pharmacist note */}
           {rx.adminNotes ? (
-            <View style={s.notesRow}>
-              <UIText variant="caption" color="secondary">{t("pharmacist.adminNotes")}: {rx.adminNotes}</UIText>
+            <View style={s.noteBox}>
+              <UIText variant="caption" weight="bold">{t("pharmacist.adminNotes", "Pharmacist Note")}</UIText>
+              <UIText variant="body-sm">{rx.adminNotes}</UIText>
             </View>
           ) : null}
+
+          {/* Reject Reason */}
+          {rx.rejectionReason ? (
+            <View style={[s.noteBox, { backgroundColor: kit.color.dangerTint }]}>
+              <UIText variant="caption" weight="bold" color="danger">{t("pharmacist.rejectionReason", "Rejection Reason")}</UIText>
+              <UIText variant="body-sm" color="danger">{rx.rejectionReason}</UIText>
+            </View>
+          ) : null}
+
+          {/* Actions */}
+          {isPending && (
+            <View style={s.actions}>
+              {!showRejectForm ? (
+                <>
+                  <Button
+                    label={t("pharmacist.actionApproveRx", "Approve")}
+                    full
+                    loading={mutations.reviewRx.isPending}
+                    onPress={handleApprove}
+                    style={{ backgroundColor: kit.color.success }}
+                  />
+                  {/* Request Info button can be added if backend supports it */}
+                  <Button
+                    label={t("pharmacist.actionRejectRx", "Reject")}
+                    variant="outline"
+                    full
+                    onPress={() => setShowRejectForm(true)}
+                    style={{ borderColor: kit.color.danger }}
+                    labelStyle={{ color: kit.color.danger }}
+                  />
+                </>
+              ) : (
+                <>
+                  <TextInput
+                    value={rejectionReason}
+                    onChangeText={setRejectionReason}
+                    placeholder={t("pharmacist.rejectionReasonPlaceholder", "Reason for rejection")}
+                    placeholderTextColor={kit.color.inkFaint}
+                    multiline
+                    style={s.textInput}
+                  />
+                  <Button
+                    label={t("pharmacist.confirmReject", "Confirm Reject")}
+                    full
+                    loading={mutations.reviewRx.isPending}
+                    onPress={handleReject}
+                    style={{ backgroundColor: kit.color.danger }}
+                  />
+                  <Button
+                    label={t("common.cancel", "Cancel")}
+                    variant="ghost"
+                    full
+                    onPress={() => setShowRejectForm(false)}
+                  />
+                </>
+              )}
+            </View>
+          )}
         </View>
-
-        {/* Prescription Image */}
-        {rx.imagePath && (
-          <View style={[s.card, { marginTop: 14, minHeight: 300 }]}>
-            <UIText variant="card-title" style={{ marginBottom: 10 }}>{t("pharmacist.rxDocument", "Prescription Document")}</UIText>
-            {imageQuery.isLoading ? (
-              <View style={s.centered}>
-                <ActivityIndicator size="small" color={kit.color.accent} />
-              </View>
-            ) : imageQuery.error ? (
-              <View style={s.centered}>
-                <UIText variant="caption" color="danger">
-                  {t("pharmacist.rxDocumentError", "Failed to load document.")}
-                </UIText>
-              </View>
-            ) : imageQuery.data ? (
-              <View style={{ width: "100%", aspectRatio: 0.75, backgroundColor: kit.color.well, borderRadius: kit.radius.md, overflow: "hidden" }}>
-                <Image
-                  source={{ uri: imageQuery.data }}
-                  style={StyleSheet.absoluteFill}
-                  resizeMode="contain"
-                />
-              </View>
-            ) : null}
-          </View>
-        )}
-
-        {/* Actions */}
-        {isPending && (
-          <View style={s.actions}>
-            <TextInput
-              value={adminNotes}
-              onChangeText={setAdminNotes}
-              placeholder={t("pharmacist.adminNotesPlaceholder")}
-              placeholderTextColor={kit.color.inkFaint}
-              multiline
-              numberOfLines={3}
-              style={s.textInput}
-            />
-            <Button
-              label={t("pharmacist.actionApproveRx")}
-              icon="checkmark-circle-outline"
-              full
-              loading={mutations.reviewRx.isPending}
-              onPress={() => void handleApprove()}
-            />
-            {!showRejectForm ? (
-              <Button
-                label={t("pharmacist.actionRejectRx")}
-                icon="close-circle-outline"
-                variant="ghost"
-                full
-                onPress={() => setShowRejectForm(true)}
-              />
-            ) : (
-              <>
-                <TextInput
-                  value={rejectionReason}
-                  onChangeText={setRejectionReason}
-                  placeholder={t("pharmacist.rejectionReasonPlaceholder")}
-                  placeholderTextColor={kit.color.inkFaint}
-                  multiline
-                  numberOfLines={2}
-                  style={[s.textInput, { borderColor: kit.color.danger }]}
-                />
-                <Button
-                  label={t("pharmacist.confirmReject")}
-                  variant="ghost"
-                  full
-                  loading={mutations.reviewRx.isPending}
-                  onPress={() => void handleReject()}
-                />
-              </>
-            )}
-          </View>
-        )}
       </ScrollView>
     </Screen>
   );
 }
 
 const s = StyleSheet.create({
-  scroll:  { paddingBottom: 60 },
-  centered:{ alignItems: "center", justifyContent: "center", flex: 1 },
-  statusBanner: {
-    flexDirection:   flexRow(IS_RTL),
-    alignItems:      "center",
-    gap:             10,
-    marginHorizontal:kit.inset.screen,
-    marginTop:       16,
-    padding:         14,
-    borderRadius:    kit.radius.xl,
+  scroll: { paddingBottom: 60, flexGrow: 1 },
+  centered: { alignItems: "center", justifyContent: "center", flex: 1 },
+  imageViewer: {
+    width: "100%",
+    minHeight: SCREEN_HEIGHT * 0.5,
+    backgroundColor: "#000",
+    alignItems: "center",
+    justifyContent: "center",
   },
-  card: {
-    marginHorizontal: kit.inset.screen,
-    marginTop:        14,
-    backgroundColor:  kit.color.surface,
-    borderRadius:     kit.radius.xl,
-    padding:          kit.inset.card,
-    gap:              10,
-    borderWidth:      1,
-    borderColor:      kit.color.line,
-    ...kit.shadow.card,
+  content: {
+    padding: kit.inset.screen,
+    backgroundColor: kit.color.surface,
+    flex: 1,
   },
   row: {
-    alignItems:     "flex-start",
-    gap:            12,
-    paddingVertical: 4,
+    flexDirection: flexRow(IS_RTL),
+    alignItems: "center",
   },
-  rejectionRow: {
-    paddingTop: 8,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: kit.color.line,
+  statusBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: kit.radius.pill,
   },
-  notesRow: {
-    paddingTop: 4,
+  noteBox: {
+    backgroundColor: kit.color.well,
+    padding: 12,
+    borderRadius: kit.radius.md,
+    marginTop: 12,
   },
   actions: {
-    marginHorizontal: kit.inset.screen,
-    marginTop:        18,
-    gap:              10,
+    marginTop: 24,
+    gap: 12,
   },
   textInput: {
-    backgroundColor:   kit.color.well,
-    borderRadius:      kit.radius.lg,
-    borderWidth:       1,
-    borderColor:       kit.color.line,
-    padding:           12,
-    fontSize:          14,
-    fontFamily:        theme.fonts.regular,
-    color:             kit.color.ink,
+    backgroundColor: kit.color.well,
+    borderRadius: kit.radius.md,
+    borderWidth: 1,
+    borderColor: kit.color.danger,
+    padding: 12,
+    fontSize: 14,
+    fontFamily: theme.fonts.regular,
+    color: kit.color.ink,
     textAlignVertical: "top",
-    minHeight:         72,
+    minHeight: 80,
   },
 });

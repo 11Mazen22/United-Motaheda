@@ -1,8 +1,3 @@
-/**
- * OrderQueueCard — compact card for the pharmacist order queue list.
- * Shows: customer name, short order ID, age, item count, total, status chip.
- * Tapping navigates to the full order detail.
- */
 import React from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { Ionicons }         from "@expo/vector-icons";
@@ -34,61 +29,39 @@ function formatAge(ms: number): string {
 export function OrderQueueCard({ order, onPress }: Props) {
   const { t } = useTranslation();
   const isUrgent = order.ageMs > 30 * 60_000; // > 30 minutes
+  
+  const borderStartColor = isUrgent ? kit.color.warn : kit.color.accent;
 
   return (
     <Pressable
       onPress={onPress}
-      style={({ pressed }) => [s.card, pressed && s.cardPressed, isUrgent && s.cardUrgent]}
+      style={({ pressed }) => [s.card, pressed && s.cardPressed, { borderStartColor, borderStartWidth: 4 }]}
       accessibilityRole="button"
       accessibilityLabel={`Order ${order.id.slice(-8)} for ${order.customerName}`}
     >
-      {/* Top row: status + age + chevron */}
-      <View style={[s.row, { justifyContent: "space-between" }]}>
-        <OrderStatusChip status={order.status} size="sm" />
-        <View style={[s.row, { gap: 6 }]}>
-          {isUrgent && (
-            <View style={s.urgentPill}>
-              <Ionicons name="warning" size={11} color={kit.color.danger} />
-              <UIText variant="eyebrow" style={{ color: kit.color.danger }}>
-                {t("pharmacist.urgent")}
-              </UIText>
-            </View>
-          )}
-          <UIText variant="caption" color="secondary">{formatAge(order.ageMs)}</UIText>
-          <Ionicons name={FORWARD_CHEVRON} size={14} color={kit.color.inkFaint} />
+      <View style={[s.row, { justifyContent: "space-between", alignItems: "flex-start" }]}>
+        <View style={s.colMain}>
+          <View style={s.row}>
+            <UIText variant="body" weight="bold">#{order.id.slice(-8).toUpperCase()}</UIText>
+            <UIText variant="body-sm" color="secondary">{order.customerName || "—"}</UIText>
+          </View>
+          <View style={[s.row, { marginTop: 4, gap: 12 }]}>
+            <UIText variant="caption" color="muted">{order.items.length} {t("pharmacist.items", "منتجات")}</UIText>
+          </View>
         </View>
-      </View>
 
-      {/* Customer name + short ID */}
-      <UIText
-        variant="card-title"
-        style={{ textAlign: TEXT_START, marginTop: 8 }}
-        numberOfLines={1}
-      >
-        {order.customerName || "—"}
-      </UIText>
-      <UIText
-        variant="body-sm"
-        color="secondary"
-        style={{ textAlign: TEXT_START, marginTop: 1 }}
-        numberOfLines={1}
-      >
-        #{order.id.slice(-8).toUpperCase()} · {order.items.length} {t("pharmacist.items")}
-      </UIText>
-
-      {/* Footer: payment method + total */}
-      <View style={[s.row, { justifyContent: "space-between", marginTop: 12, paddingTop: 12, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: kit.color.line }]}>
-        <View style={[s.row, { gap: 5 }]}>
-          <Ionicons
-            name={order.paymentMethod === "cod" ? "cash-outline" : "card-outline"}
-            size={13}
-            color={kit.color.inkFaint}
-          />
-          <UIText variant="caption" color="secondary">
-            {order.paymentMethod?.toUpperCase() ?? "—"}
-          </UIText>
+        <View style={s.colCenter}>
+          <OrderStatusChip status={order.status} size="sm" />
+          <View style={[s.row, { marginTop: 4, alignSelf: "flex-end" }]}>
+            {isUrgent && <Ionicons name="warning" size={12} color={kit.color.warn} style={{ marginEnd: 4 }} />}
+            <UIText variant="caption" color="secondary">{formatAge(order.ageMs)}</UIText>
+          </View>
         </View>
-        <UIText style={s.total}>{formatPrice(order.total)}</UIText>
+
+        <View style={s.colRight}>
+          <UIText style={s.total}>{formatPrice(order.total)}</UIText>
+          <Ionicons name={FORWARD_CHEVRON} size={16} color={kit.color.inkFaint} style={{ marginTop: 4 }} />
+        </View>
       </View>
     </Pressable>
   );
@@ -97,40 +70,35 @@ export function OrderQueueCard({ order, onPress }: Props) {
 const s = StyleSheet.create({
   card: {
     backgroundColor: kit.color.surface,
-    borderRadius:    kit.radius.xl,
-    padding:         18,
+    borderRadius:    kit.radius.md,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
     borderWidth:     1,
     borderColor:     kit.color.line,
-    ...kit.shadow.card,
+    ...kit.shadow.sm,
   },
   cardPressed: {
-    opacity:   0.87,
-    transform: [{ scale: 0.99 }],
-  },
-  cardUrgent: {
-    borderColor: kit.color.danger,
-    borderWidth: 1.5,
+    opacity:   0.8,
   },
   row: {
     flexDirection: flexRow(IS_RTL),
     alignItems:    "center",
     gap:           8,
   },
-  urgentPill: {
-    flexDirection:     flexRow(IS_RTL),
-    alignItems:        "center",
-    gap:               3,
-    paddingHorizontal: 7,
-    paddingVertical:   2,
-    borderRadius:      kit.radius.pill,
-    backgroundColor:   kit.color.dangerTint,
+  colMain: {
+    flex: 1,
+    alignItems: "flex-start",
+  },
+  colCenter: {
+    alignItems: "flex-end",
+    marginHorizontal: 8,
+  },
+  colRight: {
+    alignItems: "flex-end",
   },
   total: {
-    fontSize:   15,
-    fontFamily: theme.fonts.black,
-    color:      kit.color.accentDeep,
-  },
-  min: {
-    minHeight: 84,
+    fontSize:   14,
+    fontFamily: theme.fonts.bold,
+    color:      kit.color.ink,
   },
 });

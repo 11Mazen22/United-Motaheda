@@ -450,7 +450,7 @@ export default function CartScreen() {
           </View>
         </View>
         <EmptyState
-          icon="bag-outline"
+          icon="cart-outline"
           title={t("cart.emptyTitle")}
           description={t("cart.emptyDescription")}
           actionLabel={t("cart.emptyAction")}

@@ -32,6 +32,7 @@ import { useOrderStore } from "@/stores/orders";
 import { Text as UIText } from "@pharmacy/ui-native";
 import { theme } from "@pharmacy/design-tokens";
 import { kit } from "@pharmacy/ui-native";
+import { useDarkColors } from "@/hooks/useDarkColors";
 import { useTranslation } from "react-i18next";
 import { useAppLanguage } from "@/i18n/LanguageProvider";
 import { ProfileAuthHero } from "@/features/profile/components/ProfileAuthHero";
@@ -65,6 +66,7 @@ const SectionLabel = memo(function SectionLabel({
   label:   string;
   accent?: string;
 }) {
+  const { c } = useDarkColors();
   return (
     <View style={[sl.row, { flexDirection: flexRow(IS_RTL) }]}>
       <View style={[sl.badge, { backgroundColor: `${accent}14`, borderColor: `${accent}28` }]}>

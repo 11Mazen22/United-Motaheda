@@ -56,6 +56,7 @@ import { theme } from "@pharmacy/design-tokens";
 import { kit } from "@pharmacy/ui-native";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
 import { useScreenLayout } from "@/utils/responsive";
+import { useAuth } from "@/features/auth";
 
 const IS_RTL     = isRtl();
 const TEXT_START = textAlignStart(IS_RTL);
@@ -91,6 +92,13 @@ export const HomeHero = memo(function HomeHero({
   const { t }       = useTranslation();
   const reduced     = useReducedMotion() ?? false;
   const { pagePad } = useScreenLayout();
+  const { user } = useAuth();
+
+  // Derive display name
+  const firstName = useMemo(
+    () => (user?.name ?? "").split(" ")[0].trim() || null,
+    [user?.name],
+  );
 
   // ── Animated orb (decorative, top-trailing corner) ───────────────────────
   const orbScale   = useSharedValue(1);
@@ -112,7 +120,7 @@ export const HomeHero = memo(function HomeHero({
       cancelAnimation(orbScale);
       cancelAnimation(orbOpacity);
     };
-  }, [reduced]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [reduced]);
 
   const orbAnim = useAnimatedStyle(() => ({
     transform: [{ scale: orbScale.value }],
@@ -131,7 +139,6 @@ export const HomeHero = memo(function HomeHero({
       icon:    "bicycle-outline" as IoniconsName,
       label:   t("home.heroFastDeliv"),
       sub:     t("home.heroFastDelivSub"),
-      // Guard against undefined — fall through to goAllProducts if not provided
       onPress: onFastDeliv ?? onDeals,
     },
     {
@@ -150,7 +157,6 @@ export const HomeHero = memo(function HomeHero({
         end={{ x: 1, y: 1 }}
         style={s.card}
       >
-        {/* ── Decorative ambient orb — clipped by card overflow:hidden ── */}
         <Animated.View
           style={[s.ambientOrb, orbAnim]}
           pointerEvents="none"
@@ -158,17 +164,17 @@ export const HomeHero = memo(function HomeHero({
           accessibilityElementsHidden
         />
 
-        {/* ── Headline block — pharmacy context, no greeting (moved to header) ── */}
         <View style={s.headlineBlock}>
           <UIText style={s.headline} numberOfLines={2}>
-            {t("home.heroHeadline")}
+            {firstName
+              ? t("search.greetUser", { name: firstName, defaultValue: `أهلاً بك، ${firstName}` })
+              : t("home.heroGuestPitch", { defaultValue: "أهلاً بك" })}
           </UIText>
           <UIText style={s.subtitle} numberOfLines={2}>
-            {t("home.heroSubtitle")}
+            {t("home.heroSubtitle", { defaultValue: "كيف يمكننا مساعدتك اليوم؟" })}
           </UIText>
         </View>
 
-        {/* ── Search bar ── */}
         <Pressable
           onPress={() => {
             if (Platform.OS !== "web") Haptics.selectionAsync().catch(() => {});
@@ -188,14 +194,14 @@ export const HomeHero = memo(function HomeHero({
             <Ionicons name="scan-outline" size={20} color={kit.color.accentDeep} />
           </View>
         </Pressable>
-
-        {/* ── Quick actions: 3 equal-width pill cards ── */}
-        <View style={s.actionsRow}>
-          {actions.map((action, idx) => (
-            <QuickActionCard key={idx} action={action} />
-          ))}
-        </View>
       </LinearGradient>
+
+      {/* Quick Actions row outside the gradient card */}
+      <View style={[s.actionsRow, { marginTop: 16 }]}>
+        {actions.map((action, idx) => (
+          <QuickActionCard key={idx} action={action} />
+        ))}
+      </View>
     </View>
   );
 });
@@ -348,22 +354,23 @@ const s = StyleSheet.create({
     flex: 1,
   },
   actionCard: {
-    backgroundColor:   "rgba(255,255,255,0.14)",
+    backgroundColor:   kit.color.surface,
     borderRadius:      14,
     borderWidth:       1,
-    borderColor:       "rgba(255,255,255,0.22)",
+    borderColor:       kit.color.line,
     paddingHorizontal: 8,
     paddingVertical:   12,
     alignItems:        "center",
     gap:               6,
     minHeight:         100,  // stable height to prevent layout shift
     justifyContent:    "center",
+    ...kit.shadow.raised,
   },
   actionIconWrap: {
     width:           40,
     height:          40,
     borderRadius:    12,
-    backgroundColor: "rgba(255,255,255,0.90)",
+    backgroundColor: kit.color.accentTint,
     alignItems:      "center",
     justifyContent:  "center",
   },
@@ -371,7 +378,7 @@ const s = StyleSheet.create({
     fontFamily:         theme.fonts.bold,
     fontSize:           12,  // increased from 11 for readability
     lineHeight:         16,
-    color:              "#FFFFFF",
+    color:              kit.color.ink,
     textAlign:          "center",
     includeFontPadding: false,
   },
@@ -379,7 +386,7 @@ const s = StyleSheet.create({
     fontFamily:         theme.fonts.regular,
     fontSize:           11,  // increased from 9 — was too small to read
     lineHeight:         15,
-    color:              "rgba(255,255,255,0.72)",
+    color:              kit.color.inkSoft,
     textAlign:          "center",
     includeFontPadding: false,
   },

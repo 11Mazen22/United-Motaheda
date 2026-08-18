@@ -24,6 +24,7 @@ import { useNotifications, type AppNotification, type NotifType } from "@/featur
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { theme } from "@pharmacy/design-tokens";
+import { useDarkColors } from "@/hooks/useDarkColors";
 import { flexRow, isRtl, textAlignStart, BACK_CHEVRON } from "@/utils/layout";
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>["name"];

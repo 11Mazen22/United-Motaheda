@@ -22,6 +22,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { Badge } from "@/components/ui/Badge";
 import { Text as UIText } from "@pharmacy/ui-native";
 import { theme } from "@pharmacy/design-tokens";
+import { useDarkColors } from "@/hooks/useDarkColors";
 import { formatPrice } from "@/utils/format";
 import { flexRow, isRtl, textAlignStart, BACK_CHEVRON } from "@/utils/layout";
 
@@ -32,17 +33,18 @@ const TEXT_START = textAlignStart(IS_RTL);
 // Mirrors FavoriteCard's row geometry (82×82 image, 14 padding, 16 radius) so
 // the loading → loaded transition doesn't reflow the list.
 const FavoriteCardSkeleton = memo(function FavoriteCardSkeleton() {
+  const { c } = useDarkColors();
   return (
-    <View style={[s.card, s.skeletonCard, { flexDirection: flexRow(IS_RTL) }]}>
-      <View style={[s.imgBox, s.skeletonBlock]} />
+    <View style={[s.card, s.skeletonCard, { flexDirection: flexRow(IS_RTL), backgroundColor: c.surface, borderColor: c.line }]}>
+      <View style={[s.imgBox, s.skeletonBlock, { backgroundColor: c.canvas }]} />
       <View style={{ flex: 1, gap: 8 }}>
-        <View style={[s.skeletonLine, { width: "40%", height: 9 }]} />
-        <View style={[s.skeletonLine, { width: "85%", height: 13 }]} />
-        <View style={[s.skeletonLine, { width: "35%", height: 15, marginTop: 4 }]} />
+        <View style={[s.skeletonLine, { width: "40%", height: 9, backgroundColor: c.line }]} />
+        <View style={[s.skeletonLine, { width: "85%", height: 13, backgroundColor: c.line }]} />
+        <View style={[s.skeletonLine, { width: "35%", height: 15, marginTop: 4, backgroundColor: c.line }]} />
       </View>
       <View style={s.actions}>
-        <View style={[s.skeletonBlock, { width: 40, height: 40, borderRadius: 13 }]} />
-        <View style={[s.skeletonBlock, { width: 40, height: 40, borderRadius: 13 }]} />
+        <View style={[s.skeletonBlock, { width: 40, height: 40, borderRadius: 13, backgroundColor: c.canvas }]} />
+        <View style={[s.skeletonBlock, { width: 40, height: 40, borderRadius: 13, backgroundColor: c.canvas }]} />
       </View>
     </View>
   );
@@ -50,6 +52,7 @@ const FavoriteCardSkeleton = memo(function FavoriteCardSkeleton() {
 
 // ─── FavoriteCard ─────────────────────────────────────────────────────────────
 const FavoriteCard = memo(function FavoriteCard({ product, index }: { product: NativeProduct; index: number }) {
+  const { c } = useDarkColors();
   const router  = useRouter();
   const { t }   = useTranslation();
   const toggle  = useWishlistStore((s) => s.toggle);
@@ -144,9 +147,10 @@ const FavoriteCard = memo(function FavoriteCard({ product, index }: { product: N
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 export default function FavoritesScreen() {
+  const { c, isDark } = useDarkColors();
+  const { t }      = useTranslation();
   const router     = useRouter();
   const insets     = useSafeAreaInsets();
-  const { t }      = useTranslation();
   const items      = useWishlistStore((s) => s.items);
   const isHydrated = useWishlistStore((s) => s.isHydrated);
   const userId     = useWishlistStore((s) => s.userId);

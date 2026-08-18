@@ -58,6 +58,7 @@ import { Input }           from "@/components/ui/Input";
 import { Button }          from "@pharmacy/ui-native";
 import { Text as UIText }  from "@pharmacy/ui-native";
 import { kit }             from "@pharmacy/ui-native";
+import { useDarkColors } from "@/hooks/useDarkColors";
 import { theme }           from "@pharmacy/design-tokens";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
 
@@ -65,6 +66,7 @@ const IS_RTL     = isRtl();
 const TEXT_START = textAlignStart(IS_RTL);
 
 export default function LoginScreen() {
+  const { c, isDark } = useDarkColors();
   const { t, i18n } = useTranslation();
   const router  = useRouter();
   const insets  = useSafeAreaInsets();
