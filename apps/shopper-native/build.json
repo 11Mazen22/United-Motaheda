@@ -1,0 +1,55 @@
+{
+  "id": "f6f6ae47-8e7f-43af-a60f-075b0f2c568b",
+  "status": "ERRORED",
+  "platform": "ANDROID",
+  "error": {
+    "errorCode": "UNKNOWN_ERROR",
+    "message": "Unknown error. See logs of the Bundle JavaScript build phase for more information."
+  },
+  "artifacts": {},
+  "fingerprint": {
+    "id": "01a012b4-be48-7aac-86c0-d892462c5196",
+    "hash": "4786c2e747ab0e01347ae79ec9fb96b6dd7daca0"
+  },
+  "initiatingActor": {
+    "id": "997e8653-be7c-4ae6-b629-42bc21c532c9",
+    "displayName": "mazen-moham"
+  },
+  "logFiles": [
+    "https://storage.googleapis.com/eas-workflows-production/logs/cc0dea9d-00d1-4ac8-9923-426fe3ba1c52/f6f6ae47-8e7f-43af-a60f-075b0f2c568b/2026-08-18T05%3A37%3A13Z-cc3dcb5e-dcac-4077-b663-4e94c432b8e5.txt?X-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Credential=www-production%40exponentjs.iam.gserviceaccount.com%2F20260818%2Fauto%2Fstorage%2Fgoog4_request&X-Goog-Date=20260818T053933Z&X-Goog-Expires=900&X-Goog-SignedHeaders=host&X-Goog-Signature=a0b2639cbba3978b135a4e04354162a83a8d1174f1f1f113bce3101742a02f8e392060552cc674fcddf6cb331da8265e61797899fe9a3630d2f50d4550ae366ea76bc4633b0f3a8a07581a9c0de447be35aa57221cbff088be25c81b7935beab523673712281c6aa3d82fe8e791109a52b9640325ac759c96c863bd0932663426d7bccfd9920f82346d6e322b6591fe61946c36d08ff0971a332a9b92d7228e069a765e7be46a9efde1fbe4845426ae25b5d4859f8bbe70260e6e70c11b4790c40536b3692b392facfda9a33ca877eb7ebd6f92cd0e58715faa1ac68f0219a704f87458a2c647026f677cbc7b0c5413da52057d3765d6a165843b4995a8e2b21"
+  ],
+  "app": {
+    "id": "cc0dea9d-00d1-4ac8-9923-426fe3ba1c52",
+    "name": "united-pharmacy",
+    "slug": "united-pharmacy",
+    "ownerAccount": {
+      "id": "29ff6d8d-d2c3-4591-afff-57549c0f3347",
+      "name": "mazen-moham"
+    }
+  },
+  "updateChannel": {
+    "id": "019eefa4-b06d-71e2-86d7-211446578f3d",
+    "name": "production"
+  },
+  "distribution": "STORE",
+  "buildProfile": "production",
+  "appIdentifier": "com.unitedpharmacy.app",
+  "sdkVersion": "55.0.0",
+  "appVersion": "1.0.0",
+  "appBuildVersion": "7",
+  "runtime": {
+    "id": "019eefa4-b06d-7d5d-b95f-e4eb271015d6",
+    "version": "1.0.0"
+  },
+  "priority": "NORMAL",
+  "createdAt": "2026-08-18T05:37:10.902Z",
+  "updatedAt": "2026-08-18T05:38:35.819Z",
+  "completedAt": "2026-08-18T05:38:35.661Z",
+  "expirationDate": "2026-09-17T05:37:10.927Z",
+  "isForIosSimulator": false,
+  "metrics": {
+    "buildWaitTime": 2306,
+    "buildQueueTime": 4765,
+    "buildDuration": 77688
+  }
+}
