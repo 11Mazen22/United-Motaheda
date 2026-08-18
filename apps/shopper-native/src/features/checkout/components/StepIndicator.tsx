@@ -3,10 +3,8 @@ import { View, StyleSheet } from "react-native";
 import { Text as UIText } from "@pharmacy/ui-native";
 import { Ionicons } from "@expo/vector-icons";
 import { kit } from "@pharmacy/ui-native";
-import Animated, { Layout, FadeIn } from "react-native-reanimated";
-import { flexRow, isRtl } from "@/utils/layout";
-
-const IS_RTL = isRtl();
+import Animated, { Layout } from "react-native-reanimated";
+import { isRtl } from "@/utils/layout";
 
 interface StepPillProps {
   index:  number;

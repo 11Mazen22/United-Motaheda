@@ -8,7 +8,6 @@ import Animated, {
   withSequence,
 } from "react-native-reanimated";
 import { Text, useTheme, kit } from "@pharmacy/ui-native";
-import { isRtl } from "@/utils/layout";
 
 export interface LoadingStateProps {
   message?: string;

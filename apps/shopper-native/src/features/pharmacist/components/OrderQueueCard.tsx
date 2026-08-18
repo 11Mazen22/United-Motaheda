@@ -11,7 +11,6 @@ import { OrderStatusChip }  from "./OrderStatusChip";
 import type { PharmacistOrder } from "../api/types";
 
 const IS_RTL     = isRtl();
-const TEXT_START = textAlignStart(IS_RTL);
 
 interface Props {
   order:   PharmacistOrder;
@@ -75,7 +74,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 14,
     borderWidth:     1,
     borderColor:     kit.color.line,
-    ...kit.shadow.sm,
+    ...kit.shadow.card,
   },
   cardPressed: {
     opacity:   0.8,

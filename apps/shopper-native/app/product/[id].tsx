@@ -973,9 +973,8 @@ export default function ProductDetailScreen() {
             <EmptyState
               icon="alert-circle-outline"
               title={t("product.notFound")}
-              description={t("product.notFoundBody")}
-              actionLabel={t("product.notFoundRetry")}
-              onAction={() => refetch()}
+              subtitle={t("product.notFoundBody")}
+              action={{ label: t("product.notFoundRetry"), onPress: () => refetch() }}
             />
           )}
         </View>

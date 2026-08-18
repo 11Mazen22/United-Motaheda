@@ -65,7 +65,7 @@ function toNativeTheme(base: SemanticTheme, isRTL: boolean, isDark: boolean): Na
     colors: {
       ...base.colors,
       ...(isDark ? kit.darkColor : kit.color),
-    },
+    } as any,
   };
 }
 

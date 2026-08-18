@@ -13,7 +13,6 @@ import { Ionicons }             from "@expo/vector-icons";
 import { useTranslation }       from "react-i18next";
 
 import { Screen, Text as UIText, kit, Button } from "@pharmacy/ui-native";
-import { theme }                  from "@pharmacy/design-tokens";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
 import { formatPrice }            from "@/utils/format";
 import { showErrorSheet, showSuccessSheet } from "@/shared/store/appSheetStore";
@@ -22,7 +21,6 @@ import { usePharmacistOrder }    from "../hooks/usePharmacistQueries";
 import { usePharmacistMutations} from "../hooks/usePharmacistMutations";
 import { PharmacistScreenHeader} from "../components/PharmacistScreenHeader";
 import { OrderStatusChip }       from "../components/OrderStatusChip";
-import { PharmacistActionDock }  from "../components/PharmacistActionDock";
 import type { PharmacistOrder, PharmacistTransitionTarget } from "../api/types";
 
 const IS_RTL     = isRtl();
@@ -121,9 +119,9 @@ export function PharmacistOrderDetailScreen(): React.ReactElement {
         <View style={s.topCard}>
           <View style={[s.row, { justifyContent: "space-between" }]}>
             <View>
-              <UIText variant="h3">#{order.id.slice(-8).toUpperCase()}</UIText>
+              <UIText variant="body">#{order.id.slice(-8).toUpperCase()}</UIText>
               <UIText variant="caption" color="secondary" style={{ marginTop: 4 }}>
-                {new Date(order.placedAt || Date.now()).toLocaleString()}
+                {new Date(order.createdAt || Date.now()).toLocaleString()}
               </UIText>
             </View>
             <OrderStatusChip status={order.status} size="md" />
@@ -194,7 +192,7 @@ export function PharmacistOrderDetailScreen(): React.ReactElement {
           </View>
           <View style={[s.summaryRow, s.summaryTotal]}>
             <UIText variant="body" weight="bold">{t("pharmacist.total", "Total")}</UIText>
-            <UIText variant="h4" style={{ color: kit.color.accentDeep }}>{formatPrice(order.total)}</UIText>
+            <UIText variant="body" style={{ color: kit.color.accentDeep }}>{formatPrice(order.total)}</UIText>
           </View>
         </View>
 
@@ -211,7 +209,6 @@ export function PharmacistOrderDetailScreen(): React.ReactElement {
             loading={mutations.advance.isPending}
             onPress={() => handleAdvance(action)}
             style={action === "cancelled" ? { borderColor: kit.color.danger } : undefined}
-            labelStyle={action === "cancelled" ? { color: kit.color.danger } : undefined}
           />
         ))}
       </View>

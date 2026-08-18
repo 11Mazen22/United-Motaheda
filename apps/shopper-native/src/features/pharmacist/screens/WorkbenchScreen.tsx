@@ -14,7 +14,6 @@ import { useQueryClient }    from "@tanstack/react-query";
 
 import { Screen, Text as UIText } from "@pharmacy/ui-native";
 import { kit }                    from "@pharmacy/ui-native";
-import { theme }                  from "@pharmacy/design-tokens";
 import { useAuth }                from "@/features/auth";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
 import { useScreenLayout }        from "@/utils/responsive";
@@ -58,7 +57,7 @@ export function WorkbenchScreen(): React.ReactElement {
   }, [qc]);
 
   const firstName = user?.name?.split(" ")[0] ?? "";
-  const branchName = user?.branchName ?? t("pharmacist.mainBranch", "Main Branch");
+  const branchName = t("pharmacist.mainBranch", "Main Branch");
 
   return (
     <Screen edgeTop background={kit.color.canvas}>
@@ -109,7 +108,7 @@ export function WorkbenchScreen(): React.ReactElement {
 
         {/* ── Active Orders ── */}
         <View style={[s.sectionHeader, { paddingHorizontal: pagePad, flexDirection: flexRow(IS_RTL) }]}>
-          <UIText variant="h4" style={{ textAlign: TEXT_START }}>
+          <UIText variant="body" style={{ textAlign: TEXT_START }}>
             {t("pharmacist.orderQueueTitle", "Active Orders")}
           </UIText>
           <View style={s.badge}>
@@ -137,7 +136,7 @@ export function WorkbenchScreen(): React.ReactElement {
 
         {/* ── Pending Prescriptions ── */}
         <View style={[s.sectionHeader, { paddingHorizontal: pagePad, flexDirection: flexRow(IS_RTL), marginTop: 24 }]}>
-          <UIText variant="h4" style={{ textAlign: TEXT_START }}>
+          <UIText variant="body" style={{ textAlign: TEXT_START }}>
             {t("pharmacist.pendingRxTitle", "Pending Prescriptions")}
           </UIText>
           <View style={[s.badge, pendingRx.length > 0 && { backgroundColor: kit.color.warnTint }]}>
@@ -231,6 +230,6 @@ const s = StyleSheet.create({
     marginBottom: 8,
     borderWidth: 1,
     borderColor: kit.color.line,
-    ...kit.shadow.sm,
+    ...kit.shadow.card,
   },
 });

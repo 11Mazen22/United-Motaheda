@@ -173,9 +173,8 @@ function OrdersErrorState({
         <EmptyState
           icon="wifi-outline"
           title={t("errors.network").split(".")[0]}
-          description={t("errors.network")}
-          actionLabel={t("common.retry")}
-          onAction={onRetry}
+          subtitle={t("errors.network")}
+          action={{ label: t("common.retry"), onPress: onRetry }}
         />
       </View>
     </View>

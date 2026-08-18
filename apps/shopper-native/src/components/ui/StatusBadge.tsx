@@ -1,6 +1,6 @@
 import React from "react";
 import { View, StyleSheet } from "react-native";
-import { Text, useTheme, kit } from "@pharmacy/ui-native";
+import { Text, kit } from "@pharmacy/ui-native";
 import { Ionicons } from "@expo/vector-icons";
 import { isRtl, flexRow } from "@/utils/layout";
 

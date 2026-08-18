@@ -3,12 +3,10 @@ import {
   ActivityIndicator, ScrollView, StyleSheet, TextInput, View, Image, Dimensions
 } from "react-native";
 import { useLocalSearchParams } from "expo-router";
-import { Ionicons }             from "@expo/vector-icons";
 import { useTranslation }       from "react-i18next";
 
 import { Screen, Text as UIText, Button, kit } from "@pharmacy/ui-native";
-import { theme }                   from "@pharmacy/design-tokens";
-import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
+import { flexRow, isRtl } from "@/utils/layout";
 import { showErrorSheet, showSuccessSheet } from "@/shared/store/appSheetStore";
 
 import { usePrescription, usePrescriptionImage } from "../hooks/usePharmacistQueries";
@@ -16,7 +14,6 @@ import { usePharmacistMutations }  from "../hooks/usePharmacistMutations";
 import { PharmacistScreenHeader }  from "../components/PharmacistScreenHeader";
 
 const IS_RTL     = isRtl();
-const TEXT_START = textAlignStart(IS_RTL);
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 export function PrescriptionDetailScreen(): React.ReactElement {
@@ -26,7 +23,6 @@ export function PrescriptionDetailScreen(): React.ReactElement {
   const rxQuery   = usePrescription(id);
   const mutations = usePharmacistMutations();
 
-  const [adminNotes,       setAdminNotes]       = useState("");
   const [rejectionReason,  setRejectionReason]  = useState("");
   const [showRejectForm,   setShowRejectForm]   = useState(false);
 
@@ -37,7 +33,7 @@ export function PrescriptionDetailScreen(): React.ReactElement {
   const handleApprove = async () => {
     if (!id) return;
     try {
-      await mutations.reviewRx.mutateAsync({ id, input: { reviewStatus: "approved", adminNotes: adminNotes || undefined } });
+      await mutations.reviewRx.mutateAsync({ id, input: { reviewStatus: "approved" } });
       showSuccessSheet(t("pharmacist.rxApprovedTitle"), t("pharmacist.rxApprovedBody"));
     } catch (e) {
       showErrorSheet(t("pharmacist.actionFailedTitle"), e instanceof Error ? e.message : "");
@@ -51,7 +47,6 @@ export function PrescriptionDetailScreen(): React.ReactElement {
         id,
         input: {
           reviewStatus:    "rejected",
-          adminNotes:       adminNotes      || undefined,
           rejectionReason:  rejectionReason || undefined,
         },
       });
@@ -108,7 +103,7 @@ export function PrescriptionDetailScreen(): React.ReactElement {
           {/* Patient info */}
           <View style={[s.row, { justifyContent: "space-between", marginBottom: 12 }]}>
             <View>
-              <UIText variant="h4">{rx.customerName}</UIText>
+              <UIText variant="body">{rx.customerName}</UIText>
               <UIText variant="caption" color="secondary">
                 {new Date(rx.addedAt).toLocaleString()}
               </UIText>
@@ -166,7 +161,6 @@ export function PrescriptionDetailScreen(): React.ReactElement {
                     full
                     onPress={() => setShowRejectForm(true)}
                     style={{ borderColor: kit.color.danger }}
-                    labelStyle={{ color: kit.color.danger }}
                   />
                 </>
               ) : (

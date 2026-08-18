@@ -37,7 +37,6 @@ import { Text as UIText } from "@pharmacy/ui-native";
 import { Badge } from "@/components/ui/Badge";
 import { theme } from "@pharmacy/design-tokens";
 import { kit } from "@pharmacy/ui-native";
-import { useDarkColors } from "@/hooks/useDarkColors";
 import { formatPrice } from "@/utils/format";
 import { FORWARD_CHEVRON, textAlignStart, isRtl } from "@/utils/layout";
 import { useScreenLayout } from "@/utils/responsive";
@@ -76,7 +75,6 @@ function SafeImage({
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function OrderDetailScreen(): React.ReactElement {
-  const { c, isDark } = useDarkColors();
   const router       = useRouter();
   const insets       = useSafeAreaInsets();
   const { t }        = useTranslation();

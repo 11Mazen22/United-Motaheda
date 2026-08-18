@@ -1,7 +1,6 @@
 import React from "react";
 import { View, StyleSheet } from "react-native";
 import { Text, useTheme, kit } from "@pharmacy/ui-native";
-import { isRtl } from "@/utils/layout";
 
 export interface DividerProps {
   strength?: "subtle" | "default" | "strong";

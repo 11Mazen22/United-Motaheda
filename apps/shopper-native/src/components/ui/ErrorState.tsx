@@ -2,7 +2,6 @@ import React from "react";
 import { View, StyleSheet } from "react-native";
 import { Text, Button, useTheme, kit } from "@pharmacy/ui-native";
 import { Ionicons } from "@expo/vector-icons";
-import { isRtl } from "@/utils/layout";
 
 export interface ErrorStateProps {
   type?: "network" | "notFound" | "generic";

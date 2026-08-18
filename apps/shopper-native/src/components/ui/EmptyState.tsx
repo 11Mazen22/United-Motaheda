@@ -9,13 +9,15 @@ export interface EmptyStateProps {
   icon?: React.ComponentProps<typeof Ionicons>["name"];
   title: string;
   subtitle?: string;
+  description?: string;
   action?: { label: string; onPress: () => void };
   style?: StyleProp<ViewStyle>;
 }
 
-export function EmptyState({ icon = "cube-outline", title, subtitle, action, style }: EmptyStateProps) {
+export function EmptyState({ icon = "cube-outline", title, subtitle, description, action, style }: EmptyStateProps) {
   const { theme } = useTheme();
-  const rtl = isRtl();
+  
+  const displaySubtitle = subtitle || description;
 
   return (
     <Animated.View
@@ -40,9 +42,9 @@ export function EmptyState({ icon = "cube-outline", title, subtitle, action, sty
       <Text variant="h3" align="center" style={{ color: theme.colors.text.primary, marginTop: kit.sp(4) }}>
         {title}
       </Text>
-      {subtitle ? (
+      {displaySubtitle ? (
         <Text variant="body" align="center" style={{ color: theme.colors.text.secondary, marginTop: kit.sp(2) }}>
-          {subtitle}
+          {displaySubtitle}
         </Text>
       ) : null}
       {action ? (

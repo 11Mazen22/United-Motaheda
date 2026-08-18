@@ -48,7 +48,6 @@ import { ONBOARDING_KEY } from "@/lib/onboardingKey";
 import { flexRow, isRtl, textAlignStart, FORWARD_CHEVRON } from "@/utils/layout";
 import { PressableScale } from "@/shared/motion";
 import { kit } from "@pharmacy/ui-native";
-import { useDarkColors } from "@/hooks/useDarkColors";
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>["name"];
 
