@@ -28,14 +28,11 @@ jobs:
           node-version: 24
       - name: Generate root lockfile
         run: npm install --package-lock-only --ignore-scripts --include=dev --no-audit --no-fund
-      - name: Generate shopper-native lockfile
-        working-directory: apps/shopper-native
-        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund --workspaces=false
       - name: Commit synchronized lockfiles
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add package-lock.json apps/shopper-native/package-lock.json
+          git add package-lock.json
           if git diff --cached --quiet; then
             echo "Lockfiles already synchronized."
             exit 0
