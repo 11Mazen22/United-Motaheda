@@ -11,6 +11,7 @@ export type CheckoutErrorCode =
   | "CONFLICT"
   | "BAD_RESPONSE"
   | "FUNCTION_ERROR"
+  | "RESERVATION_EXPIRED"
   | "UNKNOWN";
 
 export class CheckoutRequestError extends Error {

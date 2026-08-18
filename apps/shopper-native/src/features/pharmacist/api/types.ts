@@ -101,6 +101,7 @@ export interface PharmacistPrescription {
   /** Denormalised from profiles join — customer's display name. */
   customerName:     string;
   customerPhone:    string | null;
+  imagePath:        string | null;
 }
 
 export interface ReviewPrescriptionInput {

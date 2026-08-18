@@ -26,7 +26,7 @@ import Animated, {
   Layout,
 } from "react-native-reanimated";
 import { useTranslation } from "react-i18next";
-import { useCartStore, type CartItem } from "@/stores/cart";
+import { useCartStore, selectPricing, selectItemCount, type CartItem } from "@/stores/cart";
 import {
   useDeliveryContext,
   FREE_DELIVERY_THRESHOLD,
@@ -390,14 +390,17 @@ export default function CartScreen() {
   const clearCart  = useCartStore((s) => s.clearCart);
   const updateQty  = useCartStore((s) => s.updateQty);
   const removeItem = useCartStore((s) => s.removeItem);
-  const sub        = useCartStore((s) => s.subtotal());
-  const count      = useCartStore((s) => s.itemCount());
+  const pricing    = useCartStore(selectPricing);
+  const count      = useCartStore(selectItemCount);
 
   const delivery     = useDeliveryContext();
+  // Re-calculate pricing if delivery context provides a different cost than the store's default
   const deliveryCost = delivery.isFree ? 0 : delivery.cost;
-  const total        = sub + deliveryCost;
+  const finalPricing = deliveryCost !== pricing.shipping
+    ? { ...pricing, shipping: deliveryCost, total: pricing.total - pricing.shipping + deliveryCost }
+    : pricing;
 
-  const progress = useMemo(() => Math.min(sub / FREE_DELIVERY_THRESHOLD, 1), [sub]);
+  const progress = useMemo(() => Math.min(finalPricing.subtotal / FREE_DELIVERY_THRESHOLD, 1), [finalPricing.subtotal]);
   const remaining = delivery.isFree
     ? "0.00"
     : (delivery.amountToFreeDelivery?.toFixed(2) ?? "0.00");
@@ -486,7 +489,7 @@ export default function CartScreen() {
         <View style={s.totalsBlock}>
           <View style={s.totalRow}>
             <UIText style={s.totalLabel}>{t("cart.subtotal")}</UIText>
-            <UIText style={s.totalValue}>{sub.toFixed(2)} {t("common.currency")}</UIText>
+            <UIText style={s.totalValue}>{finalPricing.subtotal.toFixed(2)} {t("common.currency")}</UIText>
           </View>
           <View style={s.totalRow}>
             <UIText style={s.totalLabel}>{t("cart.delivery")}</UIText>
@@ -496,6 +499,12 @@ export default function CartScreen() {
               <UIText style={s.totalValue}>{deliveryCost.toFixed(2)} {t("common.currency")}</UIText>
             )}
           </View>
+          {finalPricing.discount > 0 && (
+            <View style={s.totalRow}>
+              <UIText style={s.totalLabel}>{t("cart.discount")}</UIText>
+              <UIText style={s.totalDiscount}>-{finalPricing.discount.toFixed(2)} {t("common.currency")}</UIText>
+            </View>
+          )}
         </View>
 
         {/* Conversion row — total price + massive pill CTA side-by-side */}
@@ -504,7 +513,7 @@ export default function CartScreen() {
           <View style={s.priceBlock}>
             <UIText style={s.priceLabel}>{t("cart.total")}</UIText>
             <View style={s.priceRow}>
-              <UIText style={s.priceTotal}>{total.toFixed(2)}</UIText>
+              <UIText style={s.priceTotal}>{finalPricing.total.toFixed(2)}</UIText>
               <UIText style={s.priceCurrency}>{t("common.currency")}</UIText>
             </View>
           </View>
@@ -514,7 +523,7 @@ export default function CartScreen() {
             onPress={handleCheckout}
             disabled={!delivery.isDeliverable}
             accessibilityRole="button"
-            accessibilityLabel={t("cart.checkoutBtn", { total: total.toFixed(2) })}
+            accessibilityLabel={t("cart.checkoutBtn", { total: finalPricing.total.toFixed(2) })}
             accessibilityState={{ disabled: !delivery.isDeliverable }}
             hitSlop={6}
             style={s.checkoutOuter}>

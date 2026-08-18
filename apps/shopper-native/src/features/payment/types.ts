@@ -1,4 +1,4 @@
-export type PaymentMethodType = "cod" | "instapay" | "vodafone_cash";
+export type PaymentMethodType = "cod" | "instapay" | "vodafone";
 
 export interface PaymentMethod {
   id: string;
@@ -40,8 +40,8 @@ export const PAYMENT_METHODS: PaymentMethod[] = [
     detailsKey: "payment.methodInstapayDetails",
   },
   {
-    id: "vodafone_cash",
-    type: "vodafone_cash",
+    id: "vodafone",
+    type: "vodafone",
     labelKey: "payment.methodVodafone",
     descKey: "payment.methodVodafoneDesc",
     icon: "wallet-outline",

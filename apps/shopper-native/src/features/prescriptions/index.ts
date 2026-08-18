@@ -31,6 +31,8 @@ export {
   createWhatsAppPrescriptionPlaceholder,
   updatePrescription,
   deletePrescription,
+  uploadPrescriptionImage,
+  submitPrescriptionWithImage,
 }                                        from "./api";
 export type { PrescriptionInput, SubmissionSource } from "./api";
 
@@ -48,13 +50,3 @@ export { sortActiveByStatus }           from "./lib/statusSort";
 export { lookupRxNumber }               from "./lib/manualLookup";
 export type { RxLookupResult }          from "./lib/manualLookup";
 
-export { parseRxText }                  from "./lib/parseRxText";
-export type { OcrResult, ParsedRx }     from "./lib/parseRxText";
-export { runParserTests }               from "./lib/parseRxText.devUtils";
-export type { ParserTestSummary }       from "./lib/parseRxText.devUtils";
-
-export { OcrReviewForm }                from "./components/OcrReviewForm";
-export type {
-  OcrReviewFormProps,
-  OcrReviewFormSubmit,
-} from "./components/OcrReviewForm";

@@ -4,7 +4,7 @@
  */
 import React, { useState } from "react";
 import {
-  ActivityIndicator, ScrollView, StyleSheet, TextInput, View,
+  ActivityIndicator, ScrollView, StyleSheet, TextInput, View, Image
 } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { Ionicons }             from "@expo/vector-icons";
@@ -16,7 +16,7 @@ import { theme }                   from "@pharmacy/design-tokens";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
 import { showErrorSheet, showSuccessSheet } from "@/shared/store/appSheetStore";
 
-import { usePrescription }         from "../hooks/usePharmacistQueries";
+import { usePrescription, usePrescriptionImage } from "../hooks/usePharmacistQueries";
 import { usePharmacistMutations }  from "../hooks/usePharmacistMutations";
 import { PharmacistScreenHeader }  from "../components/PharmacistScreenHeader";
 
@@ -36,6 +36,7 @@ export function PrescriptionDetailScreen(): React.ReactElement {
 
   const rx = rxQuery.data;
   const isPending = rx?.reviewStatus === "pending_review";
+  const imageQuery = usePrescriptionImage(rx?.imagePath);
 
   const handleApprove = async () => {
     if (!id) return;
@@ -138,6 +139,32 @@ export function PrescriptionDetailScreen(): React.ReactElement {
             </View>
           ) : null}
         </View>
+
+        {/* Prescription Image */}
+        {rx.imagePath && (
+          <View style={[s.card, { marginTop: 14, minHeight: 300 }]}>
+            <UIText variant="card-title" style={{ marginBottom: 10 }}>{t("pharmacist.rxDocument", "Prescription Document")}</UIText>
+            {imageQuery.isLoading ? (
+              <View style={s.centered}>
+                <ActivityIndicator size="small" color={kit.color.accent} />
+              </View>
+            ) : imageQuery.error ? (
+              <View style={s.centered}>
+                <UIText variant="caption" color="danger">
+                  {t("pharmacist.rxDocumentError", "Failed to load document.")}
+                </UIText>
+              </View>
+            ) : imageQuery.data ? (
+              <View style={{ width: "100%", aspectRatio: 0.75, backgroundColor: kit.color.well, borderRadius: kit.radius.md, overflow: "hidden" }}>
+                <Image
+                  source={{ uri: imageQuery.data }}
+                  style={StyleSheet.absoluteFill}
+                  resizeMode="contain"
+                />
+              </View>
+            ) : null}
+          </View>
+        )}
 
         {/* Actions */}
         {isPending && (

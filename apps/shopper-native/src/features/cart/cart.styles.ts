@@ -559,6 +559,13 @@ export const s = StyleSheet.create({
     color:              kit.color.success,
     includeFontPadding: false,
   },
+  totalDiscount: {
+    fontFamily:         theme.fonts.semibold,
+    fontSize:           12,
+    lineHeight:         18,
+    color:              kit.color.danger,
+    includeFontPadding: false,
+  },
 
   // ── Checkout row — price block + solid-ink pill CTA ───────────────────────
   checkoutRow: {

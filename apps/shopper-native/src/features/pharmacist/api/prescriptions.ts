@@ -44,6 +44,7 @@ interface RawPrescriptionRow {
     full_name: string;
     phone:     string | null;
   } | null;
+  image_path:        string | null;
 }
 
 function mapRow(row: RawPrescriptionRow): PharmacistPrescription {
@@ -65,13 +66,14 @@ function mapRow(row: RawPrescriptionRow): PharmacistPrescription {
     updatedAt:        row.updated_at ?? row.added_at,
     customerName:     row.profiles?.full_name ?? "—",
     customerPhone:    row.profiles?.phone ?? null,
+    imagePath:        row.image_path ?? null,
   };
 }
 
 const RX_SELECT =
   "id, user_id, name, dose, doctor, rx_number, refills, review_status, " +
   "submission_source, admin_notes, rejection_reason, reviewed_by, reviewed_at, " +
-  "added_at, updated_at, profiles(full_name, phone)";
+  "added_at, updated_at, image_path, profiles(full_name, phone)";
 
 // ─── Public API ────────────────────────────────────────────────────────────────
 
@@ -154,4 +156,19 @@ export async function countPendingPrescriptions(): Promise<number> {
 
   if (error) throw error;
   return count ?? 0;
+}
+
+/**
+ * Creates a short-lived signed URL for a pharmacist to securely view
+ * a prescription image. (Expires in 60 seconds).
+ */
+export async function getPrescriptionImageSignedUrl(imagePath: string): Promise<string> {
+  const { data, error } = await supabase.storage
+    .from("prescriptions")
+    .createSignedUrl(imagePath, 60);
+
+  if (error) throw error;
+  if (!data?.signedUrl) throw new Error("Could not generate signed URL");
+  
+  return data.signedUrl;
 }

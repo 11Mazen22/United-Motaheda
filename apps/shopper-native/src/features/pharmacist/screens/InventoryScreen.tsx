@@ -11,9 +11,10 @@
  */
 import React, { useState, useCallback, useMemo } from "react";
 import {
-  ActivityIndicator, FlatList, StyleSheet,
+  ActivityIndicator, StyleSheet,
   View,
 } from "react-native";
+import { FlashList } from "@shopify/flash-list";
 import { Ionicons }       from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 
@@ -279,9 +280,12 @@ export function InventoryScreen(): React.ReactElement {
         ))}
       </View>
 
-      <FlatList
+      <FlashList
         data={items}
         keyExtractor={(p) => p.id}
+        overrideItemLayout={(layout: any) => {
+          layout.size = 110;
+        }}
         contentContainerStyle={s.list}
         showsVerticalScrollIndicator={false}
         renderItem={({ item }) => <ProductCard product={item} query={query} />}

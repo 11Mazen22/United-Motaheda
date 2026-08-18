@@ -18,6 +18,7 @@ import {
 import { supabase } from "@/lib/supabase";
 import { CheckoutRequestError } from "./errors";
 import { withDeduplication, withRetry } from "./resilience";
+import { captureError } from "@/lib/crashReporter";
 import type {
   CheckoutSubmitCommand,
   CreateOrderResult,
@@ -101,6 +102,11 @@ async function ensureUserProfile(command: CheckoutSubmitCommand): Promise<void> 
 
     if (upsertError) {
       if (__DEV__) console.error("[checkout] ensureUserProfile upsert failed:", upsertError.message);
+      captureError(upsertError, { 
+        surface: "checkout", 
+        action: "ensureUserProfile", 
+        userId: userId 
+      });
       throw new CheckoutRequestError(
         "تعذّر تهيئة ملفك الشخصي. حاول مجدداً أو تواصل مع الدعم.",
         [], false, "AUTH", false,
@@ -109,6 +115,11 @@ async function ensureUserProfile(command: CheckoutSubmitCommand): Promise<void> 
   } catch (err) {
     if (err instanceof CheckoutRequestError) throw err;
     if (__DEV__) console.error("[checkout] ensureUserProfile upsert threw:", err);
+    captureError(err, { 
+      surface: "checkout", 
+      action: "ensureUserProfile", 
+      userId: userId 
+    });
     throw new CheckoutRequestError(
       "تعذّر تهيئة ملفك الشخصي. حاول مجدداً أو تواصل مع الدعم.",
       [], false, "AUTH", false,
@@ -173,6 +184,13 @@ async function _createCheckoutOrder(
           throw new CheckoutRequestError(
             "انتهت صلاحية جلستك. يرجى تسجيل الدخول مرة أخرى.",
             [], false, "AUTH", false,
+          );
+        }
+
+        if (message === "order_commit_failed") {
+          throw new CheckoutRequestError(
+            "عذراً، بعض العناصر في سلتك لم تعد متوفرة. يرجى مراجعة السلة والمحاولة مرة أخرى.",
+            [], false, "RESERVATION_EXPIRED", false,
           );
         }
 

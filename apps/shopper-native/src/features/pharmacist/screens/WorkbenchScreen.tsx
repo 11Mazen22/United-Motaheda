@@ -20,13 +20,13 @@
 import React, { useCallback, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  FlatList,
   Platform,
   Pressable,
   RefreshControl,
   StyleSheet,
   View,
 } from "react-native";
+import { FlashList } from "@shopify/flash-list";
 import { LinearGradient }    from "expo-linear-gradient";
 import { useRouter }         from "expo-router";
 import { Ionicons }          from "@expo/vector-icons";
@@ -171,7 +171,7 @@ export function WorkbenchScreen(): React.ReactElement {
   const { user }       = useAuth();
   const qc             = useQueryClient();
   const { pagePad }    = useScreenLayout();
-  const listRef        = useRef<FlatList<PharmacistOrder>>(null);
+  const listRef        = useRef<any>(null);
   const [refreshing, setRefreshing] = useState(false);
 
   const queueQ = usePharmacistOrderQueue();
@@ -205,9 +205,12 @@ export function WorkbenchScreen(): React.ReactElement {
 
   return (
     <Screen edgeTop background={kit.color.canvas}>
-      <FlatList
+      <FlashList
         ref={listRef}
         data={orders}
+        overrideItemLayout={(layout: any) => {
+          layout.size = 140;
+        }}
         keyExtractor={(o) => o.id}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[s.listContent, { paddingHorizontal: pagePad }]}

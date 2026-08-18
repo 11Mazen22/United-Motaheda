@@ -56,6 +56,7 @@ export interface Prescription {
   reviewedAt?:        string;
   adminNotes?:        string;
   rejectionReason?:   string;
+  imagePath?:         string;
 }
 
 export interface RefillRequest {

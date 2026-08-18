@@ -8,12 +8,12 @@
 
 import React, { useCallback } from "react";
 import {
-  FlatList,
   Pressable,
   RefreshControl,
   StyleSheet,
   View,
 } from "react-native";
+import { FlashList } from "@shopify/flash-list";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter }         from "expo-router";
 import { useTranslation }    from "react-i18next";
@@ -59,19 +59,7 @@ export default function DealsScreen() {
     [router],
   );
 
-  const renderItem = useCallback(
-    ({ item }: { item: any }) => (
-      <View style={{ flex: 1 }}>
-        <ProductCard
-          product={item}
-          lang={lang}
-          badge="sale"
-          onPress={() => goProduct(item.id)}
-        />
-      </View>
-    ),
-    [lang, goProduct],
-  );
+
 
   return (
     <View style={s.screen}>
@@ -107,17 +95,34 @@ export default function DealsScreen() {
           ))}
         </View>
       ) : (
-        <FlatList
+        <FlashList
           data={products}
           keyExtractor={(p) => p.id}
           numColumns={NUM_COLS}
-          columnWrapperStyle={s.columnWrapper}
+          overrideItemLayout={(layout: any) => {
+            layout.size = 280;
+            layout.span = 1;
+          }}
           contentContainerStyle={[
             s.listContent,
             { paddingHorizontal: pagePad, paddingBottom: insets.bottom + 40 },
           ]}
           showsVerticalScrollIndicator={false}
-          renderItem={renderItem}
+          renderItem={({ item, index }) => (
+            <View style={{ 
+              flex: 1, 
+              paddingEnd: (index % NUM_COLS === 0) ? GAP / 2 : 0,
+              paddingStart: (index % NUM_COLS !== 0) ? GAP / 2 : 0,
+              paddingBottom: GAP,
+            }}>
+              <ProductCard
+                product={item}
+                lang={lang}
+                badge="sale"
+                onPress={() => goProduct(item.id)}
+              />
+            </View>
+          )}
           onEndReached={() => {
             if (hasNextPage && !isFetchingNextPage) fetchNextPage();
           }}
@@ -193,9 +198,6 @@ const s = StyleSheet.create({
   },
 
   /* ── List ── */
-  columnWrapper: {
-    gap: GAP,
-  },
   listContent: {
     paddingTop: 8,
     gap:        GAP,

@@ -56,8 +56,8 @@ export const PAYMENT_METHOD_META: Record<
   { labelKey: string; icon: React.ComponentProps<typeof Ionicons>["name"]; color: string; bg: string }
 > = {
   cod:          { labelKey: "checkout.methodCodTitle",      icon: "cash-outline",   color: kit.color.success,    bg: kit.color.successTint },
+  online:       { labelKey: "checkout.methodOnlineTitle",   icon: "card-outline",   color: kit.color.accentDeep,  bg: kit.color.accentTint  },
   vodafone:     { labelKey: "checkout.methodVodafoneTitle", icon: "wallet-outline", color: kit.color.danger,      bg: kit.color.dangerTint  },
-  vodafone_cash:{ labelKey: "checkout.methodVodafoneTitle", icon: "wallet-outline", color: kit.color.danger,      bg: kit.color.dangerTint  },
   instapay:     { labelKey: "checkout.methodInstapayTitle", icon: "flash-outline",  color: kit.color.accent,      bg: kit.color.accentTint  },
 };
 

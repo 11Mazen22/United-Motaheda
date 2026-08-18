@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Component preview harness — dev-only.
  *
  * Renders every new shared molecule in each of its variants and key states.
@@ -9,7 +9,7 @@
  */
 
 import React, { useState } from "react";
-import { Alert, ScrollView, View } from "react-native";
+import { ScrollView, View } from "react-native";
 import { Stack, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { theme } from "@pharmacy/design-tokens";
@@ -24,12 +24,6 @@ import {
 import { Text } from "@pharmacy/ui-native";
 import { Button } from "@pharmacy/ui-native";
 import { EmptyState } from "@/components/ui/EmptyState";
-import {
-  OcrReviewForm,
-  runParserTests,
-  type OcrReviewFormSubmit,
-  type ParsedRx,
-} from "@/features/prescriptions";
 
 const NOW = new Date().toISOString();
 const UID = "preview-user";
@@ -191,56 +185,7 @@ export default function ComponentPreview(): React.ReactElement | null {
             </Text>
           </Section>
 
-          <Section title="parseRxText · tests">
-            <Button
-              variant="primary"
-              full
-              onPress={() => {
-                const s = runParserTests();
-                const failList = s.failures
-                  .map((f) => `• ${f.label}\n  ${f.message}`)
-                  .join("\n\n");
-                Alert.alert(
-                  `اختبارات المحلل — ${s.passed} نجحت / ${s.failed} فشلت`,
-                  s.failed === 0
-                    ? "كل الحالات نجحت."
-                    : failList,
-                );
-              }}
-              label="تشغيل اختبارات المحلل"
-            />
-            <Text variant="caption" color="tertiary" align="right" style={{ marginTop: theme.spacing[1] }}>
-              5 حالات: إنجليزي، عربي، إدخال غير صالح، اسم بلا جرعة، رقم مدمج
-            </Text>
-          </Section>
 
-          <Section title="OcrReviewForm · partial OCR">
-            <View style={{ height: 560, backgroundColor: theme.colors.surface, borderRadius: theme.layout.cardRadius, borderWidth: 1, borderColor: theme.colors.border.default, overflow: "hidden" }}>
-              <OcrReviewForm
-                initial={{
-                  name:    "ليزينوبريل 10 ملغ",
-                  doctor:  "د. ب. تشين",
-                  refills: 3,
-                } as ParsedRx}
-                onSubmit={(v: OcrReviewFormSubmit) =>
-                  Alert.alert("قيم النموذج", JSON.stringify(v, null, 2))
-                }
-                onRescan={() => Alert.alert("rescan")}
-              />
-            </View>
-          </Section>
-
-          <Section title="OcrReviewForm · empty (OCR failed)">
-            <View style={{ height: 600, backgroundColor: theme.colors.surface, borderRadius: theme.layout.cardRadius, borderWidth: 1, borderColor: theme.colors.border.default, overflow: "hidden" }}>
-              <OcrReviewForm
-                initial={{}}
-                onSubmit={(v: OcrReviewFormSubmit) =>
-                  Alert.alert("قيم النموذج", JSON.stringify(v, null, 2))
-                }
-                onRescan={() => Alert.alert("rescan")}
-              />
-            </View>
-          </Section>
 
           <Section title="PrescriptionsList · empty state (static)">
             <View style={{ height: 320, backgroundColor: theme.colors.surface, borderRadius: theme.layout.cardRadius, borderWidth: 1, borderColor: theme.colors.border.default, overflow: "hidden" }}>

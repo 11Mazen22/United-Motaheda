@@ -17,6 +17,52 @@ export interface PrescriptionInput {
   dose?:     string;
   doctor?:   string;
   refills?:  number;
+  imagePath?: string;
+}
+
+function mimeForUri(uri: string): string {
+  const lower = uri.toLowerCase();
+  if (lower.endsWith(".png")) return "image/png";
+  if (lower.endsWith(".webp")) return "image/webp";
+  if (lower.endsWith(".heic")) return "image/heic";
+  return "image/jpeg";
+}
+
+function extForMime(mime: string): string {
+  if (mime === "image/png") return "png";
+  if (mime === "image/webp") return "webp";
+  if (mime === "image/heic") return "heic";
+  return "jpg";
+}
+
+/**
+ * Upload a local image URI to `prescriptions/{userId}/{prescriptionId}/image.{ext}`.
+ * Returns the exact storage path.
+ */
+export async function uploadPrescriptionImage(
+  userId: string,
+  prescriptionId: string,
+  localUri: string,
+): Promise<string> {
+  const mime = mimeForUri(localUri);
+  const ext  = extForMime(mime);
+  const path = `${userId}/${prescriptionId}/image.${ext}`;
+
+  const response = await fetch(localUri);
+  if (!response.ok) {
+    throw new Error("Failed to read local image file");
+  }
+  const blob = await response.blob();
+
+  const { error } = await supabase.storage
+    .from("prescriptions")
+    .upload(path, blob, { contentType: mime, upsert: true });
+
+  if (error) {
+    throw new Error(`Upload failed: ${error.message}`);
+  }
+  
+  return path;
 }
 
 /**
@@ -45,6 +91,7 @@ export async function createPrescription(
       rx_number:         input.rxNumber ?? null,
       review_status:     "pending_review",
       submission_source: source,
+      image_path:        input.imagePath ?? null,
     })
     .select()
     .single();
@@ -85,6 +132,7 @@ export async function updatePrescription(
   if (input.dose      !== undefined) patch.dose      = input.dose;
   if (input.doctor    !== undefined) patch.doctor    = input.doctor;
   if (input.rxNumber  !== undefined) patch.rx_number = input.rxNumber;
+  if (input.imagePath !== undefined) patch.image_path = input.imagePath;
 
   const { data, error } = await supabase
     .from("prescriptions")
@@ -96,6 +144,41 @@ export async function updatePrescription(
 
   if (error) throw error;
   return rowToPrescription(data as PrescriptionRow);
+}
+
+/**
+ * Executes the safe, multi-step transaction for submitting a prescription with an image:
+ * 1. Create the pending prescription record to get an ID.
+ * 2. Upload the image to the secure storage path.
+ * 3. Update the record with the image_path.
+ * 
+ * If the upload fails, the prescription record remains in 'pending_review' but without
+ * an image path, allowing for retry/cleanup strategies if needed.
+ */
+export async function submitPrescriptionWithImage(
+  userId: string,
+  input: PrescriptionInput,
+  localImageUri: string,
+  source: SubmissionSource = "manual"
+): Promise<Prescription> {
+  // 1. Create the record
+  const prescription = await createPrescription(userId, input, source);
+
+  try {
+    // 2. Upload the image
+    const imagePath = await uploadPrescriptionImage(userId, prescription.id, localImageUri);
+    
+    // 3. Link the image path to the record
+    return await updatePrescription(prescription.id, userId, { imagePath });
+  } catch (error) {
+    // Note: the record was created but upload failed. 
+    // Return the record as-is (with no image_path) so the UI can represent the failure state
+    // and allow retry if appropriate.
+    throw Object.assign(new Error(`Prescription record created, but image upload failed.`), {
+      prescriptionId: prescription.id,
+      originalError: error,
+    });
+  }
 }
 
 export async function deletePrescription(id: string, userId: string): Promise<void> {

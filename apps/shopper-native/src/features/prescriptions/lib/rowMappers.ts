@@ -39,6 +39,7 @@ export interface PrescriptionRow {
   reviewed_at?:        string | null;
   admin_notes?:        string | null;
   rejection_reason?:   string | null;
+  image_path?:         string | null;
 }
 
 export function rowToPrescription(row: PrescriptionRow): Prescription {
@@ -64,6 +65,7 @@ export function rowToPrescription(row: PrescriptionRow): Prescription {
     reviewedAt:       row.reviewed_at ?? undefined,
     adminNotes:       row.admin_notes ?? undefined,
     rejectionReason:  row.rejection_reason ?? undefined,
+    imagePath:        row.image_path ?? undefined,
   };
 }
 

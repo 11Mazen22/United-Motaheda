@@ -18,6 +18,7 @@ import {
   listPendingPrescriptions,
   listAllPrescriptions,
   getPrescription,
+  getPrescriptionImageSignedUrl,
 }                                      from "../api/prescriptions";
 import {
   searchProducts,
@@ -89,6 +90,15 @@ export function usePrescription(id: string | null | undefined) {
     queryFn:  () => getPrescription(id!),
     enabled:  Boolean(id),
     ...BASE,
+  });
+}
+
+export function usePrescriptionImage(imagePath: string | null | undefined) {
+  return useQuery({
+    queryKey: [...pharmacistQueryKeys.prescriptions(undefined), "image", imagePath],
+    queryFn:  () => getPrescriptionImageSignedUrl(imagePath!),
+    enabled:  Boolean(imagePath),
+    staleTime: 50_000, // Valid for 60s, refetch slightly before
   });
 }
 
