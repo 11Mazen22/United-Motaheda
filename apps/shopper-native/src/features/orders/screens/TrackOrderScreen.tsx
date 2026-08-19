@@ -1,536 +1,273 @@
-/**
- * TrackOrderScreen — customer-facing live driver tracking view.
- *
- * Shows:
- *   - Order ID header
- *   - Live driver position as lat/lng coordinates and last-updated time
- *     (map library is not yet in this project; coordinates are displayed
- *     as text with a "Open in Maps" deep link to Google Maps)
- *   - Driver's first name and phone (if available)
- *   - Order status badge
- *   - Connection state banner (live / stale / no location yet)
- *
- * Navigation:
- *   Entry point: app/order/track/[id].tsx (Task 4b)
- *   Route params: { id: orderId, token: qrToken }
- *   Back: router.back() → order detail screen
- *
- * Data:
- *   useOrderTracking polls track-order Edge Function every 20 s.
- *   Realtime invalidation (Task 5) triggers re-fetch faster on new pings.
- *   Both paths share the same TanStack Query cache entry.
- *
- * Graceful degradation:
- *   - location: null → "Driver location updating…" state
- *   - driver: null   → driver info section hidden
- *   - Network error  → retry button via query.refetch()
- *
- * RTL: all layout uses isRtl() / textAlignStart() / flexRow() helpers
- * from @/utils/layout, matching every other screen in this project.
- */
-
-import React, { useCallback } from "react";
-import {
-  ActivityIndicator,
-  Linking,
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  View,
-} from "react-native";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
-import { useTranslation } from "react-i18next";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
-import { useQueryClient } from "@tanstack/react-query";
-
-import { Text as UIText } from "@pharmacy/ui-native";
-import { kit } from "@pharmacy/ui-native";
-import { theme } from "@pharmacy/design-tokens";
-import { Badge } from "@/components/ui/Badge";
-import { BACK_CHEVRON, flexRow, isRtl, textAlignStart } from "@/utils/layout";
-import { useOrderDetail } from "../hooks/useOrders";
-import { useOrderTracking } from "../hooks/useOrderTracking";
-import { ORDER_STATUS_META } from "../components/OrderDetailHelpers";
-import { subscribeToOrderTracking } from "../realtime";
-
-const IS_RTL     = isRtl();
-const TEXT_START = textAlignStart(IS_RTL);
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function formatCapturedAt(iso: string): string {
-  try {
-    const d = new Date(iso);
-    return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
-  } catch {
-    return iso;
-  }
-}
-
-function ageSeconds(iso: string): number {
-  return Math.floor((Date.now() - Date.parse(iso)) / 1000);
-}
-
-// ─── Screen ───────────────────────────────────────────────────────────────────
-
-export function TrackOrderScreen(): React.ReactElement {
-  const { t }      = useTranslation();
-  const router     = useRouter();
-  const insets     = useSafeAreaInsets();
-  const queryClient = useQueryClient();
-
-  const { id: orderId, token: qrToken } =
-    useLocalSearchParams<{ id: string; token: string }>();
-
-  // Order detail: supplies status badge and qrToken fallback validation.
-  const orderQuery = useOrderDetail(orderId);
-  const order      = orderQuery.data;
-
-  // Tracking snapshot: polls and is invalidated by realtime (Task 5).
-  const trackingQuery = useOrderTracking(orderId, qrToken);
-  const snapshot      = trackingQuery.data;
-
-  const handleRefresh = useCallback(() => {
-    void trackingQuery.refetch();
-  }, [trackingQuery]);
-
-  // ── Realtime subscription ─────────────────────────────────────────────────
-  // Subscribe on mount; unsubscribe on unmount. The subscription calls
-  // invalidateOrderTracking (defined in useOrderTracking) which triggers a
-  // cache invalidation so the polling refetch fires immediately on new pings.
-  React.useEffect(() => {
-    if (!orderId) return;
-    const sub = subscribeToOrderTracking(orderId, () => {
-      void queryClient.invalidateQueries({
-        queryKey: ["orders", "tracking", orderId],
-      });
-    });
-    return () => sub.unsubscribe();
-  }, [orderId, queryClient]);
-
-  const statusMeta = order
-    ? (ORDER_STATUS_META[order.status] ?? ORDER_STATUS_META.pending)
-    : null;
-  const shortId = (orderId ?? "").slice(-8).toUpperCase();
-
-  // ── Derive location state ─────────────────────────────────────────────────
-  const location     = snapshot?.location ?? null;
-  const driver       = snapshot?.driver   ?? null;
-  const hasLocation  = Boolean(location);
-  const locationAge  = location ? ageSeconds(location.captured_at) : null;
-  const locationStale = locationAge !== null && locationAge > 120;
-
-  // ── Open in Google Maps ───────────────────────────────────────────────────
-  const openInMaps = () => {
-    if (!location) return;
-    void Linking.openURL(
-      `https://www.google.com/maps?q=${location.lat},${location.lng}`,
-    );
-  };
-
-  // ── Loading state ─────────────────────────────────────────────────────────
-  if (trackingQuery.isLoading) {
-    return (
-      <View style={[s.screen, { paddingTop: insets.top }]}>
-        <View style={[s.header, { paddingTop: insets.top + 10 }]}>
-          <Pressable
-            onPress={() => router.back()}
-            style={s.backBtn}
-            hitSlop={8}
-            accessibilityRole="button"
-          >
-            <Ionicons name={BACK_CHEVRON} size={18} color={kit.color.inkSoft} />
-          </Pressable>
-          <UIText variant="card-title" style={{ flex: 1, textAlign: TEXT_START }}>
-            #{shortId}
-          </UIText>
-        </View>
-        <View style={s.centered}>
-          <ActivityIndicator size="large" color={kit.color.accent} />
-          <UIText variant="body-sm" color="secondary" style={{ marginTop: 12 }}>
-            {t("tracking.loading", "Loading live tracking…")}
-          </UIText>
-        </View>
-      </View>
-    );
-  }
-
-  // ── Error state ───────────────────────────────────────────────────────────
-  if (trackingQuery.isError && !snapshot) {
-    return (
-      <View style={[s.screen, { paddingTop: insets.top }]}>
-        <View style={[s.header, { paddingTop: insets.top + 10 }]}>
-          <Pressable
-            onPress={() => router.back()}
-            style={s.backBtn}
-            hitSlop={8}
-            accessibilityRole="button"
-          >
-            <Ionicons name={BACK_CHEVRON} size={18} color={kit.color.inkSoft} />
-          </Pressable>
-          <UIText variant="card-title" style={{ flex: 1, textAlign: TEXT_START }}>
-            #{shortId}
-          </UIText>
-        </View>
-        <View style={s.centered}>
-          <Ionicons name="alert-circle-outline" size={40} color={kit.color.inkFaint} />
-          <UIText variant="body-sm" color="secondary" style={{ marginTop: 12, textAlign: "center" }}>
-            {t("tracking.loadError", "Could not load tracking information.")}
-          </UIText>
-          <Pressable
-            onPress={handleRefresh}
-            style={s.retryBtn}
-            accessibilityRole="button"
-          >
-            <UIText variant="body-sm" weight="bold" style={{ color: kit.color.accentDeep }}>
-              {t("common.retry")}
-            </UIText>
-          </Pressable>
-        </View>
-      </View>
-    );
-  }
-
-  // ── Main view ─────────────────────────────────────────────────────────────
-  return (
-    <View style={[s.screen, { paddingTop: insets.top }]}>
-      {/* ── Header ──────────────────────────────────────────────────────── */}
-      <Animated.View entering={FadeIn.duration(240)} style={[s.header, { paddingTop: insets.top + 10 }]}>
-        <Pressable
-          onPress={() => router.back()}
-          style={s.backBtn}
-          hitSlop={8}
-          accessibilityRole="button"
-          accessibilityLabel={t("common.back")}
-        >
-          <Ionicons name={BACK_CHEVRON} size={18} color={kit.color.inkSoft} />
-        </Pressable>
-        <View style={{ flex: 1 }}>
-          <UIText variant="eyebrow" color="tertiary" style={{ textAlign: TEXT_START }}>
-            {t("tracking.screenTitle", "Live Tracking")}
-          </UIText>
-          <UIText variant="card-title" style={{ textAlign: TEXT_START }}>
-            #{shortId}
-          </UIText>
-        </View>
-        {statusMeta && (
-          <Badge variant={statusMeta.variant} size="sm">
-            {t(statusMeta.labelKey)}
-          </Badge>
-        )}
-      </Animated.View>
-
-      <ScrollView
-        contentContainerStyle={[s.scroll, { paddingBottom: insets.bottom + 40 }]}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={trackingQuery.isRefetching}
-            onRefresh={handleRefresh}
-            tintColor={kit.color.accent}
-            colors={[kit.color.accent]}
-          />
-        }
-      >
-        {/* ── Connection banner ─────────────────────────────────────────── */}
-        <Animated.View
-          entering={FadeInDown.delay(0).duration(320)}
-          style={[
-            s.banner,
-            hasLocation ? s.bannerLive : s.bannerWaiting,
-          ]}
-        >
-          <Ionicons
-            name={hasLocation ? "radio-outline" : "navigate-outline"}
-            size={16}
-            color={hasLocation ? kit.color.success : kit.color.accentDeep}
-          />
-          <UIText variant="body-sm" style={{ flex: 1, textAlign: TEXT_START }}>
-            {hasLocation
-              ? t("tracking.liveActive", "Live location is updating.")
-              : t("tracking.waitingForLocation", "Waiting for driver location…")}
-          </UIText>
-          {hasLocation && trackingQuery.isRefetching && (
-            <ActivityIndicator size="small" color={kit.color.accent} />
-          )}
-        </Animated.View>
-
-        {/* ── Driver location card ───────────────────────────────────────── */}
-        <Animated.View entering={FadeInDown.delay(60).duration(320)} style={s.card}>
-          <View style={s.cardHeader}>
-            <View style={s.cardIconBox}>
-              <Ionicons name="location-outline" size={15} color={kit.color.accentDeep} />
-            </View>
-            <UIText variant="card-title" style={{ flex: 1, textAlign: TEXT_START }}>
-              {t("tracking.driverLocation", "Driver Location")}
-            </UIText>
-            {hasLocation && (
-              <Pressable
-                onPress={openInMaps}
-                style={s.mapsBtn}
-                accessibilityRole="button"
-                accessibilityLabel={t("tracking.openInMaps", "Open in Maps")}
-              >
-                <Ionicons name="map-outline" size={16} color={kit.color.accentDeep} />
-                <UIText variant="caption" style={{ color: kit.color.accentDeep }}>
-                  {t("tracking.openInMaps", "Maps")}
-                </UIText>
-              </Pressable>
-            )}
-          </View>
-
-          <View style={s.cardBody}>
-            {hasLocation && location ? (
-              <>
-                {/* Coordinate display */}
-                <View style={s.coordRow}>
-                  <UIText variant="body-sm" color="secondary" style={{ textAlign: TEXT_START }}>
-                    {t("tracking.latitude", "Lat")}
-                  </UIText>
-                  <UIText variant="body-sm" weight="bold" style={{ textAlign: "right" }}>
-                    {location.lat.toFixed(6)}
-                  </UIText>
-                </View>
-                <View style={s.coordRow}>
-                  <UIText variant="body-sm" color="secondary" style={{ textAlign: TEXT_START }}>
-                    {t("tracking.longitude", "Lng")}
-                  </UIText>
-                  <UIText variant="body-sm" weight="bold" style={{ textAlign: "right" }}>
-                    {location.lng.toFixed(6)}
-                  </UIText>
-                </View>
-
-                {/* Age indicator */}
-                <View style={s.ageRow}>
-                  <Ionicons name={locationStale ? "warning-outline" : "time-outline"} size={13} color={locationStale ? kit.color.warn : kit.color.inkFaint} />
-                  <UIText variant="caption" style={{ color: locationStale ? kit.color.warn : kit.color.inkSoft }}>
-                    {locationStale
-                      ? t("tracking.locationStale", "Location may be outdated")
-                      : t("tracking.updatedAt", "Updated")}
-                    {` ${formatCapturedAt(location.captured_at)}`}
-                    {locationAge !== null && locationAge > 0
-                      ? ` (${locationAge}${t("tracking.secondsAgo", "s ago")})`
-                      : ""}
-                  </UIText>
-                </View>
-              </>
-            ) : (
-              <View style={s.noLocationRow}>
-                <Ionicons name="navigate-circle-outline" size={32} color={kit.color.inkFaint} />
-                <UIText variant="body-sm" color="secondary" style={{ textAlign: "center", marginTop: 8 }}>
-                  {t("tracking.noLocationYet", "Driver location will appear here once the delivery begins.")}
-                </UIText>
-              </View>
-            )}
-          </View>
-        </Animated.View>
-
-        {/* ── Driver info card ───────────────────────────────────────────── */}
-        {driver && (
-          <Animated.View entering={FadeInDown.delay(120).duration(320)} style={s.card}>
-            <View style={s.cardHeader}>
-              <View style={s.cardIconBox}>
-                <Ionicons name="person-outline" size={15} color={kit.color.accentDeep} />
-              </View>
-              <UIText variant="card-title" style={{ flex: 1, textAlign: TEXT_START }}>
-                {t("tracking.yourDriver", "Your Driver")}
-              </UIText>
-            </View>
-            <View style={s.cardBody}>
-              <View style={s.coordRow}>
-                <UIText variant="body-sm" color="secondary" style={{ textAlign: TEXT_START }}>
-                  {t("driver.name", "Name")}
-                </UIText>
-                <UIText variant="body-sm" weight="bold" style={{ textAlign: TEXT_START }}>
-                  {driver.first_name || "—"}
-                </UIText>
-              </View>
-              {Boolean(driver.phone) && (
-                <Pressable
-                  onPress={() => {
-                    const phone = driver.phone.replace(/\s/g, "");
-                    void Linking.openURL(`tel:${phone}`);
-                  }}
-                  style={s.callRow}
-                  accessibilityRole="button"
-                  accessibilityLabel={t("driver.phone")}
-                >
-                  <Ionicons name="call-outline" size={16} color={kit.color.accentDeep} />
-                  <UIText variant="body-sm" style={{ color: kit.color.accentDeep }}>
-                    {driver.phone}
-                  </UIText>
-                </Pressable>
-              )}
-            </View>
-          </Animated.View>
-        )}
-
-        {/* ── Delivery address ───────────────────────────────────────────── */}
-        {order && (
-          <Animated.View entering={FadeInDown.delay(180).duration(320)} style={s.card}>
-            <View style={s.cardHeader}>
-              <View style={s.cardIconBox}>
-                <Ionicons name="home-outline" size={15} color={kit.color.accentDeep} />
-              </View>
-              <UIText variant="card-title" style={{ flex: 1, textAlign: TEXT_START }}>
-                {t("orders.addressSection")}
-              </UIText>
-            </View>
-            <View style={s.cardBody}>
-              <UIText variant="body-sm" color="secondary" style={{ textAlign: TEXT_START, lineHeight: 22 }}>
-                {order.address.formatted ??
-                  [order.address.street, order.address.city].filter(Boolean).join(", ") ??
-                  "—"}
-              </UIText>
-            </View>
-          </Animated.View>
-        )}
-      </ScrollView>
-    </View>
-  );
-}
-
-// ─── Styles ───────────────────────────────────────────────────────────────────
-
-const s = StyleSheet.create({
-  screen: {
-    flex:            1,
-    backgroundColor: kit.color.canvas,
-  },
-  header: {
-    flexDirection:     flexRow(IS_RTL),
-    alignItems:        "center",
-    gap:               theme.spacing.md,
-    paddingHorizontal: theme.spacing.lg,
-    paddingBottom:     14,
-    paddingTop:        10,
-    backgroundColor:   kit.color.surface,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: kit.color.line,
-    ...kit.shadow.raised,
-  },
-  backBtn: {
-    width:           40,
-    height:          40,
-    borderRadius:    20,
-    backgroundColor: kit.color.surface,
-    alignItems:      "center",
-    justifyContent:  "center",
-    borderWidth:     1,
-    borderColor:     kit.color.line,
-  },
-  centered: {
-    flex:           1,
-    alignItems:     "center",
-    justifyContent: "center",
-    paddingBottom:  80,
-  },
-  retryBtn: {
-    marginTop:         16,
-    paddingHorizontal: 20,
-    paddingVertical:   12,
-    borderRadius:      12,
-    backgroundColor:   kit.color.accentTint,
-    borderWidth:       1,
-    borderColor:       kit.color.line,
-  },
-  scroll: {
-    paddingHorizontal: kit.inset.screen,
-    paddingTop:        16,
-    gap:               14,
-  },
-
-  // ── Banner ────────────────────────────────────────────────────────────
-  banner: {
-    flexDirection:  flexRow(IS_RTL),
-    alignItems:     "center",
-    gap:            8,
-    paddingVertical:   12,
-    paddingHorizontal: 14,
-    borderRadius:   kit.radius.lg,
-    borderWidth:    1,
-  },
-  bannerLive: {
-    backgroundColor: kit.color.successTint,
-    borderColor:     kit.color.success,
-  },
-  bannerWaiting: {
-    backgroundColor: kit.color.accentTint,
-    borderColor:     kit.color.line,
-  },
-
-  // ── Card ──────────────────────────────────────────────────────────────
-  card: {
-    backgroundColor: kit.color.surface,
-    borderRadius:    kit.radius.card,
-    borderWidth:     1,
-    borderColor:     kit.color.line,
-    ...kit.shadow.card,
-  },
-  cardHeader: {
-    flexDirection:     flexRow(IS_RTL),
-    alignItems:        "center",
-    gap:               10,
-    paddingHorizontal: theme.spacing.lg,
-    paddingTop:        14,
-    paddingBottom:     theme.spacing.sm,
-  },
-  cardIconBox: {
-    width:           30,
-    height:          30,
-    borderRadius:    10,
-    backgroundColor: kit.color.accentTint,
-    alignItems:      "center",
-    justifyContent:  "center",
-  },
-  cardBody: {
-    paddingHorizontal: theme.spacing.lg,
-    paddingBottom:     theme.spacing.lg,
-    paddingTop:        theme.spacing.xs,
-    gap:               10,
-  },
-
-  // ── Rows inside cards ─────────────────────────────────────────────────
-  coordRow: {
-    flexDirection:   flexRow(IS_RTL),
-    justifyContent:  "space-between",
-    alignItems:      "center",
-    paddingVertical: 4,
-  },
-  ageRow: {
-    flexDirection:  flexRow(IS_RTL),
-    alignItems:     "center",
-    gap:            5,
-    marginTop:      4,
-  },
-  noLocationRow: {
-    alignItems:  "center",
-    paddingVertical: 20,
-  },
-  mapsBtn: {
-    flexDirection:     flexRow(IS_RTL),
-    alignItems:        "center",
-    gap:               4,
-    paddingHorizontal: 10,
-    paddingVertical:   6,
-    borderRadius:      kit.radius.pill,
-    backgroundColor:   kit.color.accentTint,
-    borderWidth:       1,
-    borderColor:       kit.color.line,
-  },
-  callRow: {
-    flexDirection:     flexRow(IS_RTL),
-    alignItems:        "center",
-    gap:               8,
-    paddingVertical:   10,
-    paddingHorizontal: 12,
-    borderRadius:      kit.radius.lg,
-    backgroundColor:   kit.color.accentTint,
-    borderWidth:       1,
-    borderColor:       kit.color.line,
-    marginTop:         4,
-  },
-});
+import React, { useMemo } from "react";
+import { Platform, Pressable, ScrollView, StyleSheet, View, Linking } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter, useLocalSearchParams } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import * as Haptics from "expo-haptics";
+import Animated, { FadeIn, FadeInDown, SlideInDown, withRepeat, withTiming, useAnimatedStyle, useSharedValue, useEffect } from "react-native-reanimated";
+import { LinearGradient } from "expo-linear-gradient";
+import { useTranslation } from "react-i18next";
+
+import { useOrderTracking } from "../hooks/useOrderTracking";
+import { Button, kit, Text as UIText } from "@pharmacy/ui-native";
+import { useDarkColors } from "@/hooks/useDarkColors";
+import { theme } from "@pharmacy/design-tokens";
+import { flexRow, isRtl, textAlignStart, BACK_CHEVRON } from "@/utils/layout";
+
+const IS_RTL = isRtl();
+const TEXT_START = textAlignStart(IS_RTL);
+
+const STATUS_STEPS = [
+  { status: "placed", icon: "receipt-outline", labelKey: "order.statusPlaced" },
+  { status: "confirmed", icon: "checkmark-done-outline", labelKey: "order.statusConfirmed" },
+  { status: "preparing", icon: "cube-outline", labelKey: "order.statusPreparing" },
+  { status: "out_for_delivery", icon: "bicycle-outline", labelKey: "order.statusOutForDelivery" },
+  { status: "delivered", icon: "home-outline", labelKey: "order.statusDelivered" },
+];
+
+function TimelineStep({ step, isCompleted, isCurrent, isLast }: any) {
+  const { c } = useDarkColors();
+  const { t } = useTranslation();
+  
+  // Pulse animation for current step
+  const pulse = useSharedValue(1);
+  React.useEffect(() => {
+    if (isCurrent) {
+      pulse.value = withRepeat(withTiming(1.3, { duration: 1000 }), -1, true);
+    } else {
+      pulse.value = 1;
+    }
+  }, [isCurrent]);
+
+  const animatedDotStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: pulse.value }],
+  }));
+
+  const iconColor = isCompleted || isCurrent ? kit.color.canvas : kit.color.inkFaint;
+  const bgColor = isCompleted ? kit.color.success : isCurrent ? kit.color.accentDeep : c.line;
+
+  return (
+    <View style={[styles.stepContainer, { flexDirection: flexRow(IS_RTL) }]}>
+      <View style={styles.stepIndicator}>
+        <Animated.View style={[styles.stepDot, { backgroundColor: bgColor }, animatedDotStyle]}>
+          <Ionicons name={step.icon} size={16} color={iconColor} />
+        </Animated.View>
+        {!isLast && (
+          <View style={[styles.stepLine, { backgroundColor: isCompleted ? kit.color.success : c.line }]} />
+        )}
+      </View>
+      <View style={styles.stepContent}>
+        <UIText style={[styles.stepLabel, { color: isCompleted || isCurrent ? c.ink : kit.color.inkSoft, textAlign: TEXT_START }]}>
+          {t(step.labelKey, { defaultValue: step.status })}
+        </UIText>
+        {isCurrent && (
+          <UIText style={[styles.stepSublabel, { color: kit.color.accentDeep, textAlign: TEXT_START }]}>
+            {t("order.inProgress", { defaultValue: "In Progress..." })}
+          </UIText>
+        )}
+      </View>
+    </View>
+  );
+}
+
+export default function TrackOrderScreen() {
+  const { c } = useDarkColors();
+  const { t } = useTranslation();
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const { id, token } = useLocalSearchParams<{ id: string; token: string }>();
+
+  const { data: track, isLoading, isError } = useOrderTracking(id as string, token as string);
+
+  const currentStepIndex = useMemo(() => {
+    if (!track) return 0;
+    const idx = STATUS_STEPS.findIndex(s => s.status === track.status);
+    return idx >= 0 ? idx : 0;
+  }, [track]);
+
+  return (
+    <View style={{ flex: 1, backgroundColor: c.canvas }}>
+      <Animated.View entering={FadeIn.duration(200)} style={[styles.header, { paddingTop: insets.top, backgroundColor: c.surface, borderBottomColor: c.line }]}>
+        <Pressable 
+          onPress={() => router.back()} 
+          style={styles.backBtn}
+        >
+          <Ionicons name={BACK_CHEVRON} size={24} color={c.ink} />
+        </Pressable>
+        <UIText style={[styles.title, { color: c.ink }]}>{t("order.trackTitle", { defaultValue: "Track Order" })}</UIText>
+        <View style={{ width: 40 }} />
+      </Animated.View>
+
+      <ScrollView 
+        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 40 }]}
+        showsVerticalScrollIndicator={false}
+      >
+        <Animated.View entering={FadeInDown.duration(400).delay(50)}>
+          
+          {/* Order Meta Header */}
+          <View style={[styles.metaCard, { backgroundColor: c.surface, borderColor: c.line }]}>
+             <View style={[styles.metaRow, { flexDirection: flexRow(IS_RTL) }]}>
+               <View>
+                 <UIText style={[styles.metaLabel, { color: c.inkSoft, textAlign: TEXT_START }]}>{t("order.orderId", { defaultValue: "Order ID" })}</UIText>
+                 <UIText style={[styles.metaValue, { color: c.ink, textAlign: TEXT_START }]}>#{id?.slice(0, 8).toUpperCase()}</UIText>
+               </View>
+               <View>
+                 <UIText style={[styles.metaLabel, { color: c.inkSoft, textAlign: IS_RTL ? "left" : "right" }]}>{t("order.eta", { defaultValue: "Est. Arrival" })}</UIText>
+                 <UIText style={[styles.metaValue, { color: kit.color.accentDeep, textAlign: IS_RTL ? "left" : "right" }]}>45 mins</UIText>
+               </View>
+             </View>
+          </View>
+
+          {/* Map Placeholder */}
+          <View style={[styles.mapPlaceholder, { backgroundColor: c.line }]}>
+             <Ionicons name="map" size={48} color={c.inkFaint} />
+             <UIText style={{ color: c.inkSoft, marginTop: 8 }}>{t("order.mapLoading", { defaultValue: "Driver Location (Simulated)" })}</UIText>
+             
+             {track?.location && (
+               <Pressable 
+                 style={styles.mapBtn}
+                 onPress={() => Linking.openURL(`https://maps.google.com/?q=${track.location!.lat},${track.location!.lng}`)}
+               >
+                 <UIText style={styles.mapBtnText}>{t("order.openMaps", { defaultValue: "Open in Maps" })}</UIText>
+               </Pressable>
+             )}
+          </View>
+
+          {/* Timeline Card */}
+          <View style={[styles.timelineCard, { backgroundColor: c.surface, borderColor: c.line }]}>
+            <UIText style={[styles.timelineHeader, { color: c.ink, textAlign: TEXT_START }]}>{t("order.timeline", { defaultValue: "Delivery Status" })}</UIText>
+            <View style={styles.timelineList}>
+              {STATUS_STEPS.map((step, idx) => (
+                <TimelineStep
+                  key={step.status}
+                  step={step}
+                  isCompleted={idx < currentStepIndex}
+                  isCurrent={idx === currentStepIndex}
+                  isLast={idx === STATUS_STEPS.length - 1}
+                />
+              ))}
+            </View>
+          </View>
+
+        </Animated.View>
+      </ScrollView>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    zIndex: 10,
+  },
+  backBtn: {
+    width: 40,
+    height: 40,
+    alignItems: "flex-start",
+    justifyContent: "center",
+  },
+  title: {
+    fontFamily: theme.fonts.bold,
+    fontSize: 18,
+  },
+  content: {
+    paddingHorizontal: 20,
+    paddingTop: 24,
+  },
+  metaCard: {
+    padding: 20,
+    borderRadius: 16,
+    borderWidth: StyleSheet.hairlineWidth,
+    marginBottom: 24,
+  },
+  metaRow: {
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  metaLabel: {
+    fontFamily: theme.fonts.medium,
+    fontSize: 12,
+    marginBottom: 4,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  metaValue: {
+    fontFamily: theme.fonts.extrabold,
+    fontSize: 18,
+  },
+  mapPlaceholder: {
+    height: 180,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 24,
+    overflow: "hidden",
+  },
+  mapBtn: {
+    marginTop: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    backgroundColor: kit.color.canvas,
+    borderRadius: 20,
+    ...kit.shadow.raised,
+  },
+  mapBtnText: {
+    fontFamily: theme.fonts.bold,
+    fontSize: 13,
+    color: kit.color.accentDeep,
+  },
+  timelineCard: {
+    padding: 24,
+    borderRadius: 16,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  timelineHeader: {
+    fontFamily: theme.fonts.bold,
+    fontSize: 16,
+    marginBottom: 24,
+  },
+  timelineList: {
+    paddingLeft: 8,
+  },
+  stepContainer: {
+    alignItems: "flex-start",
+  },
+  stepIndicator: {
+    alignItems: "center",
+    width: 32,
+  },
+  stepDot: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 2,
+  },
+  stepLine: {
+    width: 2,
+    height: 40,
+    marginVertical: -4,
+    zIndex: 1,
+  },
+  stepContent: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingTop: 6,
+    minHeight: 64,
+  },
+  stepLabel: {
+    fontFamily: theme.fonts.bold,
+    fontSize: 15,
+  },
+  stepSublabel: {
+    fontFamily: theme.fonts.medium,
+    fontSize: 13,
+    marginTop: 4,
+  },
+});

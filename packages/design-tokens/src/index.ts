@@ -7,6 +7,8 @@
  */
 export * from "./semantic";
 export * from "./legacy";
+export * from "./luxury";
+
 
 import { lightTheme } from "./semantic";
 import { theme } from "./legacy";

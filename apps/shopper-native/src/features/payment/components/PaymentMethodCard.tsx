@@ -1,237 +1,474 @@
-import React from "react";
-import { Platform, Pressable, StyleSheet, View } from "react-native";
-import { Text as UIText } from "@pharmacy/ui-native";
-import { Ionicons } from "@expo/vector-icons";
-import * as Haptics from "expo-haptics";
-import Animated, { FadeIn, useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
-import { useTranslation } from "react-i18next";
-import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
-import { theme } from "@pharmacy/design-tokens";
-import { kit } from "@pharmacy/ui-native";
-import type { PaymentMethod } from "../types";
-
-type IoniconsName = React.ComponentProps<typeof Ionicons>["name"];
-
-const IS_RTL = isRtl();
-
-interface Props {
-  method: PaymentMethod;
-  selected: boolean;
-  onSelect: () => void;
-}
-
-const TYPE_COLORS: Record<string, { accent: string; bg: string }> = {
-  cod:           { accent: kit.color.success, bg: kit.color.successTint },
-  instapay:      { accent: "#7c3aed",         bg: "#f5f3ff"             },
-  vodafone_cash: { accent: kit.color.danger,  bg: kit.color.dangerTint  },
-};
-
-export function PaymentMethodCard({ method, selected, onSelect }: Props) {
-  const { t } = useTranslation();
-  const colors = TYPE_COLORS[method.type] ?? TYPE_COLORS.cod;
-  const scale = useSharedValue(1);
-
-  const animStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
-
-  const handlePress = () => {
-    if (Platform.OS !== "web") Haptics.selectionAsync().catch(() => {});
-    scale.value = withSpring(0.97, { damping: 18, stiffness: 400 });
-    setTimeout(() => { scale.value = withSpring(1, { damping: 14, stiffness: 300 }); }, 100);
-    onSelect();
-  };
-
-  return (
-    <Animated.View style={animStyle}>
-      <Pressable
-        onPress={handlePress}
-        accessibilityRole="radio"
-        accessibilityState={{ selected }}
-        accessibilityLabel={t(method.labelKey)}
-        style={styles.touchable}>
-        {({ pressed }) => (
-          <View
-            style={[
-              styles.card,
-              selected && {
-                borderColor:      colors.accent,
-                borderWidth:      1.5,
-                borderStartWidth: 4,
-                borderStartColor: colors.accent,
-                backgroundColor:  colors.bg,
-                ...kit.shadow.raised,
-              },
-              pressed && styles.cardPressed,
-            ]}>
-            <View style={[styles.row, { flexDirection: flexRow(IS_RTL) }]}>
-
-              {/* Radio circle */}
-              <View style={[styles.check, selected && { backgroundColor: colors.accent, borderColor: colors.accent }]}>
-                {selected && (
-                  <Animated.View entering={FadeIn.duration(120)}>
-                    <Ionicons name="checkmark" size={13} color="#fff" />
-                  </Animated.View>
-                )}
-              </View>
-
-              {/* Icon tile */}
-              <View style={[styles.iconWrap, { backgroundColor: selected ? "#fff" : colors.bg }]}>
-                <Ionicons name={method.icon as IoniconsName} size={22} color={colors.accent} />
-              </View>
-
-              {/* Text */}
-              <View style={styles.textWrap}>
-                <UIText style={[styles.label, selected && { color: colors.accent }]}>
-                  {t(method.labelKey)}
-                </UIText>
-                <UIText style={styles.desc}>{t(method.descKey)}</UIText>
-                {method.phone && (
-                  <View style={[styles.phoneRow, { flexDirection: flexRow(IS_RTL) }]}>
-                    <Ionicons name="call-outline" size={12} color={colors.accent} />
-                    <UIText style={styles.phoneText}>{method.phone}</UIText>
-                  </View>
-                )}
-
-                {/* Security badge */}
-                {selected && (
-                  <Animated.View entering={FadeIn.duration(200)} style={[styles.secureBadge, { flexDirection: flexRow(IS_RTL) }]}>
-                    <Ionicons name="shield-checkmark" size={10} color={kit.color.success} />
-                    <UIText style={styles.secureText}>{t("payment.secure")}</UIText>
-                  </Animated.View>
-                )}
-              </View>
-            </View>
-          </View>
-        )}
-      </Pressable>
-
-      {/* Expanded details when selected */}
-      {selected && method.detailsKey && (
-        <Animated.View entering={FadeIn.duration(250)} style={styles.detailsCard}>
-          <View style={[styles.detailRow, { flexDirection: flexRow(IS_RTL) }]}>
-            <Ionicons name="information-circle-outline" size={14} color={kit.color.inkFaint} />
-            <UIText style={styles.detailText}>{t(method.detailsKey)}</UIText>
-          </View>
-          {method.phone && (
-            <View style={[styles.detailRow, { flexDirection: flexRow(IS_RTL) }]}>
-              <Ionicons name="call-outline" size={14} color={colors.accent} />
-              <UIText style={[styles.detailText, { color: colors.accent, fontFamily: theme.fonts.bold }]}>
-                {method.phone}
-              </UIText>
-            </View>
-          )}
-        </Animated.View>
-      )}
-    </Animated.View>
-  );
-}
-
-const styles = StyleSheet.create({
-  touchable: {
-    borderRadius: 16,
-  },
-  card: {
-    borderRadius:    16,
-    borderWidth:     1.5,
-    borderColor:     kit.color.line,
-    backgroundColor: kit.color.surface,
-    overflow:        "hidden",
-  },
-  cardPressed: {
-    opacity: 0.92,
-  },
-  row: {
-    alignItems:        "center",
-    gap:               14,
-    paddingHorizontal: 16,
-    paddingVertical:   16,
-  },
-  // Radio circle — Stripe / Apple Pay style
-  check: {
-    width:          22,
-    height:         22,
-    borderRadius:   11,
-    borderWidth:    2,
-    borderColor:    kit.color.lineStrong,
-    alignItems:     "center",
-    justifyContent: "center",
-    flexShrink:     0,
-  },
-  iconWrap: {
-    width:          48,
-    height:         48,
-    borderRadius:   16,
-    alignItems:     "center",
-    justifyContent: "center",
-    flexShrink:     0,
-  },
-  textWrap: {
-    flex: 1,
-    gap:  2,
-  },
-  label: {
-    fontSize:           14,
-    fontFamily:         theme.fonts.bold,
-    color:              kit.color.ink,
-    textAlign:          textAlignStart(IS_RTL),
-    includeFontPadding: false,
-  },
-  desc: {
-    fontSize:           11,
-    fontFamily:         theme.fonts.regular,
-    color:              kit.color.inkFaint,
-    textAlign:          textAlignStart(IS_RTL),
-    includeFontPadding: false,
-  },
-  phoneRow: {
-    alignItems: "center",
-    gap:        6,
-    marginTop:  4,
-  },
-  phoneText: {
-    fontSize:           11,
-    fontFamily:         theme.fonts.semibold,
-    color:              kit.color.inkSoft,
-    textAlign:          textAlignStart(IS_RTL),
-    includeFontPadding: false,
-  },
-  secureBadge: {
-    alignSelf:         "flex-start",
-    alignItems:        "center",
-    gap:               3,
-    marginTop:         4,
-    backgroundColor:   kit.color.successTint,
-    paddingHorizontal: 7,
-    paddingVertical:   3,
-    borderRadius:      999,
-  },
-  secureText: {
-    fontSize:           9,
-    fontFamily:         theme.fonts.bold,
-    color:              kit.color.success,
-    includeFontPadding: false,
-  },
-  detailsCard: {
-    marginTop:   6,
-    marginStart: 62,   // aligns under the icon tile (radio 22 + gap 14 + icon 48 = 84 minus card padding 16 -> visually under text)
-    padding:     12,
-    borderRadius: 14,
-    backgroundColor: kit.color.well,
-    gap:         8,
-    borderWidth: 1,
-    borderColor: kit.color.line,
-  },
-  detailRow: {
-    alignItems: "center",
-    gap:        8,
-  },
-  detailText: {
-    flex:               1,
-    fontSize:           11,
-    fontFamily:         theme.fonts.semibold,
-    color:              kit.color.inkSoft,
-    textAlign:          textAlignStart(IS_RTL),
-    includeFontPadding: false,
-  },
-});
+import React from "react";
+
+import { Platform, Pressable, StyleSheet, View } from "react-native";
+
+import { Text as UIText } from "@pharmacy/ui-native";
+
+import { Ionicons } from "@expo/vector-icons";
+
+import * as Haptics from "expo-haptics";
+
+import Animated, { FadeIn, useAnimatedStyle, useSharedValue, withSpring, useReducedMotion } from "react-native-reanimated";
+
+import { useTranslation } from "react-i18next";
+
+import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
+
+import { theme } from "@pharmacy/design-tokens";
+
+import { kit } from "@pharmacy/ui-native";
+
+import type { PaymentMethod } from "../types";
+
+
+
+type IoniconsName = React.ComponentProps<typeof Ionicons>["name"];
+
+
+
+const IS_RTL = isRtl();
+
+
+
+interface Props {
+
+  method: PaymentMethod;
+
+  selected: boolean;
+
+  onSelect: () => void;
+
+}
+
+
+
+const TYPE_COLORS: Record<string, { accent: string; bg: string }> = {
+
+  cod:           { accent: kit.color.success, bg: kit.color.successTint },
+
+  instapay:      { accent: "#7c3aed",         bg: "#f5f3ff"             },
+
+  vodafone_cash: { accent: kit.color.danger,  bg: kit.color.dangerTint  },
+
+};
+
+
+
+export function PaymentMethodCard({ method, selected, onSelect }: Props) {
+
+  const { t } = useTranslation();
+
+  const colors = TYPE_COLORS[method.type] ?? TYPE_COLORS.cod;
+
+  const scale = useSharedValue(1);
+
+
+
+  const animStyle = useAnimatedStyle(() => ({
+
+    transform: [{ scale: scale.value }],
+
+  }));
+
+
+
+  const handlePress = () => {
+
+    if (Platform.OS !== "web") Haptics.selectionAsync().catch(() => {});
+
+    scale.value = withSpring(0.97, { damping: 18, stiffness: 400 });
+
+    setTimeout(() => { scale.value = withSpring(1, { damping: 14, stiffness: 300 }); }, 100);
+
+    onSelect();
+
+  };
+
+
+
+  return (
+
+    <Animated.View style={animStyle}>
+
+      <Pressable
+
+        onPress={handlePress}
+
+        accessibilityRole="radio"
+
+        accessibilityState={{ selected }}
+
+        accessibilityLabel={t(method.labelKey)}
+
+        style={styles.touchable}>
+
+        {({ pressed }) => (
+
+          <View
+
+            style={[
+
+              styles.card,
+
+              selected && {
+
+                borderColor:      colors.accent,
+
+                borderWidth:      1.5,
+
+                borderStartWidth: 4,
+
+                borderStartColor: colors.accent,
+
+                backgroundColor:  colors.bg,
+
+                ...kit.shadow.raised,
+
+              },
+
+              pressed && styles.cardPressed,
+
+            ]}>
+
+            <View style={[styles.row, { flexDirection: flexRow(IS_RTL) }]}>
+
+
+
+              {/* Radio circle */}
+
+              <View style={[styles.check, selected && { backgroundColor: colors.accent, borderColor: colors.accent }]}>
+
+                {selected && (
+
+                  <Animated.View entering={FadeIn.duration(120)}>
+
+                    <Ionicons name="checkmark" size={13} color="#fff" />
+
+                  </Animated.View>
+
+                )}
+
+              </View>
+
+
+
+              {/* Icon tile */}
+
+              <View style={[styles.iconWrap, { backgroundColor: selected ? "#fff" : colors.bg }]}>
+
+                <Ionicons name={method.icon as IoniconsName} size={22} color={colors.accent} />
+
+              </View>
+
+
+
+              {/* Text */}
+
+              <View style={styles.textWrap}>
+
+                <UIText style={[styles.label, selected && { color: colors.accent }]}>
+
+                  {t(method.labelKey)}
+
+                </UIText>
+
+                <UIText style={styles.desc}>{t(method.descKey)}</UIText>
+
+                {method.phone && (
+
+                  <View style={[styles.phoneRow, { flexDirection: flexRow(IS_RTL) }]}>
+
+                    <Ionicons name="call-outline" size={12} color={colors.accent} />
+
+                    <UIText style={styles.phoneText}>{method.phone}</UIText>
+
+                  </View>
+
+                )}
+
+
+
+                {/* Security badge */}
+
+                {selected && (
+
+                  <Animated.View entering={FadeIn.duration(200)} style={[styles.secureBadge, { flexDirection: flexRow(IS_RTL) }]}>
+
+                    <Ionicons name="shield-checkmark" size={10} color={kit.color.success} />
+
+                    <UIText style={styles.secureText}>{t("payment.secure")}</UIText>
+
+                  </Animated.View>
+
+                )}
+
+              </View>
+
+            </View>
+
+          </View>
+
+        )}
+
+      </Pressable>
+
+
+
+      {/* Expanded details when selected */}
+
+      {selected && method.detailsKey && (
+
+        <Animated.View entering={FadeIn.duration(250)} style={styles.detailsCard}>
+
+          <View style={[styles.detailRow, { flexDirection: flexRow(IS_RTL) }]}>
+
+            <Ionicons name="information-circle-outline" size={14} color={kit.color.inkFaint} />
+
+            <UIText style={styles.detailText}>{t(method.detailsKey)}</UIText>
+
+          </View>
+
+          {method.phone && (
+
+            <View style={[styles.detailRow, { flexDirection: flexRow(IS_RTL) }]}>
+
+              <Ionicons name="call-outline" size={14} color={colors.accent} />
+
+              <UIText style={[styles.detailText, { color: colors.accent, fontFamily: theme.fonts.bold }]}>
+
+                {method.phone}
+
+              </UIText>
+
+            </View>
+
+          )}
+
+        </Animated.View>
+
+      )}
+
+    </Animated.View>
+
+  );
+
+}
+
+
+
+const styles = StyleSheet.create({
+
+  touchable: {
+
+    borderRadius: 16,
+
+  },
+
+  card: {
+
+    borderRadius:    16,
+
+    borderWidth:     1.5,
+
+    borderColor:     kit.color.line,
+
+    backgroundColor: kit.color.surface,
+
+    overflow:        "hidden",
+
+  },
+
+  cardPressed: {
+
+    opacity: 0.92,
+
+  },
+
+  row: {
+
+    alignItems:        "center",
+
+    gap:               14,
+
+    paddingHorizontal: 16,
+
+    paddingVertical:   16,
+
+  },
+
+  // Radio circle — Stripe / Apple Pay style
+
+  check: {
+
+    width:          22,
+
+    height:         22,
+
+    borderRadius:   11,
+
+    borderWidth:    2,
+
+    borderColor:    kit.color.lineStrong,
+
+    alignItems:     "center",
+
+    justifyContent: "center",
+
+    flexShrink:     0,
+
+  },
+
+  iconWrap: {
+
+    width:          48,
+
+    height:         48,
+
+    borderRadius:   16,
+
+    alignItems:     "center",
+
+    justifyContent: "center",
+
+    flexShrink:     0,
+
+  },
+
+  textWrap: {
+
+    flex: 1,
+
+    gap:  2,
+
+  },
+
+  label: {
+
+    fontSize:           14,
+
+    fontFamily:         theme.fonts.bold,
+
+    color:              kit.color.ink,
+
+    textAlign:          textAlignStart(IS_RTL),
+
+    includeFontPadding: false,
+
+  },
+
+  desc: {
+
+    fontSize:           11,
+
+    fontFamily:         theme.fonts.regular,
+
+    color:              kit.color.inkFaint,
+
+    textAlign:          textAlignStart(IS_RTL),
+
+    includeFontPadding: false,
+
+  },
+
+  phoneRow: {
+
+    alignItems: "center",
+
+    gap:        6,
+
+    marginTop:  4,
+
+  },
+
+  phoneText: {
+
+    fontSize:           11,
+
+    fontFamily:         theme.fonts.semibold,
+
+    color:              kit.color.inkSoft,
+
+    textAlign:          textAlignStart(IS_RTL),
+
+    includeFontPadding: false,
+
+  },
+
+  secureBadge: {
+
+    alignSelf:         "flex-start",
+
+    alignItems:        "center",
+
+    gap:               3,
+
+    marginTop:         4,
+
+    backgroundColor:   kit.color.successTint,
+
+    paddingHorizontal: 7,
+
+    paddingVertical:   3,
+
+    borderRadius:      999,
+
+  },
+
+  secureText: {
+
+    fontSize:           9,
+
+    fontFamily:         theme.fonts.bold,
+
+    color:              kit.color.success,
+
+    includeFontPadding: false,
+
+  },
+
+  detailsCard: {
+
+    marginTop:   6,
+
+    marginStart: 62,   // aligns under the icon tile (radio 22 + gap 14 + icon 48 = 84 minus card padding 16 -> visually under text)
+
+    padding:     12,
+
+    borderRadius: 14,
+
+    backgroundColor: kit.color.well,
+
+    gap:         8,
+
+    borderWidth: 1,
+
+    borderColor: kit.color.line,
+
+  },
+
+  detailRow: {
+
+    alignItems: "center",
+
+    gap:        8,
+
+  },
+
+  detailText: {
+
+    flex:               1,
+
+    fontSize:           11,
+
+    fontFamily:         theme.fonts.semibold,
+
+    color:              kit.color.inkSoft,
+
+    textAlign:          textAlignStart(IS_RTL),
+
+    includeFontPadding: false,
+
+  },
+
+});
+

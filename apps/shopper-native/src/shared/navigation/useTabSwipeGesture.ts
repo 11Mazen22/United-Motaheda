@@ -29,7 +29,7 @@ import {
   useSharedValue,
   withSpring,
   withTiming,
-} from "react-native-reanimated";
+useReducedMotion } from "react-native-reanimated";
 import { router } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { isRtl } from "@/utils/layout";
@@ -61,7 +61,7 @@ const CONFIRM_DURATION = 200;
 
 /** Maps a TAB_ORDER entry to the actual expo-router href for that tab. */
 function tabHref(name: TabRouteName): string {
-  return name === "index" ? "/(tabs)" : `/(tabs)/${name}`;
+  return name === "index" ? "/(tabs)" : `/(customer)/(tabs)/${name}`;
 }
 
 function triggerHaptic() {

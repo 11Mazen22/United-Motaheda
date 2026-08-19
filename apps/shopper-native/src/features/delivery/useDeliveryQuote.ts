@@ -102,8 +102,10 @@ export function useDeliveryQuote(input: DeliveryQuoteInput): DeliveryQuote {
   }, [
     input.subtotal,
     input.branchId,
-    input.customerCoords,
+    input.customerCoords?.lat,
+    input.customerCoords?.lng,
     input.address?.city,
+    input.address?.streetName,
     branches,
     branchesLoading,
   ]);

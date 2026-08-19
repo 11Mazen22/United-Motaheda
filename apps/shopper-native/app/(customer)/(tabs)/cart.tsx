@@ -1,0 +1,235 @@
+import React, { useCallback, useMemo, useState } from "react";
+import { View, StyleSheet, FlatList, Pressable, Platform, ScrollView } from "react-native";
+import { Image } from "expo-image";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
+import { useTranslation } from "react-i18next";
+import { Ionicons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
+import Animated, { FadeIn, FadeOut, Layout, SlideInDown, SlideOutDown } from "react-native-reanimated";
+
+import { CustomerUI, kit } from "@pharmacy/ui-native";
+import { theme } from "@pharmacy/design-tokens";
+import { isRtl, flexRow, textAlignStart } from "@/utils/layout";
+
+// Data & State
+import { useCartStore, selectPricing, type CartItem } from "@/stores/cart";
+import { useCartStateMachine, type ConflictItem } from "@/features/cart/hooks/useCartStateMachine";
+import { useDeliveryContext } from "@/features/delivery/useDeliveryContext";
+import { FREE_DELIVERY_THRESHOLD } from "@/features/delivery/constants";
+import { useDarkColors } from "@/hooks/useDarkColors";
+
+const IS_RTL = isRtl();
+const DEFAULT_BLURHASH = "L6PZfSi_.AyE_3t7t7R**0o#DgR4";
+
+function PremiumCartItem({ item, conflict }: { item: CartItem; conflict?: ConflictItem }) {
+  const { t, i18n } = useTranslation();
+  const { c } = useDarkColors();
+  const updateQuantity = useCartStore(s => s.updateQuantity);
+  const removeItem = useCartStore(s => s.removeItem);
+  const router = useRouter();
+
+  const handleIncrement = useCallback(() => {
+    Haptics.selectionAsync().catch(() => {});
+    if (item.quantity >= item.product.stock) return;
+    updateQuantity(item.productId, item.quantity + 1);
+  }, [item, updateQuantity]);
+
+  const handleDecrement = useCallback(() => {
+    Haptics.selectionAsync().catch(() => {});
+    if (item.quantity > 1) {
+      updateQuantity(item.productId, item.quantity - 1);
+    } else {
+      removeItem(item.productId);
+    }
+  }, [item, updateQuantity, removeItem]);
+
+  const name = (i18n.language === "en" ? (item.product.nameEn || item.product.nameAr || item.product.name) : (item.product.nameAr || item.product.nameEn || item.product.name)) ?? "";
+  const hasDiscount = item.product.hasActivePromotion && item.product.basePrice > item.product.price;
+  const isOutOfStock = conflict?.type === "unavailable" || (conflict?.type === "stock" && conflict.serverStock === 0);
+
+  return (
+    <Animated.View layout={Layout.springify()} entering={FadeIn} exiting={FadeOut.duration(200)} style={[styles.itemCard, { backgroundColor: c.surface, borderColor: conflict ? kit.color.danger : c.line }]}>
+      <Pressable onPress={() => router.push(`/(customer)/(shop)/product/${item.productId}`)} style={[styles.itemContent, { flexDirection: flexRow(IS_RTL) }]}>
+        <View style={[styles.itemImageWrap, { backgroundColor: c.canvas }]}>
+          {item.product.imageUrl ? (
+            <Image source={{ uri: item.product.imageUrl }} style={styles.itemImage} placeholder={DEFAULT_BLURHASH} contentFit="contain" />
+          ) : (
+             <Ionicons name="medkit-outline" size={32} color={c.inkFaint} />
+          )}
+        </View>
+        
+        <View style={styles.itemDetails}>
+          <CustomerUI.Typography variant="body" weight="bold" color={c.ink} numberOfLines={2} style={{ textAlign: textAlignStart(IS_RTL) }}>
+            {name}
+          </CustomerUI.Typography>
+          
+          <View style={[styles.itemPriceRow, { flexDirection: flexRow(IS_RTL) }]}>
+            <CustomerUI.Price amount={item.product.price} size="md" />
+            {hasDiscount && (
+              <CustomerUI.Typography variant="caption" color={c.inkSoft} style={{ textDecorationLine: "line-through", marginHorizontal: 8 }}>
+                {item.product.basePrice.toLocaleString("ar-EG")}
+              </CustomerUI.Typography>
+            )}
+          </View>
+          
+          {conflict && (
+            <View style={[styles.conflictBox, { backgroundColor: kit.color.dangerTint, flexDirection: flexRow(IS_RTL) }]}>
+              <Ionicons name="warning" size={14} color={kit.color.danger} />
+              <CustomerUI.Typography variant="caption" weight="bold" color={kit.color.danger}>
+                {conflict.type === "unavailable" ? t("cart.itemUnavailable", "Item no longer available") : 
+                 conflict.type === "stock" ? t("cart.onlyStockLeft", { count: conflict.serverStock, defaultValue: `Only ${conflict.serverStock} left` }) : 
+                 t("cart.priceChanged", "Price updated")}
+              </CustomerUI.Typography>
+            </View>
+          )}
+        </View>
+      </Pressable>
+
+      <View style={[styles.itemFooter, { borderTopColor: c.line, flexDirection: flexRow(IS_RTL) }]}>
+        {isOutOfStock ? (
+          <Pressable onPress={() => removeItem(item.productId)} style={styles.removeBtnText}>
+             <CustomerUI.Typography variant="body" weight="bold" color={kit.color.danger}>{t("common.remove", "Remove")}</CustomerUI.Typography>
+          </Pressable>
+        ) : (
+          <View style={[styles.qtyControl, { backgroundColor: c.canvas, flexDirection: flexRow(IS_RTL) }]}>
+             <Pressable onPress={handleDecrement} style={styles.qtyBtn} hitSlop={10}>
+                <Ionicons name={item.quantity === 1 ? "trash-outline" : "remove"} size={18} color={item.quantity === 1 ? kit.color.danger : c.ink} />
+             </Pressable>
+             <CustomerUI.Typography variant="body" weight="bold" color={c.ink} style={{ width: 32, textAlign: "center" }}>
+                {item.quantity.toLocaleString("ar-EG")}
+             </CustomerUI.Typography>
+             <Pressable onPress={handleIncrement} style={styles.qtyBtn} hitSlop={10}>
+                <Ionicons name="add" size={18} color={item.quantity >= item.product.stock ? c.inkFaint : c.ink} />
+             </Pressable>
+          </View>
+        )}
+      </View>
+    </Animated.View>
+  );
+}
+
+export default function CartScreen() {
+  const { t } = useTranslation();
+  const { c } = useDarkColors();
+  const insets = useSafeAreaInsets();
+  const router = useRouter();
+
+  const items = useCartStore(s => s.items);
+  const pricing = useCartStore(selectPricing);
+  const conflicts = useCartStateMachine(); // Auto-verifies cart with backend gracefully
+  const clearCart = useCartStore(s => s.clearCart);
+
+  const isCartEmpty = items.length === 0;
+
+  if (isCartEmpty) {
+    return (
+      <View style={[styles.container, { backgroundColor: c.canvas, paddingTop: insets.top }]}>
+        <View style={styles.header}>
+           <CustomerUI.Typography variant="h3" weight="black" color={c.ink}>{t("cart.title", "My Basket")}</CustomerUI.Typography>
+        </View>
+        <CustomerUI.EmptyState
+          icon="cart-outline"
+          title={t("cart.emptyTitle", "Your basket is empty")}
+          message={t("cart.emptySubtitle", "Looks like you haven't added anything yet. Discover our premium pharmacy products.")}
+          actionLabel={t("common.startShopping", "Start Shopping")}
+          onAction={() => router.replace("/(customer)/(tabs)/products")}
+        />
+      </View>
+    );
+  }
+
+  // Calculate if we need delivery fee warning
+  const amountToFreeDelivery = FREE_DELIVERY_THRESHOLD - pricing.subtotal;
+  const progressPercent = Math.min(100, Math.max(0, (pricing.subtotal / FREE_DELIVERY_THRESHOLD) * 100));
+
+  const hasBlockingConflict = conflicts.some(c => c.type === "unavailable" || (c.type === "stock" && c.serverStock === 0));
+
+  return (
+    <View style={[styles.container, { backgroundColor: c.canvas, paddingTop: insets.top }]}>
+      <View style={[styles.header, { borderBottomColor: c.line }]}>
+         <CustomerUI.Typography variant="h3" weight="black" color={c.ink}>{t("cart.title", "My Basket")}</CustomerUI.Typography>
+         <Pressable onPress={clearCart}>
+            <CustomerUI.Typography variant="body" weight="medium" color={kit.color.danger}>{t("common.clear", "Clear")}</CustomerUI.Typography>
+         </Pressable>
+      </View>
+
+      <FlatList
+        data={items}
+        keyExtractor={item => item.productId}
+        contentContainerStyle={{ padding: 16, paddingBottom: 240 }}
+        showsVerticalScrollIndicator={false}
+        ListHeaderComponent={
+          <Animated.View entering={SlideInDown} style={[styles.deliveryProgressCard, { backgroundColor: c.surface, borderColor: c.line }]}>
+            <View style={[styles.progressHeader, { flexDirection: flexRow(IS_RTL) }]}>
+               <Ionicons name="bicycle-outline" size={24} color={kit.color.accentDeep} />
+               <View style={{ flex: 1, paddingHorizontal: 12 }}>
+                  <CustomerUI.Typography variant="body" weight="bold" color={c.ink} style={{ textAlign: textAlignStart(IS_RTL) }}>
+                     {amountToFreeDelivery > 0 ? t("cart.addForFreeDelivery", { amount: amountToFreeDelivery.toLocaleString("ar-EG"), defaultValue: `Add ${amountToFreeDelivery.toLocaleString("ar-EG")} EGP for FREE delivery` }) : t("cart.freeDeliveryUnlocked", "Free Delivery Unlocked!")}
+                  </CustomerUI.Typography>
+               </View>
+            </View>
+            <View style={[styles.progressBar, { backgroundColor: c.canvas }]}>
+               <Animated.View style={[styles.progressFill, { width: `${progressPercent}%`, backgroundColor: progressPercent === 100 ? kit.color.success : kit.color.accent }]} />
+            </View>
+          </Animated.View>
+        }
+        renderItem={({ item }) => {
+          const conflict = conflicts.find(c => c.productId === item.productId);
+          return <PremiumCartItem item={item} conflict={conflict} />;
+        }}
+      />
+
+      <Animated.View entering={SlideInDown.duration(400)} style={[styles.checkoutDock, { backgroundColor: c.surface, borderTopColor: c.line }]}>
+        <View style={styles.dockSummary}>
+           <CustomerUI.Typography variant="body" color={c.inkSoft}>{t("cart.total", "Total")}</CustomerUI.Typography>
+           <View style={{ flexDirection: "row", alignItems: "baseline", gap: 4 }}>
+             <CustomerUI.Typography variant="h3" weight="black" color={c.ink}>{pricing.total.toLocaleString("ar-EG")}</CustomerUI.Typography>
+             <CustomerUI.Typography variant="caption" weight="bold" color={c.inkSoft}>EGP</CustomerUI.Typography>
+           </View>
+        </View>
+        <CustomerUI.Button 
+           label={hasBlockingConflict ? t("cart.resolveConflicts", "Resolve Issues") : t("cart.checkout", "Checkout")}
+           variant={hasBlockingConflict ? "secondary" : "primary"}
+           onPress={() => {
+             if (hasBlockingConflict) {
+               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+               return;
+             }
+             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+             router.push("/(customer)/checkout");
+           }}
+           style={{ flex: 1 }}
+        />
+      </Animated.View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1 },
+  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1 },
+  emptyWrap: { flex: 1, justifyContent: "center", alignItems: "center" },
+  emptyIconWrap: { width: 120, height: 120, borderRadius: 60, backgroundColor: "rgba(0,0,0,0.03)", alignItems: "center", justifyContent: "center" },
+  
+  deliveryProgressCard: { borderRadius: 16, padding: 16, marginBottom: 16, borderWidth: 1, ...kit.shadow.raised },
+  progressHeader: { alignItems: "center", marginBottom: 12 },
+  progressBar: { height: 6, borderRadius: 3, overflow: "hidden" },
+  progressFill: { height: "100%", borderRadius: 3 },
+  
+  itemCard: { borderRadius: 16, borderWidth: 1, marginBottom: 12, overflow: "hidden", ...kit.shadow.raised },
+  itemContent: { padding: 12, alignItems: "center" },
+  itemImageWrap: { width: 80, height: 80, borderRadius: 12, justifyContent: "center", alignItems: "center" },
+  itemImage: { width: "100%", height: "100%" },
+  itemDetails: { flex: 1, paddingHorizontal: 12, justifyContent: "center" },
+  itemPriceRow: { alignItems: "center", marginTop: 4 },
+  conflictBox: { alignItems: "center", padding: 6, borderRadius: 6, marginTop: 8, gap: 4 },
+  
+  itemFooter: { borderTopWidth: 1, padding: 8, paddingHorizontal: 12, justifyContent: "space-between", alignItems: "center" },
+  removeBtnText: { paddingVertical: 6, paddingHorizontal: 12 },
+  qtyControl: { alignItems: "center", borderRadius: 20, paddingHorizontal: 4, paddingVertical: 4 },
+  qtyBtn: { width: 32, height: 32, borderRadius: 16, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(0,0,0,0.05)" },
+  
+  checkoutDock: { position: "absolute", bottom: 0, left: 0, right: 0, borderTopWidth: 1, flexDirection: "row", paddingHorizontal: 20, paddingTop: 16, paddingBottom: Platform.OS === "ios" ? 34 : 20, alignItems: "center", gap: 20, ...kit.shadow.floating },
+  dockSummary: { flex: 1 },
+});

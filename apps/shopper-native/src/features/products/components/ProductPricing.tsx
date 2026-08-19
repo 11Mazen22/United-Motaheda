@@ -13,15 +13,15 @@ export const ProductPricing = React.memo(function ProductPricing({ product, qty,
     <Animated.View entering={FadeInDown.duration(380).delay(210).springify().damping(22)} style={action.card}>
       <View style={[action.row, { flexDirection: flexRow(IS_RTL) }]}>
         <View style={action.priceCol}>
-          <UIText variant="label-sm" weight="bold" style={{ color: kit.color.inkFaint, textAlign: TEXT_START }}>
+          <UIText variant="caption" weight="bold" style={{ color: kit.color.inkFaint, textAlign: TEXT_START }}>
             {t("product.priceLabel")}
           </UIText>
 
           <View style={[action.priceRow, { flexDirection: flexRow(IS_RTL) }]}>
-            <UIText variant="title-lg" weight="bold" style={{ color: kit.color.accent }}>
+            <UIText variant="h2" weight="bold" style={{ color: kit.color.accent }}>
               {(product.price * qty).toFixed(2)}
             </UIText>
-            <UIText variant="body-md" style={{ color: kit.color.inkSoft }}>
+            <UIText variant="body" style={{ color: kit.color.inkSoft }}>
               {t("common.currency")}
             </UIText>
           </View>

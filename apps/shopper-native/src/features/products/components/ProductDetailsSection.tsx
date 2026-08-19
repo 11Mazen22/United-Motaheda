@@ -32,7 +32,7 @@ export const ProductDetailsSection = React.memo(function ProductDetailsSection({
           <UIText variant="caption" weight="bold" style={{ color: kit.color.accentDeep, textAlign: TEXT_START }}>
             {t("product.detailsEyebrow")}
           </UIText>
-          <UIText variant="title-md" weight="black" style={{ textAlign: TEXT_START }}>
+          <UIText variant="h3" weight="black" style={{ textAlign: TEXT_START }}>
             {t("product.clinProfileTitle")}
           </UIText>
         </View>

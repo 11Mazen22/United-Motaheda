@@ -78,7 +78,7 @@ export const ProductGallery = React.memo(function ProductGallery({ product, isLo
 
           {product?.discountPercent && product.discountPercent > 0 && (
             <View style={stage.discountBadge} pointerEvents="none">
-              <UIText variant="label-sm" weight="bold" style={{ color: kit.color.onAccent }}>
+              <UIText variant="caption" weight="bold" style={{ color: kit.color.onAccent }}>
                 -{product.discountPercent}%
               </UIText>
             </View>

@@ -326,4 +326,21 @@ export const marketingApi = {
     if (error) throw new Error(error.message);
     return (data ?? []) as SMSAuditEntry[];
   },
+
+  // Branches
+  getBranches: (page = 1, limit = 20) => api.get('/admin/branches', { params: { page, limit } }).then(r => r.data),
+  createBranch: (data: any) => api.post('/admin/branches', data).then(r => r.data),
+  updateBranch: (id: string, data: any) => api.patch(`/admin/branches/${id}`, data).then(r => r.data),
+
+  // Inventory
+  getInventory: (page = 1, limit = 20) => api.get('/admin/inventory', { params: { page, limit } }).then(r => r.data),
+  updateInventory: (id: string, data: any) => api.patch(`/admin/inventory/${id}`, data).then(r => r.data),
+
+  // Products
+  getProducts: (page = 1, limit = 20) => api.get('/admin/products', { params: { page, limit } }).then(r => r.data),
+  updateProduct: (id: string, data: any) => api.patch(`/admin/products/${id}`, data).then(r => r.data),
+
+  // Customers
+  getCustomers: (page = 1, limit = 20) => api.get('/admin/customers', { params: { page, limit } }).then(r => r.data),
+
 };

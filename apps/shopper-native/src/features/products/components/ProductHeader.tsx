@@ -52,7 +52,7 @@ export const ProductHeader = React.memo(function ProductHeader({ product, hasRat
       <Animated.View entering={FadeInDown.duration(380).delay(160).springify().damping(22)} style={{ gap: 14 }}>
         <View style={[identity.topRow, { flexDirection: flexRow(IS_RTL) }]}>
           <View style={identity.catChip}>
-            <UIText variant="label-sm" weight="bold" style={{ color: kit.color.accentDeep }}>{product.categoryName}</UIText>
+            <UIText variant="caption" weight="bold" style={{ color: kit.color.accentDeep }}>{product.categoryName}</UIText>
           </View>
           <Badge variant={product.inStock ? "success" : "error"} size="sm">
             {product.inStock ? t("product.inStock") : t("product.outOfStock")}
@@ -62,7 +62,7 @@ export const ProductHeader = React.memo(function ProductHeader({ product, hasRat
         <View style={[identity.nameBlock, { flexDirection: flexRow(IS_RTL) }]}>
           <View style={identity.nameAccent} />
           <View style={{ flex: 1, paddingStart: 14, gap: 5 }}>
-            <UIText variant="title-lg" weight="black" style={{ textAlign: TEXT_START }} numberOfLines={3}>{product.nameAr ?? product.name}</UIText>
+            <UIText variant="h2" weight="black" style={{ textAlign: TEXT_START }} numberOfLines={3}>{product.nameAr ?? product.name}</UIText>
             {product.nameEn && (
               <UIText variant="body-sm" style={{ color: kit.color.inkFaint, fontStyle: "italic", textAlign: TEXT_START }}>{product.nameEn}</UIText>
             )}

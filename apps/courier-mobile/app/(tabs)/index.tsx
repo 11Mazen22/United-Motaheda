@@ -76,7 +76,7 @@ function OrderCard({
           <View style={oc.orderDetails}>
             <View style={oc.orderMeta}>
               <Text style={oc.orderId}>#{order.id.slice(-6).toUpperCase()}</Text>
-              <View style={[oc.paymentBadge, isCash ? oc.paymentBadgeCash : oc.paymentBadgeCard]}> 
+              <View style={[oc.paymentBadge, isCash ? oc.payBadgeCash : oc.payBadgeCard]}> 
                 <Ionicons
                   name={isCash ? 'cash-outline' : 'card-outline'}
                   size={13}
@@ -202,12 +202,12 @@ function MetricTile({
   color?: string;
 }) {
   return (
-    <View style={oc.metricCard}>
-      <View style={[oc.metricIcon, { backgroundColor: color ?? colors.primaryLight }]}> 
+    <View style={{} as any}>
+      <View style={[{} as any, { backgroundColor: color ?? colors.primaryLight }]}> 
         <Ionicons name={icon} size={18} color={color ?? colors.primary} />
       </View>
-      <Text style={oc.metricValue}>{value}</Text>
-      <Text style={oc.metricLabel}>{label}</Text>
+      <Text style={{} as any}>{value}</Text>
+      <Text style={{} as any}>{label}</Text>
     </View>
   );
 }

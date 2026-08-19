@@ -10,6 +10,11 @@ import { OrdersPage } from '@/pages/OrdersPage';
 import { NotificationsPage } from '@/pages/NotificationsPage';
 import { DashboardPage } from '@/pages/DashboardPage';
 import { MarketingPage } from '@/pages/MarketingPage';
+import { BranchesPage } from '@/pages/BranchesPage';
+import { InventoryPage } from '@/pages/InventoryPage';
+import { ProductsPage } from '@/pages/ProductsPage';
+import { CustomersPage } from '@/pages/CustomersPage';
+
 import { Toast } from '@/components/Toast';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
@@ -48,6 +53,10 @@ export default function App() {
           <Route path="map" element={<MapPage />} />
           <Route path="drivers" element={<DriversPage />} />
           <Route path="orders" element={<OrdersPage />} />
+          <Route path="branches" element={<BranchesPage />} />
+          <Route path="inventory" element={<InventoryPage />} />
+          <Route path="products" element={<ProductsPage />} />
+          <Route path="customers" element={<CustomersPage />} />
           <Route path="notifications" element={<NotificationsPage />} />
           <Route path="marketing" element={<MarketingPage />} />
         </Route>

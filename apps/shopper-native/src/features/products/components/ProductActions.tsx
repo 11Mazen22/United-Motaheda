@@ -31,7 +31,7 @@ export const ProductActions = React.memo(function ProductActions({
       style={[cta.outer, { paddingBottom: insets.bottom + 12 }]}>
       {inCart && (
         <Pressable
-          onPress={() => router.push("/(tabs)/cart")}
+          onPress={() => router.push("/(customer)/(tabs)/cart")}
           accessibilityRole="button"
           accessibilityLabel={t("product.viewCart")}
           style={cta.viewCartTouchable}>
@@ -57,7 +57,7 @@ export const ProductActions = React.memo(function ProductActions({
           </Pressable>
 
           <View style={action.stepValue}>
-            <UIText variant="title-sm" weight="black">{qty}</UIText>
+            <UIText variant="body" weight="black">{qty}</UIText>
           </View>
 
           <Pressable
