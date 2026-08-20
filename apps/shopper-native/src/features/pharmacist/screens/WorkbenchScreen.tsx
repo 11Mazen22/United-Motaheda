@@ -1,30 +1,17 @@
 import React, { useCallback, useState } from "react";
-import {
-  ActivityIndicator,
-  Pressable,
-  RefreshControl,
-  StyleSheet,
-  View,
-  ScrollView,
-} from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, View, ScrollView, RefreshControl } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
-
+import Animated, { FadeIn, SlideInRight } from "react-native-reanimated";
 import { Screen, Text as UIText, kit } from "@pharmacy/ui-native";
 import { useAuth } from "@/features/auth";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
-import { useScreenLayout } from "@/utils/responsive";
 
-import {
-  usePharmacistOrderQueue,
-  usePharmacistDashboard,
-  useAllPrescriptions,
-} from "../hooks/usePharmacistQueries";
+import { usePharmacistOrderQueue, usePharmacistDashboard, useAllPrescriptions } from "../hooks/usePharmacistQueries";
 import { pharmacistQueryKeys } from "../hooks/queryKeys";
 import { OrderQueueCard } from "../components/OrderQueueCard";
-import { StatCard } from "../components/StatCard";
 import EmptyState from "@/components/EmptyState";
 
 const IS_RTL = isRtl();
@@ -35,8 +22,8 @@ export function WorkbenchScreen(): React.ReactElement {
   const router = useRouter();
   const { user } = useAuth();
   const qc = useQueryClient();
-  const { pagePad } = useScreenLayout();
   const [refreshing, setRefreshing] = useState(false);
+  const [activeTab, setActiveTab] = useState<'orders' | 'prescriptions'>('orders');
 
   const queueQ = usePharmacistOrderQueue();
   const statsQ = usePharmacistDashboard();
@@ -48,188 +35,120 @@ export function WorkbenchScreen(): React.ReactElement {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    try {
-      await Promise.all([
-        qc.invalidateQueries({ queryKey: pharmacistQueryKeys.orderQueue() }),
-        qc.invalidateQueries({ queryKey: pharmacistQueryKeys.dashboard() }),
-        qc.invalidateQueries({ queryKey: ["pharmacist", "prescriptions"] }),
-      ]);
-    } finally {
-      setRefreshing(false);
-    }
+    await Promise.all([
+      qc.invalidateQueries({ queryKey: pharmacistQueryKeys.orderQueue() }),
+      qc.invalidateQueries({ queryKey: pharmacistQueryKeys.dashboard() }),
+      qc.invalidateQueries({ queryKey: ["pharmacist", "prescriptions"] }),
+    ]);
+    setRefreshing(false);
   }, [qc]);
 
-  const firstName = user?.name?.split(" ")[0] ?? "";
-  const branchName = t("pharmacist.mainBranch", "Main Branch");
-
   return (
-    <Screen edgeTop background={kit.color.canvas}>
-      {/* Header */}
-      <View style={[styles.header, { paddingHorizontal: pagePad, flexDirection: flexRow(IS_RTL) }]}>
-        <Pressable 
-          style={{ flex: 1 }}
-          onPress={() => router.push("/(pharmacist)/profile" as never)}
-        >
-          <UIText variant="caption" color="secondary" style={{ textAlign: TEXT_START }}>
-            {branchName}
-          </UIText>
-          <UIText variant="h3" style={{ textAlign: TEXT_START }}>
-            {t("pharmacist.greeting", { name: firstName })}
-          </UIText>
-        </Pressable>
-        <View style={[styles.headerActions, { flexDirection: flexRow(IS_RTL) }]}>
-          <Pressable onPress={() => router.push("/(pharmacist)/scanner" as never)} style={styles.iconBtn}>
-            <Ionicons name="barcode-outline" size={22} color={kit.color.ink} />
-          </Pressable>
-          <Pressable onPress={() => router.push("/(pharmacist)/inventory" as never)} style={styles.iconBtn}>
-            <Ionicons name="cube-outline" size={22} color={kit.color.ink} />
-          </Pressable>
-          <Pressable onPress={() => router.push("/(pharmacist)/notifications" as never)} style={styles.iconBtn}>
-            <Ionicons name="notifications-outline" size={22} color={kit.color.ink} />
-          </Pressable>
+    <View style={s.container}>
+      {/* Pro Dashboard Header */}
+      <View style={s.header}>
+        <View style={[s.headerTop, { flexDirection: flexRow(IS_RTL) }]}>
+          <View>
+            <UIText style={s.greeting}>STATION 01 • ACTIVE</UIText>
+            <UIText style={s.title}>Pharmacist Workbench</UIText>
+          </View>
+          <View style={s.avatar}>
+            <UIText style={{ color: 'white', fontFamily: 'Cairo_700Bold' }}>{user?.name?.[0] ?? 'P'}</UIText>
+          </View>
         </View>
+
+        {/* Tactical Metric Cards */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.metricsScroll}>
+          <View style={[s.metricCard, { borderLeftColor: kit.color.danger }]}>
+            <UIText style={s.metricValue}>{stats?.pendingOrders ?? 0}</UIText>
+            <UIText style={s.metricLabel}>Pending Orders</UIText>
+          </View>
+          <View style={[s.metricCard, { borderLeftColor: kit.color.warning }]}>
+            <UIText style={s.metricValue}>{stats?.processingOrders ?? 0}</UIText>
+            <UIText style={s.metricLabel}>Processing</UIText>
+          </View>
+          <View style={[s.metricCard, { borderLeftColor: kit.color.brand }]}>
+            <UIText style={s.metricValue}>{pendingRx.length}</UIText>
+            <UIText style={s.metricLabel}>Rx Reviews</UIText>
+          </View>
+        </ScrollView>
       </View>
 
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={kit.color.accent} />
-        }
-        contentContainerStyle={{ paddingBottom: 40 }}
+      {/* Segmented Control */}
+      <View style={s.segmentContainer}>
+        <Pressable style={[s.segmentBtn, activeTab === 'orders' && s.segmentActive]} onPress={() => setActiveTab('orders')}>
+          <UIText style={[s.segmentText, activeTab === 'orders' && { color: 'white' }]}>Order Queue</UIText>
+          {orders.length > 0 && (
+            <View style={s.badge}><UIText style={s.badgeText}>{orders.length}</UIText></View>
+          )}
+        </Pressable>
+        <Pressable style={[s.segmentBtn, activeTab === 'prescriptions' && s.segmentActive]} onPress={() => setActiveTab('prescriptions')}>
+          <UIText style={[s.segmentText, activeTab === 'prescriptions' && { color: 'white' }]}>Prescriptions</UIText>
+          {pendingRx.length > 0 && (
+            <View style={[s.badge, { backgroundColor: kit.color.danger }]}><UIText style={s.badgeText}>{pendingRx.length}</UIText></View>
+          )}
+        </Pressable>
+      </View>
+
+      {/* Data Feed */}
+      <ScrollView 
+        style={s.feed} 
+        contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
-        {/* KPI Strip */}
-        <View style={[styles.kpiStrip, { paddingHorizontal: pagePad, flexDirection: flexRow(IS_RTL) }]}>
-          <StatCard
-            value={stats?.activeOrders ?? 0}
-            label={t("pharmacist.statActiveOrders", "Orders")}
-          />
-          <StatCard
-            value={stats?.pendingPrescriptions ?? 0}
-            label={t("pharmacist.statPendingRx", "Rx")}
-            accent={stats?.pendingPrescriptions ? kit.color.warn : undefined}
-          />
-          <StatCard
-            value={stats?.lowStockCount ?? 0}
-            label={t("pharmacist.statLowStock", "Low Stock")}
-            accent={stats?.lowStockCount ? kit.color.danger : undefined}
-          />
-        </View>
-
-        {/* Active Orders */}
-        <View style={[styles.sectionHeader, { paddingHorizontal: pagePad, flexDirection: flexRow(IS_RTL) }]}>
-          <UIText variant="body" style={{ textAlign: TEXT_START, color: kit.color.inkSoft }}>
-            {t("pharmacist.orderQueueTitle", "Active Orders")}
-          </UIText>
-          <View style={styles.badge}>
-            <UIText variant="caption" style={{ color: kit.color.accentDeep, fontFamily: "Cairo_700Bold" }}>
-              {orders.length}
-            </UIText>
-          </View>
-        </View>
-        
-        <View style={[styles.listContainer, { paddingHorizontal: pagePad }]}>
-          {queueQ.isLoading ? (
-            <ActivityIndicator size="small" color={kit.color.accent} style={{ marginVertical: 20 }} />
-          ) : orders.length === 0 ? (
-            <EmptyState
-              icon="checkmark-done-circle-outline"
-              title={t("pharmacist.emptyQueueTitle", "No active orders")}
-              subtitle={t("pharmacist.emptyQueueBody", "You're all caught up!")}
-            />
+        {activeTab === 'orders' ? (
+          orders.length === 0 ? (
+             <EmptyState icon="checkmark-circle-outline" title="Queue Clear" message="No pending orders to process." />
           ) : (
-            orders.map((order) => (
-              <View key={order.id} style={{ marginBottom: 8 }}>
-                <OrderQueueCard order={order} onPress={() => router.push(`/(pharmacist)/order/${order.id}` as never)} />
-              </View>
+            orders.map((o, i) => (
+              <Animated.View key={o.id} entering={SlideInRight.delay(i * 50).springify()}>
+                <OrderQueueCard order={o} onPress={() => router.push(/(pharmacist)/orders/)} />
+              </Animated.View>
             ))
-          )}
-        </View>
-
-        {/* Pending Prescriptions */}
-        <View style={[styles.sectionHeader, { paddingHorizontal: pagePad, flexDirection: flexRow(IS_RTL), marginTop: 24 }]}>
-          <UIText variant="body" style={{ textAlign: TEXT_START, color: kit.color.inkSoft }}>
-            {t("pharmacist.pendingRxTitle", "Pending Prescriptions")}
-          </UIText>
-          <View style={[styles.badge, pendingRx.length > 0 && { backgroundColor: kit.color.warnTint }]}>
-            <UIText variant="caption" style={{ color: pendingRx.length > 0 ? kit.color.warn : kit.color.accentDeep, fontFamily: "Cairo_700Bold" }}>
-              {pendingRx.length}
-            </UIText>
-          </View>
-        </View>
-        
-        <View style={[styles.listContainer, { paddingHorizontal: pagePad }]}>
-          {rxQ.isLoading ? (
-            <ActivityIndicator size="small" color={kit.color.accent} style={{ marginVertical: 20 }} />
-          ) : pendingRx.length === 0 ? (
-            <EmptyState
-              icon="document-text-outline"
-              title={t("pharmacist.emptyRxTitle", "No pending prescriptions")}
-              subtitle={""}
-            />
+          )
+        ) : (
+          pendingRx.length === 0 ? (
+            <EmptyState icon="document-text-outline" title="No Prescriptions" message="All prescriptions have been reviewed." />
           ) : (
-            pendingRx.map((rx) => (
-              <Pressable
-                key={rx.id}
-                style={styles.rxCard}
-                onPress={() => router.push(`/(pharmacist)/prescription/${rx.id}` as never)}
-              >
-                <View style={{ flexDirection: flexRow(IS_RTL), justifyContent: "space-between" }}>
-                  <UIText variant="body" weight="medium">{rx.customerName}</UIText>
-                  <UIText variant="caption" color="secondary">
-                    {new Date(rx.addedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                  </UIText>
-                </View>
-              </Pressable>
+            pendingRx.map((rx, i) => (
+              <Animated.View key={rx.id} entering={SlideInRight.delay(i * 50).springify()}>
+                <Pressable style={s.rxCard} onPress={() => router.push(/(pharmacist)/prescriptions/)}>
+                  <View style={s.rxIcon}><Ionicons name="document-text" size={24} color={kit.color.brand} /></View>
+                  <View style={{ flex: 1, marginLeft: 16 }}>
+                    <UIText style={s.rxTitle}>{rx.patientName}</UIText>
+                    <UIText style={s.rxSub}>Submitted: {new Date(rx.createdAt).toLocaleTimeString()}</UIText>
+                  </View>
+                  <Ionicons name="chevron-forward" size={20} color={kit.color.inkSoft} />
+                </Pressable>
+              </Animated.View>
             ))
-          )}
-        </View>
+          )
+        )}
       </ScrollView>
-    </Screen>
+    </View>
   );
 }
 
-const styles = StyleSheet.create({
-  header: {
-    paddingVertical: 16,
-    alignItems: "center",
-    backgroundColor: kit.color.surface,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: kit.color.line,
-  },
-  headerActions: {
-    gap: 8,
-  },
-  iconBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: kit.color.canvas,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  kpiStrip: {
-    gap: 12,
-    marginVertical: 16,
-  },
-  sectionHeader: {
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 12,
-  },
-  badge: {
-    backgroundColor: kit.color.accentTint,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 9999,
-  },
-  listContainer: {
-    gap: 8,
-  },
-  rxCard: {
-    backgroundColor: kit.color.surface,
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: kit.color.line,
-  },
+const s = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#f8fafc' },
+  header: { backgroundColor: 'white', paddingTop: 60, paddingBottom: 16, borderBottomWidth: 1, borderColor: '#e2e8f0' },
+  headerTop: { paddingHorizontal: 24, justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
+  greeting: { fontSize: 11, fontFamily: 'Cairo_700Bold', color: '#64748b', letterSpacing: 1.5, marginBottom: 4 },
+  title: { fontSize: 24, fontFamily: 'Cairo_900Black', color: '#0f172a' },
+  avatar: { width: 40, height: 40, borderRadius: 8, backgroundColor: '#0f172a', alignItems: 'center', justifyContent: 'center' },
+  metricsScroll: { paddingHorizontal: 16, gap: 12 },
+  metricCard: { backgroundColor: 'white', borderWidth: 1, borderColor: '#e2e8f0', borderLeftWidth: 4, borderRadius: 12, padding: 16, width: 140, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 },
+  metricValue: { fontSize: 28, fontFamily: 'Cairo_800ExtraBold', color: '#0f172a', marginBottom: 4 },
+  metricLabel: { fontSize: 13, fontFamily: 'Cairo_600SemiBold', color: '#64748b' },
+  segmentContainer: { flexDirection: 'row', backgroundColor: '#e2e8f0', margin: 16, borderRadius: 8, padding: 4 },
+  segmentBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 10, borderRadius: 6 },
+  segmentActive: { backgroundColor: '#0f172a', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 2 },
+  segmentText: { fontFamily: 'Cairo_700Bold', color: '#64748b', fontSize: 14 },
+  badge: { backgroundColor: '#3b82f6', borderRadius: 100, paddingHorizontal: 6, paddingVertical: 2, marginLeft: 8 },
+  badgeText: { color: 'white', fontSize: 10, fontFamily: 'Cairo_800ExtraBold' },
+  feed: { flex: 1 },
+  rxCard: { backgroundColor: 'white', padding: 16, borderRadius: 16, flexDirection: 'row', alignItems: 'center', marginBottom: 12, borderWidth: 1, borderColor: '#e2e8f0' },
+  rxIcon: { width: 48, height: 48, borderRadius: 12, backgroundColor: '#f1f5f9', alignItems: 'center', justifyContent: 'center' },
+  rxTitle: { fontSize: 16, fontFamily: 'Cairo_700Bold', color: '#0f172a' },
+  rxSub: { fontSize: 13, fontFamily: 'Cairo_500Medium', color: '#64748b', marginTop: 2 }
 });

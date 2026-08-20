@@ -47,11 +47,18 @@ export default function LoginScreen() {
         identifier: data.identifier,
         password: data.password,
       });
+      
+      // Strict Role Guard
+      if (res.user?.role !== 'DRIVER') {
+         throw new Error("Unauthorized: This application is strictly for Drivers.");
+      }
+      
       setAuth(res.token, res.user);
       // AuthGuard in _layout.tsx will redirect to /(tabs) automatically
     } catch (err: any) {
-      const message =
-        err?.response?.data?.message ?? 'Login failed. Check your credentials.';
+      const message = err instanceof Error && err.message.includes("Unauthorized") 
+        ? err.message 
+        : err?.response?.data?.message ?? 'Login failed. Check your credentials.';
       showToast(message, 'error');
     }
   };
