@@ -91,8 +91,7 @@ gba(255,255,255,),
             
             <Animated.View entering={FadeInDown.duration(1200).springify().damping(14)}>
               <CustomerUI.Typography scale="screenTitle" color="white" style={styles.heroTitle}>
-                Elevate{"
-"}Your Health.
+                Elevate Your Health.
               </CustomerUI.Typography>
             </Animated.View>
 

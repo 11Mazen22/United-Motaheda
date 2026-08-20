@@ -44,7 +44,7 @@ export const HomeHero = memo(function HomeHero({ onScanRx, onDeals, onSearch, on
       <View style={[styles.content, { paddingHorizontal: pagePad }]}>
         <Animated.View entering={FadeInDown.duration(800).springify()}>
           <CustomerUI.Typography scale="productMeta" color="rgba(255,255,255,0.8)" style={{ textAlign: textAlignStart(IS_RTL) }}>
-            {firstName ? t("home.heroGreetingNamed", Welcome back, ) : t("home.heroGreeting", "Welcome to United")}
+            {firstName ? t("home.heroGreetingNamed", `Welcome back, ${firstName}`) : t("home.heroGreeting", "Welcome to United")}
           </CustomerUI.Typography>
           <CustomerUI.Typography scale="screenTitle" color="white" style={{ textAlign: textAlignStart(IS_RTL), marginTop: 4, marginBottom: 24, fontSize: 28, lineHeight: 36 }}>
             {t("home.heroSubtitle", "What can we help you find today?")}

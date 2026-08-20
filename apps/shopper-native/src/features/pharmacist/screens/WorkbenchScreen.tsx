@@ -102,7 +102,7 @@ export function WorkbenchScreen(): React.ReactElement {
           ) : (
             orders.map((o, i) => (
               <Animated.View key={o.id} entering={SlideInRight.delay(i * 50).springify()}>
-                <OrderQueueCard order={o} onPress={() => router.push(/(pharmacist)/orders/)} />
+                <OrderQueueCard order={o} onPress={() => router.push(`/(pharmacist)/orders/${o.id}`)} />
               </Animated.View>
             ))
           )
@@ -112,7 +112,7 @@ export function WorkbenchScreen(): React.ReactElement {
           ) : (
             pendingRx.map((rx, i) => (
               <Animated.View key={rx.id} entering={SlideInRight.delay(i * 50).springify()}>
-                <Pressable style={s.rxCard} onPress={() => router.push(/(pharmacist)/prescriptions/)}>
+                <Pressable style={s.rxCard} onPress={() => router.push(`/(pharmacist)/prescriptions/${rx.id}`)}>
                   <View style={s.rxIcon}><Ionicons name="document-text" size={24} color={kit.color.brand} /></View>
                   <View style={{ flex: 1, marginLeft: 16 }}>
                     <UIText style={s.rxTitle}>{rx.patientName}</UIText>
