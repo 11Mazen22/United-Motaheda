@@ -1,10 +1,10 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useEffect } from "react";
 import { Platform, Pressable, ScrollView, StyleSheet, View, Linking } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
-import Animated, { FadeIn, FadeInDown, SlideInDown, withRepeat, withTiming, useAnimatedStyle, useSharedValue, useEffect } from "react-native-reanimated";
+import Animated, { FadeIn, FadeInDown, SlideInDown, withRepeat, withTiming, useAnimatedStyle, useSharedValue } from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
 import { useTranslation } from "react-i18next";
 

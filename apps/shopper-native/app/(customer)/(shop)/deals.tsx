@@ -21,7 +21,7 @@ import { CustomerUI, kit } from "@pharmacy/ui-native";
 import { BACK_CHEVRON, flexRow, isRtl, textAlignStart } from "@/utils/layout";
 import { useScreenLayout } from "@/utils/responsive";
 import { useInfiniteProducts } from "@/features/products";
-import { ProductCard, ProductCardSkeleton } from "@/components/ProductCard";
+import { ProductCard } from "@/components/ProductCard";
 
 const IS_RTL = isRtl();
 const TEXT_START = textAlignStart(IS_RTL);
@@ -87,7 +87,7 @@ export default function DealsScreen() {
         <View style={[s.skeletonGrid, { paddingHorizontal: pagePad }]}>
           {[1, 2, 3, 4, 5, 6].map((i) => (
             <View key={i} style={s.skeletonItem}>
-              <ProductCardSkeleton />
+              <SkeletonCard />
             </View>
           ))}
         </View>

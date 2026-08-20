@@ -23,7 +23,7 @@ import Animated, {
 } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
 
-import { register, getAuthError } from "@/features/auth";
+
 import { LangSwitcher } from "@/features/auth/components/LangSwitcher";
 import { AppLogo } from "@/shared/components/AppLogo";
 import { Button, Text as UIText, kit } from "@pharmacy/ui-native";
@@ -97,7 +97,7 @@ export default function RegisterScreen() {
     setError("");
     setLoading(true);
     try {
-      await register({ name, email, password });
+      await signUp({ name, email, password });
       if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       router.replace("/(customer)/(tabs)");
     } catch (err: any) {
