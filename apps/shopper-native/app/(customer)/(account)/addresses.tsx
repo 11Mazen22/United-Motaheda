@@ -23,6 +23,7 @@ import { showConfirmSheet, showErrorSheet } from "@/shared/store/appSheetStore";
 import { Ionicons } from "@expo/vector-icons";
 
 import { kit } from "@pharmacy/ui-native";
+import { theme } from "@pharmacy/design-tokens";
 
 import { useRouter } from "expo-router";
 
@@ -81,8 +82,13 @@ const TEXT_START = textAlignStart(IS_RTL);
 // ─── Skeleton shimmer ─────────────────────────────────────────────────────────
 
 function ShimmerCard() {
-
   const { c } = useDarkColors();
+
+  
+  const s = getStyles(c, theme);
+
+
+  
 
 
 
@@ -169,8 +175,13 @@ const AddressCardRow = React.memo(function AddressCardRow({
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function AddressesScreen() {
-
   const { c } = useDarkColors();
+
+  
+  const s = getStyles(c, theme);
+
+
+  
 
 
 
@@ -750,7 +761,7 @@ export default function AddressesScreen() {
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
-const s = StyleSheet.create({
+const getStyles = (c: any, theme: any) => StyleSheet.create({
 
   screen: { flex: 1, backgroundColor: c.canvas },
 
