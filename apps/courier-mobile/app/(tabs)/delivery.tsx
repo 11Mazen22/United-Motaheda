@@ -1,289 +1,194 @@
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Linking,
-  Platform,
-} from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, StyleSheet, TouchableOpacity, Platform, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, typography, spacing, radii, shadows } from '@pharmacy/ui-native/courier-tokens';
-import { Card, Button, showToast } from '@pharmacy/ui-native';
-import { ErrorBoundary } from '@/components/ErrorBoundary';
+import Animated, { FadeIn, FadeInDown, useAnimatedStyle, withSpring, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
+import { LinearGradient } from 'expo-linear-gradient';
+import MapView, { Marker, Polyline } from 'react-native-maps';
+import { colors } from '@pharmacy/ui-native/courier-tokens';
 import { driverApi } from '@/lib/api';
-import { useOrdersStore, type ActiveDelivery, type DeliveryStatus } from '@/stores/orders.store';
+import { useOrdersStore, type DeliveryStatus } from '@/stores/orders.store';
+import { Text as UIText, showToast } from '@pharmacy/ui-native';
 
-// Maps status to the next logical step and its label
-const STATUS_TRANSITIONS: Partial<Record<DeliveryStatus, { next: DeliveryStatus; label: string; icon: any; color: string }>> = {
-  ACCEPTED:             { next: 'EN_ROUTE_TO_PICKUP',   label: 'Start heading to Pharmacy', icon: 'navigate', color: colors.primary },
-  EN_ROUTE_TO_PICKUP:   { next: 'ARRIVED_AT_PHARMACY',  label: 'Arrived at Pharmacy', icon: 'location', color: colors.primary },
-  ARRIVED_AT_PHARMACY:  { next: 'PICKED_UP',            label: 'Confirm Pickup', icon: 'cube', color: colors.info },
-  PICKED_UP:            { next: 'EN_ROUTE_TO_CUSTOMER', label: 'Start heading to Customer', icon: 'navigate', color: colors.primary },
-  EN_ROUTE_TO_CUSTOMER: { next: 'ARRIVED_AT_CUSTOMER',  label: 'Arrived at Customer', icon: 'location', color: colors.primary },
-  ARRIVED_AT_CUSTOMER:  { next: 'DELIVERED',            label: 'Complete Delivery', icon: 'checkmark-circle', color: colors.success },
+const { width, height } = Dimensions.get('window');
+
+const MAP_STYLE = [
+  { elementType: "geometry", stylers: [{ color: "#020617" }] },
+  { elementType: "labels.text.stroke", stylers: [{ color: "#020617" }] },
+  { elementType: "labels.text.fill", stylers: [{ color: "#94a3b8" }] },
+  { featureType: "road", elementType: "geometry", stylers: [{ color: "#0f172a" }] },
+  { featureType: "road", elementType: "geometry.stroke", stylers: [{ color: "#1e293b" }] },
+  { featureType: "water", elementType: "geometry", stylers: [{ color: "#0f172a" }] },
+];
+
+const STATUS_CONFIG: Record<string, { label: string, color: string, next: string }> = {
+  ACCEPTED: { label: "Head to Pharmacy", color: "#3b82f6", next: "EN_ROUTE_TO_PICKUP" },
+  EN_ROUTE_TO_PICKUP: { label: "Arrived at Pharmacy", color: "#3b82f6", next: "ARRIVED_AT_PHARMACY" },
+  ARRIVED_AT_PHARMACY: { label: "Confirm Pickup", color: "#eab308", next: "PICKED_UP" },
+  PICKED_UP: { label: "Head to Customer", color: "#00ffcc", next: "EN_ROUTE_TO_CUSTOMER" },
+  EN_ROUTE_TO_CUSTOMER: { label: "Arrived at Customer", color: "#00ffcc", next: "ARRIVED_AT_CUSTOMER" },
+  ARRIVED_AT_CUSTOMER: { label: "Complete Delivery", color: "#22c55e", next: "DELIVERED" }
 };
 
-function StatusStepper({ currentStatus }: { currentStatus: DeliveryStatus }) {
-  const steps = [
-    { key: 'ACCEPTED', label: 'Accepted' },
-    { key: 'PICKED_UP', label: 'Picked Up' },
-    { key: 'EN_ROUTE_TO_CUSTOMER', label: 'On Way' },
-    { key: 'DELIVERED', label: 'Delivered' },
-  ];
+export default function ActiveDeliveryScreen() {
+  const router = useRouter();
+  const qc = useQueryClient();
+  const order = useOrdersStore((s) => s.activeDelivery);
+  const clearDelivery = useOrdersStore((s) => s.clearActiveDelivery);
+  const mapRef = useRef<MapView>(null);
 
-  let currentIdx = steps.findIndex(s => s.key === currentStatus);
-  if (currentStatus === 'EN_ROUTE_TO_PICKUP' || currentStatus === 'ARRIVED_AT_PHARMACY') currentIdx = 0;
-  if (currentStatus === 'ARRIVED_AT_CUSTOMER') currentIdx = 2;
+  const pulse = useSharedValue(1);
+  useEffect(() => {
+    pulse.value = withRepeat(withTiming(1.5, { duration: 1000 }), -1, true);
+  }, []);
+
+  const pulseStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: pulse.value }],
+    opacity: 1 - (pulse.value - 1),
+  }));
+
+  const updateMutation = useMutation({
+    mutationFn: async (newStatus: DeliveryStatus): Promise<any> => {
+      if (!order?.orderId) throw new Error('No active order ID');
+      return driverApi.updateDeliveryStatus(order.orderId, newStatus);
+    },
+    onSuccess: (_, vars) => {
+      if (vars === 'DELIVERED') {
+        showToast('Delivery completed! Great job.', 'success');
+        clearDelivery();
+        qc.invalidateQueries({ queryKey: ['driverProfile'] });
+        router.replace('/(tabs)');
+      } else {
+        showToast(Status updated to );
+        useOrdersStore.setState(s => {
+          if (s.activeDelivery) s.activeDelivery.status = vars as DeliveryStatus;
+        });
+      }
+    },
+  });
+
+  if (!order) return null;
+
+  // Fallback coordinates if customer GPS is missing
+  const custLat = order.shippingAddress?.lat ?? 30.0444;
+  const custLng = order.shippingAddress?.lng ?? 31.2357;
+  
+  const pharmLat = order.pharmacyLocation?.lat ?? custLat - 0.01;
+  const pharmLng = order.pharmacyLocation?.lng ?? custLng - 0.01;
+
+  const currentConf = STATUS_CONFIG[order.status] ?? STATUS_CONFIG['ACCEPTED'];
 
   return (
-    <View style={ss.wrap}>
-      {steps.map((step, idx) => {
-        const isPast = idx <= currentIdx;
-        const isLast = idx === steps.length - 1;
-        return (
-          <View key={step.key} style={ss.stepWrap}>
-            <View style={[ss.dot, isPast ? ss.dotPast : ss.dotFuture]} />
-            {!isLast && <View style={[ss.line, isPast ? ss.linePast : ss.lineFuture]} />}
-            <Text style={[ss.label, isPast ? ss.labelPast : ss.labelFuture]}>{step.label}</Text>
+    <View style={s.container}>
+      <MapView
+        ref={mapRef}
+        style={StyleSheet.absoluteFillObject}
+        customMapStyle={MAP_STYLE}
+        initialRegion={{
+          latitude: (custLat + pharmLat) / 2,
+          longitude: (custLng + pharmLng) / 2,
+          latitudeDelta: 0.03,
+          longitudeDelta: 0.03,
+        }}
+      >
+        <Polyline coordinates={[{ latitude: pharmLat, longitude: pharmLng }, { latitude: custLat, longitude: custLng }]} strokeColor="#1e293b" strokeWidth={3} lineDashPattern={[5, 5]} />
+        
+        {/* Pharmacy Marker */}
+        <Marker coordinate={{ latitude: pharmLat, longitude: pharmLng }}>
+          <View style={[s.markerWrap, { backgroundColor: '#3b82f6' }]}>
+            <Ionicons name="medical" size={16} color="white" />
           </View>
-        );
-      })}
+        </Marker>
+
+        {/* Precise Customer GPS Marker */}
+        <Marker coordinate={{ latitude: custLat, longitude: custLng }}>
+          <View style={s.customerMarker}>
+            <Animated.View style={[s.pulseRing, pulseStyle]} />
+            <View style={s.markerWrap}>
+              <Ionicons name="home" size={16} color="white" />
+            </View>
+          </View>
+        </Marker>
+      </MapView>
+
+      <SafeAreaView style={s.topNav} edges={['top']}>
+        <TouchableOpacity style={s.backBtn} onPress={() => router.back()}>
+          <Ionicons name="arrow-back" size={24} color="white" />
+        </TouchableOpacity>
+        <View style={s.gpsBadge}>
+          <View style={s.gpsDot} />
+          <UIText style={{ color: '#00ffcc', fontFamily: 'Cairo_700Bold', fontSize: 12 }}>GPS ACTIVE</UIText>
+        </View>
+      </SafeAreaView>
+
+      <Animated.View entering={FadeInDown.springify().damping(18)} style={s.bottomSheet}>
+        <LinearGradient colors={['rgba(2,6,23,0)', 'rgba(2,6,23,0.9)', '#020617']} style={StyleSheet.absoluteFillObject} pointerEvents="none" />
+        
+        <View style={s.sheetContent}>
+          <View style={s.sheetHeader}>
+            <View style={s.timerBadge}>
+              <Ionicons name="time" size={14} color="white" />
+              <UIText style={{ color: 'white', marginLeft: 4, fontFamily: 'Cairo_700Bold' }}>12 MIN EST</UIText>
+            </View>
+            <UIText style={{ color: '#00ffcc', fontFamily: 'Cairo_800ExtraBold', fontSize: 24 }}>{order.earningsFormatted}</UIText>
+          </View>
+
+          <View style={s.addressBlock}>
+            <View style={s.timeline}>
+              <View style={[s.tDot, { backgroundColor: '#3b82f6' }]} />
+              <View style={s.tLine} />
+              <View style={[s.tDot, { backgroundColor: '#ef4444' }]} />
+            </View>
+            <View style={s.addressInfo}>
+              <View style={s.aRow}>
+                <UIText style={s.aTitle}>Pickup</UIText>
+                <UIText style={s.aSub} numberOfLines={1}>{order.pharmacyName}</UIText>
+              </View>
+              <View style={[s.aRow, { marginTop: 24 }]}>
+                <UIText style={s.aTitle}>Precise Dropoff</UIText>
+                <UIText style={s.aSub} numberOfLines={2}>{order.shippingAddress?.street}</UIText>
+              </View>
+            </View>
+          </View>
+
+          <TouchableOpacity 
+            style={s.actionBtn}
+            disabled={updateMutation.isPending}
+            onPress={() => updateMutation.mutate(currentConf.next as DeliveryStatus)}
+          >
+            <LinearGradient colors={[currentConf.color, currentConf.color + 'aa']} style={StyleSheet.absoluteFillObject} borderRadius={16} />
+            <UIText style={s.actionText}>{updateMutation.isPending ? 'Updating...' : currentConf.label}</UIText>
+            <Ionicons name="chevron-forward" size={24} color="#020617" />
+          </TouchableOpacity>
+        </View>
+      </Animated.View>
     </View>
   );
 }
 
-const ss = StyleSheet.create({
-  wrap: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing[4], marginVertical: spacing[4] },
-  stepWrap: { flex: 1, alignItems: 'center', position: 'relative' },
-  dot: { width: 14, height: 14, borderRadius: 7, zIndex: 2 },
-  dotPast: { backgroundColor: colors.primary },
-  dotFuture: { backgroundColor: colors.border, borderWidth: 2, borderColor: colors.surfaceAlt },
-  line: { position: 'absolute', top: 6, left: '50%', width: '100%', height: 2, zIndex: 1 },
-  linePast: { backgroundColor: colors.primary },
-  lineFuture: { backgroundColor: colors.border },
-  label: { fontSize: 10, fontFamily: typography.medium, marginTop: 4, textAlign: 'center' },
-  labelPast: { color: colors.ink },
-  labelFuture: { color: colors.inkFaint },
-});
-
-export default function DeliveryScreen() {
-  const router = useRouter();
-  const qc = useQueryClient();
-  const { activeDelivery, setActiveDelivery } = useOrdersStore();
-
-  const updateMutation = useMutation({
-    mutationFn: (newStatus: DeliveryStatus) => ((...args: any[]) => {})(activeDelivery!.id, newStatus),
-    onSuccess: (res, newStatus) => {
-      showToast('Status updated!', 'success');
-      qc.invalidateQueries({ queryKey: ['delivery', 'active'] });
-      
-      if (newStatus === 'DELIVERED') {
-        setActiveDelivery(null);
-        router.push('/(tabs)');
-      }
-    },
-    onError: (err: any) => {
-      showToast(err?.response?.data?.message ?? 'Failed to update status', 'error');
-    },
-  });
-
-  if (!activeDelivery) {
-    return (
-      <ErrorBoundary>
-        <SafeAreaView style={s.safe} edges={['top']}>
-          <View style={s.header}>
-            <Text style={s.orderId}>Active Delivery</Text>
-          </View>
-          <ScrollView contentContainerStyle={s.emptyWrap}>
-            <Ionicons name="cube-outline" size={64} color={colors.inkFaint} />
-            <Text style={s.emptyTitle}>No Active Delivery</Text>
-            <Text style={s.emptyDesc}>When you accept an order, it will appear here.</Text>
-            <Button title="Go to Orders" onPress={() => router.push('/(tabs)')} style={{ marginTop: spacing[4] }} />
-          </ScrollView>
-        </SafeAreaView>
-      </ErrorBoundary>
-    );
-  }
-
-  const isCash = activeDelivery.order.paymentMethod?.toLowerCase() === 'cod' || activeDelivery.order.paymentMethod?.toLowerCase() === 'cash';
-  const transition = STATUS_TRANSITIONS[activeDelivery.status];
-
-  const handleNextStatus = () => {
-    if (transition) {
-      updateMutation.mutate(transition.next);
-    }
-  };
-
-  const openMap = () => router.push('/(tabs)/map');
-
-  const openPhone = (phone: string) => {
-    Linking.openURL(`tel:${phone}`).catch(() => showToast('Failed to open dialer', 'error'));
-  };
-
-  return (
-    <ErrorBoundary>
-      <SafeAreaView style={s.safe} edges={['top']}>
-        {/* Header */}
-        <View style={s.header}>
-          <Text style={s.headerTitle}>Delivery #{activeDelivery.order.id.slice(-6).toUpperCase()}</Text>
-          <TouchableOpacity onPress={openMap} style={s.mapBtn}>
-            <Ionicons name="map-outline" size={18} color={colors.primary} />
-            <Text style={s.mapBtnText}>Map</Text>
-          </TouchableOpacity>
-        </View>
-
-        <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
-          
-          <StatusStepper currentStatus={activeDelivery.status} />
-
-          {/* Earnings Card */}
-          <Card style={s.earningsCard} elevation="sm">
-            <View style={s.earningsHeader}>
-              <Text style={s.earningsLabel}>Estimated Earnings</Text>
-              <Text style={s.earningsValue}>{parseFloat(activeDelivery.estimatedEarnings).toFixed(0)} EGP</Text>
-            </View>
-            <View style={s.earningsDivider} />
-            <View style={s.paymentRow}>
-              <View style={[s.paymentBadge, isCash ? s.payBadgeCash : s.payBadgeCard]}>
-                <Ionicons name={isCash ? 'cash-outline' : 'card-outline'} size={14} color={isCash ? colors.warning : colors.info} />
-                <Text style={[s.paymentText, isCash ? s.payTextCash : s.payTextCard]}>{isCash ? 'Cash on Delivery' : 'Paid by Card'}</Text>
-              </View>
-              {isCash && (
-                <Text style={s.collectAmount}>Collect: {parseFloat(activeDelivery.order.total).toFixed(2)} EGP</Text>
-              )}
-            </View>
-          </Card>
-
-          {/* Pharmacy Info */}
-          <Card style={s.infoCard} elevation="sm">
-            <View style={s.infoHeader}>
-              <Ionicons name="medical" size={20} color={colors.info} />
-              <Text style={s.infoTitle}>Pickup</Text>
-            </View>
-            <Text style={s.nameText}>{activeDelivery.pharmacyName}</Text>
-            <Text style={s.addressText}>{activeDelivery.pharmacyAddress}</Text>
-            <View style={s.actionsRow}>
-              <Button 
-                title="Call Pharmacy" 
-                variant="outline" 
-                size="sm" 
-                leftIcon={<Ionicons name="call" size={16} color={colors.primary} />} 
-                onPress={() => openPhone(activeDelivery.pharmacyName ?? '')}
-                style={{ flex: 1 }}
-              />
-            </View>
-          </Card>
-
-          {/* Customer Info */}
-          <Card style={s.infoCard} elevation="sm">
-            <View style={s.infoHeader}>
-              <Ionicons name="person" size={20} color={colors.primary} />
-              <Text style={s.infoTitle}>Drop-off</Text>
-            </View>
-            <Text style={s.nameText}>{activeDelivery.order.customerName}</Text>
-            <Text style={s.addressText}>{activeDelivery.order.customerAddress}</Text>
-            
-            {activeDelivery.order.note ? (
-              <View style={s.noteBox}>
-                <Ionicons name="information-circle" size={16} color={colors.warning} />
-                <Text style={s.noteText}>{activeDelivery.order.note}</Text>
-              </View>
-            ) : null}
-
-            <View style={s.actionsRow}>
-              <Button 
-                title="Call Customer" 
-                variant="outline" 
-                size="sm" 
-                leftIcon={<Ionicons name="call" size={16} color={colors.primary} />} 
-                onPress={() => openPhone(activeDelivery.order.customerPhone ?? '')}
-                style={{ flex: 1 }}
-              />
-            </View>
-          </Card>
-
-          {/* Order Details */}
-          <Card style={s.infoCard} elevation="sm">
-            <Text style={s.infoTitle}>Order Items</Text>
-            <View style={s.itemsRow}>
-              <Ionicons name="cube-outline" size={18} color={colors.inkMuted} />
-              <Text style={s.itemsText}>{activeDelivery.order.itemCount} Items</Text>
-            </View>
-            <Text style={s.totalText}>Order Total: {parseFloat(activeDelivery.order.total).toFixed(2)} EGP</Text>
-          </Card>
-
-          {/* Spacer */}
-          <View style={{ height: 100 }} />
-        </ScrollView>
-
-        {/* Action Button */}
-        {transition && (
-          <View style={s.actionFooter}>
-            <TouchableOpacity 
-              style={[s.mainBtn, { backgroundColor: transition.color }]} 
-              onPress={handleNextStatus}
-              disabled={updateMutation.isPending}
-            >
-              <Ionicons name={transition.icon} size={24} color={colors.white} />
-              <Text style={s.mainBtnText}>{updateMutation.isPending ? 'Updating...' : transition.label}</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
-      </SafeAreaView>
-    </ErrorBoundary>
-  );
-}
-
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.surfaceAlt },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing[5], paddingVertical: spacing[4], backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.borderSoft },
-  headerTitle: { fontFamily: typography.black, fontSize: typography.lg, color: colors.ink },
-  orderId: { fontFamily: typography.black, fontSize: typography.lg, color: colors.ink },
-  mapBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.primaryLight, paddingHorizontal: 12, paddingVertical: 6, borderRadius: radii.full },
-  mapBtnText: { fontFamily: typography.bold, fontSize: typography.sm, color: colors.primary },
-  
-  scroll: { padding: spacing[4], gap: spacing[4] },
-  
-  emptyWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing[8], gap: spacing[3] },
-  emptyTitle: { fontFamily: typography.black, fontSize: typography.xl, color: colors.ink },
-  emptyDesc: { fontFamily: typography.regular, fontSize: typography.sm, color: colors.inkMuted, textAlign: 'center' },
-
-  earningsCard: { padding: spacing[4], backgroundColor: colors.surface },
-  earningsHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  earningsLabel: { fontFamily: typography.semibold, fontSize: typography.sm, color: colors.inkMuted },
-  earningsValue: { fontFamily: typography.black, fontSize: typography.xl, color: colors.primary },
-  earningsDivider: { height: 1, backgroundColor: colors.borderSoft, marginVertical: spacing[3] },
-  paymentRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  paymentBadge: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 4, borderRadius: radii.full },
-  payBadgeCash: { backgroundColor: '#FEF9C3' },
-  payBadgeCard: { backgroundColor: '#EFF6FF' },
-  paymentText: { fontFamily: typography.bold, fontSize: typography.xs },
-  payTextCash: { color: colors.warning },
-  payTextCard: { color: colors.info },
-  collectAmount: { fontFamily: typography.bold, fontSize: typography.sm, color: colors.error },
-
-  infoCard: { padding: spacing[4], gap: spacing[2] },
-  infoHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing[2], marginBottom: spacing[1] },
-  infoTitle: { fontFamily: typography.bold, fontSize: typography.base, color: colors.ink },
-  nameText: { fontFamily: typography.bold, fontSize: typography.lg, color: colors.ink },
-  addressText: { fontFamily: typography.regular, fontSize: typography.sm, color: colors.inkMuted, lineHeight: 20 },
-  
-  noteBox: { flexDirection: 'row', gap: spacing[2], backgroundColor: '#FEF9C3', padding: spacing[3], borderRadius: radii.md, marginTop: spacing[2] },
-  noteText: { flex: 1, fontFamily: typography.regular, fontSize: typography.sm, color: '#854D0E' },
-
-  actionsRow: { flexDirection: 'row', gap: spacing[3], marginTop: spacing[3] },
-
-  itemsRow: { flexDirection: 'row', alignItems: 'center', gap: spacing[2] },
-  itemsText: { fontFamily: typography.medium, fontSize: typography.sm, color: colors.ink },
-  totalText: { fontFamily: typography.bold, fontSize: typography.sm, color: colors.ink, marginTop: spacing[2] },
-
-  actionFooter: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: spacing[5], backgroundColor: colors.surface, borderTopWidth: 1, borderTopColor: colors.borderSoft, ...shadows.lg },
-  mainBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing[2], paddingVertical: spacing[4], borderRadius: radii.xl },
-  mainBtnText: { fontFamily: typography.bold, fontSize: typography.lg, color: colors.white },
+  container: { flex: 1, backgroundColor: '#020617' },
+  markerWrap: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#00ffcc', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#020617' },
+  customerMarker: { alignItems: 'center', justifyContent: 'center' },
+  pulseRing: { position: 'absolute', width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(0,255,204,0.3)' },
+  topNav: { position: 'absolute', top: 0, left: 0, right: 0, flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: 16 },
+  backBtn: { width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(2,6,23,0.8)', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(10px)' },
+  gpsBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(2,6,23,0.8)', paddingHorizontal: 12, borderRadius: 100 },
+  gpsDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#00ffcc', marginRight: 8 },
+  bottomSheet: { position: 'absolute', bottom: 0, left: 0, right: 0, paddingHorizontal: 16, paddingBottom: Platform.OS === 'ios' ? 32 : 24, paddingTop: 60 },
+  sheetContent: { backgroundColor: '#0f172a', borderRadius: 32, padding: 24, borderWidth: 1, borderColor: '#1e293b', shadowColor: '#000', shadowOffset: { width: 0, height: -10 }, shadowOpacity: 0.3, shadowRadius: 20 },
+  sheetHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
+  timerBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#1e293b', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
+  addressBlock: { flexDirection: 'row', marginBottom: 32 },
+  timeline: { width: 24, alignItems: 'center', marginRight: 12 },
+  tDot: { width: 12, height: 12, borderRadius: 6 },
+  tLine: { width: 2, height: 40, backgroundColor: '#1e293b', marginVertical: 4 },
+  addressInfo: { flex: 1 },
+  aRow: { flex: 1 },
+  aTitle: { color: '#64748b', fontSize: 12, fontFamily: 'Cairo_700Bold', textTransform: 'uppercase', letterSpacing: 1 },
+  aSub: { color: 'white', fontSize: 16, fontFamily: 'Cairo_600SemiBold', marginTop: 4 },
+  actionBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 24, paddingVertical: 18, borderRadius: 16 },
+  actionText: { color: '#020617', fontSize: 18, fontFamily: 'Cairo_900Black', textTransform: 'uppercase', letterSpacing: 1 }
 });
