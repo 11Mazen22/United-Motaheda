@@ -1,1 +1,0 @@
-Node.js ESM scripts (`import`/`await` top-level) using `csv-parser` for CSV ingestion; Bash scripts with `set -euo pipefail` for Railway deployment; Vite/NestJS/Prisma invoked through npm workspaces in build scripts; PWA via `site.webmanifest`.

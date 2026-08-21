@@ -1,1 +1,0 @@
-Defines the Supabase backend layer: Deno Edge Functions for admin operations, driver tracking, notifications and order queries, plus SQL migrations, stored procedures and performance indexes for the PostgreSQL database.

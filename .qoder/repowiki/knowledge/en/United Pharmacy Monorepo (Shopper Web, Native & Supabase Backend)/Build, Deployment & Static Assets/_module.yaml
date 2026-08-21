@@ -1,9 +1,0 @@
-schema_version: 1
-module_path: scripts_and_assets
-title: Build, Deployment & Static Assets
-scope:
-    - scripts/
-    - assets/
-source_files: []
-depends_on: []
-related_to: []

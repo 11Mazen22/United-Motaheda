@@ -1,1 +1,0 @@
-npm workspaces (v11.6.0) as the monorepo manager; Node ≥22.22.2 enforced via `.nvmrc`/`engines`; Docker + nixpacks for the Railway backend image; Expo EAS for native builds; Vercel rewrites for the web SPA; Supabase (PostgreSQL + Edge Functions) as the shared backend runtime.

@@ -1,1 +1,0 @@
-Root of the United Pharmacy monorepo that wires the Next.js shopper web app, Expo shopper-native app, shared packages, and Supabase backend infrastructure behind a single npm workspace with per-target Railway/Vercel/Expo build pipelines.
