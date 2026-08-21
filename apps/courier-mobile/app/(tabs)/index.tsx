@@ -1,58 +1,132 @@
 import React, { useCallback, useEffect } from 'react';
-import { View, StyleSheet, FlatList, RefreshControl, Switch, Pressable, Dimensions } from 'react-native';
+import { View, StyleSheet, FlatList, RefreshControl, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
-import Animated, { FadeIn, FadeInDown, useAnimatedStyle, withSpring, interpolateColor, useSharedValue } from 'react-native-reanimated';
+import Animated, {
+  FadeIn,
+  FadeInDown,
+  useAnimatedStyle,
+  withSpring,
+  interpolateColor,
+  useSharedValue,
+} from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
-import { colors, typography, spacing, radii } from '@pharmacy/ui-native/courier-tokens';
-import { SkeletonCard, showToast } from '@pharmacy/ui-native';
+import { CourierUI, kit, showToast } from '@pharmacy/ui-native';
+import { colors as courierColors } from '@pharmacy/ui-native/courier-tokens';
 import { driverApi } from '@/lib/api';
 import { useAuthStore } from '@/stores/auth.store';
 import { useOrdersStore, type AvailableOrder } from '@/stores/orders.store';
-import { Text as UIText } from "@pharmacy/ui-native";
 
-const { width } = Dimensions.get('window');
+const STATUS_LABEL: Record<string, string> = {
+  ACCEPTED: 'Accepted',
+  EN_ROUTE_TO_PICKUP: 'Heading to Pharmacy',
+  ARRIVED_AT_PHARMACY: 'At Pharmacy',
+  PICKED_UP: 'Picked Up',
+  EN_ROUTE_TO_CUSTOMER: 'Heading to Customer',
+  ARRIVED_AT_CUSTOMER: 'At Customer',
+  DELIVERED: 'Delivered',
+};
 
-function OrderCard({ order, onAccept, onSkip, accepting, skipping }: any) {
-  const paymentMethod = order.paymentMethod?.toLowerCase();
-  const isCash = paymentMethod === 'cod' || paymentMethod === 'cash';
-  const distance = order.distanceToCustomerMeters != null
-    ? order.distanceToCustomerMeters > 1000
-      ? ${(order.distanceToCustomerMeters / 1000).toFixed(1)} km
-      : ${Math.round(order.distanceToCustomerMeters)} m
-    : '—';
+function formatDistance(meters: number | null): string {
+  if (meters == null) return '—';
+  if (meters > 1000) return `${(meters / 1000).toFixed(1)} km`;
+  return `${Math.round(meters)} m`;
+}
+
+function OrderCard({
+  order,
+  onAccept,
+  onSkip,
+  isAccepting,
+  isSkipping,
+}: {
+  order: AvailableOrder;
+  onAccept: (id: string) => void;
+  onSkip: (id: string) => void;
+  isAccepting: boolean;
+  isSkipping: boolean;
+}) {
+  const busy = isAccepting || isSkipping;
 
   return (
-    <Animated.View entering={FadeInDown.springify()} style={s.orderCard}>
-      <View style={s.orderHeader}>
-        <View style={s.orderTimeWrap}>
-          <Ionicons name="time" size={16} color="#00ffcc" />
-          <UIText style={{ color: '#00ffcc', fontFamily: 'Cairo_700Bold', marginLeft: 6 }}>{distance}</UIText>
+    <Animated.View entering={FadeInDown.springify().damping(18)} style={s.card}>
+      <View style={s.cardTopRow}>
+        <View style={s.distanceChip}>
+          <Ionicons name="navigate" size={14} color={kit.darkColor.accent} />
+          <CourierUI.Typography scale="caption" color="brand">
+            {formatDistance(order.distanceToCustomerMeters)}
+          </CourierUI.Typography>
         </View>
-        <UIText style={{ color: 'white', fontFamily: 'Cairo_800ExtraBold', fontSize: 18 }}>{order.earningsFormatted ?? 'EGP --'}</UIText>
+        <View style={s.earningsBadge}>
+          <CourierUI.Typography scale="priceMd" color="inverse">
+            {order.estimatedEarnings.toFixed(0)}{' '}
+            <CourierUI.Typography scale="badge" color="inverse">EGP</CourierUI.Typography>
+          </CourierUI.Typography>
+        </View>
       </View>
 
-      <View style={s.orderLocations}>
-        <View style={s.locRow}>
-          <View style={[s.dot, { backgroundColor: '#3b82f6' }]} />
-          <UIText style={{ color: '#94a3b8', marginLeft: 12, flex: 1 }} numberOfLines={1}>Pharmacy: {order.pharmacyName}</UIText>
+      <View style={s.routeRow}>
+        <View style={[s.routeDot, { backgroundColor: kit.darkColor.accent }]} />
+        <View style={s.routeLine} />
+        <View style={[s.routeDot, { backgroundColor: kit.darkColor.danger }]} />
+      </View>
+
+      <View style={s.addressBlock}>
+        <View style={s.addressRow}>
+          <CourierUI.Typography scale="badge" color="brand">PICKUP</CourierUI.Typography>
+          <CourierUI.Typography scale="bodySm" color="secondary" style={{ flex: 1 }} numberOfLines={1}>
+            {order.pharmacy.name}
+          </CourierUI.Typography>
         </View>
-        <View style={s.locLine} />
-        <View style={s.locRow}>
-          <View style={[s.dot, { backgroundColor: '#ef4444' }]} />
-          <UIText style={{ color: 'white', marginLeft: 12, flex: 1 }} numberOfLines={2}>{order.shippingAddress?.street}, {order.shippingAddress?.district}</UIText>
+        <View style={s.addressRow}>
+          <CourierUI.Typography scale="badge" color="danger">DROP</CourierUI.Typography>
+          <CourierUI.Typography scale="bodySm" color="inverse" style={{ flex: 1 }} numberOfLines={2}>
+            {order.customerAddress}
+          </CourierUI.Typography>
+        </View>
+      </View>
+
+      <View style={s.cardMetaRow}>
+        <View style={s.metaChip}>
+          <Ionicons name="cube-outline" size={13} color={kit.darkColor.inkFaint} />
+          <CourierUI.Typography scale="caption" color="secondary">
+            {order.itemCount} item{order.itemCount !== 1 ? 's' : ''}
+          </CourierUI.Typography>
+        </View>
+        <View style={s.metaChip}>
+          <Ionicons name="cash-outline" size={13} color={kit.darkColor.inkFaint} />
+          <CourierUI.Typography scale="caption" color="secondary">
+            {order.paymentMethod}
+          </CourierUI.Typography>
         </View>
       </View>
 
       <View style={s.actionRow}>
-        <Pressable style={s.skipBtn} onPress={() => onSkip(order.id)} disabled={skipping || accepting}>
-          <UIText style={{ color: '#94a3b8', fontFamily: 'Cairo_600SemiBold' }}>Decline</UIText>
+        <Pressable
+          style={[s.declineBtn, busy && s.disabledBtn]}
+          onPress={() => onSkip(order.id)}
+          disabled={busy}
+        >
+          <CourierUI.Typography scale="buttonSm" color="secondary">
+            Decline
+          </CourierUI.Typography>
         </Pressable>
-        <Pressable style={s.acceptBtn} onPress={() => onAccept(order.id)} disabled={accepting || skipping}>
-          <LinearGradient colors={['#00ffcc', '#00bfa5']} style={StyleSheet.absoluteFillObject} borderRadius={100} />
-          <UIText style={{ color: '#020617', fontFamily: 'Cairo_800ExtraBold', fontSize: 16 }}>Accept Order</UIText>
+        <Pressable
+          style={[s.acceptBtn, busy && s.disabledBtn]}
+          onPress={() => onAccept(order.id)}
+          disabled={busy}
+        >
+          <LinearGradient
+            colors={[kit.darkColor.accent, '#1a9e93']}
+            style={StyleSheet.absoluteFillObject}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+          />
+          <CourierUI.Typography scale="buttonMd" color="inverse">
+            {isAccepting ? 'Accepting…' : 'Accept Order'}
+          </CourierUI.Typography>
         </Pressable>
       </View>
     </Animated.View>
@@ -64,20 +138,26 @@ export default function DriverDashboard() {
   const qc = useQueryClient();
   const { user, setOnlineStatus } = useAuthStore();
   const isOnline = user?.driverProfile?.isOnline ?? false;
-  
-  const activeDeliveryId = useOrdersStore((s) => s.activeDeliveryId);
+
+  const activeDelivery = useOrdersStore((s) => s.activeDelivery);
   const availableOrders = useOrdersStore((s) => s.availableOrders);
-  const fetchAvailableOrders = useOrdersStore((s) => s.fetchAvailableOrders);
-  
+
+  const fetchAvailableOrders = useCallback(async () => {
+    const data = await driverApi.getAvailableOrders();
+    useOrdersStore.getState().setAvailableOrders(data);
+    return data;
+  }, []);
+
   const { isLoading, isRefetching, refetch } = useQuery({
     queryKey: ['availableOrders'],
     queryFn: fetchAvailableOrders,
-    enabled: isOnline && !activeDeliveryId,
-    refetchInterval: isOnline && !activeDeliveryId ? 10000 : false,
+    enabled: isOnline && !activeDelivery,
+    refetchInterval: isOnline && !activeDelivery ? 10000 : false,
   });
 
   const toggleMutation = useMutation({
-    mutationFn: async (online: boolean) => driverApi.updateStatus(online),
+    mutationFn: async (online: boolean) =>
+      online ? driverApi.goOnline() : driverApi.goOffline(),
     onSuccess: (_, vars) => setOnlineStatus(vars),
     onError: () => showToast('Failed to change status', 'error'),
   });
@@ -92,7 +172,7 @@ export default function DriverDashboard() {
   });
 
   const skipMutation = useMutation({
-    mutationFn: async (id: string) => driverApi.skipOrder(id),
+    mutationFn: async (id: string) => driverApi.rejectOrder(id, 'Skipped by driver'),
     onSuccess: () => refetch(),
   });
 
@@ -102,84 +182,150 @@ export default function DriverDashboard() {
   }, [isOnline]);
 
   const headerBg = useAnimatedStyle(() => ({
-    backgroundColor: interpolateColor(animStatus.value, [0, 1], ['#0f172a', '#022c22'])
+    backgroundColor: interpolateColor(
+      animStatus.value,
+      [0, 1],
+      [kit.darkColor.surface, kit.darkColor.accentDeep]
+    ),
   }));
 
+  const earningsTotal = parseFloat(user?.driverProfile?.totalEarnings ?? '0');
+
   return (
-    <View style={s.container}>
-      {/* Tactical Header */}
+    <View style={s.root}>
       <Animated.View style={[s.header, headerBg]}>
         <SafeAreaView edges={['top']} />
-        <View style={s.headerInner}>
-          <View>
-            <UIText style={{ color: '#94a3b8', fontSize: 14, fontFamily: 'Cairo_600SemiBold', textTransform: 'uppercase', letterSpacing: 2 }}>
-              {isOnline ? 'Online & Searching' : 'Offline'}
-            </UIText>
-            <UIText style={{ color: 'white', fontSize: 28, fontFamily: 'Cairo_900Black' }}>
-              {user?.driverProfile?.totalEarnings ?? 'EGP 0.00'}
-            </UIText>
+        <View style={s.headerRow}>
+          <View style={s.headerInfo}>
+            <CourierUI.Typography
+              scale="caption"
+              color="inverse"
+              style={{ letterSpacing: 1.5 }}
+            >
+              {activeDelivery
+                ? STATUS_LABEL[activeDelivery.status] ?? 'In Progress'
+                : isOnline
+                  ? 'ONLINE — Searching'
+                  : 'OFFLINE'}
+            </CourierUI.Typography>
+            <View style={s.earningsRow}>
+              <Ionicons name="wallet" size={20} color={kit.darkColor.accent} />
+              <CourierUI.Typography scale="screenTitle" color="inverse">
+                {earningsTotal.toFixed(0)}
+              </CourierUI.Typography>
+              <CourierUI.Typography scale="body" color="inverse">
+                EGP total
+              </CourierUI.Typography>
+            </View>
           </View>
-          <View style={s.toggleContainer}>
-            <Switch
-              value={isOnline}
-              onValueChange={(val) => toggleMutation.mutate(val)}
-              trackColor={{ false: '#334155', true: '#00ffcc' }}
-              thumbColor="white"
-              disabled={toggleMutation.isPending || activeDeliveryId != null}
-            />
-          </View>
+
+          <Pressable
+            style={s.toggleWrap}
+            onPress={() => toggleMutation.mutate(!isOnline)}
+            disabled={toggleMutation.isPending || activeDelivery != null}
+          >
+            <Animated.View
+              style={[
+                s.toggleTrack,
+                {
+                  backgroundColor: isOnline
+                    ? kit.darkColor.accent
+                    : kit.darkColor.inkFaint,
+                },
+              ]}
+            >
+              <Animated.View
+                style={[
+                  s.toggleThumb,
+                  isOnline
+                    ? { transform: [{ translateX: 28 }] }
+                    : { transform: [{ translateX: 2 }] },
+                ]}
+              />
+            </Animated.View>
+            <View style={[s.statusDot, { backgroundColor: isOnline ? kit.darkColor.accent : kit.darkColor.inkFaint }]} />
+          </Pressable>
         </View>
 
-        {activeDeliveryId && (
-          <Pressable style={s.activeBanner} onPress={() => router.push('/(tabs)/delivery')}>
-            <View style={s.pulseDot} />
-            <UIText style={{ color: 'white', fontFamily: 'Cairo_700Bold', flex: 1, marginLeft: 12 }}>Active Delivery in Progress</UIText>
-            <Ionicons name="arrow-forward" size={20} color="white" />
+        {activeDelivery && (
+          <Pressable
+            style={s.activeBanner}
+            onPress={() => router.push('/(tabs)/delivery')}
+          >
+            <View style={s.pulseRing}>
+              <View style={[s.pulseDot, { backgroundColor: kit.darkColor.accent }]} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <CourierUI.Typography scale="buttonMd" color="inverse" style={{ fontWeight: '700' }}>
+                Active Delivery
+              </CourierUI.Typography>
+              <CourierUI.Typography scale="caption" color="inverse">
+                {orderCount(activeDelivery.order.items?.length)} ·{' '}
+                {formatDistance(
+                  activeDelivery.order.customerLat && activeDelivery.order.customerLng
+                    ? haversineMeters(
+                        activeDelivery.pharmacyLat,
+                        activeDelivery.pharmacyLng,
+                        activeDelivery.order.customerLat,
+                        activeDelivery.order.customerLng
+                      )
+                    : null
+                )}
+              </CourierUI.Typography>
+            </View>
+            <Ionicons name="arrow-forward" size={20} color={kit.darkColor.accent} />
           </Pressable>
         )}
       </Animated.View>
 
-      {/* Main Feed */}
       <View style={s.feed}>
         {!isOnline ? (
-          <View style={s.emptyState}>
-            <Ionicons name="power" size={64} color="#334155" />
-            <UIText style={s.emptyTitle}>You are offline</UIText>
-            <UIText style={s.emptySub}>Go online to start receiving orders in your area.</UIText>
-          </View>
-        ) : activeDeliveryId ? (
-          <View style={s.emptyState}>
-            <Ionicons name="navigate" size={64} color="#00ffcc" />
-            <UIText style={s.emptyTitle}>Delivery Active</UIText>
-            <UIText style={s.emptySub}>Complete your current route.</UIText>
-          </View>
+          <CourierUI.EmptyState
+            title="You're Offline"
+            subtitle="Go online to start receiving delivery orders in your area."
+            actionLabel="Go Online"
+            onAction={() => toggleMutation.mutate(true)}
+          />
+        ) : activeDelivery ? (
+          <CourierUI.EmptyState
+            title="Delivery in Progress"
+            subtitle="Complete your current route before accepting new orders."
+            actionLabel="View Delivery"
+            onAction={() => router.push('/(tabs)/delivery')}
+          />
         ) : (
           <FlatList
             data={availableOrders}
             keyExtractor={(item) => item.id}
             contentContainerStyle={s.listContent}
-            refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor="#00ffcc" />}
+            refreshControl={
+              <RefreshControl
+                refreshing={isRefetching}
+                onRefresh={refetch}
+                tintColor={kit.darkColor.accent}
+              />
+            }
             renderItem={({ item }) => (
-              <OrderCard 
-                order={item} 
-                onAccept={(id: string) => acceptMutation.mutate(id)} 
-                onSkip={(id: string) => skipMutation.mutate(id)} 
-                accepting={acceptMutation.isPending && acceptMutation.variables === item.id}
-                skipping={skipMutation.isPending && skipMutation.variables === item.id}
+              <OrderCard
+                order={item}
+                onAccept={(id) => acceptMutation.mutate(id)}
+                onSkip={(id) => skipMutation.mutate(id)}
+                isAccepting={acceptMutation.isPending && acceptMutation.variables === item.id}
+                isSkipping={skipMutation.isPending && skipMutation.variables === item.id}
               />
             )}
             ListEmptyComponent={
               isLoading ? (
                 <View style={{ gap: 16 }}>
-                  <SkeletonCard />
-                  <SkeletonCard />
+                  <CourierUI.Skeleton height={160} />
+                  <CourierUI.Skeleton height={160} />
+                  <CourierUI.Skeleton height={160} />
                 </View>
               ) : (
-                <View style={s.emptyState}>
-                  <Ionicons name="radar" size={64} color="#00ffcc" style={{ opacity: 0.5 }} />
-                  <UIText style={s.emptyTitle}>Scanning Area</UIText>
-                  <UIText style={s.emptySub}>Waiting for new orders nearby...</UIText>
-                </View>
+                <CourierUI.EmptyState
+                  title="Scanning Area"
+                  subtitle="No orders nearby right now. We'll notify you when one matches your route."
+                />
               )
             }
           />
@@ -189,26 +335,201 @@ export default function DriverDashboard() {
   );
 }
 
+function orderCount(itemsLength: number | undefined): string {
+  const count = itemsLength ?? 0;
+  return `${count} item${count !== 1 ? 's' : ''}`;
+}
+
+function haversineMeters(
+  lat1: number,
+  lng1: number,
+  lat2: number,
+  lng2: number
+): number | null {
+  if (!lat1 || !lng1 || !lat2 || !lng2) return null;
+  const R = 6371e3;
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  return Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+}
+
 const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#020617' },
-  header: { borderBottomLeftRadius: 32, borderBottomRightRadius: 32, paddingBottom: 24, overflow: 'hidden' },
-  headerInner: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 24, paddingTop: 16 },
-  toggleContainer: { transform: [{ scale: 1.2 }] },
-  activeBanner: { flexDirection: 'row', backgroundColor: 'rgba(0,255,204,0.15)', marginHorizontal: 24, marginTop: 24, padding: 16, borderRadius: 16, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(0,255,204,0.3)' },
-  pulseDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#00ffcc' },
-  feed: { flex: 1, paddingTop: 16 },
-  listContent: { paddingHorizontal: 16, paddingBottom: 120, gap: 16 },
-  orderCard: { backgroundColor: '#0f172a', borderRadius: 24, padding: 20, borderWidth: 1, borderColor: '#1e293b' },
-  orderHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-  orderTimeWrap: { flexDirection: 'row', backgroundColor: 'rgba(0,255,204,0.1)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 100, alignItems: 'center' },
-  orderLocations: { marginLeft: 8, marginBottom: 24 },
-  locRow: { flexDirection: 'row', alignItems: 'center' },
-  dot: { width: 8, height: 8, borderRadius: 4 },
-  locLine: { width: 2, height: 24, backgroundColor: '#334155', marginLeft: 3, marginVertical: 4 },
-  actionRow: { flexDirection: 'row', gap: 12 },
-  skipBtn: { flex: 1, backgroundColor: '#1e293b', paddingVertical: 14, borderRadius: 100, alignItems: 'center' },
-  acceptBtn: { flex: 2, paddingVertical: 14, borderRadius: 100, alignItems: 'center', overflow: 'hidden' },
-  emptyState: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 40 },
-  emptyTitle: { color: 'white', fontSize: 24, fontFamily: 'Cairo_800ExtraBold', marginTop: 24, marginBottom: 8 },
-  emptySub: { color: '#94a3b8', textAlign: 'center', fontSize: 16, fontFamily: 'Cairo_500Medium' }
+  root: {
+    flex: 1,
+    backgroundColor: kit.darkColor.canvas,
+  },
+  header: {
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+    paddingBottom: 20,
+    overflow: 'hidden',
+  },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingTop: 16,
+  },
+  headerInfo: {
+    flex: 1,
+    gap: 4,
+  },
+  earningsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 4,
+  },
+  toggleWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  toggleTrack: {
+    width: 56,
+    height: 32,
+    borderRadius: 16,
+    padding: 2,
+    justifyContent: 'center',
+  },
+  toggleThumb: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#fff',
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  activeBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    marginHorizontal: 24,
+    marginTop: 20,
+    padding: 16,
+    borderRadius: 16,
+    backgroundColor: 'rgba(0,0,0,0.25)',
+    borderWidth: 1,
+    borderColor: 'rgba(44,203,189,0.25)',
+  },
+  pulseRing: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(44,203,189,0.15)',
+  },
+  pulseDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+  },
+  feed: {
+    flex: 1,
+    paddingTop: 16,
+  },
+  listContent: {
+    paddingHorizontal: 16,
+    paddingBottom: 120,
+    gap: 16,
+  },
+  card: {
+    backgroundColor: kit.darkColor.surface,
+    borderRadius: 24,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: kit.darkColor.line,
+    gap: 16,
+  },
+  cardTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  distanceChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: kit.darkColor.accentTint,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 100,
+  },
+  earningsBadge: {
+    backgroundColor: kit.darkColor.accent,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 12,
+  },
+  routeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 32,
+  },
+  routeDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  routeLine: {
+    flex: 1,
+    height: 2,
+    backgroundColor: kit.darkColor.line,
+    marginHorizontal: 8,
+  },
+  addressBlock: {
+    gap: 10,
+  },
+  addressRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  cardMetaRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  metaChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: kit.darkColor.well,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  actionRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  declineBtn: {
+    flex: 1,
+    backgroundColor: kit.darkColor.surface,
+    paddingVertical: 16,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: kit.darkColor.line,
+  },
+  acceptBtn: {
+    flex: 2,
+    paddingVertical: 16,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  disabledBtn: {
+    opacity: 0.38,
+  },
 });

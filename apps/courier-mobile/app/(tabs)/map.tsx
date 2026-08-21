@@ -12,14 +12,13 @@ import {
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE, Region } from 'react-native-maps';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, typography, spacing, radii, shadows } from '@pharmacy/ui-native/courier-tokens';
-import { Card } from '@pharmacy/ui-native';
+import { CourierUI, kit } from '@pharmacy/ui-native';
+import { colors as courierColors } from '@pharmacy/ui-native/courier-tokens';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { useLocationStore } from '@/stores/location.store';
 import { useOrdersStore, type ActiveDelivery } from '@/stores/orders.store';
 import { haversineMeters } from '@/lib/gps/KalmanFilter';
 
-// Decode Google Maps encoded polyline
 function decodePolyline(encoded: string): { latitude: number; longitude: number }[] {
   const points: { latitude: number; longitude: number }[] = [];
   let index = 0;
@@ -56,7 +55,6 @@ function decodePolyline(encoded: string): { latitude: number; longitude: number 
   return points;
 }
 
-// Fetch route from Google Directions API
 async function fetchRoute(
   originLat: number,
   originLng: number,
@@ -92,7 +90,6 @@ async function fetchRoute(
 
 function getGoogleMapsApiKey(): string {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const Constants = require('expo-constants').default;
     return Constants.expoConfig?.extra?.googleMapsApiKey ?? '';
   } catch {
@@ -100,17 +97,16 @@ function getGoogleMapsApiKey(): string {
   }
 }
 
-// Accuracy indicator dot
 function AccuracyDot({ accuracy }: { accuracy: number | null }) {
   const level =
     accuracy == null ? 'poor' : accuracy <= 15 ? 'good' : accuracy <= 50 ? 'fair' : 'poor';
-  const colorMap = { good: colors.success, fair: colors.warning, poor: colors.error };
+  const colorMap = { good: courierColors.online, fair: courierColors.statusArrived, poor: courierColors.statusCancelled };
   const labelMap = { good: `${Math.round(accuracy ?? 99)}m`, fair: `${Math.round(accuracy ?? 99)}m`, poor: 'Poor GPS' };
 
   return (
     <View style={ad.container}>
       <View style={[ad.dot, { backgroundColor: colorMap[level] }]} />
-      <Text style={ad.label}>{labelMap[level]}</Text>
+      <CourierUI.Typography scale="badge" color="inverse">{labelMap[level]}</CourierUI.Typography>
     </View>
   );
 }
@@ -119,17 +115,16 @@ const ad = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    paddingHorizontal: spacing[2],
-    paddingVertical: 4,
-    borderRadius: radii.full,
     gap: 5,
+    backgroundColor: 'rgba(2,6,23,0.8)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 100,
+    borderWidth: 1,
+    borderColor: kit.darkColor.line,
   },
   dot: { width: 8, height: 8, borderRadius: 4 },
-  label: { fontSize: typography.xs, color: '#fff', fontFamily: typography.medium },
 });
-
-// ─── Bottom sheet ─────────────────────────────────────────────────────────────
 
 function BottomSheet({
   delivery,
@@ -149,10 +144,13 @@ function BottomSheet({
     ARRIVED_AT_CUSTOMER: 'At customer location',
   };
 
-  const isHeadingToPharmacy =
-    delivery.status === 'ACCEPTED' || delivery.status === 'EN_ROUTE_TO_PICKUP' || delivery.status === 'ARRIVED_AT_PHARMACY';
+  const isPharmacyLeg =
+    delivery.status === 'ACCEPTED' ||
+    delivery.status === 'EN_ROUTE_TO_PICKUP' ||
+    delivery.status === 'ARRIVED_AT_PHARMACY' ||
+    delivery.status === 'PICKED_UP';
 
-  const destination = isHeadingToPharmacy
+  const destination = isPharmacyLeg
     ? { name: delivery.pharmacyName, address: delivery.pharmacyAddress }
     : { name: delivery.order.customerName, address: delivery.order.customerAddress };
 
@@ -161,15 +159,15 @@ function BottomSheet({
       <View style={bs.handle} />
       <View style={bs.content}>
         <View style={bs.row}>
-          <View style={bs.dot} />
+          <View style={[bs.dot, { backgroundColor: kit.darkColor.accent }]} />
           <View style={bs.info}>
-            <Text style={bs.statusText}>{statusLabels[delivery.status] ?? delivery.status}</Text>
-            <Text style={bs.destName}>{destination.name}</Text>
-            <Text style={bs.destAddr} numberOfLines={1}>{destination.address}</Text>
+            <CourierUI.Typography scale="caption" color="secondary">{statusLabels[delivery.status] ?? delivery.status}</CourierUI.Typography>
+            <CourierUI.Typography scale="bodySm" color="inverse">{destination.name}</CourierUI.Typography>
+            <CourierUI.Typography scale="badge" color="secondary" numberOfLines={1}>{destination.address}</CourierUI.Typography>
           </View>
           <TouchableOpacity style={bs.navBtn} onPress={onNavigate} activeOpacity={0.8}>
-            <Ionicons name="navigate" size={20} color={colors.white} />
-            <Text style={bs.navText}>Go</Text>
+            <Ionicons name="navigate" size={18} color={kit.darkColor.ink} />
+            <CourierUI.Typography scale="badge" color="inverse" style={{ fontWeight: '700' }}>GO</CourierUI.Typography>
           </TouchableOpacity>
         </View>
       </View>
@@ -179,45 +177,39 @@ function BottomSheet({
 
 const bs = StyleSheet.create({
   sheet: {
-    backgroundColor: colors.surface,
-    borderTopLeftRadius: radii['2xl'],
-    borderTopRightRadius: radii['2xl'],
-    ...shadows.xl,
+    backgroundColor: kit.darkColor.surface,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    borderWidth: 1,
+    borderColor: kit.darkColor.line,
   },
   handle: {
     width: 36,
     height: 4,
-    backgroundColor: colors.border,
     borderRadius: 2,
+    backgroundColor: kit.darkColor.line,
     alignSelf: 'center',
-    marginTop: spacing[2],
-    marginBottom: spacing[1],
+    marginTop: 12,
+    marginBottom: 8,
   },
-  content: { padding: spacing[5], paddingTop: spacing[3] },
-  row: { flexDirection: 'row', alignItems: 'center', gap: spacing[3] },
+  content: { paddingHorizontal: 20, paddingBottom: 16 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   dot: {
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: colors.primary,
   },
   info: { flex: 1 },
-  statusText: { fontSize: typography.xs, color: colors.inkMuted, fontFamily: typography.medium },
-  destName: { fontSize: typography.base, fontFamily: typography.bold, color: colors.ink, marginTop: 2 },
-  destAddr: { fontSize: typography.xs, color: colors.inkMuted, marginTop: 1 },
   navBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing[1],
-    backgroundColor: colors.primary,
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[2],
-    borderRadius: radii.lg,
+    gap: 4,
+    backgroundColor: kit.darkColor.accent,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
   },
-  navText: { color: colors.white, fontFamily: typography.bold, fontSize: typography.sm },
 });
-
-// ─── Main map screen ──────────────────────────────────────────────────────────
 
 export default function MapScreen() {
   const insets = useSafeAreaInsets();
@@ -233,7 +225,6 @@ export default function MapScreen() {
 
   const apiKey = getGoogleMapsApiKey();
 
-  // Destination based on delivery status — with coordinate validation
   const getDestination = useCallback(() => {
     if (!activeDelivery) return null;
     const isPharmacyLeg =
@@ -245,7 +236,6 @@ export default function MapScreen() {
     if (isPharmacyLeg) {
       const lat = activeDelivery.pharmacyLat;
       const lng = activeDelivery.pharmacyLng;
-      // Validate coordinates are real numbers in plausible range
       if (
         typeof lat === 'number' && typeof lng === 'number' &&
         lat !== 0 && lng !== 0 &&
@@ -269,11 +259,9 @@ export default function MapScreen() {
       return { lat: cLat, lng: cLng, type: 'customer' as const };
     }
 
-    // Fallback: try to geocode from address string if coords are invalid
     return null;
   }, [activeDelivery]);
 
-  // Fetch route when driver/destination changes significantly
   useEffect(() => {
     if (!location.latitude || !location.longitude) return;
 
@@ -284,7 +272,6 @@ export default function MapScreen() {
       return;
     }
 
-    // Only re-fetch if driver moved >100m from last fetch point
     if (lastRouteFetchCoords) {
       const dist = haversineMeters(
         lastRouteFetchCoords.lat,
@@ -292,7 +279,7 @@ export default function MapScreen() {
         location.latitude,
         location.longitude,
       );
-      if (dist < 100) return;
+      if (dist !== null && dist < 100) return;
     }
 
     const driverLat = location.latitude;
@@ -316,7 +303,6 @@ export default function MapScreen() {
     activeDelivery?.assignmentId,
   ]);
 
-  // Re-center on driver
   const centerOnDriver = useCallback(() => {
     if (!location.latitude || !location.longitude) return;
     mapRef.current?.animateToRegion(
@@ -330,11 +316,9 @@ export default function MapScreen() {
     );
   }, [location.latitude, location.longitude]);
 
-  // Open Google Maps navigation with validated coordinates
   const openNavigation = useCallback(() => {
     const dest = getDestination();
     if (!dest) {
-      // If no valid coordinates, fall back to address-based search
       const address = activeDelivery
         ? (
             activeDelivery.status === 'EN_ROUTE_TO_CUSTOMER' ||
@@ -352,9 +336,8 @@ export default function MapScreen() {
       return;
     }
 
-    // Prefer native Google Maps app for turn-by-turn; fall back to web
-    const iosUrl      = `comgooglemaps://?daddr=${dest.lat},${dest.lng}&directionsmode=driving`;
-    const androidUrl  = `google.navigation:q=${dest.lat},${dest.lng}&mode=d`;
+    const iosUrl = `comgooglemaps://?daddr=${dest.lat},${dest.lng}&directionsmode=driving`;
+    const androidUrl = `google.navigation:q=${dest.lat},${dest.lng}&mode=d`;
     const fallbackUrl = `https://www.google.com/maps/dir/?api=1&destination=${dest.lat},${dest.lng}&travelmode=driving`;
 
     const nativeUrl = Platform.select({ ios: iosUrl, android: androidUrl });
@@ -379,7 +362,7 @@ export default function MapScreen() {
         longitudeDelta: 0.02,
       }
     : {
-        latitude: 30.0444,    // Cairo fallback
+        latitude: 30.0444,
         longitude: 31.2357,
         latitudeDelta: 0.1,
         longitudeDelta: 0.1,
@@ -393,13 +376,12 @@ export default function MapScreen() {
           style={StyleSheet.absoluteFillObject}
           provider={PROVIDER_GOOGLE}
           initialRegion={initialRegion}
-          showsUserLocation={false}  // We show a custom marker
+          showsUserLocation={false}
           showsMyLocationButton={false}
           showsTraffic={false}
           showsCompass={false}
           toolbarEnabled={false}
         >
-          {/* Driver marker */}
           {hasLocation && (
             <Marker
               coordinate={{ latitude: location.latitude!, longitude: location.longitude! }}
@@ -407,99 +389,91 @@ export default function MapScreen() {
               flat
               rotation={location.heading ?? 0}
             >
-              <View style={s.driverMarker}>
-                <Ionicons name="navigate" size={20} color={colors.white} />
+              <View style={[s.driverMarker, { backgroundColor: courierColors.mapDriver }]}>
+                <Ionicons name="navigate" size={20} color="#fff" />
               </View>
             </Marker>
           )}
 
-          {/* Pharmacy marker */}
           {dest?.type === 'pharmacy' && (
             <Marker
               coordinate={{ latitude: dest.lat, longitude: dest.lng }}
               anchor={{ x: 0.5, y: 1 }}
             >
-              <View style={s.pharmacyMarker}>
-                <Ionicons name="medical" size={18} color={colors.white} />
+              <View style={[s.pharmacyMarker, { backgroundColor: courierColors.mapPickup }]}>
+                <Ionicons name="medical" size={18} color="#fff" />
               </View>
             </Marker>
           )}
 
-          {/* Customer marker */}
           {dest?.type === 'customer' && (
             <Marker
               coordinate={{ latitude: dest.lat, longitude: dest.lng }}
               anchor={{ x: 0.5, y: 1 }}
             >
-              <View style={s.customerMarker}>
-                <Ionicons name="home" size={18} color={colors.white} />
+              <View style={[s.customerMarker, { backgroundColor: courierColors.mapDelivery }]}>
+                <Ionicons name="home" size={18} color="#fff" />
               </View>
             </Marker>
           )}
 
-          {/* Route polyline */}
           {route.length > 1 && (
             <Polyline
               coordinates={route}
-              strokeColor={colors.primary}
+              strokeColor={courierColors.mapRoute}
               strokeWidth={4}
-              lineDashPattern={undefined}
               lineCap="round"
               lineJoin="round"
             />
           )}
         </MapView>
 
-        {/* Top overlay */}
         <SafeAreaView edges={['top']} style={s.topOverlay} pointerEvents="box-none">
           <View style={s.topRow} pointerEvents="box-none">
-            {/* ETA chip */}
             {eta && (
               <View style={s.etaChip}>
                 {loadingRoute ? (
-                  <ActivityIndicator size="small" color={colors.primary} />
+                  <ActivityIndicator size="small" color={kit.darkColor.accent} />
                 ) : (
                   <>
-                    <Ionicons name="time-outline" size={14} color={colors.primary} />
-                    <Text style={s.etaText}>
+                    <Ionicons name="time-outline" size={14} color={kit.darkColor.accent} />
+                    <CourierUI.Typography scale="bodySm" style={{ color: kit.darkColor.accent, fontWeight: '600' }}>
                       ~{eta.durationMin} min · {eta.distanceKm} km
-                    </Text>
+                    </CourierUI.Typography>
                   </>
                 )}
               </View>
             )}
 
-            {/* Accuracy indicator */}
             <AccuracyDot accuracy={location.accuracy} />
           </View>
         </SafeAreaView>
 
-        {/* Re-center FAB */}
         <TouchableOpacity
-          style={[s.recenterBtn, { bottom: activeDelivery ? 180 : spacing[10] + insets.bottom }]}
+          style={[
+            s.recenterBtn,
+            { bottom: activeDelivery ? 180 : 100 + insets.bottom },
+          ]}
           onPress={centerOnDriver}
           activeOpacity={0.85}
         >
-          <Ionicons name="locate-outline" size={22} color={colors.primary} />
+          <Ionicons name="locate-outline" size={22} color={kit.darkColor.accent} />
         </TouchableOpacity>
 
-        {/* No location message */}
         {!hasLocation && (
           <View style={s.noLocationBanner}>
-            <Ionicons name="location-outline" size={16} color={colors.white} />
-            <Text style={s.noLocationText}>Acquiring GPS signal…</Text>
+            <Ionicons name="location-outline" size={16} color="#fff" />
+            <CourierUI.Typography scale="badge" color="inverse">Acquiring GPS signal…</CourierUI.Typography>
           </View>
         )}
 
-        {/* No active delivery message */}
         {!activeDelivery && hasLocation && (
-          <View style={[s.noDeliveryChip, { bottom: spacing[10] + insets.bottom }]}>
-            <Ionicons name="checkmark-circle-outline" size={14} color={colors.inkMuted} />
-            <Text style={s.noDeliveryText}>No active delivery</Text>
+          <View style={[s.noDeliveryChip, { bottom: 100 + insets.bottom }]}>
+            <Ionicons name="checkmark-circle-outline" size={14} color={kit.darkColor.inkFaint} />
+            <CourierUI.Typography scale="badge" color="secondary">No active delivery</CourierUI.Typography>
           </View>
         )}
 
-        {/* Bottom sheet */}
         {activeDelivery && (
           <View style={{ position: 'absolute', bottom: insets.bottom, left: 0, right: 0 }}>
             <BottomSheet delivery={activeDelivery} onNavigate={openNavigation} />
@@ -523,94 +497,89 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: spacing[4],
-    paddingTop: spacing[3],
-    gap: spacing[3],
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    gap: 10,
   },
 
   etaChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing[1],
-    backgroundColor: colors.surface,
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[2],
-    borderRadius: radii.full,
-    ...shadows.md,
+    gap: 6,
+    backgroundColor: kit.darkColor.surface,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 100,
+    borderWidth: 1,
+    borderColor: kit.darkColor.line,
   },
-  etaText: { fontSize: typography.sm, fontFamily: typography.bold, color: colors.ink },
 
   driverMarker: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.primary,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 3,
-    borderColor: colors.white,
-    ...shadows.lg,
+    borderColor: '#fff',
   },
   pharmacyMarker: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: colors.info,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: colors.white,
-    ...shadows.md,
+    borderColor: '#fff',
   },
   customerMarker: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: colors.error,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: colors.white,
-    ...shadows.md,
+    borderColor: '#fff',
   },
 
   recenterBtn: {
     position: 'absolute',
-    right: spacing[4],
+    right: 16,
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: colors.surface,
+    backgroundColor: kit.darkColor.surface,
     alignItems: 'center',
     justifyContent: 'center',
-    ...shadows.lg,
+    borderWidth: 1,
+    borderColor: kit.darkColor.line,
   },
 
   noLocationBanner: {
     position: 'absolute',
-    bottom: spacing[10],
+    bottom: 120,
     alignSelf: 'center',
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing[2],
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[2],
-    borderRadius: radii.full,
+    gap: 8,
+    backgroundColor: 'rgba(2,6,23,0.85)',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 100,
+    borderWidth: 1,
+    borderColor: kit.darkColor.line,
   },
-  noLocationText: { color: colors.white, fontSize: typography.sm },
-
   noDeliveryChip: {
     position: 'absolute',
     alignSelf: 'center',
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing[1],
-    backgroundColor: colors.surface,
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[2],
-    borderRadius: radii.full,
-    ...shadows.md,
+    gap: 6,
+    backgroundColor: kit.darkColor.surface,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 100,
+    borderWidth: 1,
+    borderColor: kit.darkColor.line,
   },
-  noDeliveryText: { fontSize: typography.xs, color: colors.inkMuted },
 });
