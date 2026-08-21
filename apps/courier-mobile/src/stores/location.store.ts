@@ -9,10 +9,12 @@ export interface LocationState {
   altitude: number | null;
   isTracking: boolean;
   lastUpdated: number | null;
+  warning: string | null;
 }
 
 interface LocationStore extends LocationState {
   setLocation: (loc: Partial<LocationState>) => void;
+  setWarning: (warning: string | null) => void;
   startTracking: () => void;
   stopTracking: () => void;
   reset: () => void;
@@ -27,6 +29,7 @@ const initialState: LocationState = {
   altitude: null,
   isTracking: false,
   lastUpdated: null,
+  warning: null,
 };
 
 export const useLocationStore = create<LocationStore>((set) => ({
@@ -34,6 +37,9 @@ export const useLocationStore = create<LocationStore>((set) => ({
 
   setLocation: (loc) =>
     set((s) => ({ ...s, ...loc, lastUpdated: Date.now() })),
+
+  setWarning: (warning) =>
+    set((s) => ({ ...s, warning })),
 
   startTracking: () => set({ isTracking: true }),
 

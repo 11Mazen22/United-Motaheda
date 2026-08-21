@@ -20,7 +20,7 @@ import { useAuthStore } from '@/stores/auth.store';
 import { socketManager } from '@/lib/socket';
 import { useGpsTracking } from '@/hooks/useGpsTracking';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
-import { ThemeProvider, Toast } from '@pharmacy/ui-native';
+import { ThemeProvider, Toast, useCourierTheme } from '@pharmacy/ui-native';
 import { NetworkBanner } from '@/components/NetworkBanner';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
@@ -65,6 +65,14 @@ function AuthGuard() {
   return null;
 }
 
+// ─── Theme-aware status bar ───────────────────────────────────────────────────
+function ThemeStatusBar() {
+  const { isDark } = useCourierTheme();
+  return Platform.OS !== 'web' ? (
+    <StatusBar style={isDark ? 'light' : 'dark'} translucent backgroundColor="transparent" />
+  ) : null;
+}
+
 // ─── Root layout ──────────────────────────────────────────────────────────────
 export default function RootLayout() {
   useEffect(() => {
@@ -97,9 +105,7 @@ export default function RootLayout() {
               queryClient.resumePausedMutations();
             }}
           >
-            {Platform.OS !== 'web' && (
-              <StatusBar style="dark" translucent backgroundColor="transparent" />
-            )}
+            <ThemeStatusBar />
 
             <AuthGuard />
             <GpsBootstrap />

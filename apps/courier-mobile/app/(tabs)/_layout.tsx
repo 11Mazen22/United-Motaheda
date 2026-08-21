@@ -16,7 +16,8 @@ import Animated, {
   withSpring,
   Extrapolation,
 } from 'react-native-reanimated';
-import { colors, typography, spacing, shadows, radii } from '@pharmacy/ui-native/courier-tokens';
+import { typography, spacing, shadows } from '@pharmacy/ui-native/courier-tokens';
+import { useCourierTheme } from '@pharmacy/ui-native';
 import { useOrdersStore } from '@/stores/orders.store';
 
 type IconName = React.ComponentProps<typeof Ionicons>['name'];
@@ -28,11 +29,17 @@ function TabIcon({
   focused,
   badge,
   label,
+  activeColor,
+  inactiveColor,
+  surfaceColor,
 }: {
   name: IconName;
   focused: boolean;
   badge?: boolean;
   label: string;
+  activeColor: string;
+  inactiveColor: string;
+  surfaceColor: string;
 }) {
   const progress = useSharedValue(focused ? 1 : 0);
 
@@ -54,15 +61,15 @@ function TabIcon({
 
   return (
     <View style={ti.wrap}>
-      {badge && <View style={ti.badgeDot} />}
+      {badge && <View style={[ti.badgeDot, { backgroundColor: activeColor, borderColor: surfaceColor }]} />}
       <Animated.View style={iconAnim}>
         <Ionicons
           name={name}
           size={22}
-          color={focused ? colors.primary : colors.inkFaint}
+          color={focused ? activeColor : inactiveColor}
         />
       </Animated.View>
-      <Animated.View style={[ti.activeDot, dotAnim]} />
+      <Animated.View style={[ti.activeDot, dotAnim, { backgroundColor: activeColor }]} />
     </View>
   );
 }
@@ -77,13 +84,11 @@ const ti = StyleSheet.create({
   badgeDot: {
     position:        'absolute',
     top:             0,
-    right:           -4,
+    start:           0,
     width:           8,
     height:          8,
     borderRadius:    4,
-    backgroundColor: colors.error,
     borderWidth:     1.5,
-    borderColor:     colors.surface,
     zIndex:          1,
   },
   activeDot: {
@@ -91,22 +96,31 @@ const ti = StyleSheet.create({
     width:           20,
     height:          3,
     borderRadius:    2,
-    backgroundColor: colors.primary,
   },
 });
 
 export default function TabsLayout() {
   const insets   = useSafeAreaInsets();
   const hasActive = useOrdersStore((s) => s.activeDelivery !== null);
+  const { colors } = useCourierTheme();
+
+  const activeColor = colors.brand.primary;
+  const inactiveColor = colors.text.muted;
 
   return (
     <Tabs
       screenOptions={{
         headerShown:           false,
-        tabBarActiveTintColor:  colors.primary,
-        tabBarInactiveTintColor: colors.inkFaint,
+        tabBarActiveTintColor:  activeColor,
+        tabBarInactiveTintColor: inactiveColor,
         tabBarStyle: [
-          styles.bar,
+          {
+            backgroundColor: colors.canvas.surface,
+            borderTopColor: colors.border.default,
+            height: BAR_H,
+            paddingTop: spacing[1],
+            ...shadows.sm,
+          },
           { paddingBottom: Math.max(insets.bottom, spacing[2]) },
         ],
         tabBarLabelStyle: styles.label,
@@ -118,7 +132,7 @@ export default function TabsLayout() {
         options={{
           title: 'الطلبات',
           tabBarIcon: ({ focused }) => (
-            <TabIcon name={focused ? 'receipt' : 'receipt-outline'} focused={focused} label="الطلبات" />
+            <TabIcon name={focused ? 'receipt' : 'receipt-outline'} focused={focused} label="الطلبات" activeColor={activeColor} inactiveColor={inactiveColor} surfaceColor={colors.canvas.surface} />
           ),
         }}
       />
@@ -127,7 +141,7 @@ export default function TabsLayout() {
         options={{
           title: 'الخريطة',
           tabBarIcon: ({ focused }) => (
-            <TabIcon name={focused ? 'map' : 'map-outline'} focused={focused} label="الخريطة" />
+            <TabIcon name={focused ? 'map' : 'map-outline'} focused={focused} label="الخريطة" activeColor={activeColor} inactiveColor={inactiveColor} surfaceColor={colors.canvas.surface} />
           ),
         }}
       />
@@ -141,6 +155,9 @@ export default function TabsLayout() {
               focused={focused}
               badge={hasActive}
               label="التوصيل"
+              activeColor={activeColor}
+              inactiveColor={inactiveColor}
+              surfaceColor={colors.canvas.surface}
             />
           ),
         }}
@@ -150,7 +167,7 @@ export default function TabsLayout() {
         options={{
           title: 'حسابي',
           tabBarIcon: ({ focused }) => (
-            <TabIcon name={focused ? 'person' : 'person-outline'} focused={focused} label="حسابي" />
+            <TabIcon name={focused ? 'person' : 'person-outline'} focused={focused} label="حسابي" activeColor={activeColor} inactiveColor={inactiveColor} surfaceColor={colors.canvas.surface} />
           ),
         }}
       />
@@ -161,14 +178,6 @@ export default function TabsLayout() {
 const BAR_H = Platform.OS === 'ios' ? 82 : 64;
 
 const styles = StyleSheet.create({
-  bar: {
-    backgroundColor: colors.surface,
-    borderTopWidth:  StyleSheet.hairlineWidth,
-    borderTopColor:  colors.borderSoft,
-    height:          BAR_H,
-    paddingTop:      spacing[1],
-    ...shadows.sm,
-  },
   label: {
     fontFamily: typography.bold,
     fontSize:   11,

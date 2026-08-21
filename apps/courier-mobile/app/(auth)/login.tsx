@@ -7,7 +7,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
-  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -15,8 +14,9 @@ import { useForm, Controller } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, typography, spacing, radii } from '@pharmacy/ui-native/courier-tokens';
-import { Button, Input, showToast } from '@pharmacy/ui-native';
+import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
+import { typography, spacing, radii, shadows, animation } from '@pharmacy/ui-native/courier-tokens';
+import { Button, Input, showToast, useCourierTheme } from '@pharmacy/ui-native';
 import { driverApi } from '@/lib/api';
 import { useAuthStore } from '@/stores/auth.store';
 
@@ -29,6 +29,7 @@ type FormData = z.infer<typeof schema>;
 
 export default function LoginScreen() {
   const router = useRouter();
+  const { colors, theme } = useCourierTheme();
   const setAuth = useAuthStore((s) => s.setAuth);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -47,24 +48,22 @@ export default function LoginScreen() {
         identifier: data.identifier,
         password: data.password,
       });
-      
-      // Strict Role Guard
+
       if (res.user?.role !== 'DRIVER') {
-         throw new Error("Unauthorized: This application is strictly for Drivers.");
+        throw new Error("Unauthorized: This application is strictly for Drivers.");
       }
-      
+
       setAuth(res.token, res.user);
-      // AuthGuard in _layout.tsx will redirect to /(tabs) automatically
     } catch (err: any) {
-      const message = err instanceof Error && err.message.includes("Unauthorized") 
-        ? err.message 
+      const message = err instanceof Error && err.message.includes("Unauthorized")
+        ? err.message
         : err?.response?.data?.message ?? 'Login failed. Check your credentials.';
       showToast(message, 'error');
     }
   };
 
   return (
-    <SafeAreaView style={s.safe} edges={['top', 'bottom']}>
+    <SafeAreaView style={[s.safe, { backgroundColor: colors.canvas.screen }]} edges={['top', 'bottom']}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -74,19 +73,19 @@ export default function LoginScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* Header */}
-          <View style={s.header}>
-            <View style={s.logoCircle}>
-              <Ionicons name="car-sport" size={36} color={colors.white} />
+          {/* Header / Brand */}
+          <Animated.View entering={FadeInDown.duration(animation.normal).springify()} style={s.header}>
+            <View style={[s.logoCircle, { backgroundColor: colors.brand.primary, shadowColor: colors.brand.primary }]}>
+              <Ionicons name="car-sport" size={40} color={colors.text.inverse} />
             </View>
-            <Text style={s.title}>United Pharmacy</Text>
-            <Text style={s.subtitle}>Driver Portal</Text>
-          </View>
+            <Text style={[s.title, { color: colors.text.primary }]} accessibilityRole="header">United Pharmacy</Text>
+            <Text style={[s.subtitle, { color: colors.text.secondary }]}>Driver Portal</Text>
+          </Animated.View>
 
           {/* Form card */}
-          <View style={s.card}>
-            <Text style={s.formTitle}>Sign In</Text>
-            <Text style={s.formSub}>Enter your credentials to continue</Text>
+          <Animated.View entering={FadeInUp.duration(animation.normal).delay(100).springify()} style={[s.card, { backgroundColor: colors.canvas.surface, shadowColor: colors.text.primary }]}>
+            <Text style={[s.formTitle, { color: colors.text.primary }]} accessibilityRole="header">Welcome Back</Text>
+            <Text style={[s.formSub, { color: colors.text.secondary }]}>Sign in to continue delivering</Text>
 
             <View style={s.fields}>
               <Controller
@@ -104,9 +103,11 @@ export default function LoginScreen() {
                     autoCapitalize="none"
                     autoCorrect={false}
                     leftIcon={
-                      <Ionicons name="person-outline" size={18} color={colors.inkMuted} />
+                      <Ionicons name="person-outline" size={18} color={colors.text.muted} />
                     }
                     required
+                    accessibilityLabel="Phone or Email input"
+                    accessibilityHint="Enter your registered phone number or email"
                   />
                 )}
               />
@@ -125,18 +126,26 @@ export default function LoginScreen() {
                     secureTextEntry={!showPassword}
                     autoCapitalize="none"
                     leftIcon={
-                      <Ionicons name="lock-closed-outline" size={18} color={colors.inkMuted} />
+                      <Ionicons name="lock-closed-outline" size={18} color={colors.text.muted} />
                     }
                     rightIcon={
-                      <Pressable onPress={() => setShowPassword((v) => !v)} hitSlop={8}>
+                      <Pressable
+                        onPress={() => setShowPassword((v) => !v)}
+                        hitSlop={16}
+                        style={s.iconBtn}
+                        accessibilityRole="button"
+                        accessibilityLabel={showPassword ? "Hide password" : "Show password"}
+                      >
                         <Ionicons
                           name={showPassword ? 'eye-off-outline' : 'eye-outline'}
-                          size={18}
-                          color={colors.inkMuted}
+                          size={20}
+                          color={colors.text.muted}
                         />
                       </Pressable>
                     }
                     required
+                    accessibilityLabel="Password input"
+                    accessibilityHint="Enter your account password"
                   />
                 )}
               />
@@ -149,16 +158,23 @@ export default function LoginScreen() {
               fullWidth
               size="lg"
               style={s.loginBtn}
+              accessibilityLabel="Sign in button"
+              accessibilityHint="Double tap to sign in to your account"
             />
-          </View>
+          </Animated.View>
 
           {/* Footer */}
-          <View style={s.footer}>
-            <Text style={s.footerText}>Don't have an account?</Text>
-            <Pressable onPress={() => router.push('/(auth)/register')} hitSlop={8}>
-              <Text style={s.registerLink}> Register as Driver</Text>
+          <Animated.View entering={FadeInUp.duration(animation.normal).delay(200)} style={s.footer}>
+            <Text style={[s.footerText, { color: colors.text.secondary }]}>Don't have an account?</Text>
+            <Pressable
+              onPress={() => router.push('/(auth)/register')}
+              hitSlop={12}
+              accessibilityRole="link"
+              accessibilityLabel="Register as driver"
+            >
+              <Text style={[s.registerLink, { color: colors.brand.primary }]}> Register as Driver</Text>
             </Pressable>
-          </View>
+          </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -166,71 +182,72 @@ export default function LoginScreen() {
 }
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.surfaceAlt },
+  safe: { flex: 1 },
   scroll: {
     flexGrow: 1,
     paddingHorizontal: spacing[5],
-    paddingVertical: spacing[6],
+    paddingVertical: spacing[8],
     justifyContent: 'center',
   },
 
-  header: { alignItems: 'center', marginBottom: spacing[8] },
+  header: {
+    alignItems: 'center',
+    marginBottom: spacing[10],
+  },
   logoCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: colors.primary,
+    width: 88,
+    height: 88,
+    borderRadius: 44,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: spacing[4],
+    marginBottom: spacing[5],
+    ...shadows.brand,
   },
   title: {
     fontSize: typography['2xl'],
     fontFamily: typography.black,
-    color: colors.ink,
     letterSpacing: -0.5,
   },
   subtitle: {
     fontSize: typography.base,
-    color: colors.inkMuted,
+    fontFamily: typography.medium,
     marginTop: spacing[1],
   },
 
   card: {
-    backgroundColor: colors.surface,
     borderRadius: radii['2xl'],
-    padding: spacing[6],
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 16,
-    elevation: 4,
+    padding: spacing[7],
+    ...shadows.lg,
   },
   formTitle: {
     fontSize: typography.xl,
     fontFamily: typography.bold,
-    color: colors.ink,
     marginBottom: spacing[1],
   },
   formSub: {
     fontSize: typography.sm,
-    color: colors.inkMuted,
-    marginBottom: spacing[5],
+    marginBottom: spacing[6],
   },
   fields: { gap: spacing[4] },
 
-  loginBtn: { marginTop: spacing[6] },
+  loginBtn: { marginTop: spacing[7] },
 
   footer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: spacing[6],
+    marginTop: spacing[8],
+    gap: spacing[1],
   },
-  footerText: { fontSize: typography.sm, color: colors.inkMuted },
+  footerText: { fontSize: typography.sm },
   registerLink: {
     fontSize: typography.sm,
-    color: colors.primary,
     fontFamily: typography.semibold,
+  },
+  iconBtn: {
+    padding: 12,
+    margin: -12,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

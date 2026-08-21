@@ -1,5 +1,5 @@
-import React, { useRef, useEffect } from 'react';
-import { View, StyleSheet, TouchableOpacity, Platform, Pressable } from 'react-native';
+import React, { useRef, useEffect, useState } from 'react';
+import { View, StyleSheet, TouchableOpacity, Platform, ActivityIndicator, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -12,15 +12,13 @@ import Animated, {
   withRepeat,
   withTiming,
 } from 'react-native-reanimated';
-import { LinearGradient } from 'expo-linear-gradient';
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
-import { CourierUI, kit, showToast } from '@pharmacy/ui-native';
-import { colors as courierColors } from '@pharmacy/ui-native/courier-tokens';
+import { CourierUI, useCourierTheme, showToast } from '@pharmacy/ui-native';
 import { driverApi } from '@/lib/api';
 import { useOrdersStore, type DeliveryStatus } from '@/stores/orders.store';
 import { useLocationStore } from '@/stores/location.store';
 
-const MAP_STYLE = [
+const DARK_MAP_STYLE = [
   { elementType: 'geometry', stylers: [{ color: '#020617' }] },
   { elementType: 'labels.text.stroke', stylers: [{ color: '#020617' }] },
   { elementType: 'labels.text.fill', stylers: [{ color: '#64748b' }] },
@@ -30,13 +28,21 @@ const MAP_STYLE = [
   { featureType: 'poi', elementType: 'geometry', stylers: [{ color: '#0f172a' }] },
 ];
 
-const STATUS_CONFIG: Record<string, { label: string; color: string; next: string; icon: string }> = {
-  ACCEPTED: { label: 'Start Pickup', color: courierColors.statusAccepted, next: 'EN_ROUTE_TO_PICKUP', icon: 'navigate' },
-  EN_ROUTE_TO_PICKUP: { label: 'Confirm Arrival', color: courierColors.statusEnRoute, next: 'ARRIVED_AT_PHARMACY', icon: 'flag' },
-  ARRIVED_AT_PHARMACY: { label: 'Confirm Pickup', color: courierColors.statusArrived, next: 'PICKED_UP', icon: 'cube' },
-  PICKED_UP: { label: 'Start Delivery', color: courierColors.statusAccepted, next: 'EN_ROUTE_TO_CUSTOMER', icon: 'navigate' },
-  EN_ROUTE_TO_CUSTOMER: { label: 'Confirm Arrival', color: courierColors.statusEnRoute, next: 'ARRIVED_AT_CUSTOMER', icon: 'flag' },
-  ARRIVED_AT_CUSTOMER: { label: 'Confirm Delivery', color: courierColors.statusDelivered, next: 'DELIVERED', icon: 'checkmark-circle' },
+const LIGHT_MAP_STYLE = [
+  { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#cce4f0' }] },
+  { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#ffffff' }] },
+  { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#e2e8f0' }] },
+  { featureType: 'poi', elementType: 'geometry', stylers: [{ color: '#f1f5f9' }] },
+  { featureType: 'landscape.man_made', stylers: [{ color: '#f1f5f9' }] },
+];
+
+const STATUS_CONFIG: Record<string, { label: string; colorKey: string; next: string; icon: string }> = {
+  ACCEPTED: { label: 'Start Pickup', colorKey: 'statusInfo', next: 'EN_ROUTE_TO_PICKUP', icon: 'navigate' },
+  EN_ROUTE_TO_PICKUP: { label: 'Confirm Arrival', colorKey: 'statusWarning', next: 'ARRIVED_AT_PHARMACY', icon: 'flag' },
+  ARRIVED_AT_PHARMACY: { label: 'Confirm Pickup', colorKey: 'statusWarning', next: 'PICKED_UP', icon: 'cube' },
+  PICKED_UP: { label: 'Start Delivery', colorKey: 'statusInfo', next: 'EN_ROUTE_TO_CUSTOMER', icon: 'navigate' },
+  EN_ROUTE_TO_CUSTOMER: { label: 'Confirm Arrival', colorKey: 'statusWarning', next: 'ARRIVED_AT_CUSTOMER', icon: 'flag' },
+  ARRIVED_AT_CUSTOMER: { label: 'Confirm Delivery', colorKey: 'statusSuccess', next: 'DELIVERED', icon: 'checkmark-circle' },
 };
 
 const STEP_LABELS: Record<string, string> = {
@@ -59,40 +65,97 @@ const ALL_STATUSES = [
   'DELIVERED',
 ] as const;
 
-function DriverMarker() {
+function DriverMarker({ isDark, colors }: { isDark: boolean, colors: any }) {
   return (
-    <View style={s.driverMarker}>
+    <View style={[s.driverMarker, { backgroundColor: isDark ? colors.canvas.surface : colors.white, borderColor: colors.brand.primary }]}>
       <View style={s.driverInner}>
-        <Ionicons name="navigate" size={18} color={kit.darkColor.accent} />
+        <Ionicons name="navigate" size={18} color={colors.brand.primary} />
       </View>
-      <View style={s.driverPulse} />
+      <View style={[s.driverPulse, { backgroundColor: colors.brand.primaryLight }]} />
     </View>
   );
 }
 
-function PharmacyMarker() {
+function PharmacyMarker({ colors }: { colors: any }) {
   return (
-    <View style={[s.marker, { backgroundColor: courierColors.mapPickup }]}>
-      <Ionicons name="medical" size={16} color="#fff" />
+    <View style={[s.marker, { backgroundColor: colors.delivery.pickup, borderColor: colors.white }]}>
+      <Ionicons name="medical" size={16} color={colors.text.inverse} />
     </View>
   );
 }
 
-function CustomerMarker() {
+function CustomerMarker({ colors }: { colors: any }) {
   return (
-    <View style={[s.marker, { backgroundColor: courierColors.mapDelivery }]}>
-      <Ionicons name="home" size={16} color="#fff" />
+    <View style={[s.marker, { backgroundColor: colors.delivery.dropoff, borderColor: colors.white }]}>
+      <Ionicons name="home" size={16} color={colors.text.inverse} />
     </View>
+  );
+}
+
+function SuccessState({ theme }: { theme: any }) {
+  return (
+    <Animated.View entering={FadeIn.springify()} style={[s.successWrap, { backgroundColor: theme.colors.canvas.screen }]}>
+      <View style={[s.successIcon, { backgroundColor: theme.colors.status.success + '20' }]}>
+        <Ionicons name="checkmark-circle" size={64} color={theme.colors.status.success} />
+      </View>
+      <CourierUI.Typography scale="sectionHead" align="center">
+        Delivery Complete!
+      </CourierUI.Typography>
+      <CourierUI.Typography scale="bodySm" color="secondary" align="center">
+        Great job! Returning to dashboard…
+      </CourierUI.Typography>
+      <ActivityIndicator size="small" color={theme.colors.brand.primary} style={{ marginTop: 16 }} />
+    </Animated.View>
   );
 }
 
 export default function ActiveDeliveryScreen() {
   const router = useRouter();
   const qc = useQueryClient();
+  const { theme, isDark, colors } = useCourierTheme();
   const order = useOrdersStore((s) => s.activeDelivery);
   const clearDelivery = useOrdersStore((s) => s.clearActive);
   const location = useLocationStore();
   const mapRef = useRef<MapView>(null);
+  const [showSuccess, setShowSuccess] = useState(false);
+
+  const gpsWarning = location.warning;
+  const isPermissionDenied = gpsWarning?.toLowerCase().includes('permission denied');
+  const isServicesDisabled = gpsWarning?.toLowerCase().includes('location services disabled');
+  const isPoorAccuracy = gpsWarning?.toLowerCase().includes('accuracy') && !isPermissionDenied && !isServicesDisabled;
+  const hasLocation = location.latitude != null && location.longitude != null;
+
+  const gpsBannerConfig = (() => {
+    if (isPermissionDenied) {
+      return {
+        icon: 'location-outline' as const,
+        text: 'Location permission denied. Enable it in settings to continue.',
+        color: colors.status.warning,
+      };
+    }
+    if (isServicesDisabled) {
+      return {
+        icon: 'settings-outline' as const,
+        text: 'Location services are disabled. Please enable them in your device settings.',
+        color: colors.status.error,
+      };
+    }
+    if (isPoorAccuracy) {
+      return {
+        icon: 'warning-outline' as const,
+        text: gpsWarning ?? 'Poor GPS accuracy. Move to an open area.',
+        color: colors.status.warning,
+      };
+    }
+    if (!hasLocation) {
+      return {
+        icon: 'location-outline' as const,
+        text: 'Acquiring GPS signal…',
+        color: colors.text.primary,
+      };
+    }
+    return null;
+  })();
 
   const pulse = useSharedValue(1);
   useEffect(() => {
@@ -103,6 +166,8 @@ export default function ActiveDeliveryScreen() {
     transform: [{ scale: pulse.value }],
     opacity: 1 - (pulse.value - 1) * 1.2,
   }));
+
+  const mapStyle = isDark ? DARK_MAP_STYLE : LIGHT_MAP_STYLE;
 
   const updateMutation = useMutation({
     mutationFn: async (newStatus: DeliveryStatus): Promise<any> => {
@@ -127,12 +192,15 @@ export default function ActiveDeliveryScreen() {
     },
     onSuccess: (_, vars) => {
       if (vars === 'DELIVERED') {
+        setShowSuccess(true);
         showToast('Delivery completed! Great job.', 'success');
-        clearDelivery();
         qc.invalidateQueries({ queryKey: ['driverProfile'] });
-        router.replace('/(tabs)');
+        setTimeout(() => {
+          clearDelivery();
+          router.replace('/(tabs)');
+        }, 2000);
       } else {
-        showToast(`Status: ${STEP_LABELS[vars] ?? vars}`);
+        showToast(`Status updated: ${STEP_LABELS[vars] ?? vars}`, 'success');
         useOrdersStore.setState((s) => ({
           ...s,
           activeDelivery: s.activeDelivery
@@ -141,18 +209,25 @@ export default function ActiveDeliveryScreen() {
         }));
       }
     },
-    onError: () => showToast('Failed to update status', 'error'),
+    onError: (error: any) => {
+      const message = error?.response?.data?.message || error?.message || 'Failed to update status. Please try again.';
+      showToast(message, 'error');
+    },
   });
+
+  if (showSuccess) {
+    return <SuccessState theme={theme} />;
+  }
 
   if (!order) {
     return (
-      <View style={s.empty}>
-        <CourierUI.Typography scale="sectionHead" color="secondary">
-          No active delivery
-        </CourierUI.Typography>
-        <Pressable style={s.backBtn} onPress={() => router.back()}>
-          <CourierUI.Typography scale="buttonMd" color="inverse">Go Back</CourierUI.Typography>
-        </Pressable>
+      <View style={[s.empty, { backgroundColor: theme.colors.canvas.screen }]}>
+        <CourierUI.EmptyState
+          title="No Active Delivery"
+          subtitle="You don't have an delivery in progress right now."
+          actionLabel="Go Back"
+          onAction={() => router.back()}
+        />
       </View>
     );
   }
@@ -160,6 +235,14 @@ export default function ActiveDeliveryScreen() {
   const currentStatus = order.status;
   const currentStepIndex = ALL_STATUSES.indexOf(currentStatus as any);
   const conf = STATUS_CONFIG[currentStatus] ?? STATUS_CONFIG['ACCEPTED'];
+
+  const statusColorMap: Record<string, string> = {
+    statusInfo: colors.status.info,
+    statusWarning: colors.status.warning,
+    statusSuccess: colors.status.success,
+    statusError: colors.status.error,
+  };
+  const statusColor = statusColorMap[conf.colorKey] ?? colors.status.info;
 
   const pharmLat = order.pharmacyLat ?? 30.0444;
   const pharmLng = order.pharmacyLng ?? 31.2357;
@@ -186,12 +269,12 @@ export default function ActiveDeliveryScreen() {
   ];
 
   return (
-    <View style={s.root}>
+    <View style={[s.root, { backgroundColor: theme.colors.canvas.screen }]}>
       <MapView
         ref={mapRef}
         style={StyleSheet.absoluteFillObject}
         provider={PROVIDER_GOOGLE}
-        customMapStyle={MAP_STYLE}
+        customMapStyle={mapStyle}
         initialRegion={{
           latitude: (driverLat + destination.lat) / 2,
           longitude: (driverLng + destination.lng) / 2,
@@ -203,21 +286,22 @@ export default function ActiveDeliveryScreen() {
         showsTraffic={false}
         showsCompass={false}
         toolbarEnabled={false}
+        accessibilityLabel="Delivery route map"
       >
         <Polyline
           coordinates={routeCoords}
-          strokeColor={courierColors.mapRoute}
+          strokeColor={colors.brand.primary}
           strokeWidth={4}
           lineCap="round"
           lineJoin="round"
         />
 
         <Marker coordinate={{ latitude: pharmLat, longitude: pharmLng }}>
-          <PharmacyMarker />
+          <PharmacyMarker colors={colors} />
         </Marker>
 
         <Marker coordinate={{ latitude: custLat, longitude: custLng }}>
-          <CustomerMarker />
+          <CustomerMarker colors={colors} />
         </Marker>
 
         {location.latitude != null && location.longitude != null && (
@@ -227,39 +311,77 @@ export default function ActiveDeliveryScreen() {
             flat
             rotation={location.heading ?? 0}
           >
-            <DriverMarker />
+            <DriverMarker isDark={isDark} colors={colors} />
           </Marker>
         )}
       </MapView>
 
       <SafeAreaView edges={['top']} style={s.topBar}>
-        <TouchableOpacity style={s.backBtnTop} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={22} color={kit.darkColor.ink} />
+        <TouchableOpacity
+          style={[
+            s.backBtnTop,
+            {
+              backgroundColor: isDark ? 'rgba(15,23,42,0.85)' : 'rgba(255,255,255,0.92)',
+              borderColor: colors.border.default,
+            },
+          ]}
+          onPress={() => router.back()}
+          accessibilityLabel="Go back"
+          accessibilityRole="button"
+        >
+          <Ionicons name="arrow-back" size={22} color={colors.text.primary} />
         </TouchableOpacity>
-        <View style={s.gpsChip}>
-          <View style={[s.gpsDot, { backgroundColor: kit.darkColor.accent }]} />
+        <View
+          style={[
+            s.gpsChip,
+            {
+              backgroundColor: isDark ? 'rgba(15,23,42,0.85)' : 'rgba(255,255,255,0.92)',
+              borderColor: colors.border.default,
+            },
+          ]}
+          accessibilityLabel="GPS tracking active"
+        >
+          <View style={[s.gpsDot, { backgroundColor: colors.brand.primary }]} />
           <CourierUI.Typography scale="badge" color="brand">GPS TRACKING</CourierUI.Typography>
         </View>
+
+        {gpsBannerConfig && (
+          <TouchableOpacity
+            style={[s.gpsWarningBanner, { backgroundColor: isDark ? 'rgba(15,23,42,0.9)' : 'rgba(255,255,255,0.95)', borderColor: colors.border.default }]}
+            onPress={() => Linking.openSettings()}
+            accessibilityRole="button"
+            accessibilityLabel={`${gpsBannerConfig.text} Tap to open settings`}
+            accessibilityLiveRegion="polite"
+          >
+            <Ionicons name={gpsBannerConfig.icon} size={16} color={gpsBannerConfig.color} />
+            <CourierUI.Typography scale="badge" style={{ color: gpsBannerConfig.color, flex: 1 }}>
+              {gpsBannerConfig.text}
+            </CourierUI.Typography>
+            <Ionicons name="chevron-forward" size={16} color={colors.text.muted} />
+          </TouchableOpacity>
+        )}
       </SafeAreaView>
 
       <Animated.View entering={FadeInDown.springify().damping(18)} style={s.bottomSheet}>
-        <LinearGradient
-          colors={['rgba(2,6,23,0)', 'rgba(2,6,23,0.95)', '#020617']}
-          style={StyleSheet.absoluteFillObject}
-          pointerEvents="none"
-        />
-
-        <View style={s.sheetContent}>
-          <View style={s.sheetHandle} />
+        <View
+          style={[
+            s.sheetContent,
+            {
+              backgroundColor: theme.colors.canvas.surface,
+              borderColor: colors.border.default,
+            },
+          ]}
+        >
+          <View style={[s.sheetHandle, { backgroundColor: colors.border.default }]} />
 
           <View style={s.sheetHeader}>
             <View style={s.etaBlock}>
-              <Ionicons name="time-outline" size={16} color={kit.darkColor.accent} />
+              <Ionicons name="time-outline" size={16} color={colors.brand.primary} />
               <CourierUI.Typography scale="bodySm" color="secondary">
                 Est. {order.estimatedEarnings} EGP · {order.order.itemCount} items
               </CourierUI.Typography>
             </View>
-            <CourierUI.Typography scale="priceLg" style={{ color: kit.darkColor.accent }}>
+            <CourierUI.Typography scale="priceLg" style={{ color: colors.brand.primary }}>
               {parseFloat(order.estimatedEarnings).toFixed(0)} EGP
             </CourierUI.Typography>
           </View>
@@ -269,27 +391,41 @@ export default function ActiveDeliveryScreen() {
               const isActive = idx === currentStepIndex;
               const isPast = idx < currentStepIndex;
               const isCurrent = status === currentStatus;
-              const statusColor = isPast
-                ? courierColors.online
+              const dotColor = isPast
+                ? colors.status.success
                 : isCurrent
-                  ? conf.color
-                  : kit.darkColor.inkFaint;
+                  ? statusColor
+                  : colors.text.disabled;
 
               return (
                 <React.Fragment key={status}>
                   <View style={s.timelineItem}>
-                    <View style={[s.tDot, { backgroundColor: statusColor, borderColor: isCurrent ? conf.color : 'transparent', borderWidth: isCurrent ? 2 : 0 }]} />
+                    <View
+                      style={[
+                        s.tDot,
+                        {
+                          backgroundColor: dotColor,
+                          borderColor: isCurrent ? statusColor : 'transparent',
+                          borderWidth: isCurrent ? 2 : 0,
+                        },
+                      ]}
+                    />
                     <View style={{ flex: 1, gap: 2 }}>
                       <CourierUI.Typography
                         scale="caption"
-                        color={isActive ? 'inverse' : 'secondary'}
+                        color={isActive ? 'primary' : 'secondary'}
                       >
                         {STEP_LABELS[status]}
                       </CourierUI.Typography>
                     </View>
                   </View>
                   {idx < ALL_STATUSES.length - 2 && (
-                    <View style={[s.tLine, { backgroundColor: isPast ? courierColors.online : kit.darkColor.line }]} />
+                    <View
+                      style={[
+                        s.tLine,
+                        { backgroundColor: isPast ? colors.status.success : colors.border.default },
+                      ]}
+                    />
                   )}
                 </React.Fragment>
               );
@@ -298,23 +434,23 @@ export default function ActiveDeliveryScreen() {
 
           <View style={s.addressBlock}>
             <View style={s.addressRow}>
-              <View style={[s.addrIcon, { backgroundColor: courierColors.mapPickup + '25' }]}>
-                <Ionicons name="medical" size={16} color={courierColors.mapPickup} />
+              <View style={[s.addrIcon, { backgroundColor: colors.delivery.pickup + '25' }]}>
+                <Ionicons name="medical" size={16} color={colors.delivery.pickup} />
               </View>
               <View style={{ flex: 1 }}>
                 <CourierUI.Typography scale="caption" color="brand">Pickup</CourierUI.Typography>
-                <CourierUI.Typography scale="bodySm" color="inverse" numberOfLines={1}>
+                <CourierUI.Typography scale="bodySm" color="primary" numberOfLines={1}>
                   {order.pharmacyAddress}
                 </CourierUI.Typography>
               </View>
             </View>
             <View style={s.addressRow}>
-              <View style={[s.addrIcon, { backgroundColor: courierColors.mapDelivery + '25' }]}>
-                <Ionicons name="home" size={16} color={courierColors.mapDelivery} />
+              <View style={[s.addrIcon, { backgroundColor: colors.delivery.dropoff + '25' }]}>
+                <Ionicons name="home" size={16} color={colors.delivery.dropoff} />
               </View>
               <View style={{ flex: 1 }}>
                 <CourierUI.Typography scale="caption" color="danger">Dropoff</CourierUI.Typography>
-                <CourierUI.Typography scale="bodySm" color="inverse" numberOfLines={2}>
+                <CourierUI.Typography scale="bodySm" color="primary" numberOfLines={2}>
                   {order.order.customerAddress}
                 </CourierUI.Typography>
               </View>
@@ -322,18 +458,33 @@ export default function ActiveDeliveryScreen() {
           </View>
 
           <TouchableOpacity
-            style={[s.actionBtn, { backgroundColor: conf.color }]}
+            style={[
+              s.actionBtn,
+              {
+                backgroundColor: statusColor,
+                minHeight: 48,
+              },
+            ]}
             onPress={() => updateMutation.mutate(conf.next as DeliveryStatus)}
             disabled={updateMutation.isPending}
             activeOpacity={0.85}
+            accessibilityLabel={conf.label}
+            accessibilityRole="button"
+            accessibilityState={{ disabled: updateMutation.isPending }}
           >
             <View style={s.actionBtnInner}>
-              <Ionicons name={conf.icon as any} size={22} color="#020617" />
+              {updateMutation.isPending ? (
+                <ActivityIndicator size="small" color={theme.colors.text.inverse} />
+              ) : (
+                <Ionicons name={conf.icon as any} size={22} color={theme.colors.text.inverse} />
+              )}
               <CourierUI.Typography scale="buttonMd" color="inverse" style={{ fontWeight: '800' }}>
                 {updateMutation.isPending ? 'Updating…' : conf.label}
               </CourierUI.Typography>
             </View>
-            <Ionicons name="chevron-forward" size={22} color="#020617" />
+            {!updateMutation.isPending && (
+              <Ionicons name="chevron-forward" size={22} color={theme.colors.text.inverse} />
+            )}
           </TouchableOpacity>
         </View>
       </Animated.View>
@@ -344,21 +495,25 @@ export default function ActiveDeliveryScreen() {
 const s = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#020617',
   },
   empty: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 24,
-    backgroundColor: '#020617',
+  },
+  successWrap: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 16,
     padding: 24,
   },
-  backBtn: {
-    backgroundColor: kit.darkColor.surface,
-    paddingHorizontal: 24,
-    paddingVertical: 14,
-    borderRadius: 14,
+  successIcon: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   topBar: {
     position: 'absolute',
@@ -373,25 +528,21 @@ const s = StyleSheet.create({
     pointerEvents: 'box-none',
   },
   backBtnTop: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(2,6,23,0.8)',
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: kit.darkColor.line,
   },
   gpsChip: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: 'rgba(2,6,23,0.8)',
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 100,
     borderWidth: 1,
-    borderColor: kit.darkColor.line,
   },
   gpsDot: {
     width: 6,
@@ -408,11 +559,9 @@ const s = StyleSheet.create({
     paddingTop: 72,
   },
   sheetContent: {
-    backgroundColor: kit.darkColor.surface,
     borderRadius: 28,
     padding: 24,
     borderWidth: 1,
-    borderColor: kit.darkColor.line,
     gap: 20,
   },
   sheetHandle: {
@@ -423,7 +572,6 @@ const s = StyleSheet.create({
     width: 36,
     height: 4,
     borderRadius: 2,
-    backgroundColor: kit.darkColor.line,
   },
   sheetHeader: {
     flexDirection: 'row',
@@ -486,11 +634,9 @@ const s = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: kit.darkColor.surface,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 3,
-    borderColor: kit.darkColor.accent,
   },
   driverInner: {
     alignItems: 'center',
@@ -501,7 +647,6 @@ const s = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: 'rgba(44,203,189,0.2)',
   },
   marker: {
     width: 36,
@@ -511,5 +656,16 @@ const s = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 2,
     borderColor: '#fff',
+  },
+  gpsWarningBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 100,
+    borderWidth: 1,
+    marginTop: 8,
+    alignSelf: 'center',
   },
 });

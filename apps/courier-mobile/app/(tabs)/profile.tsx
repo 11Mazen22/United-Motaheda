@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
   StyleSheet,
@@ -6,23 +6,24 @@ import {
   TouchableOpacity,
   FlatList,
   RefreshControl,
+  Switch,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { formatDistanceToNow } from 'date-fns';
-import { CourierUI, kit, showToast } from '@pharmacy/ui-native';
-import { colors as courierColors } from '@pharmacy/ui-native/courier-tokens';
+import { CourierUI, useCourierTheme, useTheme, showToast, Dialog } from '@pharmacy/ui-native';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { driverApi } from '@/lib/api';
 import { useAuthStore } from '@/stores/auth.store';
 import { socketManager } from '@/lib/socket';
 import { useOrdersStore, type DeliveryHistoryItem } from '@/stores/orders.store';
+import { useNotificationStore, type AppNotification } from '@/stores/notification.store';
 
-type ProfileTab = 'profile' | 'earnings' | 'history';
+type ProfileTab = 'profile' | 'earnings' | 'history' | 'notifications' | 'settings';
 
-function Stars({ rating, size = 14 }: { rating: number; size?: number }) {
+function Stars({ rating, size = 14, colors }: { rating: number; size?: number, colors: any }) {
   return (
     <View style={{ flexDirection: 'row', gap: 2 }}>
       {[1, 2, 3, 4, 5].map((i) => (
@@ -30,7 +31,7 @@ function Stars({ rating, size = 14 }: { rating: number; size?: number }) {
           key={i}
           name={i <= Math.round(rating) ? 'star' : 'star-outline'}
           size={size}
-          color={kit.darkColor.accent}
+          color={colors.brand.primary}
         />
       ))}
     </View>
@@ -38,6 +39,7 @@ function Stars({ rating, size = 14 }: { rating: number; size?: number }) {
 }
 
 function ProfileTab() {
+  const { colors } = useCourierTheme();
   const user = useAuthStore((s) => s.user);
   const dp = user?.driverProfile;
   const { data, isLoading } = useQuery({
@@ -64,29 +66,29 @@ function ProfileTab() {
 
   const statusColor =
     driver?.status === 'ACTIVE'
-      ? courierColors.online
+      ? colors.status.success
       : driver?.status === 'APPROVED'
-        ? courierColors.statusAccepted
+        ? colors.status.info
         : driver?.status === 'PENDING_APPROVAL'
-          ? courierColors.statusArrived
+          ? colors.status.warning
           : driver?.status === 'SUSPENDED'
-            ? courierColors.statusCancelled
-            : kit.darkColor.inkFaint;
+            ? colors.status.error
+            : colors.text.muted;
 
   return (
     <ScrollView
-      contentContainerStyle={pt.scroll}
+      contentContainerStyle={[pt.scroll, { backgroundColor: colors.canvas.screen }]}
       showsVerticalScrollIndicator={false}
     >
       {driver?.status === 'PENDING_APPROVAL' && (
-        <View style={[pt.pendingBanner, { backgroundColor: courierColors.statusArrived + '25' }]}>
-          <Ionicons name="time-outline" size={16} color={courierColors.statusArrived} />
-          <CourierUI.Typography scale="bodySm" style={{ color: kit.darkColor.accent }}>Account pending approval</CourierUI.Typography>
+        <View style={[pt.pendingBanner, { backgroundColor: colors.status.warning + '20' }]}>
+          <Ionicons name="time-outline" size={16} color={colors.status.warning} />
+          <CourierUI.Typography scale="bodySm" style={{ color: colors.brand.primary }}>Account pending approval</CourierUI.Typography>
         </View>
       )}
 
       <View style={pt.avatarSection}>
-        <View style={pt.avatar}>
+        <View style={[pt.avatar, { backgroundColor: colors.brand.primaryDark }]}>
           <CourierUI.Typography scale="sectionHead" color="inverse">{initials}</CourierUI.Typography>
         </View>
         <CourierUI.Typography scale="sectionHead">{user?.fullName ?? '—'}</CourierUI.Typography>
@@ -96,16 +98,16 @@ function ProfileTab() {
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 6 }}>
           {driver?.rating && (
             <>
-              <Stars rating={parseFloat(driver.rating)} size={16} />
-              <CourierUI.Typography scale="bodySm" style={{ color: kit.darkColor.accent }}>
+              <Stars rating={parseFloat(driver.rating)} size={16} colors={colors} />
+              <CourierUI.Typography scale="bodySm" style={{ color: colors.brand.primary }}>
                 {parseFloat(driver.rating).toFixed(1)}
               </CourierUI.Typography>
             </>
           )}
         </View>
-        <View style={[pt.statusPill, { backgroundColor: statusColor + '25', borderColor: statusColor + '50' }]}>
+        <View style={[pt.statusPill, { backgroundColor: statusColor + '20', borderColor: statusColor + '50' }]}>
           <View style={[pt.statusDot, { backgroundColor: statusColor }]} />
-          <CourierUI.Typography scale="badge" style={{ color: kit.darkColor.accent }}>{driver?.status ?? 'UNKNOWN'}</CourierUI.Typography>
+          <CourierUI.Typography scale="badge" style={{ color: colors.brand.primary }}>{driver?.status ?? 'UNKNOWN'}</CourierUI.Typography>
         </View>
       </View>
 
@@ -132,10 +134,10 @@ function ProfileTab() {
         <CourierUI.Card style={pt.card}>
           <CourierUI.Typography scale="sectionHead" style={{ marginBottom: 16 }}>Documents</CourierUI.Typography>
           <View style={pt.docsGrid}>
-            <DocBadge label="License" uploaded={!!driver.licensePhotoUrl} />
-            <DocBadge label="National ID" uploaded={!!driver.idPhotoUrl} />
-            <DocBadge label="Vehicle" uploaded={!!driver.vehiclePhotoUrl} />
-            <DocBadge label="Insurance" uploaded={!!driver.insurancePhotoUrl} />
+            <DocBadge label="License" uploaded={!!driver.licensePhotoUrl} colors={colors} />
+            <DocBadge label="National ID" uploaded={!!driver.idPhotoUrl} colors={colors} />
+            <DocBadge label="Vehicle" uploaded={!!driver.vehiclePhotoUrl} colors={colors} />
+            <DocBadge label="Insurance" uploaded={!!driver.insurancePhotoUrl} colors={colors} />
           </View>
         </CourierUI.Card>
       )}
@@ -143,13 +145,13 @@ function ProfileTab() {
   );
 }
 
-function DocBadge({ label, uploaded }: { label: string; uploaded: boolean }) {
+function DocBadge({ label, uploaded, colors }: { label: string; uploaded: boolean, colors: any }) {
   return (
     <View style={db.row}>
       <Ionicons
         name={uploaded ? 'checkmark-circle' : 'close-circle-outline'}
         size={14}
-        color={uploaded ? courierColors.online : courierColors.statusCancelled}
+        color={uploaded ? colors.status.success : colors.status.error}
       />
       <CourierUI.Typography
         scale="caption"
@@ -179,7 +181,6 @@ const pt = StyleSheet.create({
     width: 88,
     height: 88,
     borderRadius: 44,
-    backgroundColor: kit.darkColor.accentDeep,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 8,
@@ -206,6 +207,7 @@ const pt = StyleSheet.create({
 });
 
 function EarningsTab() {
+  const { colors } = useCourierTheme();
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['driver', 'statistics'],
     queryFn: driverApi.getStatistics,
@@ -223,7 +225,7 @@ function EarningsTab() {
     value,
     sub,
     icon,
-    color = kit.darkColor.accent,
+    color = colors.brand.primary,
   }: {
     label: string;
     value: string;
@@ -232,21 +234,21 @@ function EarningsTab() {
     color?: string;
   }) => (
     <CourierUI.Card style={et.card}>
-      <View style={[et.iconBox, { backgroundColor: color + '25' }]}>
+      <View style={[et.iconBox, { backgroundColor: color + '20' }]}>
         <Ionicons name={icon as any} size={22} color={color} />
       </View>
-      <CourierUI.Typography scale="priceMd" style={{ color: kit.darkColor.accent }}>{value}</CourierUI.Typography>
+      <CourierUI.Typography scale="priceMd" style={{ color: colors.brand.primary }}>{value}</CourierUI.Typography>
       <CourierUI.Typography scale="caption" color="secondary">{label}</CourierUI.Typography>
-      {sub && <CourierUI.Typography scale="badge" style={{ color: kit.darkColor.accent }}>{sub}</CourierUI.Typography>}
+      {sub && <CourierUI.Typography scale="badge" style={{ color: colors.brand.primary }}>{sub}</CourierUI.Typography>}
     </CourierUI.Card>
   );
 
   return (
     <ScrollView
-      contentContainerStyle={et.scroll}
+      contentContainerStyle={[et.scroll, { backgroundColor: colors.canvas.screen }]}
       showsVerticalScrollIndicator={false}
       refreshControl={
-        <RefreshControl refreshing={isLoading} onRefresh={refetch} tintColor={kit.darkColor.accent} />
+        <RefreshControl refreshing={isLoading} onRefresh={refetch} tintColor={colors.brand.primary} />
       }
     >
       <CourierUI.Typography scale="sectionHead" style={{ marginBottom: 12 }}>Earnings Overview</CourierUI.Typography>
@@ -311,6 +313,7 @@ const et = StyleSheet.create({
 });
 
 function HistoryTab() {
+  const { colors } = useCourierTheme();
   const {
     data,
     fetchNextPage,
@@ -342,8 +345,8 @@ function HistoryTab() {
 
   if (allDeliveries.length === 0) {
     return (
-      <View style={ht.empty}>
-        <Ionicons name="cube-outline" size={48} color={kit.darkColor.inkFaint} />
+      <View style={[ht.empty, { backgroundColor: colors.canvas.screen }]}>
+        <Ionicons name="cube-outline" size={48} color={colors.text.muted} />
         <CourierUI.Typography scale="body" color="secondary" align="center">
           No delivery history yet
         </CourierUI.Typography>
@@ -355,13 +358,13 @@ function HistoryTab() {
     <FlatList
       data={allDeliveries}
       keyExtractor={(item: any) => item.id}
-      contentContainerStyle={ht.list}
+      contentContainerStyle={[ht.list, { backgroundColor: colors.canvas.screen }]}
       showsVerticalScrollIndicator={false}
       refreshControl={
         <RefreshControl
           refreshing={isFetching && !isFetchingNextPage}
           onRefresh={refetch}
-          tintColor={kit.darkColor.accent}
+          tintColor={colors.brand.primary}
         />
       }
       onEndReached={() => hasNextPage && !isFetchingNextPage && fetchNextPage()}
@@ -378,11 +381,11 @@ function HistoryTab() {
               </CourierUI.Typography>
             </View>
             <View style={ht.itemRight}>
-              <CourierUI.Typography scale="priceSm" style={{ color: kit.darkColor.accent }}>
+              <CourierUI.Typography scale="priceSm" style={{ color: colors.brand.primary }}>
                 {parseFloat(item.earnings).toFixed(0)} EGP
               </CourierUI.Typography>
               {item.customerRating ? (
-                <Stars rating={item.customerRating} size={12} />
+                <Stars rating={item.customerRating} size={12} colors={colors} />
               ) : (
                 <CourierUI.Typography scale="badge" color="secondary">No rating</CourierUI.Typography>
               )}
@@ -390,7 +393,7 @@ function HistoryTab() {
           </View>
           {item.actualDuration && (
             <View style={ht.durationRow}>
-              <Ionicons name="time-outline" size={12} color={kit.darkColor.inkFaint} />
+              <Ionicons name="time-outline" size={12} color={colors.text.muted} />
               <CourierUI.Typography scale="badge" color="secondary">{item.actualDuration} min</CourierUI.Typography>
               <CourierUI.Typography scale="badge" color="secondary">{item.itemCount} items</CourierUI.Typography>
             </View>
@@ -420,10 +423,221 @@ const ht = StyleSheet.create({
   loadingMore: { padding: 16, alignItems: 'center' },
 });
 
+function NotificationsTab() {
+  const { colors } = useCourierTheme();
+  const { notifications, unreadCount, markRead, markAllRead, clearAll } = useNotificationStore();
+
+  const sortedNotifications = useMemo(() => {
+    return [...notifications].sort((a, b) => b.receivedAt - a.receivedAt);
+  }, [notifications]);
+
+  const renderNotification = ({ item }: { item: AppNotification }) => (
+    <TouchableOpacity
+      style={[nt.item, { backgroundColor: item.isRead ? colors.canvas.surfaceMuted : colors.brand.primaryLight, borderColor: colors.border.default }]}
+      onPress={() => markRead(item.id)}
+      accessibilityRole="button"
+      accessibilityLabel={`Notification: ${item.title}`}
+    >
+      <View style={nt.itemHeader}>
+        <View style={[nt.iconWrap, { backgroundColor: colors.brand.primaryLight }]}>
+          <Ionicons name="notifications-outline" size={18} color={colors.brand.primary} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <CourierUI.Typography scale="bodySm" style={{ fontWeight: '600' }}>{item.title}</CourierUI.Typography>
+          <CourierUI.Typography scale="caption" color="secondary">
+            {formatDistanceToNow(new Date(item.receivedAt), { addSuffix: true })}
+          </CourierUI.Typography>
+        </View>
+        {!item.isRead && <View style={[nt.unreadDot, { backgroundColor: colors.brand.primary }]} />}
+      </View>
+      <CourierUI.Typography scale="bodySm" color="secondary" style={{ marginTop: 6 }}>{item.body}</CourierUI.Typography>
+    </TouchableOpacity>
+  );
+
+  return (
+    <View style={[nt.container, { backgroundColor: colors.canvas.screen }]}>
+      {notifications.length > 0 && (
+        <View style={nt.headerRow}>
+          <CourierUI.Button label="Mark all read" onPress={markAllRead} variant="secondary" size="sm" />
+          <CourierUI.Button label="Clear all" onPress={clearAll} variant="ghost" size="sm" />
+        </View>
+      )}
+      <FlatList
+        style={{ flex: 1 }}
+        data={sortedNotifications}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={notifications.length === 0 ? nt.emptyList : nt.list}
+        showsVerticalScrollIndicator={false}
+        renderItem={renderNotification}
+        ListEmptyComponent={
+          <View style={nt.empty}>
+            <Ionicons name="notifications-off-outline" size={48} color={colors.text.muted} />
+            <CourierUI.Typography scale="body" color="secondary" align="center">
+              No notifications yet
+            </CourierUI.Typography>
+          </View>
+        }
+      />
+    </View>
+  );
+}
+
+const nt = StyleSheet.create({
+  container: { flex: 1 },
+  headerRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8, padding: 16 },
+  list: { padding: 16, paddingBottom: 96 },
+  emptyList: { flex: 1 },
+  empty: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 80, gap: 12 },
+  item: {
+    padding: 16,
+    borderRadius: 14,
+    borderWidth: 1,
+    marginBottom: 10,
+    gap: 4,
+  },
+  itemHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  iconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  unreadDot: { width: 8, height: 8, borderRadius: 4 },
+});
+
+function SettingsTab() {
+  const { colors, isDark } = useCourierTheme();
+  const { toggleTheme } = useTheme();
+  const router = useRouter();
+  const [logoutDialog, setLogoutDialog] = useState(false);
+
+  const handleLogout = useCallback(async () => {
+    setLogoutDialog(false);
+    try {
+      await driverApi.goOffline().catch(() => {});
+    } catch {}
+    socketManager.disconnect();
+    useAuthStore.getState().logout();
+    useOrdersStore.getState().reset();
+    router.replace('/(auth)/login');
+  }, [router]);
+
+  const SettingRow = ({ icon, label, value, onPress, danger }: { icon: string, label: string, value?: string, onPress?: () => void, danger?: boolean }) => (
+    <TouchableOpacity
+      style={[st.row, { borderBottomColor: colors.border.default }]}
+      onPress={onPress}
+      disabled={!onPress}
+      accessibilityRole={onPress ? "button" : "none"}
+      accessibilityLabel={label}
+    >
+      <View style={st.rowLeft}>
+        <View style={[st.iconBox, { backgroundColor: danger ? colors.status.error + '15' : colors.brand.primaryLight }]}>
+          <Ionicons name={icon as any} size={18} color={danger ? colors.status.error : colors.brand.primary} />
+        </View>
+        <CourierUI.Typography scale="bodySm">{label}</CourierUI.Typography>
+      </View>
+      <View style={st.rowRight}>
+        {value && <CourierUI.Typography scale="badge" color="secondary">{value}</CourierUI.Typography>}
+        {onPress && <Ionicons name="chevron-forward" size={16} color={colors.text.muted} />}
+      </View>
+    </TouchableOpacity>
+  );
+
+  return (
+    <ScrollView
+      style={[st.container, { backgroundColor: colors.canvas.screen }]}
+      contentContainerStyle={st.scroll}
+      showsVerticalScrollIndicator={false}
+    >
+      <CourierUI.Typography scale="sectionHead" style={{ marginBottom: 16 }}>Appearance</CourierUI.Typography>
+      <CourierUI.Card style={{ padding: 0, overflow: 'hidden' }}>
+        <SettingRow
+          icon="moon-outline"
+          label="Dark Mode"
+          value={isDark ? 'On' : 'Off'}
+          onPress={toggleTheme}
+        />
+        <SettingRow
+          icon="language-outline"
+          label="Language"
+          value="العربية / English"
+          onPress={() => showToast('Language switching coming soon', 'info')}
+        />
+      </CourierUI.Card>
+
+      <CourierUI.Typography scale="sectionHead" style={{ marginTop: 24, marginBottom: 16 }}>Support</CourierUI.Typography>
+      <CourierUI.Card style={{ padding: 0, overflow: 'hidden' }}>
+        <SettingRow
+          icon="help-circle-outline"
+          label="Help Center"
+          onPress={() => showToast('Help center coming soon', 'info')}
+        />
+        <SettingRow
+          icon="chatbubbles-outline"
+          label="Contact Support"
+          onPress={() => showToast('Support chat coming soon', 'info')}
+        />
+        <SettingRow
+          icon="information-circle-outline"
+          label="About"
+          value="v1.0.0"
+          onPress={() => showToast('United Pharmacy Driver v1.0.0', 'info')}
+        />
+      </CourierUI.Card>
+
+      <CourierUI.Typography scale="sectionHead" style={{ marginTop: 24, marginBottom: 16 }}>Account</CourierUI.Typography>
+      <CourierUI.Card style={{ padding: 0, overflow: 'hidden' }}>
+        <SettingRow
+          icon="log-out-outline"
+          label="Sign Out"
+          onPress={() => setLogoutDialog(true)}
+          danger
+        />
+      </CourierUI.Card>
+
+      <Dialog
+        visible={logoutDialog}
+        onCancel={() => setLogoutDialog(false)}
+        onConfirm={handleLogout}
+        title="Sign Out"
+        message="Are you sure you want to sign out? You will need to log in again to accept deliveries."
+        confirmLabel="Sign Out"
+        cancelLabel="Cancel"
+        destructive
+      />
+
+      <View style={{ height: 40 }} />
+    </ScrollView>
+  );
+}
+
+const st = StyleSheet.create({
+  container: { flex: 1 },
+  scroll: { padding: 16, paddingBottom: 96 },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+  },
+  rowLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  rowRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  iconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+});
+
 export default function ProfileScreen() {
   const router = useRouter();
+  const { colors } = useCourierTheme();
   const [activeTab, setActiveTab] = useState<ProfileTab>('profile');
-  const logout = useAuthStore((s) => s.logout);
   const clearActive = useOrdersStore((s) => s.clearActive);
 
   const handleLogout = useCallback(async () => {
@@ -432,44 +646,51 @@ export default function ProfileScreen() {
     } catch {}
     socketManager.disconnect();
     clearActive();
-    logout();
+    useAuthStore.getState().logout();
     router.replace('/(auth)/login');
-  }, []);
+  }, [router, clearActive]);
 
   const TABS: { key: ProfileTab; label: string; icon: string }[] = [
     { key: 'profile', label: 'Profile', icon: 'person-outline' },
     { key: 'earnings', label: 'Earnings', icon: 'wallet-outline' },
     { key: 'history', label: 'History', icon: 'time-outline' },
+    { key: 'notifications', label: 'Alerts', icon: 'notifications-outline' },
+    { key: 'settings', label: 'Settings', icon: 'settings-outline' },
   ];
 
   return (
     <ErrorBoundary>
-      <SafeAreaView style={s.safe} edges={['top']}>
-        <View style={s.header}>
+      <SafeAreaView style={[s.safe, { backgroundColor: colors.canvas.screen }]} edges={['top']}>
+        <View style={[s.header, { borderBottomColor: colors.border.default }]}>
           <CourierUI.Typography scale="sectionHead">My Account</CourierUI.Typography>
           <TouchableOpacity
             onPress={handleLogout}
             style={s.logoutBtn}
             hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
+            accessibilityRole="button"
+            accessibilityLabel="Sign out"
           >
-            <Ionicons name="log-out-outline" size={22} color={courierColors.statusCancelled} />
+            <Ionicons name="log-out-outline" size={22} color={colors.status.error} />
           </TouchableOpacity>
         </View>
 
-        <View style={s.tabBar}>
+        <View style={[s.tabBar, { borderBottomColor: colors.border.default }]}>
           {TABS.map((tab) => {
             const isActive = activeTab === tab.key;
             return (
               <TouchableOpacity
                 key={tab.key}
-                style={[s.tabItem, isActive && s.tabItemActive]}
+                style={[s.tabItem, isActive && { borderBottomColor: colors.brand.primary }]}
                 onPress={() => setActiveTab(tab.key)}
                 activeOpacity={0.7}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: isActive }}
+                accessibilityLabel={tab.label}
               >
                 <Ionicons
                   name={tab.icon as any}
                   size={16}
-                  color={isActive ? kit.darkColor.accent : kit.darkColor.inkFaint}
+                  color={isActive ? colors.brand.primary : colors.text.muted}
                 />
                 <CourierUI.Typography
                   scale="badge"
@@ -486,6 +707,8 @@ export default function ProfileScreen() {
           {activeTab === 'profile' && <ProfileTab />}
           {activeTab === 'earnings' && <EarningsTab />}
           {activeTab === 'history' && <HistoryTab />}
+          {activeTab === 'notifications' && <NotificationsTab />}
+          {activeTab === 'settings' && <SettingsTab />}
         </View>
       </SafeAreaView>
     </ErrorBoundary>
@@ -493,7 +716,7 @@ export default function ProfileScreen() {
 }
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: kit.darkColor.canvas },
+  safe: { flex: 1 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -501,13 +724,11 @@ const s = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: kit.darkColor.line,
   },
-  logoutBtn: { padding: 8 },
+  logoutBtn: { padding: 12, minWidth: 48, minHeight: 48, alignItems: 'center', justifyContent: 'center' },
   tabBar: {
     flexDirection: 'row',
     borderBottomWidth: 1,
-    borderBottomColor: kit.darkColor.line,
   },
   tabItem: {
     flex: 1,
@@ -519,5 +740,4 @@ const s = StyleSheet.create({
     borderBottomWidth: 2,
     borderBottomColor: 'transparent',
   },
-  tabItemActive: { borderBottomColor: kit.darkColor.accent },
 });

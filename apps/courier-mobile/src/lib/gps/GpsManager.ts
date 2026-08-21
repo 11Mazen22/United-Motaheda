@@ -62,19 +62,28 @@ class GpsManagerClass {
       return false;
     }
 
-    // Stop any existing subscription
     await this.stopForeground();
 
     this.kalman.reset();
 
-    this.subscription = await Location.watchPositionAsync(
-      {
-        accuracy: Location.Accuracy.BestForNavigation,
-        timeInterval: 1000,        // raw reading every 1s
-        distanceInterval: 2,       // or 2m movement
-      },
-      (location) => this.processRawLocation(location),
-    );
+    try {
+      this.subscription = await Location.watchPositionAsync(
+        {
+          accuracy: Location.Accuracy.BestForNavigation,
+          timeInterval: 1000,
+          distanceInterval: 2,
+        },
+        (location) => this.processRawLocation(location),
+      );
+    } catch (err: any) {
+      const message = err?.message ?? 'Location error';
+      if (message.toLowerCase().includes('disabled') || message.toLowerCase().includes('unavailable')) {
+        this.onAccuracyWarningCb?.('Location services disabled. Enable them in settings to continue.');
+      } else {
+        this.onAccuracyWarningCb?.(message);
+      }
+      return false;
+    }
 
     return true;
   }

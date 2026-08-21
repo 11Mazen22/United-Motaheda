@@ -12,12 +12,29 @@ import {
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE, Region } from 'react-native-maps';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { CourierUI, kit } from '@pharmacy/ui-native';
-import { colors as courierColors } from '@pharmacy/ui-native/courier-tokens';
+import { CourierUI, useCourierTheme } from '@pharmacy/ui-native';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { useLocationStore } from '@/stores/location.store';
 import { useOrdersStore, type ActiveDelivery } from '@/stores/orders.store';
 import { haversineMeters } from '@/lib/gps/KalmanFilter';
+
+const DARK_MAP_STYLE = [
+  { elementType: 'geometry', stylers: [{ color: '#020617' }] },
+  { elementType: 'labels.text.stroke', stylers: [{ color: '#020617' }] },
+  { elementType: 'labels.text.fill', stylers: [{ color: '#64748b' }] },
+  { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#0f172a' }] },
+  { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#1e293b' }] },
+  { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#0f172a' }] },
+  { featureType: 'poi', elementType: 'geometry', stylers: [{ color: '#0f172a' }] },
+];
+
+const LIGHT_MAP_STYLE = [
+  { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#cce4f0' }] },
+  { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#ffffff' }] },
+  { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#e2e8f0' }] },
+  { featureType: 'poi', elementType: 'geometry', stylers: [{ color: '#f1f5f9' }] },
+  { featureType: 'landscape.man_made', stylers: [{ color: '#f1f5f9' }] },
+];
 
 function decodePolyline(encoded: string): { latitude: number; longitude: number }[] {
   const points: { latitude: number; longitude: number }[] = [];
@@ -60,9 +77,12 @@ async function fetchRoute(
   originLng: number,
   destLat: number,
   destLng: number,
-  apiKey: string,
 ): Promise<{ polyline: { latitude: number; longitude: number }[]; durationMin: number; distanceKm: number } | null> {
   try {
+    const Constants = require('expo-constants').default;
+    const apiKey = Constants.expoConfig?.extra?.googleMapsApiKey ?? '';
+    if (!apiKey) return null;
+
     const url =
       `https://maps.googleapis.com/maps/api/directions/json` +
       `?origin=${originLat},${originLng}` +
@@ -88,25 +108,16 @@ async function fetchRoute(
   }
 }
 
-function getGoogleMapsApiKey(): string {
-  try {
-    const Constants = require('expo-constants').default;
-    return Constants.expoConfig?.extra?.googleMapsApiKey ?? '';
-  } catch {
-    return '';
-  }
-}
-
-function AccuracyDot({ accuracy }: { accuracy: number | null }) {
+function AccuracyDot({ accuracy, colors }: { accuracy: number | null, colors: any }) {
   const level =
     accuracy == null ? 'poor' : accuracy <= 15 ? 'good' : accuracy <= 50 ? 'fair' : 'poor';
-  const colorMap = { good: courierColors.online, fair: courierColors.statusArrived, poor: courierColors.statusCancelled };
+  const colorMap = { good: colors.status.success, fair: colors.status.warning, poor: colors.status.error };
   const labelMap = { good: `${Math.round(accuracy ?? 99)}m`, fair: `${Math.round(accuracy ?? 99)}m`, poor: 'Poor GPS' };
 
   return (
-    <View style={ad.container}>
+    <View style={[ad.container, { backgroundColor: colors.canvas.surfaceMuted, borderColor: colors.border.default }]}>
       <View style={[ad.dot, { backgroundColor: colorMap[level] }]} />
-      <CourierUI.Typography scale="badge" color="inverse">{labelMap[level]}</CourierUI.Typography>
+      <CourierUI.Typography scale="badge" color="primary">{labelMap[level]}</CourierUI.Typography>
     </View>
   );
 }
@@ -116,12 +127,10 @@ const ad = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    backgroundColor: 'rgba(2,6,23,0.8)',
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 100,
     borderWidth: 1,
-    borderColor: kit.darkColor.line,
   },
   dot: { width: 8, height: 8, borderRadius: 4 },
 });
@@ -129,9 +138,11 @@ const ad = StyleSheet.create({
 function BottomSheet({
   delivery,
   onNavigate,
+  colors,
 }: {
   delivery: ActiveDelivery | null;
   onNavigate: () => void;
+  colors: any;
 }) {
   if (!delivery) return null;
 
@@ -155,18 +166,18 @@ function BottomSheet({
     : { name: delivery.order.customerName, address: delivery.order.customerAddress };
 
   return (
-    <View style={bs.sheet}>
-      <View style={bs.handle} />
+    <View style={[bs.sheet, { backgroundColor: colors.canvas.surface, borderColor: colors.border.default }]}>
+      <View style={[bs.handle, { backgroundColor: colors.border.default }]} />
       <View style={bs.content}>
         <View style={bs.row}>
-          <View style={[bs.dot, { backgroundColor: kit.darkColor.accent }]} />
+          <View style={[bs.dot, { backgroundColor: colors.brand.primary }]} />
           <View style={bs.info}>
             <CourierUI.Typography scale="caption" color="secondary">{statusLabels[delivery.status] ?? delivery.status}</CourierUI.Typography>
-            <CourierUI.Typography scale="bodySm" color="inverse">{destination.name}</CourierUI.Typography>
+            <CourierUI.Typography scale="bodySm" color="primary">{destination.name}</CourierUI.Typography>
             <CourierUI.Typography scale="badge" color="secondary" numberOfLines={1}>{destination.address}</CourierUI.Typography>
           </View>
-          <TouchableOpacity style={bs.navBtn} onPress={onNavigate} activeOpacity={0.8}>
-            <Ionicons name="navigate" size={18} color={kit.darkColor.ink} />
+          <TouchableOpacity style={[bs.navBtn, { backgroundColor: colors.brand.primary }]} onPress={onNavigate} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel="Open navigation">
+            <Ionicons name="navigate" size={18} color={colors.text.inverse} />
             <CourierUI.Typography scale="badge" color="inverse" style={{ fontWeight: '700' }}>GO</CourierUI.Typography>
           </TouchableOpacity>
         </View>
@@ -177,17 +188,14 @@ function BottomSheet({
 
 const bs = StyleSheet.create({
   sheet: {
-    backgroundColor: kit.darkColor.surface,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     borderWidth: 1,
-    borderColor: kit.darkColor.line,
   },
   handle: {
     width: 36,
     height: 4,
     borderRadius: 2,
-    backgroundColor: kit.darkColor.line,
     alignSelf: 'center',
     marginTop: 12,
     marginBottom: 8,
@@ -204,7 +212,6 @@ const bs = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: kit.darkColor.accent,
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 12,
@@ -214,6 +221,7 @@ const bs = StyleSheet.create({
 export default function MapScreen() {
   const insets = useSafeAreaInsets();
   const mapRef = useRef<MapView>(null);
+  const { theme, colors, isDark } = useCourierTheme();
 
   const location = useLocationStore();
   const activeDelivery = useOrdersStore((s) => s.activeDelivery);
@@ -223,7 +231,7 @@ export default function MapScreen() {
   const [loadingRoute, setLoadingRoute] = useState(false);
   const [lastRouteFetchCoords, setLastRouteFetchCoords] = useState<{ lat: number; lng: number } | null>(null);
 
-  const apiKey = getGoogleMapsApiKey();
+  const mapStyle = isDark ? DARK_MAP_STYLE : LIGHT_MAP_STYLE;
 
   const getDestination = useCallback(() => {
     if (!activeDelivery) return null;
@@ -288,7 +296,7 @@ export default function MapScreen() {
     setLoadingRoute(true);
     setLastRouteFetchCoords({ lat: driverLat, lng: driverLng });
 
-    fetchRoute(driverLat, driverLng, dest.lat, dest.lng, apiKey)
+    fetchRoute(driverLat, driverLng, dest.lat, dest.lng)
       .then((result) => {
         if (result) {
           setRoute(result.polyline);
@@ -354,6 +362,44 @@ export default function MapScreen() {
   const hasLocation = location.latitude != null && location.longitude != null;
   const dest = getDestination();
 
+  const gpsWarning = location.warning;
+  const isPermissionDenied = gpsWarning?.toLowerCase().includes('permission denied');
+  const isServicesDisabled = gpsWarning?.toLowerCase().includes('location services disabled');
+  const isPoorAccuracy = gpsWarning?.toLowerCase().includes('accuracy') && !isPermissionDenied && !isServicesDisabled;
+  const showGpsBanner = !hasLocation || isPermissionDenied || isServicesDisabled || isPoorAccuracy;
+
+  const gpsBannerConfig = (() => {
+    if (isPermissionDenied) {
+      return {
+        icon: 'location-outline' as const,
+        text: 'Location permission denied. Enable it in settings to continue.',
+        color: colors.status.warning,
+      };
+    }
+    if (isServicesDisabled) {
+      return {
+        icon: 'settings-outline' as const,
+        text: 'Location services are disabled. Please enable them in your device settings.',
+        color: colors.status.error,
+      };
+    }
+    if (isPoorAccuracy) {
+      return {
+        icon: 'warning-outline' as const,
+        text: gpsWarning ?? 'Poor GPS accuracy. Move to an open area.',
+        color: colors.status.warning,
+      };
+    }
+    if (!hasLocation) {
+      return {
+        icon: 'location-outline' as const,
+        text: 'Acquiring GPS signal…',
+        color: colors.text.primary,
+      };
+    }
+    return null;
+  })();
+
   const initialRegion: Region = hasLocation
     ? {
         latitude: location.latitude!,
@@ -375,12 +421,14 @@ export default function MapScreen() {
           ref={mapRef}
           style={StyleSheet.absoluteFillObject}
           provider={PROVIDER_GOOGLE}
+          customMapStyle={mapStyle}
           initialRegion={initialRegion}
           showsUserLocation={false}
           showsMyLocationButton={false}
           showsTraffic={false}
           showsCompass={false}
           toolbarEnabled={false}
+          accessibilityLabel="Delivery route map"
         >
           {hasLocation && (
             <Marker
@@ -389,8 +437,8 @@ export default function MapScreen() {
               flat
               rotation={location.heading ?? 0}
             >
-              <View style={[s.driverMarker, { backgroundColor: courierColors.mapDriver }]}>
-                <Ionicons name="navigate" size={20} color="#fff" />
+              <View style={[s.driverMarker, { backgroundColor: colors.brand.primary }]}>
+                <Ionicons name="navigate" size={20} color={colors.text.inverse} />
               </View>
             </Marker>
           )}
@@ -400,8 +448,8 @@ export default function MapScreen() {
               coordinate={{ latitude: dest.lat, longitude: dest.lng }}
               anchor={{ x: 0.5, y: 1 }}
             >
-              <View style={[s.pharmacyMarker, { backgroundColor: courierColors.mapPickup }]}>
-                <Ionicons name="medical" size={18} color="#fff" />
+              <View style={[s.pharmacyMarker, { backgroundColor: colors.delivery.pickup, borderColor: colors.white }]}>
+                <Ionicons name="medical" size={18} color={colors.text.inverse} />
               </View>
             </Marker>
           )}
@@ -411,8 +459,8 @@ export default function MapScreen() {
               coordinate={{ latitude: dest.lat, longitude: dest.lng }}
               anchor={{ x: 0.5, y: 1 }}
             >
-              <View style={[s.customerMarker, { backgroundColor: courierColors.mapDelivery }]}>
-                <Ionicons name="home" size={18} color="#fff" />
+              <View style={[s.customerMarker, { backgroundColor: colors.delivery.dropoff, borderColor: colors.white }]}>
+                <Ionicons name="home" size={18} color={colors.text.inverse} />
               </View>
             </Marker>
           )}
@@ -420,7 +468,7 @@ export default function MapScreen() {
           {route.length > 1 && (
             <Polyline
               coordinates={route}
-              strokeColor={courierColors.mapRoute}
+              strokeColor={colors.brand.primary}
               strokeWidth={4}
               lineCap="round"
               lineJoin="round"
@@ -431,13 +479,13 @@ export default function MapScreen() {
         <SafeAreaView edges={['top']} style={s.topOverlay} pointerEvents="box-none">
           <View style={s.topRow} pointerEvents="box-none">
             {eta && (
-              <View style={s.etaChip}>
+              <View style={[s.etaChip, { backgroundColor: colors.canvas.surface, borderColor: colors.border.default }]}>
                 {loadingRoute ? (
-                  <ActivityIndicator size="small" color={kit.darkColor.accent} />
+                  <ActivityIndicator size="small" color={colors.brand.primary} />
                 ) : (
                   <>
-                    <Ionicons name="time-outline" size={14} color={kit.darkColor.accent} />
-                    <CourierUI.Typography scale="bodySm" style={{ color: kit.darkColor.accent, fontWeight: '600' }}>
+                    <Ionicons name="time-outline" size={14} color={colors.brand.primary} />
+                    <CourierUI.Typography scale="bodySm" style={{ color: colors.brand.primary, fontWeight: '600' }}>
                       ~{eta.durationMin} min · {eta.distanceKm} km
                     </CourierUI.Typography>
                   </>
@@ -445,38 +493,49 @@ export default function MapScreen() {
               </View>
             )}
 
-            <AccuracyDot accuracy={location.accuracy} />
+            <AccuracyDot accuracy={location.accuracy} colors={colors} />
           </View>
         </SafeAreaView>
 
         <TouchableOpacity
           style={[
             s.recenterBtn,
-            { bottom: activeDelivery ? 180 : 100 + insets.bottom },
+            { bottom: activeDelivery ? 180 : 100 + insets.bottom, backgroundColor: colors.canvas.surface, borderColor: colors.border.default },
           ]}
           onPress={centerOnDriver}
           activeOpacity={0.85}
+          accessibilityRole="button"
+          accessibilityLabel="Recenter map on driver"
         >
-          <Ionicons name="locate-outline" size={22} color={kit.darkColor.accent} />
+          <Ionicons name="locate-outline" size={22} color={colors.brand.primary} />
         </TouchableOpacity>
 
-        {!hasLocation && (
-          <View style={s.noLocationBanner}>
-            <Ionicons name="location-outline" size={16} color="#fff" />
-            <CourierUI.Typography scale="badge" color="inverse">Acquiring GPS signal…</CourierUI.Typography>
-          </View>
+        {showGpsBanner && gpsBannerConfig && (
+          <TouchableOpacity
+            style={[s.noLocationBanner, { backgroundColor: colors.canvas.surface, borderColor: colors.border.default }]}
+            onPress={() => Linking.openSettings()}
+            accessibilityRole="button"
+            accessibilityLabel={`${gpsBannerConfig.text} Tap to open settings`}
+            accessibilityLiveRegion="polite"
+          >
+            <Ionicons name={gpsBannerConfig.icon} size={16} color={gpsBannerConfig.color} />
+            <CourierUI.Typography scale="badge" color="primary" style={{ color: gpsBannerConfig.color, flex: 1 }}>
+              {gpsBannerConfig.text}
+            </CourierUI.Typography>
+            <Ionicons name="chevron-forward" size={16} color={colors.text.muted} />
+          </TouchableOpacity>
         )}
 
         {!activeDelivery && hasLocation && (
-          <View style={[s.noDeliveryChip, { bottom: 100 + insets.bottom }]}>
-            <Ionicons name="checkmark-circle-outline" size={14} color={kit.darkColor.inkFaint} />
+          <View style={[s.noDeliveryChip, { bottom: 100 + insets.bottom, backgroundColor: colors.canvas.surface, borderColor: colors.border.default }]}>
+            <Ionicons name="checkmark-circle-outline" size={14} color={colors.text.muted} />
             <CourierUI.Typography scale="badge" color="secondary">No active delivery</CourierUI.Typography>
           </View>
         )}
 
         {activeDelivery && (
           <View style={{ position: 'absolute', bottom: insets.bottom, left: 0, right: 0 }}>
-            <BottomSheet delivery={activeDelivery} onNavigate={openNavigation} />
+            <BottomSheet delivery={activeDelivery} onNavigate={openNavigation} colors={colors} />
           </View>
         )}
       </View>
@@ -506,12 +565,10 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: kit.darkColor.surface,
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 100,
     borderWidth: 1,
-    borderColor: kit.darkColor.line,
   },
 
   driverMarker: {
@@ -548,11 +605,9 @@ const s = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: kit.darkColor.surface,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: kit.darkColor.line,
   },
 
   noLocationBanner: {
@@ -562,12 +617,10 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: 'rgba(2,6,23,0.85)',
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 100,
     borderWidth: 1,
-    borderColor: kit.darkColor.line,
   },
   noDeliveryChip: {
     position: 'absolute',
@@ -575,11 +628,9 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: kit.darkColor.surface,
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 100,
     borderWidth: 1,
-    borderColor: kit.darkColor.line,
   },
 });

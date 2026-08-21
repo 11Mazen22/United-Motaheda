@@ -20,6 +20,7 @@ export interface DriverProfile {
   idPhotoUrl?: string;
   vehiclePhotoUrl?: string;
   insurancePhotoUrl?: string;
+  rejectionReason?: string;
 }
 
 export interface AuthUser {
