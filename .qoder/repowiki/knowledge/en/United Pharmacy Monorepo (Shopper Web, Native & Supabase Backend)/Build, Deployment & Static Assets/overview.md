@@ -1,0 +1,1 @@
+Node scripts and shell entry points for CI/CD (Railway), a CSV product ingestion utility, a console-statement lint check, and shared static assets (branding, categories, web manifest/icons) consumed by the shopper web app.

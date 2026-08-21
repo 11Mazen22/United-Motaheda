@@ -1,12 +1,109 @@
 {
   "expo": {
-    "extra": {
-      "eas": {
-        "projectId": "935e88bd-b731-46c3-9672-8c49d1518d2f"
+    "name": "صيدليات المتحدة",
+    "slug": "united-pharmacy",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/app-icon.png",
+    "scheme": "shopper",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash-mark.png",
+      "imageWidth": 280,
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.unitedpharmacy.app",
+      "buildNumber": "1",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSLocationWhenInUseUsageDescription": "نستخدم موقعك الحالي لتحديد عنوان التوصيل بدقة ومساعدة السائق في الوصول الصحيح."
       }
     },
     "android": {
-      "package": "com.unitedpharmacy.app"
-    }
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon-foreground.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.unitedpharmacy.app",
+      "googleServicesFile": "./google-services.json",
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ],
+      "versionCode": 54
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single",
+      "favicon": "./assets/brand-mark.png"
+    },
+    "plugins": [
+      "expo-font",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-mark.png",
+          "imageWidth": 280,
+          "resizeMode": "contain",
+          "backgroundColor": "#ffffff"
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "kotlinVersion": "2.1.21",
+            "newArchEnabled": true,
+            "enableProguardInReleaseBuilds": true,
+            "enableMinifyInReleaseBuilds": true
+          },
+          "ios": {
+            "newArchEnabled": true
+          }
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "نحتاج إذن الكاميرا لمسح ملصق الوصفة. يتم استخراج النص على جهازك فقط — لا نرفع الصور أو نحفظها.",
+          "recordAudioAndroid": false
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "نحتاج الوصول إلى الصور لرفع إيصال التحويل عند الدفع بفودافون كاش أو إنستاباي."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "نستخدم موقعك الحالي لتحديد عنوان التوصيل بدقة ومساعدة السائق في الوصول الصحيح."
+        }
+      ],
+      "expo-web-browser",
+      "expo-video",
+      [
+        "expo-notifications",
+        {
+          "color": "#0E7E74"
+        }
+      ],
+      "./plugins/withHermescPatch.js"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      }
+    },
+    "runtimeVersion": "1.0.0"
   }
 }

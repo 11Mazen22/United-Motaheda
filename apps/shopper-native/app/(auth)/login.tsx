@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -18,11 +18,9 @@ import Animated, {
   useSharedValue,
   withRepeat,
   withTiming,
-  withSpring,
   interpolateColor,
   useReducedMotion
 } from "react-native-reanimated";
-import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 
 import { signIn, getAuthError } from "@/features/auth";
@@ -39,8 +37,6 @@ import { TextInput } from "react-native-gesture-handler";
 
 const IS_RTL = isRtl();
 const TEXT_START = textAlignStart(IS_RTL);
-
-const SPRING_CONFIG = { damping: 16, stiffness: 300 };
 
 function FloatingInput({ label, icon, secure, value, onChangeText, autoCapitalize = "none", keyboardType = "default" }: any) {
   const { c } = useDarkColors();
@@ -90,8 +86,8 @@ function FloatingInput({ label, icon, secure, value, onChangeText, autoCapitaliz
 }
 
 export default function LoginScreen() {
-  const { c, isDark } = useDarkColors();
-  const { t, i18n } = useTranslation();
+  const { c } = useDarkColors();
+  const { t } = useTranslation();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const reducedMotion = useReducedMotion();
@@ -123,7 +119,7 @@ export default function LoginScreen() {
     setError("");
     setLoading(true);
     try {
-      await signIn({ email, password });
+      await signIn(email, password);
       if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       router.replace("/(customer)/(tabs)");
     } catch (err: any) {
@@ -149,7 +145,7 @@ export default function LoginScreen() {
         <Animated.View entering={FadeInDown.duration(600).springify()} style={styles.heroSection}>
           <View style={styles.logoWrapper}>
             <Animated.View style={[styles.halo, { backgroundColor: kit.color.accentTint }, animatedHalo]} />
-            <AppLogo size={80} monochrome={isDark} />
+            <AppLogo size={80} />
           </View>
           <UIText style={[styles.welcomeTitle, { color: c.ink }]}>{t("auth.welcomeBack", { defaultValue: "Welcome Back" })}</UIText>
           <UIText style={[styles.welcomeSub, { color: c.inkSoft }]}>{t("auth.loginSubtitle", { defaultValue: "Sign in securely to your premium pharmacy experience." })}</UIText>
@@ -206,8 +202,8 @@ export default function LoginScreen() {
         <Animated.View entering={FadeInDown.duration(600).delay(200).springify()}>
           <AuthDivider />
           <SocialButtons 
-            onSelect={(provider) => signInWithProvider(provider).catch(() => {})} 
-            loading={null} 
+            onSocialPress={(provider) => signInWithProvider(provider).catch(() => {})}
+            loading={loading}
           />
         </Animated.View>
 

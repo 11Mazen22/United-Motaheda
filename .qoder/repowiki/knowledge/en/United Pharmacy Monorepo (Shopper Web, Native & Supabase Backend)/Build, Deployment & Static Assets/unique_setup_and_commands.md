@@ -1,0 +1,3 @@
+- Product ingestion: `node scripts/ingest-products.mjs path/to/file.csv [--dry-run]`
+- Console-statement lint: run `node scripts/check-no-console.mjs` against `apps/shopper-web/src`.
+- Railway services use these scripts as their build/start commands; they require Node.js 24+ for the API build and Node.js 22+ at runtime, enforced by version checks inside the shell scripts.

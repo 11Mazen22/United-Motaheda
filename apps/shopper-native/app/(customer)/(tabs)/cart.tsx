@@ -1,21 +1,18 @@
-import React, { useCallback, useMemo, useState } from "react";
-import { View, StyleSheet, FlatList, Pressable, Platform, ScrollView } from "react-native";
+import React, { useCallback } from "react";
+import { View, StyleSheet, FlatList, Pressable, Platform } from "react-native";
 import { Image } from "expo-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import Animated, { FadeIn, FadeOut, Layout, SlideInDown, SlideOutDown } from "react-native-reanimated";
+import Animated, { FadeIn, FadeOut, Layout, SlideInDown } from "react-native-reanimated";
 
 import { CustomerUI, kit } from "@pharmacy/ui-native";
-import { theme } from "@pharmacy/design-tokens";
 import { isRtl, flexRow, textAlignStart } from "@/utils/layout";
 
-// Data & State
 import { useCartStore, selectPricing, type CartItem } from "@/stores/cart";
 import { useCartStateMachine, type ConflictItem } from "@/features/cart/hooks/useCartStateMachine";
-import { useDeliveryContext } from "@/features/delivery/useDeliveryContext";
 import { FREE_DELIVERY_THRESHOLD } from "@/features/delivery/constants";
 import { useDarkColors } from "@/hooks/useDarkColors";
 
@@ -25,24 +22,24 @@ const DEFAULT_BLURHASH = "L6PZfSi_.AyE_3t7t7R**0o#DgR4";
 function PremiumCartItem({ item, conflict }: { item: CartItem; conflict?: ConflictItem }) {
   const { t, i18n } = useTranslation();
   const { c } = useDarkColors();
-  const updateQuantity = useCartStore(s => s.updateQuantity);
+  const updateQty = useCartStore(s => s.updateQty);
   const removeItem = useCartStore(s => s.removeItem);
   const router = useRouter();
 
   const handleIncrement = useCallback(() => {
     Haptics.selectionAsync().catch(() => {});
     if (item.quantity >= item.product.stock) return;
-    updateQuantity(item.productId, item.quantity + 1);
-  }, [item, updateQuantity]);
+    updateQty(item.productId, item.quantity + 1);
+  }, [item, updateQty]);
 
   const handleDecrement = useCallback(() => {
     Haptics.selectionAsync().catch(() => {});
     if (item.quantity > 1) {
-      updateQuantity(item.productId, item.quantity - 1);
+      updateQty(item.productId, item.quantity - 1);
     } else {
       removeItem(item.productId);
     }
-  }, [item, updateQuantity, removeItem]);
+  }, [item, updateQty, removeItem]);
 
   const name = (i18n.language === "en" ? (item.product.nameEn || item.product.nameAr || item.product.name) : (item.product.nameAr || item.product.nameEn || item.product.name)) ?? "";
   const hasDiscount = item.product.hasActivePromotion && item.product.basePrice > item.product.price;
@@ -117,7 +114,7 @@ export default function CartScreen() {
 
   const items = useCartStore(s => s.items);
   const pricing = useCartStore(selectPricing);
-  const conflicts = useCartStateMachine(); // Auto-verifies cart with backend gracefully
+  const cartState = useCartStateMachine();
   const clearCart = useCartStore(s => s.clearCart);
 
   const isCartEmpty = items.length === 0;
@@ -139,11 +136,10 @@ export default function CartScreen() {
     );
   }
 
-  // Calculate if we need delivery fee warning
   const amountToFreeDelivery = FREE_DELIVERY_THRESHOLD - pricing.subtotal;
   const progressPercent = Math.min(100, Math.max(0, (pricing.subtotal / FREE_DELIVERY_THRESHOLD) * 100));
 
-  const hasBlockingConflict = conflicts.some(c => c.type === "unavailable" || (c.type === "stock" && c.serverStock === 0));
+  const hasBlockingConflict = cartState.conflicts.some(c => c.type === "unavailable" || (c.type === "stock" && c.serverStock === 0));
 
   return (
     <View style={[styles.container, { backgroundColor: c.canvas, paddingTop: insets.top }]}>
@@ -175,7 +171,7 @@ export default function CartScreen() {
           </Animated.View>
         }
         renderItem={({ item }) => {
-          const conflict = conflicts.find(c => c.productId === item.productId);
+          const conflict = cartState.conflicts.find(c => c.productId === item.productId);
           return <PremiumCartItem item={item} conflict={conflict} />;
         }}
       />

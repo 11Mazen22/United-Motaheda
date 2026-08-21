@@ -25,7 +25,7 @@ const GRID_GAP = 12;
 
 function StatsStrip({ catCount, loading }: { catCount: number; loading: boolean }) {
   const { t } = useTranslation();
-  const theme = CustomerUI.useLuxuryTheme();
+  const theme = CustomerUI.useCustomerTheme();
   const { pagePad } = useScreenLayout();
 
   const items = [
@@ -72,7 +72,7 @@ export default function ProductsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const cartCount = useCartStore((s) => s.itemCount());
-  const theme = CustomerUI.useLuxuryTheme();
+  const theme = CustomerUI.useCustomerTheme();
   const lang = i18n.language === "en" ? "en" as const : "ar" as const;
 
   const { pagePad, numColumns, width } = useScreenLayout();
@@ -161,7 +161,7 @@ export default function ProductsScreen() {
             key={catCols}
             renderItem={renderItem}
             ListHeaderComponent={ListHeaderComponent}
-            contentContainerStyle={{ paddingBottom: theme.layout.tabBarHeight + 24 }}
+            contentContainerStyle={{ paddingBottom: theme.lx.size.tabBarHeight + 24 }}
             columnWrapperStyle={{ gap: GRID_GAP, paddingHorizontal: pagePad }}
             showsVerticalScrollIndicator={false}
           />

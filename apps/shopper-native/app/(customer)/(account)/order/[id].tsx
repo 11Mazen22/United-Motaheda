@@ -1,33 +1,18 @@
 /**
-
  * Order Details — /order/[id]
-
  *
-
  * Full order view with:
-
  *   - Sticky header (order ID + status + payment badge)
-
  *   - Order timeline (contextual to payment method)
-
  *   - Purchased items (image from product_snapshot or hydrated from products)
-
  *   - Delivery address
-
  *   - Payment method card + proof image for manual payments
-
  *   - Price breakdown
-
  *
-
  * Deep link: tapping a product thumbnail navigates to /product/[id]
-
  *
-
  * Screen kept under 400 lines by delegating metadata, helpers, and sub-components
-
  * to src/features/orders/components/OrderDetailHelpers.tsx.
-
  */
 
 
@@ -75,6 +60,8 @@ import { Text as UIText } from "@pharmacy/ui-native";
 import { Badge } from "@/components/ui/Badge";
 
 import { kit } from "@pharmacy/ui-native";
+
+import { ReorderButton } from "@/features/orders/components/ReorderButton";
 
 import { formatPrice } from "@/utils/format";
 
@@ -138,8 +125,6 @@ function SafeImage({
 
 }) {
 
-  const { c } = useDarkColors();
-
 
 
   if (Platform.OS === "web") return <RNImage source={source} style={style} resizeMode={contentFit} />;
@@ -165,6 +150,8 @@ export default function OrderDetailScreen(): React.ReactElement {
   const { language } = useAppLanguage();
 
   const { pagePad } = useScreenLayout();
+
+  const { c } = useDarkColors();
 
   const { id }       = useLocalSearchParams<{ id: string }>();
 
@@ -304,8 +291,6 @@ export default function OrderDetailScreen(): React.ReactElement {
 
   //   • qrToken is available (required by track-order Edge Function)
 
-  // qrToken is fetched as part of ORDERS_SELECT (added in B4 Task 4).
-
   const TRACKABLE_STATUSES = new Set([
 
     "out_for_delivery",
@@ -352,13 +337,17 @@ export default function OrderDetailScreen(): React.ReactElement {
 
       <ScrollView
 
-        contentContainerStyle={[
+        contentContainerStyle={
 
-          styles.scrollContent,
+          [
 
-          { paddingHorizontal: pagePad, paddingBottom: insets.bottom + 32 },
+            styles.scrollContent,
 
-        ]}
+            { paddingHorizontal: pagePad, paddingBottom: insets.bottom + 32 },
+
+          ]
+
+        }
 
         showsVerticalScrollIndicator={false}
 
@@ -847,4 +836,3 @@ const trackBtnStyles = StyleSheet.create({
   },
 
 });
-

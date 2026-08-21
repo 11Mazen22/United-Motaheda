@@ -1,0 +1,1 @@
+`npm run dev` boots the shopper web app; `npm run typecheck` runs tsc against `apps/shopper-web/tsconfig.json`; `npm run ingest-products` loads CSV products into Supabase; `npm run railway:build|start:{api,shopper-web,shopper-native}` invoke the corresponding `scripts/railway/*.sh` entry points used by the Railway pipeline defined in `railway.json`.

@@ -1,6 +1,5 @@
-import React, { useCallback, useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { View, StyleSheet, ScrollView, Pressable, Platform, KeyboardAvoidingView, Modal } from "react-native";
-import { Image } from "expo-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -11,19 +10,14 @@ import Animated, { FadeIn, FadeOut, SlideInDown, SlideOutDown, Layout } from "re
 import { CustomerUI, kit, Button } from "@pharmacy/ui-native";
 import { isRtl, flexRow, textAlignStart } from "@/utils/layout";
 import { useDarkColors } from "@/hooks/useDarkColors";
-import { theme } from "@pharmacy/design-tokens";
 
-// Data & State
 import { usePremiumCheckout } from "@/features/checkout/hooks/usePremiumCheckout";
 import { useCartStore } from "@/stores/cart";
 import { AuthGateModal } from "@/features/checkout/components/AuthGateModal";
 import { AddressFormDrawer } from "@/features/addresses/components/AddressFormDrawer";
 import { useDeliveryQuote } from "@/features/delivery/useDeliveryQuote";
-import type { Branch } from "@/features/delivery/branches/types";
 
 const IS_RTL = isRtl();
-
-// --- Subcomponents ---
 
 function StepAccordion({ 
   step, 
@@ -33,7 +27,15 @@ function StepAccordion({
   onEdit, 
   children,
   summary
-}: any) {
+}: {
+  step: number;
+  title: string;
+  isActive: boolean;
+  isCompleted: boolean;
+  onEdit: () => void;
+  children: React.ReactNode;
+  summary?: string;
+}) {
   const { c } = useDarkColors();
   
   return (
@@ -102,7 +104,6 @@ function LocationDetailsModal({
           </View>
           
           <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
-             {/* Customer Address Info */}
              <CustomerUI.Typography variant="h6" weight="bold" color={c.ink} style={{ marginBottom: 12, textAlign: textAlignStart(IS_RTL) }}>
                 {t("checkout.yourAddress", "Your Delivery Address")}
              </CustomerUI.Typography>
@@ -122,7 +123,6 @@ function LocationDetailsModal({
                 </View>
              </View>
 
-             {/* Branch & Zone Info */}
              <CustomerUI.Typography variant="h6" weight="bold" color={c.ink} style={{ marginTop: 24, marginBottom: 12, textAlign: textAlignStart(IS_RTL) }}>
                 {t("checkout.processingBranch", "Assigned Branch & Zone")}
              </CustomerUI.Typography>
@@ -183,7 +183,6 @@ export default function CheckoutScreen() {
     paymentMethod,
     setPaymentMethod,
     submit,
-    items,
     pricing,
     errorMsg,
     placedOrderId,
@@ -195,32 +194,28 @@ export default function CheckoutScreen() {
   const [isAddressDrawerOpen, setIsAddressDrawerOpen] = useState(false);
   const [locationDetailsModal, setLocationDetailsModal] = useState<boolean>(false);
 
-  // 1. Core Automation: Address -> Zone -> Branch -> Delivery Quote
   const quote = useDeliveryQuote({
     subtotal: pricing.subtotal,
     customerCoords: selectedAddress?.lat && selectedAddress?.lng ? { lat: selectedAddress.lat, lng: selectedAddress.lng } : null,
     address: selectedAddress ? { city: selectedAddress.city, streetName: selectedAddress.street } : undefined,
   });
 
-  // 2. Sync quote delivery fee with checkout totals automatically
   useEffect(() => {
     if (quote.cost !== undefined) {
       setShippingFee(quote.cost);
     }
   }, [quote.cost, setShippingFee]);
 
-  // Transitions
   useEffect(() => {
     if (status === "READY" && selectedAddress && quote.isDeliverable && activeStep === 1) {
        setActiveStep(2);
     }
   }, [selectedAddress, quote.isDeliverable, status]);
 
-  // Error Overlays
   if (status === "AUTH_REQUIRED") {
     return (
        <View style={[styles.container, { backgroundColor: c.canvas }]}>
-          <AuthGateModal visible={true} onSuccess={() => setStatus("LOADING")} onCancel={() => router.back()} />
+           <AuthGateModal visible={true} onSignIn={() => setStatus("LOADING")} onDismiss={() => router.back()} />
        </View>
     );
   }
@@ -281,7 +276,6 @@ export default function CheckoutScreen() {
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <View style={[styles.container, { backgroundColor: c.canvas, paddingTop: insets.top }]}>
         
-        {/* Header */}
         <View style={[styles.header, { backgroundColor: c.surface, borderBottomColor: c.line }]}>
            <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={12}>
               <Ionicons name={IS_RTL ? "chevron-forward" : "chevron-back"} size={28} color={c.ink} />
@@ -294,7 +288,6 @@ export default function CheckoutScreen() {
 
         <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 140 }} showsVerticalScrollIndicator={false}>
            
-           {/* Step 1: Delivery Address & Smart Automation */}
            <StepAccordion 
              step={1} 
              title={t("checkout.delivery", "Delivery Details")}
@@ -345,7 +338,6 @@ export default function CheckoutScreen() {
                     </CustomerUI.Typography>
                  </Pressable>
 
-                 {/* SMART ZONE DETECTION UI */}
                  {selectedAddress && quote.isDeliverable && quote.branch && (
                    <Animated.View entering={FadeIn.delay(200)} style={[styles.smartZoneCard, { backgroundColor: c.canvas, borderColor: kit.color.success }]}>
                       <View style={[styles.smartZoneHeader, { flexDirection: flexRow(IS_RTL) }]}>
@@ -393,7 +385,6 @@ export default function CheckoutScreen() {
              )}
            </StepAccordion>
 
-           {/* Step 2: Delivery Method */}
            <StepAccordion 
              step={2} 
              title={t("checkout.deliveryMethod", "Delivery Method")}
@@ -420,7 +411,6 @@ export default function CheckoutScreen() {
              <Button label={t("common.continue", "Continue")} onPress={() => setActiveStep(3)} style={{ marginTop: 16 }} />
            </StepAccordion>
 
-           {/* Step 3: Payment Method */}
            <StepAccordion 
              step={3} 
              title={t("checkout.payment", "Payment Method")}
@@ -438,19 +428,18 @@ export default function CheckoutScreen() {
                 {paymentMethod === "cod" && <Ionicons name="checkmark-circle" size={24} color={kit.color.accentDeep} />}
              </Pressable>
              
-             <Pressable onPress={() => { Haptics.selectionAsync(); setPaymentMethod("card"); }} style={[styles.methodCard, { borderColor: paymentMethod === "card" ? kit.color.accentDeep : c.line, backgroundColor: paymentMethod === "card" ? kit.color.accentTint : c.surface, flexDirection: flexRow(IS_RTL) }]}>
-                <Ionicons name="card-outline" size={28} color={paymentMethod === "card" ? kit.color.accentDeep : c.inkSoft} />
-                <View style={{ flex: 1, paddingHorizontal: 16 }}>
-                   <CustomerUI.Typography variant="body" weight="bold" color={paymentMethod === "card" ? kit.color.accentDeep : c.ink} style={{ textAlign: textAlignStart(IS_RTL) }}>{t("checkout.card", "Credit / Debit Card")}</CustomerUI.Typography>
-                   <CustomerUI.Typography variant="caption" color={paymentMethod === "card" ? kit.color.accentDeep : c.inkSoft} style={{ textAlign: textAlignStart(IS_RTL) }}>{t("checkout.paySecurely", "Pay securely via Stripe")}</CustomerUI.Typography>
-                </View>
-                {paymentMethod === "card" && <Ionicons name="checkmark-circle" size={24} color={kit.color.accentDeep} />}
-             </Pressable>
+              <Pressable onPress={() => { Haptics.selectionAsync(); setPaymentMethod("online"); }} style={[styles.methodCard, { borderColor: paymentMethod === "online" ? kit.color.accentDeep : c.line, backgroundColor: paymentMethod === "online" ? kit.color.accentTint : c.surface, flexDirection: flexRow(IS_RTL) }]}>
+                 <Ionicons name="card-outline" size={28} color={paymentMethod === "online" ? kit.color.accentDeep : c.inkSoft} />
+                 <View style={{ flex: 1, paddingHorizontal: 16 }}>
+                    <CustomerUI.Typography variant="body" weight="bold" color={paymentMethod === "online" ? kit.color.accentDeep : c.ink} style={{ textAlign: textAlignStart(IS_RTL) }}>{t("checkout.card", "Credit / Debit Card")}</CustomerUI.Typography>
+                    <CustomerUI.Typography variant="caption" color={paymentMethod === "online" ? kit.color.accentDeep : c.inkSoft} style={{ textAlign: textAlignStart(IS_RTL) }}>{t("checkout.paySecurely", "Pay securely via Stripe")}</CustomerUI.Typography>
+                 </View>
+                 {paymentMethod === "online" && <Ionicons name="checkmark-circle" size={24} color={kit.color.accentDeep} />}
+              </Pressable>
 
              <Button label={t("checkout.reviewOrder", "Review Order")} onPress={() => setActiveStep(4)} style={{ marginTop: 16 }} />
            </StepAccordion>
 
-           {/* Step 4: Review & Place Order */}
            <StepAccordion 
              step={4} 
              title={t("checkout.review", "Review & Confirm")}
@@ -465,7 +454,7 @@ export default function CheckoutScreen() {
                 </View>
                 <View style={[styles.summaryRow, { flexDirection: flexRow(IS_RTL) }]}>
                    <CustomerUI.Typography variant="body" color={c.inkSoft}>{t("checkout.deliveryFee", "Delivery Fee")}</CustomerUI.Typography>
-                   <CustomerUI.Typography variant="body" weight="bold" color={pricing.delivery === 0 ? kit.color.success : c.ink}>{pricing.delivery === 0 ? t("checkout.free", "Free") : `${pricing.delivery.toLocaleString("ar-EG")} EGP`}</CustomerUI.Typography>
+                    <CustomerUI.Typography variant="body" weight="bold" color={pricing.shipping === 0 ? kit.color.success : c.ink}>{pricing.shipping === 0 ? t("checkout.free", "Free") : `${pricing.shipping.toLocaleString("ar-EG")} EGP`}</CustomerUI.Typography>
                 </View>
                 {pricing.discount > 0 && (
                   <View style={[styles.summaryRow, { flexDirection: flexRow(IS_RTL) }]}>
@@ -482,7 +471,6 @@ export default function CheckoutScreen() {
 
         </ScrollView>
 
-        {/* Sticky Action Footer */}
         {activeStep === 4 && (
           <Animated.View entering={SlideInDown.duration(300)} style={[styles.footerDock, { backgroundColor: c.surface, borderTopColor: c.line }]}>
              {errorMsg && (
@@ -514,7 +502,6 @@ export default function CheckoutScreen() {
         />
       )}
       
-      {/* Drawer */}
       <AddressFormDrawer visible={isAddressDrawerOpen} onClose={() => setIsAddressDrawerOpen(false)} />
     </KeyboardAvoidingView>
   );
