@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect } from "react";
+import React, { useCallback } from "react";
 import { Modal, Platform, Pressable, StyleSheet, View } from "react-native";
 import { Text as UIText, kit } from "@pharmacy/ui-native";
 import { Ionicons } from "@expo/vector-icons";

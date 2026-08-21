@@ -26,7 +26,7 @@ export type ConflictItem = {
 
 export function useCartStateMachine() {
   const items = useCartStore(s => s.items);
-  const updateQuantity = useCartStore(s => s.updateQuantity);
+  const updateQty = useCartStore(s => s.updateQty);
   const removeItem = useCartStore(s => s.removeItem);
   const [status, setStatus] = useState<CartStateStatus>("LOADING");
   const [conflicts, setConflicts] = useState<ConflictItem[]>([]);
@@ -120,7 +120,7 @@ export function useCartStateMachine() {
     if (conflict.type === "unavailable") {
       removeItem(conflict.productId);
     } else if (conflict.type === "stock") {
-      updateQuantity(conflict.productId, conflict.serverStock || 1);
+      updateQty(conflict.productId, conflict.serverStock || 1);
     } else if (conflict.type === "price") {
       // The price change is resolved by acknowledging it.
       // Ideally we would update the product in the cart store, but the store updates it next time an item is added.

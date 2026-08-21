@@ -47,16 +47,11 @@ import { Text as UIText } from "@pharmacy/ui-native";
 import { Ionicons } from "@expo/vector-icons";
 
 import Animated, {
-
   useAnimatedStyle,
-
   useSharedValue,
-
   withRepeat,
-
   withTiming,
-
-useReducedMotion } from "react-native-reanimated";
+} from "react-native-reanimated";
 
 import { useTranslation } from "react-i18next";
 

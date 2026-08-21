@@ -17,7 +17,7 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withSpring,
-useReducedMotion } from "react-native-reanimated";
+} from "react-native-reanimated";
 import { useTranslation } from "react-i18next";
 import { CustomerUI } from "@pharmacy/ui-native";
 import { isRtl, flexRow } from "@/utils/layout";
@@ -77,11 +77,10 @@ const HeartButton = memo(function HeartButton({ product }: { product: NativeProd
 const CartControl = memo(function CartControl({ product }: { product: NativeProduct }) {
   const cartItem = useCartStore((s: any) => s.items.find((i: any) => i.productId === product.id));
   const addItem = useCartStore((s: any) => s.addItem);
-  const updateQuantity = useCartStore((s: any) => s.updateQuantity);
+  const updateQty = useCartStore((s: any) => s.updateQty);
   const removeItem = useCartStore((s: any) => s.removeItem);
   const theme = CustomerUI.useLuxuryTheme();
 
-  const cartItem = items.find((i: any) => i.productId === product.id);
   const qty = cartItem ? cartItem.quantity : 0;
   
   const scale = useSharedValue(1);
@@ -94,17 +93,17 @@ const CartControl = memo(function CartControl({ product }: { product: NativeProd
 
   const handleIncrement = useCallback(() => {
     if (Platform.OS !== "web") Haptics.selectionAsync().catch(() => {});
-    updateQuantity(product.id, qty + 1);
-  }, [updateQuantity, product.id, qty]);
+    updateQty(product.id, qty + 1);
+  }, [updateQty, product.id, qty]);
 
   const handleDecrement = useCallback(() => {
     if (Platform.OS !== "web") Haptics.selectionAsync().catch(() => {});
     if (qty > 1) {
-      updateQuantity(product.id, qty - 1);
+      updateQty(product.id, qty - 1);
     } else {
       removeItem(product.id);
     }
-  }, [updateQuantity, removeItem, product.id, qty]);
+  }, [updateQty, removeItem, product.id, qty]);
 
   const animStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],

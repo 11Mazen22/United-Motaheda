@@ -34,7 +34,7 @@ import Animated, {
 
   interpolateColor,
 
-useReducedMotion } from "react-native-reanimated";
+} from "react-native-reanimated";
 
 import { theme } from "@pharmacy/design-tokens";
 

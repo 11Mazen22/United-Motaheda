@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import { Modal, Platform, Pressable, ScrollView, StyleSheet, View, TextInput, KeyboardAvoidingView } from "react-native";
 import { Text as UIText, kit, Button } from "@pharmacy/ui-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -9,7 +9,7 @@ import Animated, { FadeIn, FadeOut, SlideInDown, SlideOutDown, useAnimatedStyle,
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AddressMapPlaceholder } from "./AddressMapPlaceholder";
 import { ADDRESS_LABELS } from "../types";
-import type { AddressFormData, Address } from "../types";
+import type { AddressFormData } from "../types";
 import { useDarkColors } from "@/hooks/useDarkColors";
 import { theme } from "@pharmacy/design-tokens";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
@@ -134,7 +134,7 @@ export function AddressFormDrawer({
 
               {/* Map View */}
               <View style={[styles.mapWrap, { borderColor: c.line }]}>
-                 <AddressMapPlaceholder lat={24.7136} lng={46.6753} compact={false} style={styles.map} />
+                 <AddressMapPlaceholder lat={24.7136} lng={46.6753} compact={false} />
                  {smartZoneActive && (
                    <View style={styles.mapBadge}>
                      <Ionicons name="flash" size={12} color="#fff" />
@@ -174,17 +174,18 @@ export function AddressFormDrawer({
               <View style={styles.formGroup}>
                 <UIText style={[styles.groupLabel, { color: c.inkSoft, textAlign: textAlignStart(IS_RTL) }]}>{t("addresses.deliveryOptions", { defaultValue: "LABEL" })}</UIText>
                 <View style={[styles.labelRow, { flexDirection: flexRow(IS_RTL) }]}>
-                   {["home", "work", "other"].map((lbl) => {
-                     const isSelected = form.label === lbl;
-                     const config = ADDRESS_LABELS[lbl as keyof typeof ADDRESS_LABELS];
-                     return (
+                    {["home", "work", "other"].map((lbl) => {
+                      const isSelected = form.label === lbl;
+                      const config = ADDRESS_LABELS.find(l => l.key === lbl);
+                      if (!config) return null;
+                      return (
                        <Pressable 
                          key={lbl}
                          onPress={() => setForm({ ...form, label: lbl as any })}
                          style={[styles.labelChip, { backgroundColor: isSelected ? config.bg : c.line, borderColor: isSelected ? config.color : "transparent" }]}
                        >
                          <Ionicons name={config.icon as any} size={16} color={isSelected ? config.color : c.inkSoft} />
-                         <UIText style={[styles.labelChipText, { color: isSelected ? config.color : c.inkSoft }]}>{t(config.i18nKey)}</UIText>
+                          <UIText style={[styles.labelChipText, { color: isSelected ? config.color : c.inkSoft }]}>{t(config.labelKey)}</UIText>
                        </Pressable>
                      );
                    })}

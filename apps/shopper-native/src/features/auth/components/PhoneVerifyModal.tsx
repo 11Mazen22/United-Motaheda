@@ -34,7 +34,7 @@ import Animated, { FadeIn, SlideInDown, SlideOutDown } from "react-native-reanim
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import { Text } from "@pharmacy/ui-native";
-import { Button } from "@pharmacy/ui-native";
+import { Button, kit } from "@pharmacy/ui-native";
 import { theme } from "@pharmacy/design-tokens";
 import {
   OTP_RESEND_COOLDOWN_SECONDS,

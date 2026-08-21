@@ -29,7 +29,7 @@ import {
   useSharedValue,
   withSpring,
   withTiming,
-useReducedMotion } from "react-native-reanimated";
+} from "react-native-reanimated";
 import { router } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { isRtl } from "@/utils/layout";

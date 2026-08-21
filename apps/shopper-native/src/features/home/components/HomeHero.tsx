@@ -1,16 +1,15 @@
-import React, { memo, useEffect, useMemo } from "react";
-import { Platform, Pressable, StyleSheet, View, Dimensions } from "react-native";
+import React, { memo, useMemo } from "react";
+import { Pressable, StyleSheet, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
-import * as Haptics from "expo-haptics";
-import Animated, { Easing, useAnimatedStyle, useSharedValue, withRepeat, withTiming, FadeInDown } from "react-native-reanimated";
+
+import Animated, { FadeInDown } from "react-native-reanimated";
 import { useTranslation } from "react-i18next";
 import { CustomerUI, kit } from "@pharmacy/ui-native";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
 import { useScreenLayout } from "@/utils/responsive";
 import { useAuth } from "@/features/auth";
 
-const { width } = Dimensions.get('window');
 const IS_RTL = isRtl();
 
 interface HomeHeroProps {

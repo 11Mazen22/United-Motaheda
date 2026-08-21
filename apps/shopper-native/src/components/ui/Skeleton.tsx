@@ -54,11 +54,13 @@ import Animated, {
 
   Easing,
 
-useReducedMotion } from "react-native-reanimated";
+} from "react-native-reanimated";
 
 import { LinearGradient } from "expo-linear-gradient";
 
 import { theme } from "@pharmacy/design-tokens";
+
+import { kit } from "@pharmacy/ui-native";
 
 import { flexRow, isRtl } from "@/utils/layout";
 
