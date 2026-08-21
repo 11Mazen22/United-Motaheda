@@ -2,9 +2,9 @@ import React from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import { Text as UIText } from "@pharmacy/ui-native";
-import { kit } from "@pharmacy/ui-native";
-import { FORWARD_CHEVRON, flexRow, isRtl, textAlignStart } from "@/utils/layout";
+import { Text as UIText, kit } from "@pharmacy/ui-native";
+import { useDarkColors } from "@/hooks/useDarkColors";
+import { FORWARD_CHEVRON, flexRow, isRtl } from "@/utils/layout";
 import { formatPrice } from "@/utils/format";
 import { OrderStatusChip } from "./OrderStatusChip";
 import type { PharmacistOrder } from "../api/types";
@@ -26,9 +26,10 @@ function formatAge(ms: number): string {
 
 export function OrderQueueCard({ order, onPress }: Props) {
   const { t } = useTranslation();
-  const isUrgent = order.ageMs > 30 * 60_000; // > 30 minutes
+  const { c } = useDarkColors();
+  const isUrgent = (order.ageMs ?? 0) > 30 * 60_000;
   
-  const borderStartColor = isUrgent ? kit.color.warn : kit.color.accent;
+  const borderStartColor = isUrgent ? c.warn : c.accent;
 
   return (
     <Pressable
@@ -36,7 +37,7 @@ export function OrderQueueCard({ order, onPress }: Props) {
       style={({ pressed }) => [
         styles.card,
         pressed && styles.cardPressed,
-        { borderStartColor, borderStartWidth: 4, flexDirection: flexRow(IS_RTL) }
+        { borderStartColor, borderStartWidth: 4, flexDirection: flexRow(IS_RTL), backgroundColor: pressed ? c.well : c.surface, borderColor: c.line }
       ]}
       accessibilityRole="button"
       accessibilityLabel={`Order ${order.id.slice(-8)} for ${order.customerName}`}
@@ -50,10 +51,10 @@ export function OrderQueueCard({ order, onPress }: Props) {
         </View>
         <View style={[styles.row, { marginTop: 6 }]}>
           <UIText variant="caption" color="muted">{order.items.length} {t("pharmacist.items", "منتجات")}</UIText>
-          <View style={styles.dot} />
+          <View style={[styles.dot, { backgroundColor: c.inkFaint }]} />
           <View style={styles.row}>
-            {isUrgent && <Ionicons name="warning" size={12} color={kit.color.warn} style={{ marginEnd: 2 }} />}
-            <UIText variant="caption" color={isUrgent ? "warn" : "secondary"}>{formatAge(order.ageMs)}</UIText>
+            {isUrgent && <Ionicons name="warning" size={12} color={c.warn} style={{ marginEnd: 2 }} />}
+            <UIText variant="caption" color={isUrgent ? "warn" : "secondary"}>{formatAge(order.ageMs ?? 0)}</UIText>
           </View>
         </View>
       </View>
@@ -64,7 +65,7 @@ export function OrderQueueCard({ order, onPress }: Props) {
 
       <View style={styles.colRight}>
         <UIText style={styles.total}>{formatPrice(order.total)}</UIText>
-        <Ionicons name={FORWARD_CHEVRON} size={16} color={kit.color.inkFaint} style={{ marginTop: 2 }} />
+        <Ionicons name={FORWARD_CHEVRON} size={16} color={c.inkFaint} style={{ marginTop: 2 }} />
       </View>
     </Pressable>
   );
@@ -72,18 +73,16 @@ export function OrderQueueCard({ order, onPress }: Props) {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: kit.color.surface,
     borderRadius: kit.radius.md,
     paddingVertical: 14,
     paddingHorizontal: 12,
     borderWidth: 1,
-    borderColor: kit.color.line,
     alignItems: "center",
     gap: 12,
     ...kit.shadow.card,
   },
   cardPressed: {
-    backgroundColor: kit.color.well,
+    opacity: 0.85,
   },
   row: {
     flexDirection: flexRow(IS_RTL),
@@ -105,7 +104,6 @@ const styles = StyleSheet.create({
     width: 3,
     height: 3,
     borderRadius: 1.5,
-    backgroundColor: kit.color.inkFaint,
     marginHorizontal: 4,
   },
   total: {

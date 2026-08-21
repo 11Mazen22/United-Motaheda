@@ -26,7 +26,8 @@ import { useTranslation }       from "react-i18next";
 
 
 
-import { Screen, Text as UIText, kit, Button } from "@pharmacy/ui-native";
+
+import { Screen, Text as UIText, kit } from "@pharmacy/ui-native";
 import { useDarkColors } from "@/hooks/useDarkColors";
 
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
@@ -44,6 +45,8 @@ import { usePharmacistMutations} from "../hooks/usePharmacistMutations";
 import { PharmacistScreenHeader} from "../components/PharmacistScreenHeader";
 
 import { OrderStatusChip }       from "../components/OrderStatusChip";
+
+import { PharmacistActionDock }  from "../components/PharmacistActionDock";
 
 import type { PharmacistOrder, PharmacistTransitionTarget } from "../api/types";
 
@@ -113,6 +116,10 @@ export function PharmacistOrderDetailScreen(): React.ReactElement {
 
   const { id } = useLocalSearchParams<{ id: string }>();
 
+  const { c } = useDarkColors();
+
+  
+
 
 
   const orderQuery = usePharmacistOrder(id);
@@ -135,13 +142,13 @@ export function PharmacistOrderDetailScreen(): React.ReactElement {
 
   const handleAdvance = useCallback(
 
-    async (target: PharmacistTransitionTarget) => {
+    async (target: string) => {
 
       if (!id) return;
-
+      if (!id || !target) return;
       try {
 
-        await mutations.advance.mutateAsync({ orderId: id, nextStatus: target });
+        await mutations.advance.mutateAsync({ orderId: id, nextStatus: target as any });
 
         if (target === "cancelled") {
 
@@ -177,13 +184,13 @@ export function PharmacistOrderDetailScreen(): React.ReactElement {
 
     return (
 
-      <Screen edgeTop background={kit.color.canvas}>
+      <Screen edgeTop background={c.canvas}>
 
         <PharmacistScreenHeader title={`#${(id ?? "").slice(-8).toUpperCase()}`} />
 
         <View style={s.centered}>
 
-          <ActivityIndicator size="large" color={kit.color.accent} />
+          <ActivityIndicator size="large" color={c.accent} />
 
         </View>
 
@@ -199,13 +206,13 @@ export function PharmacistOrderDetailScreen(): React.ReactElement {
 
     return (
 
-      <Screen edgeTop background={kit.color.canvas}>
+      <Screen edgeTop background={c.canvas}>
 
         <PharmacistScreenHeader title={t("pharmacist.orderNotFound")} />
 
         <View style={s.centered}>
 
-          <Ionicons name="alert-circle-outline" size={40} color={kit.color.inkFaint} />
+          <Ionicons name="alert-circle-outline" size={40} color={c.inkFaint} />
 
           <UIText variant="card-title" style={{ marginTop: 10, textAlign: "center" }}>
 
@@ -223,9 +230,21 @@ export function PharmacistOrderDetailScreen(): React.ReactElement {
 
 
 
+  const dockActions = actions.map((action) => ({
+
+    key: action,
+
+    label: actionLabel(action, t),
+
+    variant: action === "cancelled" ? "ghost" as const : "primary" as const,
+
+  }));
+
+
+
   return (
 
-    <Screen edgeTop background={kit.color.canvas}>
+    <Screen edgeTop background={c.canvas} edgeBottom>
 
       <PharmacistScreenHeader title={t("pharmacist.orderDetails")} />
 
@@ -235,7 +254,7 @@ export function PharmacistOrderDetailScreen(): React.ReactElement {
 
         {/* Top: Order number + timestamp + status */}
 
-        <View style={s.topCard}>
+        <View style={[s.topCard, { backgroundColor: c.surface, borderBottomColor: c.line }]}>
 
           <View style={[s.row, { justifyContent: "space-between" }]}>
 
@@ -261,7 +280,7 @@ export function PharmacistOrderDetailScreen(): React.ReactElement {
 
         {/* Customer section */}
 
-        <View style={s.section}>
+        <View style={[s.section, { backgroundColor: c.surface, borderTopColor: c.line, borderBottomColor: c.line }]}>
 
           <UIText variant="eyebrow" color="secondary" style={{ marginBottom: 8, textAlign: TEXT_START }}>
 
@@ -279,11 +298,11 @@ export function PharmacistOrderDetailScreen(): React.ReactElement {
 
             </View>
 
-            <Pressable onPress={() => Linking.openURL(`tel:${order.customerPhone}`)} style={s.phoneBtn}>
+            <Pressable onPress={() => Linking.openURL(`tel:${order.customerPhone}`)} style={[s.phoneBtn, { backgroundColor: c.accentTint }]}>
 
-              <Ionicons name="call" size={16} color={kit.color.accent} />
+              <Ionicons name="call" size={16} color={c.accentDeep} />
 
-              <UIText variant="body-sm" style={{ color: kit.color.accent }}>{order.customerPhone}</UIText>
+              <UIText variant="body-sm" style={{ color: c.accentDeep }}>{order.customerPhone}</UIText>
 
             </Pressable>
 
@@ -295,7 +314,7 @@ export function PharmacistOrderDetailScreen(): React.ReactElement {
 
         {/* Items list */}
 
-        <View style={s.section}>
+        <View style={[s.section, { backgroundColor: c.surface, borderTopColor: c.line, borderBottomColor: c.line }]}>
 
           <UIText variant="eyebrow" color="secondary" style={{ marginBottom: 8, textAlign: TEXT_START }}>
 
@@ -307,7 +326,7 @@ export function PharmacistOrderDetailScreen(): React.ReactElement {
 
             {order.items.map((item, index) => (
 
-              <View key={item.productId} style={[s.tableRow, index === 0 && { borderTopWidth: 0 }]}>
+              <View key={item.productId} style={[s.tableRow, index === 0 && { borderTopWidth: 0 }, { borderTopColor: c.line }]}>
 
                 {item.imageUrl ? (
 
@@ -315,9 +334,9 @@ export function PharmacistOrderDetailScreen(): React.ReactElement {
 
                 ) : (
 
-                  <View style={[s.itemImg, s.itemImgPlaceholder]}>
+                  <View style={[s.itemImg, s.itemImgPlaceholder, { backgroundColor: c.well }]}>
 
-                    <Ionicons name="medkit" size={16} color={kit.color.inkFaint} />
+                    <Ionicons name="medkit" size={16} color={c.inkFaint} />
 
                   </View>
 
@@ -353,7 +372,7 @@ export function PharmacistOrderDetailScreen(): React.ReactElement {
 
         {/* Pricing summary */}
 
-        <View style={s.summaryBox}>
+        <View style={[s.summaryBox, { backgroundColor: c.surface, borderColor: c.line }]}>
 
           <View style={s.summaryRow}>
 
@@ -383,49 +402,31 @@ export function PharmacistOrderDetailScreen(): React.ReactElement {
 
           </View>
 
-          <View style={[s.summaryRow, s.summaryTotal]}>
+          <View style={[s.summaryRow, s.summaryTotal, { borderTopColor: c.line }]}>
 
             <UIText variant="body" weight="bold">{t("pharmacist.total")}</UIText>
 
-            <UIText variant="body" style={{ color: kit.color.accentDeep }}>{formatPrice(order.total)}</UIText>
+            <UIText variant="body" style={{ color: c.accentDeep }}>{formatPrice(order.total)}</UIText>
 
           </View>
 
         </View>
 
-
-
       </ScrollView>
 
 
 
-      {/* Action dock */}
+      {/* Action dock — safe-area aware */}
 
-      <View style={s.actionDock}>
+      <PharmacistActionDock
 
-        {actions.map((action) => (
+        actions={dockActions}
 
-          <Button
+        loading={mutations.advance.isPending}
 
-            key={action}
+        onAction={handleAdvance}
 
-            label={actionLabel(action, t)}
-
-            variant={action === "cancelled" ? "outline" : "primary"}
-
-            full
-
-            loading={mutations.advance.isPending}
-
-            onPress={() => handleAdvance(action)}
-
-            style={action === "cancelled" ? { borderColor: kit.color.danger } : undefined}
-
-          />
-
-        ))}
-
-      </View>
+      />
 
     </Screen>
 
@@ -443,13 +444,9 @@ const s = StyleSheet.create({
 
   topCard: {
 
-    backgroundColor: kit.color.surface,
-
     padding: kit.inset.screen,
 
     borderBottomWidth: 1,
-
-    borderBottomColor: kit.color.line,
 
   },
 
@@ -465,15 +462,11 @@ const s = StyleSheet.create({
 
     padding: kit.inset.screen,
 
-    backgroundColor: kit.color.surface,
-
     marginTop: 8,
 
     borderTopWidth: 1,
 
     borderBottomWidth: 1,
-
-    borderColor: kit.color.line,
 
   },
 
@@ -488,8 +481,6 @@ const s = StyleSheet.create({
     paddingHorizontal: 12,
 
     paddingVertical: 6,
-
-    backgroundColor: kit.color.accentTint,
 
     borderRadius: 9999,
 
@@ -511,8 +502,6 @@ const s = StyleSheet.create({
 
     borderTopWidth: StyleSheet.hairlineWidth,
 
-    borderTopColor: kit.color.line,
-
   },
 
   itemImg: {
@@ -522,8 +511,6 @@ const s = StyleSheet.create({
     height: 40,
 
     borderRadius: 8,
-
-    backgroundColor: kit.color.canvas,
 
   },
 
@@ -541,13 +528,9 @@ const s = StyleSheet.create({
 
     padding: kit.inset.card,
 
-    backgroundColor: kit.color.surface,
-
     borderRadius: 8,
 
     borderWidth: 1,
-
-    borderColor: kit.color.line,
 
   },
 
@@ -565,37 +548,10 @@ const s = StyleSheet.create({
 
     borderTopWidth: 1,
 
-    borderTopColor: kit.color.line,
-
     marginTop: 8,
 
     paddingTop: 12,
 
   },
 
-  actionDock: {
-
-    position: "absolute",
-
-    bottom: 0,
-
-    left: 0,
-
-    right: 0,
-
-    backgroundColor: kit.color.surface,
-
-    padding: kit.inset.screen,
-
-    borderTopWidth: 1,
-
-    borderTopColor: kit.color.line,
-
-    flexDirection: "column",
-
-    gap: 8,
-
-  },
-
 });
-

@@ -11,8 +11,13 @@ export { WorkbenchScreen }            from "./screens/WorkbenchScreen";
 export { PharmacistOrderDetailScreen }from "./screens/OrderDetailScreen";
 export { PrescriptionQueueScreen }    from "./screens/PrescriptionQueueScreen";
 export { PrescriptionDetailScreen }   from "./screens/PrescriptionDetailScreen";
-export { InventoryScreen }            from "./screens/InventoryScreen";
 export { InventoryIntelligenceScreen }from "./screens/InventoryIntelligenceScreen";
 export { BarcodeScannerScreen }       from "./screens/BarcodeScannerScreen";
 export { AnalyticsDashboardScreen }   from "./screens/AnalyticsDashboardScreen";
 export { PharmacistProfileScreen }    from "./screens/PharmacistProfileScreen";
+
+// Components
+export { PharmacistScreenHeader }     from "./components/PharmacistScreenHeader";
+export { OrderQueueCard }             from "./components/OrderQueueCard";
+export { OrderStatusChip }            from "./components/OrderStatusChip";
+export { PharmacistActionDock }       from "./components/PharmacistActionDock";

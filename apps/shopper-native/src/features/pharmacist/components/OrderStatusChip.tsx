@@ -1,9 +1,7 @@
 /**
-
  * OrderStatusChip — coloured pill for pharmacist order statuses.
-
+ *
  * Maps every PharmacistOrderStatus to a semantic colour + icon + label key.
-
  */
 
 import React from "react";
@@ -17,6 +15,8 @@ import { useTranslation }   from "react-i18next";
 import { Text as UIText }   from "@pharmacy/ui-native";
 
 import { kit }              from "@pharmacy/ui-native";
+
+import { useDarkColors }    from "@/hooks/useDarkColors";
 
 import { flexRow, isRtl }   from "@/utils/layout";
 
@@ -42,33 +42,33 @@ interface ChipMeta {
 
 
 
-const STATUS_MAP: Record<PharmacistOrderStatus, ChipMeta> = {
+const STATUS_MAP: Record<PharmacistOrderStatus, (c: ReturnType<typeof useDarkColors>) => ChipMeta> = {
 
-  pending:         { labelKey: "pharmacist.statusPending",        color: kit.color.warn,       bg: kit.color.warnTint,    icon: "time-outline"              },
+  pending:         ({ c }) => ({ labelKey: "pharmacist.statusPending",        color: c.warn,       bg: c.warnTint,    icon: "time-outline"              }),
 
-  confirmed:       { labelKey: "pharmacist.statusConfirmed",      color: kit.color.accentDeep, bg: "#EFF6FF",             icon: "checkmark-circle-outline"  },
+  confirmed:       ({ c }) => ({ labelKey: "pharmacist.statusConfirmed",      color: c.accentDeep, bg: c.accentTint,  icon: "checkmark-circle-outline"  }),
 
-  verification:    { labelKey: "pharmacist.statusVerification",   color: "#7C3AED",             bg: "#F5F3FF",             icon: "shield-checkmark-outline"  },
+  verification:    ({ c }) => ({ labelKey: "pharmacist.statusVerification",   color: c.accent,     bg: c.accentTint,  icon: "shield-checkmark-outline"  }),
 
-  payment_pending: { labelKey: "pharmacist.statusPaymentPending", color: "#B45309",             bg: "#FFFBEB",             icon: "card-outline"              },
+  payment_pending: ({ c }) => ({ labelKey: "pharmacist.statusPaymentPending", color: c.accentDeep, bg: c.accentTint,  icon: "card-outline"              }),
 
-  payment_approved:{ labelKey: "pharmacist.statusPaymentApproved",color: kit.color.success,    bg: kit.color.successTint, icon: "checkmark-circle-outline"  },
+  payment_approved:({ c }) => ({ labelKey: "pharmacist.statusPaymentApproved",color: c.success,    bg: c.successTint, icon: "checkmark-circle-outline"  }),
 
-  preparing:       { labelKey: "pharmacist.statusPreparing",      color: kit.color.accentDeep, bg: kit.color.accentTint,  icon: "construct-outline"         },
+  preparing:       ({ c }) => ({ labelKey: "pharmacist.statusPreparing",      color: c.accentDeep, bg: c.accentTint,  icon: "construct-outline"         }),
 
-  ready:           { labelKey: "pharmacist.statusReady",          color: kit.color.accentDeep, bg: kit.color.accentTint,  icon: "cube-outline"              },
+  ready:           ({ c }) => ({ labelKey: "pharmacist.statusReady",          color: c.accentDeep, bg: c.accentTint,  icon: "cube-outline"              }),
 
-  driver_assigned: { labelKey: "pharmacist.statusDriverAssigned", color: kit.color.inkSoft,    bg: kit.color.well,        icon: "car-outline"               },
+  driver_assigned: ({ c }) => ({ labelKey: "pharmacist.statusDriverAssigned", color: c.inkSoft,    bg: c.well,        icon: "car-outline"               }),
 
-  driver_accepted: { labelKey: "pharmacist.statusDriverAccepted", color: kit.color.inkSoft,    bg: kit.color.well,        icon: "car-sport-outline"         },
+  driver_accepted: ({ c }) => ({ labelKey: "pharmacist.statusDriverAccepted", color: c.inkSoft,    bg: c.well,        icon: "car-sport-outline"         }),
 
-  out_for_delivery:{ labelKey: "pharmacist.statusOutForDelivery", color: "#1D4ED8",             bg: "#EFF6FF",             icon: "navigate-outline"          },
+  out_for_delivery:({ c }) => ({ labelKey: "pharmacist.statusOutForDelivery", color: c.accent,     bg: c.accentTint,  icon: "navigate-outline"          }),
 
-  delivered:       { labelKey: "pharmacist.statusDelivered",      color: kit.color.success,    bg: kit.color.successTint, icon: "checkmark-done-outline"    },
+  delivered:       ({ c }) => ({ labelKey: "pharmacist.statusDelivered",      color: c.success,    bg: c.successTint, icon: "checkmark-done-outline"    }),
 
-  cancelled:       { labelKey: "pharmacist.statusCancelled",      color: kit.color.danger,     bg: kit.color.dangerTint,  icon: "close-circle-outline"      },
+  cancelled:       ({ c }) => ({ labelKey: "pharmacist.statusCancelled",      color: c.danger,     bg: c.dangerTint,  icon: "close-circle-outline"      }),
 
-  archived:        { labelKey: "pharmacist.statusArchived",       color: kit.color.inkFaint,   bg: kit.color.well,        icon: "archive-outline"           },
+  archived:        ({ c }) => ({ labelKey: "pharmacist.statusArchived",       color: c.inkFaint,   bg: c.well,        icon: "archive-outline"           }),
 
 };
 
@@ -88,7 +88,9 @@ export function OrderStatusChip({ status, size = "md" }: Props) {
 
   const { t }  = useTranslation();
 
-  const meta   = STATUS_MAP[status] ?? STATUS_MAP.pending;
+  const { c }  = useDarkColors();
+
+  const meta   = STATUS_MAP[status]?.(c) ?? STATUS_MAP.pending({ c });
 
   const small  = size === "sm";
 
@@ -163,4 +165,3 @@ const s = StyleSheet.create({
   },
 
 });
-

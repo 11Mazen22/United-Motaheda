@@ -1,16 +1,9 @@
 /**
-
  * PrescriptionQueueScreen — pharmacist reBox queue for pending prescriptions.
-
  *
-
  * Shows a filterable list of prescriptions (pending / approved / rejected).
-
  * Tapping a row opens PrescriptionDetailScreen for reBox.
-
  */
-
-
 
 import React, { useState } from "react";
 
@@ -38,10 +31,8 @@ import { useQueryClient }  from "@tanstack/react-query";
 
 
 
-import { Screen, Text as UIText, Card, Chip } from "@pharmacy/ui-native";
+import { Screen, Text as UIText, Card, Chip, EmptyState as PUIEmptyState } from "@pharmacy/ui-native";
 import { useDarkColors } from "@/hooks/useDarkColors";
-
-import EmptyState from "@/components/EmptyState";
 
 import { kit } from "@pharmacy/ui-native";
 
@@ -81,31 +72,35 @@ function RxCard({ rx, onPress }: { rx: PharmacistPrescription; onPress: () => vo
 
   const { t } = useTranslation();
 
+  const { c } = useDarkColors();
+
 
 
   const chipColor =
 
     rx.reviewStatus === "approved"
 
-      ? kit.color.success
+      ? c.success
 
       : rx.reviewStatus === "rejected"
 
-        ? kit.color.danger
+        ? c.danger
 
-        : kit.color.warn;
+        : c.warn;
+
+
 
   const chipBg =
 
     rx.reviewStatus === "approved"
 
-      ? kit.color.successTint
+      ? c.successTint
 
       : rx.reviewStatus === "rejected"
 
-        ? kit.color.dangerTint
+        ? c.dangerTint
 
-        : kit.color.warnTint;
+        : c.warnTint;
 
 
 
@@ -131,7 +126,7 @@ function RxCard({ rx, onPress }: { rx: PharmacistPrescription; onPress: () => vo
 
         </UIText>
 
-        <Ionicons name={FORWARD_CHEVRON} size={14} color={kit.color.inkFaint} />
+        <Ionicons name={FORWARD_CHEVRON} size={14} color={c.inkFaint} />
 
       </View>
 
@@ -151,7 +146,7 @@ function RxCard({ rx, onPress }: { rx: PharmacistPrescription; onPress: () => vo
 
       <UIText variant="caption" color="muted" style={{ textAlign: TEXT_START, marginTop: 4 }}>
 
-        {new Date(rx.addedAt).toLocaleDateString()}
+        {new Date(rx.addedAt ?? "").toLocaleDateString()}
 
       </UIText>
 
@@ -166,6 +161,8 @@ function RxCard({ rx, onPress }: { rx: PharmacistPrescription; onPress: () => vo
 export function PrescriptionQueueScreen(): React.ReactElement {
 
   const { t }       = useTranslation();
+
+  const { c }       = useDarkColors();
 
   const router      = useRouter();
 
@@ -197,7 +194,7 @@ export function PrescriptionQueueScreen(): React.ReactElement {
 
   return (
 
-    <Screen edgeTop background={kit.color.canvas}>
+    <Screen edgeTop background={c.canvas}>
 
       <PharmacistScreenHeader
 
@@ -255,7 +252,7 @@ export function PrescriptionQueueScreen(): React.ReactElement {
 
             onRefresh={onRefresh}
 
-            tintColor={kit.color.accent}
+            tintColor={c.accent}
 
           />
 
@@ -267,7 +264,7 @@ export function PrescriptionQueueScreen(): React.ReactElement {
 
             rx={item}
 
-            onPress={() => router.push(`/(pharmacist)/prescription/${item.id}` as never)}
+            onPress={() => router.push(`/(pharmacist)/prescription/${item.id}`)}
 
           />
 
@@ -281,15 +278,15 @@ export function PrescriptionQueueScreen(): React.ReactElement {
 
             <View style={s.empty}>
 
-              <ActivityIndicator size="large" color={kit.color.accent} />
+              <ActivityIndicator size="large" color={c.accent} />
 
             </View>
 
           ) : (
 
-            <EmptyState
+            <PUIEmptyState
 
-              icon="document-text-outline"
+              illustration={<Ionicons name="document-text-outline" size={32} color={c.inkFaint} />}
 
               title={t("pharmacist.emptyRxTitle")}
 
@@ -351,8 +348,6 @@ const s = StyleSheet.create({
 
   card: {
 
-    backgroundColor: kit.color.surface,
-
     borderRadius:    16,
 
     padding:         16,
@@ -360,14 +355,6 @@ const s = StyleSheet.create({
     borderWidth:     1,
 
     borderColor:     kit.color.line,
-
-    ...kit.shadow.card,
-
-  },
-
-  cardPressed: {
-
-    opacity: 0.85,
 
   },
 
@@ -404,4 +391,3 @@ const s = StyleSheet.create({
   },
 
 });
-
