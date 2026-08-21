@@ -10,7 +10,7 @@
  * which pass data/callbacks as props into these primitives.
  */
 
-export * from "./useLuxuryTheme";
+export * from "./useCustomerTheme";
 export * from "./Surface";
 export * from "./Typography";
 export * from "./Button";
@@ -22,3 +22,14 @@ export * from "./EmptyState";
 export * from "./ErrorState";
 export * from "./Notice";
 export * from "./Section";
+
+// Compatibility names used by the current native screens during the
+// transition from the legacy primitive surface to the customer primitives.
+export { Text as Typography } from "../components/primitives";
+export { ActivityIndicator } from "react-native";
+export { CButton as Button } from "./Button";
+export { ProductCardSkeleton as SkeletonCard } from "./Skeleton";
+
+// Backward-compatible alias for existing imports
+export { useLuxuryTheme } from "./useCustomerTheme";
+export { useCustomerTheme } from "./useCustomerTheme";

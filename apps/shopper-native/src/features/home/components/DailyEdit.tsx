@@ -52,7 +52,7 @@ import Animated, {
 
   withSpring,
 
-useReducedMotion } from "react-native-reanimated";
+} from "react-native-reanimated";
 
 import { useQuery } from "@tanstack/react-query";
 
@@ -157,10 +157,10 @@ export const DailyEdit = memo(function DailyEdit({
 
 
   if (isLoading) return (
-    <View style={sectionStyles.root}>
-      <HomeSectionHeader eyebrow="..." title="..." />
+    <View style={sectionStyles.wrap}>
+      <HomeSectionHeader eyebrow="..." title="..." icon="bookmark-outline" />
       <View style={{ paddingHorizontal: pagePad }}>
-         <CustomerUI.Skeleton width="100%" height={240} borderRadius={16} />
+         <CustomerUI.Skeleton width="100%" height={240} radius={16} />
       </View>
     </View>
   );

@@ -1,7 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
@@ -13,16 +12,15 @@ import { useRouter } from 'expo-router';
 import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { formatDistanceToNow } from 'date-fns';
-import { colors, typography, fontWeight, spacing, radii, shadows } from '@pharmacy/ui-native/courier-tokens';
-import { Card, Badge, SkeletonCard, showToast } from '@pharmacy/ui-native';
+import { CourierUI, kit, showToast } from '@pharmacy/ui-native';
+import { colors as courierColors } from '@pharmacy/ui-native/courier-tokens';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { driverApi } from '@/lib/api';
 import { useAuthStore } from '@/stores/auth.store';
 import { socketManager } from '@/lib/socket';
+import { useOrdersStore, type DeliveryHistoryItem } from '@/stores/orders.store';
 
 type ProfileTab = 'profile' | 'earnings' | 'history';
-
-// ─── Stars component ──────────────────────────────────────────────────────────
 
 function Stars({ rating, size = 14 }: { rating: number; size?: number }) {
   return (
@@ -32,269 +30,12 @@ function Stars({ rating, size = 14 }: { rating: number; size?: number }) {
           key={i}
           name={i <= Math.round(rating) ? 'star' : 'star-outline'}
           size={size}
-          color={i <= Math.round(rating) ? colors.accent : colors.border}
+          color={kit.darkColor.accent}
         />
       ))}
     </View>
   );
 }
-
-// ─── Stat card ────────────────────────────────────────────────────────────────
-
-function StatCard({
-  label,
-  value,
-  sub,
-  icon,
-  color = colors.primary,
-}: {
-  label: string;
-  value: string;
-  sub?: string;
-  icon: React.ComponentProps<typeof Ionicons>['name'];
-  color?: string;
-}) {
-  return (
-    <Card style={sc.card} elevation="sm">
-      <View style={[sc.iconBox, { backgroundColor: `${color}20` }]}>
-        <Ionicons name={icon} size={20} color={color} />
-      </View>
-      <Text style={sc.value}>{value}</Text>
-      <Text style={sc.label}>{label}</Text>
-      {sub && <Text style={sc.sub}>{sub}</Text>}
-    </Card>
-  );
-}
-
-const sc = StyleSheet.create({
-  card: { flex: 1, padding: spacing[4], alignItems: 'center', gap: spacing[1] },
-  iconBox: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
-  value: { fontFamily: typography.black,   fontSize: typography.xl, color: colors.ink },
-  label: { fontFamily: typography.regular, fontSize: typography.xs, color: colors.inkMuted, textAlign: 'center' },
-  sub:   { fontFamily: typography.semibold, fontSize: typography.xs, color: colors.success },
-});
-
-// ─── Earnings tab ─────────────────────────────────────────────────────────────
-
-function EarningsTab() {
-  const { data, isLoading, refetch } = useQuery({
-    queryKey: ['driver', 'statistics'],
-    queryFn: driverApi.getStatistics,
-    staleTime: 60_000,
-  });
-
-  if (isLoading) {
-    return (
-      <View style={{ padding: spacing[4], gap: spacing[3] }}>
-        <SkeletonCard lines={3} />
-        <SkeletonCard lines={3} />
-        <SkeletonCard lines={3} />
-      </View>
-    );
-  }
-
-  const stats = data ?? { today: { earnings: '0', deliveries: 0 }, thisWeek: { earnings: '0', deliveries: 0 }, thisMonth: { earnings: '0', deliveries: 0 } };
-
-  return (
-    <ScrollView
-      contentContainerStyle={et.scroll}
-      showsVerticalScrollIndicator={false}
-      refreshControl={
-        <RefreshControl refreshing={isLoading} onRefresh={refetch} tintColor={colors.primary} />
-      }
-    >
-      <Text style={et.sectionTitle}>Earnings Overview</Text>
-
-      <View style={et.row}>
-        <StatCard
-          label="Today"
-          value={`${parseFloat(stats.today.earnings).toFixed(0)} EGP`}
-          sub={`${stats.today.deliveries} deliveries`}
-          icon="today-outline"
-          color={colors.primary}
-        />
-        <StatCard
-          label="This Week"
-          value={`${parseFloat(stats.thisWeek.earnings).toFixed(0)} EGP`}
-          sub={`${stats.thisWeek.deliveries} deliveries`}
-          icon="calendar-outline"
-          color={colors.info}
-        />
-        <StatCard
-          label="This Month"
-          value={`${parseFloat(stats.thisMonth.earnings).toFixed(0)} EGP`}
-          sub={`${stats.thisMonth.deliveries} deliveries`}
-          icon="bar-chart-outline"
-          color={colors.success}
-        />
-      </View>
-
-      <Text style={et.sectionTitle}>Performance</Text>
-      <View style={et.row}>
-        <StatCard
-          label="Rating"
-          value={parseFloat(data?.rating ?? '0').toFixed(1)}
-          sub="⭐ out of 5"
-          icon="star-outline"
-          color={colors.accent}
-        />
-        <StatCard
-          label="Total Deliveries"
-          value={String(data?.totalDeliveries ?? 0)}
-          icon="cube-outline"
-          color={colors.primary}
-        />
-        <StatCard
-          label="Completion"
-          value={`${parseFloat(data?.completionRate ?? '0').toFixed(0)}%`}
-          icon="checkmark-circle-outline"
-          color={colors.success}
-        />
-      </View>
-    </ScrollView>
-  );
-}
-
-const et = StyleSheet.create({
-  scroll: { padding: spacing[4], gap: spacing[4], paddingBottom: spacing[10] },
-  sectionTitle: { fontSize: typography.base, fontFamily: typography.bold, color: colors.ink, marginBottom: spacing[1] },
-  row: { flexDirection: 'row', gap: spacing[3] },
-});
-
-// ─── History tab ──────────────────────────────────────────────────────────────
-
-function HistoryTab() {
-  const {
-    data,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-    isLoading,
-    refetch,
-    isFetching,
-  } = useInfiniteQuery({
-    queryKey: ['delivery', 'history'],
-    queryFn: ({ pageParam = 1 }) => driverApi.getDeliveryHistory(pageParam as number, 20),
-    getNextPageParam: (lastPage: any) =>
-      lastPage.page < lastPage.totalPages ? lastPage.page + 1 : undefined,
-    initialPageParam: 1,
-  });
-
-  const allDeliveries = data?.pages.flatMap((p: any) => p.deliveries) ?? [];
-
-  if (isLoading) {
-    return (
-      <View style={{ padding: spacing[4], gap: spacing[3] }}>
-        {[1, 2, 3, 4].map((i) => <SkeletonCard key={i} lines={3} />)}
-      </View>
-    );
-  }
-
-  if (allDeliveries.length === 0) {
-    return (
-      <View style={ht.empty}>
-        <Ionicons name="cube-outline" size={48} color={colors.border} />
-        <Text style={ht.emptyText}>No delivery history yet</Text>
-      </View>
-    );
-  }
-
-  return (
-    <FlatList
-      data={allDeliveries}
-      keyExtractor={(item: any) => item.id}
-      contentContainerStyle={ht.list}
-      showsVerticalScrollIndicator={false}
-      refreshControl={
-        <RefreshControl refreshing={isFetching && !isFetchingNextPage} onRefresh={refetch} tintColor={colors.primary} />
-      }
-      onEndReached={() => hasNextPage && !isFetchingNextPage && fetchNextPage()}
-      onEndReachedThreshold={0.3}
-      renderItem={({ item }: { item: any }) => (
-        <Card style={ht.item} elevation="sm">
-          <View style={ht.itemRow}>
-            <View style={ht.itemLeft}>
-              <Text style={ht.itemAddress} numberOfLines={1}>{item.customerAddress}</Text>
-              <Text style={ht.itemTime}>
-                {item.deliveredAt
-                  ? formatDistanceToNow(new Date(item.deliveredAt), { addSuffix: true })
-                  : '—'}
-              </Text>
-            </View>
-            <View style={ht.itemRight}>
-              <Text style={ht.itemEarnings}>
-                {parseFloat(item.earnings).toFixed(0)} EGP
-              </Text>
-              {item.customerRating ? (
-                <Stars rating={item.customerRating} size={12} />
-              ) : (
-                <Text style={ht.noRating}>No rating</Text>
-              )}
-            </View>
-          </View>
-          {item.actualDuration && (
-            <View style={ht.durationRow}>
-              <Ionicons name="time-outline" size={12} color={colors.inkFaint} />
-              <Text style={ht.duration}>{item.actualDuration} min</Text>
-              <Text style={ht.itemCount}>{item.itemCount} items</Text>
-            </View>
-          )}
-        </Card>
-      )}
-      ItemSeparatorComponent={() => <View style={{ height: spacing[2] }} />}
-      ListFooterComponent={
-        isFetchingNextPage ? (
-          <View style={ht.loadingMore}>
-            <Text style={ht.loadingMoreText}>Loading more…</Text>
-          </View>
-        ) : null
-      }
-    />
-  );
-}
-
-const ht = StyleSheet.create({
-  list: { padding: spacing[4], paddingBottom: spacing[10] },
-  empty: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: spacing[16], gap: spacing[3] },
-  emptyText: { fontSize: typography.base, color: colors.inkMuted },
-  item: { padding: spacing[4] },
-  itemRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
-  itemLeft: { flex: 1, marginRight: spacing[3] },
-  itemAddress: { fontSize: typography.sm, fontFamily: typography.semibold, color: colors.ink },
-  itemTime: { fontSize: typography.xs, color: colors.inkMuted, marginTop: 2 },
-  itemRight: { alignItems: 'flex-end', gap: 4 },
-  itemEarnings: { fontSize: typography.base, fontFamily: typography.bold, color: colors.primary },
-  noRating: { fontSize: typography.xs, color: colors.inkFaint },
-  durationRow: { flexDirection: 'row', alignItems: 'center', gap: spacing[2], marginTop: spacing[2] },
-  duration: { fontSize: typography.xs, color: colors.inkFaint },
-  itemCount: { fontSize: typography.xs, color: colors.inkFaint, marginLeft: spacing[2] },
-  loadingMore: { padding: spacing[4], alignItems: 'center' },
-  loadingMoreText: { fontSize: typography.sm, color: colors.inkMuted },
-});
-
-// ─── Document badge ───────────────────────────────────────────────────────────
-
-function DocBadge({ label, uploaded }: { label: string; uploaded: boolean }) {
-  return (
-    <View style={db.badge}>
-      <Ionicons
-        name={uploaded ? 'checkmark-circle' : 'close-circle-outline'}
-        size={14}
-        color={uploaded ? colors.success : colors.error}
-      />
-      <Text style={[db.label, { color: uploaded ? colors.success : colors.error }]}>
-        {label}
-      </Text>
-    </View>
-  );
-}
-
-const db = StyleSheet.create({
-  badge: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  label: { fontSize: typography.xs, fontFamily: typography.medium },
-});
-
-// ─── Profile tab ──────────────────────────────────────────────────────────────
 
 function ProfileTab() {
   const user = useAuthStore((s) => s.user);
@@ -309,54 +50,68 @@ function ProfileTab() {
   const driver = profile?.driverProfile ?? dp;
 
   if (isLoading && !driver) {
-    return <View style={{ padding: spacing[4] }}><SkeletonCard lines={6} /></View>;
+    return (
+      <View style={{ gap: 16, padding: 24 }}>
+        <CourierUI.Skeleton height={80} />
+        <CourierUI.Skeleton height={120} />
+      </View>
+    );
   }
 
-  // Build initials avatar
   const initials = user?.fullName
     ? user.fullName.split(' ').map((w: string) => w[0]).slice(0, 2).join('').toUpperCase()
     : 'D';
 
+  const statusColor =
+    driver?.status === 'ACTIVE'
+      ? courierColors.online
+      : driver?.status === 'APPROVED'
+        ? courierColors.statusAccepted
+        : driver?.status === 'PENDING_APPROVAL'
+          ? courierColors.statusArrived
+          : driver?.status === 'SUSPENDED'
+            ? courierColors.statusCancelled
+            : kit.darkColor.inkFaint;
+
   return (
-    <ScrollView contentContainerStyle={pt.scroll} showsVerticalScrollIndicator={false}>
-      {/* Approval banner */}
+    <ScrollView
+      contentContainerStyle={pt.scroll}
+      showsVerticalScrollIndicator={false}
+    >
       {driver?.status === 'PENDING_APPROVAL' && (
-        <View style={pt.pendingBanner}>
-          <Ionicons name="time-outline" size={16} color={colors.accent} />
-          <Text style={pt.pendingText}>Account pending approval</Text>
+        <View style={[pt.pendingBanner, { backgroundColor: courierColors.statusArrived + '25' }]}>
+          <Ionicons name="time-outline" size={16} color={courierColors.statusArrived} />
+          <CourierUI.Typography scale="bodySm" style={{ color: kit.darkColor.accent }}>Account pending approval</CourierUI.Typography>
         </View>
       )}
 
-      {/* Avatar + name */}
       <View style={pt.avatarSection}>
         <View style={pt.avatar}>
-          <Text style={pt.avatarText}>{initials}</Text>
+          <CourierUI.Typography scale="sectionHead" color="inverse">{initials}</CourierUI.Typography>
         </View>
-        <Text style={pt.name}>{user?.fullName ?? '—'}</Text>
-        <Text style={pt.phone}>{user?.phone ?? user?.email ?? '—'}</Text>
-        {driver?.rating && (
-          <View style={pt.ratingRow}>
-            <Stars rating={parseFloat(driver.rating)} size={16} />
-            <Text style={pt.ratingValue}>{parseFloat(driver.rating).toFixed(1)}</Text>
-          </View>
-        )}
-        <Badge
-          label={driver?.status ?? 'UNKNOWN'}
-          variant={
-            driver?.status === 'ACTIVE' ? 'success'
-              : driver?.status === 'APPROVED' ? 'info'
-              : driver?.status === 'PENDING_APPROVAL' ? 'warning'
-              : driver?.status === 'SUSPENDED' ? 'error'
-              : 'neutral'
-          }
-          dot
-        />
+        <CourierUI.Typography scale="sectionHead">{user?.fullName ?? '—'}</CourierUI.Typography>
+        <CourierUI.Typography scale="bodySm" color="secondary">
+          {user?.phone ?? user?.email ?? '—'}
+        </CourierUI.Typography>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 6 }}>
+          {driver?.rating && (
+            <>
+              <Stars rating={parseFloat(driver.rating)} size={16} />
+              <CourierUI.Typography scale="bodySm" style={{ color: kit.darkColor.accent }}>
+                {parseFloat(driver.rating).toFixed(1)}
+              </CourierUI.Typography>
+            </>
+          )}
+        </View>
+        <View style={[pt.statusPill, { backgroundColor: statusColor + '25', borderColor: statusColor + '50' }]}>
+          <View style={[pt.statusDot, { backgroundColor: statusColor }]} />
+          <CourierUI.Typography scale="badge" style={{ color: kit.darkColor.accent }}>{driver?.status ?? 'UNKNOWN'}</CourierUI.Typography>
+        </View>
       </View>
 
-      {/* Vehicle info */}
       {driver && (
-        <Card style={pt.card} elevation="sm">
-          <Text style={pt.cardTitle}>Vehicle Information</Text>
+        <CourierUI.Card style={pt.card}>
+          <CourierUI.Typography scale="sectionHead" style={{ marginBottom: 16 }}>Vehicle Information</CourierUI.Typography>
           <View style={pt.infoGrid}>
             {[
               { label: 'Type', value: driver.vehicleType },
@@ -365,83 +120,323 @@ function ProfileTab() {
               { label: 'Color', value: driver.vehicleColor ?? '—' },
             ].map(({ label, value }) => (
               <View key={label} style={pt.infoItem}>
-                <Text style={pt.infoLabel}>{label}</Text>
-                <Text style={pt.infoValue}>{value}</Text>
+                <CourierUI.Typography scale="caption" color="secondary">{label}</CourierUI.Typography>
+                <CourierUI.Typography scale="bodySm">{value}</CourierUI.Typography>
               </View>
             ))}
           </View>
-        </Card>
+        </CourierUI.Card>
       )}
 
-      {/* Document status */}
       {driver && (
-        <Card style={pt.card} elevation="sm">
-          <Text style={pt.cardTitle}>Documents</Text>
+        <CourierUI.Card style={pt.card}>
+          <CourierUI.Typography scale="sectionHead" style={{ marginBottom: 16 }}>Documents</CourierUI.Typography>
           <View style={pt.docsGrid}>
             <DocBadge label="License" uploaded={!!driver.licensePhotoUrl} />
             <DocBadge label="National ID" uploaded={!!driver.idPhotoUrl} />
             <DocBadge label="Vehicle" uploaded={!!driver.vehiclePhotoUrl} />
             <DocBadge label="Insurance" uploaded={!!driver.insurancePhotoUrl} />
           </View>
-        </Card>
+        </CourierUI.Card>
       )}
     </ScrollView>
   );
 }
 
+function DocBadge({ label, uploaded }: { label: string; uploaded: boolean }) {
+  return (
+    <View style={db.row}>
+      <Ionicons
+        name={uploaded ? 'checkmark-circle' : 'close-circle-outline'}
+        size={14}
+        color={uploaded ? courierColors.online : courierColors.statusCancelled}
+      />
+      <CourierUI.Typography
+        scale="caption"
+        color={uploaded ? 'success' : 'danger'}
+      >
+        {label}
+      </CourierUI.Typography>
+    </View>
+  );
+}
+
+const db = StyleSheet.create({
+  row: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+});
+
 const pt = StyleSheet.create({
-  scroll: { padding: spacing[4], gap: spacing[4], paddingBottom: spacing[10] },
+  scroll: { padding: 16, gap: 16, paddingBottom: 96 },
   pendingBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing[2],
-    backgroundColor: '#FEF9C3',
-    padding: spacing[3],
-    borderRadius: radii.lg,
-    marginBottom: spacing[2],
+    gap: 10,
+    padding: 14,
+    borderRadius: 14,
   },
-  pendingText: { fontSize: typography.sm, color: '#854D0E', fontFamily: typography.medium },
-  avatarSection: { alignItems: 'center', gap: spacing[2], marginBottom: spacing[2] },
+  avatarSection: { alignItems: 'center', gap: 8, marginBottom: 8 },
   avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: colors.primary,
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    backgroundColor: kit.darkColor.accentDeep,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: spacing[1],
+    marginBottom: 8,
   },
-  avatarText: { fontFamily: typography.black, fontSize: typography['2xl'], color: colors.white },
-  name:       { fontFamily: typography.bold,  fontSize: typography.xl,    color: colors.ink },
-  phone:      { fontFamily: typography.regular, fontSize: typography.sm,  color: colors.inkMuted },
-  ratingRow:  { flexDirection: 'row', alignItems: 'center', gap: spacing[2] },
-  ratingValue:{ fontFamily: typography.bold, fontSize: typography.base, color: colors.ink },
-  card:       { padding: spacing[4], gap: spacing[3] },
-  cardTitle:  { fontFamily: typography.bold, fontSize: typography.base, color: colors.ink },
-  infoGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing[3] },
-  infoItem: { width: '45%' },
-  infoLabel: { fontFamily: typography.regular, fontSize: typography.xs, color: colors.inkMuted },
-  infoValue: { fontFamily: typography.semibold, fontSize: typography.sm, color: colors.ink, marginTop: 2 },
-  docsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing[4] },
+  statusPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 100,
+    borderWidth: 1,
+    marginTop: 6,
+  },
+  statusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  card: { gap: 0 },
+  infoGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 16, marginTop: 4 },
+  infoItem: { width: '45%', gap: 2 },
+  docsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 16, marginTop: 4 },
 });
 
-// ─── Main profile screen ──────────────────────────────────────────────────────
+function EarningsTab() {
+  const { data, isLoading, refetch } = useQuery({
+    queryKey: ['driver', 'statistics'],
+    queryFn: driverApi.getStatistics,
+    staleTime: 60_000,
+  });
+
+  const stats = data ?? {
+    today: { earnings: '0', deliveries: 0 },
+    thisWeek: { earnings: '0', deliveries: 0 },
+    thisMonth: { earnings: '0', deliveries: 0 },
+  };
+
+  const StatCard = ({
+    label,
+    value,
+    sub,
+    icon,
+    color = kit.darkColor.accent,
+  }: {
+    label: string;
+    value: string;
+    sub?: string;
+    icon: string;
+    color?: string;
+  }) => (
+    <CourierUI.Card style={et.card}>
+      <View style={[et.iconBox, { backgroundColor: color + '25' }]}>
+        <Ionicons name={icon as any} size={22} color={color} />
+      </View>
+      <CourierUI.Typography scale="priceMd" style={{ color: kit.darkColor.accent }}>{value}</CourierUI.Typography>
+      <CourierUI.Typography scale="caption" color="secondary">{label}</CourierUI.Typography>
+      {sub && <CourierUI.Typography scale="badge" style={{ color: kit.darkColor.accent }}>{sub}</CourierUI.Typography>}
+    </CourierUI.Card>
+  );
+
+  return (
+    <ScrollView
+      contentContainerStyle={et.scroll}
+      showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl refreshing={isLoading} onRefresh={refetch} tintColor={kit.darkColor.accent} />
+      }
+    >
+      <CourierUI.Typography scale="sectionHead" style={{ marginBottom: 12 }}>Earnings Overview</CourierUI.Typography>
+      <View style={et.row}>
+        <StatCard
+          label="Today"
+          value={`${parseFloat(stats.today.earnings).toFixed(0)} EGP`}
+          sub={`${stats.today.deliveries} deliveries`}
+          icon="today-outline"
+        />
+        <StatCard
+          label="This Week"
+          value={`${parseFloat(stats.thisWeek.earnings).toFixed(0)} EGP`}
+          sub={`${stats.thisWeek.deliveries} deliveries`}
+          icon="calendar-outline"
+        />
+      </View>
+      <View style={et.row}>
+        <StatCard
+          label="This Month"
+          value={`${parseFloat(stats.thisMonth.earnings).toFixed(0)} EGP`}
+          sub={`${stats.thisMonth.deliveries} deliveries`}
+          icon="bar-chart-outline"
+        />
+        <StatCard
+          label="Rating"
+          value={parseFloat(data?.rating ?? '0').toFixed(1)}
+          sub="out of 5"
+          icon="star-outline"
+        />
+      </View>
+
+      <CourierUI.Typography scale="sectionHead" style={{ marginTop: 8, marginBottom: 12 }}>Performance</CourierUI.Typography>
+      <View style={et.row}>
+        <StatCard
+          label="Total Deliveries"
+          value={String(data?.totalDeliveries ?? 0)}
+          icon="cube-outline"
+        />
+        <StatCard
+          label="Completion Rate"
+          value={`${parseFloat(data?.completionRate ?? '0').toFixed(0)}%`}
+          icon="checkmark-circle-outline"
+        />
+      </View>
+    </ScrollView>
+  );
+}
+
+const et = StyleSheet.create({
+  scroll: { padding: 16, gap: 20, paddingBottom: 96 },
+  row: { flexDirection: 'row', gap: 12 },
+  card: { flex: 1, padding: 16, alignItems: 'center', gap: 6 },
+  iconBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+  },
+});
+
+function HistoryTab() {
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading,
+    refetch,
+    isFetching,
+  } = useInfiniteQuery({
+    queryKey: ['delivery', 'history'],
+    queryFn: ({ pageParam = 1 }) =>
+      driverApi.getDeliveryHistory(pageParam as number, 20),
+    getNextPageParam: (lastPage: any) =>
+      lastPage.page < lastPage.totalPages ? lastPage.page + 1 : undefined,
+    initialPageParam: 1,
+  });
+
+  const allDeliveries = data?.pages.flatMap((p: any) => p.deliveries) ?? [];
+
+  if (isLoading) {
+    return (
+      <View style={{ gap: 16, padding: 24 }}>
+        {[1, 2, 3, 4].map((i) => (
+          <CourierUI.Skeleton key={i} height={100} />
+        ))}
+      </View>
+    );
+  }
+
+  if (allDeliveries.length === 0) {
+    return (
+      <View style={ht.empty}>
+        <Ionicons name="cube-outline" size={48} color={kit.darkColor.inkFaint} />
+        <CourierUI.Typography scale="body" color="secondary" align="center">
+          No delivery history yet
+        </CourierUI.Typography>
+      </View>
+    );
+  }
+
+  return (
+    <FlatList
+      data={allDeliveries}
+      keyExtractor={(item: any) => item.id}
+      contentContainerStyle={ht.list}
+      showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl
+          refreshing={isFetching && !isFetchingNextPage}
+          onRefresh={refetch}
+          tintColor={kit.darkColor.accent}
+        />
+      }
+      onEndReached={() => hasNextPage && !isFetchingNextPage && fetchNextPage()}
+      onEndReachedThreshold={0.3}
+      renderItem={({ item }: { item: DeliveryHistoryItem }) => (
+        <CourierUI.Card style={ht.item}>
+          <View style={ht.itemRow}>
+            <View style={ht.itemLeft}>
+              <CourierUI.Typography scale="bodySm" numberOfLines={1}>{item.customerAddress}</CourierUI.Typography>
+              <CourierUI.Typography scale="caption" color="secondary">
+                {item.deliveredAt
+                  ? formatDistanceToNow(new Date(item.deliveredAt), { addSuffix: true })
+                  : '—'}
+              </CourierUI.Typography>
+            </View>
+            <View style={ht.itemRight}>
+              <CourierUI.Typography scale="priceSm" style={{ color: kit.darkColor.accent }}>
+                {parseFloat(item.earnings).toFixed(0)} EGP
+              </CourierUI.Typography>
+              {item.customerRating ? (
+                <Stars rating={item.customerRating} size={12} />
+              ) : (
+                <CourierUI.Typography scale="badge" color="secondary">No rating</CourierUI.Typography>
+              )}
+            </View>
+          </View>
+          {item.actualDuration && (
+            <View style={ht.durationRow}>
+              <Ionicons name="time-outline" size={12} color={kit.darkColor.inkFaint} />
+              <CourierUI.Typography scale="badge" color="secondary">{item.actualDuration} min</CourierUI.Typography>
+              <CourierUI.Typography scale="badge" color="secondary">{item.itemCount} items</CourierUI.Typography>
+            </View>
+          )}
+        </CourierUI.Card>
+      )}
+      ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
+      ListFooterComponent={
+        isFetchingNextPage ? (
+          <View style={ht.loadingMore}>
+            <CourierUI.Typography scale="caption" color="secondary">Loading more…</CourierUI.Typography>
+          </View>
+        ) : null
+      }
+    />
+  );
+}
+
+const ht = StyleSheet.create({
+  list: { padding: 16, paddingBottom: 96 },
+  empty: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 80, gap: 12 },
+  item: { gap: 8 },
+  itemRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
+  itemLeft: { flex: 1, marginRight: 12 },
+  itemRight: { alignItems: 'flex-end', gap: 4 },
+  durationRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 },
+  loadingMore: { padding: 16, alignItems: 'center' },
+});
 
 export default function ProfileScreen() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<ProfileTab>('profile');
   const logout = useAuthStore((s) => s.logout);
+  const clearActive = useOrdersStore((s) => s.clearActive);
 
   const handleLogout = useCallback(async () => {
     try {
       await driverApi.goOffline().catch(() => {});
     } catch {}
     socketManager.disconnect();
+    clearActive();
     logout();
     router.replace('/(auth)/login');
   }, []);
 
-  const TABS: { key: ProfileTab; label: string; icon: React.ComponentProps<typeof Ionicons>['name'] }[] = [
+  const TABS: { key: ProfileTab; label: string; icon: string }[] = [
     { key: 'profile', label: 'Profile', icon: 'person-outline' },
     { key: 'earnings', label: 'Earnings', icon: 'wallet-outline' },
     { key: 'history', label: 'History', icon: 'time-outline' },
@@ -450,36 +445,43 @@ export default function ProfileScreen() {
   return (
     <ErrorBoundary>
       <SafeAreaView style={s.safe} edges={['top']}>
-        {/* Header */}
         <View style={s.header}>
-          <Text style={s.headerTitle}>My Account</Text>
-          <TouchableOpacity onPress={handleLogout} style={s.logoutBtn} hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}>
-            <Ionicons name="log-out-outline" size={22} color={colors.error} />
+          <CourierUI.Typography scale="sectionHead">My Account</CourierUI.Typography>
+          <TouchableOpacity
+            onPress={handleLogout}
+            style={s.logoutBtn}
+            hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
+          >
+            <Ionicons name="log-out-outline" size={22} color={courierColors.statusCancelled} />
           </TouchableOpacity>
         </View>
 
-        {/* Tab bar */}
         <View style={s.tabBar}>
-          {TABS.map((tab) => (
-            <TouchableOpacity
-              key={tab.key}
-              style={[s.tabItem, activeTab === tab.key && s.tabItemActive]}
-              onPress={() => setActiveTab(tab.key)}
-              activeOpacity={0.7}
-            >
-              <Ionicons
-                name={tab.icon}
-                size={16}
-                color={activeTab === tab.key ? colors.primary : colors.inkMuted}
-              />
-              <Text style={[s.tabLabel, activeTab === tab.key && s.tabLabelActive]}>
-                {tab.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
+          {TABS.map((tab) => {
+            const isActive = activeTab === tab.key;
+            return (
+              <TouchableOpacity
+                key={tab.key}
+                style={[s.tabItem, isActive && s.tabItemActive]}
+                onPress={() => setActiveTab(tab.key)}
+                activeOpacity={0.7}
+              >
+                <Ionicons
+                  name={tab.icon as any}
+                  size={16}
+                  color={isActive ? kit.darkColor.accent : kit.darkColor.inkFaint}
+                />
+                <CourierUI.Typography
+                  scale="badge"
+                  color={isActive ? 'brand' : 'secondary'}
+                >
+                  {tab.label}
+                </CourierUI.Typography>
+              </TouchableOpacity>
+            );
+          })}
         </View>
 
-        {/* Tab content */}
         <View style={{ flex: 1 }}>
           {activeTab === 'profile' && <ProfileTab />}
           {activeTab === 'earnings' && <EarningsTab />}
@@ -491,37 +493,31 @@ export default function ProfileScreen() {
 }
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.surfaceAlt },
+  safe: { flex: 1, backgroundColor: kit.darkColor.canvas },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: spacing[5],
-    paddingVertical: spacing[4],
-    backgroundColor: colors.surface,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: colors.borderSoft,
+    borderBottomColor: kit.darkColor.line,
   },
-  headerTitle: { fontFamily: typography.bold, fontSize: typography.lg, color: colors.ink },
-  logoutBtn: { padding: spacing[1] },
-
+  logoutBtn: { padding: 8 },
   tabBar: {
     flexDirection: 'row',
-    backgroundColor: colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: colors.borderSoft,
+    borderBottomColor: kit.darkColor.line,
   },
   tabItem: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: spacing[1],
-    paddingVertical: spacing[3],
+    gap: 6,
+    paddingVertical: 14,
     borderBottomWidth: 2,
     borderBottomColor: 'transparent',
   },
-  tabItemActive: { borderBottomColor: colors.primary },
-  tabLabel: { fontSize: typography.sm, color: colors.inkMuted, fontFamily: typography.medium },
-  tabLabelActive: { color: colors.primary, fontFamily: typography.bold },
+  tabItemActive: { borderBottomColor: kit.darkColor.accent },
 });

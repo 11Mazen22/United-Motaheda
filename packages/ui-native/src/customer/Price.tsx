@@ -1,4 +1,3 @@
-import React from 'react';
 import { View, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
 import { T } from './Typography';
 import { Badge } from './Badge';
@@ -66,7 +65,7 @@ export interface DeliveryThresholdProps {
 }
 
 export function DeliveryThreshold({ cost, isFree, amountToFree, currency = 'EGP', style }: DeliveryThresholdProps) {
-  const { theme, lx } = useLuxuryTheme();
+  const { lx } = useLuxuryTheme();
 
   return (
     <View style={[{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' }, style]}>

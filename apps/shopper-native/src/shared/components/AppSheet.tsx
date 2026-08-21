@@ -46,7 +46,7 @@ import Animated, {
 
   runOnJS,
 
-useReducedMotion } from "react-native-reanimated";
+} from "react-native-reanimated";
 
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 

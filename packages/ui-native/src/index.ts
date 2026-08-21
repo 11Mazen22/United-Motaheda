@@ -6,3 +6,5 @@ export * from "./components/primitives";
 export * from "./components/layout";
 export * from "./components/overlays";
 export * as CustomerUI from "./customer";
+export * as PharmacistUI from "./pharmacist";
+export * as CourierUI from "./courier";

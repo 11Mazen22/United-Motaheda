@@ -24,7 +24,7 @@ import Animated, {
 
   withTiming,
 
-useReducedMotion } from "react-native-reanimated";
+} from "react-native-reanimated";
 
 import { useTranslation } from "react-i18next";
 

@@ -22,7 +22,7 @@ import Animated, {
 
   Extrapolation,
 
-useReducedMotion } from "react-native-reanimated";
+} from "react-native-reanimated";
 
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 
@@ -252,64 +252,6 @@ function TabItem({ name, focused, badge, onPress, isDark }: TabItemProps) {
 
 
 
-function CartFab({ focused, badge, onPress, isDark }: TabItemProps) {
-
-  const { t } = useTranslation();
-
-  const label = t(TAB_LABEL_KEY["cart"] ?? "tabs.cart");
-
-  const handlePress = useCallback(() => {
-
-    if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-
-    onPress();
-
-  }, [onPress]);
-
-
-
-  return (
-
-    <Pressable
-
-      onPress={handlePress}
-
-      hitSlop={6}
-
-      accessibilityRole="tab"
-
-      accessibilityLabel={label}
-
-      accessibilityState={{ selected: focused }}
-
-      style={styles.fabContainer}
-
-    >
-
-      <View style={[styles.fab, kit.shadow.brandGlow, { backgroundColor: isDark ? kit.darkColor.accent : kit.color.accent }]}>
-
-        <Ionicons name="cart" size={24} color="#FFFFFF" />
-
-      </View>
-
-      {badge != null && badge > 0 && (
-
-        <View style={styles.fabBadge}>
-
-          <UIText style={styles.fabBadgeText}>{badge > 99 ? "99+" : badge}</UIText>
-
-        </View>
-
-      )}
-
-    </Pressable>
-
-  );
-
-}
-
-
-
 function BottomTabBar({ state, navigation }: BottomTabBarProps) {
 
   const insets = useSafeAreaInsets();
@@ -514,14 +456,6 @@ const styles = StyleSheet.create({
   badge: { position: "absolute", top: 8, end: "15%", minWidth: 16, height: 16, borderRadius: 8, backgroundColor: "#EF4444", alignItems: "center", justifyContent: "center", paddingHorizontal: 3, borderWidth: 2, borderColor: "#FFFFFF" },
 
   badgeText: { color: "#FFFFFF", fontSize: 9, lineHeight: 11, fontFamily: theme.fonts.black, includeFontPadding: false, textAlign: "center" },
-
-  fabContainer: { flex: 1, minWidth: 44, maxWidth: 120, height: BAR_H, alignItems: "center", justifyContent: "center", position: "relative" },
-
-  fab: { width: 56, height: 56, borderRadius: 28, alignItems: "center", justifyContent: "center", marginBottom: 12 },
-
-  fabBadge: { position: "absolute", top: -2, right: "15%", minWidth: 18, height: 18, borderRadius: 9, backgroundColor: "#EF4444", alignItems: "center", justifyContent: "center", paddingHorizontal: 4, borderWidth: 2, borderColor: "#FFFFFF" },
-
-  fabBadgeText: { color: "#FFFFFF", fontSize: 10, lineHeight: 12, fontFamily: kit.font.black, includeFontPadding: false, textAlign: "center" },
 
 });
 

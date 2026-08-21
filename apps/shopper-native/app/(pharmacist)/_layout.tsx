@@ -12,7 +12,7 @@
  *   order/[id]         — PharmacistOrderDetail
  *   prescriptions      — PrescriptionQueueScreen
  *   prescription/[id]  — PrescriptionDetailScreen
- *   inventory          — InventoryScreen
+ *   inventory          — InventoryIntelligenceScreen (primary inventory dashboard)
  *   search             — GlobalSearchScreen
  *   notifications      — NotificationCenterScreen (pharmacist-scoped)
  *   profile            — PharmacistProfileScreen

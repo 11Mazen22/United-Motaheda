@@ -1,7 +1,6 @@
-import React from 'react';
-import { Text as RNText, StyleSheet, type TextProps as RNTextProps, type TextStyle, type StyleProp } from 'react-native';
-import { useLuxuryTheme } from './useLuxuryTheme';
-import type { luxuryType } from '@pharmacy/design-tokens';
+import { Text as RNText, type TextProps as RNTextProps, type TextStyle, type StyleProp } from 'react-native';
+import { useCustomerTheme } from './useCustomerTheme';
+import type { customerType } from '@pharmacy/design-tokens';
 
 const fontFamilyMap = {
   regular: 'Cairo_400Regular',
@@ -12,15 +11,15 @@ const fontFamilyMap = {
 } as const;
 
 export interface TProps extends Omit<RNTextProps, 'style'> {
-  scale: keyof typeof luxuryType;
+  scale: keyof typeof customerType;
   color?: 'primary' | 'secondary' | 'muted' | 'disabled' | 'inverse' | 'brand' | 'danger' | 'warn' | 'success' | string;
   align?: 'start' | 'end' | 'center';
   style?: StyleProp<TextStyle>;
 }
 
 export function T({ scale, color = 'primary', align, style, ...props }: TProps) {
-  const { theme, isRTL, lx } = useLuxuryTheme();
-  const metric = lx.type[scale];
+  const { theme, isRTL, cx } = useCustomerTheme();
+  const metric = cx.type[scale];
   
   const resolvedColor = {
     primary: theme.colors.text.primary,

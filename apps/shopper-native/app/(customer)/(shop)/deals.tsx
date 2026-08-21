@@ -17,11 +17,12 @@ import { useTranslation } from "react-i18next";
 import { Ionicons } from "@expo/vector-icons";
 import { StatusBar } from "expo-status-bar";
 
-import { CustomerUI, kit } from "@pharmacy/ui-native";
-import { BACK_CHEVRON, flexRow, isRtl, textAlignStart } from "@/utils/layout";
+import { CustomerUI } from "@pharmacy/ui-native";
+import { BACK_CHEVRON, isRtl, textAlignStart } from "@/utils/layout";
 import { useScreenLayout } from "@/utils/responsive";
 import { useInfiniteProducts } from "@/features/products";
 import { ProductCard } from "@/components/ProductCard";
+import { SkeletonCard } from "@/features/orders/components/OrderCard";
 
 const IS_RTL = isRtl();
 const TEXT_START = textAlignStart(IS_RTL);
@@ -98,15 +99,14 @@ export default function DealsScreen() {
           data={products}
           keyExtractor={(p) => p.id}
           numColumns={NUM_COLS}
-          estimatedItemSize={280}
           contentContainerStyle={[
             s.listContent,
             { paddingHorizontal: pagePad, paddingBottom: insets.bottom + 40 },
           ]}
           showsVerticalScrollIndicator={false}
           renderItem={({ item, index }) => (
-            <View style={{ 
-              flex: 1, 
+            <View style={{
+              flex: 1,
               paddingEnd: (index % NUM_COLS === 0) ? GAP / 2 : 0,
               paddingStart: (index % NUM_COLS !== 0) ? GAP / 2 : 0,
               paddingBottom: GAP,

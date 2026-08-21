@@ -14,7 +14,7 @@ import Animated, {
 
   withSequence,
 
-useReducedMotion } from "react-native-reanimated";
+} from "react-native-reanimated";
 
 import { Text, useTheme, kit } from "@pharmacy/ui-native";
 
@@ -30,7 +30,7 @@ export interface LoadingStateProps {
 
 export function LoadingState({ message }: LoadingStateProps) {
 
-  const { theme } = useTheme();
+  const {} = useTheme();
 
   
 

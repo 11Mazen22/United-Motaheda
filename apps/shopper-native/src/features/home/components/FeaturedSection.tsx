@@ -63,6 +63,7 @@ import { useTranslation } from "react-i18next";
 
 
 import { ProductCard } from "@/components/ProductCard";
+import { SkeletonCard } from "@pharmacy/ui-native";
 
 import { HomeSectionHeader } from "./HomeSectionHeader";
 

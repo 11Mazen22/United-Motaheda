@@ -1,7 +1,6 @@
-import React from 'react';
-import { View, StyleSheet, type ViewProps, type ViewStyle, type StyleProp } from 'react-native';
+import { View, type ViewProps, type ViewStyle } from 'react-native';
 import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
-import { useLuxuryTheme } from './useLuxuryTheme';
+import { useCustomerTheme } from './useCustomerTheme';
 
 export interface AppSurfaceProps extends ViewProps {
   level?: 'base' | 's1' | 's2' | 's3' | 's4';
@@ -9,7 +8,7 @@ export interface AppSurfaceProps extends ViewProps {
 }
 
 export function AppSurface({ level = 's1', style, ...props }: AppSurfaceProps) {
-  const { surface } = useLuxuryTheme();
+  const { surface } = useCustomerTheme();
   return <View style={[{ backgroundColor: surface[level] }, style]} {...props} />;
 }
 
@@ -18,7 +17,7 @@ export interface DividerProps extends ViewProps {
 }
 
 export function Divider({ vertical, style, ...props }: DividerProps) {
-  const { surface } = useLuxuryTheme();
+  const { surface } = useCustomerTheme();
   return (
     <View
       style={[
@@ -37,11 +36,11 @@ export interface ScreenContainerProps extends ViewProps {
 }
 
 export function ScreenContainer({ edges = ['left', 'right'], style, ...props }: ScreenContainerProps) {
-  const { surface, lx } = useLuxuryTheme();
+  const { surface, cx } = useCustomerTheme();
   return (
     <SafeAreaView
       edges={edges}
-      style={[{ flex: 1, backgroundColor: surface.base, paddingHorizontal: lx.space.screenH }, style as ViewStyle]}
+      style={[{ flex: 1, backgroundColor: surface.base, paddingHorizontal: cx.space.screenH }, style as ViewStyle]}
       {...props}
     />
   );

@@ -1,16 +1,15 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useCartStore, selectPricing } from "@/stores/cart";
-import { useAddressStore, type Address } from "@/features/addresses";
+import { useAddressStore } from "@/features/addresses";
 import { useAuth } from "@/features/auth";
 import { fetchProductById } from "@/features/products/api/productsApi";
 import { useDeliveryQuote } from "@/features/delivery/useDeliveryQuote";
-import { SUPPORTED_GOVERNORATE } from "@/features/delivery/constants";
-import { 
-  createCheckoutOrder, 
+import {
+  createCheckoutOrder,
   buildCheckoutNote,
   createIdempotencyKey,
   CheckoutRequestError,
-  type CheckoutPaymentMethod 
+  type CheckoutPaymentMethod
 } from "@/features/checkout";
 import { useNetInfo } from "@react-native-community/netinfo";
 
@@ -125,8 +124,7 @@ export function usePremiumCheckout() {
   const submit = useCallback(async () => {
      if (!canSubmit) return;
      if (!user) return;
-     if (status === "SUBMITTING") return; // double-submit protection
-     
+
      setStatus("SUBMITTING");
      setErrorMsg(null);
      try {
@@ -136,7 +134,7 @@ export function usePremiumCheckout() {
        const floorLine = selectedAddress.floor ? `Floor ${selectedAddress.floor}` : null;
        const apartmentLine = selectedAddress.apartment ? `Apt ${selectedAddress.apartment}` : null;
        const buildingLine = selectedAddress.building ? `Building ${selectedAddress.building}` : null;
-       
+
        const streetParts = [selectedAddress.street, buildingLine, floorLine, apartmentLine].filter(Boolean);
        const streetLine = streetParts.join(", ");
        const formatted = [streetLine, selectedAddress.city].filter(Boolean).join(", ");
@@ -165,8 +163,8 @@ export function usePremiumCheckout() {
          customer: {
            userId: user.id,
            email: user.email,
-           fullName: selectedAddress.recipient_name || user.user_metadata?.full_name || "",
-           phone: selectedAddress.phone || user.phone || "",
+           fullName: selectedAddress.recipient_name || user.name || "",
+           phone: selectedAddress.phone || "",
          },
          address: addressSnapshot,
          payment: {

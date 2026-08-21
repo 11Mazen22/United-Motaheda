@@ -21,10 +21,10 @@ export interface Address {
 export type AddressFormData = Omit<Address, "id" | "user_id" | "created_at" | "updated_at">;
 
 export const ADDRESS_LABELS = [
-  { key: "home",   labelKey: "address.labelHome",   icon: "home-outline"      },
-  { key: "work",   labelKey: "address.labelWork",   icon: "briefcase-outline" },
-  { key: "family", labelKey: "address.labelFamily", icon: "people-outline"    },
-  { key: "other",  labelKey: "address.labelOther",  icon: "location-outline"  },
+  { key: "home",   labelKey: "address.labelHome",   icon: "home-outline",      bg: "#E6F4F2", color: "#0E7E74" },
+  { key: "work",   labelKey: "address.labelWork",   icon: "briefcase-outline", bg: "#EFF6FF", color: "#2563EB" },
+  { key: "family", labelKey: "address.labelFamily", icon: "people-outline",    bg: "#FDF2F8", color: "#DB2777" },
+  { key: "other",  labelKey: "address.labelOther",  icon: "location-outline",  bg: "#F5F3FF", color: "#7C3AED" },
 ] as const;
 
 export type AddressLabel = (typeof ADDRESS_LABELS)[number]["key"];

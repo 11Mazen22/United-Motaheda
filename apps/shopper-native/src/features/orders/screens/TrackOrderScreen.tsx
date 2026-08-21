@@ -1,15 +1,13 @@
-import React, { useMemo, useEffect } from "react";
-import { Platform, Pressable, ScrollView, StyleSheet, View, Linking } from "react-native";
+import React, { useMemo } from "react";
+import { Pressable, ScrollView, StyleSheet, View, Linking } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import * as Haptics from "expo-haptics";
-import Animated, { FadeIn, FadeInDown, SlideInDown, withRepeat, withTiming, useAnimatedStyle, useSharedValue } from "react-native-reanimated";
-import { LinearGradient } from "expo-linear-gradient";
+import Animated, { FadeIn, FadeInDown, useSharedValue, withRepeat, withTiming, useAnimatedStyle } from "react-native-reanimated";
 import { useTranslation } from "react-i18next";
 
 import { useOrderTracking } from "../hooks/useOrderTracking";
-import { Button, kit, Text as UIText } from "@pharmacy/ui-native";
+import { kit, Text as UIText } from "@pharmacy/ui-native";
 import { useDarkColors } from "@/hooks/useDarkColors";
 import { theme } from "@pharmacy/design-tokens";
 import { flexRow, isRtl, textAlignStart, BACK_CHEVRON } from "@/utils/layout";
@@ -29,7 +27,6 @@ function TimelineStep({ step, isCompleted, isCurrent, isLast }: any) {
   const { c } = useDarkColors();
   const { t } = useTranslation();
   
-  // Pulse animation for current step
   const pulse = useSharedValue(1);
   React.useEffect(() => {
     if (isCurrent) {
@@ -77,11 +74,11 @@ export default function TrackOrderScreen() {
   const insets = useSafeAreaInsets();
   const { id, token } = useLocalSearchParams<{ id: string; token: string }>();
 
-  const { data: track, isLoading, isError } = useOrderTracking(id as string, token as string);
+  const { data: track } = useOrderTracking(id as string, token as string);
 
   const currentStepIndex = useMemo(() => {
     if (!track) return 0;
-    const idx = STATUS_STEPS.findIndex(s => s.status === track.status);
+    const idx = STATUS_STEPS.findIndex(s => s.status === track.order.status);
     return idx >= 0 ? idx : 0;
   }, [track]);
 
@@ -132,6 +129,31 @@ export default function TrackOrderScreen() {
                </Pressable>
              )}
           </View>
+
+          {/* Driver Info Card */}
+          {track?.driver && (
+            <Animated.View entering={FadeInDown.duration(400).delay(100)} style={[styles.driverCard, { backgroundColor: c.surface, borderColor: c.line }]}>
+              <View style={[styles.driverHeader, { flexDirection: flexRow(IS_RTL) }]}>
+                <View style={[styles.driverAvatar, { backgroundColor: kit.color.accentTint }]}>
+                  <Ionicons name="person" size={24} color={kit.color.accentDeep} />
+                </View>
+                <View style={{ flex: 1, paddingHorizontal: 12 }}>
+                  <UIText style={[styles.driverName, { color: c.ink, textAlign: TEXT_START }]}>
+                     {track.driver?.first_name || t("order.driverAssigned", { defaultValue: "Driver Assigned" })}
+                  </UIText>
+                  <UIText style={[styles.driverStatus, { color: kit.color.accentDeep, textAlign: TEXT_START }]}>
+                    {t("order.onTheWay", { defaultValue: "On the way" })}
+                  </UIText>
+                </View>
+                <View style={[styles.etaBadge, { backgroundColor: kit.color.successTint }]}>
+                  <Ionicons name="time-outline" size={14} color={kit.color.success} />
+                  <UIText style={[styles.etaText, { color: kit.color.success }]}>
+                     {"45 min"}
+                  </UIText>
+                </View>
+              </View>
+            </Animated.View>
+          )}
 
           {/* Timeline Card */}
           <View style={[styles.timelineCard, { backgroundColor: c.surface, borderColor: c.line }]}>
@@ -220,6 +242,44 @@ const styles = StyleSheet.create({
     fontFamily: theme.fonts.bold,
     fontSize: 13,
     color: kit.color.accentDeep,
+  },
+  driverCard: {
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: StyleSheet.hairlineWidth,
+    marginBottom: 24,
+    ...kit.shadow.raised,
+  },
+  driverHeader: {
+    alignItems: "center",
+  },
+  driverAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  driverName: {
+    fontFamily: theme.fonts.bold,
+    fontSize: 15,
+  },
+  driverStatus: {
+    fontFamily: theme.fonts.medium,
+    fontSize: 13,
+    marginTop: 2,
+  },
+  etaBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+    gap: 4,
+  },
+  etaText: {
+    fontFamily: theme.fonts.bold,
+    fontSize: 13,
   },
   timelineCard: {
     padding: 24,

@@ -16,16 +16,14 @@ import Animated, {
   FadeInDown,
   useAnimatedStyle,
   useSharedValue,
-  withRepeat,
   withTiming,
   interpolateColor,
-  useReducedMotion
 } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
 
+import { signUp, getAuthError } from "@/features/auth";
 
 import { LangSwitcher } from "@/features/auth/components/LangSwitcher";
-import { AppLogo } from "@/shared/components/AppLogo";
 import { Button, Text as UIText, kit } from "@pharmacy/ui-native";
 import { useDarkColors } from "@/hooks/useDarkColors";
 import { theme } from "@pharmacy/design-tokens";
@@ -77,7 +75,7 @@ function FloatingInput({ label, icon, secure, value, onChangeText, autoCapitaliz
 }
 
 export default function RegisterScreen() {
-  const { c, isDark } = useDarkColors();
+  const { c } = useDarkColors();
   const { t } = useTranslation();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -97,7 +95,7 @@ export default function RegisterScreen() {
     setError("");
     setLoading(true);
     try {
-      await signUp({ name, email, password });
+      await signUp(email, password, name);
       if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       router.replace("/(customer)/(tabs)");
     } catch (err: any) {

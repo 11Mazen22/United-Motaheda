@@ -16,11 +16,11 @@ import React, { memo, useCallback, useMemo } from "react";
 
 import { StyleSheet, View } from "react-native";
 
-import { Text as UIText } from "@pharmacy/ui-native";
+import { Text as UIText, kit } from "@pharmacy/ui-native";
 
 import { Ionicons } from "@expo/vector-icons";
 
-import Animated, { FadeIn, FadeInDown, useAnimatedStyle, useSharedValue, withRepeat, withSequence, withTiming, useReducedMotion } from "react-native-reanimated";
+import Animated, { FadeIn, FadeInDown, useAnimatedStyle, useSharedValue, withRepeat, withSequence, withTiming } from "react-native-reanimated";
 
 import { BranchCard } from "./BranchCard";
 

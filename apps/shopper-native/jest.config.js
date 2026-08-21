@@ -9,6 +9,7 @@ module.exports = {
   ],
   // Path aliases that mirror tsconfig.json "paths"
   moduleNameMapper: {
+    "^react-native$": require.resolve("react-native"),
     "^@/(.*)$": "<rootDir>/src/$1",
   },
   // Transform everything except pre-compiled node_modules

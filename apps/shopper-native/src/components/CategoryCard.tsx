@@ -46,7 +46,7 @@ import Animated, {
 
   withSpring,
 
-useReducedMotion } from "react-native-reanimated";
+} from "react-native-reanimated";
 
 
 

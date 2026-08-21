@@ -62,7 +62,7 @@ function mapRow(row: RawPrescriptionRow): PharmacistPrescription {
     rejectionReason:  row.rejection_reason ?? null,
     reviewedBy:       row.reviewed_by ?? null,
     reviewedAt:       row.reviewed_at ?? null,
-    addedAt:          row.added_at,
+    createdAt:        row.added_at,
     updatedAt:        row.updated_at ?? row.added_at,
     customerName:     row.profiles?.full_name ?? "—",
     customerPhone:    row.profiles?.phone ?? null,

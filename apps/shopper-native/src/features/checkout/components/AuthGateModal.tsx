@@ -14,7 +14,7 @@ import Animated, {
 
   withRepeat, withSequence, withSpring, withTiming,
 
-useReducedMotion } from "react-native-reanimated";
+} from "react-native-reanimated";
 
 import { Ionicons } from "@expo/vector-icons";
 

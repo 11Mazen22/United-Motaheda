@@ -20,7 +20,14 @@ export type NativeTheme = Omit<SemanticTheme, "shadows" | "colors"> & {
   isDark: boolean;
   direction: "rtl" | "ltr";
   shadows: ReadonlyArray<ViewStyle>;
-  colors: SemanticTheme["colors"] & typeof kit.color;
+  colors: SemanticTheme["colors"] & typeof kit.color & {
+    background: string;
+    surface: string;
+    line: string;
+    ink: string;
+    inkSoft: string;
+    inkFaint: string;
+  };
 };
 
 export interface ThemeContextValue {
@@ -65,6 +72,12 @@ function toNativeTheme(base: SemanticTheme, isRTL: boolean, isDark: boolean): Na
     colors: {
       ...base.colors,
       ...(isDark ? kit.darkColor : kit.color),
+      background: (isDark ? kit.darkColor : kit.color).canvas,
+      surface: (isDark ? kit.darkColor : kit.color).surface,
+      line: (isDark ? kit.darkColor : kit.color).line,
+      ink: (isDark ? kit.darkColor : kit.color).ink,
+      inkSoft: (isDark ? kit.darkColor : kit.color).inkSoft,
+      inkFaint: (isDark ? kit.darkColor : kit.color).inkFaint,
     } as any,
   };
 }

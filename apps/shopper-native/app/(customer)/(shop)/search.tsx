@@ -1,16 +1,11 @@
-/**
- * Search — Phase 3 Redesign.
- * Core Experience for Discovery & Search.
- */
-import React, { useState, useEffect, useMemo, useCallback } from "react";
-import { View, StyleSheet, TextInput, Pressable, Keyboard, ActivityIndicator } from "react-native";
+import React, { useState, useEffect, useMemo } from "react";
+import { View, StyleSheet, TextInput, Pressable, Keyboard, ActivityIndicator, ScrollView } from "react-native";
 import { StatusBar } from "expo-status-bar";
-import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { CustomerUI } from "@pharmacy/ui-native";
+import { CustomerUI, kit } from "@pharmacy/ui-native";
 import { useProductSearch, useInfiniteProducts } from "@/features/products";
 import { ProductGrid } from "@/features/products/components/ProductGrid";
 import { isRtl, flexRow } from "@/utils/layout";
@@ -18,20 +13,19 @@ import { isRtl, flexRow } from "@/utils/layout";
 export default function SearchScreen() {
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
-  const theme = CustomerUI.useLuxuryTheme();
-  
+  const theme = CustomerUI.useCustomerTheme();
+
   const [query, setQuery] = useState("");
   const [debounced, setDebounced] = useState("");
   const [submitted, setSubmitted] = useState("");
 
-  // Typing -> Debounced
   useEffect(() => {
-    const t = setTimeout(() => setDebounced(query), 300);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => setDebounced(query), 300);
+    return () => clearTimeout(timer);
   }, [query]);
 
-  const { data: suggestions, isLoading: suggLoading } = useProductSearch({ query: debounced });
-  const { data: results, isLoading: resLoading, fetchNextPage, hasNextPage, isError, refetch } = useInfiniteProducts({ search: submitted, enabled: submitted.trim().length > 0 });
+  const { products: suggestions, isLoading: suggLoading } = useProductSearch({ query: debounced });
+  const { products: results, isLoading: resLoading, fetchNextPage, hasNextPage, isError, refetch } = useInfiniteProducts({ search: submitted, enabled: submitted.trim().length > 0 });
 
   const isDiscovery = query === "" && submitted === "";
   const isTyping = query !== "" && submitted === "";
@@ -49,19 +43,19 @@ export default function SearchScreen() {
     Keyboard.dismiss();
   };
 
-  const allProducts = useMemo(() => results?.pages.flatMap(p => p.items) || [], [results]);
+  const allProducts = useMemo(() => results || [], [results]);
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.canvas, paddingTop: insets.top }]}>
       <StatusBar style={theme.isDark ? "light" : "dark"} />
-      
+
       {/* Search Header */}
       <View style={[styles.header, { backgroundColor: theme.colors.surface, borderBottomColor: theme.colors.line }]}>
         <View style={[styles.inputBox, { backgroundColor: theme.colors.background }]}>
           <Ionicons name="search" size={20} color={theme.colors.inkFaint} />
           <TextInput
             value={query}
-            onChangeText={(txt) => { setQuery(txt); if(submitted) setSubmitted(""); }}
+            onChangeText={(txt) => { setQuery(txt); if (submitted) setSubmitted(""); }}
             onSubmitEditing={handleSubmit}
             placeholder={t("search.placeholder")}
             placeholderTextColor={theme.colors.inkFaint}
@@ -80,35 +74,49 @@ export default function SearchScreen() {
       {/* States */}
       <View style={styles.content}>
         {isDiscovery && (
-          <Animated.ScrollView entering={FadeIn} exiting={FadeOut} contentContainerStyle={styles.scroll}>
-            <CustomerUI.Section title={t("search.recent")}>
-              {/* Recent searches will map here */}
-              <CustomerUI.Typography variant="body" color={theme.colors.inkSoft}>No recent searches.</CustomerUI.Typography>
-            </CustomerUI.Section>
-            
-            <CustomerUI.Section title={t("search.trending")}>
-              <CustomerUI.Typography variant="body" color={theme.colors.inkSoft}>No trending items.</CustomerUI.Typography>
-            </CustomerUI.Section>
-          </Animated.ScrollView>
+          <Animated.View entering={FadeIn}>
+            <ScrollView contentContainerStyle={styles.scroll}>
+              <View style={styles.discoveryCard}>
+                <CustomerUI.Typography variant="h5" weight="black" color={theme.colors.ink} style={{ marginBottom: 16, textAlign: "center" }}>
+                  {t("search.displayTitle", "Search anything")}
+                </CustomerUI.Typography>
+                <CustomerUI.Typography variant="body" color={theme.colors.inkSoft} style={{ textAlign: "center", marginBottom: 24 }}>
+                  {t("search.subtitleLine", "5000+ medicines, vitamins, brands")}
+                </CustomerUI.Typography>
+                <View style={[styles.modeRow, { flexDirection: flexRow(isRtl()) }]}>
+                  <Pressable onPress={() => {}} style={[styles.modeCard, { backgroundColor: theme.colors.accentTint }]}>
+                    <Ionicons name="scan-outline" size={24} color={theme.colors.accentDeep} />
+                    <CustomerUI.Typography variant="bodySm" weight="bold" color={theme.colors.ink}>{t("search.modeScanLabel", "Scan Rx")}</CustomerUI.Typography>
+                  </Pressable>
+                  <Pressable onPress={handleSubmit} style={[styles.modeCard, { backgroundColor: kit.color.warnTint }]}>
+                    <Ionicons name="search-outline" size={24} color={kit.color.warn} />
+                    <CustomerUI.Typography variant="bodySm" weight="bold" color={theme.colors.ink}>{t("search.modeBrowseLabel", "Browse All")}</CustomerUI.Typography>
+                  </Pressable>
+                </View>
+              </View>
+            </ScrollView>
+          </Animated.View>
         )}
 
         {isTyping && (
-          <Animated.ScrollView entering={FadeIn} exiting={FadeOut} style={{ backgroundColor: theme.colors.surface }}>
-            {suggLoading ? (
-              <View style={styles.center}><ActivityIndicator size="large" color={theme.colors.accent} /></View>
-            ) : suggestions?.length ? (
-              suggestions.map((p) => (
-                <Pressable key={p.id} style={[styles.suggRow, { borderBottomColor: theme.colors.line }]} onPress={() => { setQuery(p.name); setSubmitted(p.name); Keyboard.dismiss(); }}>
-                  <Ionicons name="search-outline" size={16} color={theme.colors.inkFaint} />
-                  <CustomerUI.Typography variant="body" color={theme.colors.ink}>{p.name}</CustomerUI.Typography>
-                </Pressable>
-              ))
-            ) : (
-              <View style={styles.center}>
-                <CustomerUI.Typography variant="body" color={theme.colors.inkSoft}>No suggestions found.</CustomerUI.Typography>
-              </View>
-            )}
-          </Animated.ScrollView>
+          <Animated.View entering={FadeIn} exiting={FadeOut}>
+            <ScrollView style={{ backgroundColor: theme.colors.surface }}>
+              {suggLoading ? (
+                <View style={styles.center}><ActivityIndicator size="large" color={theme.colors.accent} /></View>
+              ) : suggestions?.length ? (
+                suggestions.map((p) => (
+                  <Pressable key={p.id} style={[styles.suggRow, { borderBottomColor: theme.colors.line }]} onPress={() => { setQuery(p.name); setSubmitted(p.name); Keyboard.dismiss(); }}>
+                    <Ionicons name="search-outline" size={16} color={theme.colors.inkFaint} />
+                    <CustomerUI.Typography variant="body" color={theme.colors.ink}>{p.name}</CustomerUI.Typography>
+                  </Pressable>
+                ))
+              ) : (
+                <View style={styles.center}>
+                  <CustomerUI.Typography variant="body" color={theme.colors.inkSoft}>{t("search.noSuggestions", "No suggestions found.")}</CustomerUI.Typography>
+                </View>
+              )}
+            </ScrollView>
+          </Animated.View>
         )}
 
         {isResults && (
@@ -118,18 +126,18 @@ export default function SearchScreen() {
             ) : isError ? (
               <CustomerUI.ErrorState onRetry={() => refetch()} />
             ) : allProducts.length === 0 ? (
-              <CustomerUI.EmptyState 
-                icon="search" 
-                title={t("search.noResults")} 
-                description={t("search.noResultsDesc")} 
-                actionLabel={t("search.clear")} 
-                onAction={handleClear} 
+              <CustomerUI.EmptyState
+                icon="search"
+                title={t("search.noResults")}
+                description={t("search.noResultsDescEn")}
+                actionLabel={t("search.clear")}
+                onAction={handleClear}
               />
             ) : (
               <ProductGrid
                 products={allProducts}
-                onProductPress={() => {}} // Context router handled internally by ProductCard in reality
-                onEndReached={() => { if(hasNextPage) fetchNextPage(); }}
+                onProductPress={() => {}}
+                onEndReached={() => { if (hasNextPage) fetchNextPage(); }}
                 contentContainerStyle={{ padding: 16 }}
               />
             )}
@@ -150,4 +158,7 @@ const styles = StyleSheet.create({
   scroll: { padding: 16, gap: 24 },
   center: { padding: 40, alignItems: "center" },
   suggRow: { flexDirection: flexRow(isRtl()), alignItems: "center", padding: 16, gap: 12, borderBottomWidth: StyleSheet.hairlineWidth },
+  discoveryCard: { padding: 24, backgroundColor: "#fff", borderRadius: 20, borderWidth: 1, borderColor: kit.color.line, ...kit.shadow.card },
+  modeRow: { gap: 12 },
+  modeCard: { flex: 1, padding: 20, borderRadius: 16, alignItems: "center", gap: 8 },
 });

@@ -1,33 +1,54 @@
 /**
- * useLuxuryTheme — the single hook every customer primitive consumes.
+ * useCustomerTheme â€” the single hook every customer primitive consumes.
  *
  * Combines the existing NativeTheme (SemanticTheme + kit + RTL) with the
- * new luxury token layer. Nothing in commerce / auth / orders changes.
+ * customer commerce token layer. Nothing in commerce / auth / orders changes.
+ *
+ * Backward-compat: `useLuxuryTheme` is re-exported for existing screens
+ * during the transition.
  */
 import { useTheme } from '../theme';
-import { luxury, type LuxuryTokens } from '@pharmacy/design-tokens';
+import { customer, type CustomerTokens } from '@pharmacy/design-tokens';
 
-export interface LuxuryTheme {
+export interface CustomerTheme {
   /** Full semantic theme (colors, shadows, spacing, RTL etc) */
   theme: ReturnType<typeof useTheme>['theme'];
   isDark: boolean;
   isRTL: boolean;
-  /** Luxury token extension — surface hierarchy, motion, sizing etc */
-  lx: LuxuryTokens;
+  /** Customer token extension â€” surface hierarchy, motion, sizing etc */
+  cx: CustomerTokens;
   /** Current surface set for the active color mode */
-  surface: LuxuryTokens['surface']['light'] | LuxuryTokens['surface']['dark'];
+  surface: CustomerTokens['surface']['light'] | CustomerTokens['surface']['dark'];
   /** Current interaction tints for the active color mode */
-  interaction: LuxuryTokens['interaction']['light'] | LuxuryTokens['interaction']['dark'];
+  interaction: CustomerTokens['interaction']['light'] | CustomerTokens['interaction']['dark'];
+  /** Luxury token shorthand for spacing, radius, type, size */
+  lx: Pick<CustomerTokens, 'space' | 'radius' | 'type' | 'size'>;
+  /** Compatibility aliases for screens that consume the hook as a theme object. */
+  colors: ReturnType<typeof useTheme>['theme']['colors'];
+  fonts: ReturnType<typeof useTheme>['theme']['typography'];
+  layout: ReturnType<typeof useTheme>['theme']['layout'];
 }
 
-export function useLuxuryTheme(): LuxuryTheme {
+export function useCustomerTheme(): CustomerTheme {
   const { theme, isDark, isRTL } = useTheme();
   return {
     theme,
     isDark,
     isRTL,
-    lx: luxury,
-    surface: isDark ? luxury.surface.dark : luxury.surface.light,
-    interaction: isDark ? luxury.interaction.dark : luxury.interaction.light,
+    cx: customer,
+    surface: isDark ? customer.surface.dark : customer.surface.light,
+    interaction: isDark ? customer.interaction.dark : customer.interaction.light,
+    lx: {
+      space: customer.space,
+      radius: customer.radius,
+      type: customer.type,
+      size: customer.size,
+    },
+    colors: theme.colors,
+    fonts: theme.typography,
+    layout: theme.layout,
   };
 }
+
+/** Backward-compatible alias for screens still using the old hook name. */
+export const useLuxuryTheme = useCustomerTheme;

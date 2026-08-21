@@ -62,7 +62,7 @@ import * as Haptics from "expo-haptics";
 
 import { useTranslation } from "react-i18next";
 
-import { Text as UIText, CustomerUI } from "@pharmacy/ui-native";
+import { Text as UIText } from "@pharmacy/ui-native";
 
 import { theme } from "@pharmacy/design-tokens";
 
@@ -73,7 +73,6 @@ import { flexRow, isRtl, textAlignStart, FORWARD_CHEVRON } from "@/utils/layout"
 import { useScreenLayout } from "@/utils/responsive";
 
 import { ProductCard } from "@/components/ProductCard";
-import { useTrendingProducts } from "@/features/recommendations";
 
 import { HomeSectionHeader } from "./HomeSectionHeader";
 

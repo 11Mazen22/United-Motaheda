@@ -1,7 +1,6 @@
-import React from 'react';
-import { View, ActivityIndicator, StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
+import { View, ActivityIndicator, type StyleProp, type ViewStyle } from 'react-native';
 import { PressableScale } from '../components/primitives';
-import { useLuxuryTheme } from './useLuxuryTheme';
+import { useCustomerTheme } from './useCustomerTheme';
 import { T } from './Typography';
 import * as Haptics from 'expo-haptics';
 import { Platform } from 'react-native';
@@ -11,7 +10,7 @@ export type ButtonSize = 'lg' | 'md' | 'sm';
 
 export interface CButtonProps {
   label: string;
-  onPress: () => void;
+  onPress?: () => void;
   variant?: ButtonVariant;
   size?: ButtonSize;
   loading?: boolean;
@@ -38,17 +37,17 @@ export function CButton({
   haptic = true,
   accessibilityLabel,
 }: CButtonProps) {
-  const { theme, surface, lx, interaction } = useLuxuryTheme();
+  const { theme, surface, cx, interaction } = useCustomerTheme();
 
   const handlePress = () => {
     if (loading || disabled) return;
     if (haptic && Platform.OS !== 'web') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     }
-    onPress();
+    onPress?.();
   };
 
-  const height = size === 'lg' ? lx.size.buttonHeightLg : size === 'sm' ? lx.size.buttonHeightSm : lx.size.buttonHeightMd;
+  const height = size === 'lg' ? cx.size.buttonHeightLg : size === 'sm' ? cx.size.buttonHeightSm : cx.size.buttonHeightMd;
   const textScale = size === 'lg' ? 'buttonLg' : size === 'sm' ? 'buttonSm' : 'buttonMd';
 
   let bg = 'transparent';
@@ -95,10 +94,10 @@ export function CButton({
           backgroundColor: bg,
           borderColor,
           borderWidth: variant === 'secondary' || variant === 'outline' ? 1 : 0,
-          borderRadius: lx.radius.button,
-          paddingHorizontal: lx.space[4],
-          opacity: disabled ? interaction.disabledOpacity : 1,
-          alignSelf: fullWidth ? 'stretch' : 'flex-start',
+           borderRadius: cx.radius.button,
+           paddingHorizontal: cx.space[4],
+           opacity: disabled ? interaction.disabledOpacity : 1,
+           alignSelf: fullWidth ? 'stretch' : 'flex-start',
         },
         style,
       ]}
@@ -107,11 +106,11 @@ export function CButton({
         <ActivityIndicator color={contentColor} />
       ) : (
         <>
-          {icon && <View style={{ marginRight: lx.space[2] }}>{icon}</View>}
+          {icon && <View style={{ marginRight: cx.space[2] }}>{icon}</View>}
           <T scale={textScale} color={textColor} align="center">
             {label}
           </T>
-          {iconEnd && <View style={{ marginLeft: lx.space[2] }}>{iconEnd}</View>}
+          {iconEnd && <View style={{ marginLeft: cx.space[2] }}>{iconEnd}</View>}
         </>
       )}
     </PressableScale>

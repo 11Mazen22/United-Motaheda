@@ -39,7 +39,7 @@ function makeShadow(
   }) ?? {};
 }
 
-export const kit = {
+export const kit: any = {
   sp: (n: number): number => n * 4,
   spacing: { "1": 4, "2": 8, "3": 12, "4": 16, "5": 20, "6": 24, xs: 4, sm: 8, md: 12, lg: 16, xl: 20, "2xl": 24, "3xl": 32, "4xl": 40, "5xl": 48, "6xl": 64 },
   inset: { screen: 20, card: 16, tight: 12 },

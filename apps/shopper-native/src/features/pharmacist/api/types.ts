@@ -73,8 +73,8 @@ export interface PharmacistOrder {
   createdAt:        string;
   updatedAt:        string;
   lastStatusAt:     string;
-  /** Milliseconds since createdAt — used for urgency sorting. */
-  ageMs:            number;
+  /** Client-computed age in milliseconds. */
+  ageMs?:           number;
 }
 
 // ─── Prescription ──────────────────────────────────────────────────────────────
@@ -96,12 +96,14 @@ export interface PharmacistPrescription {
   rejectionReason:  string | null;
   reviewedBy:       string | null;
   reviewedAt:       string | null;
-  addedAt:          string;
+  createdAt:        string;
   updatedAt:        string;
   /** Denormalised from profiles join — customer's display name. */
   customerName:     string;
   customerPhone:    string | null;
   imagePath:        string | null;
+  /** Alias for createdAt used by some screens. */
+  addedAt?:         string;
 }
 
 export interface ReviewPrescriptionInput {

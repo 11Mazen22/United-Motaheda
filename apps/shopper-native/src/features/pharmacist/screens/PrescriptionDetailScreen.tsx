@@ -39,6 +39,8 @@ export function PrescriptionDetailScreen(): React.ReactElement {
 
   const { t }  = useTranslation();
 
+  const { c }  = useDarkColors();
+
   const { id } = useLocalSearchParams<{ id: string }>();
 
 
@@ -121,11 +123,11 @@ export function PrescriptionDetailScreen(): React.ReactElement {
 
     return (
 
-      <Screen edgeTop background={kit.color.canvas}>
+      <Screen edgeTop background={c.canvas}>
 
         <PharmacistScreenHeader title={t("pharmacist.prescriptionDetail", "Prescription Detail")} />
 
-        <View style={s.centered}><ActivityIndicator size="large" color={kit.color.accent} /></View>
+        <View style={s.centered}><ActivityIndicator size="large" color={c.accent} /></View>
 
       </Screen>
 
@@ -139,7 +141,7 @@ export function PrescriptionDetailScreen(): React.ReactElement {
 
     return (
 
-      <Screen edgeTop background={kit.color.canvas}>
+      <Screen edgeTop background={c.canvas}>
 
         <PharmacistScreenHeader title={t("pharmacist.prescriptionDetail", "Prescription Detail")} />
 
@@ -159,21 +161,21 @@ export function PrescriptionDetailScreen(): React.ReactElement {
 
   return (
 
-    <Screen edgeTop background={kit.color.canvas}>
+    <Screen edgeTop background={c.canvas}>
 
       <PharmacistScreenHeader title={t("pharmacist.prescriptionDetail", "Prescription Detail")} hideBack={false} />
 
-      
+
 
       <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
 
-        {/* Document Boxer (Takes min 50% height) */}
+        {/* Document Viewer (min 50% height) */}
 
-        <View style={s.imageBoxer}>
+        <View style={[s.imageBoxer, { backgroundColor: c.ink }]}>
 
           {imageQuery.isLoading ? (
 
-            <ActivityIndicator size="large" color={kit.color.accent} />
+            <ActivityIndicator size="large" color={c.accent} />
 
           ) : imageQuery.error ? (
 
@@ -201,7 +203,7 @@ export function PrescriptionDetailScreen(): React.ReactElement {
 
 
 
-        <View style={s.content}>
+        <View style={[s.content, { backgroundColor: c.surface }]}>
 
           {/* Patient info */}
 
@@ -213,7 +215,7 @@ export function PrescriptionDetailScreen(): React.ReactElement {
 
               <UIText variant="caption" color="secondary">
 
-                {new Date(rx.addedAt).toLocaleString()}
+                {new Date(rx.addedAt ?? "").toLocaleString()}
 
               </UIText>
 
@@ -223,21 +225,21 @@ export function PrescriptionDetailScreen(): React.ReactElement {
 
             <View style={[s.statusBadge, {
 
-              backgroundColor: rx.reviewStatus === "approved" ? kit.color.successTint :
+              backgroundColor: rx.reviewStatus === "approved" ? c.successTint :
 
-                               rx.reviewStatus === "rejected" ? kit.color.dangerTint :
+                               rx.reviewStatus === "rejected" ? c.dangerTint :
 
-                               kit.color.warnTint
+                               c.warnTint
 
             }]}>
 
               <UIText variant="caption" weight="bold" style={{
 
-                color: rx.reviewStatus === "approved" ? kit.color.success :
+                color: rx.reviewStatus === "approved" ? c.success :
 
-                       rx.reviewStatus === "rejected" ? kit.color.danger :
+                       rx.reviewStatus === "rejected" ? c.danger :
 
-                       kit.color.warn
+                       c.warn
 
               }}>
 
@@ -259,7 +261,7 @@ export function PrescriptionDetailScreen(): React.ReactElement {
 
           {rx.adminNotes ? (
 
-            <View style={s.noteBox}>
+            <View style={[s.noteBox, { backgroundColor: c.well }]}>
 
               <UIText variant="caption" weight="bold">{t("pharmacist.adminNotes", "Pharmacist Note")}</UIText>
 
@@ -275,7 +277,7 @@ export function PrescriptionDetailScreen(): React.ReactElement {
 
           {rx.rejectionReason ? (
 
-            <View style={[s.noteView, { backgroundColor: kit.color.dangerTint }]}>
+            <View style={[s.noteView, { backgroundColor: c.dangerTint }]}>
 
               <UIText variant="caption" weight="bold" color="danger">{t("pharmacist.rejectionReason", "Rejection Reason")}</UIText>
 
@@ -307,11 +309,7 @@ export function PrescriptionDetailScreen(): React.ReactElement {
 
                     onPress={handleApprove}
 
-                    style={{ backgroundColor: kit.color.success }}
-
                   />
-
-                  {/* Request Info button can be added if backend supports it */}
 
                   <Button
 
@@ -322,8 +320,6 @@ export function PrescriptionDetailScreen(): React.ReactElement {
                     full
 
                     onPress={() => setShowRejectForm(true)}
-
-                    style={{ borderColor: kit.color.danger }}
 
                   />
 
@@ -341,11 +337,11 @@ export function PrescriptionDetailScreen(): React.ReactElement {
 
                     placeholder={t("pharmacist.rejectionReasonPlaceholder", "Reason for rejection")}
 
-                    placeholderTextColor={kit.color.inkFaint}
+                    placeholderTextColor={c.inkFaint}
 
                     multiline
 
-                    style={s.textInput}
+                    style={[s.textInput, { backgroundColor: c.well, borderColor: c.danger, color: c.ink }]}
 
                   />
 
@@ -359,7 +355,7 @@ export function PrescriptionDetailScreen(): React.ReactElement {
 
                     onPress={handleReject}
 
-                    style={{ backgroundColor: kit.color.danger }}
+                    variant="danger"
 
                   />
 
@@ -407,8 +403,6 @@ const s = StyleSheet.create({
 
     minHeight: SCREEN_HEIGHT * 0.5,
 
-    backgroundColor: "#000",
-
     alignItems: "center",
 
     justifyContent: "center",
@@ -418,8 +412,6 @@ const s = StyleSheet.create({
   content: {
 
     padding: kit.inset.screen,
-
-    backgroundColor: kit.color.surface,
 
     flex: 1,
 
@@ -445,8 +437,6 @@ const s = StyleSheet.create({
 
   noteBox: {
 
-    backgroundColor: kit.color.well,
-
     padding: 12,
 
     borderRadius: 8,
@@ -463,23 +453,27 @@ const s = StyleSheet.create({
 
   },
 
-  textInput: {
+  noteView: {
 
-    backgroundColor: kit.color.well,
+    padding: 12,
+
+    borderRadius: 8,
+
+    marginTop: 12,
+
+  },
+
+  textInput: {
 
     borderRadius: 8,
 
     borderWidth: 1,
-
-    borderColor: kit.color.danger,
 
     padding: 12,
 
     fontSize: 14,
 
     fontFamily: kit.font.regular,
-
-    color: kit.color.ink,
 
     textAlignVertical: "top",
 
@@ -488,4 +482,3 @@ const s = StyleSheet.create({
   },
 
 });
-

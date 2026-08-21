@@ -1,41 +1,22 @@
 /**
-
  * BarcodeScannerScreen — pharmacist barcode/QR scanner.
-
  *
-
  * Modes (toggled via segment control):
-
  *   • medicine   — scan barcode → product lookup → stock card
-
  *   • order      — scan QR token → order detail navigation
-
  *   • inventory  — scan barcode → inline stock adjustment (±)
-
  *
-
  * Design:
-
  *   - Full-screen CameraView with a square scan window overlay
-
  *   - Torch toggle button
-
  *   - 1-second debounce between scans so a single barcode doesn't fire
-
  *     multiple lookups in rapid succession
-
  *   - Result card slides up from bottom; dismissable by tapping outside
-
  *     or pressing the X button
-
  *   - Haptic feedback on successful scan and on error
-
  *   - Graceful permission request flow with a human-readable explanation
-
  *
-
  * Uses expo-camera v17's CameraView + useCameraPermissions hook.
-
  */
 
 
@@ -124,8 +105,6 @@ const TEXT_START = textAlignStart(IS_RTL);
 type ScanMode = "medicine" | "inventory" | "order";
 
 
-
-// Minimum ms between processing two consecutive scans of the same value
 
 const DEBOUNCE_MS = 1_500;
 
@@ -695,10 +674,8 @@ const rcStyles = StyleSheet.create({
 
 export function BarcodeScannerScreen(): React.ReactElement {
 
-  const { c } = useDarkColors();
-  
-  
-  
+  const { c: _c } = useDarkColors();
+
   const { t }    = useTranslation();
 
   const router   = useRouter();
@@ -724,8 +701,6 @@ export function BarcodeScannerScreen(): React.ReactElement {
   const [savingAdjustment, setSavingAdjustment] = useState(false);
 
 
-
-  // Debounce ref — stores the last scanned value + timestamp
 
   const lastScanRef = useRef<{ value: string; ts: number } | null>(null);
 
@@ -817,7 +792,7 @@ export function BarcodeScannerScreen(): React.ReactElement {
 
         setScanning(false);
 
-        router.push(`/(pharmacist)/order/${value}` as never);
+        router.push(`/(pharmacist)/order/${value}`);
 
         return;
 
@@ -890,6 +865,8 @@ export function BarcodeScannerScreen(): React.ReactElement {
         idempotencyKey: newIdempotencyKey(),
 
       });
+
+
 
       setResult((current) => current ? {
 
@@ -1221,7 +1198,7 @@ export function BarcodeScannerScreen(): React.ReactElement {
 
               router.push({
 
-                pathname: "/(pharmacist)/inventory" as never,
+                pathname: "/(pharmacist)/inventory",
 
                 params: result.barcode ? { query: result.barcode } : undefined,
 
@@ -1522,4 +1499,3 @@ const styles = StyleSheet.create({
   },
 
 });
-

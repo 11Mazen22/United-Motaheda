@@ -18,7 +18,7 @@ import { Input } from "@/components/ui/Input";
 import { Button, kit, Text as UIText } from "@pharmacy/ui-native";
 import { useDarkColors } from "@/hooks/useDarkColors";
 import { theme } from "@pharmacy/design-tokens";
-import { flexRow, isRtl, textAlignStart, BACK_CHEVRON } from "@/utils/layout";
+import { isRtl, textAlignStart, BACK_CHEVRON } from "@/utils/layout";
 
 export default function ResetPasswordScreen() {
   const { c } = useDarkColors();

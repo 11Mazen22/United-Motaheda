@@ -46,10 +46,6 @@
         "android.permission.POST_NOTIFICATIONS",
         "android.permission.RECORD_AUDIO"
       ],
-      "statusBar": {
-        "backgroundColor": "transparent",
-        "translucent": true
-      },
       "versionCode": 1
     },
     "web": {

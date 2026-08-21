@@ -1,6 +1,0 @@
-
-> pharmacy-motahheda-monorepo@0.1.0 typecheck
-> tsc -p apps/shopper-web/tsconfig.json --noEmit
-
-apps/shopper-web/src/services/orderNotificationsApi.ts(26,7): error TS6133: 'ORDER_NOTIFICATION_EVENT_MATRIX' is declared but its value is never read.
-apps/shopper-web/src/services/orderNotificationsApi.ts(172,20): error TS2304: Cannot find name 'STATUS_COPY'.

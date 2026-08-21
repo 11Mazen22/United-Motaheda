@@ -1,7 +1,5 @@
 /**
-
  * PharmacistProfileScreen — pharmacist identity, settings, and sign-out.
-
  */
 
 import React from "react";
@@ -57,21 +55,31 @@ interface MenuRowProps {
 
 function MenuRow({ icon, label, onPress, danger = false }: MenuRowProps) {
 
+  const { c } = useDarkColors();
+
   return (
 
     <Pressable
 
       onPress={onPress}
 
-      style={({ pressed }) => [styles.menuRow, pressed && styles.menuRowPressed, { flexDirection: flexRow(IS_RTL) }]}
+      style={({ pressed }) => [
+
+        styles.menuRow,
+
+        pressed && { backgroundColor: c.well },
+
+        { flexDirection: flexRow(IS_RTL) }
+
+      ]}
 
       accessibilityRole="button"
 
     >
 
-      <View style={[styles.menuIcon, { backgroundColor: danger ? kit.color.dangerTint : kit.color.accentTint }]}>
+      <View style={[styles.menuIcon, { backgroundColor: danger ? c.dangerTint : c.accentTint }]}>
 
-        <Ionicons name={icon} size={16} color={danger ? kit.color.danger : kit.color.accentDeep} />
+        <Ionicons name={icon} size={16} color={danger ? c.danger : c.accentDeep} />
 
       </View>
 
@@ -79,7 +87,7 @@ function MenuRow({ icon, label, onPress, danger = false }: MenuRowProps) {
 
         variant="body-sm"
 
-        style={{ flex: 1, textAlign: TEXT_START, color: danger ? kit.color.danger : kit.color.ink }}
+        style={{ flex: 1, textAlign: TEXT_START, color: danger ? c.danger : c.ink }}
 
       >
 
@@ -87,7 +95,7 @@ function MenuRow({ icon, label, onPress, danger = false }: MenuRowProps) {
 
       </UIText>
 
-      {!danger && <Ionicons name={FORWARD_CHEVRON} size={14} color={kit.color.inkFaint} />}
+      {!danger && <Ionicons name={FORWARD_CHEVRON} size={14} color={c.inkFaint} />}
 
     </Pressable>
 
@@ -100,7 +108,7 @@ function MenuRow({ icon, label, onPress, danger = false }: MenuRowProps) {
 export function PharmacistProfileScreen(): React.ReactElement {
 
   const { c } = useDarkColors();
-  
+
   const { t }              = useTranslation();
 
   const router             = useRouter();
@@ -113,54 +121,6 @@ export function PharmacistProfileScreen(): React.ReactElement {
 
 
 
-  const stats = [
-
-    {
-
-      label: t("pharmacist.statActiveOrders"),
-
-      value: statsQ.data?.activeOrders ?? 0,
-
-      icon: "bag-handle-outline" as const,
-
-      color: kit.color.accentDeep,
-
-      bg: kit.color.accentTint,
-
-    },
-
-    {
-
-      label: t("pharmacist.statPendingRx"),
-
-      value: statsQ.data?.pendingPrescriptions ?? 0,
-
-      icon: "document-text-outline" as const,
-
-      color: "#7C3AED",
-
-      bg: "#F5F3FF",
-
-    },
-
-    {
-
-      label: t("pharmacist.statLowStock"),
-
-      value: statsQ.data?.lowStockCount ?? 0,
-
-      icon: "alert-circle-outline" as const,
-
-      color: kit.color.danger,
-
-      bg: kit.color.dangerTint,
-
-    },
-
-  ];
-
-
-
   const nextLanguage = language === "ar" ? "en" : "ar";
 
   const languageLabel = language === "ar" ? "العربية" : "English";
@@ -169,7 +129,7 @@ export function PharmacistProfileScreen(): React.ReactElement {
 
   return (
 
-    <Screen edgeTop background={kit.color.canvas}>
+    <Screen edgeTop background={c.canvas}>
 
       <PharmacistScreenHeader title={t("pharmacist.profileTitle")} />
 
@@ -181,7 +141,7 @@ export function PharmacistProfileScreen(): React.ReactElement {
 
         <View style={styles.avatarSection}>
 
-          <View style={styles.avatar}>
+          <View style={[styles.avatar, { backgroundColor: c.accent }]}>
 
             <UIText style={styles.avatarLetter}>
 
@@ -203,11 +163,11 @@ export function PharmacistProfileScreen(): React.ReactElement {
 
           </UIText>
 
-          <View style={styles.roleBadge}>
+          <View style={[styles.roleBadge, { backgroundColor: c.accentTint, borderColor: c.accent }]}>
 
-            <Ionicons name="shield-checkmark-outline" size={12} color={kit.color.accentDeep} />
+            <Ionicons name="shield-checkmark-outline" size={12} color={c.accentDeep} />
 
-            <UIText variant="eyebrow" style={{ color: kit.color.accentDeep }}>
+            <UIText variant="eyebrow" style={{ color: c.accentDeep }}>
 
               {t("pharmacist.roleLabel")}
 
@@ -219,43 +179,63 @@ export function PharmacistProfileScreen(): React.ReactElement {
 
 
 
-        <View style={styles.statsCard}>
+        {/* Stats */}
 
-          {stats.map((item, index) => (
+        <View style={[styles.statsCard, { backgroundColor: c.surface, borderColor: c.line }]}>
 
-            <View
+          <View style={[styles.statRow, { flexDirection: flexRow(IS_RTL) }]}>
 
-              key={item.label}
+            <View style={[styles.menuIcon, { backgroundColor: c.accentTint }]}>
 
-              style={[
-
-                styles.statRow,
-
-                { flexDirection: flexRow(IS_RTL) },
-
-                index !== stats.length - 1 && styles.statRowBorder,
-
-              ]}
-
-            >
-
-              <View style={[styles.menuIcon, { backgroundColor: item.bg }]}>
-
-                <Ionicons name={item.icon} size={16} color={item.color} />
-
-              </View>
-
-              <UIText variant="body-sm" style={{ flex: 1, textAlign: TEXT_START }}>
-
-                {item.label}
-
-              </UIText>
-
-              <UIText style={styles.statValue}>{item.value}</UIText>
+              <Ionicons name="bag-handle-outline" size={16} color={c.accentDeep} />
 
             </View>
 
-          ))}
+            <UIText variant="body-sm" style={{ flex: 1, textAlign: TEXT_START }}>
+
+              {t("pharmacist.statActiveOrders")}
+
+            </UIText>
+
+            <UIText style={styles.statValue}>{statsQ.data?.activeOrders ?? 0}</UIText>
+
+          </View>
+
+          <View style={[styles.statRow, { flexDirection: flexRow(IS_RTL) }]}>
+
+            <View style={[styles.menuIcon, { backgroundColor: c.warnTint }]}>
+
+              <Ionicons name="document-text-outline" size={16} color={c.warn} />
+
+            </View>
+
+            <UIText variant="body-sm" style={{ flex: 1, textAlign: TEXT_START }}>
+
+              {t("pharmacist.statPendingRx")}
+
+            </UIText>
+
+            <UIText style={styles.statValue}>{statsQ.data?.pendingPrescriptions ?? 0}</UIText>
+
+          </View>
+
+          <View style={[styles.statRow, { flexDirection: flexRow(IS_RTL) }]}>
+
+            <View style={[styles.menuIcon, { backgroundColor: c.dangerTint }]}>
+
+              <Ionicons name="alert-circle-outline" size={16} color={c.danger} />
+
+            </View>
+
+            <UIText variant="body-sm" style={{ flex: 1, textAlign: TEXT_START }}>
+
+              {t("pharmacist.statLowStock")}
+
+            </UIText>
+
+            <UIText style={styles.statValue}>{statsQ.data?.lowStockCount ?? 0}</UIText>
+
+          </View>
 
         </View>
 
@@ -263,19 +243,17 @@ export function PharmacistProfileScreen(): React.ReactElement {
 
         {/* Menu */}
 
-        <View style={styles.card}>
-
-          <MenuRow
+        <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.line }]}>          <MenuRow
 
             icon="notifications-outline"
 
             label={t("pharmacist.profileNotifications")}
 
-            onPress={() => router.push("/(pharmacist)/notifications" as never)}
+            onPress={() => router.push("/(pharmacist)/notifications")}
 
           />
 
-          <View style={styles.divider} />
+          <View style={[styles.divider, { backgroundColor: c.line }]} />
 
           <MenuRow
 
@@ -287,7 +265,7 @@ export function PharmacistProfileScreen(): React.ReactElement {
 
           />
 
-          <View style={styles.divider} />
+          <View style={[styles.divider, { backgroundColor: c.line }]} />
 
           <MenuRow
 
@@ -295,11 +273,11 @@ export function PharmacistProfileScreen(): React.ReactElement {
 
             label={t("pharmacist.profileSecurity")}
 
-            onPress={() => router.push("/change-password" as never)}
+            onPress={() => router.push("/change-password")}
 
           />
 
-          <View style={styles.divider} />
+          <View style={[styles.divider, { backgroundColor: c.line }]} />
 
           <MenuRow
 
@@ -307,7 +285,7 @@ export function PharmacistProfileScreen(): React.ReactElement {
 
             label={t("pharmacist.profileHelp")}
 
-            onPress={() => router.push("/faq" as never)}
+            onPress={() => router.push("/faq")}
 
           />
 
@@ -315,9 +293,7 @@ export function PharmacistProfileScreen(): React.ReactElement {
 
 
 
-        <View style={[styles.card, { marginTop: 12 }]}>
-
-          <MenuRow
+        <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.line, marginTop: 12 }]}>          <MenuRow
 
             icon="log-out-outline"
 
@@ -355,8 +331,6 @@ const styles = StyleSheet.create({
 
     borderRadius:    40,
 
-    backgroundColor: kit.color.accent,
-
     alignItems:      "center",
 
     justifyContent:  "center",
@@ -389,12 +363,6 @@ const styles = StyleSheet.create({
 
     borderRadius:      9999,
 
-    backgroundColor:   kit.color.accentTint,
-
-    borderWidth:       1,
-
-    borderColor:       kit.color.accent,
-
     marginTop:         4,
 
   },
@@ -403,13 +371,9 @@ const styles = StyleSheet.create({
 
     marginHorizontal: kit.inset.screen,
 
-    backgroundColor:  kit.color.surface,
-
     borderRadius:     16,
 
     borderWidth:      1,
-
-    borderColor:      kit.color.line,
 
     overflow:         "hidden",
 
@@ -423,13 +387,9 @@ const styles = StyleSheet.create({
 
     marginBottom:     12,
 
-    backgroundColor:  kit.color.surface,
-
     borderRadius:     16,
 
     borderWidth:      1,
-
-    borderColor:      kit.color.line,
 
     overflow:         "hidden",
 
@@ -479,8 +439,6 @@ const styles = StyleSheet.create({
 
   },
 
-  menuRowPressed: { backgroundColor: kit.color.well },
-
   menuIcon: {
 
     width:           34,
@@ -499,11 +457,8 @@ const styles = StyleSheet.create({
 
     height:           StyleSheet.hairlineWidth,
 
-    backgroundColor:  kit.color.line,
-
     marginHorizontal: kit.inset.card,
 
   },
 
 });
-

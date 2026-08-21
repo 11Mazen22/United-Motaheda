@@ -1,6 +1,0 @@
-START  
-
-> @pharmacy/shopper-web@0.1.0 typecheck
-> tsc -p tsconfig.json --noEmit
-
-SW_TYPECHECK_OK  

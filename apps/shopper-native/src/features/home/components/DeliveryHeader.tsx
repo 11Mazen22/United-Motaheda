@@ -1,30 +1,14 @@
-import React, { memo, useEffect, useMemo, useState } from "react";
-import {
-  Platform,
-  Pressable,
-  StyleSheet,
-  View,
-} from "react-native";
+import React, { memo, useState } from "react";
+import { Platform, Pressable, StyleSheet, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useTranslation } from "react-i18next";
-import Animated, {
-  cancelAnimation,
-  Easing,
-  useAnimatedStyle,
-  useReducedMotion,
-  useSharedValue,
-  withRepeat,
-  withTiming,
-  FadeIn
-} from "react-native-reanimated";
 import { CustomerUI } from "@pharmacy/ui-native";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
 import { kit } from "@pharmacy/ui-native";
 import { useScreenLayout } from "@/utils/responsive";
 import { useUnreadCount } from "@/features/notifications";
 import { useAuth } from "@/features/auth";
-import { useCartStore } from "@/stores/cart";
 import { usePremiumCheckout } from "@/features/checkout/hooks/usePremiumCheckout";
 import { useDeliveryQuote } from "@/features/delivery/useDeliveryQuote";
 import { AddressFormDrawer } from "@/features/addresses/components/AddressFormDrawer";
@@ -32,7 +16,7 @@ import { AddressFormDrawer } from "@/features/addresses/components/AddressFormDr
 const IS_RTL = isRtl();
 
 export const DeliveryHeader = memo(function DeliveryHeader() {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const { isTablet, pagePad } = useScreenLayout();
   const theme = CustomerUI.useLuxuryTheme();
   

@@ -29,17 +29,17 @@ export function AddressCard({ address, onEdit, onDelete, onSetDefault }: Props) 
   // Smart Zone Pulse Animation
   const pulse = useSharedValue(1);
   React.useEffect(() => {
-    if (!reducedMotion && address.isDefault) {
+    if (!reducedMotion && address.is_default) {
       pulse.value = withRepeat(withTiming(1.5, { duration: 1200 }), -1, true);
     }
-  }, [reducedMotion, address.isDefault]);
+  }, [reducedMotion, address.is_default]);
 
   const animatedDotStyle = useAnimatedStyle(() => ({
     transform: [{ scale: pulse.value }],
     opacity: 1 - (pulse.value - 1),
   }));
 
-  const labelConfig = ADDRESS_LABELS[address.label as keyof typeof ADDRESS_LABELS] || ADDRESS_LABELS.other;
+  const labelConfig = ADDRESS_LABELS.find(l => l.key === address.label) || ADDRESS_LABELS[3];
 
   // Mock a smart zone
   const smartZone = address.city?.toLowerCase().includes("riyadh") 
@@ -49,7 +49,7 @@ export function AddressCard({ address, onEdit, onDelete, onSetDefault }: Props) 
 
   return (
     <Animated.View entering={FadeIn.duration(400)} style={styles.card}>
-      <AddressMapPlaceholder lat={address.lat} lng={address.lng} compact style={styles.map} />
+      <AddressMapPlaceholder lat={address.lat} lng={address.lng} compact />
       
       {/* Smart Zone Badge */}
       <View style={[styles.zoneBadge, { flexDirection: flexRow(IS_RTL) }]}>
@@ -65,10 +65,10 @@ export function AddressCard({ address, onEdit, onDelete, onSetDefault }: Props) 
           <View style={[styles.labelBadge, { backgroundColor: labelConfig.bg, flexDirection: flexRow(IS_RTL) }]}>
             <Ionicons name={labelConfig.icon as IoniconsName} size={14} color={labelConfig.color} />
             <UIText style={[styles.labelText, { color: labelConfig.color }]}>
-              {t(labelConfig.i18nKey)}
+              {t(labelConfig.labelKey)}
             </UIText>
           </View>
-          {address.isDefault && (
+          {address.is_default && (
             <View style={[styles.defaultBadge, { flexDirection: flexRow(IS_RTL) }]}>
               <Ionicons name="checkmark-circle" size={14} color={kit.color.accentDeep} />
               <UIText style={styles.defaultText}>{t("addresses.default")}</UIText>
@@ -82,15 +82,6 @@ export function AddressCard({ address, onEdit, onDelete, onSetDefault }: Props) 
         <UIText style={[styles.details, { textAlign: textAlignStart(IS_RTL) }]} numberOfLines={1}>
           {address.district}, {address.city}
         </UIText>
-        
-        {address.notes && (
-          <View style={[styles.notesRow, { flexDirection: flexRow(IS_RTL) }]}>
-            <Ionicons name="information-circle-outline" size={14} color={kit.color.inkFaint} />
-            <UIText style={[styles.notes, { textAlign: textAlignStart(IS_RTL) }]} numberOfLines={1}>
-              {address.notes}
-            </UIText>
-          </View>
-        )}
       </View>
 
       <View style={[styles.actions, { flexDirection: flexRow(IS_RTL) }]}>
@@ -116,7 +107,7 @@ export function AddressCard({ address, onEdit, onDelete, onSetDefault }: Props) 
           <UIText style={[styles.actionText, { color: kit.color.danger }]}>{t("common.delete")}</UIText>
         </Pressable>
 
-        {!address.isDefault && (
+        {!address.is_default && (
           <Pressable
             style={[styles.actionBtn, styles.actionBtnPrimary]}
             onPress={() => {

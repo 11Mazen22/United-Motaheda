@@ -1,50 +1,12 @@
-/**
-
- * ProfileScreen — VIP 2026 redesign on @pharmacy/ui-native.
-
- *
-
- * LoyaltySummaryCard: LinearGradient removed → flat tier-colour fill + identity stripe.
-
- * SectionLabel: larger badge (32×32), bolder label.
-
- * MenuRow: taller rows (56px), larger icon tiles (44×44).
-
- * Cards: borderRadius raised to kit.radius.lg (16).
-
- */
-
 import React, { memo, useCallback, useMemo, useState } from "react";
 
-import {
-
-  Linking,
-
-  Platform,
-
-  Pressable,
-
-  ScrollView,
-
-  StyleSheet,
-
-  View,
-
-} from "react-native";
+import { Linking, Platform, Pressable, ScrollView, StyleSheet, View } from "react-native";
 
 import { GestureDetector } from "react-native-gesture-handler";
 
 import { Ionicons } from "@expo/vector-icons";
 
-import Animated, {
-
-  useAnimatedStyle,
-
-  useSharedValue,
-
-  withSpring,
-
-useReducedMotion } from "react-native-reanimated";
+import Animated, { useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
 
 import { useRouter } from "expo-router";
 
@@ -73,36 +35,26 @@ import { useAppLanguage } from "@/i18n/LanguageProvider";
 import { ProfileAuthHero } from "@/features/profile/components/ProfileAuthHero";
 
 import { ProfileGuestHero } from "@/features/profile/components/ProfileGuestHero";
-import { ThemePickerSheet } from "@/features/profile/components/ThemePickerSheet";
-import { useThemeStore } from "@/stores/themeStore";
 
-import { PROFILE } from "@/features/profile/components/profile.styles";
+import { ThemePickerSheet } from "@/features/profile/components/ThemePickerSheet";
+
+import { useThemeStore } from "@/stores/themeStore";
 
 import { flexRow, isRtl, textAlignStart, FORWARD_CHEVRON } from "@/utils/layout";
 
 import { useTabSwipeGesture } from "@/shared/navigation/useTabSwipeGesture";
 
-
-
-type IoniconsName = React.ComponentProps<typeof Ionicons>["name"];
-
-
-
-const IS_RTL     = isRtl();
-
-const TEXT_START = textAlignStart(IS_RTL);
+import { theme } from "@pharmacy/design-tokens";
 
 
 
-const SPRING_PRESS = { damping: 22, stiffness: 420, mass: 0.7 } as const;
+const RTL = isRtl(), TA = textAlignStart(RTL);
+
+const SP = { damping: 22, stiffness: 420 } as const;
 
 
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-
-
-function waUrl(lang: string): string {
+const waUrl = (lang: string) => {
 
   const msg = lang === "en"
 
@@ -112,40 +64,31 @@ function waUrl(lang: string): string {
 
   return `https://wa.me/201112343212?text=${encodeURIComponent(msg)}`;
 
-}
+};
 
 
 
-// ─── SectionLabel ─────────────────────────────────────────────────────────────
+const SectionLabel = memo(function SectionLabel({ icon, label, accent }: {
 
-
-
-const SectionLabel = memo(function SectionLabel({
-
-  icon, label, accent = c.accentDeep,
-
-}: {
-
-  icon:    IoniconsName;
-
-  label:   string;
-
-  accent?: string;
+  icon: React.ComponentProps<typeof Ionicons>["name"]; label: string; accent?: string;
 
 }) {
 
   const { c } = useDarkColors();
+
+  const ac = accent ?? c.accentDeep;
+
   return (
 
-    <View style={[sl.row, { flexDirection: flexRow(IS_RTL) }]}>
+    <View style={[styles.slRow, { flexDirection: flexRow(RTL) }]}>
 
-      <View style={[sl.badge, { backgroundColor: `${accent}14`, borderColor: `${accent}28` }]}>
+      <View style={[styles.slBadge, { backgroundColor: `${ac}14`, borderColor: `${ac}28` }]}>
 
-        <Ionicons name={icon} size={15} color={accent} />
+        <Ionicons name={icon} size={15} color={ac} />
 
       </View>
 
-      <UIText style={[sl.label, { color: accent, textAlign: TEXT_START }]}>{label}</UIText>
+      <UIText style={[styles.slLbl, { color: ac, textAlign: TA }]}>{label}</UIText>
 
     </View>
 
@@ -155,154 +98,55 @@ const SectionLabel = memo(function SectionLabel({
 
 
 
-// ─── MenuRow ──────────────────────────────────────────────────────────────────
+const MenuRow = memo(function MenuRow({ icon, label, subtitle, onPress, badge, color, danger, last }: {
 
+  icon: React.ComponentProps<typeof Ionicons>["name"]; label: string; subtitle?: string; onPress: () => void; badge?: number | string; color?: string; danger?: boolean; last?: boolean;
 
-
-interface MenuRowProps {
-
-  icon:      IoniconsName;
-
-  label:     string;
-
-  subtitle?: string;
-
-  onPress:   () => void;
-
-  badge?:    number | string;
-
-  color?:    string;
-
-  danger?:   boolean;
-
-  last?:     boolean;
-
-}
-
-
-
-const MenuRow = memo(function MenuRow({
-
-  icon, label, subtitle, onPress, badge, color, danger, last,
-
-}: MenuRowProps) {
+}) {
 
   const { c } = useDarkColors();
-  const ic    = danger ? c.danger : (color ?? c.accentDeep);
+
+  const ic = danger ? c.danger : (color ?? c.accentDeep);
 
   const scale = useSharedValue(1);
 
-  const anim  = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
-
-
-
-  const handleIn    = useCallback(() => { scale.value = withSpring(0.985, SPRING_PRESS); }, [scale]);
-
-  const handleOut   = useCallback(() => { scale.value = withSpring(1,     SPRING_PRESS); }, [scale]);
-
-  const handlePress = useCallback(() => {
-
-    if (Platform.OS !== "web") Haptics.selectionAsync().catch(() => {});
-
-    onPress();
-
-  }, [onPress]);
-
-
+  const anim = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
 
   return (
 
-    <Pressable
+    <Pressable onPress={() => { if (Platform.OS !== "web") Haptics.selectionAsync().catch(() => {}); onPress(); }}
 
-      onPress={handlePress}
+      onPressIn={() => scale.value = withSpring(0.985, SP)}
 
-      onPressIn={handleIn}
+      onPressOut={() => scale.value = withSpring(1, SP)}
 
-      onPressOut={handleOut}
+      accessibilityRole="button" accessibilityLabel={subtitle ? `${label}, ${subtitle}` : label}>
 
-      accessibilityRole="button"
+      <Animated.View style={[styles.mrRow, !last && styles.mrSep, anim]}>
 
-      accessibilityLabel={subtitle ? `${label}, ${subtitle}` : label}>
-
-      <Animated.View style={[mr.row, !last && mr.sep, anim]}>
-
-
-
-        {/* Leading icon tile */}
-
-        <View style={[mr.iconTile, {
-
-          backgroundColor: danger ? c.dangerTint  : `${ic}14`,
-
-          borderColor:     danger ? "rgba(179,38,30,0.28)" : `${ic}26`,
-
-        }]}>
+        <View style={[styles.mrTile, { backgroundColor: danger ? c.dangerTint : `${ic}14`, borderColor: danger ? "rgba(179,38,30,0.28)" : `${ic}26` }]}>
 
           <Ionicons name={icon} size={20} color={ic} />
 
         </View>
 
+        <View style={styles.mrGrp}>
 
+          <UIText weight="bold" style={[styles.mrLbl, danger && { color: c.danger }]} numberOfLines={1}>{label}</UIText>
 
-        {/* Title + optional subtitle — flex:1 so the chevron stays at the
-
-            trailing edge. Vertical metrics are dictated by the label; the
-
-            subtitle floats underneath with a tight 16pt line-height so the
-
-            row's overall height grows only when a subtitle exists. */}
-
-        <View style={mr.textGroup}>
-
-          <UIText
-
-            weight="bold"
-
-            style={[mr.label, danger && { color: c.danger }]}
-
-            numberOfLines={1}>
-
-            {label}
-
-          </UIText>
-
-          {subtitle && (
-
-            <UIText weight="semibold" style={mr.sub} numberOfLines={1}>
-
-              {subtitle}
-
-            </UIText>
-
-          )}
+          {subtitle && <UIText weight="semibold" style={styles.mrSub} numberOfLines={1}>{subtitle}</UIText>}
 
         </View>
 
+        <View style={styles.mrEnd}>
 
+          {badge != null && <View style={[styles.mrPill, danger && styles.mrPillD]}> 
 
-        {/* Trailing cluster: optional badge + chevron well */}
+            <UIText weight="black" style={[styles.mrPillT, { color: danger ? c.danger : c.accentDeep }]}>{badge}</UIText>
 
-        <View style={mr.trailing}>
+          </View>}
 
-          {badge != null && (
-
-            <View style={[mr.badgePill, danger && mr.badgeDanger]}>
-
-              <UIText weight="black" style={[mr.badgeText, { color: danger ? c.danger : c.accentDeep }]}>
-
-                {badge}
-
-              </UIText>
-
-            </View>
-
-          )}
-
-          <View style={mr.chevronWell}>
-
-            <Ionicons name={FORWARD_CHEVRON} size={14} color={c.inkFaint} />
-
-          </View>
+          <View style={styles.mrChv}><Ionicons name={FORWARD_CHEVRON} size={14} color={c.inkFaint} /></View>
 
         </View>
 
@@ -316,75 +160,41 @@ const MenuRow = memo(function MenuRow({
 
 
 
-
-
-// ─── ProfileScreen ────────────────────────────────────────────────────────────
-
-
-
 export default function ProfileScreen() {
 
   const { c } = useDarkColors();
 
-
-
   const { gesture, animatedStyle } = useTabSwipeGesture("profile");
 
-  const router  = useRouter();
-
-  const insets  = useSafeAreaInsets();
-
-  const { t }                     = useTranslation();
+  const router = useRouter(), insets = useSafeAreaInsets(), { t } = useTranslation();
 
   const { language, setLanguage } = useAppLanguage();
 
-  const { user, signOut }         = useAuth();
+  const { user, signOut } = useAuth();
+
   const [showThemePicker, setShowThemePicker] = useState(false);
+
   const themeMode = useThemeStore(s => s.mode);
 
-  const cartCount     = useCartStore((s) => s.itemCount());
+  const cartCount = useCartStore(s => s.itemCount());
 
-  const wishlistCount = useWishlistStore((s) => s.items.length);
+  const wishlistCount = useWishlistStore(s => s.items.length);
 
-  const orders        = useOrderStore((s) => s.orders);
+  const orders = useOrderStore(s => s.orders);
 
   const [signingOut, setSigningOut] = useState(false);
 
-
-
-  const { orderCount, lastOrder } = useMemo(() => ({
-
-    orderCount: orders.length,
-
-    lastOrder:  orders[0] ?? null,
-
-  }), [orders]);
+  const orderCount = useMemo(() => orders.length, [orders]);
 
 
 
-  const goEditProfile   = useCallback(() => router.push("/edit-profile"),         [router]);
+  const go = useCallback((p: string) => () => router.push(p), [router]);
 
-  const goSecurity      = useCallback(() => router.push("/change-password"),      [router]);
+  const callWhatsApp = useCallback(() => Linking.openURL(waUrl(language)).catch(() => {}), [language]);
 
-  const goNotifications = useCallback(() => router.push("/(customer)/(account)/notifications"),        [router]);
+  const callPhone = useCallback(() => Linking.openURL("tel:01112343212").catch(() => {}), []);
 
-  const goAddresses     = useCallback(() => router.push("/(customer)/(account)/addresses"),            [router]);
-
-  const goPayment       = useCallback(() => router.push("/(customer)/(account)/payment"),              [router]);
-
-  const goFaq           = useCallback(() => router.push("/(customer)/(info)/faq"),                  [router]);
-
-  const goAbout         = useCallback(() => router.push("/(customer)/(info)/about"),                [router]);
-
-  const goPrivacy       = useCallback(() => router.push("/(customer)/(info)/privacy"),              [router]);
-
-  const goTerms         = useCallback(() => router.push("/(customer)/(info)/terms"),                [router]);
-
-  const callWhatsApp    = useCallback(() => Linking.openURL(waUrl(language)).catch(() => {}), [language]);
-
-  const callPhone       = useCallback(() => Linking.openURL("tel:01112343212").catch(() => {}), []);
-
-  const toggleLanguage  = useCallback(() => {
+  const toggleLanguage = useCallback(() => {
 
     if (Platform.OS !== "web") Haptics.selectionAsync().catch(() => {});
 
@@ -396,9 +206,7 @@ export default function ProfileScreen() {
 
   const handleSignOut = useCallback(async () => {
 
-    if (Platform.OS !== "web")
-
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
+    if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
 
     setSigningOut(true);
 
@@ -412,121 +220,31 @@ export default function ProfileScreen() {
 
     <GestureDetector gesture={gesture}>
 
-    <Animated.View style={[s.screen, animatedStyle]}>
+    <Animated.View style={[styles.screen, animatedStyle]}>
 
-      <ScrollView
+      <ScrollView contentContainerStyle={[styles.scroll, { paddingBottom: theme.layout.tabBarHeight + 32 }]} showsVerticalScrollIndicator={false}>
 
-        contentContainerStyle={[s.scroll, { paddingBottom: theme.layout.tabBarHeight + 32 }]}
+        {user
 
-        showsVerticalScrollIndicator={false}>
+          ? <ProfileAuthHero user={user} orderCount={orderCount} wishlistCount={wishlistCount} cartCount={cartCount} lastOrder={orders[0] ?? null} insetsTop={insets.top} />
 
-
-
-        {/* ── Hero ── */}
-
-        {user ? (
-
-          <ProfileAuthHero
-
-            user={user}
-
-            orderCount={orderCount}
-
-            wishlistCount={wishlistCount}
-
-            cartCount={cartCount}
-
-            lastOrder={lastOrder}
-
-            insetsTop={insets.top}
-
-          />
-
-        ) : (
-
-          <ProfileGuestHero insetsTop={insets.top} />
-
-        )}
+          : <ProfileGuestHero insetsTop={insets.top} />}
 
 
 
-        {/* ── Settings ── */}
+        <View style={styles.sec}>
 
-        <View style={s.section}>
+          <SectionLabel icon="person-outline" label={t("profile.sectionAccount")} />
 
-          <SectionLabel icon="settings-outline" label={t("profile.settingsSection")} accent={c.accentDeep} />
+          <View style={styles.card}>
 
-          <View style={s.card}>
+            {user && <MenuRow icon="create-outline" color={c.accent} label={t("profile.menuEditProfile")} subtitle={t("profile.menuEditProfileSubtitle")} onPress={go("/edit-profile")} />}
 
-            {user && (
+            <MenuRow icon="lock-closed-outline" color={c.inkSoft} label={t("profile.menuSecurity")} subtitle={t("profile.menuSecuritySubtitle")} onPress={go("/change-password")} />
 
-              <MenuRow
+            <MenuRow icon="language-outline" color="#2563EB" label={t("language.label")} subtitle={language === "ar" ? t("language.en") : t("language.ar")} onPress={toggleLanguage} />
 
-                icon="create-outline" color={c.accent}
-
-                label={t("profile.menuEditProfile")} subtitle={t("profile.menuEditProfileSubtitle")}
-
-                onPress={goEditProfile}
-
-              />
-
-            )}
-
-            <MenuRow
-
-              icon="language-outline" color="#2563EB"
-
-              label={t("language.label")} subtitle={language === "ar" ? t("language.en") : t("language.ar")}
-
-              onPress={toggleLanguage}
-
-            />
-
-            <MenuRow
-
-              icon="notifications-outline" color={c.warn}
-
-              label={t("profile.notifications")} subtitle={t("profile.notificationsSubtitle")}
-
-              onPress={goNotifications}
-
-            />
-
-            {user && (
-
-              <MenuRow
-
-                icon="lock-closed-outline" color={c.inkSoft}
-
-                label={t("profile.menuSecurity")} subtitle={t("profile.menuSecuritySubtitle")}
-
-                onPress={goSecurity}
-
-              />
-
-            )}
-
-            <MenuRow
-
-              icon="location-outline" color={c.success}
-
-              label={t("profile.menuAddresses")} subtitle={t("profile.menuAddressesSubtitle")}
-
-              onPress={goAddresses}
-
-            />
-
-            <MenuRow
-
-              icon="card-outline" color="#7C3AED"
-
-              label={t("profile.menuPayment")} subtitle={t("profile.menuPaymentSubtitle")}
-
-              onPress={goPayment}
-
-              last
-
-            />
+            <MenuRow icon="notifications-outline" color={c.warn} label={t("profile.notifications")} subtitle={t("profile.notificationsSubtitle")} onPress={go("/(customer)/(account)/notifications")} last />
 
           </View>
 
@@ -534,43 +252,15 @@ export default function ProfileScreen() {
 
 
 
-        {/* ── Support ── */}
+        <View style={styles.sec}>
 
-        <View style={s.section}>
+          <SectionLabel icon="cube-outline" label={t("profile.sectionDelivery")} accent={c.success} />
 
-          <SectionLabel icon="headset-outline" label={t("profile.sectionSupport")} accent={PROFILE.whatsappGreen} />
+          <View style={styles.card}>
 
-          <View style={s.card}>
+            <MenuRow icon="location-outline" color={c.success} label={t("profile.menuAddresses")} subtitle={t("profile.menuAddressesSubtitle")} onPress={go("/(customer)/(account)/addresses")} />
 
-            <MenuRow
-
-              icon="logo-whatsapp" color={PROFILE.whatsappGreen}
-
-              label={t("profile.whatsapp")} subtitle={t("profile.whatsappSubtitle")}
-
-              onPress={callWhatsApp}
-
-            />
-
-            <MenuRow
-
-              icon="call-outline" color={c.accent}
-
-              label={t("profile.callUs")} subtitle="01112343212"
-
-              onPress={callPhone}
-
-            />
-
-            <MenuRow
-
-              icon="help-circle-outline" color="#6366F1"
-
-              label={t("profile.faq")}
-
-              onPress={goFaq} last
-
-            />
+            <MenuRow icon="card-outline" color="#7C3AED" label={t("profile.menuPayment")} subtitle={t("profile.menuPaymentSubtitle")} onPress={go("/(customer)/(account)/payment")} last />
 
           </View>
 
@@ -578,19 +268,13 @@ export default function ProfileScreen() {
 
 
 
-        {/* ── About ── */}
+        <View style={styles.sec}>
 
-        <View style={s.section}>
+          <SectionLabel icon="bag-handle-outline" label={t("profile.sectionOrders")} />
 
-          <SectionLabel icon="information-circle-outline" label={t("profile.sectionAbout")} accent={c.inkSoft} />
+          <View style={styles.card}>
 
-          <View style={s.card}>
-
-            <MenuRow icon="business-outline"         color={c.accent}   label={t("profile.aboutPharmacy")} onPress={goAbout}   />
-
-            <MenuRow icon="document-text-outline"    color={c.inkSoft}  label={t("profile.privacy")}       onPress={goPrivacy} />
-
-            <MenuRow icon="shield-checkmark-outline" color={c.success}  label={t("profile.terms")}         onPress={goTerms}   last />
+            <MenuRow icon="receipt-outline" color={c.accentDeep} label={t("profile.orderHistory")} onPress={() => router.push("/(customer)/(account)/orders")} last />
 
           </View>
 
@@ -598,67 +282,81 @@ export default function ProfileScreen() {
 
 
 
-        {/* ── Sign out ── */}
+        <View style={styles.sec}>
+
+          <SectionLabel icon="settings-outline" label={t("profile.sectionPreferences")} accent={c.inkSoft} />
+
+          <View style={styles.card}>
+
+            <MenuRow icon="moon-outline" color="#6366F1" label={t("profile.theme")} subtitle={themeMode === "dark" ? t("profile.themeDark") : themeMode === "light" ? t("profile.themeLight") : t("profile.themeSystem")} onPress={() => setShowThemePicker(true)} last />
+
+          </View>
+
+        </View>
+
+
+
+        <View style={styles.sec}>
+
+          <SectionLabel icon="headset-outline" label={t("profile.sectionSupport")} accent="#16A34A" />
+
+          <View style={styles.card}>
+
+            <MenuRow icon="logo-whatsapp" color="#16A34A" label={t("profile.whatsapp")} subtitle={t("profile.whatsappSubtitle")} onPress={callWhatsApp} />
+
+            <MenuRow icon="call-outline" color={c.accent} label={t("profile.callUs")} subtitle="01112343212" onPress={callPhone} />
+
+            <MenuRow icon="help-circle-outline" color="#6366F1" label={t("profile.faq")} onPress={go("/(customer)/(info)/faq")} last />
+
+          </View>
+
+        </View>
+
+
+
+        <View style={styles.sec}>
+
+          <SectionLabel icon="document-text-outline" label={t("profile.sectionLegal")} />
+
+          <View style={styles.card}>
+
+            <MenuRow icon="business-outline" color={c.accent} label={t("profile.aboutPharmacy")} onPress={go("/(customer)/(info)/about")} />
+
+            <MenuRow icon="shield-checkmark-outline" color={c.success} label={t("profile.privacy")} onPress={go("/(customer)/(info)/privacy")} />
+
+            <MenuRow icon="document-text-outline" color={c.inkSoft} label={t("profile.terms")} onPress={go("/(customer)/(info)/terms")} last />
+
+          </View>
+
+        </View>
+
+
 
         {user && (
 
-          <View style={s.dangerWrap}>
+          <View style={styles.dWrap}>
 
-            <Pressable
-
-              onPress={handleSignOut}
-
-              disabled={signingOut}
-
-              accessibilityRole="button"
-
-              accessibilityLabel={t("profile.logout")}
-
-              style={s.dangerCard}>
+            <Pressable onPress={handleSignOut} disabled={signingOut} accessibilityRole="button" accessibilityLabel={t("profile.logout")} style={styles.dCard}>
 
               {({ pressed }) => (
 
-                <View style={[s.dangerCardInner, pressed && s.dangerCardPressed]}>
+                <View style={[styles.dInner, pressed && styles.dPress]}>
 
-                  {/* Leading cluster: icon + label/subtitle stack */}
+                  <View style={styles.dLead}>
 
-                  <View style={s.dangerLeading}>
+                    <View style={styles.dIcon}><Ionicons name="log-out-outline" size={20} color={c.danger} /></View>
 
-                    <View style={s.dangerIconWell}>
+                    <View style={{ flex: 1, gap: 2 }}>
 
-                      <Ionicons name="log-out-outline" size={20} color={c.danger} />
+                      <UIText style={styles.dLbl} numberOfLines={1}>{signingOut ? t("common.loading") : t("profile.logout")}</UIText>
 
-                    </View>
-
-                    <View style={s.dangerTextStack}>
-
-                      <UIText style={s.dangerLabel} numberOfLines={1}>
-
-                        {signingOut ? t("common.loading") : t("profile.logout")}
-
-                      </UIText>
-
-                      <UIText style={s.dangerSubtitle} numberOfLines={1}>
-
-                        {t("profile.logoutSubtitle")}
-
-                      </UIText>
+                      <UIText style={styles.dSub} numberOfLines={1}>{t("profile.logoutSubtitle")}</UIText>
 
                     </View>
 
                   </View>
 
-                  {/* Trailing chevron — pinned to the row's end edge */}
-
-                  <Ionicons
-
-                    name={FORWARD_CHEVRON}
-
-                    size={16}
-
-                    color="rgba(179,38,30,0.55)"
-
-                  />
+                  <Ionicons name={FORWARD_CHEVRON} size={16} color="rgba(179,38,30,0.55)" />
 
                 </View>
 
@@ -672,25 +370,21 @@ export default function ProfileScreen() {
 
 
 
-        {/* ── Footer ── */}
+        <View style={styles.foot}>
 
-        <View style={s.footer}>
-
-          <View style={[s.footerPill, { flexDirection: flexRow(IS_RTL) }]}>
+          <View style={[styles.fPill, { flexDirection: flexRow(RTL) }]}> 
 
             <Ionicons name="medkit" size={12} color={c.accentDeep} />
 
-            <UIText style={s.footerBrand}>{t("profile.footerName")}</UIText>
+            <UIText style={styles.fBrand}>{t("profile.footerName")}</UIText>
 
           </View>
 
-          <UIText style={s.footerName}>United Pharmacies</UIText>
+          <UIText style={styles.fName}>United Pharmacies</UIText>
 
-          <UIText style={s.footerVersion}>{t("profile.version", { ver: "1.0.0" })}</UIText>
+          <UIText style={styles.fVer}>{t("profile.version", { ver: "1.0.0" })}</UIText>
 
         </View>
-
-
 
       </ScrollView>
 
@@ -706,485 +400,72 @@ export default function ProfileScreen() {
 
 
 
-// ─── SectionLabel styles ──────────────────────────────────────────────────────
+const styles = StyleSheet.create({
 
+  slRow: { alignItems: "center", gap: 10, paddingHorizontal: theme.layout.pagePaddingH, marginBottom: 12 },
 
+  slBadge: { width: 32, height: 32, borderRadius: 11, alignItems: "center", justifyContent: "center", borderWidth: 1 },
 
-const sl = StyleSheet.create({
+  slLbl: { fontFamily: theme.fonts.black, fontSize: 13, lineHeight: 18, letterSpacing: 0.3, includeFontPadding: false },
 
-  row: {
 
-    alignItems:        "center",
 
-    gap:               10,
+  mrRow: { flexDirection: flexRow(RTL), alignItems: "center", paddingVertical: 14, paddingHorizontal: 16, backgroundColor: kit.color.surface, gap: 14, minHeight: 56 },
 
-    paddingHorizontal: theme.layout.pagePaddingH,
+  mrSep: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: kit.color.line },
 
-    marginBottom:      12,
+  mrTile: { width: 44, height: 44, borderRadius: 14, alignItems: "center", justifyContent: "center", borderWidth: 1, flexShrink: 0 },
 
-  },
+  mrGrp: { flex: 1, gap: 2, justifyContent: "center", flexShrink: 1 },
 
-  badge: {
+  mrLbl: { fontSize: 14, lineHeight: 20, color: kit.color.ink, letterSpacing: -0.1, textAlign: TA, includeFontPadding: false },
 
-    width:          32,
+  mrSub: { fontSize: 11, lineHeight: 16, color: kit.color.inkFaint, textAlign: TA, letterSpacing: 0.1, includeFontPadding: false },
 
-    height:         32,
+  mrEnd: { flexDirection: flexRow(RTL), alignItems: "center", gap: 8, flexShrink: 0 },
 
-    borderRadius:   11,
+  mrChv: { width: 22, height: 22, alignItems: "center", justifyContent: "center" },
 
-    alignItems:     "center",
+  mrPill: { minWidth: 26, height: 24, borderRadius: 12, alignItems: "center", justifyContent: "center", paddingHorizontal: 8, backgroundColor: kit.color.accentTint, borderWidth: 1, borderColor: "rgba(14,126,116,0.18)" },
 
-    justifyContent: "center",
+  mrPillD: { backgroundColor: kit.color.dangerTint, borderColor: "rgba(179,38,30,0.3)" },
 
-    borderWidth:    1,
+  mrPillT: { fontSize: 10, lineHeight: 14, letterSpacing: 0.2, includeFontPadding: false },
 
-  },
 
-  label: {
 
-    fontFamily:         theme.fonts.black,
-
-    fontSize:           13,
-
-    lineHeight:         18,
-
-    letterSpacing:      0.3,
-
-    includeFontPadding: false,
-
-  },
-
-});
-
-
-
-// ─── MenuRow styles ───────────────────────────────────────────────────────────
-
-
-
-const mr = StyleSheet.create({
-
-  row: {
-
-    flexDirection:     flexRow(IS_RTL),
-
-    alignItems:        "center",
-
-    paddingVertical:   14,
-
-    paddingHorizontal: 16,
-
-    backgroundColor:   c.surface,
-
-    gap:               14,
-
-    minHeight:         64,
-
-  },
-
-  sep: {
-
-    borderBottomWidth: StyleSheet.hairlineWidth,
-
-    borderBottomColor: c.line,
-
-  },
-
-  iconTile: {
-
-    width:          44,
-
-    height:         44,
-
-    borderRadius:   14,
-
-    alignItems:     "center",
-
-    justifyContent: "center",
-
-    borderWidth:    1,
-
-    flexShrink:     0,
-
-  },
-
-  textGroup: {
-
-    flex:           1,
-
-    gap:            2,
-
-    justifyContent: "center",
-
-    flexShrink:     1,
-
-  },
-
-  label: {
-
-    fontSize:           14,
-
-    lineHeight:         20,
-
-    color:              c.ink,
-
-    letterSpacing:      -0.1,
-
-    textAlign:          TEXT_START,
-
-    includeFontPadding: false,
-
-  },
-
-  sub: {
-
-    fontSize:           11,
-
-    lineHeight:         16,
-
-    color:              c.inkFaint,
-
-    textAlign:          TEXT_START,
-
-    letterSpacing:      0.1,
-
-    includeFontPadding: false,
-
-  },
-
-  trailing: {
-
-    flexDirection: flexRow(IS_RTL),
-
-    alignItems:    "center",
-
-    gap:           8,
-
-    flexShrink:    0,
-
-  },
-
-  chevronWell: {
-
-    width:          22,
-
-    height:         22,
-
-    alignItems:     "center",
-
-    justifyContent: "center",
-
-  },
-
-  badgePill: {
-
-    minWidth:          26,
-
-    height:            24,
-
-    borderRadius:      12,
-
-    alignItems:        "center",
-
-    justifyContent:    "center",
-
-    paddingHorizontal: 8,
-
-    backgroundColor:   c.accentTint,
-
-    borderWidth:       1,
-
-    borderColor:       "rgba(14,126,116,0.18)",
-
-  },
-
-  badgeDanger: {
-
-    backgroundColor: c.dangerTint,
-
-    borderColor:     "rgba(179,38,30,0.3)",
-
-  },
-
-  badgeText: {
-
-    fontSize:           10,
-
-    lineHeight:         14,
-
-    letterSpacing:      0.2,
-
-    includeFontPadding: false,
-
-  },
-
-});
-
-
-
-
-
-// ─── Screen styles ────────────────────────────────────────────────────────────
-
-
-
-const s = StyleSheet.create({
-
-  screen: {
-
-    flex:            1,
-
-    backgroundColor: c.canvas,
-
-  },
+  screen: { flex: 1, backgroundColor: kit.color.canvas },
 
   scroll: {},
 
+  sec: { marginTop: kit.sp(7) },
 
+  card: { marginHorizontal: theme.layout.pagePaddingH, backgroundColor: kit.color.surface, borderRadius: kit.radius.lg, overflow: "hidden", borderWidth: 1, borderColor: kit.color.line, ...kit.shadow.raised },
 
-  section: {
+  dWrap: { paddingHorizontal: theme.layout.pagePaddingH, marginTop: kit.sp(5) },
 
-    marginTop: kit.sp(7),
+  dCard: { borderRadius: kit.radius.lg, overflow: "hidden" },
 
-  },
+  dInner: { flexDirection: flexRow(RTL), alignItems: "center", justifyContent: "space-between", gap: 12, backgroundColor: kit.color.dangerTint, borderRadius: kit.radius.lg, paddingVertical: 14, paddingHorizontal: 16, borderWidth: 1.5, borderColor: "rgba(179,38,30,0.32)", ...kit.shadow.raised },
 
+  dPress: { opacity: 0.88, transform: [{ scale: 0.99 }] },
 
+  dLead: { flex: 1, flexDirection: flexRow(RTL), alignItems: "center", gap: 14, flexShrink: 1 },
 
-  card: {
+  dIcon: { width: 44, height: 44, borderRadius: 14, backgroundColor: "rgba(179,38,30,0.13)", borderWidth: 1, borderColor: "rgba(179,38,30,0.28)", alignItems: "center", justifyContent: "center", flexShrink: 0 },
 
-    marginHorizontal: theme.layout.pagePaddingH,
+  dLbl: { fontFamily: theme.fonts.extrabold, fontSize: 14, lineHeight: 20, letterSpacing: -0.1, color: kit.color.danger, textAlign: TA, includeFontPadding: false },
 
-    backgroundColor:  c.surface,
+  dSub: { fontFamily: theme.fonts.regular, fontSize: 11.5, lineHeight: 16, color: "rgba(179,38,30,0.65)", textAlign: TA, includeFontPadding: false },
 
-    borderRadius:     kit.radius.lg,
+  foot: { alignItems: "center", marginTop: kit.sp(5), paddingBottom: kit.sp(4), gap: 6 },
 
-    overflow:         "hidden",
+  fPill: { alignItems: "center", gap: 6, backgroundColor: kit.color.accentTint, borderRadius: kit.radius.pill, paddingHorizontal: 14, paddingVertical: 7, borderWidth: 1, borderColor: kit.color.line },
 
-    borderWidth:      1,
+  fBrand: { fontFamily: theme.fonts.bold, fontSize: 12, lineHeight: 17, color: kit.color.accentDeep, includeFontPadding: false },
 
-    borderColor:      c.line,
+  fName: { fontFamily: theme.fonts.regular, fontSize: 11, lineHeight: 16, color: kit.color.inkFaint, includeFontPadding: false },
 
-    ...kit.shadow.raised,
-
-  },
-
-
-
-  dangerWrap: {
-
-    paddingHorizontal: theme.layout.pagePaddingH,
-
-    marginTop:         kit.sp(5),
-
-  },
-
-  // Sign-out: explicit row layout, justify space-between.
-
-  // Leading cluster = icon + label/subtitle stack; trailing = chevron.
-
-  // dangerCard is the bare Pressable — visual styling lives on dangerCardInner
-
-  // (a plain View) so the Pressable's own style prop never needs a gap-bearing
-
-  // function-computed array, which has been unreliable in this RN/Fabric setup.
-
-  dangerCard: {
-
-    borderRadius: kit.radius.lg,
-
-    overflow:     "hidden",
-
-  },
-
-  dangerCardInner: {
-
-    flexDirection:     flexRow(IS_RTL),
-
-    alignItems:        "center",
-
-    justifyContent:    "space-between",
-
-    gap:               12,
-
-    backgroundColor:   c.dangerTint,
-
-    borderRadius:      kit.radius.lg,
-
-    paddingVertical:   14,
-
-    paddingHorizontal: 16,
-
-    borderWidth:       1.5,
-
-    borderColor:       "rgba(179,38,30,0.32)",
-
-    ...kit.shadow.raised,
-
-  },
-
-  dangerCardPressed: {
-
-    opacity:   0.88,
-
-    transform: [{ scale: 0.99 }],
-
-  },
-
-  dangerLeading: {
-
-    flex:          1,
-
-    flexDirection: flexRow(IS_RTL),
-
-    alignItems:    "center",
-
-    gap:           14,
-
-    flexShrink:    1,
-
-  },
-
-  dangerIconWell: {
-
-    width:           44,
-
-    height:          44,
-
-    borderRadius:    14,
-
-    backgroundColor: "rgba(179,38,30,0.13)",
-
-    borderWidth:     1,
-
-    borderColor:     "rgba(179,38,30,0.28)",
-
-    alignItems:      "center",
-
-    justifyContent:  "center",
-
-    flexShrink:      0,
-
-  },
-
-  dangerTextStack: {
-
-    flex: 1,
-
-    gap:  2,
-
-  },
-
-  dangerLabel: {
-
-    fontFamily:         theme.fonts.extrabold,
-
-    fontSize:           14,
-
-    lineHeight:         20,
-
-    letterSpacing:      -0.1,
-
-    color:              c.danger,
-
-    textAlign:          TEXT_START,
-
-    includeFontPadding: false,
-
-  },
-
-  dangerSubtitle: {
-
-    fontFamily:         theme.fonts.regular,
-
-    fontSize:           11.5,
-
-    lineHeight:         16,
-
-    color:              "rgba(179,38,30,0.65)",
-
-    textAlign:          TEXT_START,
-
-    includeFontPadding: false,
-
-  },
-
-
-
-  footer: {
-
-    alignItems:    "center",
-
-    marginTop:     kit.sp(5),
-
-    paddingBottom: kit.sp(4),
-
-    gap:           6,
-
-  },
-
-  footerPill: {
-
-    alignItems:        "center",
-
-    gap:               6,
-
-    backgroundColor:   c.accentTint,
-
-    borderRadius:      kit.radius.pill,
-
-    paddingHorizontal: 14,
-
-    paddingVertical:   7,
-
-    borderWidth:       1,
-
-    borderColor:       c.line,
-
-  },
-
-  footerBrand: {
-
-    fontFamily:         theme.fonts.bold,
-
-    fontSize:           12,
-
-    lineHeight:         17,
-
-    color:              c.accentDeep,
-
-    includeFontPadding: false,
-
-  },
-
-  footerName: {
-
-    fontFamily:         theme.fonts.regular,
-
-    fontSize:           11,
-
-    lineHeight:         16,
-
-    color:              c.inkFaint,
-
-    includeFontPadding: false,
-
-  },
-
-  footerVersion: {
-
-    fontFamily:         theme.fonts.regular,
-
-    fontSize:           10,
-
-    lineHeight:         14,
-
-    color:              c.inkFaint,
-
-    includeFontPadding: false,
-
-    marginTop:          kit.sp(1),
-
-  },
+  fVer: { fontFamily: theme.fonts.regular, fontSize: 10, lineHeight: 14, color: kit.color.inkFaint, includeFontPadding: false, marginTop: kit.sp(1) },
 
 });
-

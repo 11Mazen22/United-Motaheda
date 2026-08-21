@@ -104,13 +104,9 @@
         "origin": false
       },
       "eas": {
-        "projectId": "cc0dea9d-00d1-4ac8-9923-426fe3ba1c52"
+        "projectId": "fa2c9eec-4491-41f9-92bb-892a56bcc578"
       }
     },
-    "runtimeVersion": "1.0.0",
-    "updates": {
-      "url": "https://u.expo.dev/cc0dea9d-00d1-4ac8-9923-426fe3ba1c52"
-    },
-    "owner": "mazen-moham"
+    "runtimeVersion": "1.0.0"
   }
 }

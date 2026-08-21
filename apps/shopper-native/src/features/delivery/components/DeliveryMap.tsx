@@ -92,7 +92,7 @@ import Animated, {
 
   withSequence,
 
-useReducedMotion } from "react-native-reanimated";
+} from "react-native-reanimated";
 
 
 
@@ -980,7 +980,7 @@ export function DeliveryMap({
 
       deliveryBranches.map((b) => ({ latitude: b.lat, longitude: b.lng })),
 
-      { edgePadding: { top: 60, end: 60, bottom: 160, start: 60 }, animated: true },
+      { edgePadding: { top: 60, right: 60, bottom: 160, left: 60 }, animated: true },
 
     );
 

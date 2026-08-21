@@ -1,27 +1,15 @@
 /**
-
  * AnalyticsDashboardScreen — live KPI dashboard for the pharmacist.
-
  *
-
  * Sections:
-
  *   1. Today's headline metrics (orders, revenue, cancellations)
-
  *   2. Order funnel — count per status in the active queue
-
  *   3. Prescription pipeline — pending / approved / rejected today
-
  *   4. Inventory health — low-stock count, out-of-stock count
-
  *   5. Hourly order bar chart (lightweight SVG-free bar built with Box)
-
  *
-
  * Data sources: all existing pharmacist API queries — no new endpoints needed.
-
  * Auto-refreshes every 60 s (matches usePharmacistDashboard refetchInterval).
-
  */
 
 
@@ -111,14 +99,13 @@ function MetricRow({
 
 }) {
 
-  const { c } = useDarkColors();
+  const { c: _c } = useDarkColors();
+
   return (
 
     <View style={[mrStyles.root, { flexDirection: flexRow(IS_RTL) }]}>
 
-      <View style={[mrStyles.iconWell, { backgroundColor: iconBg }]}>
-
-        <Ionicons name={icon} size={16} color={iconColor} />
+      <View style={[mrStyles.iconWell, { backgroundColor: iconBg }]}>        <Ionicons name={icon} size={16} color={iconColor} />
 
       </View>
 
@@ -184,14 +171,13 @@ function Section({
 
 }) {
 
-  const { c } = useDarkColors();
+  const { c: _c } = useDarkColors();
+
   return (
 
     <Animated.View entering={FadeInDown.delay(delay).duration(280)} style={scStyles.root}>
 
-      <View style={[scStyles.header, { flexDirection: flexRow(IS_RTL) }]}>
-
-        <View style={scStyles.iconWell}>
+      <View style={[scStyles.header, { flexDirection: flexRow(IS_RTL) }]}>        <View style={scStyles.iconWell}>
 
           <Ionicons name={icon} size={14} color={kit.color.accentDeep} />
 
@@ -285,7 +271,8 @@ function MiniBarChart({
 
 }) {
 
-  const { c } = useDarkColors();
+  const { c: _c } = useDarkColors();
+
   const max = Math.max(...data, 1);
 
   return (
@@ -298,9 +285,7 @@ function MiniBarChart({
 
       </UIText>
 
-      <View style={[bcStyles.bars, { flexDirection: flexRow(IS_RTL) }]}>
-
-        {data.map((v, i) => (
+      <View style={[bcStyles.bars, { flexDirection: flexRow(IS_RTL) }]}>        {data.map((v, i) => (
 
           <View key={i} style={bcStyles.barCol}>
 
@@ -372,14 +357,11 @@ function BigKpi({
 
 }) {
 
-  const { c } = useDarkColors();
   return (
 
     <View style={bkStyles.card}>
 
-      <View style={[bkStyles.iconWell, { backgroundColor: iconBg }]}>
-
-        <Ionicons name={icon} size={20} color={iconColor} />
+      <View style={[bkStyles.iconWell, { backgroundColor: iconBg }]}>        <Ionicons name={icon} size={20} color={iconColor} />
 
       </View>
 
@@ -422,11 +404,7 @@ const bkStyles = StyleSheet.create({
 export function AnalyticsDashboardScreen(): React.ReactElement {
 
   const { c } = useDarkColors();
-  
-  
-  
-  
-  
+
   const { t }       = useTranslation();
 
   const queryClient = useQueryClient();
@@ -475,17 +453,17 @@ export function AnalyticsDashboardScreen(): React.ReactElement {
 
   const funnelData: { status: string; count: number; color: string }[] = [
 
-    { status: t("pharmacist.statusPending"),         count: orders.filter((o) => o.status === "pending").length,          color: kit.color.warn },
+    { status: t("pharmacist.statusPending"),         count: orders.filter((o) => o.status === "pending").length,          color: c.warn },
 
-    { status: t("pharmacist.statusVerification"),    count: orders.filter((o) => o.status === "verification").length,     color: "#7C3AED"      },
+    { status: t("pharmacist.statusVerification"),    count: orders.filter((o) => o.status === "verification").length,     color: c.accentDeep },
 
-    { status: t("pharmacist.statusPaymentPending"),  count: orders.filter((o) => o.status === "payment_pending").length,  color: "#B45309"      },
+    { status: t("pharmacist.statusPaymentPending"),  count: orders.filter((o) => o.status === "payment_pending").length,  color: c.accentDeep },
 
-    { status: t("pharmacist.statusPaymentApproved"), count: orders.filter((o) => o.status === "payment_approved").length, color: kit.color.success },
+    { status: t("pharmacist.statusPaymentApproved"), count: orders.filter((o) => o.status === "payment_approved").length, color: c.success },
 
-    { status: t("pharmacist.statusPreparing"),       count: orders.filter((o) => o.status === "preparing").length,        color: kit.color.accentDeep },
+    { status: t("pharmacist.statusPreparing"),       count: orders.filter((o) => o.status === "preparing").length,        color: c.accentDeep },
 
-    { status: t("pharmacist.statusReady"),           count: orders.filter((o) => o.status === "ready").length,            color: kit.color.accent },
+    { status: t("pharmacist.statusReady"),           count: orders.filter((o) => o.status === "ready").length,            color: c.accent },
 
   ].filter((d) => d.count > 0);
 
@@ -523,13 +501,13 @@ export function AnalyticsDashboardScreen(): React.ReactElement {
 
   return (
 
-    <Screen edgeTop background={kit.color.canvas}>
+    <Screen edgeTop background={c.canvas}>
 
-      {/* Header with teal gradient */}
+      {/* Header with gradient */}
 
       <LinearGradient
 
-        colors={[kit.color.accentDeep, kit.color.accent]}
+        colors={[c.accentDeep, c.accent]}
 
         start={{ x: 0, y: 0 }}
 
@@ -539,9 +517,7 @@ export function AnalyticsDashboardScreen(): React.ReactElement {
 
       >
 
-        <View style={styles.headerInner}>
-
-          <UIText style={styles.headerTitle}>
+        <View style={styles.headerInner}>          <UIText style={styles.headerTitle}>
 
             {t("pharmacist.analyticsTitle", "لوحة التحليلات")}
 
@@ -561,7 +537,7 @@ export function AnalyticsDashboardScreen(): React.ReactElement {
 
       {isLoading ? (
 
-        <View style={styles.centered}><ActivityIndicator size="large" color={kit.color.accent} /></View>
+        <View style={styles.centered}><ActivityIndicator size="large" color={c.accent} /></View>
 
       ) : (
 
@@ -579,7 +555,7 @@ export function AnalyticsDashboardScreen(): React.ReactElement {
 
               onRefresh={onRefresh}
 
-              tintColor={kit.color.accent}
+              tintColor={c.accent}
 
             />
 
@@ -587,11 +563,9 @@ export function AnalyticsDashboardScreen(): React.ReactElement {
 
         >
 
-          {/* ── Headline KPIs — 2×2 ─────────────────────────────────── */}
+          {/* Headline KPIs — 2×2 */}
 
-          <Animated.View entering={FadeInDown.delay(0).duration(280)} style={styles.kpiRow}>
-
-            <BigKpi
+          <Animated.View entering={FadeInDown.delay(0).duration(280)} style={styles.kpiRow}>            <BigKpi
 
               value={stats?.activeOrders ?? 0}
 
@@ -599,9 +573,9 @@ export function AnalyticsDashboardScreen(): React.ReactElement {
 
               icon="bag-handle-outline"
 
-              iconColor={kit.color.accentDeep}
+              iconColor={c.accentDeep}
 
-              iconBg={kit.color.accentTint}
+              iconBg={c.accentTint}
 
             />
 
@@ -613,17 +587,15 @@ export function AnalyticsDashboardScreen(): React.ReactElement {
 
               icon="cash-outline"
 
-              iconColor={kit.color.success}
+              iconColor={c.success}
 
-              iconBg={kit.color.successTint}
+              iconBg={c.successTint}
 
             />
 
           </Animated.View>
 
-          <Animated.View entering={FadeInDown.delay(40).duration(280)} style={[styles.kpiRow, { marginTop: 10 }]}>
-
-            <BigKpi
+          <Animated.View entering={FadeInDown.delay(40).duration(280)} style={[styles.kpiRow, { marginTop: 10 }]}>            <BigKpi
 
               value={stats?.deliveredToday ?? 0}
 
@@ -631,9 +603,9 @@ export function AnalyticsDashboardScreen(): React.ReactElement {
 
               icon="checkmark-circle-outline"
 
-              iconColor={kit.color.success}
+              iconColor={c.success}
 
-              iconBg={kit.color.successTint}
+              iconBg={c.successTint}
 
             />
 
@@ -645,9 +617,9 @@ export function AnalyticsDashboardScreen(): React.ReactElement {
 
               icon="close-circle-outline"
 
-              iconColor={kit.color.danger}
+              iconColor={c.danger}
 
-              iconBg={kit.color.dangerTint}
+              iconBg={c.dangerTint}
 
             />
 
@@ -655,7 +627,7 @@ export function AnalyticsDashboardScreen(): React.ReactElement {
 
 
 
-          {/* ── Order funnel ─────────────────────────────────────────── */}
+          {/* Order funnel */}
 
           {funnelData.length > 0 && (
 
@@ -667,17 +639,11 @@ export function AnalyticsDashboardScreen(): React.ReactElement {
 
               delay={80}
 
-            >
+            >              {funnelData.map((d, i) => (
 
-              {funnelData.map((d, i) => (
+                <View key={d.status}>                  {i > 0 && <View style={styles.divider} />}
 
-                <View key={d.status}>
-
-                  {i > 0 && <View style={styles.divider} />}
-
-                  <View style={[styles.funnelRow, { flexDirection: flexRow(IS_RTL) }]}>
-
-                    <View style={[styles.funnelDot, { backgroundColor: d.color }]} />
+                  <View style={[styles.funnelRow, { flexDirection: flexRow(IS_RTL) }]}>                    <View style={[styles.funnelDot, { backgroundColor: d.color }]} />
 
                     <UIText variant="body-sm" style={{ flex: 1, textAlign: TEXT_START }}>
 
@@ -699,7 +665,7 @@ export function AnalyticsDashboardScreen(): React.ReactElement {
 
 
 
-          {/* ── Prescription pipeline ───────────────────────────────── */}
+          {/* Prescription pipeline */}
 
           <Section
 
@@ -709,23 +675,21 @@ export function AnalyticsDashboardScreen(): React.ReactElement {
 
             delay={120}
 
-          >
-
-            <MetricRow label={t("pharmacist.rxPending")}  value={rxPending}  icon="time-outline"             iconColor={kit.color.warn}    iconBg={kit.color.warnTint} />
+          >            <MetricRow label={t("pharmacist.rxPending")}  value={rxPending}  icon="time-outline"             iconColor={c.warn}    iconBg={c.warnTint} />
 
             <View style={styles.divider} />
 
-            <MetricRow label={t("pharmacist.rxApproved")} value={rxApproved} icon="checkmark-circle-outline" iconColor={kit.color.success}  iconBg={kit.color.successTint} />
+            <MetricRow label={t("pharmacist.rxApproved")} value={rxApproved} icon="checkmark-circle-outline" iconColor={c.success}  iconBg={c.successTint} />
 
             <View style={styles.divider} />
 
-            <MetricRow label={t("pharmacist.rxRejected")} value={rxRejected} icon="close-circle-outline"     iconColor={kit.color.danger}   iconBg={kit.color.dangerTint} />
+            <MetricRow label={t("pharmacist.rxRejected")} value={rxRejected} icon="close-circle-outline"     iconColor={c.danger}   iconBg={c.dangerTint} />
 
           </Section>
 
 
 
-          {/* ── Inventory health ─────────────────────────────────────── */}
+          {/* Inventory health */}
 
           <Section
 
@@ -735,9 +699,7 @@ export function AnalyticsDashboardScreen(): React.ReactElement {
 
             delay={160}
 
-          >
-
-            <MetricRow
+          >            <MetricRow
 
               label={t("pharmacist.statLowStock")}
 
@@ -745,9 +707,9 @@ export function AnalyticsDashboardScreen(): React.ReactElement {
 
               icon="alert-circle-outline"
 
-              iconColor={kit.color.danger}
+              iconColor={c.danger}
 
-              iconBg={kit.color.dangerTint}
+              iconBg={c.dangerTint}
 
               caption={t("pharmacist.analyticsLowStockCaption", "مخزون أقل من 5 وحدات")}
 
@@ -757,7 +719,7 @@ export function AnalyticsDashboardScreen(): React.ReactElement {
 
 
 
-          {/* ── Hourly bar chart ─────────────────────────────────────── */}
+          {/* Hourly bar chart */}
 
           {hourlyData.some((v) => v > 0) && (
 
@@ -769,9 +731,7 @@ export function AnalyticsDashboardScreen(): React.ReactElement {
 
               delay={200}
 
-            >
-
-              <MiniBarChart
+            >              <MiniBarChart
 
                 data={hourlyData}
 
@@ -874,4 +834,3 @@ const styles = StyleSheet.create({
   divider:     { height: StyleSheet.hairlineWidth, backgroundColor: kit.color.line, marginVertical: 2 },
 
 });
-

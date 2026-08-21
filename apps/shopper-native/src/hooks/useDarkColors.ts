@@ -8,7 +8,8 @@ export function useDarkColors() {
   
   const isDark = manualMode === 'dark' || (manualMode === 'system' && scheme === 'dark');
   
-  // kit.darkColor provides the dark token mapping
-  const c = isDark && (kit as any).darkColor ? (kit as any).darkColor : kit.color;
-  return { c, isDark };
+  // Support both historical call styles: `const c = useDarkColors()` and
+  // `const { c } = useDarkColors()` while the native screens are migrated.
+  const colors = isDark ? kit.darkColor : kit.color;
+  return { ...colors, c: colors, isDark };
 }

@@ -1,6 +1,6 @@
 import React from "react";
 import { Platform, Pressable, ScrollView, StyleSheet, View } from "react-native";
-import { Text as UIText } from "@pharmacy/ui-native";
+import { Text as UIText, kit } from "@pharmacy/ui-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import Animated, { FadeIn } from "react-native-reanimated";

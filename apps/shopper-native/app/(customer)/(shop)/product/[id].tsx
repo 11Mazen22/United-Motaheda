@@ -1,13 +1,12 @@
 /**
- * Product Detail Page — Phase 4 Redesign.
- * A complete commerce experience synchronized with the canonical cart.
+ * Product Detail Page — Commerce-focused redesign.
  */
 import React, { useMemo, useEffect, useCallback } from "react";
 import { View, StyleSheet, ScrollView, Platform, Pressable } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Image } from "expo-image";
-import Animated, { FadeIn, FadeOut, SlideInDown, SlideOutDown } from "react-native-reanimated";
+import Animated, { SlideInDown, SlideOutDown } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import * as Haptics from "expo-haptics";
@@ -16,7 +15,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { CustomerUI } from "@pharmacy/ui-native";
 import { isRtl, flexRow, textAlignStart } from "@/utils/layout";
 
-// Data Hooks
 import { useProduct } from "@/features/products/hooks/useProduct";
 import { useRelatedProducts } from "@/features/recommendations/hooks/useRelatedProducts";
 import { useRecentlyViewedStore } from "@/features/products/stores/recentlyViewedStore";
@@ -29,7 +27,7 @@ const DEFAULT_BLURHASH = "L6PZfSi_.AyE_3t7t7R**0o#DgR4";
 
 function RelatedProductsSection({ productId }: { productId: string }) {
   const { data, isLoading } = useRelatedProducts(productId);
-  const theme = CustomerUI.useLuxuryTheme();
+  const theme = CustomerUI.useCustomerTheme();
   const { t } = useTranslation();
   const router = useRouter();
 
@@ -39,14 +37,14 @@ function RelatedProductsSection({ productId }: { productId: string }) {
   return (
     <View style={styles.relatedSection}>
       <CustomerUI.Typography variant="h4" weight="bold" color={theme.colors.ink} style={styles.sectionTitle}>
-        {t("products.related")}
+        {t("product.related")}
       </CustomerUI.Typography>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.relatedScroll}>
         {data.map(p => (
           <View key={p.id} style={{ width: 160 }}>
-            <ProductCard 
-              product={p} 
-              onPress={() => router.push(`/(customer)/(shop)/product/${p.id}`)} 
+            <ProductCard
+              product={p}
+              onPress={() => router.push(`/(customer)/(shop)/product/${p.id}`)}
             />
           </View>
         ))}
@@ -60,26 +58,28 @@ export default function ProductDetailScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { t, i18n } = useTranslation();
-  const theme = CustomerUI.useLuxuryTheme();
+  const theme = CustomerUI.useCustomerTheme();
 
-  const { data: product, isLoading, isError, refetch } = useProduct(id);
-  
-  // Track recently viewed
-  const addRecentlyViewed = useRecentlyViewedStore(s => s.addProduct);
+  const { data: product, isLoading, isError } = useProduct(id);
+
+  const pushRecentlyViewed = useRecentlyViewedStore(s => s.push);
   useEffect(() => {
-    if (product) addRecentlyViewed(product);
-  }, [product, addRecentlyViewed]);
+    if (product) pushRecentlyViewed({
+      id: product.id,
+      name: product.nameAr || product.name,
+      price: product.price,
+      imageUrl: product.imageUrl,
+    });
+  }, [product, pushRecentlyViewed]);
 
-  // Cart logic
   const items = useCartStore((s: any) => s.items);
   const addItem = useCartStore((s: any) => s.addItem);
   const updateQuantity = useCartStore((s: any) => s.updateQuantity);
   const removeItem = useCartStore((s: any) => s.removeItem);
-  
+
   const cartItem = useMemo(() => items.find((i: any) => i.productId === id), [items, id]);
   const qty = cartItem ? cartItem.quantity : 0;
 
-  // Wishlist logic
   const wishlistItems = useWishlistStore((s: any) => s.items as string[]);
   const toggleWishlist = useWishlistStore((s: any) => s.toggle);
   const liked = wishlistItems.includes(id ?? "");
@@ -126,11 +126,11 @@ export default function ProductDetailScreen() {
             <Ionicons name={IS_RTL ? "chevron-forward" : "chevron-back"} size={28} color={theme.colors.ink} />
           </Pressable>
         </View>
-        <CustomerUI.EmptyState 
-          icon="alert-circle-outline" 
-          title={t("products.notFound")} 
-          actionLabel={t("common.goBack")} 
-          onAction={() => router.back()} 
+        <CustomerUI.EmptyState
+          icon="alert-circle-outline"
+          title={t("product.notFound")}
+          actionLabel={t("common.back")}
+          onAction={() => router.back()}
         />
       </View>
     );
@@ -144,8 +144,8 @@ export default function ProductDetailScreen() {
     <View style={[styles.container, { backgroundColor: theme.colors.canvas }]}>
       <StatusBar style={theme.isDark ? "light" : "dark"} />
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
-        
-        {/* Product Gallery / Hero Image */}
+
+        {/* Product Image */}
         <View style={[styles.heroWrap, { backgroundColor: theme.colors.surface, paddingTop: insets.top }]}>
           <View style={styles.navBarAbs}>
             <Pressable onPress={() => router.back()} style={[styles.backBtn, { backgroundColor: theme.colors.background }]}>
@@ -157,9 +157,9 @@ export default function ProductDetailScreen() {
           </View>
 
           {product.imageUrl ? (
-            <Image 
-              source={{ uri: product.imageUrl }} 
-              style={styles.heroImg} 
+            <Image
+              source={{ uri: product.imageUrl }}
+              style={styles.heroImg}
               contentFit="contain"
               placeholder={DEFAULT_BLURHASH}
               transition={300}
@@ -171,12 +171,12 @@ export default function ProductDetailScreen() {
           )}
         </View>
 
-        {/* Essential Identity & Pricing */}
+        {/* Product Identity & Pricing */}
         <View style={[styles.contentBlock, { backgroundColor: theme.colors.surface, borderBottomColor: theme.colors.line }]}>
           <CustomerUI.Typography variant="caption" color={theme.colors.accent} weight="bold" style={styles.catLabel}>
             {categoryName.toUpperCase()}
           </CustomerUI.Typography>
-          
+
           <CustomerUI.Typography variant="h3" weight="black" color={theme.colors.ink} style={styles.title}>
             {name}
           </CustomerUI.Typography>
@@ -196,19 +196,16 @@ export default function ProductDetailScreen() {
 
         {/* Stock & Availability */}
         <View style={styles.contentPad}>
-          <CustomerUI.Section title={t("products.availability")}>
-            <View style={[styles.statusBox, { backgroundColor: product.inStock ? theme.colors.successTint : theme.colors.dangerTint }]}>
-              <Ionicons name={product.inStock ? "checkmark-circle" : "close-circle"} size={20} color={product.inStock ? theme.colors.success : theme.colors.danger} />
-              <CustomerUI.Typography variant="body" weight="bold" color={product.inStock ? theme.colors.success : theme.colors.danger}>
-                {product.inStock ? t("product.inStock") : t("product.outOfStock")}
-              </CustomerUI.Typography>
-            </View>
-          </CustomerUI.Section>
+          <View style={[styles.statusBox, { backgroundColor: product.inStock ? theme.colors.successTint : theme.colors.dangerTint }]}>
+            <Ionicons name={product.inStock ? "checkmark-circle" : "close-circle"} size={20} color={product.inStock ? theme.colors.success : theme.colors.danger} />
+            <CustomerUI.Typography variant="body" weight="bold" color={product.inStock ? theme.colors.success : theme.colors.danger}>
+              {product.inStock ? t("product.inStock") : t("product.outOfStock")}
+            </CustomerUI.Typography>
+          </View>
         </View>
 
         {/* Related Products */}
         <RelatedProductsSection productId={product.id} />
-        
       </ScrollView>
 
       {/* Sticky Purchase Bar */}
@@ -218,7 +215,7 @@ export default function ProductDetailScreen() {
         ) : qty === 0 ? (
           <Pressable onPress={handleAdd} style={[styles.cartBtn, { backgroundColor: theme.colors.accent }]}>
             <Ionicons name="cart-outline" size={20} color="#fff" />
-            <CustomerUI.Typography variant="body" weight="bold" color="#fff">{t("product.addToCart")} • {product.price} EGP</CustomerUI.Typography>
+            <CustomerUI.Typography variant="body" weight="bold" color="#fff">{t("product.addToCart")} · {product.price} {t("common.currency")}</CustomerUI.Typography>
           </Pressable>
         ) : (
           <View style={styles.stepperWrap}>

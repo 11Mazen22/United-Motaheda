@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -11,7 +11,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
-import Animated, { FadeInDown, FadeIn, Layout, SlideInDown, SlideOutDown } from "react-native-reanimated";
+import Animated, { FadeInDown, FadeIn, SlideInDown, SlideOutDown } from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 
@@ -45,14 +45,13 @@ function FormRow({ label, value, onChangeText, placeholder, editable = true, aut
 }
 
 export default function EditProfileScreen() {
-  const { c, isDark } = useDarkColors();
+  const { c } = useDarkColors();
   const { t } = useTranslation();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
 
   const [name, setName] = useState(user?.name || "");
-  const [phone, setPhone] = useState(user?.email || ""); 
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

@@ -1,33 +1,18 @@
 /**
-
  * InventoryIntelligenceScreen — pharmacist inventory intelligence dashboard.
-
  *
-
  * Tabs:
-
- *   • Low Stock  — products with available ≤ 5, sorted by most critical
-
+ *   • Low Stock  — products with available <= 5, sorted by most critical
  *   • Search     — full-text + barcode search
-
  *   • Out of Stock — available = 0
-
  *
-
  * Each product card shows:
-
  *   - Name (Arabic + English)
-
  *   - Code / Barcode
-
  *   - On-hand / Reserved / Available
-
  *   - Category
-
  *   - Price
-
  *   - Urgency colour band (red = 0, amber = 1-3, yellow = 4-5)
-
  */
 
 
@@ -89,7 +74,11 @@ import {
 
 import { pharmacistQueryKeys } from "../hooks/queryKeys";
 
-import { PharmacistScreenHeader } from "../components/PharmacistScreenHeader";import EmptyState from "@/components/EmptyState";import type { PharmacistProduct } from "../api/types";
+import { PharmacistScreenHeader } from "../components/PharmacistScreenHeader";
+
+import EmptyState from "@/components/EmptyState";
+
+import type { PharmacistProduct } from "../api/types";
 
 
 
@@ -103,17 +92,17 @@ type InventoryTab = "lowstock" | "search" | "outofstock";
 
 
 
-// ─── Urgency band ────────────────────────────────────────────────────────────
+// ─── Urgency band ──────────────────────────────────────────────────────────────
 
 
 
-function urgencyColor(available: number): string {
+function urgencyColor(available: number, colors: ReturnType<typeof useDarkColors>): string {
 
-  if (available === 0) return kit.color.danger;
+  if (available === 0) return colors.danger;
 
-  if (available <= 3)  return "#F59E0B"; // amber
+  if (available <= 3)  return colors.warn;
 
-  return "#EAB308";                      // yellow
+  return colors.warn;
 
 }
 
@@ -131,6 +120,8 @@ function ProductCard({
 
   onScan,
 
+  colors,
+
 }: {
 
   product: PharmacistProduct;
@@ -139,11 +130,13 @@ function ProductCard({
 
   onScan:  (barcode: string) => void;
 
+  colors: ReturnType<typeof useDarkColors>;
+
 }) {
 
   const { t } = useTranslation();
 
-  const urg   = urgencyColor(product.available);
+  const urg   = urgencyColor(product.available, colors);
 
   const isOut = product.available === 0;
 
@@ -153,7 +146,7 @@ function ProductCard({
 
     <Animated.View entering={FadeInDown.delay(index * 30).duration(240)}>
 
-      <View style={[styles.card, { borderStartColor: urg, borderStartWidth: 4 }]}>
+      <View style={[styles.card, { borderStartColor: urg, borderStartWidth: 4, backgroundColor: colors.surface, borderColor: colors.line }]}>
 
         {/* Header row */}
 
@@ -179,7 +172,7 @@ function ProductCard({
 
           </View>
 
-          <UIText style={styles.price}>{formatPrice(product.effectivePrice)}</UIText>
+          <UIText style={[styles.price, { color: colors.accentDeep }]}>{formatPrice(product.effectivePrice)}</UIText>
 
         </View>
 
@@ -191,11 +184,11 @@ function ProductCard({
 
           {product.code && (
 
-            <View style={[styles.chip, { flexDirection: flexRow(IS_RTL) }]}>
+            <View style={[styles.chip, { flexDirection: flexRow(IS_RTL), backgroundColor: colors.well, borderColor: colors.line }]}>
 
-              <Ionicons name="barcode-outline" size={10} color={kit.color.inkSoft} />
+              <Ionicons name="barcode-outline" size={10} color={colors.inkSoft} />
 
-              <UIText style={styles.chipText}>{product.code}</UIText>
+              <UIText style={[styles.chipText, { color: colors.inkSoft }]}>{product.code}</UIText>
 
             </View>
 
@@ -203,11 +196,11 @@ function ProductCard({
 
           {product.categoryName && (
 
-            <View style={[styles.chip, { flexDirection: flexRow(IS_RTL) }]}>
+            <View style={[styles.chip, { flexDirection: flexRow(IS_RTL), backgroundColor: colors.well, borderColor: colors.line }]}>
 
-              <Ionicons name="folder-outline" size={10} color={kit.color.inkSoft} />
+              <Ionicons name="folder-outline" size={10} color={colors.inkSoft} />
 
-              <UIText style={styles.chipText}>{product.categoryName}</UIText>
+              <UIText style={[styles.chipText, { color: colors.inkSoft }]}>{product.categoryName}</UIText>
 
             </View>
 
@@ -215,13 +208,11 @@ function ProductCard({
 
           {isOut && (
 
-            <View style={[styles.chip, styles.chipDanger, { flexDirection: flexRow(IS_RTL) }]}>
+            <View style={[styles.chip, styles.chipDanger, { flexDirection: flexRow(IS_RTL), backgroundColor: colors.dangerTint, borderColor: colors.danger }]}>
 
-              <Ionicons name="close-circle" size={10} color={kit.color.danger} />
+              <Ionicons name="close-circle" size={10} color={colors.danger} />
 
-              <UIText style={[styles.chipText, { color: kit.color.danger }]}>
-
-                {t("pharmacist.stockExhausted", "نفد المخزون")}
+              <UIText style={[styles.chipText, { color: colors.danger }]}>                {t("pharmacist.stockExhausted", "نفد المخزون")}
 
               </UIText>
 
@@ -247,7 +238,7 @@ function ProductCard({
 
           ].map(({ label, value, warn }) => (
 
-            <View key={label} style={styles.stockCell}>
+            <View key={label} style={[styles.stockCell, { backgroundColor: colors.well }]}>
 
               <UIText
 
@@ -255,7 +246,7 @@ function ProductCard({
 
                   styles.stockValue,
 
-                  warn && { color: urgencyColor(product.available) },
+                  warn && { color: urgencyColor(product.available, colors) },
 
                 ]}
 
@@ -265,7 +256,7 @@ function ProductCard({
 
               </UIText>
 
-              <UIText style={styles.stockLabel}>{label}</UIText>
+              <UIText style={[styles.stockLabel, { color: colors.inkSoft }]}>{label}</UIText>
 
             </View>
 
@@ -281,7 +272,7 @@ function ProductCard({
 
               onPress={() => onScan(product.barcode!)}
 
-              style={({ pressed }) => [styles.scanBtn, pressed && { opacity: 0.75 }]}
+              style={({ pressed }) => [styles.scanBtn, pressed && { opacity: 0.75 }, { backgroundColor: colors.accentTint, borderColor: colors.line }]}
 
               accessibilityRole="button"
 
@@ -289,7 +280,7 @@ function ProductCard({
 
             >
 
-              <Ionicons name="barcode-outline" size={14} color={kit.color.accentDeep} />
+              <Ionicons name="barcode-outline" size={14} color={colors.accentDeep} />
 
             </Pressable>
 
@@ -314,7 +305,7 @@ function ProductCard({
 export function InventoryIntelligenceScreen(): React.ReactElement {
 
   const { c } = useDarkColors();
-  
+
   const { t }       = useTranslation();
 
   const router      = useRouter();
@@ -389,7 +380,7 @@ export function InventoryIntelligenceScreen(): React.ReactElement {
 
     router.push({
 
-      pathname: "/(pharmacist)/scanner" as never,
+      pathname: "/(pharmacist)/scanner",
 
       params: {
 
@@ -439,7 +430,7 @@ export function InventoryIntelligenceScreen(): React.ReactElement {
 
   return (
 
-    <Screen edgeTop background={kit.color.canvas}>
+    <Screen edgeTop background={c.canvas}>
 
       <PharmacistScreenHeader
 
@@ -451,7 +442,7 @@ export function InventoryIntelligenceScreen(): React.ReactElement {
 
           <Pressable
 
-            onPress={() => router.push("/(pharmacist)/scanner" as never)}
+            onPress={() => router.push("/(pharmacist)/scanner")}
 
             style={styles.scannerBtn}
 
@@ -461,7 +452,7 @@ export function InventoryIntelligenceScreen(): React.ReactElement {
 
           >
 
-            <Ionicons name="barcode-outline" size={18} color={kit.color.accentDeep} />
+            <Ionicons name="barcode-outline" size={18} color={c.accentDeep} />
 
           </Pressable>
 
@@ -473,9 +464,9 @@ export function InventoryIntelligenceScreen(): React.ReactElement {
 
       {/* Search bar — always visible */}
 
-      <View style={[styles.searchBar, { flexDirection: flexRow(IS_RTL) }]}>
+      <View style={[styles.searchBar, { flexDirection: flexRow(IS_RTL), backgroundColor: c.well, borderColor: c.line }]}>
 
-        <Ionicons name="search-outline" size={16} color={kit.color.inkFaint} />
+        <Ionicons name="search-outline" size={16} color={c.inkFaint} />
 
         <TextInput
 
@@ -485,13 +476,13 @@ export function InventoryIntelligenceScreen(): React.ReactElement {
 
           placeholder={t('pharmacist.inventorySearch')}
 
-          placeholderTextColor={kit.color.inkFaint}
+          placeholderTextColor={c.inkFaint}
 
           autoCorrect={false}
 
           autoCapitalize="none"
 
-          style={styles.searchInput}
+          style={[styles.searchInput, { color: c.ink }]}
 
           returnKeyType="search"
 
@@ -501,7 +492,7 @@ export function InventoryIntelligenceScreen(): React.ReactElement {
 
           <Pressable onPress={() => { setRawQuery(''); setTab('lowstock'); }} hitSlop={8}>
 
-            <Ionicons name="close-circle" size={16} color={kit.color.inkFaint} />
+            <Ionicons name="close-circle" size={16} color={c.inkFaint} />
 
           </Pressable>
 
@@ -543,15 +534,13 @@ export function InventoryIntelligenceScreen(): React.ReactElement {
 
               }}
 
-              style={[styles.tab, active && styles.tabActive]}
+              style={[styles.tab, active && styles.tabActive, { backgroundColor: active ? c.accent : c.well, borderColor: active ? c.accent : c.line }]}
 
               accessibilityRole="button"
 
             >
 
-              <UIText style={[styles.tabText, active && styles.tabTextActive]}>
-
-                {labels[tabKey]}
+              <UIText style={[styles.tabText, active && styles.tabTextActive, { color: active ? c.white : c.inkSoft }]}>                {labels[tabKey]}
 
               </UIText>
 
@@ -585,9 +574,9 @@ export function InventoryIntelligenceScreen(): React.ReactElement {
 
             onRefresh={onRefresh}
 
-            tintColor={kit.color.accent}
+            tintColor={c.accent}
 
-            colors={[kit.color.accent]}
+            colors={[c.accent]}
 
           />
 
@@ -595,7 +584,7 @@ export function InventoryIntelligenceScreen(): React.ReactElement {
 
         renderItem={({ item, index }) => (
 
-          <ProductCard product={item} index={index} onScan={handleScan} />
+          <ProductCard product={item} index={index} onScan={handleScan} colors={c} />
 
         )}
 
@@ -607,7 +596,7 @@ export function InventoryIntelligenceScreen(): React.ReactElement {
 
             <View style={styles.empty}>
 
-              <ActivityIndicator size="large" color={kit.color.accent} />
+              <ActivityIndicator size="large" color={c.accent} />
 
             </View>
 
@@ -679,13 +668,9 @@ const styles = StyleSheet.create({
 
     paddingVertical:   11,
 
-    backgroundColor:   kit.color.well,
-
     borderRadius:      16,
 
     borderWidth:       1,
-
-    borderColor:       kit.color.line,
 
   },
 
@@ -696,8 +681,6 @@ const styles = StyleSheet.create({
     fontSize:   14,
 
     fontFamily: "Cairo_400Regular",
-
-    color:      kit.color.ink,
 
     padding:    0,
 
@@ -725,23 +708,13 @@ const styles = StyleSheet.create({
 
     borderRadius:      9999,
 
-    backgroundColor:   kit.color.well,
-
     borderWidth:       1,
 
-    borderColor:       kit.color.line,
-
   },
 
-  tabActive: {
+  tabActive: {  },
 
-    backgroundColor: kit.color.accent,
-
-    borderColor:     kit.color.accent,
-
-  },
-
-  tabText:       { fontSize: 12, fontFamily: "Cairo_700Bold", color: kit.color.inkSoft },
+  tabText:       { fontSize: 12, fontFamily: "Cairo_700Bold" },
 
   tabTextActive: { color: "#fff" },
 
@@ -749,17 +722,11 @@ const styles = StyleSheet.create({
 
   card: {
 
-    backgroundColor: kit.color.surface,
-
     borderRadius:    16,
 
     padding:         14,
 
     borderWidth:     1,
-
-    borderColor:     kit.color.line,
-
-    ...kit.shadow.card,
 
     gap:             8,
 
@@ -767,7 +734,7 @@ const styles = StyleSheet.create({
 
   cardHeader: { alignItems: "flex-start", gap: 12 },
 
-  price:       { fontSize: 14, fontFamily: "Cairo_900Black", color: kit.color.accentDeep, flexShrink: 0 },
+  price:       { fontSize: 14, fontFamily: "Cairo_900Black", flexShrink: 0 },
 
   metaRow:     { alignItems: "center", gap: 6, flexWrap: "wrap" },
 
@@ -783,17 +750,13 @@ const styles = StyleSheet.create({
 
     borderRadius:      9999,
 
-    backgroundColor:   kit.color.well,
-
     borderWidth:       1,
-
-    borderColor:       kit.color.line,
 
   },
 
-  chipDanger: { backgroundColor: kit.color.dangerTint, borderColor: kit.color.danger },
+  chipDanger: {  },
 
-  chipText:   { fontSize: 10, fontFamily: "Cairo_700Bold", color: kit.color.inkSoft },
+  chipText:   { fontSize: 10, fontFamily: "Cairo_700Bold" },
 
   stockRow: {
 
@@ -809,21 +772,19 @@ const styles = StyleSheet.create({
 
   },
 
-  stockCell:   { flex: 1, alignItems: "center", backgroundColor: kit.color.well, borderRadius: 10, paddingVertical: 8 },
+  stockCell:   { flex: 1, alignItems: "center", borderRadius: 10, paddingVertical: 8 },
 
   stockValue:  { fontSize: 18, fontFamily: "Cairo_900Black", color: kit.color.ink },
 
-  stockLabel:  { fontSize: 9,  fontFamily: "Cairo_700Bold",  color: kit.color.inkSoft, marginTop: 2 },
+  stockLabel:  { fontSize: 9,  fontFamily: "Cairo_700Bold",  marginTop: 2 },
 
   scanBtn: {
 
     width: 40, height: 40, borderRadius: 12,
 
-    backgroundColor: kit.color.accentTint,
-
     alignItems: "center", justifyContent: "center",
 
-    borderWidth: 1, borderColor: kit.color.line,
+    borderWidth: 1,
 
     flexShrink: 0,
 
@@ -846,4 +807,3 @@ const styles = StyleSheet.create({
   },
 
 });
-

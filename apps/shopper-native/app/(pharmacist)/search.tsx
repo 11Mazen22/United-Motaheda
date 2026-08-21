@@ -1,5 +1,5 @@
 /**
- * Pharmacist global search — delegates to the inventory screen
+ * Pharmacist global search — delegates to the inventory intelligence screen
  * which already contains full-text + barcode search.
  */
-export { InventoryScreen as default } from "@/features/pharmacist/screens/InventoryScreen";
+export { InventoryIntelligenceScreen as default } from "@/features/pharmacist/screens/InventoryIntelligenceScreen";
