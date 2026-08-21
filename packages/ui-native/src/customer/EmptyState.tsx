@@ -10,12 +10,18 @@ export interface EmptyStateProps {
   icon?: React.ReactNode;
   title: string;
   subtitle?: string;
+  description?: string;
+  message?: string;
   action?: React.ReactNode;
+  actionLabel?: string;
+  onAction?: () => void;
   style?: StyleProp<ViewStyle>;
 }
 
-export function EmptyState({ icon, title, subtitle, action, style }: EmptyStateProps) {
+export function EmptyState({ icon, title, subtitle, description, message, action, actionLabel, onAction, style }: EmptyStateProps) {
   const { theme, lx, surface } = useLuxuryTheme();
+  const resolvedSubtitle = subtitle ?? description ?? message;
+  const resolvedAction = action ?? (actionLabel && onAction ? <CButton label={actionLabel} onPress={onAction} /> : undefined);
 
   return (
     <View
@@ -44,12 +50,12 @@ export function EmptyState({ icon, title, subtitle, action, style }: EmptyStateP
       <T scale="sectionHead" color="primary" align="center" style={{ marginBottom: lx.space[1] }}>
         {title}
       </T>
-      {subtitle && (
+      {resolvedSubtitle && (
         <T scale="body" color="muted" align="center" style={{ marginBottom: lx.space[6], maxWidth: 280 }}>
-          {subtitle}
+          {resolvedSubtitle}
         </T>
       )}
-      {action && <View>{action}</View>}
+      {resolvedAction && <View>{resolvedAction}</View>}
     </View>
   );
 }

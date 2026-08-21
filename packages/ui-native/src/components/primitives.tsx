@@ -32,7 +32,7 @@ import Animated, {
 import { useTheme } from "../theme";
 import { kit } from "../kit";
 
-export type TextVariant = "h1" | "h2" | "h3" | "body" | "caption" | "label" | "display" | "hero" | "screen-title" | "sheet-title" | "section-head" | "card-title" | "body-sm" | "eyebrow" | "badge" | "metric";
+export type TextVariant = "h1" | "h2" | "h3" | "h4" | "h5" | "h6" | "body" | "bodySm" | "caption" | "label" | "display" | "hero" | "screen-title" | "sheet-title" | "section-head" | "card-title" | "body-sm" | "eyebrow" | "badge" | "metric";
 export type TextScale = keyof typeof kit.type;
 export type TextWeight = "regular" | "medium" | "semibold" | "bold" | "extrabold" | "black";
 export type TextColor = "primary" | "secondary" | "muted" | "tertiary" | "disabled" | "inverse" | "inverse-muted" | "brand" | "danger" | "warn" | "success" | "info";
@@ -46,17 +46,17 @@ export interface TextProps extends Omit<RNTextProps, "style"> {
 }
 
 const textMetrics: Record<TextVariant, { fontSize: number; lineHeight: number; weight: TextWeight }> = {
-  h1: { fontSize: 32, lineHeight: 40, weight: "black" }, h2: { fontSize: 24, lineHeight: 32, weight: "bold" }, h3: { fontSize: 20, lineHeight: 28, weight: "bold" },
+  h1: { fontSize: 32, lineHeight: 40, weight: "black" }, h2: { fontSize: 24, lineHeight: 32, weight: "bold" }, h3: { fontSize: 20, lineHeight: 28, weight: "bold" }, h4: { fontSize: 18, lineHeight: 26, weight: "bold" }, h5: { fontSize: 16, lineHeight: 24, weight: "bold" }, h6: { fontSize: 14, lineHeight: 20, weight: "bold" },
   display: { fontSize: 36, lineHeight: 40, weight: "black" }, hero: { fontSize: 32, lineHeight: 38, weight: "extrabold" }, "screen-title": { fontSize: 24, lineHeight: 30, weight: "extrabold" }, "sheet-title": { fontSize: 20, lineHeight: 26, weight: "extrabold" }, "section-head": { fontSize: 18, lineHeight: 24, weight: "extrabold" }, "card-title": { fontSize: 16, lineHeight: 22, weight: "bold" },
-  body: { fontSize: 15, lineHeight: 21, weight: "regular" }, "body-sm": { fontSize: 14, lineHeight: 20, weight: "regular" }, caption: { fontSize: 12, lineHeight: 17, weight: "semibold" }, label: { fontSize: 14, lineHeight: 20, weight: "semibold" }, eyebrow: { fontSize: 11, lineHeight: 16, weight: "bold" }, badge: { fontSize: 11, lineHeight: 16, weight: "bold" }, metric: { fontSize: 28, lineHeight: 34, weight: "black" },
+  body: { fontSize: 15, lineHeight: 21, weight: "regular" }, bodySm: { fontSize: 14, lineHeight: 20, weight: "regular" }, "body-sm": { fontSize: 14, lineHeight: 20, weight: "regular" }, caption: { fontSize: 12, lineHeight: 17, weight: "semibold" }, label: { fontSize: 14, lineHeight: 20, weight: "semibold" }, eyebrow: { fontSize: 11, lineHeight: 16, weight: "bold" }, badge: { fontSize: 11, lineHeight: 16, weight: "bold" }, metric: { fontSize: 28, lineHeight: 34, weight: "black" },
 };
 const fontFamily: Record<TextWeight, string> = { regular: "Cairo_400Regular", medium: "Cairo_400Regular", semibold: "Cairo_600SemiBold", bold: "Cairo_700Bold", extrabold: "Cairo_800ExtraBold", black: "Cairo_900Black" };
 
 /** Theme-aware Cairo text with logical RTL alignment. */
 export function Text({ variant = "body", scale, color = "primary", weight, align, style, ...props }: TextProps): React.ReactElement {
   const { theme, isRTL } = useTheme();
-  const metric = scale ? kit.type[scale] : textMetrics[variant];
-  const resolvedWeight = weight ?? ("weight" in metric ? metric.weight : "regular");
+  const metric = scale ? kit.type[scale as keyof typeof kit.type] : textMetrics[variant];
+  const resolvedWeight: TextWeight = weight ?? ("weight" in metric ? (metric as { weight: TextWeight }).weight : "regular");
   const semanticColors: Record<string, string> = {
     primary: theme.colors.text.primary, secondary: theme.colors.text.secondary, muted: theme.colors.text.muted, tertiary: theme.colors.text.muted,
     disabled: theme.colors.text.disabled, inverse: theme.colors.text.inverse, "inverse-muted": theme.colors.text.inverse,

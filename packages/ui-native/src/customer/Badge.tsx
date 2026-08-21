@@ -1,4 +1,3 @@
-import React from 'react';
 import { View, type StyleProp, type ViewStyle } from 'react-native';
 import { T } from './Typography';
 import { useLuxuryTheme } from './useLuxuryTheme';

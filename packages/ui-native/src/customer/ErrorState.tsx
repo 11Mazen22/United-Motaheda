@@ -1,4 +1,3 @@
-import React from 'react';
 import { View, type StyleProp, type ViewStyle } from 'react-native';
 import { T } from './Typography';
 import { useLuxuryTheme } from './useLuxuryTheme';
@@ -9,14 +8,17 @@ import { CButton } from './Button';
 export interface ErrorStateProps {
   title?: string;
   subtitle?: string;
+  message?: string;
   onRetry?: () => void;
+  retry?: () => void;
   retryLabel?: string;
   style?: StyleProp<ViewStyle>;
 }
 
-export function ErrorState({ title, subtitle, onRetry, retryLabel, style }: ErrorStateProps) {
+export function ErrorState({ title, subtitle, message, onRetry, retry, retryLabel, style }: ErrorStateProps) {
   const { theme, lx, surface } = useLuxuryTheme();
   const { t } = useTranslation();
+  const resolvedRetry = onRetry ?? retry;
 
   return (
     <View
@@ -48,13 +50,13 @@ export function ErrorState({ title, subtitle, onRetry, retryLabel, style }: Erro
         {title || t('error.generic.title', 'Something went wrong')}
       </T>
       <T scale="body" color="muted" align="center" style={{ marginBottom: lx.space[6], maxWidth: 280 }}>
-        {subtitle || t('error.generic.subtitle', 'We could not load this content. Please try again.')}
+        {subtitle || message || t('error.generic.subtitle', 'We could not load this content. Please try again.')}
       </T>
-      {onRetry && (
+      {resolvedRetry && (
         <CButton
           variant="outline"
           label={retryLabel || t('common.retry', 'Try again')}
-          onPress={onRetry}
+          onPress={resolvedRetry}
         />
       )}
     </View>
