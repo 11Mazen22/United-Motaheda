@@ -58,7 +58,7 @@ export default function VerifyPhoneScreen() {
 
     if (!phoneStr) {
 
-      router.replace("/(tabs)");
+      router.replace("/(customer)/(tabs)");
 
       return;
 
@@ -82,7 +82,7 @@ export default function VerifyPhoneScreen() {
 
         setStage("error");
 
-        setTimeout(() => router.replace("/(tabs)"), 2200);
+        setTimeout(() => router.replace("/(customer)/(tabs)"), 2200);
 
       }
 
@@ -196,9 +196,9 @@ export default function VerifyPhoneScreen() {
 
         initialPhone={phoneStr}
 
-        onVerified={() => router.replace("/(tabs)")}
+        onVerified={() => router.replace("/(customer)/(tabs)")}
 
-        onCancel={() => router.replace("/(tabs)")}
+        onCancel={() => router.replace("/(customer)/(tabs)")}
 
       />
 
