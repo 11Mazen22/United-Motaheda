@@ -1,5 +1,6 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
-import { useAuthStore } from '@/stores/auth.store';
+import { useAuthStore, type AuthUser, type DriverProfile } from '@/stores/auth.store';
+import { type AvailableOrder, type ActiveDelivery, type DeliveryHistoryItem, type DeliveryStatus } from '@/stores/orders.store';
 
 // Read base URL from Expo public env or constants
 const getBaseUrl = (): string => {
@@ -58,13 +59,13 @@ function unwrap<T>(payload: T | ApiEnvelope<T>): T {
   return payload as T;
 }
 
-export const apiGet = <T>(url: string, params?: Record<string, any>) =>
+export const apiGet = <T>(url: string, params?: Record<string, unknown>) =>
   api.get<T | ApiEnvelope<T>>(url, { params }).then((r) => unwrap(r.data));
 
-export const apiPost = <T>(url: string, data?: any) =>
+export const apiPost = <T>(url: string, data?: unknown) =>
   api.post<T | ApiEnvelope<T>>(url, data).then((r) => unwrap(r.data));
 
-export const apiPatch = <T>(url: string, data?: any) =>
+export const apiPatch = <T>(url: string, data?: unknown) =>
   api.patch<T | ApiEnvelope<T>>(url, data).then((r) => unwrap(r.data));
 
 export const apiDelete = <T>(url: string) =>
@@ -75,16 +76,17 @@ export const apiDelete = <T>(url: string) =>
 export const driverApi = {
   // Auth
   login: (data: { identifier: string; password: string }) =>
-    api.post<{ success: boolean; data: { token: string; user: any } }>('/driver/login', data)
+    api.post<{ success: boolean; data: { token: string; user: AuthUser } }>('/driver/login', data)
       .then((r) => r.data.data),
 
-  register: (data: any) =>
-    api.post<{ success: boolean; data: { token: string; user: any } }>('/driver/register', data)
+  register: (data: { fullName: string; email: string; phone: string; password: string; vehicleType: string; vehiclePlate: string; vehicleModel: string; vehicleColor: string }) =>
+    api.post<{ success: boolean; data: { token: string; user: AuthUser } }>('/driver/register', data)
       .then((r) => r.data.data),
 
   // Profile
-  getProfile: () => apiGet<any>('/driver/profile'),
-  updateProfile: (data: any) => apiPatch<any>('/driver/profile', data),
+  getProfile: () => apiGet<{ driverProfile: DriverProfile }>('/driver/profile'),
+  updateProfile: (data: Partial<{ id: string; fullName: string; email?: string; phone?: string; vehicleType?: string; vehiclePlate?: string; vehicleModel?: string; vehicleColor?: string }>) =>
+    apiPatch<DriverProfile>('/driver/profile', data),
   getStatistics: () => apiGet<any>('/driver/statistics'),
 
   // Status
@@ -103,33 +105,38 @@ export const driverApi = {
   }) => apiPost<any>('/driver/location', data),
 
   // Orders
-  getAvailableOrders: () => apiGet<any>('/driver/orders/available'),
-  getActiveDelivery: () => apiGet<any>('/driver/orders/active'),
+  getAvailableOrders: () => apiGet<AvailableOrder[]>('/driver/orders/available'),
+  getActiveDelivery: () => apiGet<ActiveDelivery | null>('/driver/orders/active'),
   getDeliveryHistory: (page = 1, limit = 20) =>
-    apiGet<any>('/driver/orders/history', { page, limit }),
+    apiGet<DeliveryHistoryItem[]>('/driver/orders/history', { page, limit }),
 
-  acceptOrder: (orderId: string, data?: any) =>
-    apiPost<any>(`/driver/orders/${orderId}/accept`, data ?? {}),
+  acceptOrder: (orderId: string, data?: { assignmentId?: string }) =>
+    apiPost<ActiveDelivery>(`/driver/orders/${orderId}/accept`, data ?? {}),
+
   rejectOrder: (orderId: string, reason?: string) =>
-    apiPost<any>(`/driver/orders/${orderId}/reject`, { reason }),
+    apiPost<{ success: boolean }>(`/driver/orders/${orderId}/reject`, { reason }),
 
   enRouteToPickup: (orderId: string) =>
-    apiPost<any>(`/driver/orders/${orderId}/en-route-pickup`),
+    apiPost<{ success: boolean }>(`/driver/orders/${orderId}/en-route-pickup`),
+
   arrivedPharmacy: (orderId: string, currentLat: number, currentLng: number) =>
-    apiPost<any>(`/driver/orders/${orderId}/arrived-pharmacy`, { currentLat, currentLng }),
+    apiPost<{ success: boolean }>(`/driver/orders/${orderId}/arrived-pharmacy`, { currentLat, currentLng }),
+
   pickedUp: (orderId: string, notes?: string) =>
-    apiPost<any>(`/driver/orders/${orderId}/picked-up`, { notes }),
+    apiPost<{ success: boolean }>(`/driver/orders/${orderId}/picked-up`, { notes }),
+
   enRouteToCustomer: (orderId: string) =>
-    apiPost<any>(`/driver/orders/${orderId}/en-route-customer`),
+    apiPost<{ success: boolean }>(`/driver/orders/${orderId}/en-route-customer`),
+
   arrivedCustomer: (orderId: string, currentLat: number, currentLng: number) =>
-    apiPost<any>(`/driver/orders/${orderId}/arrived-customer`, { currentLat, currentLng }),
+    apiPost<{ success: boolean }>(`/driver/orders/${orderId}/arrived-customer`, { currentLat, currentLng }),
   completeDelivery: (orderId: string, data: {
     proofPhotoUrl?: string;
     customerSignature?: string;
     deliveryNotes?: string;
     customerRating?: number;
     customerFeedback?: string;
-  }) => apiPost<any>(`/driver/orders/${orderId}/complete`, data),
+  }) => apiPost<{ success: boolean }>(`/driver/orders/${orderId}/complete`, data),
 
   // Documents
   uploadDocument: async (type: 'license' | 'id' | 'vehicle' | 'insurance', uri: string) => {

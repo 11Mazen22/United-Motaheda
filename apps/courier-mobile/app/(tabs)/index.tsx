@@ -13,11 +13,11 @@ import Animated, {
   useSharedValue,
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
-import { CourierUI, kit, showToast } from '@pharmacy/ui-native';
-import { colors as courierColors } from '@pharmacy/ui-native/courier-tokens';
+import { CourierUI, useCourierTheme, showToast } from '@pharmacy/ui-native';
 import { driverApi } from '@/lib/api';
 import { useAuthStore } from '@/stores/auth.store';
 import { useOrdersStore, type AvailableOrder } from '@/stores/orders.store';
+import { haversineMeters } from '@/lib/gps/KalmanFilter';
 
 const STATUS_LABEL: Record<string, string> = {
   ACCEPTED: 'Accepted',
@@ -48,18 +48,19 @@ function OrderCard({
   isAccepting: boolean;
   isSkipping: boolean;
 }) {
+  const { theme, colors } = useCourierTheme();
   const busy = isAccepting || isSkipping;
 
   return (
-    <Animated.View entering={FadeInDown.springify().damping(18)} style={s.card}>
+    <Animated.View entering={FadeInDown.springify().damping(18)} style={[s.card, { backgroundColor: theme.colors.canvas.surface, borderColor: colors.border.default }]}>
       <View style={s.cardTopRow}>
-        <View style={s.distanceChip}>
-          <Ionicons name="navigate" size={14} color={kit.darkColor.accent} />
+        <View style={[s.distanceChip, { backgroundColor: colors.brand.primaryLight }]}>
+          <Ionicons name="navigate" size={14} color={colors.brand.primary} />
           <CourierUI.Typography scale="caption" color="brand">
             {formatDistance(order.distanceToCustomerMeters)}
           </CourierUI.Typography>
         </View>
-        <View style={s.earningsBadge}>
+        <View style={[s.earningsBadge, { backgroundColor: colors.brand.primary }]}>
           <CourierUI.Typography scale="priceMd" color="inverse">
             {order.estimatedEarnings.toFixed(0)}{' '}
             <CourierUI.Typography scale="badge" color="inverse">EGP</CourierUI.Typography>
@@ -68,35 +69,35 @@ function OrderCard({
       </View>
 
       <View style={s.routeRow}>
-        <View style={[s.routeDot, { backgroundColor: kit.darkColor.accent }]} />
-        <View style={s.routeLine} />
-        <View style={[s.routeDot, { backgroundColor: kit.darkColor.danger }]} />
+        <View style={[s.routeDot, { backgroundColor: colors.brand.primary }]} />
+        <View style={[s.routeLine, { backgroundColor: colors.border.default }]} />
+        <View style={[s.routeDot, { backgroundColor: colors.status.error }]} />
       </View>
 
       <View style={s.addressBlock}>
         <View style={s.addressRow}>
           <CourierUI.Typography scale="badge" color="brand">PICKUP</CourierUI.Typography>
-          <CourierUI.Typography scale="bodySm" color="secondary" style={{ flex: 1 }} numberOfLines={1}>
+          <CourierUI.Typography scale="bodySm" color="primary" style={{ flex: 1 }} numberOfLines={1}>
             {order.pharmacy.name}
           </CourierUI.Typography>
         </View>
         <View style={s.addressRow}>
           <CourierUI.Typography scale="badge" color="danger">DROP</CourierUI.Typography>
-          <CourierUI.Typography scale="bodySm" color="inverse" style={{ flex: 1 }} numberOfLines={2}>
+          <CourierUI.Typography scale="bodySm" color="primary" style={{ flex: 1 }} numberOfLines={2}>
             {order.customerAddress}
           </CourierUI.Typography>
         </View>
       </View>
 
       <View style={s.cardMetaRow}>
-        <View style={s.metaChip}>
-          <Ionicons name="cube-outline" size={13} color={kit.darkColor.inkFaint} />
+        <View style={[s.metaChip, { backgroundColor: colors.canvas.surfaceMuted }]}>
+          <Ionicons name="cube-outline" size={13} color={colors.text.muted} />
           <CourierUI.Typography scale="caption" color="secondary">
             {order.itemCount} item{order.itemCount !== 1 ? 's' : ''}
           </CourierUI.Typography>
         </View>
-        <View style={s.metaChip}>
-          <Ionicons name="cash-outline" size={13} color={kit.darkColor.inkFaint} />
+        <View style={[s.metaChip, { backgroundColor: colors.canvas.surfaceMuted }]}>
+          <Ionicons name="cash-outline" size={13} color={colors.text.muted} />
           <CourierUI.Typography scale="caption" color="secondary">
             {order.paymentMethod}
           </CourierUI.Typography>
@@ -105,9 +106,12 @@ function OrderCard({
 
       <View style={s.actionRow}>
         <Pressable
-          style={[s.declineBtn, busy && s.disabledBtn]}
+          style={[s.declineBtn, busy && s.disabledBtn, { backgroundColor: colors.canvas.surface, borderColor: colors.border.default }]}
           onPress={() => onSkip(order.id)}
           disabled={busy}
+          accessibilityRole="button"
+          accessibilityState={{ disabled: busy }}
+          accessibilityLabel="Decline order"
         >
           <CourierUI.Typography scale="buttonSm" color="secondary">
             Decline
@@ -117,9 +121,12 @@ function OrderCard({
           style={[s.acceptBtn, busy && s.disabledBtn]}
           onPress={() => onAccept(order.id)}
           disabled={busy}
+          accessibilityRole="button"
+          accessibilityState={{ disabled: busy }}
+          accessibilityLabel="Accept order"
         >
           <LinearGradient
-            colors={[kit.darkColor.accent, '#1a9e93']}
+            colors={[colors.brand.primary, colors.brand.primaryDark]}
             style={StyleSheet.absoluteFillObject}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
@@ -136,6 +143,7 @@ function OrderCard({
 export default function DriverDashboard() {
   const router = useRouter();
   const qc = useQueryClient();
+  const { theme, colors } = useCourierTheme();
   const { user, setOnlineStatus } = useAuthStore();
   const isOnline = user?.driverProfile?.isOnline ?? false;
 
@@ -185,14 +193,14 @@ export default function DriverDashboard() {
     backgroundColor: interpolateColor(
       animStatus.value,
       [0, 1],
-      [kit.darkColor.surface, kit.darkColor.accentDeep]
+      [colors.canvas.surface, colors.brand.primaryDark]
     ),
   }));
 
   const earningsTotal = parseFloat(user?.driverProfile?.totalEarnings ?? '0');
 
   return (
-    <View style={s.root}>
+    <View style={[s.root, { backgroundColor: colors.canvas.screen }]}>
       <Animated.View style={[s.header, headerBg]}>
         <SafeAreaView edges={['top']} />
         <View style={s.headerRow}>
@@ -209,7 +217,7 @@ export default function DriverDashboard() {
                   : 'OFFLINE'}
             </CourierUI.Typography>
             <View style={s.earningsRow}>
-              <Ionicons name="wallet" size={20} color={kit.darkColor.accent} />
+              <Ionicons name="wallet" size={20} color={colors.brand.accent} />
               <CourierUI.Typography scale="screenTitle" color="inverse">
                 {earningsTotal.toFixed(0)}
               </CourierUI.Typography>
@@ -223,14 +231,17 @@ export default function DriverDashboard() {
             style={s.toggleWrap}
             onPress={() => toggleMutation.mutate(!isOnline)}
             disabled={toggleMutation.isPending || activeDelivery != null}
+            accessibilityRole="switch"
+            accessibilityState={{ checked: isOnline, disabled: toggleMutation.isPending || activeDelivery != null }}
+            accessibilityLabel={isOnline ? 'Go offline' : 'Go online'}
           >
             <Animated.View
               style={[
                 s.toggleTrack,
                 {
                   backgroundColor: isOnline
-                    ? kit.darkColor.accent
-                    : kit.darkColor.inkFaint,
+                    ? colors.brand.primary
+                    : colors.text.muted,
                 },
               ]}
             >
@@ -243,17 +254,19 @@ export default function DriverDashboard() {
                 ]}
               />
             </Animated.View>
-            <View style={[s.statusDot, { backgroundColor: isOnline ? kit.darkColor.accent : kit.darkColor.inkFaint }]} />
+            <View style={[s.statusDot, { backgroundColor: isOnline ? colors.brand.primary : colors.text.muted }]} />
           </Pressable>
         </View>
 
         {activeDelivery && (
           <Pressable
-            style={s.activeBanner}
+            style={[s.activeBanner, { backgroundColor: colors.canvas.overlay, borderColor: colors.brand.primaryLight }]}
             onPress={() => router.push('/(tabs)/delivery')}
+            accessibilityRole="button"
+            accessibilityLabel="View active delivery"
           >
-            <View style={s.pulseRing}>
-              <View style={[s.pulseDot, { backgroundColor: kit.darkColor.accent }]} />
+            <View style={[s.pulseRing, { backgroundColor: colors.brand.primaryLight }]}>
+              <View style={[s.pulseDot, { backgroundColor: colors.brand.primary }]} />
             </View>
             <View style={{ flex: 1 }}>
               <CourierUI.Typography scale="buttonMd" color="inverse" style={{ fontWeight: '700' }}>
@@ -273,7 +286,7 @@ export default function DriverDashboard() {
                 )}
               </CourierUI.Typography>
             </View>
-            <Ionicons name="arrow-forward" size={20} color={kit.darkColor.accent} />
+            <Ionicons name="arrow-forward" size={20} color={colors.brand.primary} />
           </Pressable>
         )}
       </Animated.View>
@@ -302,7 +315,7 @@ export default function DriverDashboard() {
               <RefreshControl
                 refreshing={isRefetching}
                 onRefresh={refetch}
-                tintColor={kit.darkColor.accent}
+                tintColor={colors.brand.primary}
               />
             }
             renderItem={({ item }) => (
@@ -317,9 +330,9 @@ export default function DriverDashboard() {
             ListEmptyComponent={
               isLoading ? (
                 <View style={{ gap: 16 }}>
-                  <CourierUI.Skeleton height={160} />
-                  <CourierUI.Skeleton height={160} />
-                  <CourierUI.Skeleton height={160} />
+                  <CourierUI.Skeleton height={180} />
+                  <CourierUI.Skeleton height={180} />
+                  <CourierUI.Skeleton height={180} />
                 </View>
               ) : (
                 <CourierUI.EmptyState
@@ -340,27 +353,9 @@ function orderCount(itemsLength: number | undefined): string {
   return `${count} item${count !== 1 ? 's' : ''}`;
 }
 
-function haversineMeters(
-  lat1: number,
-  lng1: number,
-  lat2: number,
-  lng2: number
-): number | null {
-  if (!lat1 || !lng1 || !lat2 || !lng2) return null;
-  const R = 6371e3;
-  const toRad = (d: number) => (d * Math.PI) / 180;
-  const dLat = toRad(lat2 - lat1);
-  const dLng = toRad(lng2 - lng1);
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
-  return Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
-}
-
 const s = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: kit.darkColor.canvas,
   },
   header: {
     borderBottomLeftRadius: 32,
@@ -416,9 +411,7 @@ const s = StyleSheet.create({
     marginTop: 20,
     padding: 16,
     borderRadius: 16,
-    backgroundColor: 'rgba(0,0,0,0.25)',
     borderWidth: 1,
-    borderColor: 'rgba(44,203,189,0.25)',
   },
   pulseRing: {
     width: 36,
@@ -426,7 +419,6 @@ const s = StyleSheet.create({
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(44,203,189,0.15)',
   },
   pulseDot: {
     width: 12,
@@ -443,11 +435,9 @@ const s = StyleSheet.create({
     gap: 16,
   },
   card: {
-    backgroundColor: kit.darkColor.surface,
     borderRadius: 24,
     padding: 20,
     borderWidth: 1,
-    borderColor: kit.darkColor.line,
     gap: 16,
   },
   cardTopRow: {
@@ -459,13 +449,11 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: kit.darkColor.accentTint,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 100,
   },
   earningsBadge: {
-    backgroundColor: kit.darkColor.accent,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 12,
@@ -483,7 +471,6 @@ const s = StyleSheet.create({
   routeLine: {
     flex: 1,
     height: 2,
-    backgroundColor: kit.darkColor.line,
     marginHorizontal: 8,
   },
   addressBlock: {
@@ -502,7 +489,6 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: kit.darkColor.well,
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 8,
@@ -513,13 +499,11 @@ const s = StyleSheet.create({
   },
   declineBtn: {
     flex: 1,
-    backgroundColor: kit.darkColor.surface,
     paddingVertical: 16,
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: kit.darkColor.line,
   },
   acceptBtn: {
     flex: 2,

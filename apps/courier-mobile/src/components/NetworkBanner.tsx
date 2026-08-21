@@ -6,10 +6,12 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, typography, spacing } from '@pharmacy/ui-native/courier-tokens';
+import { typography, spacing } from '@pharmacy/ui-native/courier-tokens';
+import { useCourierTheme } from '@pharmacy/ui-native';
 import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 
 export function NetworkBanner() {
+  const { colors } = useCourierTheme();
   const { isConnected } = useNetworkStatus();
   const translateY = useSharedValue(-48);
 
@@ -22,9 +24,16 @@ export function NetworkBanner() {
   }));
 
   return (
-    <Animated.View style={[s.banner, animStyle]} pointerEvents="none">
-      <Ionicons name="cloud-offline-outline" size={16} color={colors.white} />
-      <Text style={s.text}>No internet connection</Text>
+    <Animated.View 
+      style={[s.banner, animStyle, { backgroundColor: colors.status.error }]} 
+      pointerEvents="none"
+      accessibilityRole="alert"
+      accessibilityLabel={isConnected ? 'Internet connection restored' : 'No internet connection'}
+    >
+      <Ionicons name={isConnected ? 'cloud-done-outline' : 'cloud-offline-outline'} size={16} color={colors.text.inverse} />
+      <Text style={[s.text, { color: colors.text.inverse }]}>
+        {isConnected ? 'Back online' : 'No internet connection'}
+      </Text>
     </Animated.View>
   );
 }
@@ -36,7 +45,6 @@ const s = StyleSheet.create({
     left: 0,
     right: 0,
     height: 40,
-    backgroundColor: colors.error,
     flexDirection: 'row',
     alignItems: 'flex-end',
     justifyContent: 'center',
@@ -44,5 +52,5 @@ const s = StyleSheet.create({
     paddingBottom: spacing[1],
     zIndex: 9998,
   },
-  text: { color: colors.white, fontSize: typography.sm, fontFamily: typography.medium },
+  text: { fontSize: typography.sm, fontFamily: typography.medium },
 });

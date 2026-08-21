@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
-import { colors, spacing, typography, radii } from '@pharmacy/ui-native/courier-tokens';
+import { typography, spacing, radii } from '@pharmacy/ui-native/courier-tokens';
+import { useCourierTheme } from '@pharmacy/ui-native';
 
 interface State {
   hasError: boolean;
@@ -35,20 +36,36 @@ export class ErrorBoundary extends React.Component<Props, State> {
       if (this.props.fallback) return this.props.fallback;
 
       return (
-        <View style={s.container}>
-          <Text style={s.title}>Something went wrong</Text>
-          <Text style={s.message}>
-            {this.state.error?.message ?? 'An unexpected error occurred.'}
-          </Text>
-          <Pressable style={s.button} onPress={this.retry}>
-            <Text style={s.buttonText}>Try Again</Text>
-          </Pressable>
-        </View>
+        <ErrorFallback error={this.state.error} onRetry={this.retry} />
       );
     }
 
     return this.props.children;
   }
+}
+
+function ErrorFallback({ error, onRetry }: { error: Error | null, onRetry: () => void }) {
+  const { colors } = useCourierTheme();
+
+  return (
+    <View style={[s.container, { backgroundColor: colors.canvas.screen }]} accessibilityRole="alert">
+      <View style={[s.iconWrap, { backgroundColor: colors.status.error + '20' }]}>
+        <Text style={[s.iconText, { color: colors.status.error }]}>!</Text>
+      </View>
+      <Text style={[s.title, { color: colors.text.primary }]}>Something went wrong</Text>
+      <Text style={[s.message, { color: colors.text.secondary }]}>
+        {error?.message ?? 'An unexpected error occurred.'}
+      </Text>
+      <Pressable 
+        style={[s.button, { backgroundColor: colors.brand.primary }]} 
+        onPress={onRetry}
+        accessibilityRole="button"
+        accessibilityLabel="Try again"
+      >
+        <Text style={[s.buttonText, { color: colors.text.inverse }]}>Try Again</Text>
+      </Pressable>
+    </View>
+  );
 }
 
 const s = StyleSheet.create({
@@ -57,30 +74,37 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: spacing[8],
-    backgroundColor: colors.surfaceAlt,
+  },
+  iconWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing[3],
+  },
+  iconText: {
+    fontSize: 32,
+    fontFamily: typography.black,
   },
   title: {
     fontSize: typography.lg,
     fontFamily: typography.bold,
-    color: colors.ink,
     marginBottom: spacing[2],
     textAlign: 'center',
   },
   message: {
     fontSize: typography.sm,
-    color: colors.inkMuted,
     textAlign: 'center',
     marginBottom: spacing[6],
     lineHeight: typography.base * typography.normal,
   },
   button: {
-    backgroundColor: colors.primary,
     paddingHorizontal: spacing[6],
     paddingVertical: spacing[3],
     borderRadius: radii.lg,
   },
   buttonText: {
-    color: colors.white,
     fontFamily: typography.semibold,
     fontSize: typography.base,
   },

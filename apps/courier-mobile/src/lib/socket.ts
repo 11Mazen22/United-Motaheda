@@ -40,17 +40,17 @@ class DriverSocketManager {
       this.reconnectAttempts = 0;
     });
 
-    this.socket.on('disconnect', (reason) => {
+    this.socket.on('disconnect', (reason: any) => {
       console.log('[Socket] Disconnected:', reason);
     });
 
-    this.socket.on('connect_error', (err) => {
+    this.socket.on('connect_error', (err: any) => {
       console.warn('[Socket] Connection error:', err.message);
     });
 
     // New order available → refresh orders list
     this.socket.on('new-order', () => {
-      queryClient.invalidateQueries({ queryKey: ['orders', 'available'] });
+      queryClient.invalidateQueries({ queryKey: ['availableOrders'] });
     });
 
     // Delivery status updated by admin/system
@@ -58,13 +58,13 @@ class DriverSocketManager {
       const { activeDelivery } = useOrdersStore.getState();
       if (activeDelivery?.order.id === data.orderId) {
         useOrdersStore.getState().updateActiveDeliveryStatus(data.status as any);
-        queryClient.invalidateQueries({ queryKey: ['delivery', 'active'] });
+        queryClient.invalidateQueries({ queryKey: ['activeDelivery'] });
       }
     });
 
     // Order assigned to this driver
     this.socket.on('order-assigned', () => {
-      queryClient.invalidateQueries({ queryKey: ['delivery', 'active'] });
+      queryClient.invalidateQueries({ queryKey: ['activeDelivery'] });
     });
   }
 

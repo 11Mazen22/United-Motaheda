@@ -20,6 +20,7 @@ export function useGpsTracking() {
   const isOnline = useAuthStore((s) => s.user?.driverProfile?.isOnline ?? false);
   const activeDelivery = useOrdersStore((s) => s.activeDelivery);
   const setLocation = useLocationStore((s) => s.setLocation);
+  const setWarning = useLocationStore((s) => s.setWarning);
   const startTracking = useLocationStore((s) => s.startTracking);
   const stopTracking = useLocationStore((s) => s.stopTracking);
 
@@ -75,6 +76,9 @@ export function useGpsTracking() {
   // ─── Register the stable ref wrapper ONCE ────────────────────────────────
   useEffect(() => {
     GpsManager.onLocation((loc) => onLocationRef.current(loc));
+    GpsManager.onAccuracyWarning((warning) => {
+      setWarning(warning);
+    });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ─── Start / stop foreground tracking based on online status ─────────────
