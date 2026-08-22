@@ -1,18 +1,7 @@
-# Railway configuration for Ollama service
+# Railway configuration for @pharmacy/api service
 [build]
-dockerfile = "Dockerfile.ollama"
+buildCommand = "npm run railway:build:api"
 
 [deploy]
 numReplicas = 1
-startCommand = ""  # Uses Dockerfile CMD
-
-[variables]
-OLLAMA_HOST = "0.0.0.0:11434"
-OLLAMA_MODELS = "/root/.ollama/models"
-
-[healthcheck]
-timeout = 30
-interval = 10
-retries = 5
-successThreshold = 1
-failureThreshold = 3
+startCommand = "npm run railway:start:api"
