@@ -110,11 +110,6 @@
     "extra": {
       "router": {
         "origin": false
-      },
-      "apiUrl": "http://192.168.1.1:3000",
-      "googleMapsApiKey": "YOUR_GOOGLE_MAPS_API_KEY",
-      "eas": {
-        "projectId": "united-pharmacy-driver"
       }
     }
   }
