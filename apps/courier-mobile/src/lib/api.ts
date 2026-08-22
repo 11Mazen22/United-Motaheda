@@ -4,15 +4,15 @@ import { type AvailableOrder, type ActiveDelivery, type DeliveryHistoryItem, typ
 
 // Read base URL from Expo public env or constants
 const getBaseUrl = (): string => {
-  // EXPO_PUBLIC_ vars are inlined at build time by Metro
   if (process.env.EXPO_PUBLIC_API_URL) return process.env.EXPO_PUBLIC_API_URL;
   try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const Constants = require('expo-constants').default;
     const extra = Constants.expoConfig?.extra ?? {};
-    return extra.apiUrl ?? 'http://localhost:3000';
-  } catch {
-    return 'http://localhost:3000';
+    const url = extra.apiUrl;
+    if (!url) throw new Error('Missing apiUrl in app.json extra');
+    return url;
+  } catch (e) {
+    throw new Error(`API base URL is not configured: ${e}`);
   }
 };
 
@@ -87,11 +87,11 @@ export const driverApi = {
   getProfile: () => apiGet<{ driverProfile: DriverProfile }>('/driver/profile'),
   updateProfile: (data: Partial<{ id: string; fullName: string; email?: string; phone?: string; vehicleType?: string; vehiclePlate?: string; vehicleModel?: string; vehicleColor?: string }>) =>
     apiPatch<DriverProfile>('/driver/profile', data),
-  getStatistics: () => apiGet<any>('/driver/statistics'),
+  getStatistics: () => apiGet<{ totalDeliveries: number; completionRate: string; totalEarnings: string; rating: string; today: { earnings: string; deliveries: number }; thisWeek: { earnings: string; deliveries: number }; thisMonth: { earnings: string; deliveries: number } }>('/driver/statistics'),
 
   // Status
-  goOnline: () => apiPost<any>('/driver/status/online'),
-  goOffline: () => apiPost<any>('/driver/status/offline'),
+  goOnline: () => apiPost<{ success: boolean; isOnline: boolean }>('/driver/status/online'),
+  goOffline: () => apiPost<{ success: boolean; isOnline: boolean }>('/driver/status/offline'),
 
   // Location
   updateLocation: (data: {
@@ -102,7 +102,7 @@ export const driverApi = {
     speed?: number;
     altitude?: number;
     timestamp?: number;
-  }) => apiPost<any>('/driver/location', data),
+  }) => apiPost<{ success: boolean }>('/driver/location', data),
 
   // Orders
   getAvailableOrders: () => apiGet<AvailableOrder[]>('/driver/orders/available'),
@@ -144,7 +144,7 @@ export const driverApi = {
     const filename = uri.split('/').pop() ?? 'document.jpg';
     const match = /\.(\w+)$/.exec(filename);
     const mimeType = match ? `image/${match[1]}` : 'image/jpeg';
-    formData.append('file', { uri, name: filename, type: mimeType } as any);
+    formData.append('file', { uri, name: filename, type: mimeType } as unknown as Parameters<FormData['append']>[1]);
 
     const token = useAuthStore.getState().token;
     const baseUrl = getBaseUrl();
@@ -163,5 +163,5 @@ export const driverApi = {
 
   // Notifications
   registerPushToken: (token: string, platform: 'ios' | 'android') =>
-    apiPost<any>('/notifications/token', { token, platform }),
+    apiPost<{ success: boolean }>('/notifications/token', { token, platform }),
 };

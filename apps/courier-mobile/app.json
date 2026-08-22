@@ -25,6 +25,9 @@
         "NSLocationAlwaysUsageDescription": "Background location is used to keep your position updated during deliveries.",
         "NSCameraUsageDescription": "Camera is needed to take delivery proof photos.",
         "NSPhotoLibraryUsageDescription": "Photo library access is needed to upload delivery proof."
+      },
+      "runtimeVersion": {
+        "policy": "appVersion"
       }
     },
     "android": {
@@ -44,9 +47,20 @@
         "android.permission.RECEIVE_BOOT_COMPLETED",
         "android.permission.VIBRATE",
         "android.permission.POST_NOTIFICATIONS",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.CAMERA",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_BACKGROUND_LOCATION",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_LOCATION",
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.VIBRATE",
+        "android.permission.POST_NOTIFICATIONS",
         "android.permission.RECORD_AUDIO"
       ],
-      "versionCode": 1
+      "versionCode": 11,
+      "runtimeVersion": "1.0.0"
     },
     "web": {
       "bundler": "metro",
@@ -114,8 +128,11 @@
       "apiUrl": "http://192.168.1.1:3000",
       "googleMapsApiKey": "YOUR_GOOGLE_MAPS_API_KEY",
       "eas": {
-        "projectId": "united-pharmacy-driver"
+        "projectId": "8f5ac4e8-1d00-42cd-9147-bafa707bcfc6"
       }
+    },
+    "updates": {
+      "url": "https://u.expo.dev/8f5ac4e8-1d00-42cd-9147-bafa707bcfc6"
     }
   }
 }

@@ -56,12 +56,12 @@
       [
         "expo-build-properties",
         {
-          "android": {
-            "kotlinVersion": "2.1.21",
-            "newArchEnabled": true,
-            "enableProguardInReleaseBuilds": true,
-            "enableMinifyInReleaseBuilds": true
-          },
+      "android": {
+        "kotlinVersion": "2.1.21",
+        "newArchEnabled": false,
+        "enableProguardInReleaseBuilds": true,
+        "enableMinifyInReleaseBuilds": true
+      },
           "ios": {
             "newArchEnabled": true
           }

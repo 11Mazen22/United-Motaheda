@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Platform } from 'react-native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -7,6 +7,7 @@ import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import * as Font from 'expo-font';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   Cairo_400Regular,
   Cairo_500Medium,
@@ -25,6 +26,48 @@ import { NetworkBanner } from '@/components/NetworkBanner';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 SplashScreen.preventAutoHideAsync();
+
+const LANGUAGE_KEY = '@pharmacy/courier-language';
+
+type AppLanguage = 'en' | 'ar';
+
+// ─── Language context ────────────────────────────────────────────────────────
+const LanguageContext = React.createContext<{
+  language: AppLanguage;
+  setLanguage: (lang: AppLanguage) => Promise<void>;
+  isRTL: boolean;
+}>({
+  language: 'en',
+  setLanguage: async () => {},
+  isRTL: false,
+});
+
+function LanguageProvider({ children }: { children: React.ReactNode }) {
+  const [language, setLanguageState] = useState<AppLanguage>('en');
+
+  useEffect(() => {
+    AsyncStorage.getItem(LANGUAGE_KEY).then((stored) => {
+      if (stored === 'ar' || stored === 'en') setLanguageState(stored);
+    });
+  }, []);
+
+  const setLanguage = async (lang: AppLanguage) => {
+    await AsyncStorage.setItem(LANGUAGE_KEY, lang);
+    setLanguageState(lang);
+  };
+
+  const value = {
+    language,
+    setLanguage,
+    isRTL: language === 'ar',
+  };
+
+  return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>;
+}
+
+export function useAppLanguage() {
+  return React.useContext(LanguageContext);
+}
 
 // ─── Push notification bootstrap ─────────────────────────────────────────────
 function PushBootstrap() {
@@ -73,6 +116,36 @@ function ThemeStatusBar() {
   ) : null;
 }
 
+// ─── Theme provider with RTL ─────────────────────────────────────────────────
+function ThemedApp() {
+  const { isRTL } = useAppLanguage();
+  return (
+    <ThemeProvider isRTL={isRTL}>
+      <PersistQueryClientProvider
+        client={queryClient}
+        persistOptions={{ persister: asyncStoragePersister }}
+        onSuccess={() => {
+          queryClient.resumePausedMutations();
+        }}
+      >
+        <ThemeStatusBar />
+
+        <AuthGuard />
+        <GpsBootstrap />
+        <PushBootstrap />
+
+        <Stack screenOptions={{ headerShown: false, animation: 'fade' }}>
+          <Stack.Screen name="(auth)" options={{ headerShown: false, animation: 'fade' }} />
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        </Stack>
+
+        <Toast />
+        <NetworkBanner />
+      </PersistQueryClientProvider>
+    </ThemeProvider>
+  );
+}
+
 // ─── Root layout ──────────────────────────────────────────────────────────────
 export default function RootLayout() {
   useEffect(() => {
@@ -84,7 +157,6 @@ export default function RootLayout() {
       Cairo_800ExtraBold,
     }).catch(() => {});
 
-    // Safety net: hide splash after 3.5s if not already hidden
     const safety = setTimeout(() => {
       SplashScreen.hideAsync().catch(() => {});
     }, 3_500);
@@ -96,32 +168,9 @@ export default function RootLayout() {
     <ErrorBoundary>
       <GestureHandlerRootView style={{ flex: 1 }}>
         <SafeAreaProvider>
-          <ThemeProvider>
-          <PersistQueryClientProvider
-            client={queryClient}
-            persistOptions={{ persister: asyncStoragePersister }}
-            onSuccess={() => {
-              // Resume paused mutations after hydration
-              queryClient.resumePausedMutations();
-            }}
-          >
-            <ThemeStatusBar />
-
-            <AuthGuard />
-            <GpsBootstrap />
-            <PushBootstrap />
-
-            <Stack screenOptions={{ headerShown: false, animation: 'fade' }}>
-              <Stack.Screen name="(auth)" options={{ headerShown: false, animation: 'fade' }} />
-              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            </Stack>
-
-            {/* Global toast — sits above everything */}
-            <Toast />
-            {/* Network offline banner */}
-            <NetworkBanner />
-          </PersistQueryClientProvider>
-          </ThemeProvider>
+          <LanguageProvider>
+            <ThemedApp />
+          </LanguageProvider>
         </SafeAreaProvider>
       </GestureHandlerRootView>
     </ErrorBoundary>

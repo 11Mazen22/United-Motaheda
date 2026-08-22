@@ -20,6 +20,7 @@ import { useAuthStore } from '@/stores/auth.store';
 import { socketManager } from '@/lib/socket';
 import { useOrdersStore, type DeliveryHistoryItem } from '@/stores/orders.store';
 import { useNotificationStore, type AppNotification } from '@/stores/notification.store';
+import { useAppLanguage } from '../_layout';
 
 type ProfileTab = 'profile' | 'earnings' | 'history' | 'notifications' | 'settings';
 
@@ -509,6 +510,7 @@ const nt = StyleSheet.create({
 function SettingsTab() {
   const { colors, isDark } = useCourierTheme();
   const { toggleTheme } = useTheme();
+  const { language, setLanguage, isRTL } = useAppLanguage();
   const router = useRouter();
   const [logoutDialog, setLogoutDialog] = useState(false);
 
@@ -522,6 +524,12 @@ function SettingsTab() {
     useOrdersStore.getState().reset();
     router.replace('/(auth)/login');
   }, [router]);
+
+  const toggleLanguage = useCallback(async () => {
+    const next = language === 'en' ? 'ar' : 'en';
+    await setLanguage(next);
+    showToast(next === 'ar' ? 'تم تغيير اللغة إلى العربية' : 'Language changed to English', 'success');
+  }, [language, setLanguage]);
 
   const SettingRow = ({ icon, label, value, onPress, danger }: { icon: string, label: string, value?: string, onPress?: () => void, danger?: boolean }) => (
     <TouchableOpacity
@@ -560,9 +568,9 @@ function SettingsTab() {
         />
         <SettingRow
           icon="language-outline"
-          label="Language"
-          value="العربية / English"
-          onPress={() => showToast('Language switching coming soon', 'info')}
+          label={isRTL ? 'اللغة' : 'Language'}
+          value={isRTL ? 'English' : 'العربية'}
+          onPress={toggleLanguage}
         />
       </CourierUI.Card>
 

@@ -1,6 +1,5 @@
 {
-  "name": "@pharmacy/ui-native",
-  "private": true,
+  "name": "@united-pharmacy/ui-native",
   "version": "1.0.0",
   "main": "./src/index.ts",
   "module": "./src/index.ts",
