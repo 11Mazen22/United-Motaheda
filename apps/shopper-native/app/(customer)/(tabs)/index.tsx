@@ -164,7 +164,7 @@ const QuickAction = memo(function QuickAction({ icon, label, sub, accent, tint, 
       style={({ pressed }) => [styles.qaCard, pressed && { opacity: 0.85 }]}
     >
       <View style={[styles.qaIconWell, { backgroundColor: tint }]}>
-        <Ionicons name={icon as any} size={22} color={accent} />
+        <Ionicons name={icon as unknown as never} size={22} color={accent} />
       </View>
       <CustomerUI.Typography variant="bodySm" weight="bold" color={kit.color.ink} style={[styles.qaLabel, { textAlign: textAlignStart(IS_RTL) }]}>
         {label}

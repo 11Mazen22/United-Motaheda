@@ -30,12 +30,12 @@ export async function timed<T>(label: string, fn: () => PromiseLike<T>): Promise
   try {
     const result = await fn();
     const dt = Date.now() - t0;
-    // eslint-disable-next-line no-console
+     
     console.log(`[timed] ${label}: ${dt}ms`);
     return result;
   } catch (e) {
     const dt = Date.now() - t0;
-    // eslint-disable-next-line no-console
+     
     console.log(`[timed] ${label}: FAILED after ${dt}ms`);
     throw e;
   }
@@ -44,7 +44,7 @@ export async function timed<T>(label: string, fn: () => PromiseLike<T>): Promise
 /** Emit a labelled event (e.g., fallback activation). No-op in prod. */
 export function timedMark(category: string, message: string): void {
   if (!__DEV__) return;
-  // eslint-disable-next-line no-console
+   
   console.log(`[mark/${category}] ${message}`);
 }
 
@@ -63,7 +63,7 @@ export function useMountTiming(label: string): void {
     const t0 = Date.now();
     const raf = requestAnimationFrame(() => {
       const dt = Date.now() - t0;
-      // eslint-disable-next-line no-console
+       
       console.log(`[mount] ${label}: ${dt}ms`);
     });
     return () => cancelAnimationFrame(raf);

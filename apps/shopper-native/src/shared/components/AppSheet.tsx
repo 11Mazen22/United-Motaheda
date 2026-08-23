@@ -350,7 +350,7 @@ export function AppSheet() {
 
     }
 
-  }, [visible]);
+  }, [visible, iconOp, iconScale, overlayOp, translateY]);
 
 
 
@@ -358,7 +358,7 @@ export function AppSheet() {
 
     opacity:        overlayOp.value,
 
-    pointerEvents:  (overlayOp.value > 0.01 ? "auto" : "none") as any,
+    pointerEvents:  (overlayOp.value > 0.01 ? "auto" : "none") as unknown as never,
 
   }));
 

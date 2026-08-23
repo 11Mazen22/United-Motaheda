@@ -292,7 +292,7 @@ export const useOrderStore = create<OrdersState>((set) => ({
 
       AsyncStorage.setItem(ORDERS_KEY, JSON.stringify(orders)).catch(() => {});
 
-    } catch (e) {
+    } catch {
 
       try {
 

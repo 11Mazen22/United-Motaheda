@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   FlatList,
   RefreshControl,
-  Switch,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -24,7 +23,15 @@ import { useAppLanguage } from '../_layout';
 
 type ProfileTab = 'profile' | 'earnings' | 'history' | 'notifications' | 'settings';
 
-function Stars({ rating, size = 14, colors }: { rating: number; size?: number, colors: any }) {
+type ProfileColors = {
+  canvas: { screen: string; surface: string; surfaceMuted: string };
+  brand: { primary: string; primaryDark: string; primaryLight: string };
+  text: { primary: string; secondary: string; inverse: string; muted: string };
+  status: { success: string; error: string; warning: string; info: string };
+  border: { default: string };
+};
+
+function Stars({ rating, size = 14, colors }: { rating: number; size?: number, colors: ProfileColors }) {
   return (
     <View style={{ flexDirection: 'row', gap: 2 }}>
       {[1, 2, 3, 4, 5].map((i) => (
@@ -146,7 +153,7 @@ function ProfileTab() {
   );
 }
 
-function DocBadge({ label, uploaded, colors }: { label: string; uploaded: boolean, colors: any }) {
+function DocBadge({ label, uploaded, colors }: { label: string; uploaded: boolean, colors: ProfileColors }) {
   return (
     <View style={db.row}>
       <Ionicons
@@ -231,12 +238,12 @@ function EarningsTab() {
     label: string;
     value: string;
     sub?: string;
-    icon: string;
+    icon: React.ComponentProps<typeof Ionicons>['name'];
     color?: string;
   }) => (
     <CourierUI.Card style={et.card}>
       <View style={[et.iconBox, { backgroundColor: color + '20' }]}>
-        <Ionicons name={icon as any} size={22} color={color} />
+        <Ionicons name={icon} size={22} color={color} />
       </View>
       <CourierUI.Typography scale="priceMd" style={{ color: colors.brand.primary }}>{value}</CourierUI.Typography>
       <CourierUI.Typography scale="caption" color="secondary">{label}</CourierUI.Typography>
@@ -327,12 +334,12 @@ function HistoryTab() {
     queryKey: ['delivery', 'history'],
     queryFn: ({ pageParam = 1 }) =>
       driverApi.getDeliveryHistory(pageParam as number, 20),
-    getNextPageParam: (lastPage: any) =>
+    getNextPageParam: (lastPage: { page: number; totalPages: number; deliveries: DeliveryHistoryItem[] }) =>
       lastPage.page < lastPage.totalPages ? lastPage.page + 1 : undefined,
     initialPageParam: 1,
   });
 
-  const allDeliveries = data?.pages.flatMap((p: any) => p.deliveries) ?? [];
+  const allDeliveries = data?.pages.flatMap((p: { page: number; totalPages: number; deliveries: DeliveryHistoryItem[] }) => p.deliveries) ?? [];
 
   if (isLoading) {
     return (
@@ -358,7 +365,7 @@ function HistoryTab() {
   return (
     <FlatList
       data={allDeliveries}
-      keyExtractor={(item: any) => item.id}
+      keyExtractor={(item: DeliveryHistoryItem) => item.id}
       contentContainerStyle={[ht.list, { backgroundColor: colors.canvas.screen }]}
       showsVerticalScrollIndicator={false}
       refreshControl={
@@ -426,7 +433,7 @@ const ht = StyleSheet.create({
 
 function NotificationsTab() {
   const { colors } = useCourierTheme();
-  const { notifications, unreadCount, markRead, markAllRead, clearAll } = useNotificationStore();
+  const { notifications, markRead, markAllRead, clearAll } = useNotificationStore();
 
   const sortedNotifications = useMemo(() => {
     return [...notifications].sort((a, b) => b.receivedAt - a.receivedAt);
@@ -531,7 +538,7 @@ function SettingsTab() {
     showToast(next === 'ar' ? 'تم تغيير اللغة إلى العربية' : 'Language changed to English', 'success');
   }, [language, setLanguage]);
 
-  const SettingRow = ({ icon, label, value, onPress, danger }: { icon: string, label: string, value?: string, onPress?: () => void, danger?: boolean }) => (
+  const SettingRow = ({ icon, label, value, onPress, danger }: { icon: React.ComponentProps<typeof Ionicons>['name'], label: string, value?: string, onPress?: () => void, danger?: boolean }) => (
     <TouchableOpacity
       style={[st.row, { borderBottomColor: colors.border.default }]}
       onPress={onPress}
@@ -541,7 +548,7 @@ function SettingsTab() {
     >
       <View style={st.rowLeft}>
         <View style={[st.iconBox, { backgroundColor: danger ? colors.status.error + '15' : colors.brand.primaryLight }]}>
-          <Ionicons name={icon as any} size={18} color={danger ? colors.status.error : colors.brand.primary} />
+          <Ionicons name={icon} size={18} color={danger ? colors.status.error : colors.brand.primary} />
         </View>
         <CourierUI.Typography scale="bodySm">{label}</CourierUI.Typography>
       </View>
@@ -658,7 +665,7 @@ export default function ProfileScreen() {
     router.replace('/(auth)/login');
   }, [router, clearActive]);
 
-  const TABS: { key: ProfileTab; label: string; icon: string }[] = [
+  const TABS: { key: ProfileTab; label: string; icon: React.ComponentProps<typeof Ionicons>['name'] }[] = [
     { key: 'profile', label: 'Profile', icon: 'person-outline' },
     { key: 'earnings', label: 'Earnings', icon: 'wallet-outline' },
     { key: 'history', label: 'History', icon: 'time-outline' },
@@ -695,8 +702,8 @@ export default function ProfileScreen() {
                 accessibilityState={{ selected: isActive }}
                 accessibilityLabel={tab.label}
               >
-                <Ionicons
-                  name={tab.icon as any}
+                 <Ionicons
+                   name={tab.icon}
                   size={16}
                   color={isActive ? colors.brand.primary : colors.text.muted}
                 />

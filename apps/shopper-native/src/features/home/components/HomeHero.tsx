@@ -66,7 +66,7 @@ export const HomeHero = memo(function HomeHero({ onScanRx, onDeals, onSearch, on
           {actions.map((act, i) => (
             <Pressable key={i} onPress={act.onPress} style={styles.actionCard}>
               <View style={[styles.iconCircle, { backgroundColor: act.color + '1A' }]}>
-                <Ionicons name={act.icon as any} size={24} color={act.color} />
+                <Ionicons name={act.icon as unknown as never} size={24} color={act.color} />
               </View>
               <CustomerUI.Typography scale="navLabel" color="primary" style={{ marginTop: 12, marginBottom: 2, textAlign: "center", fontSize: 13, fontFamily: "Cairo_700Bold" }}>
                 {act.label}

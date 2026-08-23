@@ -8,8 +8,9 @@ import { isRtl, flexRow, textAlignStart, textAlignEnd } from "@/utils/layout";
 const IS_RTL = isRtl();
 const TEXT_START = textAlignStart(IS_RTL);
 const TEXT_END = textAlignEnd(IS_RTL);
+type IoniconsName = React.ComponentProps<typeof Ionicons>["name"];
 
-function ClinRow({ icon, label, value, last = false }: { icon: any; label: string; value: string; last?: boolean }) {
+function ClinRow({ icon, label, value, last = false }: { icon: IoniconsName; label: string; value: string; last?: boolean }) {
   return (
     <View style={[clin.row, last && { borderBottomWidth: 0 }, { flexDirection: flexRow(IS_RTL) }]}>
       <View style={clin.rowIcon}>
@@ -21,7 +22,7 @@ function ClinRow({ icon, label, value, last = false }: { icon: any; label: strin
   );
 }
 
-export const ProductDetailsSection = React.memo(function ProductDetailsSection({ product, profileExpanded, handleProfileToggle, t }: any) {
+export const ProductDetailsSection = React.memo(function ProductDetailsSection({ product, profileExpanded, handleProfileToggle, t }: { product: { code?: string; categoryName?: string; barcode?: string; nameEn?: string; nameAr?: string; name?: string }; profileExpanded: boolean; handleProfileToggle: () => void; t: (key: string) => string }) {
   return (
     <Animated.View entering={FadeInDown.duration(380).delay(260).springify().damping(22)} style={clin.card}>
       <View style={[clin.header, { flexDirection: flexRow(IS_RTL) }]}>

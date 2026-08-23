@@ -9,6 +9,8 @@ import {
 import { geocodeAddress } from "@/lib/geocoding";
 import type { Address, AddressFormData } from "./types";
 
+export type { AddressFormData } from "./types";
+
 interface AddressState {
   addresses: Address[];
   loading: boolean;

@@ -74,7 +74,6 @@ import Animated, {
 
 
 import { Screen, Text as UIText } from "@pharmacy/ui-native";
-import { useDarkColors } from "@/hooks/useDarkColors";
 
 import { kit }                    from "@pharmacy/ui-native";
 
@@ -674,7 +673,7 @@ const rcStyles = StyleSheet.create({
 
 export function BarcodeScannerScreen(): React.ReactElement {
 
-  const { c: _c } = useDarkColors();
+
 
   const { t }    = useTranslation();
 

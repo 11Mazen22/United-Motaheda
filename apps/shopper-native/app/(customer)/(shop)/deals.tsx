@@ -53,7 +53,7 @@ export default function DealsScreen() {
   });
 
   const goProduct = useCallback(
-    (id: string) => router.push({ pathname: "/(customer)/(shop)/product/[id]" as any, params: { id } }),
+    (id: string) => router.push({ pathname: "/(customer)/(shop)/product/[id]" as unknown as never, params: { id } }),
     [router],
   );
 

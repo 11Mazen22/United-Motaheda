@@ -1,5 +1,5 @@
 import React from "react";
-import { View, StyleSheet } from "react-native";
+import { StyleSheet, View, type StyleProp, type TextStyle, type ViewStyle } from "react-native";
 import { Text as UIText, Card } from "@pharmacy/ui-native";
 import { kit } from "@pharmacy/ui-native";
 import { theme } from "@pharmacy/design-tokens";
@@ -7,9 +7,9 @@ import { flexRow, isRtl } from "@/utils/layout";
 
 const IS_RTL = isRtl();
 
-export default function MetricCard({ label, value, icon, compact, inverse, accent, style }: { label: string; value: React.ReactNode; icon?: React.ReactNode; compact?: boolean; inverse?: boolean; accent?: string; style?: any }) {
-  const wrapStyle: any = [s.wrap, compact && s.compact, inverse && s.inverse, style];
-  const valueStyle: any = [s.value, accent ? { color: accent } : undefined, inverse && { color: '#fff' }];
+export default function MetricCard({ label, value, icon, compact, inverse, accent, style }: { label: string; value: React.ReactNode; icon?: React.ReactNode; compact?: boolean; inverse?: boolean; accent?: string; style?: Record<string, unknown> }) {
+  const wrapStyle: StyleProp<ViewStyle> = [s.wrap, compact && s.compact, inverse && s.inverse, style];
+  const valueStyle: StyleProp<TextStyle> = [s.value, accent ? { color: accent } : undefined, inverse && { color: '#fff' }];
   return (
     <Card style={wrapStyle} elevation="sm">
       <View style={s.inner}>

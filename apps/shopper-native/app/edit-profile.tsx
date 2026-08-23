@@ -25,7 +25,18 @@ import { TextInput } from "react-native-gesture-handler";
 const IS_RTL = isRtl();
 const TEXT_START = textAlignStart(IS_RTL);
 
-function FormRow({ label, value, onChangeText, placeholder, editable = true, autoCapitalize = "none", keyboardType = "default", isLast = false }: any) {
+interface FormRowProps {
+  label: string;
+  value: string;
+  onChangeText?: (text: string) => void;
+  placeholder?: string;
+  editable?: boolean;
+  autoCapitalize?: "none" | "sentences" | "words" | "characters";
+  keyboardType?: "default" | "email-address" | "numeric" | "phone-pad" | "ascii-capable" | "numbers-and-punctuation" | "url" | "web-search" | "decimal-pad";
+  isLast?: boolean;
+}
+
+function FormRow({ label, value, onChangeText, placeholder, editable = true, autoCapitalize = "none", keyboardType = "default", isLast = false }: FormRowProps) {
   const { c } = useDarkColors();
   return (
     <View style={[styles.row, { borderBottomColor: isLast ? "transparent" : c.line, flexDirection: flexRow(IS_RTL) }]}>
@@ -72,8 +83,8 @@ export default function EditProfileScreen() {
       await updateProfile({ name });
       if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       router.back();
-    } catch (err: any) {
-      setError(err.message || t("errors.unknown"));
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : t("errors.unknown"));
       if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     } finally {
       setLoading(false);

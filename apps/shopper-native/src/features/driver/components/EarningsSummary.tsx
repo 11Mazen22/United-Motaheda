@@ -4,7 +4,7 @@ import { Text as UIText } from '@pharmacy/ui-native';
 import { kit } from '@pharmacy/ui-native';
 import { formatPrice } from '@/utils/format';
 
-export default function EarningsSummary({ orders, offers }: { orders: any[]; offers: number }) {
+export default function EarningsSummary({ orders, offers }: { orders: Array<{ total?: number; status: string }>; offers: number }) {
   const earnings = useMemo(() => orders.reduce((s, o) => s + Number(o.total ?? 0), 0), [orders]);
   const completed = useMemo(() => orders.filter((o) => o.status === 'delivered').length, [orders]);
   const acceptanceRate = useMemo(() => Math.round((orders.length / Math.max(offers, 1)) * 100), [orders.length, offers]);

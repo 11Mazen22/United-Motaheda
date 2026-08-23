@@ -29,7 +29,7 @@ type FormData = z.infer<typeof schema>;
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { colors, theme } = useCourierTheme();
+  const { colors } = useCourierTheme();
   const setAuth = useAuthStore((s) => s.setAuth);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -54,10 +54,12 @@ export default function LoginScreen() {
       }
 
       setAuth(res.token, res.user);
-    } catch (err: any) {
-      const message = err instanceof Error && err.message.includes("Unauthorized")
-        ? err.message
-        : err?.response?.data?.message ?? 'Login failed. Check your credentials.';
+    } catch (err) {
+      const message =
+        err instanceof Error && err.message.includes('Unauthorized')
+          ? err.message
+          : (err as { response?: { data?: { message?: string } } }).response?.data?.message ??
+              'Login failed. Check your credentials.';
       showToast(message, 'error');
     }
   };

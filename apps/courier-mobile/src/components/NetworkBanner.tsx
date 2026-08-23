@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { Text, StyleSheet } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -17,7 +17,7 @@ export function NetworkBanner() {
 
   useEffect(() => {
     translateY.value = withTiming(isConnected ? -48 : 0, { duration: 300 });
-  }, [isConnected]);
+  }, [isConnected, translateY]);
 
   const animStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: translateY.value }],

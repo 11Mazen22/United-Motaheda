@@ -32,7 +32,7 @@ export function installCrashEnrichment(): void {
         enriched.metrics = "[unserialisable]";
       }
       if (__DEV__) {
-        // eslint-disable-next-line no-console
+         
         console.warn("[crash:enriched]", error instanceof Error ? error.message : String(error), enriched);
       }
     },

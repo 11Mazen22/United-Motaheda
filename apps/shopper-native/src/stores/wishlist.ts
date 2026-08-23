@@ -20,7 +20,7 @@ import type { NativeProduct } from "@/services/productsApi";
 
 const WISHLIST_KEY = "um_wishlist_v1";
 
-interface WishlistState {
+export interface WishlistState {
   items:       NativeProduct[];
   isHydrated:  boolean;
   userId:      string | null;

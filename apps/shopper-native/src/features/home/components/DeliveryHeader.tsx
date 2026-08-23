@@ -1,4 +1,4 @@
-import React, { memo, useState } from "react";
+import React, { memo, useCallback, useState } from "react";
 import { Platform, Pressable, StyleSheet, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
@@ -12,6 +12,7 @@ import { useAuth } from "@/features/auth";
 import { usePremiumCheckout } from "@/features/checkout/hooks/usePremiumCheckout";
 import { useDeliveryQuote } from "@/features/delivery/useDeliveryQuote";
 import { AddressFormDrawer } from "@/features/addresses/components/AddressFormDrawer";
+import { useAddressStore, type AddressFormData } from "@/features/addresses/store";
 
 const IS_RTL = isRtl();
 
@@ -33,6 +34,13 @@ export const DeliveryHeader = memo(function DeliveryHeader() {
   });
 
   const [isAddressDrawerOpen, setIsAddressDrawerOpen] = useState(false);
+  const addAddress = useAddressStore(s => s.add);
+
+  const handleAddressSubmit = useCallback(async (form: AddressFormData) => {
+    if (!authUser?.id) return;
+    await addAddress(authUser.id, form);
+    setIsAddressDrawerOpen(false);
+  }, [authUser?.id, addAddress]);
 
   return (
     <>
@@ -88,7 +96,7 @@ export const DeliveryHeader = memo(function DeliveryHeader() {
           </Pressable>
         </View>
       </View>
-      <AddressFormDrawer visible={isAddressDrawerOpen} onClose={() => setIsAddressDrawerOpen(false)} />
+      <AddressFormDrawer visible={isAddressDrawerOpen} onClose={() => setIsAddressDrawerOpen(false)} onSubmit={handleAddressSubmit} />
     </>
   );
 });

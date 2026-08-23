@@ -74,7 +74,7 @@ export default function VerifyPhoneScreen() {
 
         if (!cancelled) setStage("modal");
 
-      } catch (e) {
+      } catch {
 
         if (cancelled) return;
 
@@ -89,8 +89,7 @@ export default function VerifyPhoneScreen() {
     })();
 
     return () => { cancelled = true; };
-
-  }, [phoneStr, router]);
+  }, [phoneStr, router, t]);
 
 
 

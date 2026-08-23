@@ -220,7 +220,7 @@ const s = StyleSheet.create({
 
   searchBar: { alignItems: "center", gap: 10, backgroundColor: kit.color.well, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 11, borderWidth: 1, borderColor: kit.color.line },
 
-  searchInput: { flex: 1, fontFamily: theme.fonts.regular, fontSize: 13, color: kit.color.ink, paddingVertical: 0, includeFontPadding: false } as any,
+  searchInput: { flex: 1, fontFamily: theme.fonts.regular, fontSize: 13, color: kit.color.ink, paddingVertical: 0, includeFontPadding: false } as unknown as never,
 
 
 

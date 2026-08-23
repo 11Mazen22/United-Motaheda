@@ -12,7 +12,7 @@ import { formatPrice } from "@/utils/format";
 const IS_RTL = isRtl();
 
 interface DriverHeroProps {
-  orders: any[];
+  orders: Array<{ id: string; total?: number; status: string; pharmacyName?: string; pickupName?: string; storeName?: string; customerName?: string; customerAddress?: string; items?: Array<unknown>; itemCount?: number; paymentMethod?: string; eta?: string; estimatedTime?: string }>;
   offers: number;
   onPressOffers?: () => void;
   onPressRoutes?: () => void;

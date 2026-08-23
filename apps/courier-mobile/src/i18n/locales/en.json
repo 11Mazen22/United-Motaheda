@@ -1,0 +1,10 @@
+{
+  "common": {
+    "appName": "United Pharmacy Driver",
+    "save": "Save",
+    "cancel": "Cancel",
+    "retry": "Retry",
+    "close": "Close",
+    "loading": "Loading…"
+  }
+}

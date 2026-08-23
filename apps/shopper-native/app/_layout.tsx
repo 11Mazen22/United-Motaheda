@@ -74,7 +74,7 @@ import { useTranslation } from "react-i18next";
 
 import { useCartStore } from "@/stores/cart";
 
-import { ThemeProvider } from "@pharmacy/ui-native";
+import { BottomSheetModalProvider, ThemeProvider } from "@pharmacy/ui-native";
 
 
 
@@ -138,7 +138,7 @@ function PushBootstrap() {
 
       if (notificationId && user?.id) markNotificationRead(notificationId, user.id).catch(() => {});
 
-      if (actionUrl) router.push(actionUrl as any);
+      if (actionUrl) router.push(actionUrl as unknown as never);
 
     },
 
@@ -259,27 +259,31 @@ export default function RootLayout() {
 
       <GestureHandlerRootView style={{ flex: 1 }}>
 
-        <SafeAreaProvider>
+        <BottomSheetModalProvider>
 
-          <PersistQueryClientProvider client={queryClient} persistOptions={persistOptions}>
+          <SafeAreaProvider>
 
-            <NetworkBridge />
+            <PersistQueryClientProvider client={queryClient} persistOptions={persistOptions}>
 
-            <LanguageProvider>
+              <NetworkBridge />
 
-              <ThemedApp />
+              <LanguageProvider>
 
-            </LanguageProvider>
+                <ThemedApp />
 
-          </PersistQueryClientProvider>
+              </LanguageProvider>
 
-        </SafeAreaProvider>
+            </PersistQueryClientProvider>
 
-        <ErrorBoundary surface="splash-overlay" fallback={() => null}>
+          </SafeAreaProvider>
 
-          <SplashOverlay />
+          <ErrorBoundary surface="splash-overlay" fallback={() => null}>
 
-        </ErrorBoundary>
+            <SplashOverlay />
+
+          </ErrorBoundary>
+
+        </BottomSheetModalProvider>
 
       </GestureHandlerRootView>
 

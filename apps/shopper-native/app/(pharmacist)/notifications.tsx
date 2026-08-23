@@ -161,7 +161,7 @@ export default function PharmacistNotificationsScreen() {
   );
 }
 
-const useSStyles = (c: any) => StyleSheet.create({
+const useSStyles = (c: { canvas: string; line: string; surface: string; accent: string; accentTint: string; ink: string; inkFaint: string; inkSoft: string; well: string }) => StyleSheet.create({
   centered:    { flex: 1, alignItems: "center", justifyContent: "center" },
   markAllBtn:  { paddingHorizontal: 10, paddingVertical: 6 },
   sectionHeader: {

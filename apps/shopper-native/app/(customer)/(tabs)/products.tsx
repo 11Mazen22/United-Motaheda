@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { Ionicons } from "@expo/vector-icons";
 import { fetchCategories } from "@/services/productsApi";
+import type { NativeCategory } from "@/features/products/types";
 import { CategoryCard } from "@/components/CategoryCard";
 import { CustomerUI, kit } from "@pharmacy/ui-native";
 import { useCartStore } from "@/stores/cart";
@@ -138,7 +139,7 @@ export default function ProductsScreen() {
     </>
   ), [catsLoading, categories.length, insets.top, pagePad, theme, t, goCart, cartCount, goSearch]);
 
-  const renderItem = useCallback(({ item, index }: any) => (
+  const renderItem = useCallback(({ item, index }: { item: NativeCategory; index: number }) => (
     <View style={{ width: cellW, marginBottom: GRID_GAP }}>
       <CategoryCard category={item} gradientIdx={index} lang={lang} variant="grid" onPress={() => goCategory(item)} />
     </View>

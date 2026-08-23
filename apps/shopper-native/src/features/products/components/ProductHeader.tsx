@@ -5,10 +5,12 @@ import Animated, { FadeInDown } from "react-native-reanimated";
 import { Badge } from "@/components/ui/Badge";
 import { kit, Text as UIText } from "@pharmacy/ui-native";
 import { isRtl, flexRow, textAlignStart } from "@/utils/layout";
+import type { NativeProduct } from "@/features/products/types";
 
 const IS_RTL = isRtl();
 const TEXT_START = textAlignStart(IS_RTL);
-const TRUST_ICONS: any[] = ["shield-checkmark-outline", "thermometer-outline", "medal-outline", "storefront-outline"];
+type IoniconsName = React.ComponentProps<typeof Ionicons>["name"];
+const TRUST_ICONS: IoniconsName[] = ["shield-checkmark-outline", "thermometer-outline", "medal-outline", "storefront-outline"];
 
 function Stars({ value, size = 14 }: { value: number; size?: number }) {
   return (
@@ -20,7 +22,7 @@ function Stars({ value, size = 14 }: { value: number; size?: number }) {
   );
 }
 
-export const ProductHeader = React.memo(function ProductHeader({ product, hasRating, t }: any) {
+export const ProductHeader = React.memo(function ProductHeader({ product, hasRating, t }: { product: NativeProduct; hasRating: boolean; t: (key: string, options?: Record<string, unknown>) => string }) {
   return (
     <View style={{ gap: 22 }}>
       <Animated.View entering={FadeInDown.duration(400).delay(100).springify().damping(22)} style={trust.card}>

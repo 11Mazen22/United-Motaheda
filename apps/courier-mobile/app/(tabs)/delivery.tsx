@@ -7,7 +7,6 @@ import { Ionicons } from '@expo/vector-icons';
 import Animated, {
   FadeIn,
   FadeInDown,
-  useAnimatedStyle,
   useSharedValue,
   withRepeat,
   withTiming,
@@ -17,6 +16,18 @@ import { CourierUI, useCourierTheme, showToast } from '@pharmacy/ui-native';
 import { driverApi } from '@/lib/api';
 import { useOrdersStore, type DeliveryStatus } from '@/stores/orders.store';
 import { useLocationStore } from '@/stores/location.store';
+
+type DeliveryColors = {
+  canvas: { screen: string; surface: string; surfaceMuted: string; overlay: string };
+  brand: { primary: string; primaryLight: string; primaryDark: string; accent: string };
+  text: { primary: string; secondary: string; inverse: string; muted: string; disabled: string };
+  status: { success: string; warning: string; error: string; info: string };
+  delivery: { pickup: string; dropoff: string };
+  white: string;
+  border: { default: string };
+};
+
+type DeliveryTheme = { colors: DeliveryColors };
 
 const DARK_MAP_STYLE = [
   { elementType: 'geometry', stylers: [{ color: '#020617' }] },
@@ -36,7 +47,7 @@ const LIGHT_MAP_STYLE = [
   { featureType: 'landscape.man_made', stylers: [{ color: '#f1f5f9' }] },
 ];
 
-const STATUS_CONFIG: Record<string, { label: string; colorKey: string; next: string; icon: string }> = {
+const STATUS_CONFIG: Record<string, { label: string; colorKey: string; next: string; icon: React.ComponentProps<typeof Ionicons>['name'] }> = {
   ACCEPTED: { label: 'Start Pickup', colorKey: 'statusInfo', next: 'EN_ROUTE_TO_PICKUP', icon: 'navigate' },
   EN_ROUTE_TO_PICKUP: { label: 'Confirm Arrival', colorKey: 'statusWarning', next: 'ARRIVED_AT_PHARMACY', icon: 'flag' },
   ARRIVED_AT_PHARMACY: { label: 'Confirm Pickup', colorKey: 'statusWarning', next: 'PICKED_UP', icon: 'cube' },
@@ -65,7 +76,7 @@ const ALL_STATUSES = [
   'DELIVERED',
 ] as const;
 
-function DriverMarker({ isDark, colors }: { isDark: boolean, colors: any }) {
+function DriverMarker({ isDark, colors }: { isDark: boolean, colors: DeliveryColors }) {
   return (
     <View style={[s.driverMarker, { backgroundColor: isDark ? colors.canvas.surface : colors.white, borderColor: colors.brand.primary }]}>
       <View style={s.driverInner}>
@@ -76,7 +87,7 @@ function DriverMarker({ isDark, colors }: { isDark: boolean, colors: any }) {
   );
 }
 
-function PharmacyMarker({ colors }: { colors: any }) {
+function PharmacyMarker({ colors }: { colors: DeliveryColors }) {
   return (
     <View style={[s.marker, { backgroundColor: colors.delivery.pickup, borderColor: colors.white }]}>
       <Ionicons name="medical" size={16} color={colors.text.inverse} />
@@ -84,7 +95,7 @@ function PharmacyMarker({ colors }: { colors: any }) {
   );
 }
 
-function CustomerMarker({ colors }: { colors: any }) {
+function CustomerMarker({ colors }: { colors: DeliveryColors }) {
   return (
     <View style={[s.marker, { backgroundColor: colors.delivery.dropoff, borderColor: colors.white }]}>
       <Ionicons name="home" size={16} color={colors.text.inverse} />
@@ -92,7 +103,7 @@ function CustomerMarker({ colors }: { colors: any }) {
   );
 }
 
-function SuccessState({ theme }: { theme: any }) {
+function SuccessState({ theme }: { theme: DeliveryTheme }) {
   return (
     <Animated.View entering={FadeIn.springify()} style={[s.successWrap, { backgroundColor: theme.colors.canvas.screen }]}>
       <View style={[s.successIcon, { backgroundColor: theme.colors.status.success + '20' }]}>
@@ -160,17 +171,13 @@ export default function ActiveDeliveryScreen() {
   const pulse = useSharedValue(1);
   useEffect(() => {
     pulse.value = withRepeat(withTiming(1.4, { duration: 1200 }), -1, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const pulseStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: pulse.value }],
-    opacity: 1 - (pulse.value - 1) * 1.2,
-  }));
 
   const mapStyle = isDark ? DARK_MAP_STYLE : LIGHT_MAP_STYLE;
 
   const updateMutation = useMutation({
-    mutationFn: async (newStatus: DeliveryStatus): Promise<any> => {
+    mutationFn: async (newStatus: DeliveryStatus): Promise<unknown> => {
       if (!order?.order?.id) throw new Error('No active order ID');
       const orderId = order.order.id;
       switch (newStatus) {
@@ -209,8 +216,13 @@ export default function ActiveDeliveryScreen() {
         }));
       }
     },
-    onError: (error: any) => {
-      const message = error?.response?.data?.message || error?.message || 'Failed to update status. Please try again.';
+    onError: (error: unknown) => {
+      const message =
+        typeof error === 'object' && error !== null && 'response' in error
+          ? (error as { response: { data?: { message?: string } } }).response?.data?.message || 'Failed to update status. Please try again.'
+          : typeof error === 'object' && error !== null && 'message' in error
+            ? (error as Error).message || 'Failed to update status. Please try again.'
+            : 'Failed to update status. Please try again.';
       showToast(message, 'error');
     },
   });
@@ -233,7 +245,7 @@ export default function ActiveDeliveryScreen() {
   }
 
   const currentStatus = order.status;
-  const currentStepIndex = ALL_STATUSES.indexOf(currentStatus as any);
+  const currentStepIndex = ALL_STATUSES.indexOf(currentStatus as typeof ALL_STATUSES[number]);
   const conf = STATUS_CONFIG[currentStatus] ?? STATUS_CONFIG['ACCEPTED'];
 
   const statusColorMap: Record<string, string> = {
@@ -476,7 +488,7 @@ export default function ActiveDeliveryScreen() {
               {updateMutation.isPending ? (
                 <ActivityIndicator size="small" color={theme.colors.text.inverse} />
               ) : (
-                <Ionicons name={conf.icon as any} size={22} color={theme.colors.text.inverse} />
+                <Ionicons name={conf.icon} size={22} color={theme.colors.text.inverse} />
               )}
               <CourierUI.Typography scale="buttonMd" color="inverse" style={{ fontWeight: '800' }}>
                 {updateMutation.isPending ? 'Updating…' : conf.label}

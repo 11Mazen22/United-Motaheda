@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { Platform } from 'react-native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -7,7 +7,6 @@ import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import * as Font from 'expo-font';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   Cairo_400Regular,
   Cairo_500Medium,
@@ -21,53 +20,15 @@ import { useAuthStore } from '@/stores/auth.store';
 import { socketManager } from '@/lib/socket';
 import { useGpsTracking } from '@/hooks/useGpsTracking';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
-import { ThemeProvider, Toast, useCourierTheme } from '@pharmacy/ui-native';
+import { BottomSheetModalProvider, ThemeProvider, Toast, useCourierTheme } from '@pharmacy/ui-native';
 import { NetworkBanner } from '@/components/NetworkBanner';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import '@/i18n';
+import { LanguageProvider, useAppLanguage } from '@/i18n/LanguageProvider';
+
+export { useAppLanguage };
 
 SplashScreen.preventAutoHideAsync();
-
-const LANGUAGE_KEY = '@pharmacy/courier-language';
-
-type AppLanguage = 'en' | 'ar';
-
-// ─── Language context ────────────────────────────────────────────────────────
-const LanguageContext = React.createContext<{
-  language: AppLanguage;
-  setLanguage: (lang: AppLanguage) => Promise<void>;
-  isRTL: boolean;
-}>({
-  language: 'en',
-  setLanguage: async () => {},
-  isRTL: false,
-});
-
-function LanguageProvider({ children }: { children: React.ReactNode }) {
-  const [language, setLanguageState] = useState<AppLanguage>('en');
-
-  useEffect(() => {
-    AsyncStorage.getItem(LANGUAGE_KEY).then((stored) => {
-      if (stored === 'ar' || stored === 'en') setLanguageState(stored);
-    });
-  }, []);
-
-  const setLanguage = async (lang: AppLanguage) => {
-    await AsyncStorage.setItem(LANGUAGE_KEY, lang);
-    setLanguageState(lang);
-  };
-
-  const value = {
-    language,
-    setLanguage,
-    isRTL: language === 'ar',
-  };
-
-  return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>;
-}
-
-export function useAppLanguage() {
-  return React.useContext(LanguageContext);
-}
 
 // ─── Push notification bootstrap ─────────────────────────────────────────────
 function PushBootstrap() {
@@ -103,7 +64,7 @@ function AuthGuard() {
       // Connect socket when authenticated
       socketManager.connect();
     }
-  }, [isAuthenticated, token, segments]);
+  }, [isAuthenticated, token, segments, router]);
 
   return null;
 }
@@ -167,11 +128,13 @@ export default function RootLayout() {
   return (
     <ErrorBoundary>
       <GestureHandlerRootView style={{ flex: 1 }}>
-        <SafeAreaProvider>
-          <LanguageProvider>
-            <ThemedApp />
-          </LanguageProvider>
-        </SafeAreaProvider>
+        <BottomSheetModalProvider>
+          <SafeAreaProvider>
+            <LanguageProvider>
+              <ThemedApp />
+            </LanguageProvider>
+          </SafeAreaProvider>
+        </BottomSheetModalProvider>
       </GestureHandlerRootView>
     </ErrorBoundary>
   );

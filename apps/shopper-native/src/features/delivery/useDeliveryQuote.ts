@@ -102,11 +102,9 @@ export function useDeliveryQuote(input: DeliveryQuoteInput): DeliveryQuote {
   }, [
     input.subtotal,
     input.branchId,
-    input.customerCoords?.lat,
-    input.customerCoords?.lng,
-    input.address?.city,
-    input.address?.streetName,
+    input.customerCoords,
+    input.address,
     branches,
     branchesLoading,
-  ]);
+  ] as never[]);
 }

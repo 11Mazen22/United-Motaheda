@@ -44,7 +44,7 @@ export default function ResetPasswordScreen() {
     try {
       await requestPasswordReset(email);
       setSuccess(true);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError(getAuthError(err));
     } finally {
       setLoading(false);

@@ -65,11 +65,11 @@ for (const fileUrl of roots.filter((u) => !u.pathname.endsWith("/"))) {
 }
 
 if (offenders.length) {
-  // eslint-disable-next-line no-console
+   
   console.error("Console statements are not allowed in shopper-native (app/ + src/):");
   offenders.forEach((file) => console.error(` - ${join(file)}`));
   process.exit(1);
 }
 
-// eslint-disable-next-line no-console
+ 
 console.log("No console statements found in shopper-native (app/ + src/).");

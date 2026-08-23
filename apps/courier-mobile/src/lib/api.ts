@@ -1,12 +1,12 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { useAuthStore, type AuthUser, type DriverProfile } from '@/stores/auth.store';
-import { type AvailableOrder, type ActiveDelivery, type DeliveryHistoryItem, type DeliveryStatus } from '@/stores/orders.store';
+import { type AvailableOrder, type ActiveDelivery, type DeliveryHistoryItem } from '@/stores/orders.store';
+import Constants from 'expo-constants';
 
 // Read base URL from Expo public env or constants
 const getBaseUrl = (): string => {
   if (process.env.EXPO_PUBLIC_API_URL) return process.env.EXPO_PUBLIC_API_URL;
   try {
-    const Constants = require('expo-constants').default;
     const extra = Constants.expoConfig?.extra ?? {};
     const url = extra.apiUrl;
     if (!url) throw new Error('Missing apiUrl in app.json extra');
@@ -108,7 +108,7 @@ export const driverApi = {
   getAvailableOrders: () => apiGet<AvailableOrder[]>('/driver/orders/available'),
   getActiveDelivery: () => apiGet<ActiveDelivery | null>('/driver/orders/active'),
   getDeliveryHistory: (page = 1, limit = 20) =>
-    apiGet<DeliveryHistoryItem[]>('/driver/orders/history', { page, limit }),
+    apiGet<{ page: number; totalPages: number; deliveries: DeliveryHistoryItem[] }>('/driver/orders/history', { page, limit }),
 
   acceptOrder: (orderId: string, data?: { assignmentId?: string }) =>
     apiPost<ActiveDelivery>(`/driver/orders/${orderId}/accept`, data ?? {}),

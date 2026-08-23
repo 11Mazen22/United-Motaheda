@@ -6,7 +6,7 @@ import { kit } from '@pharmacy/ui-native';
 export function ActionDock({ children }: { children: React.ReactNode }) {
   const insets = useSafeAreaInsets();
   return (
-    <View style={[styles.dock, { paddingBottom: Math.max(insets.bottom, 12) }] as any}>
+    <View style={[styles.dock, { paddingBottom: Math.max(insets.bottom, 12) }] as unknown as never}>
       {children}
     </View>
   );

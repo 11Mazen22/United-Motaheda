@@ -62,7 +62,7 @@ export interface ReservationError {
   ts:        number;
 }
 
-interface CartState {
+export interface CartState {
   items:                  CartItem[];
   promoCode:              string;
   shippingFee:            number;

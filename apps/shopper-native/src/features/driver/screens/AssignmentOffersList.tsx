@@ -82,7 +82,7 @@ export function AssignmentOffersList(): React.ReactElement {
               </UIText>
 
               <View style={s.metaRow}>
-                <View style={s.metaItem}><Ionicons name="pricetag-outline" size={14} color={kit.color.inkFaint} /><UIText variant="caption" color="secondary">{(item as any).fee ? formatPrice((item as any).fee) : t("driver.estimatedFee")}</UIText></View>
+                <View style={s.metaItem}><Ionicons name="pricetag-outline" size={14} color={kit.color.inkFaint} /><UIText variant="caption" color="secondary">{(item as unknown as { fee?: number }).fee ? formatPrice((item as unknown as { fee: number }).fee) : t("driver.estimatedFee")}</UIText></View>
                 <View style={s.metaItem}><Ionicons name="time-outline" size={14} color={kit.color.inkFaint} /><UIText variant="caption" color="secondary">{t("driver.quickResponseHint")}</UIText></View>
               </View>
             </View>

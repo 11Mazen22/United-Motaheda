@@ -75,8 +75,8 @@ class GpsManagerClass {
         },
         (location) => this.processRawLocation(location),
       );
-    } catch (err: any) {
-      const message = err?.message ?? 'Location error';
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Location error';
       if (message.toLowerCase().includes('disabled') || message.toLowerCase().includes('unavailable')) {
         this.onAccuracyWarningCb?.('Location services disabled. Enable them in settings to continue.');
       } else {
@@ -239,13 +239,13 @@ export const GpsManager = new GpsManagerClass();
 // This is called once when the module loads. The actual handler is set
 // up in the app entry point / root layout.
 if (!TaskManager.isTaskDefined(BACKGROUND_LOCATION_TASK)) {
-  TaskManager.defineTask(BACKGROUND_LOCATION_TASK, async ({ data, error }: any) => {
-    if (error) {
-      console.error('[BackgroundLocation]', error.message);
+  TaskManager.defineTask<{ locations?: Location.LocationObject[] }>(BACKGROUND_LOCATION_TASK, async (taskBody) => {
+    if (taskBody.error) {
+      console.error('[BackgroundLocation]', taskBody.error.message || 'Unknown error');
       return;
     }
-    if (data?.locations) {
-      for (const loc of data.locations) {
+    if (taskBody.data?.locations) {
+      for (const loc of taskBody.data.locations) {
         GpsManager.processRawLocation(loc);
       }
     }

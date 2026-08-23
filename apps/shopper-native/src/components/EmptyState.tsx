@@ -7,7 +7,7 @@ import { Ionicons } from "@expo/vector-icons";
 export default function EmptyState({ icon = "checkmark-circle-outline", title, subtitle, actionLabel, onAction, compact = false }: { icon?: string; title: string; subtitle?: string; actionLabel?: string; onAction?: () => void; compact?: boolean }) {
   return (
     <View style={s.wrap}>
-      <Ionicons name={icon as any} size={compact ? 36 : 44} color={kit.color.inkFaint} />
+      <Ionicons name={icon as unknown as never} size={compact ? 36 : 44} color={kit.color.inkFaint} />
       <UIText variant="card-title" style={{ marginTop: 10, textAlign: "center" }}>{title}</UIText>
       {subtitle ? <UIText color="secondary" style={{ marginTop: compact ? 6 : 8, textAlign: "center" }}>{subtitle}</UIText> : null}
       {actionLabel && onAction ? (

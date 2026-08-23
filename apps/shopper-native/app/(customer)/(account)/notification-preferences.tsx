@@ -15,7 +15,15 @@ import { flexRow, isRtl, textAlignStart, BACK_CHEVRON } from "@/utils/layout";
 const IS_RTL = isRtl();
 const TEXT_START = textAlignStart(IS_RTL);
 
-function PreferenceSwitch({ title, description, value, onValueChange, isLast = false }: any) {
+interface PreferenceSwitchProps {
+  title: string;
+  description: string;
+  value: boolean;
+  onValueChange: (val: boolean) => void;
+  isLast?: boolean;
+}
+
+function PreferenceSwitch({ title, description, value, onValueChange, isLast = false }: PreferenceSwitchProps) {
   const { c } = useDarkColors();
   
   const handleToggle = (val: boolean) => {

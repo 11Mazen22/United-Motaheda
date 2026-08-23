@@ -79,11 +79,11 @@ async function _geocodeText(text: string, country: string): Promise<GeocodedCoor
       limit:  "1",
       apiKey: GEOAPIFY_KEY,
     });
-
-    const res = await fetch(`${BASE}?${query.toString()}`, {
-      signal: AbortSignal.timeout(8_000) as any,
-    });
-
+    const res = await fetch(`${BASE}?${query.toString()}`, {
+
+      signal: AbortSignal.timeout(8_000) as unknown as never,
+
+    });
     if (!res.ok) return null;
 
     const json = (await res.json()) as GeoapifyResponse;

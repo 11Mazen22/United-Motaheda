@@ -7,7 +7,7 @@
  */
 
 declare module "lodash.debounce" {
-  function debounce<T extends (...args: any[]) => any>(
+  function debounce<T extends (...args: never[]) => unknown>(
     func: T,
     wait?: number,
     options?: {

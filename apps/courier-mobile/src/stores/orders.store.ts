@@ -32,7 +32,7 @@ export interface OrderItem {
   productId: string;
   quantity: string;
   unitPrice: string;
-  snapshot: any;
+  snapshot: unknown;
 }
 
 export interface ActiveDelivery {

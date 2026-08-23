@@ -9,10 +9,18 @@ import Animated, { FadeIn, FadeOut, SlideInDown, SlideOutDown, useAnimatedStyle,
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AddressMapPlaceholder } from "./AddressMapPlaceholder";
 import { ADDRESS_LABELS } from "../types";
-import type { AddressFormData } from "../types";
+import type { AddressFormData, AddressLabel } from "../types";
 import { useDarkColors } from "@/hooks/useDarkColors";
 import { theme } from "@pharmacy/design-tokens";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
+
+interface AddressFormDrawerProps {
+  visible: boolean;
+  onClose: () => void;
+  initialData?: AddressFormData;
+  onSubmit: (form: AddressFormData) => void;
+  loading?: boolean;
+}
 
 export function AddressFormDrawer({
   visible,
@@ -20,7 +28,7 @@ export function AddressFormDrawer({
   initialData,
   onSubmit,
   loading = false,
-}: any) {
+}: AddressFormDrawerProps) {
   const { t } = useTranslation();
   const { c } = useDarkColors();
   const insets = useSafeAreaInsets();
@@ -42,7 +50,7 @@ export function AddressFormDrawer({
     } else {
       pulse.value = 1;
     }
-  }, [isDetecting, reducedMotion]);
+  }, [isDetecting, reducedMotion, pulse]);
 
   const animatedPulse = useAnimatedStyle(() => ({
     transform: [{ scale: pulse.value }],
@@ -78,7 +86,7 @@ export function AddressFormDrawer({
       setIsDetecting(false);
       setSmartZoneActive(true);
       if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    } catch (e) {
+    } catch {
       setIsDetecting(false);
     }
   };
@@ -181,10 +189,10 @@ export function AddressFormDrawer({
                       return (
                        <Pressable 
                          key={lbl}
-                         onPress={() => setForm({ ...form, label: lbl as any })}
+                          onPress={() => setForm({ ...form, label: lbl as AddressLabel })}
                          style={[styles.labelChip, { backgroundColor: isSelected ? config.bg : c.line, borderColor: isSelected ? config.color : "transparent" }]}
                        >
-                         <Ionicons name={config.icon as any} size={16} color={isSelected ? config.color : c.inkSoft} />
+                          <Ionicons name={config.icon} size={16} color={isSelected ? config.color : c.inkSoft} />
                           <UIText style={[styles.labelChipText, { color: isSelected ? config.color : c.inkSoft }]}>{t(config.labelKey)}</UIText>
                        </Pressable>
                      );

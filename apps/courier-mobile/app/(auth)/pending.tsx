@@ -66,7 +66,7 @@ const STATUS_CONFIG: Record<
   },
 };
 
-const NEXT_STEPS = [
+const NEXT_STEPS: { icon: React.ComponentProps<typeof Ionicons>['name']; text: string }[] = [
   { icon: 'document-text-outline', text: 'Your documents are being verified' },
   { icon: 'shield-checkmark-outline', text: 'Background check in progress' },
   { icon: 'checkmark-circle-outline', text: 'Account activation upon approval' },
@@ -84,6 +84,7 @@ function PulsingDot({ color }: { color: string }) {
       -1,
       false
     );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const animatedStyle = useAnimatedStyle(() => ({
@@ -109,10 +110,9 @@ export default function PendingApprovalScreen() {
   const router = useRouter();
   const { colors: tc } = useCourierTheme();
   const updateDriverProfile = useAuthStore((s) => s.updateDriverProfile);
-  const user = useAuthStore((s) => s.user);
   const [logoutDialog, setLogoutDialog] = useState(false);
 
-  const { data, refetch, isLoading } = useQuery({
+  const { data, refetch } = useQuery({
     queryKey: ['driver', 'profile', 'status'],
     queryFn: driverApi.getProfile,
     refetchInterval: 30_000,
@@ -127,7 +127,7 @@ export default function PendingApprovalScreen() {
     if (status === 'APPROVED' || status === 'ACTIVE') {
       updateDriverProfile({ status });
     }
-  }, [status]);
+  }, [status, updateDriverProfile]);
 
   const statusColor =
     status === 'PENDING_APPROVAL' ? tc.status.warning :
@@ -192,7 +192,7 @@ export default function PendingApprovalScreen() {
             {NEXT_STEPS.map(({ icon, text }, i) => (
               <View key={i} style={s.step}>
                 <View style={[s.stepIcon, { backgroundColor: tc.brand.primaryLight }]}>
-                  <Ionicons name={icon as any} size={20} color={tc.brand.primary} />
+                  <Ionicons name={icon} size={20} color={tc.brand.primary} />
                 </View>
                 <Text style={[s.stepText, { color: tc.text.secondary }]}>{text}</Text>
               </View>

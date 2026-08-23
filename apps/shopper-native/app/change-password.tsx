@@ -25,7 +25,15 @@ import { TextInput } from "react-native-gesture-handler";
 const IS_RTL = isRtl();
 const TEXT_START = textAlignStart(IS_RTL);
 
-function PasswordRow({ label, value, onChangeText, placeholder, isLast = false }: any) {
+interface PasswordRowProps {
+  label: string;
+  value: string;
+  onChangeText: (text: string) => void;
+  placeholder: string;
+  isLast?: boolean;
+}
+
+function PasswordRow({ label, value, onChangeText, placeholder, isLast = false }: PasswordRowProps) {
   const { c } = useDarkColors();
   return (
     <View style={[styles.row, { borderBottomColor: isLast ? "transparent" : c.line }]}>
@@ -103,7 +111,7 @@ export default function ChangePasswordScreen() {
       await updatePassword(password);
       if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       router.back();
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError(getAuthError(err));
       if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     } finally {

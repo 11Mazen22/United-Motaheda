@@ -8,6 +8,8 @@ on:
       - package-lock.json
       - apps/shopper-native/package.json
       - apps/shopper-native/package-lock.json
+      - apps/courier-mobile/package.json
+      - apps/courier-mobile/package-lock.json
       - packages/**
       - apps/shopper-web/package.json
       - apps/shopper-web/package-lock.json

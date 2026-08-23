@@ -19,6 +19,7 @@ import { DriverAuthService } from './driver-auth.service';
 import { DriverProfileService } from './driver-profile.service';
 import { DriverLocationService } from './driver-location.service';
 import { DriverOrdersService } from './driver-orders.service';
+import { DriverRoutingService } from './driver-routing.service';
 import { FileUploadService } from './file-upload.service';
 import {
   RegisterDriverDto,
@@ -41,6 +42,7 @@ export class DriverController {
     private readonly profileService: DriverProfileService,
     private readonly locationService: DriverLocationService,
     private readonly ordersService: DriverOrdersService,
+    private readonly routingService: DriverRoutingService,
     private readonly fileUploadService: FileUploadService,
   ) {}
 
@@ -115,6 +117,26 @@ export class DriverController {
     return this.locationService.getLocationHistory(
       req.user.userId,
       limit ? parseInt(limit, 10) : 50,
+    );
+  }
+
+  @Get('route')
+  @UseGuards(DriverAuthGuard)
+  async getRoute(
+    @Query('originLat') originLat: string,
+    @Query('originLng') originLng: string,
+    @Query('destinationLat') destinationLat: string,
+    @Query('destinationLng') destinationLng: string,
+  ) {
+    const values = [originLat, originLng, destinationLat, destinationLng].map(Number);
+    if (values.some((value) => !Number.isFinite(value))) {
+      throw new BadRequestException('Invalid route coordinates');
+    }
+
+    const [originLatitude, originLongitude, destinationLatitude, destinationLongitude] = values;
+    return this.routingService.route(
+      { latitude: originLatitude, longitude: originLongitude },
+      { latitude: destinationLatitude, longitude: destinationLongitude },
     );
   }
 

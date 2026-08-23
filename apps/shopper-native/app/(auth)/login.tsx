@@ -33,19 +33,31 @@ import { Button, Text as UIText, kit } from "@pharmacy/ui-native";
 import { useDarkColors } from "@/hooks/useDarkColors";
 import { theme } from "@pharmacy/design-tokens";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
-import { TextInput } from "react-native-gesture-handler";
+import { TextInput } from "react-native";
+
+type IoniconsName = React.ComponentProps<typeof Ionicons>["name"];
 
 const IS_RTL = isRtl();
 const TEXT_START = textAlignStart(IS_RTL);
 
-function FloatingInput({ label, icon, secure, value, onChangeText, autoCapitalize = "none", keyboardType = "default" }: any) {
+interface FloatingInputProps {
+  label: string;
+  icon: IoniconsName;
+  secure: boolean;
+  value: string;
+  onChangeText: (text: string) => void;
+  autoCapitalize?: "none" | "sentences" | "words" | "characters";
+  keyboardType?: "default" | "email-address" | "numeric" | "phone-pad" | "ascii-capable" | "numbers-and-punctuation" | "url" | "web-search" | "decimal-pad";
+}
+
+function FloatingInput({ label, icon, secure, value, onChangeText, autoCapitalize = "none", keyboardType = "default" }: FloatingInputProps) {
   const { c } = useDarkColors();
   const [focused, setFocused] = useState(false);
   const focusAnim = useSharedValue(0);
 
   useEffect(() => {
     focusAnim.value = withTiming(focused || value ? 1 : 0, { duration: 200 });
-  }, [focused, value]);
+  }, [focused, value, focusAnim]);
 
   const animatedLabelStyle = useAnimatedStyle(() => {
     return {
@@ -103,7 +115,7 @@ export default function LoginScreen() {
     if (!reducedMotion) {
       haloPulse.value = withRepeat(withTiming(1.15, { duration: 3000 }), -1, true);
     }
-  }, [reducedMotion]);
+  }, [reducedMotion, haloPulse]);
 
   const animatedHalo = useAnimatedStyle(() => ({
     transform: [{ scale: haloPulse.value }],
@@ -122,7 +134,7 @@ export default function LoginScreen() {
       await signIn(email, password);
       if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       router.replace("/(customer)/(tabs)");
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError(getAuthError(err));
       if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     } finally {
@@ -167,6 +179,7 @@ export default function LoginScreen() {
             value={email}
             onChangeText={(t: string) => { setEmail(t); setError(""); }}
             keyboardType="email-address"
+            secure={false}
           />
           <View style={{ height: 16 }} />
           <FloatingInput 

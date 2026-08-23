@@ -28,19 +28,31 @@ import { Button, Text as UIText, kit } from "@pharmacy/ui-native";
 import { useDarkColors } from "@/hooks/useDarkColors";
 import { theme } from "@pharmacy/design-tokens";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
-import { TextInput } from "react-native-gesture-handler";
+import { TextInput } from "react-native";
 
 const IS_RTL = isRtl();
 const TEXT_START = textAlignStart(IS_RTL);
 
-function FloatingInput({ label, icon, secure, value, onChangeText, autoCapitalize = "none", keyboardType = "default" }: any) {
+type IoniconsName = React.ComponentProps<typeof Ionicons>["name"];
+
+interface FloatingInputProps {
+  label: string;
+  icon: IoniconsName;
+  secure: boolean;
+  value: string;
+  onChangeText: (text: string) => void;
+  autoCapitalize?: "none" | "sentences" | "words" | "characters";
+  keyboardType?: "default" | "email-address" | "numeric" | "phone-pad" | "ascii-capable" | "numbers-and-punctuation" | "url" | "web-search" | "decimal-pad";
+}
+
+function FloatingInput({ label, icon, secure, value, onChangeText, autoCapitalize = "none", keyboardType = "default" }: FloatingInputProps) {
   const { c } = useDarkColors();
   const [focused, setFocused] = useState(false);
   const focusAnim = useSharedValue(0);
 
   useEffect(() => {
     focusAnim.value = withTiming(focused || value ? 1 : 0, { duration: 200 });
-  }, [focused, value]);
+  }, [focused, value, focusAnim]);
 
   const animatedLabelStyle = useAnimatedStyle(() => ({
     transform: [
@@ -98,7 +110,7 @@ export default function RegisterScreen() {
       await signUp(email, password, name);
       if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       router.replace("/(customer)/(tabs)");
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError(getAuthError(err));
       if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     } finally {
@@ -137,6 +149,7 @@ export default function RegisterScreen() {
             value={name}
             onChangeText={(t: string) => { setName(t); setError(""); }}
             autoCapitalize="words"
+            secure={false}
           />
           <View style={{ height: 16 }} />
           <FloatingInput 
@@ -145,6 +158,7 @@ export default function RegisterScreen() {
             value={email}
             onChangeText={(t: string) => { setEmail(t); setError(""); }}
             keyboardType="email-address"
+            secure={false}
           />
           <View style={{ height: 16 }} />
           <FloatingInput 

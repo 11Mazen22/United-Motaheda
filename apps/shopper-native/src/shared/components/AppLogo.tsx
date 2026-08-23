@@ -68,7 +68,7 @@ const GLYPH_INSET = 0.82;
 
 const RADIUS_RATIO = 0.24;
 
-const BRAND_MARK = require("../../../assets/brand-mark.png");
+import brandMark from "../../../assets/brand-mark.png";
 
 
 
@@ -148,7 +148,7 @@ export function AppLogo({ size = "md", style }: AppLogoProps): React.ReactElemen
 
         <Image
 
-          source={BRAND_MARK}
+          source={brandMark}
 
           style={{
 

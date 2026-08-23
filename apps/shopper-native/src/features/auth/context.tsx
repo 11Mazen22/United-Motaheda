@@ -310,6 +310,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       stopped = true;
       if (current) supabase.removeChannel(current);
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
   const signOut = async () => {

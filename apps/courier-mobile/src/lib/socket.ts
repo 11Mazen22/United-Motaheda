@@ -1,13 +1,13 @@
 import { io, Socket } from 'socket.io-client';
+import Constants from 'expo-constants';
 import { useAuthStore } from '@/stores/auth.store';
 import { useOrdersStore } from '@/stores/orders.store';
 import { queryClient } from '@/lib/queryClient';
+import { type DeliveryStatus } from '@/stores/orders.store';
 
 const getBaseUrl = (): string => {
   if (process.env.EXPO_PUBLIC_API_URL) return process.env.EXPO_PUBLIC_API_URL;
   try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const Constants = require('expo-constants').default;
     const extra = Constants.expoConfig?.extra ?? {};
     return extra.apiUrl ?? 'http://localhost:3000';
   } catch {
@@ -40,11 +40,11 @@ class DriverSocketManager {
       this.reconnectAttempts = 0;
     });
 
-    this.socket.on('disconnect', (reason: any) => {
+    this.socket.on('disconnect', (reason: string) => {
       console.log('[Socket] Disconnected:', reason);
     });
 
-    this.socket.on('connect_error', (err: any) => {
+    this.socket.on('connect_error', (err: Error) => {
       console.warn('[Socket] Connection error:', err.message);
     });
 
@@ -57,7 +57,7 @@ class DriverSocketManager {
     this.socket.on('delivery-status-update', (data: { orderId: string; status: string }) => {
       const { activeDelivery } = useOrdersStore.getState();
       if (activeDelivery?.order.id === data.orderId) {
-        useOrdersStore.getState().updateActiveDeliveryStatus(data.status as any);
+        useOrdersStore.getState().updateActiveDeliveryStatus(data.status as DeliveryStatus);
         queryClient.invalidateQueries({ queryKey: ['activeDelivery'] });
       }
     });

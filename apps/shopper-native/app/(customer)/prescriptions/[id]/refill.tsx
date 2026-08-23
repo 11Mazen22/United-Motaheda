@@ -83,7 +83,7 @@ export default function RefillPage(): React.ReactElement {
     { key: "same_day", icon: "flash-outline",     title: t("prescriptions.refillSameDay"),   eta: t("prescriptions.refillSameDayEta"),   tone: c.warn,       toneBg: c.warnTint },
     { key: "standard",  icon: "bicycle-outline",  title: t("prescriptions.refillStandard"),  eta: t("prescriptions.refillStandardEta"),  tone: c.accentDeep,  toneBg: c.accentTint },
     { key: "pickup",    icon: "storefront-outline", title: t("prescriptions.refillPickup"),   eta: t("prescriptions.refillPickupEta"),   tone: c.success,    toneBg: c.successTint },
-  ], [t]);
+  ], [t, c.accentDeep, c.accentTint, c.success, c.successTint, c.warn, c.warnTint]);
 
   const selectedOption = DELIVERY_OPTIONS.find((o) => o.key === selected) ?? DELIVERY_OPTIONS[1];
 
@@ -284,7 +284,7 @@ function Header({ insets, onBack }: { insets: { top: number }; onBack: () => voi
 
 
 
-function get_s(c: any) { return StyleSheet.create({
+function get_s(c: { canvas: string; surface: string; line: string; lineStrong: string; accentDeep: string; accentTint: string; ink: string; inkSoft: string; inkFaint: string; warn: string; warnTint: string; success: string; successTint: string; well: string; danger: string }) { return StyleSheet.create({
   screen: { flex: 1, backgroundColor: c.canvas },
   header: {
     paddingHorizontal: 20, paddingBottom: 20, gap: 18,

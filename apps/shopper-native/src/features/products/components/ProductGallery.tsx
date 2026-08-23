@@ -11,7 +11,7 @@ const IS_RTL = isRtl();
 const SCREEN_W = Dimensions.get("window").width;
 const STAGE_W = SCREEN_W;
 
-function ImageCarousel({ images, accessibilityName, parallaxStyle }: { images: string[]; accessibilityName: string; parallaxStyle: any }) {
+function ImageCarousel({ images, accessibilityName, parallaxStyle }: { images: string[]; accessibilityName: string; parallaxStyle: Record<string, unknown> }) {
   const [idx, setIdx] = useState(0);
   const onPageScroll = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const x = e.nativeEvent.contentOffset.x;
@@ -58,7 +58,7 @@ function ImageCarousel({ images, accessibilityName, parallaxStyle }: { images: s
   );
 }
 
-export const ProductGallery = React.memo(function ProductGallery({ product, isLoading, haloAnim, imgParallax, sealAnim, t }: any) {
+export const ProductGallery = React.memo(function ProductGallery({ product, isLoading, haloAnim, imgParallax, sealAnim, t }: { product: { imageUrl?: string; nameAr?: string; name?: string; discountPercent?: number; inStock?: boolean; stock?: number }; isLoading: boolean; haloAnim: Record<string, unknown>; imgParallax: Record<string, unknown>; sealAnim: Record<string, unknown>; t: (key: string) => string }) {
   return (
     <View style={stage.wrap}>
       {isLoading ? (

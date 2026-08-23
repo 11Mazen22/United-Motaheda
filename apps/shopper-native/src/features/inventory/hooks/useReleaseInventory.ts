@@ -55,6 +55,7 @@ export function useReleaseInventory(): UseReleaseInventoryReturn {
     [m, qc],
   );
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { mutate: _m, mutateAsync: _ma, ...rest } = m;
   return { ...rest, release, releaseAsync };
 }

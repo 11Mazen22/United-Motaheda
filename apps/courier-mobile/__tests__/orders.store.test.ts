@@ -1,4 +1,4 @@
-import { useOrdersStore, type DeliveryStatus, type ActiveDelivery, type AvailableOrder } from '../src/stores/orders.store';
+import { useOrdersStore, type ActiveDelivery, type AvailableOrder } from '../src/stores/orders.store';
 
 describe('orders.store', () => {
   beforeEach(() => {

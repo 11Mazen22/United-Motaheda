@@ -18,8 +18,9 @@ import { isRtl, flexRow, textAlignStart } from "@/utils/layout";
 import { useProduct } from "@/features/products/hooks/useProduct";
 import { useRelatedProducts } from "@/features/recommendations/hooks/useRelatedProducts";
 import { useRecentlyViewedStore } from "@/features/products/stores/recentlyViewedStore";
-import { useCartStore } from "@/stores/cart";
-import { useWishlistStore } from "@/stores/wishlist";
+import { useCartStore, type CartState, type CartItem } from "@/stores/cart";
+import { useWishlistStore, type WishlistState } from "@/stores/wishlist";
+import type { NativeProduct } from "@/services/productsApi";
 import { ProductCard } from "@/components/ProductCard";
 
 const IS_RTL = isRtl();
@@ -72,17 +73,17 @@ export default function ProductDetailScreen() {
     });
   }, [product, pushRecentlyViewed]);
 
-  const items = useCartStore((s: any) => s.items);
-  const addItem = useCartStore((s: any) => s.addItem);
-  const updateQuantity = useCartStore((s: any) => s.updateQuantity);
-  const removeItem = useCartStore((s: any) => s.removeItem);
+  const items = useCartStore((s: CartState) => s.items);
+  const addItem = useCartStore((s: CartState) => s.addItem);
+  const updateQuantity = useCartStore((s: CartState) => s.updateQty);
+  const removeItem = useCartStore((s: CartState) => s.removeItem);
 
-  const cartItem = useMemo(() => items.find((i: any) => i.productId === id), [items, id]);
+  const cartItem = useMemo(() => items.find((i: CartItem) => i.productId === id), [items, id]);
   const qty = cartItem ? cartItem.quantity : 0;
 
-  const wishlistItems = useWishlistStore((s: any) => s.items as string[]);
-  const toggleWishlist = useWishlistStore((s: any) => s.toggle);
-  const liked = wishlistItems.includes(id ?? "");
+  const wishlistItems = useWishlistStore((s: WishlistState) => s.items);
+  const toggleWishlist = useWishlistStore((s: WishlistState) => s.toggle);
+  const liked = wishlistItems.some((p: NativeProduct) => p.id === id);
 
   const handleAdd = useCallback(() => {
     if (!product) return;

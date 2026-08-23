@@ -28,7 +28,6 @@ function TabIcon({
   name,
   focused,
   badge,
-  label,
   activeColor,
   inactiveColor,
   surfaceColor,
@@ -36,7 +35,6 @@ function TabIcon({
   name: IconName;
   focused: boolean;
   badge?: boolean;
-  label: string;
   activeColor: string;
   inactiveColor: string;
   surfaceColor: string;
@@ -132,7 +130,7 @@ export default function TabsLayout() {
         options={{
           title: 'الطلبات',
           tabBarIcon: ({ focused }) => (
-            <TabIcon name={focused ? 'receipt' : 'receipt-outline'} focused={focused} label="الطلبات" activeColor={activeColor} inactiveColor={inactiveColor} surfaceColor={colors.canvas.surface} />
+            <TabIcon name={focused ? 'receipt' : 'receipt-outline'} focused={focused} activeColor={activeColor} inactiveColor={inactiveColor} surfaceColor={colors.canvas.surface} />
           ),
         }}
       />
@@ -141,7 +139,7 @@ export default function TabsLayout() {
         options={{
           title: 'الخريطة',
           tabBarIcon: ({ focused }) => (
-            <TabIcon name={focused ? 'map' : 'map-outline'} focused={focused} label="الخريطة" activeColor={activeColor} inactiveColor={inactiveColor} surfaceColor={colors.canvas.surface} />
+            <TabIcon name={focused ? 'map' : 'map-outline'} focused={focused} activeColor={activeColor} inactiveColor={inactiveColor} surfaceColor={colors.canvas.surface} />
           ),
         }}
       />
@@ -154,7 +152,6 @@ export default function TabsLayout() {
               name={focused ? 'cube' : 'cube-outline'}
               focused={focused}
               badge={hasActive}
-              label="التوصيل"
               activeColor={activeColor}
               inactiveColor={inactiveColor}
               surfaceColor={colors.canvas.surface}
@@ -167,7 +164,7 @@ export default function TabsLayout() {
         options={{
           title: 'حسابي',
           tabBarIcon: ({ focused }) => (
-            <TabIcon name={focused ? 'person' : 'person-outline'} focused={focused} label="حسابي" activeColor={activeColor} inactiveColor={inactiveColor} surfaceColor={colors.canvas.surface} />
+            <TabIcon name={focused ? 'person' : 'person-outline'} focused={focused} activeColor={activeColor} inactiveColor={inactiveColor} surfaceColor={colors.canvas.surface} />
           ),
         }}
       />

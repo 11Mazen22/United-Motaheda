@@ -94,7 +94,7 @@
           "color": "#0E7E74"
         }
       ],
-      "./plugins/withHermescPatch.js"
+      "./plugins/withHermescPatch.cjs"
     ],
     "experiments": {
       "typedRoutes": true

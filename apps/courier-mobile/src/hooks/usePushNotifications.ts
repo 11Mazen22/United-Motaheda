@@ -93,7 +93,7 @@ export function usePushNotifications({ userId }: { userId?: string }) {
         id: notification.request.identifier,
         title: title ?? '',
         body: body ?? '',
-        data: data as Record<string, any>,
+        data: data as Record<string, unknown>,
       });
       // Show in-app toast for foreground notifications
       if (title) showToast(title + (body ? `: ${body}` : ''), 'info');
@@ -101,10 +101,10 @@ export function usePushNotifications({ userId }: { userId?: string }) {
 
     // Handle notification taps (background/killed)
     const tapSub = Notifications.addNotificationResponseReceivedListener((response) => {
-      const data = response.notification.request.content.data as Record<string, any>;
+      const data = response.notification.request.content.data as Record<string, unknown>;
 
       if (data?.screen) {
-        router.push(data.screen as any);
+        router.push(data.screen as string);
       } else if (data?.orderId) {
         router.push('/(tabs)/delivery');
       }
@@ -115,5 +115,5 @@ export function usePushNotifications({ userId }: { userId?: string }) {
       foregroundSub.remove();
       tapSub.remove();
     };
-  }, [userId]);
+  }, [userId, addNotification, router, setToken]);
 }

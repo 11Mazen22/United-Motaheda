@@ -52,7 +52,7 @@ export function useGpsTracking() {
       const next = postQueue.current.shift();
       if (next) postLocation(next);
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);  
 
   // ─── Stable ref to always-latest location handler ────────────────────────
   // Avoids stale closure: GpsManager stores this ref function once and the

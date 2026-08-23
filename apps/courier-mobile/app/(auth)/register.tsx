@@ -16,10 +16,10 @@ import { useForm, Controller } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Ionicons } from '@expo/vector-icons';
-import Animated, { FadeIn, FadeInRight, SlideInRight, SlideOutLeft } from 'react-native-reanimated';
+import Animated, { FadeIn, SlideInRight } from 'react-native-reanimated';
 import * as ImagePicker from 'expo-image-picker';
 import { typography, spacing, radii, shadows, animation } from '@pharmacy/ui-native/courier-tokens';
-import { Button, Input, Card, Badge, showToast, useCourierTheme } from '@pharmacy/ui-native';
+import { Button, Input, showToast, useCourierTheme } from '@pharmacy/ui-native';
 import { driverApi } from '@/lib/api';
 import { useAuthStore } from '@/stores/auth.store';
 
@@ -215,9 +215,12 @@ export default function RegisterScreen() {
         }
       }
       router.replace('/(auth)/pending');
-    } catch (err: any) {
+    } catch (err) {
       const message =
-        err?.response?.data?.message ?? 'Registration failed. Please try again.';
+        err instanceof Error
+          ? err.message
+          : (err as { response?: { data?: { message?: string } } }).response?.data?.message ??
+              'Registration failed. Please try again.';
       showToast(message, 'error');
     } finally {
       setIsSubmitting(false);

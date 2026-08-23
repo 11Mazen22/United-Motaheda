@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
 
   Image,
+  Platform,
   Pressable,
   StyleSheet,
   Text as RNText,
@@ -19,7 +20,9 @@ import {
   type ViewStyle,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { BlurView } from "expo-blur";
 import * as Haptics from "expo-haptics";
+import { LinearGradient } from "expo-linear-gradient";
 import Animated, {
   cancelAnimation,
   useAnimatedStyle,
@@ -29,8 +32,18 @@ import Animated, {
   withSpring,
   withTiming,
 } from "react-native-reanimated";
+import { gradients, legacyColors } from "@pharmacy/design-tokens";
 import { useTheme } from "../theme";
 import { kit } from "../kit";
+
+/** Colored ambient shadow used by `glow` — reads the brand/status color per theme so it never hardcodes a mode. */
+function glowShadow(color: string): ViewStyle {
+  return Platform.select<ViewStyle>({
+    ios: { shadowColor: color, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.32, shadowRadius: 14 },
+    android: { elevation: 8, shadowColor: color },
+    default: {},
+  }) ?? {};
+}
 
 export type TextVariant = "h1" | "h2" | "h3" | "h4" | "h5" | "h6" | "body" | "bodySm" | "caption" | "label" | "display" | "hero" | "screen-title" | "sheet-title" | "section-head" | "card-title" | "body-sm" | "eyebrow" | "badge" | "metric";
 export type TextScale = keyof typeof kit.type;
@@ -83,39 +96,59 @@ export function PressableScale({ scaleFactor = 0.97, scaleTo, haptic = false, on
 
 export type ButtonVariant = "primary" | "secondary" | "outline" | "ghost" | "danger";
 export type ButtonSize = "sm" | "md" | "lg";
+/** Restrained by design: "gradient"/"glass" are for brand hero moments and celebratory states, not a default reflex — see design-language A4. */
+export type ButtonTone = "solid" | "gradient" | "glass";
 export interface ButtonProps extends Omit<PressableScaleProps, "children" | "onPress"> {
-  label?: string; title?: string; onPress: (event?: unknown) => void; variant?: ButtonVariant; size?: ButtonSize; loading?: boolean;
+  label?: string; title?: string; onPress: (event?: unknown) => void; variant?: ButtonVariant; size?: ButtonSize; tone?: ButtonTone; glow?: boolean; loading?: boolean;
   icon?: React.ComponentProps<typeof Ionicons>["name"]; iconEnd?: boolean; iconLeft?: React.ReactNode; iconRight?: React.ReactNode; leftIcon?: React.ReactNode; rightIcon?: React.ReactNode;
   fullWidth?: boolean; full?: boolean; textStyle?: StyleProp<TextStyle>;
 }
 
 /** Enterprise action control. Supports both historical app prop names during migration. */
-export function Button({ label, title, onPress, variant = "primary", size = "md", loading = false, disabled, icon, iconEnd, iconLeft, iconRight, leftIcon, rightIcon, fullWidth, full, style, textStyle, accessibilityLabel, ...props }: ButtonProps): React.ReactElement {
-  const { theme, isRTL } = useTheme();
+export function Button({ label, title, onPress, variant = "primary", size = "md", tone = "solid", glow = false, loading = false, disabled, icon, iconEnd, iconLeft, iconRight, leftIcon, rightIcon, fullWidth, full, style, textStyle, accessibilityLabel, ...props }: ButtonProps): React.ReactElement {
+  const { theme, isRTL, isDark } = useTheme();
   const caption = label ?? title ?? "";
   const palette = {
     primary: [theme.colors.brand.primary, theme.colors.text.inverse, theme.colors.brand.primary], secondary: [theme.colors.brand.primaryLight, theme.colors.brand.primaryDark, theme.colors.brand.primaryLight],
     outline: ["transparent", theme.colors.brand.primary, theme.colors.brand.primary], ghost: ["transparent", theme.colors.brand.primary, "transparent"], danger: [theme.colors.status.error, theme.colors.text.inverse, theme.colors.status.error],
   }[variant];
-  const namedIcon = icon ? <Ionicons name={icon} size={size === "lg" ? 20 : size === "sm" ? 16 : 18} color={palette[1]} /> : null;
+  // Gradient tone only reads as intentional on the two variants that already carry a solid brand/status fill.
+  const useGradient = tone === "gradient" && (variant === "primary" || variant === "danger");
+  const useGlass = tone === "glass";
+  const gradientColors = variant === "danger" ? gradients.error : gradients.brandPrimary;
+  const glassTextColor = isDark ? theme.colors.text.inverse : theme.colors.text.primary;
+  const contentColor = useGlass ? glassTextColor : palette[1];
+  const namedIcon = icon ? <Ionicons name={icon} size={size === "lg" ? 20 : size === "sm" ? 16 : 18} color={contentColor} /> : null;
   const start = iconLeft ?? leftIcon ?? (!iconEnd ? namedIcon : null);
   const end = iconRight ?? rightIcon ?? (iconEnd ? namedIcon : null);
-  return <PressableScale {...props} haptic disabled={disabled || loading} onPress={() => onPress()} accessibilityLabel={accessibilityLabel ?? caption} accessibilityState={{ disabled: !!disabled || loading, busy: loading }} style={[styles.button, styles[`button_${size}`], { backgroundColor: palette[0], borderColor: palette[2], flexDirection: isRTL ? "row-reverse" : "row" }, (fullWidth || full) && styles.full, style]}>
-    {loading ? <ActivityIndicator color={palette[1]} /> : <>{start}<Text variant="label" align="center" style={[{ color: palette[1] }, textStyle]}>{caption}</Text>{end}</>}
+  const glowColor = variant === "danger" ? theme.colors.status.error : theme.colors.brand.primary;
+  return <PressableScale {...props} haptic disabled={disabled || loading} onPress={() => onPress()} accessibilityLabel={accessibilityLabel ?? caption} accessibilityState={{ disabled: !!disabled || loading, busy: loading }} style={[styles.button, styles[`button_${size}`], useGradient || useGlass ? { borderColor: useGlass ? legacyColors.glassBorder : "transparent", overflow: "hidden" } : { backgroundColor: palette[0], borderColor: palette[2] }, { flexDirection: isRTL ? "row-reverse" : "row" }, glow && glowShadow(glowColor), (fullWidth || full) && styles.full, style]}>
+    {useGradient ? <LinearGradient colors={gradientColors as unknown as [string, string]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} /> : null}
+    {useGlass ? <BlurView intensity={40} tint={isDark ? "dark" : "light"} style={StyleSheet.absoluteFill} /> : null}
+    {useGlass ? <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: isDark ? legacyColors.glassDark : legacyColors.glass }]} /> : null}
+    {loading ? <ActivityIndicator color={contentColor} /> : <>{start}<Text variant="label" align="center" style={[{ color: contentColor }, textStyle]}>{caption}</Text>{end}</>}
   </PressableScale>;
 }
 
 export type CardVariant = "default" | "elevated" | "raised" | "flat" | "outlined" | "filled" | "interactive";
-export interface CardProps { children: React.ReactNode; variant?: CardVariant; padding?: number | "none" | "sm" | "md" | "lg"; elevation?: "none" | "sm" | "md" | "lg"; radius?: number; background?: string; onPress?: () => void; style?: StyleProp<ViewStyle>; accessibilityLabel?: string; }
+/** "glass" is for surfaces genuinely sitting above imagery or a live surface (map controls, hero headers) — see design-language A4. */
+export type CardSurface = "solid" | "glass";
+export interface CardProps { children: React.ReactNode; variant?: CardVariant; padding?: number | "none" | "sm" | "md" | "lg"; elevation?: "none" | "sm" | "md" | "lg"; radius?: number; background?: string; surface?: CardSurface; onPress?: () => void; style?: StyleProp<ViewStyle>; accessibilityLabel?: string; }
 const cardPadding = { none: 0, sm: 12, md: 16, lg: 20 } as const;
 
 /** Theme surface with optional press behavior and elevation. */
-export function Card({ children, variant = "default", padding = 16, elevation, radius = 16, background, onPress, style, accessibilityLabel }: CardProps): React.ReactElement {
-  const { theme } = useTheme();
+export function Card({ children, variant = "default", padding = 16, elevation, radius = 16, background, surface = "solid", onPress, style, accessibilityLabel }: CardProps): React.ReactElement {
+  const { theme, isDark } = useTheme();
   const resolvedPadding = typeof padding === "number" ? padding : cardPadding[padding];
   const elevationIndex = elevation === "lg" || variant === "raised" ? 3 : elevation === "md" || variant === "elevated" || variant === "interactive" ? 2 : elevation === "none" || variant === "flat" || variant === "outlined" ? 0 : 1;
-  const cardStyle: StyleProp<ViewStyle> = [styles.card, theme.shadows[elevationIndex], { padding: resolvedPadding, borderRadius: radius, backgroundColor: background ?? (variant === "filled" ? theme.colors.canvas.surfaceMuted : theme.colors.canvas.surface), borderColor: theme.colors.border.default, borderWidth: variant === "outlined" || variant === "default" || variant === "flat" ? 1 : 0 }, style];
-  return onPress ? <PressableScale onPress={onPress} accessibilityLabel={accessibilityLabel} style={cardStyle}>{children}</PressableScale> : <View style={cardStyle}>{children}</View>;
+  const isGlass = surface === "glass";
+  const cardStyle: StyleProp<ViewStyle> = [styles.card, theme.shadows[elevationIndex], { borderRadius: radius, backgroundColor: isGlass ? "transparent" : (background ?? (variant === "filled" ? theme.colors.canvas.surfaceMuted : theme.colors.canvas.surface)), borderColor: isGlass ? legacyColors.glassBorder : theme.colors.border.default, borderWidth: isGlass ? StyleSheet.hairlineWidth : (variant === "outlined" || variant === "default" || variant === "flat" ? 1 : 0) }, style];
+  const content = <>
+    {isGlass ? <BlurView intensity={50} tint={isDark ? "dark" : "light"} style={StyleSheet.absoluteFill} /> : null}
+    {isGlass ? <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: isDark ? legacyColors.glassDark : legacyColors.glass }]} /> : null}
+    <View style={{ padding: resolvedPadding }}>{children}</View>
+  </>;
+  return onPress ? <PressableScale onPress={onPress} accessibilityLabel={accessibilityLabel} style={cardStyle}>{content}</PressableScale> : <View style={cardStyle}>{content}</View>;
 }
 Card.padding = { sm: 12, md: 16, lg: 20, xl: 24 } as const;
 

@@ -109,7 +109,7 @@ const TEXT_START = textAlignStart(IS_RTL);
 
 
 
-function rxStatusColor(status: RxStatus, c: any): string {
+function rxStatusColor(status: RxStatus, c: { success: string; accentDeep: string; warn: string; inkFaint: string; inkSoft: string }): string {
   switch (status) {
     case 'ready': return c.success;
     case 'active': return c.accentDeep;
@@ -119,7 +119,7 @@ function rxStatusColor(status: RxStatus, c: any): string {
   }
 }
 
-function rxStatusTint(status: RxStatus, c: any): string {
+function rxStatusTint(status: RxStatus, c: { successTint: string; accentTint: string; warnTint: string; well: string }): string {
   switch (status) {
     case 'ready': return c.successTint;
     case 'active': return c.accentTint;
@@ -192,6 +192,27 @@ function formatDate(iso: string, locale: string): string {
 }
 
 
+
+type DarkColors = {
+  canvas: string
+  surface: string
+  line: string
+  lineStrong: string
+  accent: string
+  accentDeep: string
+  accentTint: string
+  ink: string
+  inkSoft: string
+  inkFaint: string
+  warn: string
+  warnTint: string
+  success: string
+  successTint: string
+  danger: string
+  dangerTint: string
+  well: string
+  onAccent: string
+}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -1561,7 +1582,7 @@ function RefillHistoryRow({
 
 
 
-function get_s(c: any) { return StyleSheet.create({
+function get_s(c: DarkColors) { return StyleSheet.create({
 
   screen: { flex: 1, backgroundColor: c.canvas },
 
@@ -2435,7 +2456,7 @@ function get_s(c: any) { return StyleSheet.create({
 
 
 
-function get_lc(_c: any) { return StyleSheet.create({
+function get_lc(_c: DarkColors) { return StyleSheet.create({
 
   row: {
 
@@ -2509,7 +2530,7 @@ function get_lc(_c: any) { return StyleSheet.create({
 
 
 
-function get_tl(c: any) { return StyleSheet.create({
+function get_tl(c: DarkColors) { return StyleSheet.create({
 
   row: {
 
@@ -2593,7 +2614,7 @@ function get_tl(c: any) { return StyleSheet.create({
 
 
 
-function get_f(c: any) { return StyleSheet.create({
+function get_f(c: DarkColors) { return StyleSheet.create({
 
   cell: {
 
@@ -2675,7 +2696,7 @@ function get_f(c: any) { return StyleSheet.create({
 
 
 
-function get_h(c: any) { return StyleSheet.create({
+function get_h(c: DarkColors) { return StyleSheet.create({
 
   row: {
 

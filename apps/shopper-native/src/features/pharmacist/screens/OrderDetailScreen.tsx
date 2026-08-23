@@ -134,7 +134,7 @@ export function PharmacistOrderDetailScreen(): React.ReactElement {
 
     () => (order ? getPharmacistActions(order.status) : []),
 
-    [order?.status],
+    [order],
 
   );
 
@@ -148,7 +148,7 @@ export function PharmacistOrderDetailScreen(): React.ReactElement {
       if (!id || !target) return;
       try {
 
-        await mutations.advance.mutateAsync({ orderId: id, nextStatus: target as any });
+         await mutations.advance.mutateAsync({ orderId: id, nextStatus: target as unknown as never });
 
         if (target === "cancelled") {
 

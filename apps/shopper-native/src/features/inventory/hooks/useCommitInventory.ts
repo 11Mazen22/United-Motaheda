@@ -70,7 +70,7 @@ export function useCommitInventory(): UseCommitInventoryReturn {
     },
     [m, qc],
   );
-
-  const { mutate: _m, mutateAsync: _ma, ...rest } = m;
-  return { ...rest, commit, commitAsync };
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { mutate: _m, mutateAsync: _ma, ...rest } = m;
+  return { ...rest, commit, commitAsync };
 }

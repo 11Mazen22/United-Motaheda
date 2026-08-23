@@ -88,7 +88,7 @@ export function usePremiumCheckout() {
             return;
           }
         }
-      } catch (e) {
+      } catch {
          // Silently allow checkout if backend product fetch fails temporarily, 
          // but ideally we should flag it. We'll proceed so we don't hard-block 
          // legitimate orders on transient errors.
@@ -105,7 +105,7 @@ export function usePremiumCheckout() {
     
     init();
     return () => { active = false; };
-  }, [user, isConnected, items.length]);
+  }, [user, isConnected, items.length, items, addressStore, selectedAddressId, status]);
   
   const addresses = addressStore.addresses;
   const selectedAddress = addresses.find(a => a.id === selectedAddressId) || null;
@@ -188,11 +188,11 @@ export function usePremiumCheckout() {
        setPlacedOrderId(result.orderId);
        clearCart(); // Safely wipe cart ONLY on success
        setStatus("SUCCESS");
-     } catch (e: any) {
-       setStatus("FAILED");
-       setErrorMsg(e instanceof CheckoutRequestError ? e.message : "Failed to place order. Please try again.");
-     }
-  }, [canSubmit, user, selectedAddress, paymentMethod, items, pricing, note, promoCode, status, clearCart]);
+       } catch (e) {
+        setStatus("FAILED");
+        setErrorMsg(e instanceof CheckoutRequestError ? e.message : "Failed to place order. Please try again.");
+      }
+  }, [canSubmit, user, selectedAddress, paymentMethod, items, pricing, note, promoCode, clearCart]);
 
   return {
     status,

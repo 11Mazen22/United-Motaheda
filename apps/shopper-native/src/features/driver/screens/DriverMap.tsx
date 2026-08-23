@@ -41,7 +41,7 @@ export default function DriverMap({ compact }: { compact?: boolean } = {}): Reac
           <View style={s.mapOverlayRow}>
             <Ion name="locate" size={18} color="#fff" />
             <Button label="Navigate" onPress={() => {
-              if (dest) void (window as any).open(`https://www.google.com/maps/dir/?api=1&destination=${dest.lat},${dest.lng}&travelmode=driving`);
+              if (dest) void (window as unknown as { open: (url: string) => void }).open(`https://www.google.com/maps/dir/?api=1&destination=${dest.lat},${dest.lng}&travelmode=driving`);
             }} style={s.navigateBtn} />
           </View>
         </View>

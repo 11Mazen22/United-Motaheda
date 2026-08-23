@@ -14,16 +14,17 @@ import { flexRow, isRtl, textAlignStart, BACK_CHEVRON } from "@/utils/layout";
 
 const IS_RTL = isRtl();
 const TEXT_START = textAlignStart(IS_RTL);
+type IoniconsName = React.ComponentProps<typeof Ionicons>["name"];
 
 const STATUS_STEPS = [
-  { status: "placed", icon: "receipt-outline", labelKey: "order.statusPlaced" },
-  { status: "confirmed", icon: "checkmark-done-outline", labelKey: "order.statusConfirmed" },
-  { status: "preparing", icon: "cube-outline", labelKey: "order.statusPreparing" },
-  { status: "out_for_delivery", icon: "bicycle-outline", labelKey: "order.statusOutForDelivery" },
-  { status: "delivered", icon: "home-outline", labelKey: "order.statusDelivered" },
+  { status: "placed", icon: "receipt-outline" as IoniconsName, labelKey: "order.statusPlaced" },
+  { status: "confirmed", icon: "checkmark-done-outline" as IoniconsName, labelKey: "order.statusConfirmed" },
+  { status: "preparing", icon: "cube-outline" as IoniconsName, labelKey: "order.statusPreparing" },
+  { status: "out_for_delivery", icon: "bicycle-outline" as IoniconsName, labelKey: "order.statusOutForDelivery" },
+  { status: "delivered", icon: "home-outline" as IoniconsName, labelKey: "order.statusDelivered" },
 ];
 
-function TimelineStep({ step, isCompleted, isCurrent, isLast }: any) {
+function TimelineStep({ step, isCompleted, isCurrent, isLast }: { step: { status: string; icon: IoniconsName; labelKey: string }; isCompleted: boolean; isCurrent: boolean; isLast: boolean }) {
   const { c } = useDarkColors();
   const { t } = useTranslation();
   
@@ -34,7 +35,7 @@ function TimelineStep({ step, isCompleted, isCurrent, isLast }: any) {
     } else {
       pulse.value = 1;
     }
-  }, [isCurrent]);
+  }, [isCurrent, pulse]);
 
   const animatedDotStyle = useAnimatedStyle(() => ({
     transform: [{ scale: pulse.value }],

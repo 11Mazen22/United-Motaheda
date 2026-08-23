@@ -42,7 +42,7 @@ const RTL = isRtl(), TA = textAlignStart(RTL);
 
 type IconName = React.ComponentProps<typeof Ionicons>["name"];
 
-const TYPE_CFG = (c: any): Record<NotifType, { icon: IconName; color: string; bg: string; labelKey: string }> => ({
+const TYPE_CFG = (c: { accentDeep: string; accentTint: string; warn: string; warnTint: string; danger: string; dangerTint: string; inkSoft: string; well: string }): Record<NotifType, { icon: IconName; color: string; bg: string; labelKey: string }> => ({
 
   order: { icon: "bag-handle", color: c.accentDeep, bg: c.accentTint, labelKey: "notifications.typeOrder" },
 
@@ -66,7 +66,7 @@ const FILTERS: { key: Filter; labelKey: string }[] = [
 
 
 
-function timeAgo(dateStr: string, t: (k: string, opts?: any) => string): string {
+function timeAgo(dateStr: string, t: (k: string, opts?: Record<string, unknown>) => string): string {
 
   const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
 
@@ -92,7 +92,7 @@ interface Section { key: "today" | "yesterday" | "week" | "earlier"; title: stri
 
 
 
-function groupByDate(items: AppNotification[], t: (k: string, opts?: any) => string): Section[] {
+function groupByDate(items: AppNotification[], t: (k: string, opts?: Record<string, unknown>) => string): Section[] {
 
   const start = (off: number) => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - off); return d.getTime(); };
 
@@ -146,7 +146,7 @@ function SkeletonView({ bottom }: { bottom: number }) {
 
 
 
-function DeleteAction({ progress, onPress }: { progress: any; onPress: () => void }) {
+function DeleteAction({ progress, onPress }: { progress: { value: number }; onPress: () => void }) {
 
   const { t } = useTranslation();
 
@@ -176,7 +176,7 @@ const NotifRow = React.memo(function NotifRow({ item, onPress, onDelete }: { ite
 
   const handleDelete = useCallback(() => { if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {}); onDelete(); }, [onDelete]);
 
-  const renderAction = useCallback((p: any) => <DeleteAction progress={p} onPress={handleDelete} />, [handleDelete]);
+  const renderAction = useCallback((p: { value: number }) => <DeleteAction progress={p} onPress={handleDelete} />, [handleDelete]);
 
 
 

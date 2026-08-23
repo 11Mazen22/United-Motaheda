@@ -246,7 +246,7 @@ export default function PaymentScreen() {
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
-const getStyles = (c: any, theme: any) => StyleSheet.create({
+const getStyles = (c: { canvas: string; surface: string; line: string; accentDeep: string; accentTint: string; ink: string; inkSoft: string; inkFaint: string; warn: string; warnTint: string; success: string; successTint: string; danger: string; dangerTint: string; well: string }, theme: { fonts: { black: string; bold: string; semibold: string; medium: string; regular: string }; layout: { pagePaddingH: number } }) => StyleSheet.create({
 
   screen: { flex: 1, backgroundColor: c.canvas },
 

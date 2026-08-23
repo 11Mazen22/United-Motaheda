@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useMemo, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { Platform, type ViewStyle } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   darkTheme,
   lightTheme,
@@ -9,6 +10,11 @@ import {
 } from "@pharmacy/design-tokens";
 
 import { kit } from "./kit";
+
+const THEME_PREFERENCE_STORAGE_KEY = "@pharmacy/theme-preference";
+function isThemePreference(value: unknown): value is ThemePreference {
+  return value === "light" || value === "dark" || value === "system";
+}
 
 // Keep shared theme code on the public React Native API so Expo Web can bundle it.
 // RTL is supplied by the app's language layer rather than I18nManager because
@@ -100,7 +106,25 @@ export function ThemeProvider({
   systemColorScheme = "light",
   isRTL = false,
 }: ThemeProviderProps): React.ReactElement {
-  const [preference, setPreference] = useState<ThemePreference>(initialPreference);
+  const [preference, setPreferenceState] = useState<ThemePreference>(initialPreference);
+
+  // Single source of truth for the theme preference, persisted here so it survives
+  // an app restart. Previously this state existed only in memory (no persistence),
+  // and two other places independently tracked "is dark mode on" — this is now the
+  // only one; consumers should stop reading device color scheme directly.
+  useEffect(() => {
+    let cancelled = false;
+    AsyncStorage.getItem(THEME_PREFERENCE_STORAGE_KEY)
+      .then((stored) => { if (!cancelled && isThemePreference(stored)) setPreferenceState(stored); })
+      .catch(() => undefined);
+    return () => { cancelled = true; };
+  }, []);
+
+  const setPreference = useCallback((next: ThemePreference) => {
+    setPreferenceState(next);
+    void AsyncStorage.setItem(THEME_PREFERENCE_STORAGE_KEY, next).catch(() => undefined);
+  }, []);
+
   const mode: ThemeName = preference === "system" ? systemColorScheme ?? "light" : preference;
   const isDark = mode === "dark";
   const value = useMemo<ThemeContextValue>(() => ({
@@ -110,11 +134,11 @@ export function ThemeProvider({
     isRTL,
     isDark,
     setPreference,
-    toggleTheme: () => setPreference((current) => {
-      const resolved = current === "system" ? mode : current;
-      return resolved === "light" ? "dark" : "light";
-    }),
-  }), [isRTL, mode, preference, isDark]);
+    toggleTheme: () => {
+      const resolved = preference === "system" ? mode : preference;
+      setPreference(resolved === "light" ? "dark" : "light");
+    },
+  }), [isRTL, mode, preference, isDark, setPreference]);
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }

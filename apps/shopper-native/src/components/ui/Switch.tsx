@@ -43,7 +43,7 @@ export function Switch({ checked, onChange, disabled, accessibilityLabel }: Swit
     >
       <Animated.View style={[
         styles.track,
-        { backgroundColor: bgColor as any, opacity: disabled ? kit.opacity.disabled : 1 }
+        { backgroundColor: bgColor as unknown as string, opacity: disabled ? kit.opacity.disabled : 1 }
       ]}>
         <Animated.View style={[styles.thumb, { transform: [{ translateX }] }]} />
       </Animated.View>

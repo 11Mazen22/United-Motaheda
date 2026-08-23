@@ -195,13 +195,13 @@ function MapPlaceholder({ height }: { height: number }) {
 
         {[15, 35, 55, 75].map((t) => (
 
-          <View key={`h${t}`} style={[styles.road, { top: `${t}%` as any }]} />
+          <View key={`h${t}`} style={[styles.road, { top: `${t}%` as unknown as never }]} />
 
         ))}
 
         {[20, 45, 70].map((l) => (
 
-          <View key={`v${l}`} style={[styles.roadV, { start: `${l}%` as any }]} />
+          <View key={`v${l}`} style={[styles.roadV, { start: `${l}%` as unknown as never }]} />
 
         ))}
 
@@ -332,8 +332,8 @@ export function AddressMapPlaceholder({
 
 
     return () => { cancelled = true; };
-
-  }, [addressHint?.street, addressHint?.district, addressHint?.city]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [addressHint?.building, addressHint?.district, addressHint?.city, addressHint?.street]);
 
 
 

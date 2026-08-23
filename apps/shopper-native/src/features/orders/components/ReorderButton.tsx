@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useReorder } from "../hooks/useReorder";
 import type { OrderItem } from "@/stores/orders";
 
-export function ReorderButton({ items, size = "lg", style }: { items: OrderItem[], size?: "sm" | "md" | "lg", style?: any }) {
+export function ReorderButton({ items, size = "lg", style }: { items: OrderItem[]; size?: "sm" | "md" | "lg"; style?: Record<string, unknown> }) {
   const { t } = useTranslation();
   const { reorder, isReordering } = useReorder();
 

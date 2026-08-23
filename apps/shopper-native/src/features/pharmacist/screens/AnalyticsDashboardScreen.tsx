@@ -43,7 +43,6 @@ import Animated, { FadeInDown } from "react-native-reanimated";
 
 
 import { Screen, Text as UIText } from "@pharmacy/ui-native";
-import { useDarkColors } from "@/hooks/useDarkColors";
 
 import { kit }                    from "@pharmacy/ui-native";
 
@@ -99,7 +98,7 @@ function MetricRow({
 
 }) {
 
-  const { c: _c } = useDarkColors();
+
 
   return (
 
@@ -171,7 +170,7 @@ function Section({
 
 }) {
 
-  const { c: _c } = useDarkColors();
+
 
   return (
 
@@ -271,7 +270,7 @@ function MiniBarChart({
 
 }) {
 
-  const { c: _c } = useDarkColors();
+
 
   const max = Math.max(...data, 1);
 
@@ -403,7 +402,7 @@ const bkStyles = StyleSheet.create({
 
 export function AnalyticsDashboardScreen(): React.ReactElement {
 
-  const { c } = useDarkColors();
+
 
   const { t }       = useTranslation();
 
@@ -453,17 +452,17 @@ export function AnalyticsDashboardScreen(): React.ReactElement {
 
   const funnelData: { status: string; count: number; color: string }[] = [
 
-    { status: t("pharmacist.statusPending"),         count: orders.filter((o) => o.status === "pending").length,          color: c.warn },
+    { status: t("pharmacist.statusPending"),         count: orders.filter((o) => o.status === "pending").length,          color: kit.color.warn },
 
-    { status: t("pharmacist.statusVerification"),    count: orders.filter((o) => o.status === "verification").length,     color: c.accentDeep },
+    { status: t("pharmacist.statusVerification"),    count: orders.filter((o) => o.status === "verification").length,     color: kit.color.accentDeep },
 
-    { status: t("pharmacist.statusPaymentPending"),  count: orders.filter((o) => o.status === "payment_pending").length,  color: c.accentDeep },
+    { status: t("pharmacist.statusPaymentPending"),  count: orders.filter((o) => o.status === "payment_pending").length,  color: kit.color.accentDeep },
 
-    { status: t("pharmacist.statusPaymentApproved"), count: orders.filter((o) => o.status === "payment_approved").length, color: c.success },
+    { status: t("pharmacist.statusPaymentApproved"), count: orders.filter((o) => o.status === "payment_approved").length, color: kit.color.success },
 
-    { status: t("pharmacist.statusPreparing"),       count: orders.filter((o) => o.status === "preparing").length,        color: c.accentDeep },
+    { status: t("pharmacist.statusPreparing"),       count: orders.filter((o) => o.status === "preparing").length,        color: kit.color.accentDeep },
 
-    { status: t("pharmacist.statusReady"),           count: orders.filter((o) => o.status === "ready").length,            color: c.accent },
+    { status: t("pharmacist.statusReady"),           count: orders.filter((o) => o.status === "ready").length,            color: kit.color.accent },
 
   ].filter((d) => d.count > 0);
 
@@ -501,13 +500,13 @@ export function AnalyticsDashboardScreen(): React.ReactElement {
 
   return (
 
-    <Screen edgeTop background={c.canvas}>
+    <Screen edgeTop background={kit.color.canvas}>
 
       {/* Header with gradient */}
 
       <LinearGradient
 
-        colors={[c.accentDeep, c.accent]}
+        colors={[kit.color.accentDeep, kit.color.accent]}
 
         start={{ x: 0, y: 0 }}
 
@@ -537,7 +536,7 @@ export function AnalyticsDashboardScreen(): React.ReactElement {
 
       {isLoading ? (
 
-        <View style={styles.centered}><ActivityIndicator size="large" color={c.accent} /></View>
+        <View style={styles.centered}><ActivityIndicator size="large" color={kit.color.accent} /></View>
 
       ) : (
 
@@ -555,7 +554,7 @@ export function AnalyticsDashboardScreen(): React.ReactElement {
 
               onRefresh={onRefresh}
 
-              tintColor={c.accent}
+              tintColor={kit.color.accent}
 
             />
 
@@ -573,9 +572,9 @@ export function AnalyticsDashboardScreen(): React.ReactElement {
 
               icon="bag-handle-outline"
 
-              iconColor={c.accentDeep}
+              iconColor={kit.color.accentDeep}
 
-              iconBg={c.accentTint}
+              iconBg={kit.color.accentTint}
 
             />
 
@@ -587,9 +586,9 @@ export function AnalyticsDashboardScreen(): React.ReactElement {
 
               icon="cash-outline"
 
-              iconColor={c.success}
+              iconColor={kit.color.success}
 
-              iconBg={c.successTint}
+              iconBg={kit.color.successTint}
 
             />
 
@@ -603,9 +602,9 @@ export function AnalyticsDashboardScreen(): React.ReactElement {
 
               icon="checkmark-circle-outline"
 
-              iconColor={c.success}
+              iconColor={kit.color.success}
 
-              iconBg={c.successTint}
+              iconBg={kit.color.successTint}
 
             />
 
@@ -617,9 +616,9 @@ export function AnalyticsDashboardScreen(): React.ReactElement {
 
               icon="close-circle-outline"
 
-              iconColor={c.danger}
+              iconColor={kit.color.danger}
 
-              iconBg={c.dangerTint}
+              iconBg={kit.color.dangerTint}
 
             />
 
@@ -675,15 +674,15 @@ export function AnalyticsDashboardScreen(): React.ReactElement {
 
             delay={120}
 
-          >            <MetricRow label={t("pharmacist.rxPending")}  value={rxPending}  icon="time-outline"             iconColor={c.warn}    iconBg={c.warnTint} />
+          >            <MetricRow label={t("pharmacist.rxPending")}  value={rxPending}  icon="time-outline"             iconColor={kit.color.warn}    iconBg={kit.color.warnTint} />
 
             <View style={styles.divider} />
 
-            <MetricRow label={t("pharmacist.rxApproved")} value={rxApproved} icon="checkmark-circle-outline" iconColor={c.success}  iconBg={c.successTint} />
+            <MetricRow label={t("pharmacist.rxApproved")} value={rxApproved} icon="checkmark-circle-outline" iconColor={kit.color.success}  iconBg={kit.color.successTint} />
 
             <View style={styles.divider} />
 
-            <MetricRow label={t("pharmacist.rxRejected")} value={rxRejected} icon="close-circle-outline"     iconColor={c.danger}   iconBg={c.dangerTint} />
+            <MetricRow label={t("pharmacist.rxRejected")} value={rxRejected} icon="close-circle-outline"     iconColor={kit.color.danger}   iconBg={kit.color.dangerTint} />
 
           </Section>
 
@@ -707,9 +706,9 @@ export function AnalyticsDashboardScreen(): React.ReactElement {
 
               icon="alert-circle-outline"
 
-              iconColor={c.danger}
+              iconColor={kit.color.danger}
 
-              iconBg={c.dangerTint}
+              iconBg={kit.color.dangerTint}
 
               caption={t("pharmacist.analyticsLowStockCaption", "مخزون أقل من 5 وحدات")}
 
@@ -834,3 +833,4 @@ const styles = StyleSheet.create({
   divider:     { height: StyleSheet.hairlineWidth, backgroundColor: kit.color.line, marginVertical: 2 },
 
 });
+

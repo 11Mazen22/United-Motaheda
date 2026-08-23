@@ -74,6 +74,7 @@ export function LoadingState({ message }: LoadingStateProps) {
 
     );
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
 

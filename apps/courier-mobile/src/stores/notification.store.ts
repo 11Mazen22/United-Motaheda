@@ -6,7 +6,7 @@ export interface AppNotification {
   id: string;
   title: string;
   body: string;
-  data?: Record<string, any>;
+  data?: Record<string, unknown>;
   isRead: boolean;
   receivedAt: number;
 }

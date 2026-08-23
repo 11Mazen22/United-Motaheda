@@ -11,6 +11,8 @@ import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
 import Animated, { FadeIn, FadeOut, SlideInDown, SlideOutDown } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+type IoniconsName = React.ComponentProps<typeof Ionicons>["name"];
+
 export function ThemePickerSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const { t } = useTranslation();
   const { c } = useDarkColors();
@@ -26,7 +28,7 @@ export function ThemePickerSheet({ visible, onClose }: { visible: boolean; onClo
     onClose();
   }, [setMode, onClose]);
 
-  const options: Array<{ id: ThemeMode; labelKey: string; icon: any }> = [
+  const options: Array<{ id: ThemeMode; labelKey: string; icon: IoniconsName }> = [
     { id: "system", labelKey: "theme.system", icon: "phone-portrait-outline" },
     { id: "light", labelKey: "theme.light", icon: "sunny-outline" },
     { id: "dark", labelKey: "theme.dark", icon: "moon-outline" },

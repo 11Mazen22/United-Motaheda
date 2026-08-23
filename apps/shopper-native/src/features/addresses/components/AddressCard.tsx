@@ -32,6 +32,7 @@ export function AddressCard({ address, onEdit, onDelete, onSetDefault }: Props) 
     if (!reducedMotion && address.is_default) {
       pulse.value = withRepeat(withTiming(1.5, { duration: 1200 }), -1, true);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reducedMotion, address.is_default]);
 
   const animatedDotStyle = useAnimatedStyle(() => ({

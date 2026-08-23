@@ -1,5 +1,3 @@
-
-// @ts-nocheck
 /**
  * HomeScreen — V3 Elite Redesign (2026)
  *
@@ -32,7 +30,6 @@
 import React, {
   memo,
   useCallback,
-  useRef,
   useState,
 } from "react";
 import {
@@ -73,7 +70,6 @@ import { PharmacistCard }         from "./PharmacistCard";
 // ─── Theme ───────────────────────────────────────────────────────────────────
 import { theme } from "@pharmacy/design-tokens";
 import { kit }   from "@pharmacy/ui-native";
-import { isRtl } from "../utils/layout";
 import { useQuery } from "@tanstack/react-query";
 import { fetchCategories } from "../features/products/api/productsApi";
 
@@ -156,32 +152,32 @@ export default function HomeScreen() {
 
   // ── Navigation callbacks ───────────────────────────────────────────────────
 
-  const goCart      = useCallback(() => router.push("/(tabs)/cart"    as any), [router]);
-  const goSearch    = useCallback(() => router.push("/search"         as any), [router]);
-  const goNotifs    = useCallback(() => router.push("/notifications"  as any), [router]);
-  const goDeals     = useCallback(() => router.push("/deals"          as any), [router]);
-  const goFeatured  = useCallback(() => router.push("/featured"       as any), [router]);
-  const goAllCats   = useCallback(() => router.push("/(tabs)/products"     ), [router]);
+  const goCart      = useCallback(() => router.push("/(customer)/(tabs)/cart" as unknown as never), [router]);
+  const goSearch    = useCallback(() => router.push("/search" as unknown as never), [router]);
+  const goNotifs    = useCallback(() => router.push("/notifications" as unknown as never), [router]);
+  const goDeals     = useCallback(() => router.push("/deals" as unknown as never), [router]);
+  const goFeatured  = useCallback(() => router.push("/featured" as unknown as never), [router]);
+  const goAllCats   = useCallback(() => router.push("/(customer)/(tabs)/products"), [router]);
 
   const goCategory  = useCallback(
     (id: string, _name: string, _nameEn: string) =>
-      router.push({ pathname: "/products" as any, params: { categoryId: id } }),
+      router.push({ pathname: "/products" as unknown as never, params: { categoryId: id } }),
     [router],
   );
 
   const goProduct   = useCallback(
     (id: string) =>
-      router.push({ pathname: "/product/[id]" as any, params: { id } }),
+      router.push({ pathname: "/product/[id]" as unknown as never, params: { id } }),
     [router],
   );
 
   const goBanner    = useCallback(
-    (route: string) => router.push(route as any),
+    (route: string) => router.push(route as unknown as never),
     [router],
   );
 
   const goNavigate  = useCallback(
-    (route: string) => router.push(route as any),
+    (route: string) => router.push(route as unknown as never),
     [router],
   );
 

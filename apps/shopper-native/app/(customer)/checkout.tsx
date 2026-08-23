@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { View, StyleSheet, ScrollView, Pressable, Platform, KeyboardAvoidingView, Modal } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -10,11 +10,14 @@ import Animated, { FadeIn, FadeOut, SlideInDown, SlideOutDown, Layout } from "re
 import { CustomerUI, kit, Button } from "@pharmacy/ui-native";
 import { isRtl, flexRow, textAlignStart } from "@/utils/layout";
 import { useDarkColors } from "@/hooks/useDarkColors";
+import { useAuth } from "@/features/auth";
 
 import { usePremiumCheckout } from "@/features/checkout/hooks/usePremiumCheckout";
 import { useCartStore } from "@/stores/cart";
 import { AuthGateModal } from "@/features/checkout/components/AuthGateModal";
 import { AddressFormDrawer } from "@/features/addresses/components/AddressFormDrawer";
+import { useAddressStore } from "@/features/addresses/store";
+import type { AddressFormData } from "@/features/addresses/types";
 import { useDeliveryQuote } from "@/features/delivery/useDeliveryQuote";
 
 const IS_RTL = isRtl();
@@ -76,7 +79,7 @@ function LocationDetailsModal({
   visible, 
   onClose 
 }: { 
-  address: any; 
+  address: { street: string; building?: string; apartment?: string; city: string; lat?: number; lng?: number }; 
   quote: ReturnType<typeof useDeliveryQuote>; 
   visible: boolean; 
   onClose: () => void; 
@@ -173,6 +176,7 @@ export default function CheckoutScreen() {
   const { c } = useDarkColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { user } = useAuth();
 
   const {
     status,
@@ -189,10 +193,17 @@ export default function CheckoutScreen() {
   } = usePremiumCheckout();
 
   const setShippingFee = useCartStore(s => s.setShippingFee);
+  const addAddress = useAddressStore(s => s.add);
 
   const [activeStep, setActiveStep] = useState<1 | 2 | 3 | 4>(1);
   const [isAddressDrawerOpen, setIsAddressDrawerOpen] = useState(false);
   const [locationDetailsModal, setLocationDetailsModal] = useState<boolean>(false);
+
+  const handleAddressSubmit = useCallback(async (form: AddressFormData) => {
+    if (!user?.id) return;
+    await addAddress(user.id, form);
+    setIsAddressDrawerOpen(false);
+  }, [user?.id, addAddress]);
 
   const quote = useDeliveryQuote({
     subtotal: pricing.subtotal,
@@ -210,7 +221,7 @@ export default function CheckoutScreen() {
     if (status === "READY" && selectedAddress && quote.isDeliverable && activeStep === 1) {
        setActiveStep(2);
     }
-  }, [selectedAddress, quote.isDeliverable, status]);
+  }, [selectedAddress, quote.isDeliverable, status, activeStep]);
 
   if (status === "AUTH_REQUIRED") {
     return (
@@ -502,7 +513,7 @@ export default function CheckoutScreen() {
         />
       )}
       
-      <AddressFormDrawer visible={isAddressDrawerOpen} onClose={() => setIsAddressDrawerOpen(false)} />
+      <AddressFormDrawer visible={isAddressDrawerOpen} onClose={() => setIsAddressDrawerOpen(false)} onSubmit={handleAddressSubmit} loading={false} />
     </KeyboardAvoidingView>
   );
 }

@@ -41,8 +41,8 @@ export interface ProductCardProps {
 
 // ─── HeartButton ───
 const HeartButton = memo(function HeartButton({ product }: { product: NativeProduct }) {
-  const liked = useWishlistStore((s: any) => (s.items as string[]).includes(product.id));
-  const toggle = useWishlistStore((s: any) => s.toggle);
+  const liked = useWishlistStore((s: { items: NativeProduct[] }) => s.items.some((p) => p.id === product.id));
+  const toggle = useWishlistStore((s: { toggle: (product: NativeProduct) => void }) => s.toggle);
   const theme = CustomerUI.useLuxuryTheme();
   const scale = useSharedValue(1);
 
@@ -75,10 +75,10 @@ const HeartButton = memo(function HeartButton({ product }: { product: NativeProd
 
 // ─── CartControl ───
 const CartControl = memo(function CartControl({ product }: { product: NativeProduct }) {
-  const cartItem = useCartStore((s: any) => s.items.find((i: any) => i.productId === product.id));
-  const addItem = useCartStore((s: any) => s.addItem);
-  const updateQty = useCartStore((s: any) => s.updateQty);
-  const removeItem = useCartStore((s: any) => s.removeItem);
+  const cartItem = useCartStore((s: { items: Array<{ productId: string; quantity: number }> }) => s.items.find((i: { productId: string }) => i.productId === product.id));
+  const addItem = useCartStore((s: { addItem: (product: NativeProduct, qty: number) => void }) => s.addItem);
+  const updateQty = useCartStore((s: { updateQty: (productId: string, qty: number) => void }) => s.updateQty);
+  const removeItem = useCartStore((s: { removeItem: (productId: string) => void }) => s.removeItem);
   const theme = CustomerUI.useLuxuryTheme();
 
   const qty = cartItem ? cartItem.quantity : 0;

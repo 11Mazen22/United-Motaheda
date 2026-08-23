@@ -25,7 +25,7 @@ export interface CrashAdapter {
 const noopAdapter: CrashAdapter = {
   capture: (error, context) => {
     if (__DEV__) {
-      // eslint-disable-next-line no-console
+       
       console.warn("[crash]", error.message, context ?? "");
     }
   },

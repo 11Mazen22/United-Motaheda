@@ -348,7 +348,7 @@ export default function Page(): React.ReactElement {
 
     );
 
-  }, [goToDetail, goToRefill, t]);
+  }, [goToDetail, goToRefill, t, c.inkFaint, s.disclosure, s.disclosureChevron, s.disclosureIcon, s.disclosurePressed, s.disclosureRow, s.disclosureText, s.disclosureTouchable]);
 
 
 
@@ -714,7 +714,7 @@ export default function Page(): React.ReactElement {
 
 
 
-function get_s(c: any) { return StyleSheet.create({
+function get_s(c: { canvas: string; surface: string; line: string; ink: string; inkSoft: string; inkFaint: string; accentDeep: string; accentTint: string; warn: string; warnTint: string; success: string; successTint: string; well: string; danger: string }) { return StyleSheet.create({
 
   screen: { flex: 1, backgroundColor: c.canvas },
 

@@ -6,14 +6,14 @@ import { kit } from "@pharmacy/ui-native";
 import { flexRow, isRtl } from "@/utils/layout";
 import { formatPrice } from "@/utils/format";
 import { useAuth } from "@/features/auth";
-import { useMyAssignmentForOrder } from "../hooks/useDriverManifest";
+import { useMyAssignmentForOrder, type ManifestOrder } from "../hooks/useDriverManifest";
 import { useDriverMutations } from "../hooks/useDriverMutations";
 import { showErrorSheet, showSuccessSheet } from "@/shared/store/appSheetStore";
 import { useTranslation } from "react-i18next";
 
 const IS_RTL = isRtl();
 
-export function OrderCardNew({ order, onPress }: any) {
+export function OrderCardNew({ order, onPress }: { order: ManifestOrder & { eta?: string; estimatedTime?: string; pharmacyName?: string; pickupName?: string; storeName?: string; items?: Array<{ name: string; quantity: number }>; itemCount?: number; paymentMethod?: string | null }; onPress: (event?: unknown) => void }) {
   const { t } = useTranslation();
   const { user } = useAuth();
   const assignmentQuery = useMyAssignmentForOrder(order.id, user?.id);
@@ -57,7 +57,7 @@ export function OrderCardNew({ order, onPress }: any) {
 
   const primaryAction = (() => {
     // If not yet picked up
-    if (!assignment) return { label: t("driver.view"), action: onPress, loading: assignmentQuery.isLoading };
+    if (!assignment) return { label: t("driver.view"), action: onPress ?? (() => {}), loading: assignmentQuery.isLoading };
     if (!assignment.pickedUpAt) return { label: t("driver.confirmPickup"), action: handlePickup, loading: mutations.pickup.isPending };
     if (!assignment.arrivedAtCustomer) return { label: t("driver.arrivedCustomer"), action: handleArrivedCustomer, loading: mutations.arrival.isPending };
     return { label: t("driver.completeDelivery"), action: handleComplete, loading: mutations.deliver.isPending };

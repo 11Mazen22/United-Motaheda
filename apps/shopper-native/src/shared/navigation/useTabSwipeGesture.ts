@@ -73,7 +73,7 @@ function triggerHaptic() {
 function navigateTo(targetIndex: number) {
   const targetName = TAB_ORDER[targetIndex];
   triggerHaptic();
-  router.navigate(tabHref(targetName) as any);
+  router.navigate(tabHref(targetName) as unknown as never);
 }
 
 /** Rubber-band resistance — approaches `max` asymptotically, never exceeds it. */

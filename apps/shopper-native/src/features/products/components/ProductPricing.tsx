@@ -4,11 +4,12 @@ import { Ionicons } from "@expo/vector-icons";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { kit, Text as UIText } from "@pharmacy/ui-native";
 import { isRtl, flexRow, textAlignStart } from "@/utils/layout";
+import type { NativeProduct } from "@/features/products/types";
 
 const IS_RTL = isRtl();
 const TEXT_START = textAlignStart(IS_RTL);
 
-export const ProductPricing = React.memo(function ProductPricing({ product, qty, t }: any) {
+export const ProductPricing = React.memo(function ProductPricing({ product, qty, t }: { product: NativeProduct; qty: number; t: (key: string) => string }) {
   return (
     <Animated.View entering={FadeInDown.duration(380).delay(210).springify().damping(22)} style={action.card}>
       <View style={[action.row, { flexDirection: flexRow(IS_RTL) }]}>

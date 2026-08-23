@@ -2,10 +2,9 @@ import React, { useCallback, useEffect } from 'react';
 import { View, StyleSheet, FlatList, RefreshControl, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, {
-  FadeIn,
   FadeInDown,
   useAnimatedStyle,
   withSpring,
@@ -142,8 +141,7 @@ function OrderCard({
 
 export default function DriverDashboard() {
   const router = useRouter();
-  const qc = useQueryClient();
-  const { theme, colors } = useCourierTheme();
+  const { colors } = useCourierTheme();
   const { user, setOnlineStatus } = useAuthStore();
   const isOnline = user?.driverProfile?.isOnline ?? false;
 
@@ -187,7 +185,7 @@ export default function DriverDashboard() {
   const animStatus = useSharedValue(isOnline ? 1 : 0);
   useEffect(() => {
     animStatus.value = withSpring(isOnline ? 1 : 0, { damping: 15 });
-  }, [isOnline]);
+  }, [isOnline, animStatus]);
 
   const headerBg = useAnimatedStyle(() => ({
     backgroundColor: interpolateColor(

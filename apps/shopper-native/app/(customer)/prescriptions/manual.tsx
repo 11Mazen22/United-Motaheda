@@ -193,7 +193,7 @@ export default function Page(): React.ReactElement {
 
 
 
-function get_s(c: any) { return StyleSheet.create({
+function get_s(c: { canvas: string; surface: string; line: string; accentDeep: string; accentTint: string; ink: string; inkSoft: string; inkFaint: string; warn: string; warnTint: string; well: string; danger: string }) { return StyleSheet.create({
   screen: { flex: 1, backgroundColor: c.canvas },
   header: {
     paddingHorizontal: 20,

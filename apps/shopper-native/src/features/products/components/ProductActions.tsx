@@ -5,8 +5,25 @@ import Animated from "react-native-reanimated";
 import { kit, Text as UIText, Button as KitButton } from "@pharmacy/ui-native";
 import { isRtl, flexRow, FORWARD_CHEVRON } from "@/utils/layout";
 import { formatPrice } from "@/utils/format";
+import type { NativeProduct } from "@/features/products/types";
 
 const IS_RTL = isRtl();
+
+interface ProductActionsProps {
+  product: NativeProduct;
+  qty: number;
+  maxQty: number;
+  inCart: boolean;
+  btnAnim: Record<string, unknown>;
+  setCtaHeight: (height: number) => void;
+  insets: { bottom: number };
+  router: { push: (path: string) => void };
+  t: (key: string, options?: Record<string, unknown>) => string;
+  lang: "ar" | "en";
+  handleAdd: () => void;
+  handleIncrement: () => void;
+  handleDecrement: () => void;
+}
 
 export const ProductActions = React.memo(function ProductActions({
   product,
@@ -22,7 +39,7 @@ export const ProductActions = React.memo(function ProductActions({
   handleAdd,
   handleIncrement,
   handleDecrement
-}: any) {
+}: ProductActionsProps) {
   if (!product) return null;
 
   return (

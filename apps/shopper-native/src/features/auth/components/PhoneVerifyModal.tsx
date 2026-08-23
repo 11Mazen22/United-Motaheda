@@ -155,7 +155,7 @@ export function PhoneVerifyModal({
     } finally {
       setResending(false);
     }
-  }, [phone, signIn, resending, secondsLeftResend]);
+  }, [phone, signIn, resending, secondsLeftResend, t]);
 
   const handleVerify = useCallback(async () => {
     if (submitting || code.length !== DIGIT_COUNT || !phone) return;
@@ -167,10 +167,10 @@ export function PhoneVerifyModal({
       onVerified(phone);
     } catch (e) {
       setError(otpErrorMessage(e, t));
-      setSubmitting(false);
-    }
-  }, [code, phone, signIn, submitting, onVerified]);
-
+      setSubmitting(false);
+
+    }
+  }, [code, phone, signIn, submitting, onVerified, t]);
   // Auto-submit when 6 digits land (no extra tap).
   useEffect(() => {
     if (code.length === DIGIT_COUNT && !submitting && mode === "code") {
@@ -220,10 +220,10 @@ export function PhoneVerifyModal({
     } catch (e) {
       setError(otpErrorMessage(e, t));
     } finally {
-      setEditSending(false);
-    }
-  }, [editPhoneInput, signIn]);
-
+      setEditSending(false);
+
+    }
+  }, [editPhoneInput, signIn, t]);
   // ── Derived ─────────────────────────────────────────────────────────────
 
   const canSubmitCode = code.length === DIGIT_COUNT && !submitting;

@@ -1,7 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import {
   Modal as RNModal,
-  PanResponder,
   Pressable,
   StyleSheet,
   View,
@@ -10,8 +9,17 @@ import {
 } from "react-native";
 import Animated, { FadeIn, FadeOut, SlideInDown, SlideInUp, SlideOutDown, SlideOutUp } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  BottomSheetBackdrop,
+  BottomSheetModal as GorhomBottomSheetModal,
+  BottomSheetModalProvider,
+  BottomSheetView,
+  type BottomSheetBackdropProps,
+} from "@gorhom/bottom-sheet";
 import { Button, Text } from "./primitives";
 import { useTheme } from "../theme";
+
+export { BottomSheetModalProvider };
 
 export type ToastType = "success" | "error" | "info" | "warning";
 export type ToastPosition = "top" | "bottom";
@@ -63,11 +71,33 @@ export function Modal({ visible, onDismiss, children, position = "center", dismi
 }
 
 export interface BottomSheetProps { visible?: boolean; onDismiss: () => void; children: React.ReactNode; snapPoints: ReadonlyArray<number | `${number}%`>; initialSnapIndex?: number; backdrop?: boolean; style?: StyleProp<ViewStyle>; }
-/** Gesture-driven bottom sheet with configurable snap points. */
+/** Gesture-driven bottom sheet with real rubber-band physics and velocity-based snapping (`@gorhom/bottom-sheet`), behind the same declarative `visible`/`snapPoints` API the previous hand-rolled `PanResponder` version used — existing call sites are unchanged. Requires `BottomSheetModalProvider` (re-exported from this module) near the app root. */
 export function BottomSheet({ visible = true, onDismiss, children, snapPoints, initialSnapIndex = 0, backdrop = true, style }: BottomSheetProps): React.ReactElement {
-  const currentIndex = useRef(Math.max(0, Math.min(initialSnapIndex, snapPoints.length - 1)));
-  const pan = useMemo(() => PanResponder.create({ onMoveShouldSetPanResponder: (_, gesture) => Math.abs(gesture.dy) > 8, onPanResponderRelease: (_, gesture) => { if (gesture.dy > 90) { if (currentIndex.current >= snapPoints.length - 1) onDismiss(); else currentIndex.current += 1; } else if (gesture.dy < -90) currentIndex.current = Math.max(0, currentIndex.current - 1); } }), [onDismiss, snapPoints.length]);
-  return <Modal visible={visible} onDismiss={onDismiss} position="bottom" dismissOnBackdrop={backdrop} style={[styles.sheet, style]}><View {...pan.panHandlers} style={styles.handleArea} accessibilityLabel="Drag sheet"><View style={styles.handle} /></View>{children}</Modal>;
+  const { theme } = useTheme();
+  const ref = useRef<React.ElementRef<typeof GorhomBottomSheetModal>>(null);
+  const resolvedIndex = Math.max(0, Math.min(initialSnapIndex, snapPoints.length - 1));
+
+  useEffect(() => { if (visible) ref.current?.present(); else ref.current?.dismiss(); }, [visible]);
+
+  const renderBackdrop = useCallback(
+    (props: BottomSheetBackdropProps) => backdrop ? <BottomSheetBackdrop {...props} appearsOnIndex={0} disappearsOnIndex={-1} pressBehavior="close" opacity={0.5} /> : null,
+    [backdrop],
+  );
+
+  return (
+    <GorhomBottomSheetModal
+      ref={ref}
+      index={resolvedIndex}
+      snapPoints={snapPoints as unknown[] as (string | number)[]}
+      onDismiss={onDismiss}
+      backdropComponent={renderBackdrop}
+      backgroundStyle={{ backgroundColor: theme.colors.canvas.surfaceElevated, borderTopStartRadius: 24, borderTopEndRadius: 24 }}
+      handleIndicatorStyle={{ backgroundColor: theme.colors.border.strong, width: 42, height: 4 }}
+      style={style}
+    >
+      <BottomSheetView style={styles.gorhomContent}>{children}</BottomSheetView>
+    </GorhomBottomSheetModal>
+  );
 }
 
 export interface DialogProps { visible: boolean; title: string; message?: string; confirmLabel?: string; cancelLabel?: string; destructive?: boolean; onConfirm: () => void | Promise<void>; onCancel: () => void; dismissOnBackdrop?: boolean; }
@@ -77,5 +107,5 @@ export function Dialog({ visible, title, message, confirmLabel = "Confirm", canc
 const styles = StyleSheet.create({
   toast: { position: "absolute", start: 16, end: 16, zIndex: 9999, minHeight: 48, borderStartWidth: 4, borderRadius: 12, alignItems: "center" }, toastInner: { flex: 1, paddingHorizontal: 16, paddingVertical: 12, justifyContent: "center" },
   modalRoot: { flex: 1, alignItems: "center", justifyContent: "center", padding: 20 }, modalBottom: { justifyContent: "flex-end", padding: 0 }, modalPanel: { width: "100%", maxWidth: 520, padding: 20, borderRadius: 16 }, bottomPanel: { maxWidth: undefined, borderBottomStartRadius: 0, borderBottomEndRadius: 0, borderTopStartRadius: 24, borderTopEndRadius: 24, paddingBottom: 32 },
-  sheet: { minHeight: 150 }, handleArea: { minHeight: 48, alignItems: "center", justifyContent: "center" }, handle: { width: 42, height: 4, borderRadius: 2, backgroundColor: "#94A3B8" }, dialogActions: { flexDirection: "row", justifyContent: "flex-end", gap: 8, marginTop: 8 },
+  gorhomContent: { flex: 1, padding: 20 }, dialogActions: { flexDirection: "row", justifyContent: "flex-end", gap: 8, marginTop: 8 },
 });

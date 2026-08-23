@@ -1,14 +1,13 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   TouchableOpacity,
   Linking,
   Platform,
-  Animated,
   ActivityIndicator,
 } from 'react-native';
+import Constants from 'expo-constants';
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE, Region } from 'react-native-maps';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -79,7 +78,6 @@ async function fetchRoute(
   destLng: number,
 ): Promise<{ polyline: { latitude: number; longitude: number }[]; durationMin: number; distanceKm: number } | null> {
   try {
-    const Constants = require('expo-constants').default;
     const apiKey = Constants.expoConfig?.extra?.googleMapsApiKey ?? '';
     if (!apiKey) return null;
 
@@ -108,7 +106,17 @@ async function fetchRoute(
   }
 }
 
-function AccuracyDot({ accuracy, colors }: { accuracy: number | null, colors: any }) {
+type MapColors = {
+  canvas: { surface: string; surfaceMuted: string };
+  brand: { primary: string };
+  text: { primary: string; muted: string; inverse: string };
+  status: { success: string; warning: string; error: string };
+  border: { default: string };
+  delivery: { pickup: string; dropoff: string };
+  white: string;
+};
+
+function AccuracyDot({ accuracy, colors }: { accuracy: number | null, colors: MapColors }) {
   const level =
     accuracy == null ? 'poor' : accuracy <= 15 ? 'good' : accuracy <= 50 ? 'fair' : 'poor';
   const colorMap = { good: colors.status.success, fair: colors.status.warning, poor: colors.status.error };
@@ -142,7 +150,7 @@ function BottomSheet({
 }: {
   delivery: ActiveDelivery | null;
   onNavigate: () => void;
-  colors: any;
+  colors: MapColors;
 }) {
   if (!delivery) return null;
 
@@ -221,7 +229,7 @@ const bs = StyleSheet.create({
 export default function MapScreen() {
   const insets = useSafeAreaInsets();
   const mapRef = useRef<MapView>(null);
-  const { theme, colors, isDark } = useCourierTheme();
+  const { colors, isDark } = useCourierTheme();
 
   const location = useLocationStore();
   const activeDelivery = useOrdersStore((s) => s.activeDelivery);
@@ -307,6 +315,8 @@ export default function MapScreen() {
   }, [
     location.latitude,
     location.longitude,
+    getDestination,
+    lastRouteFetchCoords,
     activeDelivery?.status,
     activeDelivery?.assignmentId,
   ]);

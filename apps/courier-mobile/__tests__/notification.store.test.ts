@@ -1,4 +1,4 @@
-import { useNotificationStore, type AppNotification } from '../src/stores/notification.store';
+import { useNotificationStore } from '../src/stores/notification.store';
 
 jest.mock('@react-native-async-storage/async-storage', () =>
   require('@react-native-async-storage/async-storage/jest/async-storage-mock')

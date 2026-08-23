@@ -18,6 +18,8 @@ import {
   type DeliveryIssue,
 } from "../api";
 
+export type { ManifestOrder, DeliveryAssignment, Order, DeliveryIssue } from "../api";
+
 export const driverQueryKeys = {
   manifest:           (driverId: string) => ["driver", "manifest", driverId] as const,
   offers:             (driverId: string) => ["driver", "offers",   driverId] as const,

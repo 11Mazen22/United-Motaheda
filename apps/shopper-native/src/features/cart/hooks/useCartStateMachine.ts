@@ -101,7 +101,7 @@ export function useCartStateMachine() {
       } else {
         setStatus("CHECKOUT_READY");
       }
-    } catch (e) {
+    } catch {
       setStatus("ERROR");
     }
   }, [items, isConnected, status]);

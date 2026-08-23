@@ -1,10 +1,11 @@
-import { Module, forwardRef } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { DriverController } from './driver.controller';
 import { AdminDriverController } from './admin-driver.controller';
 import { DriverAuthService } from './driver-auth.service';
 import { DriverProfileService } from './driver-profile.service';
 import { DriverLocationService } from './driver-location.service';
 import { DriverOrdersService } from './driver-orders.service';
+import { DriverRoutingService } from './driver-routing.service';
 import { FileUploadService } from './file-upload.service';
 import { LocationBroadcastGateway } from './location-broadcast.gateway';
 import { AuthModule } from '../../auth/auth.module';
@@ -17,6 +18,7 @@ import { AuthModule } from '../../auth/auth.module';
     DriverProfileService,
     DriverLocationService,
     DriverOrdersService,
+    DriverRoutingService,
     FileUploadService,
     LocationBroadcastGateway,
   ],
@@ -25,6 +27,7 @@ import { AuthModule } from '../../auth/auth.module';
     DriverProfileService,
     DriverLocationService,
     DriverOrdersService,
+    DriverRoutingService,
     FileUploadService,
     LocationBroadcastGateway,
   ],

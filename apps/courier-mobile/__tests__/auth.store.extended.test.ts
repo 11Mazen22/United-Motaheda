@@ -1,4 +1,4 @@
-import { useAuthStore, type AuthUser, type DriverProfile } from '../src/stores/auth.store';
+import { useAuthStore, type AuthUser } from '../src/stores/auth.store';
 
 jest.mock('@react-native-async-storage/async-storage', () =>
   require('@react-native-async-storage/async-storage/jest/async-storage-mock')
