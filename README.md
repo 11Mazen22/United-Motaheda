@@ -7,7 +7,6 @@ This repository now uses an `npm workspaces` monorepo layout for the pharmacy co
 - `apps/shopper-web`: active Vite/React customer web application
 - `apps/ops-dashboard`: operations dashboard shell
 - `apps/customer-mobile`: customer mobile shell
-- `apps/courier-mobile`: courier mobile shell
 - `apps/cashier-mobile`: cashier/POS shell
 - `packages/api-client`: the shared backend access layer
 - `packages/domain-*`: shared domain logic, state, and contracts

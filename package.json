@@ -9,7 +9,6 @@
   "workspaces": [
     "apps/shopper-web",
     "apps/shopper-native",
-    "apps/courier-mobile",
     "packages/*"
   ],
   "scripts": {

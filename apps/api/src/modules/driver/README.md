@@ -2,6 +2,19 @@
 
 Complete authentication and profile management API for delivery drivers.
 
+> **Status note (2026-08-24):** the client that consumed these driver-facing endpoints
+> (`driver.controller.ts`, `driver-auth.service.ts`, `driver-orders.service.ts`,
+> `location-broadcast.gateway.ts`) was `apps/courier-mobile`, which has been retired —
+> its driver product is now `apps/shopper-native`'s `(driver)` persona, which talks to
+> Supabase directly rather than through this REST API. These endpoints currently have
+> **no client**. They are left in place, not deleted, because the underlying
+> `DriverProfile`/`DriverEarning`/`DriverSession` Prisma models are still live and in
+> active use — the **admin/ops half** of this module (`admin-driver.controller.ts`, and
+> the driver methods on `admin-operations.controller.ts`/`.service.ts`) is consumed by
+> `apps/admin`'s `DriversPage.tsx` today, and the driver-consolidation plan intends for
+> shopper-native to read/write these same tables going forward (pending an RLS check).
+> Do not delete this module assuming it's fully dead, and do not assume it's fully live either.
+
 ## Overview
 
 This module provides:

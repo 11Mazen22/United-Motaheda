@@ -9,9 +9,9 @@ const config = getDefaultConfig(projectRoot);
 
 // 1. Watch only the hoisted root node_modules plus the specific workspace
 // packages this app imports from — NOT the whole monorepo root. Watching
-// every sibling app's own node_modules tree (shopper-web, courier-mobile,
-// api, admin, ...) made Metro's file watcher time out on this machine
-// (no Watchman, Windows fs.watch fallback) before it ever started serving.
+// every sibling app's own node_modules tree (shopper-web, api, admin, ...)
+// made Metro's file watcher time out on this machine (no Watchman, Windows
+// fs.watch fallback) before it ever started serving.
 config.watchFolders = [
   ...config.watchFolders,
   path.resolve(workspaceRoot, "node_modules"),
