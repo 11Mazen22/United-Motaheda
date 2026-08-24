@@ -1,3 +1,4 @@
+import { defaultTheme as theme } from "@pharmacy/ui-native";
 /**
  * AssignmentOfferDetail — accept or decline one offered delivery.
  * Decline requires a short reason (kept as free text, not a chip picker —
@@ -63,14 +64,14 @@ export function AssignmentOfferDetail(): React.ReactElement {
   const alreadyResolved = offer && offer.responseStatus !== "offered";
 
   return (
-    <Screen edgeTop scroll background={kit.color.canvas} contentStyle={s.content}>
+    <Screen edgeTop scroll background={theme.colors.canvas.background} contentStyle={s.content}>
       <DriverScreenHeader title={t("driver.newDeliveryOffer")} subtitle={t("driver.tapToRespond")} />
 
       {loading ? (
         <View style={s.centered}><UIText color="secondary">{t("common.loading")}</UIText></View>
       ) : !offer || alreadyResolved ? (
         <View style={s.centered}>
-          <Ionicons name="information-circle-outline" size={36} color={kit.color.inkFaint} />
+          <Ionicons name="information-circle-outline" size={36} color={theme.colors.text.muted} />
           <UIText variant="card-title" style={{ marginTop: 10, textAlign: "center" }}>
             {t("driver.offerNoLongerAvailable")}
           </UIText>
@@ -78,7 +79,7 @@ export function AssignmentOfferDetail(): React.ReactElement {
         </View>
       ) : (
         <>
-          <LinearGradient colors={[kit.color.accentTint, kit.color.canvas]} style={s.heroBanner}>
+          <LinearGradient colors={[theme.colors.brand.primaryLight, theme.colors.canvas.background]} style={s.heroBanner}>
             <View style={{ flexDirection: flexRow(IS_RTL), alignItems: 'center', justifyContent: 'space-between' }}>
               <View style={{ flex: 1 }}>
                 <UIText variant="caption" color="brand" style={{ textAlign: TEXT_START }}>{t("driver.orderRef")} #{String(offer.orderId).slice(-8).toUpperCase()}</UIText>
@@ -162,18 +163,18 @@ const s = StyleSheet.create({
   centered: { alignItems: "center", paddingTop: 60, paddingHorizontal: 24 },
   card: {
     marginHorizontal: kit.inset.screen,
-    backgroundColor: kit.color.surface,
-    borderRadius: kit.radius.xl,
+    backgroundColor: theme.colors.canvas.surface,
+    borderRadius: 16,
     padding: 16,
-    ...kit.shadow.card,
+    ...theme.shadows[1],
   },
   detailCard: {
     marginHorizontal: kit.inset.screen,
     marginTop: 12,
-    backgroundColor: kit.color.surface,
-    borderRadius: kit.radius.xl,
+    backgroundColor: theme.colors.canvas.surface,
+    borderRadius: 16,
     padding: 16,
-    ...kit.shadow.card,
+    ...theme.shadows[1],
   },
   actions: {
     marginHorizontal: kit.inset.screen,
@@ -182,22 +183,22 @@ const s = StyleSheet.create({
   },
   declineInput: {
     borderWidth: 1,
-    borderColor: kit.color.line,
-    borderRadius: kit.radius.lg,
+    borderColor: theme.colors.border.default,
+    borderRadius: 12,
     padding: 12,
     minHeight: 80,
     textAlignVertical: "top",
     fontSize: 14,
-    color: kit.color.ink,
+    color: theme.colors.text.primary,
     textAlign: TEXT_START,
   },
   declineCard: {
     marginHorizontal: kit.inset.screen,
     marginTop: 20,
-    backgroundColor: kit.color.surface,
-    borderRadius: kit.radius.xl,
+    backgroundColor: theme.colors.canvas.surface,
+    borderRadius: 16,
     padding: 16,
-    ...kit.shadow.card,
+    ...theme.shadows[1],
   },
   declineActions: {
     flexDirection: flexRow(IS_RTL),
@@ -208,10 +209,10 @@ const s = StyleSheet.create({
   heroBanner: {
     marginHorizontal: kit.inset.screen,
     marginTop: 12,
-    backgroundColor: kit.color.surface,
-    borderRadius: kit.radius.xl,
+    backgroundColor: theme.colors.canvas.surface,
+    borderRadius: 16,
     padding: 12,
-    ...kit.shadow.raised,
+    ...theme.shadows[1],
   },
   heroSubRow: { marginTop: 10, flexDirection: flexRow(IS_RTL), gap: 12 },
 });

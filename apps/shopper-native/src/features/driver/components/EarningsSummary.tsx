@@ -1,7 +1,8 @@
+import { defaultTheme as theme } from "@pharmacy/ui-native";
 import React, { useMemo, useEffect } from 'react';
 import { Animated, StyleSheet, View } from 'react-native';
 import { Text as UIText } from '@pharmacy/ui-native';
-import { kit } from '@pharmacy/ui-native';
+
 import { formatPrice } from '@/utils/format';
 
 export default function EarningsSummary({ orders, offers }: { orders: Array<{ total?: number; status: string }>; offers: number }) {
@@ -24,6 +25,6 @@ export default function EarningsSummary({ orders, offers }: { orders: Array<{ to
 const es = StyleSheet.create({
   wrap: { flexDirection: 'row', gap: 12, alignItems: 'center' },
   tile: { alignItems: 'center' },
-  value: { fontSize: 16, color: kit.color.onInk, fontFamily: 'Cairo-Bold' },
+  value: { fontSize: 16, color: theme.colors.text.inverse, fontFamily: 'Cairo-Bold' },
   label: { fontSize: 11, color: 'rgba(255,255,255,0.9)', marginTop: 2 },
 });

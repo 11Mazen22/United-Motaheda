@@ -1,3 +1,4 @@
+import { defaultTheme as theme } from "@pharmacy/ui-native";
 import React, { useMemo } from "react";
 import { StyleSheet, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -66,24 +67,24 @@ export function OrderCardNew({ order, onPress }: { order: ManifestOrder & { eta?
   return (
     <Card onPress={onPress} style={oc.card} elevation="sm">
       <View style={[oc.row, { flexDirection: flexRow(IS_RTL) }]}> 
-        <View style={oc.leftIcon}><Ionicons name="car-outline" size={20} color={kit.color.accentDeep} /></View>
+        <View style={oc.leftIcon}><Ionicons name="car-outline" size={20} color={theme.colors.brand.primary} /></View>
         <View style={{ flex: 1, minWidth: 0 }}>
           <View style={oc.titleRow}>
             <UIText variant="card-title">#{String(order.id).slice(-8).toUpperCase()}</UIText>
             <View style={oc.chipsRow}>
-              <View style={oc.chip}><Ionicons name="time-outline" size={12} color={kit.color.inkFaint} /><UIText variant="caption" color="muted">{eta}</UIText></View>
-              <View style={[oc.chip, { backgroundColor: kit.color.surface }]}><Ionicons name="pricetag-outline" size={12} color={kit.color.inkFaint} /><UIText variant="caption" color="muted">{formatPrice(order.total ?? 0)}</UIText></View>
+              <View style={oc.chip}><Ionicons name="time-outline" size={12} color={theme.colors.text.muted} /><UIText variant="caption" color="muted">{eta}</UIText></View>
+              <View style={[oc.chip, { backgroundColor: theme.colors.canvas.surface }]}><Ionicons name="pricetag-outline" size={12} color={theme.colors.text.muted} /><UIText variant="caption" color="muted">{formatPrice(order.total ?? 0)}</UIText></View>
             </View>
           </View>
 
           <View style={[oc.routeRow, { flexDirection: flexRow(IS_RTL) }]}> 
             <View style={oc.routePill}>
-              <Ionicons name="location-outline" size={12} color={kit.color.inkFaint} />
+              <Ionicons name="location-outline" size={12} color={theme.colors.text.muted} />
               <UIText variant="caption" color="secondary" numberOfLines={1} style={oc.routeLabel}>{pickup}</UIText>
             </View>
-            <View style={oc.routeArrow}><Ionicons name={flexRow(IS_RTL) === "row" ? "chevron-forward" : "chevron-back"} size={14} color={kit.color.inkFaint} /></View>
+            <View style={oc.routeArrow}><Ionicons name={flexRow(IS_RTL) === "row" ? "chevron-forward" : "chevron-back"} size={14} color={theme.colors.text.muted} /></View>
             <View style={oc.routePill}>
-              <Ionicons name="person-outline" size={12} color={kit.color.inkFaint} />
+              <Ionicons name="person-outline" size={12} color={theme.colors.text.muted} />
               <UIText variant="caption" color="secondary" numberOfLines={1} style={oc.routeLabel}>{destination}</UIText>
             </View>
           </View>
@@ -106,12 +107,12 @@ export function OrderCardNew({ order, onPress }: { order: ManifestOrder & { eta?
 const oc = StyleSheet.create({
   card: { padding: 14, borderRadius: 14, marginHorizontal: kit.inset.screen },
   row: { alignItems: 'center', gap: 12 },
-  leftIcon: { width: 46, height: 46, borderRadius: 12, backgroundColor: kit.color.surface, alignItems: 'center', justifyContent: 'center' },
+  leftIcon: { width: 46, height: 46, borderRadius: 12, backgroundColor: theme.colors.canvas.surface, alignItems: 'center', justifyContent: 'center' },
   titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   chipsRow: { flexDirection: 'row', gap: 8, alignItems: 'center' },
-  chip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 8, paddingVertical: 4, borderRadius: kit.radius.pill, backgroundColor: kit.color.well },
+  chip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 9999, backgroundColor: theme.colors.canvas.surfaceMuted },
   routeRow: { alignItems: 'center', gap: 8, marginTop: 10 },
-  routePill: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 8, paddingHorizontal: 10, backgroundColor: kit.color.well, borderRadius: kit.radius.xl },
+  routePill: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 8, paddingHorizontal: 10, backgroundColor: theme.colors.canvas.surfaceMuted, borderRadius: 16 },
   routeLabel: { flex: 1, textAlign: 'left' },
   routeArrow: { width: 20, alignItems: 'center' },
   metaRow: { flexDirection: 'row', gap: 10, paddingTop: 10, alignItems: 'center', flexWrap: 'wrap' },
