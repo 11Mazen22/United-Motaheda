@@ -101,10 +101,15 @@ export class AdminOperationsService {
         },
       });
 
+      // role flips to 'driver' once, on first approval, and is never reverted by
+      // reject/suspend below -- client apps gate actual driver-screen access on
+      // DriverProfile.status (APPROVED/ACTIVE), not on role alone, so role just
+      // marks "this account has driver capability" while status is the live gate.
       await tx.profiles.update({
         where: { id: driver.userId },
         data: {
           status: 'Active',
+          role: 'driver',
           updated_at: now,
         },
       });
