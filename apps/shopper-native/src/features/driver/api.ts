@@ -266,6 +266,24 @@ export async function listMyOpenAssignmentOffers(driverId: string): Promise<Deli
   return ((data ?? []) as RawAssignmentRow[]).map(mapAssignmentRow);
 }
 
+/** Real acceptance rate from response_status counts — replaces the
+ * orphaned EarningsSummary.tsx's version, which divided total orders by
+ * total offers ever received (structurally different, and wrong once an
+ * order is re-offered to another driver after a decline). */
+export async function getMyAcceptanceRate(driverId: string): Promise<number> {
+  const { data, error } = await supabase
+    .from("delivery_assignments")
+    .select("response_status")
+    .eq("driver_id", driverId)
+    .in("response_status", ["accepted", "declined"]);
+
+  if (error) throw error;
+  const rows = data ?? [];
+  if (rows.length === 0) return 100;
+  const accepted = rows.filter((r) => (r as { response_status: string }).response_status === "accepted").length;
+  return Math.round((accepted / rows.length) * 100);
+}
+
 /** The currently-accepted assignment for one order, if any — used by the
  * delivery-execution screen, which is navigated to with only an orderId
  * (from the manifest list), not an assignmentId. */
@@ -646,4 +664,65 @@ export async function uploadDriverDocument(
 
   const { data } = supabase.storage.from("driver-documents").getPublicUrl(path);
   return data.publicUrl;
+}
+
+// ─── Earnings ─────────────────────────────────────────────────────────────
+// Reads DriverEarning directly. NOTE: nothing currently writes rows into
+// this table for deliveries completed through shopper-native's own
+// transition_order/mark_delivery_arrival flow -- apps/api's backend (the
+// only thing that ever wrote DriverEarning rows) isn't in that path.
+// Until a real per-delivery fee structure is decided and wired into that
+// flow, this will correctly return an empty/zero result rather than the
+// wrong number DriverManifest.tsx used to show.
+
+export interface DriverEarningRecord {
+  id: string;
+  deliveryId: string;
+  baseFee: number;
+  distanceFee: number;
+  tipAmount: number;
+  bonusAmount: number;
+  totalAmount: number;
+  isPaid: boolean;
+  earnedAt: string;
+}
+
+interface RawDriverEarningRow {
+  id: string;
+  deliveryId: string;
+  baseFee: string;
+  distanceFee: string;
+  tipAmount: string;
+  bonusAmount: string;
+  totalAmount: string;
+  isPaid: boolean;
+  earnedAt: string;
+}
+
+function mapDriverEarningRow(row: RawDriverEarningRow): DriverEarningRecord {
+  return {
+    id: row.id,
+    deliveryId: row.deliveryId,
+    baseFee: Number(row.baseFee),
+    distanceFee: Number(row.distanceFee),
+    tipAmount: Number(row.tipAmount),
+    bonusAmount: Number(row.bonusAmount),
+    totalAmount: Number(row.totalAmount),
+    isPaid: row.isPaid,
+    earnedAt: row.earnedAt,
+  };
+}
+
+/** All earning rows for the given DriverProfile id (not userId — earnings
+ * key off DriverProfile.id via a foreign key). Caller resolves that id via
+ * getMyDriverProfile first. */
+export async function listMyEarnings(driverProfileId: string): Promise<DriverEarningRecord[]> {
+  const { data, error } = await supabase
+    .from("DriverEarning")
+    .select("id, deliveryId, baseFee, distanceFee, tipAmount, bonusAmount, totalAmount, isPaid, earnedAt")
+    .eq("driverId", driverProfileId)
+    .order("earnedAt", { ascending: false });
+
+  if (error) throw error;
+  return ((data ?? []) as RawDriverEarningRow[]).map(mapDriverEarningRow);
 }

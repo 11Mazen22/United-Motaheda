@@ -22,6 +22,7 @@ import MetricCard from "@/components/MetricCard";
 import DriverMapPreview from "./DriverMap";
 import { OrderCardNew } from "../components/OrderCardNew";
 import { useDriverManifest, useDriverOffers, driverQueryKeys } from "../hooks/useDriverManifest";
+import { useMyDriverProfile, useMyEarnings } from "../hooks/useDriverProfile";
 
 const IS_RTL = isRtl();
 const TEXT_START = textAlignStart(IS_RTL);
@@ -39,6 +40,11 @@ export function DriverManifest(): React.ReactElement {
 
   const manifestQuery = useDriverManifest(user?.id);
   const offersQuery = useDriverOffers(user?.id);
+  const driverProfileQuery = useMyDriverProfile(user?.id);
+  const earningsQuery = useMyEarnings(driverProfileQuery.data?.id);
+  const todayEarnings = (earningsQuery.data ?? [])
+    .filter((e) => new Date(e.earnedAt).toDateString() === new Date().toDateString())
+    .reduce((sum, e) => sum + e.totalAmount, 0);
 
   const onRefresh = useCallback(async () => {
     if (!user?.id) return;
@@ -79,7 +85,7 @@ export function DriverManifest(): React.ReactElement {
           </View>
 
           <View style={s.kpiRow}>
-            <MetricCard label={t("driver.todayEarnings")} value={formatPrice(orders.reduce((s, o) => s + Number(o.total ?? 0), 0))} compact icon={<Ionicons name="cash-outline" size={18} color={theme.colors.brand.primary} />} inverse />
+            <MetricCard label={t("driver.todayEarnings")} value={formatPrice(todayEarnings)} compact icon={<Ionicons name="cash-outline" size={18} color={theme.colors.brand.primary} />} inverse />
             <MetricCard label={t("driver.completed")} value={orders.filter((o) => o.status === "delivered").length} compact icon={<Ionicons name="checkmark-done-outline" size={18} color={theme.colors.status.success} />} inverse />
             <MetricCard label={t("driver.activeOrders")} value={orders.length} compact icon={<Ionicons name="list-outline" size={18} color="#fff" />} inverse />
           </View>

@@ -12,6 +12,7 @@ import {
   getMyAssignmentForOrder,
   getOrderForDriver,
   listMyIssuesForOrder,
+  getMyAcceptanceRate,
   type ManifestOrder,
   type DeliveryAssignment,
   type Order,
@@ -27,6 +28,7 @@ export const driverQueryKeys = {
   order:              (orderId: string) => ["driver", "order", orderId] as const,
   assignmentForOrder: (orderId: string) => ["driver", "assignmentForOrder", orderId] as const,
   issues:             (orderId: string) => ["driver", "issues", orderId] as const,
+  acceptanceRate:     (driverId: string) => ["driver", "acceptanceRate", driverId] as const,
 };
 
 /** Orders currently assigned to me and in an active delivery stage. */
@@ -105,6 +107,18 @@ export function useMyIssuesForOrder(orderId: string | null | undefined, driverId
     staleTime: 10_000,
     gcTime:    5 * 60_000,
     retry:     1,
+    refetchOnWindowFocus: false,
+  });
+}
+
+export function useMyAcceptanceRate(driverId: string | null | undefined) {
+  return useQuery<number, Error>({
+    queryKey:  driverQueryKeys.acceptanceRate(driverId ?? ""),
+    queryFn:   () => getMyAcceptanceRate(driverId!),
+    enabled:   Boolean(driverId),
+    staleTime: 30_000,
+    gcTime:    5 * 60_000,
+    retry:     2,
     refetchOnWindowFocus: false,
   });
 }

@@ -27,6 +27,7 @@ import { showErrorSheet, showSuccessSheet } from "@/shared/store/appSheetStore";
 import { useDriverOrderDetail, useMyAssignmentForOrder } from "../hooks/useDriverManifest";
 import { useDriverMutations } from "../hooks/useDriverMutations";
 import { pushDriverLocation, TooFarFromDestinationError } from "../api";
+import { GpsKalmanFilter } from "../lib/GpsKalmanFilter";
 import { DriverScreenHeader } from "../components/DriverScreenHeader";
 import ActionDock from "../components/ActionDock";
 import ProgressTracker from "../components/ProgressTracker";
@@ -123,6 +124,10 @@ export function DeliveryExecutionScreen(): React.ReactElement {
 
     let cancelled = false;
     let intervalId: ReturnType<typeof setInterval> | null = null;
+    // One filter instance for the whole broadcast loop, not per-call — it
+    // needs successive readings over time to smooth anything; a fresh
+    // instance every 20s would just pass the raw value through unchanged.
+    const filter = new GpsKalmanFilter();
 
     const syncCurrentLocation = async () => {
       try {
@@ -136,12 +141,18 @@ export function DeliveryExecutionScreen(): React.ReactElement {
         const position = await ExpoLocation.getCurrentPositionAsync({
           accuracy: ExpoLocation.Accuracy.Balanced,
         });
+        const smoothed = filter.update(
+          position.coords.latitude,
+          position.coords.longitude,
+          position.coords.accuracy,
+          position.timestamp,
+        );
 
         await pushDriverLocation({
           driver_id: user.id,
           order_id: orderId,
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
+          lat: smoothed.latitude,
+          lng: smoothed.longitude,
           accuracy_meters: position.coords.accuracy ?? undefined,
           heading: typeof position.coords.heading === "number" ? position.coords.heading : undefined,
           speed_kmh:

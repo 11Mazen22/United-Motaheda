@@ -10,6 +10,7 @@ import MapView, { Marker } from "react-native-maps";
 import RouteSummary from "../components/RouteSummary";
 import { useDriverOrderDetail } from "../hooks/useDriverManifest";
 import { DriverScreenHeader } from "../components/DriverScreenHeader";
+import { GpsKalmanFilter } from "../lib/GpsKalmanFilter";
 import { Ionicons as Ion } from "@expo/vector-icons";
 
 const DEFAULT_REGION = { latitude: 30.0444, longitude: 31.2357 };
@@ -18,12 +19,14 @@ const DELTA = 0.02;
 /** Watches the driver's own live position while the full map screen is open
  * (not the compact preview — a barely-visible thumbnail doesn't need a live
  * GPS subscription). Mirrors the permission/accuracy pattern already proven
- * in DeliveryExecutionScreen's broadcast loop. */
+ * in DeliveryExecutionScreen's broadcast loop. Raw fixes are smoothed
+ * through a Kalman filter so the marker doesn't jump around on noisy GPS. */
 function useOwnPosition(enabled: boolean) {
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
 
   useEffect(() => {
     if (!enabled) return;
+    const filter = new GpsKalmanFilter();
     let subscription: ExpoLocation.LocationSubscription | null = null;
     let cancelled = false;
 
@@ -34,7 +37,13 @@ function useOwnPosition(enabled: boolean) {
         { accuracy: ExpoLocation.Accuracy.Balanced, timeInterval: 4000, distanceInterval: 10 },
         (position) => {
           if (cancelled) return;
-          setCoords({ lat: position.coords.latitude, lng: position.coords.longitude });
+          const smoothed = filter.update(
+            position.coords.latitude,
+            position.coords.longitude,
+            position.coords.accuracy,
+            position.timestamp,
+          );
+          setCoords({ lat: smoothed.latitude, lng: smoothed.longitude });
         },
       );
     })();
