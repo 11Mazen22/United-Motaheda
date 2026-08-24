@@ -15,20 +15,24 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
+import { useTranslation } from 'react-i18next';
 import { typography, spacing, radii, shadows, animation } from '@pharmacy/ui-native/courier-tokens';
 import { Button, Input, showToast, useCourierTheme } from '@pharmacy/ui-native';
 import { driverApi } from '@/lib/api';
 import { useAuthStore } from '@/stores/auth.store';
 
-const schema = z.object({
-  identifier: z.string().min(3, 'Enter your phone or email'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
-});
+function createSchema(t: (key: string) => string) {
+  return z.object({
+    identifier: z.string().min(3, t('auth.identifierRequired')),
+    password: z.string().min(6, t('auth.passwordMinLength')),
+  });
+}
 
-type FormData = z.infer<typeof schema>;
+type FormData = z.infer<ReturnType<typeof createSchema>>;
 
 export default function LoginScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { colors } = useCourierTheme();
   const setAuth = useAuthStore((s) => s.setAuth);
   const [showPassword, setShowPassword] = useState(false);
@@ -38,7 +42,7 @@ export default function LoginScreen() {
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<FormData>({
-    resolver: zodResolver(schema),
+    resolver: zodResolver(createSchema(t)),
     defaultValues: { identifier: '', password: '' },
   });
 
@@ -50,16 +54,16 @@ export default function LoginScreen() {
       });
 
       if (res.user?.role !== 'DRIVER') {
-        throw new Error("Unauthorized: This application is strictly for Drivers.");
+        throw new Error(t('auth.unauthorizedDriverOnly'));
       }
 
       setAuth(res.token, res.user);
     } catch (err) {
       const message =
-        err instanceof Error && err.message.includes('Unauthorized')
+        err instanceof Error && err.message === t('auth.unauthorizedDriverOnly')
           ? err.message
           : (err as { response?: { data?: { message?: string } } }).response?.data?.message ??
-              'Login failed. Check your credentials.';
+              t('auth.loginFailed');
       showToast(message, 'error');
     }
   };
@@ -81,13 +85,13 @@ export default function LoginScreen() {
               <Ionicons name="car-sport" size={40} color={colors.text.inverse} />
             </View>
             <Text style={[s.title, { color: colors.text.primary }]} accessibilityRole="header">United Pharmacy</Text>
-            <Text style={[s.subtitle, { color: colors.text.secondary }]}>Driver Portal</Text>
+            <Text style={[s.subtitle, { color: colors.text.secondary }]}>{t('auth.driverPortal')}</Text>
           </Animated.View>
 
           {/* Form card */}
           <Animated.View entering={FadeInUp.duration(animation.normal).delay(100).springify()} style={[s.card, { backgroundColor: colors.canvas.surface, shadowColor: colors.text.primary }]}>
-            <Text style={[s.formTitle, { color: colors.text.primary }]} accessibilityRole="header">Welcome Back</Text>
-            <Text style={[s.formSub, { color: colors.text.secondary }]}>Sign in to continue delivering</Text>
+            <Text style={[s.formTitle, { color: colors.text.primary }]} accessibilityRole="header">{t('auth.welcomeBack')}</Text>
+            <Text style={[s.formSub, { color: colors.text.secondary }]}>{t('auth.signInToContinue')}</Text>
 
             <View style={s.fields}>
               <Controller
@@ -95,8 +99,8 @@ export default function LoginScreen() {
                 name="identifier"
                 render={({ field: { onChange, onBlur, value } }) => (
                   <Input
-                    label="Phone or Email"
-                    placeholder="+20 10x xxx xxxx or email@example.com"
+                    label={t('auth.phoneOrEmail')}
+                    placeholder={t('auth.phoneOrEmailPlaceholder')}
                     value={value}
                     onChangeText={onChange}
                     onBlur={onBlur}
@@ -108,8 +112,8 @@ export default function LoginScreen() {
                       <Ionicons name="person-outline" size={18} color={colors.text.muted} />
                     }
                     required
-                    accessibilityLabel="Phone or Email input"
-                    accessibilityHint="Enter your registered phone number or email"
+                    accessibilityLabel={t('auth.phoneOrEmailA11y')}
+                    accessibilityHint={t('auth.phoneOrEmailHint')}
                   />
                 )}
               />
@@ -119,8 +123,8 @@ export default function LoginScreen() {
                 name="password"
                 render={({ field: { onChange, onBlur, value } }) => (
                   <Input
-                    label="Password"
-                    placeholder="Your password"
+                    label={t('auth.password')}
+                    placeholder={t('auth.passwordPlaceholder')}
                     value={value}
                     onChangeText={onChange}
                     onBlur={onBlur}
@@ -136,7 +140,7 @@ export default function LoginScreen() {
                         hitSlop={16}
                         style={s.iconBtn}
                         accessibilityRole="button"
-                        accessibilityLabel={showPassword ? "Hide password" : "Show password"}
+                        accessibilityLabel={showPassword ? t('auth.hidePassword') : t('auth.showPassword')}
                       >
                         <Ionicons
                           name={showPassword ? 'eye-off-outline' : 'eye-outline'}
@@ -146,35 +150,35 @@ export default function LoginScreen() {
                       </Pressable>
                     }
                     required
-                    accessibilityLabel="Password input"
-                    accessibilityHint="Enter your account password"
+                    accessibilityLabel={t('auth.passwordA11y')}
+                    accessibilityHint={t('auth.passwordHint')}
                   />
                 )}
               />
             </View>
 
             <Button
-              title="Sign In"
+              title={t('auth.signIn')}
               onPress={() => void handleSubmit(onSubmit)()}
               loading={isSubmitting}
               fullWidth
               size="lg"
               style={s.loginBtn}
-              accessibilityLabel="Sign in button"
-              accessibilityHint="Double tap to sign in to your account"
+              accessibilityLabel={t('auth.signInA11y')}
+              accessibilityHint={t('auth.signInHint')}
             />
           </Animated.View>
 
           {/* Footer */}
           <Animated.View entering={FadeInUp.duration(animation.normal).delay(200)} style={s.footer}>
-            <Text style={[s.footerText, { color: colors.text.secondary }]}>Don't have an account?</Text>
+            <Text style={[s.footerText, { color: colors.text.secondary }]}>{t('auth.noAccount')}</Text>
             <Pressable
               onPress={() => router.push('/(auth)/register')}
               hitSlop={12}
               accessibilityRole="link"
-              accessibilityLabel="Register as driver"
+              accessibilityLabel={t('auth.registerAsDriverA11y')}
             >
-              <Text style={[s.registerLink, { color: colors.brand.primary }]}> Register as Driver</Text>
+              <Text style={[s.registerLink, { color: colors.brand.primary }]}>{t('auth.registerAsDriver')}</Text>
             </Pressable>
           </Animated.View>
         </ScrollView>

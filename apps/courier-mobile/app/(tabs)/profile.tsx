@@ -12,6 +12,7 @@ import { useRouter } from 'expo-router';
 import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { formatDistanceToNow } from 'date-fns';
+import { useTranslation } from 'react-i18next';
 import { CourierUI, useCourierTheme, useTheme, showToast, Dialog } from '@pharmacy/ui-native';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { driverApi } from '@/lib/api';
@@ -48,6 +49,7 @@ function Stars({ rating, size = 14, colors }: { rating: number; size?: number, c
 
 function ProfileTab() {
   const { colors } = useCourierTheme();
+  const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
   const dp = user?.driverProfile;
   const { data, isLoading } = useQuery({
@@ -91,7 +93,7 @@ function ProfileTab() {
       {driver?.status === 'PENDING_APPROVAL' && (
         <View style={[pt.pendingBanner, { backgroundColor: colors.status.warning + '20' }]}>
           <Ionicons name="time-outline" size={16} color={colors.status.warning} />
-          <CourierUI.Typography scale="bodySm" style={{ color: colors.brand.primary }}>Account pending approval</CourierUI.Typography>
+          <CourierUI.Typography scale="bodySm" style={{ color: colors.brand.primary }}>{t('profile.pendingApproval')}</CourierUI.Typography>
         </View>
       )}
 
@@ -115,19 +117,19 @@ function ProfileTab() {
         </View>
         <View style={[pt.statusPill, { backgroundColor: statusColor + '20', borderColor: statusColor + '50' }]}>
           <View style={[pt.statusDot, { backgroundColor: statusColor }]} />
-          <CourierUI.Typography scale="badge" style={{ color: colors.brand.primary }}>{driver?.status ?? 'UNKNOWN'}</CourierUI.Typography>
+          <CourierUI.Typography scale="badge" style={{ color: colors.brand.primary }}>{driver?.status ?? t('profile.statusUnknown')}</CourierUI.Typography>
         </View>
       </View>
 
       {driver && (
         <CourierUI.Card style={pt.card}>
-          <CourierUI.Typography scale="sectionHead" style={{ marginBottom: 16 }}>Vehicle Information</CourierUI.Typography>
+          <CourierUI.Typography scale="sectionHead" style={{ marginBottom: 16 }}>{t('profile.vehicleInformation')}</CourierUI.Typography>
           <View style={pt.infoGrid}>
             {[
-              { label: 'Type', value: driver.vehicleType },
-              { label: 'Plate', value: driver.vehiclePlate ?? '—' },
-              { label: 'Model', value: driver.vehicleModel ?? '—' },
-              { label: 'Color', value: driver.vehicleColor ?? '—' },
+              { label: t('profile.vehicleTypeLabel'), value: driver.vehicleType },
+              { label: t('profile.plateLabel'), value: driver.vehiclePlate ?? '—' },
+              { label: t('profile.modelLabel'), value: driver.vehicleModel ?? '—' },
+              { label: t('profile.colorLabel'), value: driver.vehicleColor ?? '—' },
             ].map(({ label, value }) => (
               <View key={label} style={pt.infoItem}>
                 <CourierUI.Typography scale="caption" color="secondary">{label}</CourierUI.Typography>
@@ -140,12 +142,12 @@ function ProfileTab() {
 
       {driver && (
         <CourierUI.Card style={pt.card}>
-          <CourierUI.Typography scale="sectionHead" style={{ marginBottom: 16 }}>Documents</CourierUI.Typography>
+          <CourierUI.Typography scale="sectionHead" style={{ marginBottom: 16 }}>{t('profile.documents')}</CourierUI.Typography>
           <View style={pt.docsGrid}>
-            <DocBadge label="License" uploaded={!!driver.licensePhotoUrl} colors={colors} />
-            <DocBadge label="National ID" uploaded={!!driver.idPhotoUrl} colors={colors} />
-            <DocBadge label="Vehicle" uploaded={!!driver.vehiclePhotoUrl} colors={colors} />
-            <DocBadge label="Insurance" uploaded={!!driver.insurancePhotoUrl} colors={colors} />
+            <DocBadge label={t('profile.docLicenseShort')} uploaded={!!driver.licensePhotoUrl} colors={colors} />
+            <DocBadge label={t('profile.docIdShort')} uploaded={!!driver.idPhotoUrl} colors={colors} />
+            <DocBadge label={t('profile.docVehicleShort')} uploaded={!!driver.vehiclePhotoUrl} colors={colors} />
+            <DocBadge label={t('profile.docInsuranceShort')} uploaded={!!driver.insurancePhotoUrl} colors={colors} />
           </View>
         </CourierUI.Card>
       )}
@@ -216,6 +218,7 @@ const pt = StyleSheet.create({
 
 function EarningsTab() {
   const { colors } = useCourierTheme();
+  const { t } = useTranslation();
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['driver', 'statistics'],
     queryFn: driverApi.getStatistics,
@@ -259,45 +262,45 @@ function EarningsTab() {
         <RefreshControl refreshing={isLoading} onRefresh={refetch} tintColor={colors.brand.primary} />
       }
     >
-      <CourierUI.Typography scale="sectionHead" style={{ marginBottom: 12 }}>Earnings Overview</CourierUI.Typography>
+      <CourierUI.Typography scale="sectionHead" style={{ marginBottom: 12 }}>{t('profile.earningsOverview')}</CourierUI.Typography>
       <View style={et.row}>
         <StatCard
-          label="Today"
+          label={t('profile.today')}
           value={`${parseFloat(stats.today.earnings).toFixed(0)} EGP`}
-          sub={`${stats.today.deliveries} deliveries`}
+          sub={t('profile.deliveriesCount', { count: stats.today.deliveries })}
           icon="today-outline"
         />
         <StatCard
-          label="This Week"
+          label={t('profile.thisWeek')}
           value={`${parseFloat(stats.thisWeek.earnings).toFixed(0)} EGP`}
-          sub={`${stats.thisWeek.deliveries} deliveries`}
+          sub={t('profile.deliveriesCount', { count: stats.thisWeek.deliveries })}
           icon="calendar-outline"
         />
       </View>
       <View style={et.row}>
         <StatCard
-          label="This Month"
+          label={t('profile.thisMonth')}
           value={`${parseFloat(stats.thisMonth.earnings).toFixed(0)} EGP`}
-          sub={`${stats.thisMonth.deliveries} deliveries`}
+          sub={t('profile.deliveriesCount', { count: stats.thisMonth.deliveries })}
           icon="bar-chart-outline"
         />
         <StatCard
-          label="Rating"
+          label={t('profile.rating')}
           value={parseFloat(data?.rating ?? '0').toFixed(1)}
-          sub="out of 5"
+          sub={t('profile.outOf5')}
           icon="star-outline"
         />
       </View>
 
-      <CourierUI.Typography scale="sectionHead" style={{ marginTop: 8, marginBottom: 12 }}>Performance</CourierUI.Typography>
+      <CourierUI.Typography scale="sectionHead" style={{ marginTop: 8, marginBottom: 12 }}>{t('profile.performance')}</CourierUI.Typography>
       <View style={et.row}>
         <StatCard
-          label="Total Deliveries"
+          label={t('profile.totalDeliveries')}
           value={String(data?.totalDeliveries ?? 0)}
           icon="cube-outline"
         />
         <StatCard
-          label="Completion Rate"
+          label={t('profile.completionRate')}
           value={`${parseFloat(data?.completionRate ?? '0').toFixed(0)}%`}
           icon="checkmark-circle-outline"
         />
@@ -322,6 +325,7 @@ const et = StyleSheet.create({
 
 function HistoryTab() {
   const { colors } = useCourierTheme();
+  const { t } = useTranslation();
   const {
     data,
     fetchNextPage,
@@ -356,7 +360,7 @@ function HistoryTab() {
       <View style={[ht.empty, { backgroundColor: colors.canvas.screen }]}>
         <Ionicons name="cube-outline" size={48} color={colors.text.muted} />
         <CourierUI.Typography scale="body" color="secondary" align="center">
-          No delivery history yet
+          {t('profile.noHistoryYet')}
         </CourierUI.Typography>
       </View>
     );
@@ -395,15 +399,15 @@ function HistoryTab() {
               {item.customerRating ? (
                 <Stars rating={item.customerRating} size={12} colors={colors} />
               ) : (
-                <CourierUI.Typography scale="badge" color="secondary">No rating</CourierUI.Typography>
+                <CourierUI.Typography scale="badge" color="secondary">{t('profile.noRating')}</CourierUI.Typography>
               )}
             </View>
           </View>
           {item.actualDuration && (
             <View style={ht.durationRow}>
               <Ionicons name="time-outline" size={12} color={colors.text.muted} />
-              <CourierUI.Typography scale="badge" color="secondary">{item.actualDuration} min</CourierUI.Typography>
-              <CourierUI.Typography scale="badge" color="secondary">{item.itemCount} items</CourierUI.Typography>
+              <CourierUI.Typography scale="badge" color="secondary">{t('profile.minutesShort', { count: item.actualDuration })}</CourierUI.Typography>
+              <CourierUI.Typography scale="badge" color="secondary">{t('profile.itemsShort', { count: item.itemCount })}</CourierUI.Typography>
             </View>
           )}
         </CourierUI.Card>
@@ -412,7 +416,7 @@ function HistoryTab() {
       ListFooterComponent={
         isFetchingNextPage ? (
           <View style={ht.loadingMore}>
-            <CourierUI.Typography scale="caption" color="secondary">Loading more…</CourierUI.Typography>
+            <CourierUI.Typography scale="caption" color="secondary">{t('profile.loadingMore')}</CourierUI.Typography>
           </View>
         ) : null
       }
@@ -433,6 +437,7 @@ const ht = StyleSheet.create({
 
 function NotificationsTab() {
   const { colors } = useCourierTheme();
+  const { t } = useTranslation();
   const { notifications, markRead, markAllRead, clearAll } = useNotificationStore();
 
   const sortedNotifications = useMemo(() => {
@@ -444,7 +449,7 @@ function NotificationsTab() {
       style={[nt.item, { backgroundColor: item.isRead ? colors.canvas.surfaceMuted : colors.brand.primaryLight, borderColor: colors.border.default }]}
       onPress={() => markRead(item.id)}
       accessibilityRole="button"
-      accessibilityLabel={`Notification: ${item.title}`}
+      accessibilityLabel={t('profile.notificationA11y', { title: item.title })}
     >
       <View style={nt.itemHeader}>
         <View style={[nt.iconWrap, { backgroundColor: colors.brand.primaryLight }]}>
@@ -466,8 +471,8 @@ function NotificationsTab() {
     <View style={[nt.container, { backgroundColor: colors.canvas.screen }]}>
       {notifications.length > 0 && (
         <View style={nt.headerRow}>
-          <CourierUI.Button label="Mark all read" onPress={markAllRead} variant="secondary" size="sm" />
-          <CourierUI.Button label="Clear all" onPress={clearAll} variant="ghost" size="sm" />
+          <CourierUI.Button label={t('profile.markAllRead')} onPress={markAllRead} variant="secondary" size="sm" />
+          <CourierUI.Button label={t('profile.clearAll')} onPress={clearAll} variant="ghost" size="sm" />
         </View>
       )}
       <FlatList
@@ -481,7 +486,7 @@ function NotificationsTab() {
           <View style={nt.empty}>
             <Ionicons name="notifications-off-outline" size={48} color={colors.text.muted} />
             <CourierUI.Typography scale="body" color="secondary" align="center">
-              No notifications yet
+              {t('profile.noNotificationsYet')}
             </CourierUI.Typography>
           </View>
         }
@@ -516,6 +521,7 @@ const nt = StyleSheet.create({
 
 function SettingsTab() {
   const { colors, isDark } = useCourierTheme();
+  const { t } = useTranslation();
   const { toggleTheme } = useTheme();
   const { language, setLanguage, isRTL } = useAppLanguage();
   const router = useRouter();
@@ -565,12 +571,12 @@ function SettingsTab() {
       contentContainerStyle={st.scroll}
       showsVerticalScrollIndicator={false}
     >
-      <CourierUI.Typography scale="sectionHead" style={{ marginBottom: 16 }}>Appearance</CourierUI.Typography>
+      <CourierUI.Typography scale="sectionHead" style={{ marginBottom: 16 }}>{t('profile.appearance')}</CourierUI.Typography>
       <CourierUI.Card style={{ padding: 0, overflow: 'hidden' }}>
         <SettingRow
           icon="moon-outline"
-          label="Dark Mode"
-          value={isDark ? 'On' : 'Off'}
+          label={t('profile.darkMode')}
+          value={isDark ? t('profile.on') : t('profile.off')}
           onPress={toggleTheme}
         />
         <SettingRow
@@ -581,31 +587,31 @@ function SettingsTab() {
         />
       </CourierUI.Card>
 
-      <CourierUI.Typography scale="sectionHead" style={{ marginTop: 24, marginBottom: 16 }}>Support</CourierUI.Typography>
+      <CourierUI.Typography scale="sectionHead" style={{ marginTop: 24, marginBottom: 16 }}>{t('profile.support')}</CourierUI.Typography>
       <CourierUI.Card style={{ padding: 0, overflow: 'hidden' }}>
         <SettingRow
           icon="help-circle-outline"
-          label="Help Center"
-          onPress={() => showToast('Help center coming soon', 'info')}
+          label={t('profile.helpCenter')}
+          onPress={() => showToast(t('profile.helpCenterComingSoon'), 'info')}
         />
         <SettingRow
           icon="chatbubbles-outline"
-          label="Contact Support"
-          onPress={() => showToast('Support chat coming soon', 'info')}
+          label={t('profile.contactSupport')}
+          onPress={() => showToast(t('profile.supportChatComingSoon'), 'info')}
         />
         <SettingRow
           icon="information-circle-outline"
-          label="About"
+          label={t('profile.about')}
           value="v1.0.0"
-          onPress={() => showToast('United Pharmacy Driver v1.0.0', 'info')}
+          onPress={() => showToast(t('profile.aboutVersion'), 'info')}
         />
       </CourierUI.Card>
 
-      <CourierUI.Typography scale="sectionHead" style={{ marginTop: 24, marginBottom: 16 }}>Account</CourierUI.Typography>
+      <CourierUI.Typography scale="sectionHead" style={{ marginTop: 24, marginBottom: 16 }}>{t('profile.account')}</CourierUI.Typography>
       <CourierUI.Card style={{ padding: 0, overflow: 'hidden' }}>
         <SettingRow
           icon="log-out-outline"
-          label="Sign Out"
+          label={t('profile.signOut')}
           onPress={() => setLogoutDialog(true)}
           danger
         />
@@ -615,10 +621,10 @@ function SettingsTab() {
         visible={logoutDialog}
         onCancel={() => setLogoutDialog(false)}
         onConfirm={handleLogout}
-        title="Sign Out"
-        message="Are you sure you want to sign out? You will need to log in again to accept deliveries."
-        confirmLabel="Sign Out"
-        cancelLabel="Cancel"
+        title={t('profile.signOut')}
+        message={t('profile.signOutConfirm')}
+        confirmLabel={t('profile.signOut')}
+        cancelLabel={t('profile.cancel')}
         destructive
       />
 
@@ -651,6 +657,7 @@ const st = StyleSheet.create({
 
 export default function ProfileScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { colors } = useCourierTheme();
   const [activeTab, setActiveTab] = useState<ProfileTab>('profile');
   const clearActive = useOrdersStore((s) => s.clearActive);
@@ -666,24 +673,24 @@ export default function ProfileScreen() {
   }, [router, clearActive]);
 
   const TABS: { key: ProfileTab; label: string; icon: React.ComponentProps<typeof Ionicons>['name'] }[] = [
-    { key: 'profile', label: 'Profile', icon: 'person-outline' },
-    { key: 'earnings', label: 'Earnings', icon: 'wallet-outline' },
-    { key: 'history', label: 'History', icon: 'time-outline' },
-    { key: 'notifications', label: 'Alerts', icon: 'notifications-outline' },
-    { key: 'settings', label: 'Settings', icon: 'settings-outline' },
+    { key: 'profile', label: t('profile.tabProfile'), icon: 'person-outline' },
+    { key: 'earnings', label: t('profile.tabEarnings'), icon: 'wallet-outline' },
+    { key: 'history', label: t('profile.tabHistory'), icon: 'time-outline' },
+    { key: 'notifications', label: t('profile.tabAlerts'), icon: 'notifications-outline' },
+    { key: 'settings', label: t('profile.tabSettings'), icon: 'settings-outline' },
   ];
 
   return (
     <ErrorBoundary>
       <SafeAreaView style={[s.safe, { backgroundColor: colors.canvas.screen }]} edges={['top']}>
         <View style={[s.header, { borderBottomColor: colors.border.default }]}>
-          <CourierUI.Typography scale="sectionHead">My Account</CourierUI.Typography>
+          <CourierUI.Typography scale="sectionHead">{t('profile.myAccount')}</CourierUI.Typography>
           <TouchableOpacity
             onPress={handleLogout}
             style={s.logoutBtn}
             hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
             accessibilityRole="button"
-            accessibilityLabel="Sign out"
+            accessibilityLabel={t('profile.signOutA11y')}
           >
             <Ionicons name="log-out-outline" size={22} color={colors.status.error} />
           </TouchableOpacity>

@@ -12,21 +12,17 @@ import Animated, {
   useSharedValue,
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useTranslation } from 'react-i18next';
 import { CourierUI, useCourierTheme, showToast } from '@pharmacy/ui-native';
 import { driverApi } from '@/lib/api';
 import { useAuthStore } from '@/stores/auth.store';
 import { useOrdersStore, type AvailableOrder } from '@/stores/orders.store';
 import { haversineMeters } from '@/lib/gps/KalmanFilter';
 
-const STATUS_LABEL: Record<string, string> = {
-  ACCEPTED: 'Accepted',
-  EN_ROUTE_TO_PICKUP: 'Heading to Pharmacy',
-  ARRIVED_AT_PHARMACY: 'At Pharmacy',
-  PICKED_UP: 'Picked Up',
-  EN_ROUTE_TO_CUSTOMER: 'Heading to Customer',
-  ARRIVED_AT_CUSTOMER: 'At Customer',
-  DELIVERED: 'Delivered',
-};
+const ORDER_STATUS_KEYS = new Set([
+  'ACCEPTED', 'EN_ROUTE_TO_PICKUP', 'ARRIVED_AT_PHARMACY', 'PICKED_UP',
+  'EN_ROUTE_TO_CUSTOMER', 'ARRIVED_AT_CUSTOMER', 'DELIVERED',
+]);
 
 function formatDistance(meters: number | null): string {
   if (meters == null) return '—';
@@ -48,6 +44,7 @@ function OrderCard({
   isSkipping: boolean;
 }) {
   const { theme, colors } = useCourierTheme();
+  const { t } = useTranslation();
   const busy = isAccepting || isSkipping;
 
   return (
@@ -75,13 +72,13 @@ function OrderCard({
 
       <View style={s.addressBlock}>
         <View style={s.addressRow}>
-          <CourierUI.Typography scale="badge" color="brand">PICKUP</CourierUI.Typography>
+          <CourierUI.Typography scale="badge" color="brand">{t('dashboard.pickup')}</CourierUI.Typography>
           <CourierUI.Typography scale="bodySm" color="primary" style={{ flex: 1 }} numberOfLines={1}>
             {order.pharmacy.name}
           </CourierUI.Typography>
         </View>
         <View style={s.addressRow}>
-          <CourierUI.Typography scale="badge" color="danger">DROP</CourierUI.Typography>
+          <CourierUI.Typography scale="badge" color="danger">{t('dashboard.drop')}</CourierUI.Typography>
           <CourierUI.Typography scale="bodySm" color="primary" style={{ flex: 1 }} numberOfLines={2}>
             {order.customerAddress}
           </CourierUI.Typography>
@@ -92,7 +89,7 @@ function OrderCard({
         <View style={[s.metaChip, { backgroundColor: colors.canvas.surfaceMuted }]}>
           <Ionicons name="cube-outline" size={13} color={colors.text.muted} />
           <CourierUI.Typography scale="caption" color="secondary">
-            {order.itemCount} item{order.itemCount !== 1 ? 's' : ''}
+            {t('dashboard.itemCount', { count: order.itemCount })}
           </CourierUI.Typography>
         </View>
         <View style={[s.metaChip, { backgroundColor: colors.canvas.surfaceMuted }]}>
@@ -110,10 +107,10 @@ function OrderCard({
           disabled={busy}
           accessibilityRole="button"
           accessibilityState={{ disabled: busy }}
-          accessibilityLabel="Decline order"
+          accessibilityLabel={t('dashboard.declineOrder')}
         >
           <CourierUI.Typography scale="buttonSm" color="secondary">
-            Decline
+            {t('dashboard.decline')}
           </CourierUI.Typography>
         </Pressable>
         <Pressable
@@ -122,7 +119,7 @@ function OrderCard({
           disabled={busy}
           accessibilityRole="button"
           accessibilityState={{ disabled: busy }}
-          accessibilityLabel="Accept order"
+          accessibilityLabel={t('dashboard.acceptOrderA11y')}
         >
           <LinearGradient
             colors={[colors.brand.primary, colors.brand.primaryDark]}
@@ -131,7 +128,7 @@ function OrderCard({
             end={{ x: 1, y: 0 }}
           />
           <CourierUI.Typography scale="buttonMd" color="inverse">
-            {isAccepting ? 'Accepting…' : 'Accept Order'}
+            {isAccepting ? t('dashboard.accepting') : t('dashboard.acceptOrder')}
           </CourierUI.Typography>
         </Pressable>
       </View>
@@ -141,6 +138,7 @@ function OrderCard({
 
 export default function DriverDashboard() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { colors } = useCourierTheme();
   const { user, setOnlineStatus } = useAuthStore();
   const isOnline = user?.driverProfile?.isOnline ?? false;
@@ -165,7 +163,7 @@ export default function DriverDashboard() {
     mutationFn: async (online: boolean) =>
       online ? driverApi.goOnline() : driverApi.goOffline(),
     onSuccess: (_, vars) => setOnlineStatus(vars),
-    onError: () => showToast('Failed to change status', 'error'),
+    onError: () => showToast(t('dashboard.statusChangeFailed'), 'error'),
   });
 
   const acceptMutation = useMutation({
@@ -174,7 +172,7 @@ export default function DriverDashboard() {
       useOrdersStore.getState().setActiveDelivery(res);
       router.push('/(tabs)/delivery');
     },
-    onError: () => showToast('Order no longer available', 'error'),
+    onError: () => showToast(t('dashboard.orderUnavailable'), 'error'),
   });
 
   const skipMutation = useMutation({
@@ -209,10 +207,12 @@ export default function DriverDashboard() {
               style={{ letterSpacing: 1.5 }}
             >
               {activeDelivery
-                ? STATUS_LABEL[activeDelivery.status] ?? 'In Progress'
+                ? (ORDER_STATUS_KEYS.has(activeDelivery.status)
+                    ? t(`orderStatus.${activeDelivery.status}`)
+                    : t('orderStatus.inProgress'))
                 : isOnline
-                  ? 'ONLINE — Searching'
-                  : 'OFFLINE'}
+                  ? t('dashboard.onlineSearching')
+                  : t('dashboard.offline')}
             </CourierUI.Typography>
             <View style={s.earningsRow}>
               <Ionicons name="wallet" size={20} color={colors.brand.accent} />
@@ -220,7 +220,7 @@ export default function DriverDashboard() {
                 {earningsTotal.toFixed(0)}
               </CourierUI.Typography>
               <CourierUI.Typography scale="body" color="inverse">
-                EGP total
+                {t('dashboard.egpTotal')}
               </CourierUI.Typography>
             </View>
           </View>
@@ -231,7 +231,7 @@ export default function DriverDashboard() {
             disabled={toggleMutation.isPending || activeDelivery != null}
             accessibilityRole="switch"
             accessibilityState={{ checked: isOnline, disabled: toggleMutation.isPending || activeDelivery != null }}
-            accessibilityLabel={isOnline ? 'Go offline' : 'Go online'}
+            accessibilityLabel={isOnline ? t('dashboard.goOffline') : t('dashboard.goOnline')}
           >
             <Animated.View
               style={[
@@ -261,17 +261,17 @@ export default function DriverDashboard() {
             style={[s.activeBanner, { backgroundColor: colors.canvas.overlay, borderColor: colors.brand.primaryLight }]}
             onPress={() => router.push('/(tabs)/delivery')}
             accessibilityRole="button"
-            accessibilityLabel="View active delivery"
+            accessibilityLabel={t('dashboard.viewActiveDelivery')}
           >
             <View style={[s.pulseRing, { backgroundColor: colors.brand.primaryLight }]}>
               <View style={[s.pulseDot, { backgroundColor: colors.brand.primary }]} />
             </View>
             <View style={{ flex: 1 }}>
               <CourierUI.Typography scale="buttonMd" color="inverse" style={{ fontWeight: '700' }}>
-                Active Delivery
+                {t('dashboard.activeDelivery')}
               </CourierUI.Typography>
               <CourierUI.Typography scale="caption" color="inverse">
-                {orderCount(activeDelivery.order.items?.length)} ·{' '}
+                {t('dashboard.itemCount', { count: activeDelivery.order.items?.length ?? 0 })} ·{' '}
                 {formatDistance(
                   activeDelivery.order.customerLat && activeDelivery.order.customerLng
                     ? haversineMeters(
@@ -292,16 +292,18 @@ export default function DriverDashboard() {
       <View style={s.feed}>
         {!isOnline ? (
           <CourierUI.EmptyState
-            title="You're Offline"
-            subtitle="Go online to start receiving delivery orders in your area."
-            actionLabel="Go Online"
+            icon="power-outline"
+            title={t('dashboard.youreOffline')}
+            subtitle={t('dashboard.goOnlineHint')}
+            actionLabel={t('dashboard.goOnline')}
             onAction={() => toggleMutation.mutate(true)}
           />
         ) : activeDelivery ? (
           <CourierUI.EmptyState
-            title="Delivery in Progress"
-            subtitle="Complete your current route before accepting new orders."
-            actionLabel="View Delivery"
+            icon="bicycle-outline"
+            title={t('dashboard.deliveryInProgress')}
+            subtitle={t('dashboard.finishRouteHint')}
+            actionLabel={t('dashboard.viewDelivery')}
             onAction={() => router.push('/(tabs)/delivery')}
           />
         ) : (
@@ -334,8 +336,9 @@ export default function DriverDashboard() {
                 </View>
               ) : (
                 <CourierUI.EmptyState
-                  title="Scanning Area"
-                  subtitle="No orders nearby right now. We'll notify you when one matches your route."
+                  icon="radio-outline"
+                  title={t('dashboard.scanningArea')}
+                  subtitle={t('dashboard.noOrdersNearby')}
                 />
               )
             }
@@ -346,10 +349,6 @@ export default function DriverDashboard() {
   );
 }
 
-function orderCount(itemsLength: number | undefined): string {
-  const count = itemsLength ?? 0;
-  return `${count} item${count !== 1 ? 's' : ''}`;
-}
 
 const s = StyleSheet.create({
   root: {

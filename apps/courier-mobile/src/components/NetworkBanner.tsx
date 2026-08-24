@@ -6,12 +6,14 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { typography, spacing } from '@pharmacy/ui-native/courier-tokens';
 import { useCourierTheme } from '@pharmacy/ui-native';
 import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 
 export function NetworkBanner() {
   const { colors } = useCourierTheme();
+  const { t } = useTranslation();
   const { isConnected } = useNetworkStatus();
   const translateY = useSharedValue(-48);
 
@@ -28,11 +30,11 @@ export function NetworkBanner() {
       style={[s.banner, animStyle, { backgroundColor: colors.status.error }]} 
       pointerEvents="none"
       accessibilityRole="alert"
-      accessibilityLabel={isConnected ? 'Internet connection restored' : 'No internet connection'}
+      accessibilityLabel={isConnected ? t('common.connectionRestoredA11y') : t('common.noConnectionA11y')}
     >
       <Ionicons name={isConnected ? 'cloud-done-outline' : 'cloud-offline-outline'} size={16} color={colors.text.inverse} />
       <Text style={[s.text, { color: colors.text.inverse }]}>
-        {isConnected ? 'Back online' : 'No internet connection'}
+        {isConnected ? t('common.backOnline') : t('common.noConnection')}
       </Text>
     </Animated.View>
   );

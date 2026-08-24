@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { typography, spacing, radii } from '@pharmacy/ui-native/courier-tokens';
 import { useCourierTheme } from '@pharmacy/ui-native';
 
@@ -46,23 +47,24 @@ export class ErrorBoundary extends React.Component<Props, State> {
 
 function ErrorFallback({ error, onRetry }: { error: Error | null, onRetry: () => void }) {
   const { colors } = useCourierTheme();
+  const { t } = useTranslation();
 
   return (
     <View style={[s.container, { backgroundColor: colors.canvas.screen }]} accessibilityRole="alert">
       <View style={[s.iconWrap, { backgroundColor: colors.status.error + '20' }]}>
         <Text style={[s.iconText, { color: colors.status.error }]}>!</Text>
       </View>
-      <Text style={[s.title, { color: colors.text.primary }]}>Something went wrong</Text>
+      <Text style={[s.title, { color: colors.text.primary }]}>{t('common.somethingWrong')}</Text>
       <Text style={[s.message, { color: colors.text.secondary }]}>
-        {error?.message ?? 'An unexpected error occurred.'}
+        {error?.message ?? t('common.unexpectedError')}
       </Text>
-      <Pressable 
-        style={[s.button, { backgroundColor: colors.brand.primary }]} 
+      <Pressable
+        style={[s.button, { backgroundColor: colors.brand.primary }]}
         onPress={onRetry}
         accessibilityRole="button"
-        accessibilityLabel="Try again"
+        accessibilityLabel={t('common.tryAgainA11y')}
       >
-        <Text style={[s.buttonText, { color: colors.text.inverse }]}>Try Again</Text>
+        <Text style={[s.buttonText, { color: colors.text.inverse }]}>{t('common.tryAgain')}</Text>
       </Pressable>
     </View>
   );

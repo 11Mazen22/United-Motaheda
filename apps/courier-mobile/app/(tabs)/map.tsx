@@ -11,29 +11,15 @@ import Constants from 'expo-constants';
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE, Region } from 'react-native-maps';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { CourierUI, useCourierTheme } from '@pharmacy/ui-native';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { useLocationStore } from '@/stores/location.store';
 import { useOrdersStore, type ActiveDelivery } from '@/stores/orders.store';
 import { haversineMeters } from '@/lib/gps/KalmanFilter';
-
-const DARK_MAP_STYLE = [
-  { elementType: 'geometry', stylers: [{ color: '#020617' }] },
-  { elementType: 'labels.text.stroke', stylers: [{ color: '#020617' }] },
-  { elementType: 'labels.text.fill', stylers: [{ color: '#64748b' }] },
-  { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#0f172a' }] },
-  { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#1e293b' }] },
-  { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#0f172a' }] },
-  { featureType: 'poi', elementType: 'geometry', stylers: [{ color: '#0f172a' }] },
-];
-
-const LIGHT_MAP_STYLE = [
-  { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#cce4f0' }] },
-  { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#ffffff' }] },
-  { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#e2e8f0' }] },
-  { featureType: 'poi', elementType: 'geometry', stylers: [{ color: '#f1f5f9' }] },
-  { featureType: 'landscape.man_made', stylers: [{ color: '#f1f5f9' }] },
-];
+import { DARK_MAP_STYLE, LIGHT_MAP_STYLE } from '@/lib/mapStyles';
+import { DriverMarker, PharmacyMarker, CustomerMarker } from '@/components/MapMarkers';
+import { useGpsBanner } from '@/hooks/useGpsBanner';
 
 function decodePolyline(encoded: string): { latitude: number; longitude: number }[] {
   const points: { latitude: number; longitude: number }[] = [];
@@ -116,11 +102,11 @@ type MapColors = {
   white: string;
 };
 
-function AccuracyDot({ accuracy, colors }: { accuracy: number | null, colors: MapColors }) {
+function AccuracyDot({ accuracy, colors, t }: { accuracy: number | null, colors: MapColors, t: (key: string) => string }) {
   const level =
     accuracy == null ? 'poor' : accuracy <= 15 ? 'good' : accuracy <= 50 ? 'fair' : 'poor';
   const colorMap = { good: colors.status.success, fair: colors.status.warning, poor: colors.status.error };
-  const labelMap = { good: `${Math.round(accuracy ?? 99)}m`, fair: `${Math.round(accuracy ?? 99)}m`, poor: 'Poor GPS' };
+  const labelMap = { good: `${Math.round(accuracy ?? 99)}m`, fair: `${Math.round(accuracy ?? 99)}m`, poor: t('map.poorGpsShort') };
 
   return (
     <View style={[ad.container, { backgroundColor: colors.canvas.surfaceMuted, borderColor: colors.border.default }]}>
@@ -147,20 +133,22 @@ function BottomSheet({
   delivery,
   onNavigate,
   colors,
+  t,
 }: {
   delivery: ActiveDelivery | null;
   onNavigate: () => void;
   colors: MapColors;
+  t: (key: string) => string;
 }) {
   if (!delivery) return null;
 
   const statusLabels: Record<string, string> = {
-    ACCEPTED: 'Head to pharmacy',
-    EN_ROUTE_TO_PICKUP: 'Navigating to pharmacy',
-    ARRIVED_AT_PHARMACY: 'At pharmacy — awaiting pickup',
-    PICKED_UP: 'Order picked up',
-    EN_ROUTE_TO_CUSTOMER: 'Navigating to customer',
-    ARRIVED_AT_CUSTOMER: 'At customer location',
+    ACCEPTED: t('map.headToPharmacy'),
+    EN_ROUTE_TO_PICKUP: t('map.navigatingToPharmacy'),
+    ARRIVED_AT_PHARMACY: t('map.atPharmacyAwaitingPickup'),
+    PICKED_UP: t('map.orderPickedUp'),
+    EN_ROUTE_TO_CUSTOMER: t('map.navigatingToCustomer'),
+    ARRIVED_AT_CUSTOMER: t('map.atCustomerLocation'),
   };
 
   const isPharmacyLeg =
@@ -184,9 +172,9 @@ function BottomSheet({
             <CourierUI.Typography scale="bodySm" color="primary">{destination.name}</CourierUI.Typography>
             <CourierUI.Typography scale="badge" color="secondary" numberOfLines={1}>{destination.address}</CourierUI.Typography>
           </View>
-          <TouchableOpacity style={[bs.navBtn, { backgroundColor: colors.brand.primary }]} onPress={onNavigate} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel="Open navigation">
+          <TouchableOpacity style={[bs.navBtn, { backgroundColor: colors.brand.primary }]} onPress={onNavigate} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={t('map.openNavigationA11y')}>
             <Ionicons name="navigate" size={18} color={colors.text.inverse} />
-            <CourierUI.Typography scale="badge" color="inverse" style={{ fontWeight: '700' }}>GO</CourierUI.Typography>
+            <CourierUI.Typography scale="badge" color="inverse" style={{ fontWeight: '700' }}>{t('map.go')}</CourierUI.Typography>
           </TouchableOpacity>
         </View>
       </View>
@@ -229,6 +217,7 @@ const bs = StyleSheet.create({
 export default function MapScreen() {
   const insets = useSafeAreaInsets();
   const mapRef = useRef<MapView>(null);
+  const { t } = useTranslation();
   const { colors, isDark } = useCourierTheme();
 
   const location = useLocationStore();
@@ -373,42 +362,7 @@ export default function MapScreen() {
   const dest = getDestination();
 
   const gpsWarning = location.warning;
-  const isPermissionDenied = gpsWarning?.toLowerCase().includes('permission denied');
-  const isServicesDisabled = gpsWarning?.toLowerCase().includes('location services disabled');
-  const isPoorAccuracy = gpsWarning?.toLowerCase().includes('accuracy') && !isPermissionDenied && !isServicesDisabled;
-  const showGpsBanner = !hasLocation || isPermissionDenied || isServicesDisabled || isPoorAccuracy;
-
-  const gpsBannerConfig = (() => {
-    if (isPermissionDenied) {
-      return {
-        icon: 'location-outline' as const,
-        text: 'Location permission denied. Enable it in settings to continue.',
-        color: colors.status.warning,
-      };
-    }
-    if (isServicesDisabled) {
-      return {
-        icon: 'settings-outline' as const,
-        text: 'Location services are disabled. Please enable them in your device settings.',
-        color: colors.status.error,
-      };
-    }
-    if (isPoorAccuracy) {
-      return {
-        icon: 'warning-outline' as const,
-        text: gpsWarning ?? 'Poor GPS accuracy. Move to an open area.',
-        color: colors.status.warning,
-      };
-    }
-    if (!hasLocation) {
-      return {
-        icon: 'location-outline' as const,
-        text: 'Acquiring GPS signal…',
-        color: colors.text.primary,
-      };
-    }
-    return null;
-  })();
+  const gpsBannerConfig = useGpsBanner(gpsWarning, hasLocation, colors, t);
 
   const initialRegion: Region = hasLocation
     ? {
@@ -438,7 +392,7 @@ export default function MapScreen() {
           showsTraffic={false}
           showsCompass={false}
           toolbarEnabled={false}
-          accessibilityLabel="Delivery route map"
+          accessibilityLabel={t('map.routeMapA11y')}
         >
           {hasLocation && (
             <Marker
@@ -447,9 +401,7 @@ export default function MapScreen() {
               flat
               rotation={location.heading ?? 0}
             >
-              <View style={[s.driverMarker, { backgroundColor: colors.brand.primary }]}>
-                <Ionicons name="navigate" size={20} color={colors.text.inverse} />
-              </View>
+              <DriverMarker isDark={isDark} colors={colors} />
             </Marker>
           )}
 
@@ -458,9 +410,7 @@ export default function MapScreen() {
               coordinate={{ latitude: dest.lat, longitude: dest.lng }}
               anchor={{ x: 0.5, y: 1 }}
             >
-              <View style={[s.pharmacyMarker, { backgroundColor: colors.delivery.pickup, borderColor: colors.white }]}>
-                <Ionicons name="medical" size={18} color={colors.text.inverse} />
-              </View>
+              <PharmacyMarker colors={colors} />
             </Marker>
           )}
 
@@ -469,9 +419,7 @@ export default function MapScreen() {
               coordinate={{ latitude: dest.lat, longitude: dest.lng }}
               anchor={{ x: 0.5, y: 1 }}
             >
-              <View style={[s.customerMarker, { backgroundColor: colors.delivery.dropoff, borderColor: colors.white }]}>
-                <Ionicons name="home" size={18} color={colors.text.inverse} />
-              </View>
+              <CustomerMarker colors={colors} />
             </Marker>
           )}
 
@@ -496,14 +444,14 @@ export default function MapScreen() {
                   <>
                     <Ionicons name="time-outline" size={14} color={colors.brand.primary} />
                     <CourierUI.Typography scale="bodySm" style={{ color: colors.brand.primary, fontWeight: '600' }}>
-                      ~{eta.durationMin} min · {eta.distanceKm} km
+                      {t('map.etaText', { minutes: eta.durationMin, km: eta.distanceKm })}
                     </CourierUI.Typography>
                   </>
                 )}
               </View>
             )}
 
-            <AccuracyDot accuracy={location.accuracy} colors={colors} />
+            <AccuracyDot accuracy={location.accuracy} colors={colors} t={t} />
           </View>
         </SafeAreaView>
 
@@ -515,17 +463,17 @@ export default function MapScreen() {
           onPress={centerOnDriver}
           activeOpacity={0.85}
           accessibilityRole="button"
-          accessibilityLabel="Recenter map on driver"
+          accessibilityLabel={t('map.recenterA11y')}
         >
           <Ionicons name="locate-outline" size={22} color={colors.brand.primary} />
         </TouchableOpacity>
 
-        {showGpsBanner && gpsBannerConfig && (
+        {gpsBannerConfig && (
           <TouchableOpacity
             style={[s.noLocationBanner, { backgroundColor: colors.canvas.surface, borderColor: colors.border.default }]}
             onPress={() => Linking.openSettings()}
             accessibilityRole="button"
-            accessibilityLabel={`${gpsBannerConfig.text} Tap to open settings`}
+            accessibilityLabel={t('delivery.tapToOpenSettings', { text: gpsBannerConfig.text })}
             accessibilityLiveRegion="polite"
           >
             <Ionicons name={gpsBannerConfig.icon} size={16} color={gpsBannerConfig.color} />
@@ -539,13 +487,13 @@ export default function MapScreen() {
         {!activeDelivery && hasLocation && (
           <View style={[s.noDeliveryChip, { bottom: 100 + insets.bottom, backgroundColor: colors.canvas.surface, borderColor: colors.border.default }]}>
             <Ionicons name="checkmark-circle-outline" size={14} color={colors.text.muted} />
-            <CourierUI.Typography scale="badge" color="secondary">No active delivery</CourierUI.Typography>
+            <CourierUI.Typography scale="badge" color="secondary">{t('map.noActiveDelivery')}</CourierUI.Typography>
           </View>
         )}
 
         {activeDelivery && (
           <View style={{ position: 'absolute', bottom: insets.bottom, left: 0, right: 0 }}>
-            <BottomSheet delivery={activeDelivery} onNavigate={openNavigation} colors={colors} />
+            <BottomSheet delivery={activeDelivery} onNavigate={openNavigation} colors={colors} t={t} />
           </View>
         )}
       </View>
@@ -580,35 +528,6 @@ const s = StyleSheet.create({
     borderRadius: 100,
     borderWidth: 1,
   },
-
-  driverMarker: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 3,
-    borderColor: '#fff',
-  },
-  pharmacyMarker: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: '#fff',
-  },
-  customerMarker: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: '#fff',
-  },
-
   recenterBtn: {
     position: 'absolute',
     right: 16,

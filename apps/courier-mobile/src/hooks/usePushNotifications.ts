@@ -104,7 +104,7 @@ export function usePushNotifications({ userId }: { userId?: string }) {
       const data = response.notification.request.content.data as Record<string, unknown>;
 
       if (data?.screen) {
-        router.push(data.screen as string);
+        router.push(data.screen as never);
       } else if (data?.orderId) {
         router.push('/(tabs)/delivery');
       }

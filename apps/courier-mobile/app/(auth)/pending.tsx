@@ -11,6 +11,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
 import Animated, { FadeIn, FadeInDown, useSharedValue, useAnimatedStyle, withRepeat, withTiming, withSequence } from 'react-native-reanimated';
+import { useTranslation } from 'react-i18next';
 import { typography, spacing, radii, shadows, animation } from '@pharmacy/ui-native/courier-tokens';
 import { Button, useCourierTheme, Dialog } from '@pharmacy/ui-native';
 import { driverApi } from '@/lib/api';
@@ -24,53 +25,33 @@ type ProfileStatus =
   | 'REJECTED'
   | 'INACTIVE';
 
-const STATUS_CONFIG: Record<
-  ProfileStatus,
-  { icon: React.ComponentProps<typeof Ionicons>['name']; colorKey: 'warning' | 'success' | 'error' | 'muted'; title: string; desc: string }
-> = {
-  PENDING_APPROVAL: {
-    icon: 'time-outline',
-    colorKey: 'warning',
-    title: 'Under Review',
-    desc: 'Your application is being reviewed by our team. This usually takes 1–2 business days.',
-  },
-  APPROVED: {
-    icon: 'checkmark-circle',
-    colorKey: 'success',
-    title: 'Approved!',
-    desc: 'Your account has been approved. You can now start accepting deliveries.',
-  },
-  ACTIVE: {
-    icon: 'checkmark-circle',
-    colorKey: 'success',
-    title: 'Active',
-    desc: 'Your account is active. You can now start accepting deliveries.',
-  },
-  SUSPENDED: {
-    icon: 'ban-outline',
-    colorKey: 'error',
-    title: 'Account Suspended',
-    desc: 'Your account has been suspended. Please contact support for assistance.',
-  },
-  REJECTED: {
-    icon: 'close-circle-outline',
-    colorKey: 'error',
-    title: 'Application Rejected',
-    desc: 'Unfortunately your application was not approved.',
-  },
-  INACTIVE: {
-    icon: 'ellipse-outline',
-    colorKey: 'muted',
-    title: 'Inactive',
-    desc: 'Your account is inactive. Please contact support.',
-  },
-};
+function statusConfig(
+  status: ProfileStatus,
+  t: (key: string) => string,
+): { icon: React.ComponentProps<typeof Ionicons>['name']; colorKey: 'warning' | 'success' | 'error' | 'muted'; title: string; desc: string } {
+  switch (status) {
+    case 'PENDING_APPROVAL':
+      return { icon: 'time-outline', colorKey: 'warning', title: t('pending.underReviewTitle'), desc: t('pending.underReviewDesc') };
+    case 'APPROVED':
+      return { icon: 'checkmark-circle', colorKey: 'success', title: t('pending.approvedTitle'), desc: t('pending.approvedDesc') };
+    case 'ACTIVE':
+      return { icon: 'checkmark-circle', colorKey: 'success', title: t('pending.activeTitle'), desc: t('pending.activeDesc') };
+    case 'SUSPENDED':
+      return { icon: 'ban-outline', colorKey: 'error', title: t('pending.suspendedTitle'), desc: t('pending.suspendedDesc') };
+    case 'REJECTED':
+      return { icon: 'close-circle-outline', colorKey: 'error', title: t('pending.rejectedTitle'), desc: t('pending.rejectedDesc') };
+    case 'INACTIVE':
+      return { icon: 'ellipse-outline', colorKey: 'muted', title: t('pending.inactiveTitle'), desc: t('pending.inactiveDesc') };
+  }
+}
 
-const NEXT_STEPS: { icon: React.ComponentProps<typeof Ionicons>['name']; text: string }[] = [
-  { icon: 'document-text-outline', text: 'Your documents are being verified' },
-  { icon: 'shield-checkmark-outline', text: 'Background check in progress' },
-  { icon: 'checkmark-circle-outline', text: 'Account activation upon approval' },
-];
+function nextSteps(t: (key: string) => string): { icon: React.ComponentProps<typeof Ionicons>['name']; text: string }[] {
+  return [
+    { icon: 'document-text-outline', text: t('pending.stepDocuments') },
+    { icon: 'shield-checkmark-outline', text: t('pending.stepBackgroundCheck') },
+    { icon: 'checkmark-circle-outline', text: t('pending.stepActivation') },
+  ];
+}
 
 function PulsingDot({ color }: { color: string }) {
   const opacity = useSharedValue(0.4);
@@ -108,6 +89,7 @@ function PulsingDot({ color }: { color: string }) {
 
 export default function PendingApprovalScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { colors: tc } = useCourierTheme();
   const updateDriverProfile = useAuthStore((s) => s.updateDriverProfile);
   const [logoutDialog, setLogoutDialog] = useState(false);
@@ -137,7 +119,7 @@ export default function PendingApprovalScreen() {
 
   const statusBg = statusColor + '20';
 
-  const config = STATUS_CONFIG[status] ?? STATUS_CONFIG.PENDING_APPROVAL;
+  const config = statusConfig(status, t);
 
   const handleLogout = useCallback(() => {
     useAuthStore.getState().logout();
@@ -169,13 +151,13 @@ export default function PendingApprovalScreen() {
           {status === 'PENDING_APPROVAL' && (
             <View style={[s.liveRow, { backgroundColor: tc.canvas.surface }]}>
               <PulsingDot color={statusColor} />
-              <Text style={[s.liveText, { color: tc.text.secondary }]}>Checking for updates</Text>
+              <Text style={[s.liveText, { color: tc.text.secondary }]}>{t('pending.checkingUpdates')}</Text>
             </View>
           )}
 
           {status === 'REJECTED' && rejectionReason && (
             <View style={[s.reasonBox, { backgroundColor: tc.canvas.surface }]}>
-              <Text style={[s.reasonLabel, { color: tc.status.error }]}>Reason:</Text>
+              <Text style={[s.reasonLabel, { color: tc.status.error }]}>{t('pending.reason')}</Text>
               <Text style={[s.reasonText, { color: tc.text.secondary }]}>{rejectionReason}</Text>
             </View>
           )}
@@ -187,9 +169,9 @@ export default function PendingApprovalScreen() {
             entering={FadeIn.duration(animation.normal).delay(150)}
             style={[s.stepsCard, { backgroundColor: tc.canvas.surface }]}
           >
-            <Text style={[s.stepsTitle, { color: tc.text.primary }]} accessibilityRole="header">What happens next?</Text>
+            <Text style={[s.stepsTitle, { color: tc.text.primary }]} accessibilityRole="header">{t('pending.whatsNext')}</Text>
 
-            {NEXT_STEPS.map(({ icon, text }, i) => (
+            {nextSteps(t).map(({ icon, text }, i) => (
               <View key={i} style={s.step}>
                 <View style={[s.stepIcon, { backgroundColor: tc.brand.primaryLight }]}>
                   <Ionicons name={icon} size={20} color={tc.brand.primary} />
@@ -203,15 +185,15 @@ export default function PendingApprovalScreen() {
               hitSlop={12}
               style={[s.refreshBtn, { backgroundColor: tc.brand.primaryLight }]}
               accessibilityRole="button"
-              accessibilityLabel="Check status"
-              accessibilityHint="Double tap to check if your application status has changed"
+              accessibilityLabel={t('pending.checkStatusA11y')}
+              accessibilityHint={t('pending.checkStatusHint')}
             >
               <Ionicons
                name="refresh-outline"
                size={18}
                color={tc.brand.primary}
               />
-              <Text style={[s.refreshText, { color: tc.brand.primary }]}>Check Status</Text>
+              <Text style={[s.refreshText, { color: tc.brand.primary }]}>{t('pending.checkStatus')}</Text>
             </Pressable>
           </Animated.View>
         )}
@@ -220,13 +202,13 @@ export default function PendingApprovalScreen() {
         {(status === 'APPROVED' || status === 'ACTIVE') && (
           <Animated.View entering={FadeIn.duration(animation.normal).delay(100)}>
             <Button
-              title="Start Delivering"
+              title={t('pending.startDelivering')}
               onPress={() => router.replace('/(tabs)')}
               fullWidth
               size="lg"
               style={s.startBtn}
-              accessibilityLabel="Start delivering"
-              accessibilityHint="Double tap to begin accepting deliveries"
+              accessibilityLabel={t('pending.startDeliveringA11y')}
+              accessibilityHint={t('pending.startDeliveringHint')}
             />
           </Animated.View>
         )}
@@ -235,14 +217,14 @@ export default function PendingApprovalScreen() {
         {status === 'REJECTED' && (
           <Animated.View entering={FadeIn.duration(animation.normal).delay(100)}>
             <Button
-              title="Re-apply"
+              title={t('pending.reapply')}
               variant="outline"
               onPress={() => router.replace('/(auth)/register')}
               fullWidth
               size="lg"
               style={s.startBtn}
-              accessibilityLabel="Re-apply"
-              accessibilityHint="Double tap to submit a new application"
+              accessibilityLabel={t('pending.reapply')}
+              accessibilityHint={t('pending.reapplyHint')}
             />
           </Animated.View>
         )}
@@ -250,7 +232,7 @@ export default function PendingApprovalScreen() {
         {/* Contact support */}
         <View style={s.supportRow}>
           <Ionicons name="headset-outline" size={18} color={tc.text.secondary} />
-          <Text style={[s.supportText, { color: tc.text.secondary }]}>Need help? Contact support</Text>
+          <Text style={[s.supportText, { color: tc.text.secondary }]}>{t('pending.needHelp')}</Text>
         </View>
 
         {/* Logout */}
@@ -259,19 +241,19 @@ export default function PendingApprovalScreen() {
           hitSlop={12}
           style={[s.logoutBtn, { backgroundColor: tc.canvas.surfaceMuted }]}
           accessibilityRole="button"
-          accessibilityLabel="Sign out"
+          accessibilityLabel={t('pending.signOut')}
         >
-          <Text style={[s.logoutText, { color: tc.status.error }]}>Sign Out</Text>
+          <Text style={[s.logoutText, { color: tc.status.error }]}>{t('pending.signOut')}</Text>
         </Pressable>
 
         <Dialog
           visible={logoutDialog}
           onCancel={() => setLogoutDialog(false)}
           onConfirm={handleLogout}
-          title="Sign Out"
-          message="Are you sure you want to sign out?"
-          confirmLabel="Sign Out"
-          cancelLabel="Cancel"
+          title={t('pending.signOut')}
+          message={t('pending.signOutConfirm')}
+          confirmLabel={t('pending.signOut')}
+          cancelLabel={t('pending.cancel')}
           destructive
         />
       </ScrollView>

@@ -12,10 +12,15 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
+import { BlurView } from 'expo-blur';
+import { useTranslation } from 'react-i18next';
 import { CourierUI, useCourierTheme, showToast } from '@pharmacy/ui-native';
 import { driverApi } from '@/lib/api';
 import { useOrdersStore, type DeliveryStatus } from '@/stores/orders.store';
 import { useLocationStore } from '@/stores/location.store';
+import { DARK_MAP_STYLE, LIGHT_MAP_STYLE } from '@/lib/mapStyles';
+import { useGpsBanner } from '@/hooks/useGpsBanner';
+import { DriverMarker, PharmacyMarker, CustomerMarker } from '@/components/MapMarkers';
 
 type DeliveryColors = {
   canvas: { screen: string; surface: string; surfaceMuted: string; overlay: string };
@@ -29,41 +34,23 @@ type DeliveryColors = {
 
 type DeliveryTheme = { colors: DeliveryColors };
 
-const DARK_MAP_STYLE = [
-  { elementType: 'geometry', stylers: [{ color: '#020617' }] },
-  { elementType: 'labels.text.stroke', stylers: [{ color: '#020617' }] },
-  { elementType: 'labels.text.fill', stylers: [{ color: '#64748b' }] },
-  { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#0f172a' }] },
-  { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#1e293b' }] },
-  { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#0f172a' }] },
-  { featureType: 'poi', elementType: 'geometry', stylers: [{ color: '#0f172a' }] },
-];
-
-const LIGHT_MAP_STYLE = [
-  { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#cce4f0' }] },
-  { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#ffffff' }] },
-  { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#e2e8f0' }] },
-  { featureType: 'poi', elementType: 'geometry', stylers: [{ color: '#f1f5f9' }] },
-  { featureType: 'landscape.man_made', stylers: [{ color: '#f1f5f9' }] },
-];
-
-const STATUS_CONFIG: Record<string, { label: string; colorKey: string; next: string; icon: React.ComponentProps<typeof Ionicons>['name'] }> = {
-  ACCEPTED: { label: 'Start Pickup', colorKey: 'statusInfo', next: 'EN_ROUTE_TO_PICKUP', icon: 'navigate' },
-  EN_ROUTE_TO_PICKUP: { label: 'Confirm Arrival', colorKey: 'statusWarning', next: 'ARRIVED_AT_PHARMACY', icon: 'flag' },
-  ARRIVED_AT_PHARMACY: { label: 'Confirm Pickup', colorKey: 'statusWarning', next: 'PICKED_UP', icon: 'cube' },
-  PICKED_UP: { label: 'Start Delivery', colorKey: 'statusInfo', next: 'EN_ROUTE_TO_CUSTOMER', icon: 'navigate' },
-  EN_ROUTE_TO_CUSTOMER: { label: 'Confirm Arrival', colorKey: 'statusWarning', next: 'ARRIVED_AT_CUSTOMER', icon: 'flag' },
-  ARRIVED_AT_CUSTOMER: { label: 'Confirm Delivery', colorKey: 'statusSuccess', next: 'DELIVERED', icon: 'checkmark-circle' },
+const STATUS_CONFIG: Record<string, { labelKey: string; colorKey: string; next: string; icon: React.ComponentProps<typeof Ionicons>['name'] }> = {
+  ACCEPTED: { labelKey: 'delivery.actionStartPickup', colorKey: 'statusInfo', next: 'EN_ROUTE_TO_PICKUP', icon: 'navigate' },
+  EN_ROUTE_TO_PICKUP: { labelKey: 'delivery.actionConfirmArrival', colorKey: 'statusWarning', next: 'ARRIVED_AT_PHARMACY', icon: 'flag' },
+  ARRIVED_AT_PHARMACY: { labelKey: 'delivery.actionConfirmPickup', colorKey: 'statusWarning', next: 'PICKED_UP', icon: 'cube' },
+  PICKED_UP: { labelKey: 'delivery.actionStartDelivery', colorKey: 'statusInfo', next: 'EN_ROUTE_TO_CUSTOMER', icon: 'navigate' },
+  EN_ROUTE_TO_CUSTOMER: { labelKey: 'delivery.actionConfirmArrival', colorKey: 'statusWarning', next: 'ARRIVED_AT_CUSTOMER', icon: 'flag' },
+  ARRIVED_AT_CUSTOMER: { labelKey: 'delivery.actionConfirmDelivery', colorKey: 'statusSuccess', next: 'DELIVERED', icon: 'checkmark-circle' },
 };
 
-const STEP_LABELS: Record<string, string> = {
-  ACCEPTED: 'Order Accepted',
-  EN_ROUTE_TO_PICKUP: 'En Route',
-  ARRIVED_AT_PHARMACY: 'At Pharmacy',
-  PICKED_UP: 'Picked Up',
-  EN_ROUTE_TO_CUSTOMER: 'En Route',
-  ARRIVED_AT_CUSTOMER: 'At Customer',
-  DELIVERED: 'Delivered',
+const STEP_LABEL_KEYS: Record<string, string> = {
+  ACCEPTED: 'delivery.stepAccepted',
+  EN_ROUTE_TO_PICKUP: 'delivery.stepEnRoute',
+  ARRIVED_AT_PHARMACY: 'delivery.stepAtPharmacy',
+  PICKED_UP: 'delivery.stepPickedUp',
+  EN_ROUTE_TO_CUSTOMER: 'delivery.stepEnRoute',
+  ARRIVED_AT_CUSTOMER: 'delivery.stepAtCustomer',
+  DELIVERED: 'delivery.stepDelivered',
 };
 
 const ALL_STATUSES = [
@@ -76,44 +63,18 @@ const ALL_STATUSES = [
   'DELIVERED',
 ] as const;
 
-function DriverMarker({ isDark, colors }: { isDark: boolean, colors: DeliveryColors }) {
-  return (
-    <View style={[s.driverMarker, { backgroundColor: isDark ? colors.canvas.surface : colors.white, borderColor: colors.brand.primary }]}>
-      <View style={s.driverInner}>
-        <Ionicons name="navigate" size={18} color={colors.brand.primary} />
-      </View>
-      <View style={[s.driverPulse, { backgroundColor: colors.brand.primaryLight }]} />
-    </View>
-  );
-}
-
-function PharmacyMarker({ colors }: { colors: DeliveryColors }) {
-  return (
-    <View style={[s.marker, { backgroundColor: colors.delivery.pickup, borderColor: colors.white }]}>
-      <Ionicons name="medical" size={16} color={colors.text.inverse} />
-    </View>
-  );
-}
-
-function CustomerMarker({ colors }: { colors: DeliveryColors }) {
-  return (
-    <View style={[s.marker, { backgroundColor: colors.delivery.dropoff, borderColor: colors.white }]}>
-      <Ionicons name="home" size={16} color={colors.text.inverse} />
-    </View>
-  );
-}
-
 function SuccessState({ theme }: { theme: DeliveryTheme }) {
+  const { t } = useTranslation();
   return (
     <Animated.View entering={FadeIn.springify()} style={[s.successWrap, { backgroundColor: theme.colors.canvas.screen }]}>
       <View style={[s.successIcon, { backgroundColor: theme.colors.status.success + '20' }]}>
         <Ionicons name="checkmark-circle" size={64} color={theme.colors.status.success} />
       </View>
       <CourierUI.Typography scale="sectionHead" align="center">
-        Delivery Complete!
+        {t('delivery.complete')}
       </CourierUI.Typography>
       <CourierUI.Typography scale="bodySm" color="secondary" align="center">
-        Great job! Returning to dashboard…
+        {t('delivery.completeSubtitle')}
       </CourierUI.Typography>
       <ActivityIndicator size="small" color={theme.colors.brand.primary} style={{ marginTop: 16 }} />
     </Animated.View>
@@ -122,6 +83,7 @@ function SuccessState({ theme }: { theme: DeliveryTheme }) {
 
 export default function ActiveDeliveryScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const { theme, isDark, colors } = useCourierTheme();
   const order = useOrdersStore((s) => s.activeDelivery);
@@ -131,42 +93,8 @@ export default function ActiveDeliveryScreen() {
   const [showSuccess, setShowSuccess] = useState(false);
 
   const gpsWarning = location.warning;
-  const isPermissionDenied = gpsWarning?.toLowerCase().includes('permission denied');
-  const isServicesDisabled = gpsWarning?.toLowerCase().includes('location services disabled');
-  const isPoorAccuracy = gpsWarning?.toLowerCase().includes('accuracy') && !isPermissionDenied && !isServicesDisabled;
   const hasLocation = location.latitude != null && location.longitude != null;
-
-  const gpsBannerConfig = (() => {
-    if (isPermissionDenied) {
-      return {
-        icon: 'location-outline' as const,
-        text: 'Location permission denied. Enable it in settings to continue.',
-        color: colors.status.warning,
-      };
-    }
-    if (isServicesDisabled) {
-      return {
-        icon: 'settings-outline' as const,
-        text: 'Location services are disabled. Please enable them in your device settings.',
-        color: colors.status.error,
-      };
-    }
-    if (isPoorAccuracy) {
-      return {
-        icon: 'warning-outline' as const,
-        text: gpsWarning ?? 'Poor GPS accuracy. Move to an open area.',
-        color: colors.status.warning,
-      };
-    }
-    if (!hasLocation) {
-      return {
-        icon: 'location-outline' as const,
-        text: 'Acquiring GPS signal…',
-        color: colors.text.primary,
-      };
-    }
-    return null;
-  })();
+  const gpsBannerConfig = useGpsBanner(gpsWarning, hasLocation, colors, t);
 
   const pulse = useSharedValue(1);
   useEffect(() => {
@@ -200,14 +128,14 @@ export default function ActiveDeliveryScreen() {
     onSuccess: (_, vars) => {
       if (vars === 'DELIVERED') {
         setShowSuccess(true);
-        showToast('Delivery completed! Great job.', 'success');
+        showToast(t('delivery.completedToast'), 'success');
         qc.invalidateQueries({ queryKey: ['driverProfile'] });
         setTimeout(() => {
           clearDelivery();
           router.replace('/(tabs)');
         }, 2000);
       } else {
-        showToast(`Status updated: ${STEP_LABELS[vars] ?? vars}`, 'success');
+        showToast(t('delivery.statusUpdated', { status: t(STEP_LABEL_KEYS[vars] ?? vars) }), 'success');
         useOrdersStore.setState((s) => ({
           ...s,
           activeDelivery: s.activeDelivery
@@ -217,12 +145,13 @@ export default function ActiveDeliveryScreen() {
       }
     },
     onError: (error: unknown) => {
+      const fallback = t('delivery.updateFailed');
       const message =
         typeof error === 'object' && error !== null && 'response' in error
-          ? (error as { response: { data?: { message?: string } } }).response?.data?.message || 'Failed to update status. Please try again.'
+          ? (error as { response: { data?: { message?: string } } }).response?.data?.message || fallback
           : typeof error === 'object' && error !== null && 'message' in error
-            ? (error as Error).message || 'Failed to update status. Please try again.'
-            : 'Failed to update status. Please try again.';
+            ? (error as Error).message || fallback
+            : fallback;
       showToast(message, 'error');
     },
   });
@@ -235,9 +164,10 @@ export default function ActiveDeliveryScreen() {
     return (
       <View style={[s.empty, { backgroundColor: theme.colors.canvas.screen }]}>
         <CourierUI.EmptyState
-          title="No Active Delivery"
-          subtitle="You don't have an delivery in progress right now."
-          actionLabel="Go Back"
+          icon="bicycle-outline"
+          title={t('delivery.noActiveTitle')}
+          subtitle={t('delivery.noActiveSubtitle')}
+          actionLabel={t('delivery.goBack')}
           onAction={() => router.back()}
         />
       </View>
@@ -298,7 +228,7 @@ export default function ActiveDeliveryScreen() {
         showsTraffic={false}
         showsCompass={false}
         toolbarEnabled={false}
-        accessibilityLabel="Delivery route map"
+        accessibilityLabel={t('delivery.routeMapA11y')}
       >
         <Polyline
           coordinates={routeCoords}
@@ -330,41 +260,35 @@ export default function ActiveDeliveryScreen() {
 
       <SafeAreaView edges={['top']} style={s.topBar}>
         <TouchableOpacity
-          style={[
-            s.backBtnTop,
-            {
-              backgroundColor: isDark ? 'rgba(15,23,42,0.85)' : 'rgba(255,255,255,0.92)',
-              borderColor: colors.border.default,
-            },
-          ]}
+          style={[s.backBtnTop, { borderColor: colors.border.default }]}
           onPress={() => router.back()}
-          accessibilityLabel="Go back"
+          accessibilityLabel={t('delivery.backA11y')}
           accessibilityRole="button"
         >
+          <BlurView intensity={40} tint={isDark ? 'dark' : 'light'} style={StyleSheet.absoluteFill} />
+          <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: isDark ? 'rgba(15,23,42,0.45)' : 'rgba(255,255,255,0.55)' }]} />
           <Ionicons name="arrow-back" size={22} color={colors.text.primary} />
         </TouchableOpacity>
         <View
-          style={[
-            s.gpsChip,
-            {
-              backgroundColor: isDark ? 'rgba(15,23,42,0.85)' : 'rgba(255,255,255,0.92)',
-              borderColor: colors.border.default,
-            },
-          ]}
-          accessibilityLabel="GPS tracking active"
+          style={[s.gpsChip, { borderColor: colors.border.default }]}
+          accessibilityLabel={t('delivery.gpsActiveA11y')}
         >
+          <BlurView intensity={40} tint={isDark ? 'dark' : 'light'} style={StyleSheet.absoluteFill} />
+          <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: isDark ? 'rgba(15,23,42,0.45)' : 'rgba(255,255,255,0.55)' }]} />
           <View style={[s.gpsDot, { backgroundColor: colors.brand.primary }]} />
-          <CourierUI.Typography scale="badge" color="brand">GPS TRACKING</CourierUI.Typography>
+          <CourierUI.Typography scale="badge" color="brand">{t('delivery.gpsTracking')}</CourierUI.Typography>
         </View>
 
         {gpsBannerConfig && (
           <TouchableOpacity
-            style={[s.gpsWarningBanner, { backgroundColor: isDark ? 'rgba(15,23,42,0.9)' : 'rgba(255,255,255,0.95)', borderColor: colors.border.default }]}
+            style={[s.gpsWarningBanner, { borderColor: colors.border.default }]}
             onPress={() => Linking.openSettings()}
             accessibilityRole="button"
-            accessibilityLabel={`${gpsBannerConfig.text} Tap to open settings`}
+            accessibilityLabel={t('delivery.tapToOpenSettings', { text: gpsBannerConfig.text })}
             accessibilityLiveRegion="polite"
           >
+            <BlurView intensity={45} tint={isDark ? 'dark' : 'light'} style={StyleSheet.absoluteFill} />
+            <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: isDark ? 'rgba(15,23,42,0.5)' : 'rgba(255,255,255,0.6)' }]} />
             <Ionicons name={gpsBannerConfig.icon} size={16} color={gpsBannerConfig.color} />
             <CourierUI.Typography scale="badge" style={{ color: gpsBannerConfig.color, flex: 1 }}>
               {gpsBannerConfig.text}
@@ -390,7 +314,7 @@ export default function ActiveDeliveryScreen() {
             <View style={s.etaBlock}>
               <Ionicons name="time-outline" size={16} color={colors.brand.primary} />
               <CourierUI.Typography scale="bodySm" color="secondary">
-                Est. {order.estimatedEarnings} EGP · {order.order.itemCount} items
+                {t('delivery.estimate', { amount: order.estimatedEarnings, count: order.order.itemCount })}
               </CourierUI.Typography>
             </View>
             <CourierUI.Typography scale="priceLg" style={{ color: colors.brand.primary }}>
@@ -427,7 +351,7 @@ export default function ActiveDeliveryScreen() {
                         scale="caption"
                         color={isActive ? 'primary' : 'secondary'}
                       >
-                        {STEP_LABELS[status]}
+                        {t(STEP_LABEL_KEYS[status])}
                       </CourierUI.Typography>
                     </View>
                   </View>
@@ -450,7 +374,7 @@ export default function ActiveDeliveryScreen() {
                 <Ionicons name="medical" size={16} color={colors.delivery.pickup} />
               </View>
               <View style={{ flex: 1 }}>
-                <CourierUI.Typography scale="caption" color="brand">Pickup</CourierUI.Typography>
+                <CourierUI.Typography scale="caption" color="brand">{t('delivery.pickup')}</CourierUI.Typography>
                 <CourierUI.Typography scale="bodySm" color="primary" numberOfLines={1}>
                   {order.pharmacyAddress}
                 </CourierUI.Typography>
@@ -461,7 +385,7 @@ export default function ActiveDeliveryScreen() {
                 <Ionicons name="home" size={16} color={colors.delivery.dropoff} />
               </View>
               <View style={{ flex: 1 }}>
-                <CourierUI.Typography scale="caption" color="danger">Dropoff</CourierUI.Typography>
+                <CourierUI.Typography scale="caption" color="danger">{t('delivery.dropoff')}</CourierUI.Typography>
                 <CourierUI.Typography scale="bodySm" color="primary" numberOfLines={2}>
                   {order.order.customerAddress}
                 </CourierUI.Typography>
@@ -480,7 +404,7 @@ export default function ActiveDeliveryScreen() {
             onPress={() => updateMutation.mutate(conf.next as DeliveryStatus)}
             disabled={updateMutation.isPending}
             activeOpacity={0.85}
-            accessibilityLabel={conf.label}
+            accessibilityLabel={t(conf.labelKey)}
             accessibilityRole="button"
             accessibilityState={{ disabled: updateMutation.isPending }}
           >
@@ -491,7 +415,7 @@ export default function ActiveDeliveryScreen() {
                 <Ionicons name={conf.icon} size={22} color={theme.colors.text.inverse} />
               )}
               <CourierUI.Typography scale="buttonMd" color="inverse" style={{ fontWeight: '800' }}>
-                {updateMutation.isPending ? 'Updating…' : conf.label}
+                {updateMutation.isPending ? t('delivery.updating') : t(conf.labelKey)}
               </CourierUI.Typography>
             </View>
             {!updateMutation.isPending && (
@@ -546,6 +470,7 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
+    overflow: 'hidden',
   },
   gpsChip: {
     flexDirection: 'row',
@@ -555,6 +480,7 @@ const s = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 100,
     borderWidth: 1,
+    overflow: 'hidden',
   },
   gpsDot: {
     width: 6,
@@ -642,33 +568,6 @@ const s = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
   },
-  driverMarker: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 3,
-  },
-  driverInner: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  driverPulse: {
-    position: 'absolute',
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-  },
-  marker: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: '#fff',
-  },
   gpsWarningBanner: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -679,5 +578,6 @@ const s = StyleSheet.create({
     borderWidth: 1,
     marginTop: 8,
     alignSelf: 'center',
+    overflow: 'hidden',
   },
 });

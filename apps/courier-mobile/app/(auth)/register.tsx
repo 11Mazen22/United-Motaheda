@@ -15,62 +15,67 @@ import { useRouter } from 'expo-router';
 import { useForm, Controller } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import Animated, { FadeIn, SlideInRight } from 'react-native-reanimated';
 import * as ImagePicker from 'expo-image-picker';
+import { useTranslation } from 'react-i18next';
 import { typography, spacing, radii, shadows, animation } from '@pharmacy/ui-native/courier-tokens';
 import { Button, Input, showToast, useCourierTheme } from '@pharmacy/ui-native';
 import { driverApi } from '@/lib/api';
 import { useAuthStore } from '@/stores/auth.store';
 
-const step1Schema = z
-  .object({
-    fullName: z.string().min(3, 'Full name must be at least 3 characters'),
-    email: z.string().email('Invalid email address'),
-    phone: z
-      .string()
-      .regex(/^(\+20|0020|0)?1[0-2,5]{1}[0-9]{8}$/, 'Enter a valid Egyptian phone number'),
-    password: z.string().min(8, 'Password must be at least 8 characters'),
-    confirmPassword: z.string(),
-  })
-  .refine((d) => d.password === d.confirmPassword, {
-    message: 'Passwords do not match',
-    path: ['confirmPassword'],
+function createStep1Schema(t: (key: string) => string) {
+  return z
+    .object({
+      fullName: z.string().min(3, t('register.fullNameMin')),
+      email: z.string().email(t('register.invalidEmail')),
+      phone: z
+        .string()
+        .regex(/^(\+20|0020|0)?1[0-2,5]{1}[0-9]{8}$/, t('register.invalidPhone')),
+      password: z.string().min(8, t('register.passwordMin8')),
+      confirmPassword: z.string(),
+    })
+    .refine((d) => d.password === d.confirmPassword, {
+      message: t('register.passwordsMismatch'),
+      path: ['confirmPassword'],
+    });
+}
+
+function createStep2Schema(t: (key: string) => string) {
+  return z.object({
+    vehicleType: z.enum(['motorcycle', 'car', 'van'] as const).refine((v) => v !== undefined, {
+      message: t('register.selectVehicleType'),
+    }),
+    vehiclePlate: z.string().min(2, t('register.plateRequired')),
+    vehicleModel: z.string().min(2, t('register.modelRequired')),
+    vehicleColor: z.string().min(2, t('register.colorRequired')),
   });
+}
 
-const step2Schema = z.object({
-  vehicleType: z.enum(['motorcycle', 'car', 'van'] as const).refine((v) => v !== undefined, {
-    message: 'Select a vehicle type',
-  }),
-  vehiclePlate: z.string().min(2, 'Enter vehicle plate number'),
-  vehicleModel: z.string().min(2, 'Enter vehicle model'),
-  vehicleColor: z.string().min(2, 'Enter vehicle color'),
-});
-
-type Step1Data = z.infer<typeof step1Schema>;
-type Step2Data = z.infer<typeof step2Schema>;
+type Step1Data = z.infer<ReturnType<typeof createStep1Schema>>;
+type Step2Data = z.infer<ReturnType<typeof createStep2Schema>>;
 
 type VehicleType = 'motorcycle' | 'car' | 'van';
 
-const VEHICLE_OPTIONS: { type: VehicleType; label: string; icon: string }[] = [
-  { type: 'motorcycle', label: 'Motorcycle', icon: '🏍️' },
-  { type: 'car', label: 'Car', icon: '🚗' },
-  { type: 'van', label: 'Van', icon: '🚐' },
+const VEHICLE_OPTIONS: { type: VehicleType; labelKey: string; icon: React.ComponentProps<typeof MaterialCommunityIcons>['name'] }[] = [
+  { type: 'motorcycle', labelKey: 'register.vehicleMotorcycle', icon: 'motorbike' },
+  { type: 'car', labelKey: 'register.vehicleCar', icon: 'car-outline' },
+  { type: 'van', labelKey: 'register.vehicleVan', icon: 'van-utility' },
 ];
 
 type DocumentType = 'license' | 'id' | 'vehicle' | 'insurance';
-const DOCUMENTS: { type: DocumentType; label: string; icon: React.ComponentProps<typeof Ionicons>['name'] }[] = [
-  { type: 'license', label: 'Driver License', icon: 'card-outline' },
-  { type: 'id', label: 'National ID', icon: 'id-card-outline' },
-  { type: 'vehicle', label: 'Vehicle Photo', icon: 'car-outline' },
-  { type: 'insurance', label: 'Insurance', icon: 'shield-checkmark-outline' },
+const DOCUMENTS: { type: DocumentType; labelKey: string; icon: React.ComponentProps<typeof Ionicons>['name'] }[] = [
+  { type: 'license', labelKey: 'register.docLicense', icon: 'card-outline' },
+  { type: 'id', labelKey: 'register.docId', icon: 'id-card-outline' },
+  { type: 'vehicle', labelKey: 'register.docVehicle', icon: 'car-outline' },
+  { type: 'insurance', labelKey: 'register.docInsurance', icon: 'shield-checkmark-outline' },
 ];
 
-const STEP_TITLES = ['Personal Info', 'Vehicle Info', 'Documents'];
-const STEP_SUBTITLES = [
-  'Tell us about yourself',
-  'Your delivery vehicle details',
-  'Upload required documents',
+const STEP_TITLE_KEYS = ['register.step1Title', 'register.step2Title', 'register.step3Title'];
+const STEP_SUBTITLE_KEYS = [
+  'register.step1Subtitle',
+  'register.step2Subtitle',
+  'register.step3Subtitle',
 ];
 
 function StepIndicator({ current, total, tc }: { current: number; total: number; tc: ReturnType<typeof useCourierTheme>['colors'] }) {
@@ -95,6 +100,7 @@ function StepIndicator({ current, total, tc }: { current: number; total: number;
               <Text
                 style={[
                   si.dotLabel,
+                  { color: tc.text.secondary },
                   i === current && { color: tc.text.inverse },
                 ]}
               >
@@ -125,12 +131,13 @@ const si = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  dotLabel: { fontSize: typography.sm, fontFamily: typography.bold, color: 'transparent' },
+  dotLabel: { fontSize: typography.sm, fontFamily: typography.bold },
   line: { flex: 1, height: 2, marginHorizontal: spacing[2], maxWidth: 60 },
 });
 
 export default function RegisterScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { colors: tc } = useCourierTheme();
   const setAuth = useAuthStore((s) => s.setAuth);
 
@@ -153,12 +160,12 @@ export default function RegisterScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form1 = useForm<Step1Data>({
-    resolver: zodResolver(step1Schema),
+    resolver: zodResolver(createStep1Schema(t)),
     defaultValues: { fullName: '', email: '', phone: '', password: '', confirmPassword: '' },
   });
 
   const form2 = useForm<Step2Data>({
-    resolver: zodResolver(step2Schema),
+    resolver: zodResolver(createStep2Schema(t)),
     defaultValues: { vehicleType: undefined, vehiclePlate: '', vehicleModel: '', vehicleColor: '' },
   });
 
@@ -182,7 +189,7 @@ export default function RegisterScreen() {
   const handleFinalSubmit = async () => {
     const allSelected = DOCUMENTS.every((d) => documents[d.type]);
     if (!allSelected) {
-      showToast('Please upload all required documents', 'warning');
+      showToast(t('register.pleaseUploadAll'), 'warning');
       return;
     }
 
@@ -211,7 +218,7 @@ export default function RegisterScreen() {
           setUploadProgress((p) => ({ ...p, [document.type]: 'done' }));
         } catch {
           setUploadProgress((p) => ({ ...p, [document.type]: 'error' }));
-          throw new Error(`Failed to upload ${document.type} document`);
+          throw new Error(t('register.uploadFailedDoc', { doc: document.type }));
         }
       }
       router.replace('/(auth)/pending');
@@ -220,7 +227,7 @@ export default function RegisterScreen() {
         err instanceof Error
           ? err.message
           : (err as { response?: { data?: { message?: string } } }).response?.data?.message ??
-              'Registration failed. Please try again.';
+              t('register.registrationFailed');
       showToast(message, 'error');
     } finally {
       setIsSubmitting(false);
@@ -255,26 +262,26 @@ export default function RegisterScreen() {
             onPress={handleBack}
             hitSlop={8}
             accessibilityRole="button"
-            accessibilityLabel={step === 0 ? "Go back" : "Previous step"}
+            accessibilityLabel={step === 0 ? t('register.goBack') : t('register.previousStep')}
           >
             <Ionicons name="arrow-back" size={24} color={tc.text.primary} />
           </Pressable>
 
           {/* Title */}
           <Animated.Text
-            key={STEP_TITLES[step]}
+            key={STEP_TITLE_KEYS[step]}
             entering={SlideInRight.duration(animation.fast)}
             style={[s.title, { color: tc.text.primary }]}
             accessibilityRole="header"
           >
-            {STEP_TITLES[step]}
+            {t(STEP_TITLE_KEYS[step])}
           </Animated.Text>
           <Animated.Text
-            key={STEP_SUBTITLES[step]}
+            key={STEP_SUBTITLE_KEYS[step]}
             entering={SlideInRight.duration(animation.fast).delay(50)}
             style={[s.subtitle, { color: tc.text.secondary }]}
           >
-            {STEP_SUBTITLES[step]}
+            {t(STEP_SUBTITLE_KEYS[step])}
           </Animated.Text>
 
           <StepIndicator current={step} total={3} tc={tc} />
@@ -287,15 +294,15 @@ export default function RegisterScreen() {
                 name="fullName"
                 render={({ field: { onChange, onBlur, value } }) => (
                   <Input
-                    label="Full Name"
-                    placeholder="Ahmed Mohamed"
+                    label={t('register.fullName')}
+                    placeholder={t('register.fullNamePlaceholder')}
                     value={value}
                     onChangeText={onChange}
                     onBlur={onBlur}
                     error={form1.formState.errors.fullName?.message}
                     autoCapitalize="words"
                     required
-                    accessibilityLabel="Full name input"
+                    accessibilityLabel={t('register.fullNameA11y')}
                   />
                 )}
               />
@@ -304,15 +311,15 @@ export default function RegisterScreen() {
                 name="phone"
                 render={({ field: { onChange, onBlur, value } }) => (
                   <Input
-                    label="Phone Number"
-                    placeholder="+201012345678"
+                    label={t('register.phoneNumber')}
+                    placeholder={t('register.phoneNumberPlaceholder')}
                     value={value}
                     onChangeText={onChange}
                     onBlur={onBlur}
                     error={form1.formState.errors.phone?.message}
                     keyboardType="phone-pad"
                     required
-                    accessibilityLabel="Phone number input"
+                    accessibilityLabel={t('register.phoneNumberA11y')}
                   />
                 )}
               />
@@ -321,8 +328,8 @@ export default function RegisterScreen() {
                 name="email"
                 render={({ field: { onChange, onBlur, value } }) => (
                   <Input
-                    label="Email"
-                    placeholder="driver@example.com"
+                    label={t('register.email')}
+                    placeholder={t('register.emailPlaceholder')}
                     value={value}
                     onChangeText={onChange}
                     onBlur={onBlur}
@@ -330,7 +337,7 @@ export default function RegisterScreen() {
                     keyboardType="email-address"
                     autoCapitalize="none"
                     required
-                    accessibilityLabel="Email input"
+                    accessibilityLabel={t('register.emailA11y')}
                   />
                 )}
               />
@@ -339,8 +346,8 @@ export default function RegisterScreen() {
                 name="password"
                 render={({ field: { onChange, onBlur, value } }) => (
                   <Input
-                    label="Password"
-                    placeholder="Min. 8 characters"
+                    label={t('register.password')}
+                    placeholder={t('register.passwordPlaceholder')}
                     value={value}
                     onChangeText={onChange}
                     onBlur={onBlur}
@@ -352,14 +359,14 @@ export default function RegisterScreen() {
                           hitSlop={16}
                           style={s.iconBtn}
                           accessibilityRole="button"
-                          accessibilityLabel={showPass ? "Hide password" : "Show password"}
+                          accessibilityLabel={showPass ? t('auth.hidePassword') : t('auth.showPassword')}
                         >
                           <Ionicons name={showPass ? 'eye-off-outline' : 'eye-outline'} size={20} color={tc.text.muted} />
                         </Pressable>
                       }
                     required
-                    accessibilityLabel="Password input"
-                    accessibilityHint="Create a password with at least 8 characters"
+                    accessibilityLabel={t('register.passwordA11y')}
+                    accessibilityHint={t('register.passwordHint')}
                   />
                 )}
               />
@@ -368,8 +375,8 @@ export default function RegisterScreen() {
                 name="confirmPassword"
                 render={({ field: { onChange, onBlur, value } }) => (
                   <Input
-                    label="Confirm Password"
-                    placeholder="Repeat password"
+                    label={t('register.confirmPassword')}
+                    placeholder={t('register.confirmPasswordPlaceholder')}
                     value={value}
                     onChangeText={onChange}
                     onBlur={onBlur}
@@ -381,20 +388,20 @@ export default function RegisterScreen() {
                           hitSlop={16}
                           style={s.iconBtn}
                           accessibilityRole="button"
-                          accessibilityLabel={showConfirmPass ? "Hide confirm password" : "Show confirm password"}
+                          accessibilityLabel={showConfirmPass ? t('register.hideConfirmPassword') : t('register.showConfirmPassword')}
                         >
                           <Ionicons name={showConfirmPass ? 'eye-off-outline' : 'eye-outline'} size={20} color={tc.text.muted} />
                         </Pressable>
                       }
                     required
-                    accessibilityLabel="Confirm password input"
-                    accessibilityHint="Re-enter your password"
+                    accessibilityLabel={t('register.confirmPasswordA11y')}
+                    accessibilityHint={t('register.confirmPasswordHint')}
                   />
                 )}
               />
 
               <Button
-                title="Next: Vehicle Info"
+                title={t('register.nextVehicleInfo')}
                 onPress={() => void form1.handleSubmit((data) => {
                   setStep1Data(data);
                   setStep(1);
@@ -404,7 +411,7 @@ export default function RegisterScreen() {
                 size="lg"
                 style={{ marginTop: spacing[4] }}
                 rightIcon={<Ionicons name="arrow-forward" size={18} color={tc.text.inverse} />}
-                accessibilityLabel="Continue to vehicle info"
+                accessibilityLabel={t('register.continueToVehicleInfo')}
               />
             </Animated.View>
           )}
@@ -412,9 +419,9 @@ export default function RegisterScreen() {
           {/* ─── Step 2: Vehicle info ─────────────────────────────────────── */}
           {step === 1 && (
             <Animated.View entering={FadeIn.duration(animation.normal)} style={s.fields}>
-              <Text style={[s.sectionLabel, { color: tc.text.secondary }]} accessibilityRole="header">Vehicle Type *</Text>
+              <Text style={[s.sectionLabel, { color: tc.text.secondary }]} accessibilityRole="header">{t('register.vehicleTypeLabel')}</Text>
               <View style={s.vehicleRow}>
-                {VEHICLE_OPTIONS.map(({ type, label, icon }) => (
+                {VEHICLE_OPTIONS.map(({ type, labelKey, icon }) => (
                   <Controller
                     key={type}
                     control={form2.control}
@@ -432,16 +439,21 @@ export default function RegisterScreen() {
                         activeOpacity={0.7}
                         accessibilityRole="radio"
                         accessibilityState={{ selected: value === type }}
-                        accessibilityLabel={`${label} vehicle type`}
+                        accessibilityLabel={t('register.vehicleTypeA11y', { label: t(labelKey) })}
                       >
-                        <Text style={s.vehicleEmoji}>{icon}</Text>
+                        <MaterialCommunityIcons
+                          name={icon}
+                          size={28}
+                          color={value === type ? tc.brand.primary : tc.text.secondary}
+                        />
                         <Text
                           style={[
                             s.vehicleLabel,
+                            { color: tc.text.secondary },
                             value === type && { color: tc.brand.primary, fontFamily: typography.bold },
                           ]}
                         >
-                          {label}
+                          {t(labelKey)}
                         </Text>
                       </TouchableOpacity>
                     )}
@@ -459,15 +471,15 @@ export default function RegisterScreen() {
                 name="vehiclePlate"
                 render={({ field: { onChange, onBlur, value } }) => (
                   <Input
-                    label="Plate Number"
-                    placeholder="ABC 1234"
+                    label={t('register.plateNumber')}
+                    placeholder={t('register.plateNumberPlaceholder')}
                     value={value}
                     onChangeText={onChange}
                     onBlur={onBlur}
                     error={form2.formState.errors.vehiclePlate?.message}
                     autoCapitalize="characters"
                     required
-                    accessibilityLabel="Vehicle plate number input"
+                    accessibilityLabel={t('register.plateNumberA11y')}
                   />
                 )}
               />
@@ -476,14 +488,14 @@ export default function RegisterScreen() {
                 name="vehicleModel"
                 render={({ field: { onChange, onBlur, value } }) => (
                   <Input
-                    label="Vehicle Model"
-                    placeholder="Toyota Corolla 2020"
+                    label={t('register.vehicleModel')}
+                    placeholder={t('register.vehicleModelPlaceholder')}
                     value={value}
                     onChangeText={onChange}
                     onBlur={onBlur}
                     error={form2.formState.errors.vehicleModel?.message}
                     required
-                    accessibilityLabel="Vehicle model input"
+                    accessibilityLabel={t('register.vehicleModelA11y')}
                   />
                 )}
               />
@@ -492,20 +504,20 @@ export default function RegisterScreen() {
                 name="vehicleColor"
                 render={({ field: { onChange, onBlur, value } }) => (
                   <Input
-                    label="Vehicle Color"
-                    placeholder="White"
+                    label={t('register.vehicleColor')}
+                    placeholder={t('register.vehicleColorPlaceholder')}
                     value={value}
                     onChangeText={onChange}
                     onBlur={onBlur}
                     error={form2.formState.errors.vehicleColor?.message}
                     required
-                    accessibilityLabel="Vehicle color input"
+                    accessibilityLabel={t('register.vehicleColorA11y')}
                   />
                 )}
               />
 
               <Button
-                title="Next: Documents"
+                title={t('register.nextDocuments')}
                 onPress={() => void form2.handleSubmit((data) => {
                   setStep2Data(data);
                   setStep(2);
@@ -514,7 +526,7 @@ export default function RegisterScreen() {
                 size="lg"
                 style={{ marginTop: spacing[4] }}
                 rightIcon={<Ionicons name="arrow-forward" size={18} color={tc.text.inverse} />}
-                accessibilityLabel="Continue to documents"
+                accessibilityLabel={t('register.continueToDocuments')}
               />
             </Animated.View>
           )}
@@ -523,13 +535,13 @@ export default function RegisterScreen() {
           {step === 2 && (
             <Animated.View entering={FadeIn.duration(animation.normal)} style={s.fields}>
               <Text style={[s.docNote, { color: tc.text.secondary, backgroundColor: tc.brand.primaryLight }]}>
-                All documents are required before registration can be processed.
+                {t('register.docsRequiredNote')}
               </Text>
 
               {/* Document progress */}
               <View style={s.docProgressRow}>
                 <Text style={[s.docProgressText, { color: tc.text.secondary }]}>
-                  {documentsUploaded} of {DOCUMENTS.length} uploaded
+                  {t('register.docsUploadedCount', { count: documentsUploaded, total: DOCUMENTS.length })}
                 </Text>
                 <View style={s.docProgressBar}>
                   <View
@@ -538,9 +550,10 @@ export default function RegisterScreen() {
                 </View>
               </View>
 
-              {DOCUMENTS.map(({ type, label, icon }) => {
+              {DOCUMENTS.map(({ type, labelKey, icon }) => {
                 const status = uploadProgress[type];
                 const uri = documents[type];
+                const label = t(labelKey);
 
                 return (
                    <TouchableOpacity
@@ -553,12 +566,15 @@ export default function RegisterScreen() {
                      onPress={() => pickDocument(type)}
                      activeOpacity={0.7}
                      accessibilityRole="button"
-                     accessibilityLabel={`${label} - ${status === 'done' ? 'Uploaded' : status === 'error' ? 'Upload failed' : 'Tap to upload'}`}
-                     accessibilityHint={`Upload your ${label.toLowerCase()}`}
+                     accessibilityLabel={t('register.docA11y', {
+                       label,
+                       status: status === 'done' ? t('register.docUploaded') : status === 'error' ? t('register.docUploadFailed') : t('register.docTapToUpload'),
+                     })}
+                     accessibilityHint={t('register.docUploadHint', { label })}
                    >
                      <View style={s.docLeft}>
                        {uri ? (
-                         <Image source={{ uri }} style={s.docThumb} accessibilityLabel={`${label} preview`} />
+                         <Image source={{ uri }} style={s.docThumb} accessibilityLabel={t('register.docPreviewA11y', { label })} />
                        ) : (
                          <View style={[s.docIconBox, { backgroundColor: tc.brand.primaryLight }]}>
                            <Ionicons name={icon} size={24} color={tc.brand.primary} />
@@ -568,12 +584,12 @@ export default function RegisterScreen() {
                          <Text style={[s.docLabel, { color: tc.text.primary }]}>{label}</Text>
                          <Text style={[s.docSub, { color: tc.text.secondary }]}>
                            {status === 'idle'
-                             ? 'Tap to upload'
+                             ? t('register.docTapToUpload')
                              : status === 'uploading'
-                               ? 'Uploading…'
+                               ? t('register.docUploading')
                                : status === 'done'
-                                 ? 'Uploaded ✓'
-                                 : 'Upload failed — tap to retry'}
+                                 ? t('register.docUploadedCheck')
+                                 : t('register.docUploadFailedRetry')}
                          </Text>
                        </View>
                      </View>
@@ -593,28 +609,28 @@ export default function RegisterScreen() {
               })}
 
               <Button
-                title="Submit Registration"
+                title={t('register.submitRegistration')}
                 onPress={handleFinalSubmit}
                 loading={isSubmitting}
                 fullWidth
                 size="lg"
                 style={{ marginTop: spacing[4] }}
-                accessibilityLabel="Submit registration"
-                accessibilityHint="Double tap to submit your registration"
+                accessibilityLabel={t('register.submitRegistrationA11y')}
+                accessibilityHint={t('register.submitRegistrationHint')}
               />
             </Animated.View>
           )}
 
           {/* Sign in link */}
           <View style={s.footer}>
-            <Text style={[s.footerText, { color: tc.text.secondary }]}>Already have an account?</Text>
+            <Text style={[s.footerText, { color: tc.text.secondary }]}>{t('register.alreadyHaveAccount')}</Text>
             <Pressable
               onPress={() => router.push('/(auth)/login')}
               hitSlop={12}
               accessibilityRole="link"
-              accessibilityLabel="Sign in to existing account"
+              accessibilityLabel={t('register.signInExistingA11y')}
             >
-              <Text style={[s.loginLink, { color: tc.brand.primary }]}> Sign In</Text>
+              <Text style={[s.loginLink, { color: tc.brand.primary }]}>{t('register.signIn')}</Text>
             </Pressable>
           </View>
         </ScrollView>
@@ -671,8 +687,7 @@ const s = StyleSheet.create({
   vehicleCardActive: {
     ...shadows.brand,
   },
-  vehicleEmoji: { fontSize: 32 },
-  vehicleLabel: { fontSize: typography.xs, fontFamily: typography.medium, color: 'transparent' },
+  vehicleLabel: { fontSize: typography.xs, fontFamily: typography.medium },
   vehicleLabelActive: { fontFamily: typography.bold },
 
   errorText: { fontSize: typography.xs, marginTop: -spacing[2] },
