@@ -1,0 +1,11 @@
+# EAS Build uploads a source archive of the project. android/ is a native,
+# generated (fully .gitignore'd) project directory -- exclude its build
+# output/intermediates explicitly so uploads don't try to touch files a
+# concurrent local Gradle build has open (this caused a real EPERM failure
+# from a Windows file lock), and so uploads aren't wasted on gigabytes of
+# local build artifacts EAS recompiles from scratch server-side anyway.
+android/app/build/
+android/app/.cxx/
+android/.gradle/
+android/build/
+node_modules/

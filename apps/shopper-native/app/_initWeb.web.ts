@@ -10,17 +10,46 @@ const WINDOW = typeof globalThis !== "undefined" ? (globalThis as unknown as { w
 const IS_BROWSER = typeof WINDOW !== "undefined" && typeof WINDOW.addEventListener === "function";
 
 if (IS_BROWSER) {
-  try {
-    // @ts-expect-error - react-native-web types not declared
-    const rnWebModule = await import("react-native-web");
-    const rnWeb = rnWebModule as { StyleSheet?: { setFlag?: (key: string, value: string) => void } };
-    const ss = rnWeb?.StyleSheet;
-    if (ss && typeof ss.setFlag === "function") {
-      ss.setFlag("darkMode", "class");
+  // Wrapped in an async IIFE rather than using top-level await: this file
+  // is meant to be excluded from native bundles by its .web.ts extension,
+  // but if it ever ends up in a Hermes-compiled bundle anyway, top-level
+  // await is a hard parse error there while an IIFE is always valid.
+  void (async () => {
+    try {
+      // @ts-expect-error - react-native-web types not declared
+      const rnWebModule = await import("react-native-web");
+      const rnWeb = rnWebModule as { StyleSheet?: { setFlag?: (key: string, value: string) => void } };
+      const ss = rnWeb?.StyleSheet;
+      if (ss && typeof ss.setFlag === "function") {
+        ss.setFlag("darkMode", "class");
+      }
+    } catch {
+      // Safe on versions without the flag API.
     }
-  } catch {
-    // Safe on versions without the flag API.
-  }
+
+    try {
+      const ReactDOMClientModule = await import("react-dom/client");
+      const ReactDOMClient = ReactDOMClientModule as { createRoot?: (el: Element) => { render: (node: unknown) => void } };
+
+      const ReactDOMModule = await import("react-dom");
+      const ReactDOM = ReactDOMModule as Record<string, unknown>;
+
+      if (typeof ReactDOMClient?.createRoot === "function") {
+        const createRoot = ReactDOMClient.createRoot;
+        ReactDOM.render = function (
+          element: unknown,
+          container: Element & { __reactRoot?: ReturnType<typeof createRoot> },
+          callback?: () => void,
+        ) {
+          if (!container.__reactRoot) container.__reactRoot = createRoot(container);
+          container.__reactRoot.render(element);
+          callback?.();
+        };
+      }
+    } catch {
+      // Nothing to bridge when the ReactDOM client API is unavailable.
+    }
+  })();
 
   WINDOW.addEventListener("unhandledrejection", (event: Event & { reason: { message?: string } | null }) => {
     const msg = String(event.reason?.message ?? event.reason ?? "");
@@ -53,29 +82,6 @@ if (IS_BROWSER) {
   console.warn = (...args: unknown[]) => {
     if (!shouldSuppress(args)) origWarn(...args);
   };
-
-  try {
-    const ReactDOMClientModule = await import("react-dom/client");
-    const ReactDOMClient = ReactDOMClientModule as { createRoot?: (el: Element) => { render: (node: unknown) => void } };
-
-    const ReactDOMModule = await import("react-dom");
-    const ReactDOM = ReactDOMModule as Record<string, unknown>;
-
-    if (typeof ReactDOMClient?.createRoot === "function") {
-      const createRoot = ReactDOMClient.createRoot;
-      ReactDOM.render = function (
-        element: unknown,
-        container: Element & { __reactRoot?: ReturnType<typeof createRoot> },
-        callback?: () => void,
-      ) {
-        if (!container.__reactRoot) container.__reactRoot = createRoot(container);
-        container.__reactRoot.render(element);
-        callback?.();
-      };
-    }
-  } catch {
-    // Nothing to bridge when the ReactDOM client API is unavailable.
-  }
 }
 
 export default function WebInit(): null {
