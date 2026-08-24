@@ -1,3 +1,4 @@
+import { defaultTheme as theme } from "@pharmacy/ui-native";
 /**
 
  * AppSheet — Global action / error / confirmation bottom sheet.
@@ -70,7 +71,7 @@ import {
 
 import { Text as UIText } from "@pharmacy/ui-native";
 
-import { kit } from "@pharmacy/ui-native";
+
 
 
 
@@ -108,7 +109,7 @@ const TYPE_CFG: Record<AppSheetType, TypeCfg> = {
 
     icon:    "close-circle",
 
-    grad:    ["#FF7676", kit.color.danger],
+    grad:    ["#FF7676", theme.colors.status.error],
 
     glow:    "rgba(239,68,68,0.28)",
 
@@ -122,7 +123,7 @@ const TYPE_CFG: Record<AppSheetType, TypeCfg> = {
 
     icon:    "warning",
 
-    grad:    [kit.color.warn, kit.color.warn],
+    grad:    [theme.colors.status.warning, theme.colors.status.warning],
 
     glow:    "rgba(245,158,11,0.28)",
 
@@ -192,7 +193,7 @@ const TYPE_CFG: Record<AppSheetType, TypeCfg> = {
 
     icon:    "alert-circle",
 
-    grad:    [kit.color.warn[400], kit.color.warn[600]],
+    grad:    [theme.colors.status.warning[400], theme.colors.status.warning[600]],
 
     glow:    "rgba(217,119,6,0.28)",
 
@@ -264,7 +265,7 @@ function ActionBtn({ action, cfg }: { action: AppSheetAction; cfg: TypeCfg }) {
 
           <LinearGradient
 
-            colors={isD ? ["#FF7676", kit.color.danger[500]] : cfg.grad}
+            colors={isD ? ["#FF7676", theme.colors.status.error[500]] : cfg.grad}
 
             start={{ x: 0, y: 0 }}
 
@@ -810,13 +811,13 @@ const s = StyleSheet.create({
 
     fontFamily: "Cairo_700Bold",
 
-    color:      kit.color.inkSoft,
+    color:      theme.colors.text.secondary,
 
   },
 
   btnGhostTxt: {
 
-    color: kit.color.inkSoft,
+    color: theme.colors.text.secondary,
 
   },
 

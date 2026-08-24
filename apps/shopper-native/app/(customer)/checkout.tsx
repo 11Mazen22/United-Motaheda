@@ -1,15 +1,19 @@
+/**
+ * Checkout — functional-tier screen (A3): clarity and confidence over
+ * spectacle. Calm, trustworthy step progression; the only moment of real
+ * visual emphasis is the final "Place Order" commit action.
+ */
 import React, { useState, useEffect, useCallback } from "react";
-import { View, StyleSheet, ScrollView, Pressable, Platform, KeyboardAvoidingView, Modal } from "react-native";
+import { View, StyleSheet, ScrollView, Pressable, Platform, KeyboardAvoidingView } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import Animated, { FadeIn, FadeOut, SlideInDown, SlideOutDown, Layout } from "react-native-reanimated";
+import Animated, { FadeIn, FadeOut, SlideInDown, Layout } from "react-native-reanimated";
 
-import { CustomerUI, kit, Button } from "@pharmacy/ui-native";
+import { Text, Button, BottomSheet, useTheme } from "@pharmacy/ui-native";
 import { isRtl, flexRow, textAlignStart } from "@/utils/layout";
-import { useDarkColors } from "@/hooks/useDarkColors";
 import { useAuth } from "@/features/auth";
 
 import { usePremiumCheckout } from "@/features/checkout/hooks/usePremiumCheckout";
@@ -21,15 +25,16 @@ import type { AddressFormData } from "@/features/addresses/types";
 import { useDeliveryQuote } from "@/features/delivery/useDeliveryQuote";
 
 const IS_RTL = isRtl();
+const TEXT_START = textAlignStart(IS_RTL);
 
-function StepAccordion({ 
-  step, 
-  title, 
-  isActive, 
-  isCompleted, 
-  onEdit, 
+function StepAccordion({
+  step,
+  title,
+  isActive,
+  isCompleted,
+  onEdit,
   children,
-  summary
+  summary,
 }: {
   step: number;
   title: string;
@@ -39,33 +44,34 @@ function StepAccordion({
   children: React.ReactNode;
   summary?: string;
 }) {
-  const { c } = useDarkColors();
-  
+  const { t } = useTranslation();
+  const { theme } = useTheme();
+
   return (
-    <Animated.View layout={Layout.springify().damping(20)} style={[styles.accordionCard, { backgroundColor: c.surface, borderColor: isActive ? kit.color.accentDeep : c.line }]}>
+    <Animated.View layout={Layout.springify().damping(20)} style={[styles.accordionCard, theme.shadows[1], { backgroundColor: theme.colors.canvas.surface, borderColor: isActive ? theme.colors.brand.primary : theme.colors.border.default }]}>
       <Pressable onPress={() => isCompleted && !isActive && onEdit()} style={[styles.accordionHeader, { flexDirection: flexRow(IS_RTL) }]}>
-        <View style={[styles.stepBadge, { backgroundColor: isActive ? kit.color.accentDeep : (isCompleted ? kit.color.success : c.canvas) }]}>
+        <View style={[styles.stepBadge, { backgroundColor: isActive ? theme.colors.brand.primary : (isCompleted ? theme.colors.status.success : theme.colors.canvas.background) }]}>
           {isCompleted && !isActive ? (
-             <Ionicons name="checkmark" size={14} color="#fff" />
+             <Ionicons name="checkmark" size={14} color={theme.colors.text.inverse} />
           ) : (
-             <CustomerUI.Typography variant="caption" weight="bold" color={isActive ? "#fff" : c.inkSoft}>{step}</CustomerUI.Typography>
+             <Text variant="caption" weight="bold" style={{ color: isActive ? theme.colors.text.inverse : theme.colors.text.secondary }}>{step}</Text>
           )}
         </View>
         <View style={{ flex: 1, paddingHorizontal: 12 }}>
-          <CustomerUI.Typography variant="h5" weight="bold" color={isActive ? kit.color.accentDeep : c.ink}>{title}</CustomerUI.Typography>
+          <Text variant="h5" style={{ color: isActive ? theme.colors.brand.primary : theme.colors.text.primary, textAlign: TEXT_START }}>{title}</Text>
           {isCompleted && !isActive && summary && (
-             <CustomerUI.Typography variant="body" color={c.inkSoft} style={{ marginTop: 2, textAlign: textAlignStart(IS_RTL) }}>
+             <Text variant="body" style={{ color: theme.colors.text.secondary, marginTop: 2, textAlign: TEXT_START }}>
                {summary}
-             </CustomerUI.Typography>
+             </Text>
           )}
         </View>
         {isCompleted && !isActive && (
-          <CustomerUI.Typography variant="body" weight="bold" color={kit.color.accentDeep}>{isRtl() ? "تعديل" : "Edit"}</CustomerUI.Typography>
+          <Text variant="body" weight="bold" style={{ color: theme.colors.brand.primary }}>{t("common.edit", "Edit")}</Text>
         )}
       </Pressable>
-      
+
       {isActive && (
-        <Animated.View entering={FadeIn} exiting={FadeOut} style={[styles.accordionBody, { borderTopColor: c.line }]}>
+        <Animated.View entering={FadeIn} exiting={FadeOut} style={[styles.accordionBody, { borderTopColor: theme.colors.border.default }]}>
           {children}
         </Animated.View>
       )}
@@ -73,107 +79,96 @@ function StepAccordion({
   );
 }
 
-function LocationDetailsModal({ 
-  address, 
-  quote, 
-  visible, 
-  onClose 
-}: { 
-  address: { street: string; building?: string; apartment?: string; city: string; lat?: number; lng?: number }; 
-  quote: ReturnType<typeof useDeliveryQuote>; 
-  visible: boolean; 
-  onClose: () => void; 
+function LocationDetailsModal({
+  address,
+  quote,
+  visible,
+  onClose,
+}: {
+  address: { street: string; building?: string; apartment?: string; city: string; lat?: number; lng?: number };
+  quote: ReturnType<typeof useDeliveryQuote>;
+  visible: boolean;
+  onClose: () => void;
 }) {
-  const { c } = useDarkColors();
+  const { theme } = useTheme();
   const { t, i18n } = useTranslation();
-  
+
   if (!address) return null;
   const branch = quote.branch;
   const branchName = branch ? (i18n.language === "en" ? branch.nameEn : branch.nameAr) : null;
   const branchHours = branch ? (i18n.language === "en" ? branch.hoursEn : branch.hoursAr) : null;
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <View style={styles.modalOverlay}>
-        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
-        <Animated.View entering={SlideInDown.springify()} exiting={SlideOutDown} style={[styles.modalSheet, { backgroundColor: c.surface }]}>
-          <View style={styles.modalHandle} />
-          
-          <View style={[styles.modalHeader, { flexDirection: flexRow(IS_RTL) }]}>
-             <CustomerUI.Typography variant="h4" weight="black" color={c.ink}>{t("checkout.locationDetails", "Location Details")}</CustomerUI.Typography>
-             <Pressable onPress={onClose} hitSlop={10}>
-                <Ionicons name="close-circle" size={28} color={c.inkFaint} />
-             </Pressable>
-          </View>
-          
-          <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
-             <CustomerUI.Typography variant="h6" weight="bold" color={c.ink} style={{ marginBottom: 12, textAlign: textAlignStart(IS_RTL) }}>
-                {t("checkout.yourAddress", "Your Delivery Address")}
-             </CustomerUI.Typography>
-             
-             <View style={styles.branchMetaBox}>
-                <View style={[styles.branchMetaRow, { flexDirection: flexRow(IS_RTL) }]}>
-                   <Ionicons name="home-outline" size={20} color={c.inkSoft} />
-                   <CustomerUI.Typography variant="body" color={c.ink} style={{ flex: 1, paddingHorizontal: 8, textAlign: textAlignStart(IS_RTL) }}>
-                      {address.street}, {address.building && `Bldg ${address.building}, `}{address.apartment && `Apt ${address.apartment}, `}{address.city}
-                   </CustomerUI.Typography>
-                </View>
-                <View style={[styles.branchMetaRow, { flexDirection: flexRow(IS_RTL), borderBottomWidth: 0 }]}>
-                   <Ionicons name="navigate-outline" size={20} color={c.inkSoft} />
-                   <CustomerUI.Typography variant="body" color={c.ink} style={{ flex: 1, paddingHorizontal: 8, textAlign: textAlignStart(IS_RTL) }}>
-                      {address.lat && address.lng ? t("checkout.gpsVerified", "GPS Coordinates Verified") : t("checkout.gpsMissing", "Approximate Area (No GPS)")}
-                   </CustomerUI.Typography>
-                </View>
-             </View>
-
-             <CustomerUI.Typography variant="h6" weight="bold" color={c.ink} style={{ marginTop: 24, marginBottom: 12, textAlign: textAlignStart(IS_RTL) }}>
-                {t("checkout.processingBranch", "Assigned Branch & Zone")}
-             </CustomerUI.Typography>
-             
-             <View style={styles.branchMetaBox}>
-                <View style={[styles.branchMetaRow, { flexDirection: flexRow(IS_RTL) }]}>
-                   <Ionicons name="flash-outline" size={20} color={quote.isDeliverable ? kit.color.success : kit.color.danger} />
-                   <CustomerUI.Typography variant="body" weight="bold" color={quote.isDeliverable ? kit.color.success : kit.color.danger} style={{ flex: 1, paddingHorizontal: 8, textAlign: textAlignStart(IS_RTL) }}>
-                      {quote.isDeliverable ? t("checkout.zoneEligible", "Inside Delivery Zone") : t("checkout.zoneIneligible", "Outside Delivery Zone")}
-                   </CustomerUI.Typography>
-                </View>
-                {branch && (
-                  <>
-                    <View style={[styles.branchMetaRow, { flexDirection: flexRow(IS_RTL) }]}>
-                       <Ionicons name="storefront-outline" size={20} color={c.inkSoft} />
-                       <CustomerUI.Typography variant="body" color={c.ink} style={{ flex: 1, paddingHorizontal: 8, textAlign: textAlignStart(IS_RTL) }}>
-                          {branchName}
-                       </CustomerUI.Typography>
-                    </View>
-                    <View style={[styles.branchMetaRow, { flexDirection: flexRow(IS_RTL) }]}>
-                       <Ionicons name="time-outline" size={20} color={c.inkSoft} />
-                       <CustomerUI.Typography variant="body" color={c.ink} style={{ flex: 1, paddingHorizontal: 8, textAlign: textAlignStart(IS_RTL) }}>
-                          {branchHours}
-                       </CustomerUI.Typography>
-                    </View>
-                    {quote.distanceKm !== null && (
-                      <View style={[styles.branchMetaRow, { flexDirection: flexRow(IS_RTL), borderBottomWidth: 0 }]}>
-                         <Ionicons name="map-outline" size={20} color={c.inkSoft} />
-                         <CustomerUI.Typography variant="body" color={c.ink} style={{ flex: 1, paddingHorizontal: 8, textAlign: textAlignStart(IS_RTL) }}>
-                            {t("checkout.distanceAway", { distance: quote.distanceKm.toFixed(1), defaultValue: `${quote.distanceKm.toFixed(1)} km away` })}
-                         </CustomerUI.Typography>
-                      </View>
-                    )}
-                  </>
-                )}
-             </View>
-             
-             <Button label={t("common.close", "Close")} variant="secondary" onPress={onClose} style={{ marginTop: 24 }} />
-          </ScrollView>
-        </Animated.View>
+    <BottomSheet visible={visible} onDismiss={onClose} snapPoints={["65%", "90%"]}>
+      <View style={[styles.modalHeader, { flexDirection: flexRow(IS_RTL) }]}>
+        <Text variant="h4" style={{ color: theme.colors.text.primary }}>{t("checkout.locationDetails", "Location Details")}</Text>
+        <Pressable onPress={onClose} hitSlop={10} accessibilityRole="button" accessibilityLabel={t("common.close", "Close")}>
+          <Ionicons name="close-circle" size={28} color={theme.colors.text.muted} />
+        </Pressable>
       </View>
-    </Modal>
+
+      <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
+        <Text variant="h6" style={{ color: theme.colors.text.primary, marginBottom: 12, textAlign: TEXT_START }}>
+          {t("checkout.yourAddress", "Your Delivery Address")}
+        </Text>
+
+        <View style={[styles.branchMetaBox, { backgroundColor: theme.colors.canvas.surfaceMuted }]}>
+          <View style={[styles.branchMetaRow, { flexDirection: flexRow(IS_RTL), borderBottomColor: theme.colors.border.default }]}>
+            <Ionicons name="home-outline" size={20} color={theme.colors.text.secondary} />
+            <Text variant="body" style={{ color: theme.colors.text.primary, flex: 1, paddingHorizontal: 8, textAlign: TEXT_START }}>
+              {address.street}, {address.building && `Bldg ${address.building}, `}{address.apartment && `Apt ${address.apartment}, `}{address.city}
+            </Text>
+          </View>
+          <View style={[styles.branchMetaRow, { flexDirection: flexRow(IS_RTL), borderBottomWidth: 0 }]}>
+            <Ionicons name="navigate-outline" size={20} color={theme.colors.text.secondary} />
+            <Text variant="body" style={{ color: theme.colors.text.primary, flex: 1, paddingHorizontal: 8, textAlign: TEXT_START }}>
+              {address.lat && address.lng ? t("checkout.gpsVerified", "GPS Coordinates Verified") : t("checkout.gpsMissing", "Approximate Area (No GPS)")}
+            </Text>
+          </View>
+        </View>
+
+        <Text variant="h6" style={{ color: theme.colors.text.primary, marginTop: 24, marginBottom: 12, textAlign: TEXT_START }}>
+          {t("checkout.processingBranch", "Assigned Branch & Zone")}
+        </Text>
+
+        <View style={[styles.branchMetaBox, { backgroundColor: theme.colors.canvas.surfaceMuted }]}>
+          <View style={[styles.branchMetaRow, { flexDirection: flexRow(IS_RTL), borderBottomColor: theme.colors.border.default }]}>
+            <Ionicons name="flash-outline" size={20} color={quote.isDeliverable ? theme.colors.status.success : theme.colors.status.error} />
+            <Text variant="body" weight="bold" style={{ color: quote.isDeliverable ? theme.colors.status.success : theme.colors.status.error, flex: 1, paddingHorizontal: 8, textAlign: TEXT_START }}>
+              {quote.isDeliverable ? t("checkout.zoneEligible", "Inside Delivery Zone") : t("checkout.zoneIneligible", "Outside Delivery Zone")}
+            </Text>
+          </View>
+          {branch && (
+            <>
+              <View style={[styles.branchMetaRow, { flexDirection: flexRow(IS_RTL), borderBottomColor: theme.colors.border.default }]}>
+                <Ionicons name="storefront-outline" size={20} color={theme.colors.text.secondary} />
+                <Text variant="body" style={{ color: theme.colors.text.primary, flex: 1, paddingHorizontal: 8, textAlign: TEXT_START }}>{branchName}</Text>
+              </View>
+              <View style={[styles.branchMetaRow, { flexDirection: flexRow(IS_RTL), borderBottomColor: theme.colors.border.default }]}>
+                <Ionicons name="time-outline" size={20} color={theme.colors.text.secondary} />
+                <Text variant="body" style={{ color: theme.colors.text.primary, flex: 1, paddingHorizontal: 8, textAlign: TEXT_START }}>{branchHours}</Text>
+              </View>
+              {quote.distanceKm !== null && (
+                <View style={[styles.branchMetaRow, { flexDirection: flexRow(IS_RTL), borderBottomWidth: 0 }]}>
+                  <Ionicons name="map-outline" size={20} color={theme.colors.text.secondary} />
+                  <Text variant="body" style={{ color: theme.colors.text.primary, flex: 1, paddingHorizontal: 8, textAlign: TEXT_START }}>
+                    {t("checkout.distanceAway", { distance: quote.distanceKm.toFixed(1), defaultValue: `${quote.distanceKm.toFixed(1)} km away` })}
+                  </Text>
+                </View>
+              )}
+            </>
+          )}
+        </View>
+
+        <Button label={t("common.close", "Close")} variant="secondary" onPress={onClose} style={{ marginTop: 24 }} />
+      </ScrollView>
+    </BottomSheet>
   );
 }
 
 export default function CheckoutScreen() {
   const { t, i18n } = useTranslation();
-  const { c } = useDarkColors();
+  const { theme } = useTheme();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { user } = useAuth();
@@ -225,7 +220,7 @@ export default function CheckoutScreen() {
 
   if (status === "AUTH_REQUIRED") {
     return (
-       <View style={[styles.container, { backgroundColor: c.canvas }]}>
+       <View style={[styles.container, { backgroundColor: theme.colors.canvas.background }]}>
            <AuthGateModal visible={true} onSignIn={() => setStatus("LOADING")} onDismiss={() => router.back()} />
        </View>
     );
@@ -233,46 +228,47 @@ export default function CheckoutScreen() {
 
   if (status === "SUCCESS") {
     return (
-       <View style={[styles.container, { backgroundColor: c.canvas, paddingTop: insets.top }]}>
+       <View style={[styles.container, { backgroundColor: theme.colors.canvas.background, paddingTop: insets.top }]}>
           <Animated.View entering={FadeIn.delay(300)} style={styles.successContent}>
-             <View style={[styles.successIconCircle, { backgroundColor: kit.color.successTint }]}>
-                <Ionicons name="checkmark-circle" size={80} color={kit.color.success} />
+             <View style={[styles.successIconCircle, { backgroundColor: `${theme.colors.status.success}1A` }]}>
+                <Ionicons name="checkmark-circle" size={80} color={theme.colors.status.success} />
              </View>
-             <CustomerUI.Typography variant="h2" weight="black" color={c.ink} style={{ marginTop: 24, textAlign: "center" }}>
+             <Text variant="h2" style={{ color: theme.colors.text.primary, marginTop: 24, textAlign: "center" }}>
                 {t("checkout.orderPlaced", "Order Confirmed")}
-             </CustomerUI.Typography>
-             <CustomerUI.Typography variant="body" color={c.inkSoft} style={{ marginTop: 8, textAlign: "center", paddingHorizontal: 20 }}>
+             </Text>
+             <Text variant="body" style={{ color: theme.colors.text.secondary, marginTop: 8, textAlign: "center", paddingHorizontal: 20 }}>
                 {t("checkout.orderPlacedDesc", "Your order has been received and is being prepared by our pharmacists.")}
-             </CustomerUI.Typography>
-             
-             <View style={[styles.successDetailsCard, { backgroundColor: c.surface, borderColor: c.line }]}>
+             </Text>
+
+             <View style={[styles.successDetailsCard, { backgroundColor: theme.colors.canvas.surface, borderColor: theme.colors.border.default }]}>
                 <View style={[styles.summaryRow, { flexDirection: flexRow(IS_RTL) }]}>
-                   <CustomerUI.Typography variant="body" color={c.inkSoft}>{t("checkout.orderNumber", "Order #")}</CustomerUI.Typography>
-                   <CustomerUI.Typography variant="body" weight="bold" color={c.ink}>{placedOrderId}</CustomerUI.Typography>
+                   <Text variant="body" style={{ color: theme.colors.text.secondary }}>{t("checkout.orderNumber", "Order #")}</Text>
+                   <Text variant="body" weight="bold" style={{ color: theme.colors.text.primary }}>{placedOrderId}</Text>
                 </View>
                 <View style={[styles.summaryRow, { flexDirection: flexRow(IS_RTL) }]}>
-                   <CustomerUI.Typography variant="body" color={c.inkSoft}>{t("checkout.totalPaid", "Total Amount")}</CustomerUI.Typography>
-                   <CustomerUI.Typography variant="body" weight="bold" color={kit.color.accentDeep}>{pricing.total.toLocaleString("ar-EG")} EGP</CustomerUI.Typography>
+                   <Text variant="body" style={{ color: theme.colors.text.secondary }}>{t("checkout.totalPaid", "Total Amount")}</Text>
+                   <Text variant="body" weight="bold" style={{ color: theme.colors.brand.primary }}>{pricing.total.toLocaleString("ar-EG")} EGP</Text>
                 </View>
                 <View style={[styles.summaryRow, { flexDirection: flexRow(IS_RTL), borderBottomWidth: 0 }]}>
-                   <CustomerUI.Typography variant="body" color={c.inkSoft}>{t("checkout.deliveryTo", "Delivery To")}</CustomerUI.Typography>
-                   <CustomerUI.Typography variant="body" weight="bold" color={c.ink} style={{ maxWidth: "60%", textAlign: textAlignStart(IS_RTL) }}>
+                   <Text variant="body" style={{ color: theme.colors.text.secondary }}>{t("checkout.deliveryTo", "Delivery To")}</Text>
+                   <Text variant="body" weight="bold" style={{ color: theme.colors.text.primary, maxWidth: "60%", textAlign: TEXT_START }}>
                       {selectedAddress?.street}
-                   </CustomerUI.Typography>
+                   </Text>
                 </View>
              </View>
 
              <View style={{ width: "100%", gap: 12, marginTop: 40 }}>
-                <Button 
-                   label={t("checkout.trackOrder", "Track Order")} 
+                <Button
+                   label={t("checkout.trackOrder", "Track Order")}
                    onPress={() => {
                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                      router.replace(`/(customer)/(tabs)/orders`);
                    }}
+                   tone="gradient"
                 />
-                <Button 
-                   label={t("checkout.continueShopping", "Continue Shopping")} 
-                   variant="secondary" 
+                <Button
+                   label={t("checkout.continueShopping", "Continue Shopping")}
+                   variant="secondary"
                    onPress={() => router.replace(`/(customer)/(tabs)/products`)}
                 />
              </View>
@@ -285,22 +281,22 @@ export default function CheckoutScreen() {
 
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-      <View style={[styles.container, { backgroundColor: c.canvas, paddingTop: insets.top }]}>
-        
-        <View style={[styles.header, { backgroundColor: c.surface, borderBottomColor: c.line }]}>
-           <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={12}>
-              <Ionicons name={IS_RTL ? "chevron-forward" : "chevron-back"} size={28} color={c.ink} />
+      <View style={[styles.container, { backgroundColor: theme.colors.canvas.background, paddingTop: insets.top }]}>
+
+        <View style={[styles.header, { backgroundColor: theme.colors.canvas.surface, borderBottomColor: theme.colors.border.default }]}>
+           <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={12} accessibilityRole="button" accessibilityLabel={t("common.back")}>
+              <Ionicons name={IS_RTL ? "chevron-forward" : "chevron-back"} size={28} color={theme.colors.text.primary} />
            </Pressable>
-           <CustomerUI.Typography variant="h3" weight="black" color={c.ink}>
+           <Text variant="h3" style={{ color: theme.colors.text.primary }}>
               {t("checkout.title", "Checkout")}
-           </CustomerUI.Typography>
+           </Text>
            <View style={{ width: 28 }} />
         </View>
 
         <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 140 }} showsVerticalScrollIndicator={false}>
-           
-           <StepAccordion 
-             step={1} 
+
+           <StepAccordion
+             step={1}
              title={t("checkout.delivery", "Delivery Details")}
              isActive={activeStep === 1}
              isCompleted={!!selectedAddress && quote.isDeliverable}
@@ -309,86 +305,86 @@ export default function CheckoutScreen() {
            >
              {addresses.length === 0 ? (
                <View style={styles.emptyAddress}>
-                 <Ionicons name="map-outline" size={48} color={c.inkFaint} />
-                 <CustomerUI.Typography variant="body" color={c.inkSoft} style={{ marginVertical: 12 }}>
+                 <Ionicons name="map-outline" size={48} color={theme.colors.text.muted} />
+                 <Text variant="body" style={{ color: theme.colors.text.secondary, marginVertical: 12 }}>
                     {t("checkout.noAddresses", "You have no saved addresses.")}
-                 </CustomerUI.Typography>
+                 </Text>
                  <Button label={t("checkout.addNewAddress", "Add New Address")} onPress={() => setIsAddressDrawerOpen(true)} />
                </View>
              ) : (
                <View>
                  {addresses.map(addr => (
-                   <Pressable 
-                      key={addr.id} 
+                   <Pressable
+                      key={addr.id}
                       onPress={() => {
                         Haptics.selectionAsync();
                         setSelectedAddressId(addr.id);
                       }}
-                      style={[styles.addressCard, { borderColor: selectedAddress?.id === addr.id ? kit.color.accentDeep : c.line, backgroundColor: selectedAddress?.id === addr.id ? kit.color.accentTint : c.surface }]}
+                      style={[styles.addressCard, { borderColor: selectedAddress?.id === addr.id ? theme.colors.brand.primary : theme.colors.border.default, backgroundColor: selectedAddress?.id === addr.id ? theme.colors.brand.primaryLight : theme.colors.canvas.surface }]}
                    >
                       <View style={[styles.addressCardRow, { flexDirection: flexRow(IS_RTL) }]}>
-                        <View style={[styles.radioOuter, { borderColor: selectedAddress?.id === addr.id ? kit.color.accentDeep : c.inkFaint }]}>
-                           {selectedAddress?.id === addr.id && <View style={[styles.radioInner, { backgroundColor: kit.color.accentDeep }]} />}
+                        <View style={[styles.radioOuter, { borderColor: selectedAddress?.id === addr.id ? theme.colors.brand.primary : theme.colors.text.muted }]}>
+                           {selectedAddress?.id === addr.id && <View style={[styles.radioInner, { backgroundColor: theme.colors.brand.primary }]} />}
                         </View>
                         <View style={{ flex: 1, paddingHorizontal: 12 }}>
-                           <CustomerUI.Typography variant="body" weight="bold" color={c.ink} style={{ textAlign: textAlignStart(IS_RTL) }}>
+                           <Text variant="body" weight="bold" style={{ color: theme.colors.text.primary, textAlign: TEXT_START }}>
                               {addr.label || t("address.labelHome", "Home")}
-                           </CustomerUI.Typography>
-                           <CustomerUI.Typography variant="caption" color={c.inkSoft} style={{ textAlign: textAlignStart(IS_RTL), marginTop: 4 }}>
+                           </Text>
+                           <Text variant="caption" style={{ color: theme.colors.text.secondary, textAlign: TEXT_START, marginTop: 4 }}>
                               {addr.street}, {addr.building && `Bldg ${addr.building}`}, {addr.city}
-                           </CustomerUI.Typography>
+                           </Text>
                         </View>
                       </View>
                    </Pressable>
                  ))}
-                 
+
                  <Pressable onPress={() => setIsAddressDrawerOpen(true)} style={[styles.addBtn, { flexDirection: flexRow(IS_RTL) }]}>
-                    <Ionicons name="add" size={20} color={kit.color.accentDeep} />
-                    <CustomerUI.Typography variant="body" weight="bold" color={kit.color.accentDeep} style={{ paddingHorizontal: 8 }}>
+                    <Ionicons name="add" size={20} color={theme.colors.brand.primary} />
+                    <Text variant="body" weight="bold" style={{ color: theme.colors.brand.primary, paddingHorizontal: 8 }}>
                        {t("checkout.addAddress", "Add another address")}
-                    </CustomerUI.Typography>
+                    </Text>
                  </Pressable>
 
                  {selectedAddress && quote.isDeliverable && quote.branch && (
-                   <Animated.View entering={FadeIn.delay(200)} style={[styles.smartZoneCard, { backgroundColor: c.canvas, borderColor: kit.color.success }]}>
+                   <Animated.View entering={FadeIn.delay(200)} style={[styles.smartZoneCard, { backgroundColor: theme.colors.canvas.background, borderColor: theme.colors.status.success }]}>
                       <View style={[styles.smartZoneHeader, { flexDirection: flexRow(IS_RTL) }]}>
-                         <Ionicons name="checkmark-circle" size={16} color={kit.color.success} />
-                         <CustomerUI.Typography variant="caption" weight="bold" color={kit.color.success} style={{ paddingHorizontal: 6, letterSpacing: 0.5 }}>
+                         <Ionicons name="checkmark-circle" size={16} color={theme.colors.status.success} />
+                         <Text variant="caption" weight="bold" style={{ color: theme.colors.status.success, paddingHorizontal: 6, letterSpacing: 0.5 }}>
                             {t("checkout.inZone", "IN DELIVERY ZONE")}
-                         </CustomerUI.Typography>
+                         </Text>
                       </View>
                       <View style={[styles.smartZoneBody, { flexDirection: flexRow(IS_RTL) }]}>
                          <View style={{ flex: 1 }}>
-                            <CustomerUI.Typography variant="body" color={c.inkSoft} style={{ textAlign: textAlignStart(IS_RTL) }}>
-                               {t("checkout.assignedBranch", "Processing from:")} <CustomerUI.Typography variant="body" weight="bold" color={c.ink}>{i18n.language === "en" ? quote.branch.nameEn : quote.branch.nameAr}</CustomerUI.Typography>
-                            </CustomerUI.Typography>
+                            <Text variant="body" style={{ color: theme.colors.text.secondary, textAlign: TEXT_START }}>
+                               {t("checkout.assignedBranch", "Processing from:")} <Text variant="body" weight="bold" style={{ color: theme.colors.text.primary }}>{i18n.language === "en" ? quote.branch.nameEn : quote.branch.nameAr}</Text>
+                            </Text>
                          </View>
                          <Pressable onPress={() => setLocationDetailsModal(true)}>
-                            <CustomerUI.Typography variant="caption" weight="bold" color={kit.color.accentDeep}>{t("checkout.viewDetails", "Location Details")}</CustomerUI.Typography>
+                            <Text variant="caption" weight="bold" style={{ color: theme.colors.brand.primary }}>{t("checkout.viewDetails", "Location Details")}</Text>
                          </Pressable>
                       </View>
                    </Animated.View>
                  )}
 
                  {selectedAddress && !quote.isDeliverable && (
-                    <Animated.View entering={FadeIn} style={[styles.warningBox, { backgroundColor: kit.color.dangerTint, borderColor: kit.color.danger, flexDirection: flexRow(IS_RTL) }]}>
-                       <Ionicons name="alert-circle" size={20} color={kit.color.danger} />
+                    <Animated.View entering={FadeIn} style={[styles.warningBox, { backgroundColor: `${theme.colors.status.error}1A`, borderColor: theme.colors.status.error, flexDirection: flexRow(IS_RTL) }]}>
+                       <Ionicons name="alert-circle" size={20} color={theme.colors.status.error} />
                        <View style={{ paddingHorizontal: 8, flex: 1 }}>
-                         <CustomerUI.Typography variant="body" weight="bold" color={kit.color.danger} style={{ textAlign: textAlignStart(IS_RTL) }}>
+                         <Text variant="body" weight="bold" style={{ color: theme.colors.status.error, textAlign: TEXT_START }}>
                             {t("checkout.deliveryUnavailable", "Delivery Unavailable")}
-                         </CustomerUI.Typography>
+                         </Text>
                          {quote.outOfServiceMessage && (
-                           <CustomerUI.Typography variant="caption" color={kit.color.danger} style={{ textAlign: textAlignStart(IS_RTL), marginTop: 2 }}>
+                           <Text variant="caption" style={{ color: theme.colors.status.error, textAlign: TEXT_START, marginTop: 2 }}>
                               {quote.outOfServiceMessage}
-                           </CustomerUI.Typography>
+                           </Text>
                          )}
                        </View>
                     </Animated.View>
                  )}
-                 
-                 <Button 
-                   label={t("common.continue", "Continue")} 
-                   onPress={() => quote.isDeliverable ? setActiveStep(2) : null} 
+
+                 <Button
+                   label={t("common.continue", "Continue")}
+                   onPress={() => quote.isDeliverable ? setActiveStep(2) : null}
                    disabled={!selectedAddress || !quote.isDeliverable}
                    style={{ marginTop: 16 }}
                  />
@@ -396,86 +392,86 @@ export default function CheckoutScreen() {
              )}
            </StepAccordion>
 
-           <StepAccordion 
-             step={2} 
+           <StepAccordion
+             step={2}
              title={t("checkout.deliveryMethod", "Delivery Method")}
              isActive={activeStep === 2}
              isCompleted={activeStep > 2}
              onEdit={() => setActiveStep(2)}
              summary={t("checkout.standardDelivery", "Standard Delivery")}
            >
-             <View style={[styles.methodCard, { borderColor: kit.color.accentDeep, backgroundColor: kit.color.accentTint, flexDirection: flexRow(IS_RTL) }]}>
-                <Ionicons name="bicycle" size={28} color={kit.color.accentDeep} />
+             <View style={[styles.methodCard, { borderColor: theme.colors.brand.primary, backgroundColor: theme.colors.brand.primaryLight, flexDirection: flexRow(IS_RTL) }]}>
+                <Ionicons name="bicycle" size={28} color={theme.colors.brand.primary} />
                 <View style={{ flex: 1, paddingHorizontal: 16 }}>
-                   <CustomerUI.Typography variant="body" weight="bold" color={kit.color.accentDeep} style={{ textAlign: textAlignStart(IS_RTL) }}>{t("checkout.standardDelivery", "Standard Delivery")}</CustomerUI.Typography>
-                   <CustomerUI.Typography variant="caption" color={kit.color.accentDeep} style={{ textAlign: textAlignStart(IS_RTL) }}>
+                   <Text variant="body" weight="bold" style={{ color: theme.colors.brand.primary, textAlign: TEXT_START }}>{t("checkout.standardDelivery", "Standard Delivery")}</Text>
+                   <Text variant="caption" style={{ color: theme.colors.brand.primary, textAlign: TEXT_START }}>
                       {quote.eta ? t("checkout.etaFormat", { min: quote.eta.min, max: quote.eta.max, defaultValue: `${quote.eta.min}-${quote.eta.max} minutes` }) : t("checkout.deliveryTime", "Within 60 minutes")}
-                   </CustomerUI.Typography>
+                   </Text>
                 </View>
                 <View style={{ alignItems: "flex-end" }}>
-                   <CustomerUI.Typography variant="body" weight="bold" color={kit.color.accentDeep}>
+                   <Text variant="body" weight="bold" style={{ color: theme.colors.brand.primary }}>
                       {quote.cost === 0 ? t("checkout.free", "Free") : `+${quote.cost} EGP`}
-                   </CustomerUI.Typography>
-                   <Ionicons name="checkmark-circle" size={24} color={kit.color.accentDeep} style={{ marginTop: 4 }} />
+                   </Text>
+                   <Ionicons name="checkmark-circle" size={24} color={theme.colors.brand.primary} style={{ marginTop: 4 }} />
                 </View>
              </View>
              <Button label={t("common.continue", "Continue")} onPress={() => setActiveStep(3)} style={{ marginTop: 16 }} />
            </StepAccordion>
 
-           <StepAccordion 
-             step={3} 
+           <StepAccordion
+             step={3}
              title={t("checkout.payment", "Payment Method")}
              isActive={activeStep === 3}
              isCompleted={activeStep > 3}
              onEdit={() => setActiveStep(3)}
              summary={paymentMethod === "cod" ? t("checkout.cod", "Cash on Delivery") : t("checkout.card", "Credit / Debit Card")}
            >
-             <Pressable onPress={() => { Haptics.selectionAsync(); setPaymentMethod("cod"); }} style={[styles.methodCard, { borderColor: paymentMethod === "cod" ? kit.color.accentDeep : c.line, backgroundColor: paymentMethod === "cod" ? kit.color.accentTint : c.surface, flexDirection: flexRow(IS_RTL) }]}>
-                <Ionicons name="cash-outline" size={28} color={paymentMethod === "cod" ? kit.color.accentDeep : c.inkSoft} />
+             <Pressable onPress={() => { Haptics.selectionAsync(); setPaymentMethod("cod"); }} style={[styles.methodCard, { borderColor: paymentMethod === "cod" ? theme.colors.brand.primary : theme.colors.border.default, backgroundColor: paymentMethod === "cod" ? theme.colors.brand.primaryLight : theme.colors.canvas.surface, flexDirection: flexRow(IS_RTL) }]}>
+                <Ionicons name="cash-outline" size={28} color={paymentMethod === "cod" ? theme.colors.brand.primary : theme.colors.text.secondary} />
                 <View style={{ flex: 1, paddingHorizontal: 16 }}>
-                   <CustomerUI.Typography variant="body" weight="bold" color={paymentMethod === "cod" ? kit.color.accentDeep : c.ink} style={{ textAlign: textAlignStart(IS_RTL) }}>{t("checkout.cod", "Cash on Delivery")}</CustomerUI.Typography>
-                   <CustomerUI.Typography variant="caption" color={paymentMethod === "cod" ? kit.color.accentDeep : c.inkSoft} style={{ textAlign: textAlignStart(IS_RTL) }}>{t("checkout.payAtDoor", "Pay when you receive your order")}</CustomerUI.Typography>
+                   <Text variant="body" weight="bold" style={{ color: paymentMethod === "cod" ? theme.colors.brand.primary : theme.colors.text.primary, textAlign: TEXT_START }}>{t("checkout.cod", "Cash on Delivery")}</Text>
+                   <Text variant="caption" style={{ color: paymentMethod === "cod" ? theme.colors.brand.primary : theme.colors.text.secondary, textAlign: TEXT_START }}>{t("checkout.payAtDoor", "Pay when you receive your order")}</Text>
                 </View>
-                {paymentMethod === "cod" && <Ionicons name="checkmark-circle" size={24} color={kit.color.accentDeep} />}
+                {paymentMethod === "cod" && <Ionicons name="checkmark-circle" size={24} color={theme.colors.brand.primary} />}
              </Pressable>
-             
-              <Pressable onPress={() => { Haptics.selectionAsync(); setPaymentMethod("online"); }} style={[styles.methodCard, { borderColor: paymentMethod === "online" ? kit.color.accentDeep : c.line, backgroundColor: paymentMethod === "online" ? kit.color.accentTint : c.surface, flexDirection: flexRow(IS_RTL) }]}>
-                 <Ionicons name="card-outline" size={28} color={paymentMethod === "online" ? kit.color.accentDeep : c.inkSoft} />
+
+              <Pressable onPress={() => { Haptics.selectionAsync(); setPaymentMethod("online"); }} style={[styles.methodCard, { borderColor: paymentMethod === "online" ? theme.colors.brand.primary : theme.colors.border.default, backgroundColor: paymentMethod === "online" ? theme.colors.brand.primaryLight : theme.colors.canvas.surface, flexDirection: flexRow(IS_RTL) }]}>
+                 <Ionicons name="card-outline" size={28} color={paymentMethod === "online" ? theme.colors.brand.primary : theme.colors.text.secondary} />
                  <View style={{ flex: 1, paddingHorizontal: 16 }}>
-                    <CustomerUI.Typography variant="body" weight="bold" color={paymentMethod === "online" ? kit.color.accentDeep : c.ink} style={{ textAlign: textAlignStart(IS_RTL) }}>{t("checkout.card", "Credit / Debit Card")}</CustomerUI.Typography>
-                    <CustomerUI.Typography variant="caption" color={paymentMethod === "online" ? kit.color.accentDeep : c.inkSoft} style={{ textAlign: textAlignStart(IS_RTL) }}>{t("checkout.paySecurely", "Pay securely via Stripe")}</CustomerUI.Typography>
+                    <Text variant="body" weight="bold" style={{ color: paymentMethod === "online" ? theme.colors.brand.primary : theme.colors.text.primary, textAlign: TEXT_START }}>{t("checkout.card", "Credit / Debit Card")}</Text>
+                    <Text variant="caption" style={{ color: paymentMethod === "online" ? theme.colors.brand.primary : theme.colors.text.secondary, textAlign: TEXT_START }}>{t("checkout.paySecurely", "Pay securely via Stripe")}</Text>
                  </View>
-                 {paymentMethod === "online" && <Ionicons name="checkmark-circle" size={24} color={kit.color.accentDeep} />}
+                 {paymentMethod === "online" && <Ionicons name="checkmark-circle" size={24} color={theme.colors.brand.primary} />}
               </Pressable>
 
              <Button label={t("checkout.reviewOrder", "Review Order")} onPress={() => setActiveStep(4)} style={{ marginTop: 16 }} />
            </StepAccordion>
 
-           <StepAccordion 
-             step={4} 
+           <StepAccordion
+             step={4}
              title={t("checkout.review", "Review & Confirm")}
              isActive={activeStep === 4}
              isCompleted={false}
              onEdit={() => {}}
            >
-             <View style={[styles.summaryCard, { backgroundColor: c.canvas, borderColor: c.line }]}>
+             <View style={[styles.summaryCard, { backgroundColor: theme.colors.canvas.background, borderColor: theme.colors.border.default }]}>
                 <View style={[styles.summaryRow, { flexDirection: flexRow(IS_RTL) }]}>
-                   <CustomerUI.Typography variant="body" color={c.inkSoft}>{t("checkout.subtotal", "Subtotal")}</CustomerUI.Typography>
-                   <CustomerUI.Typography variant="body" weight="bold" color={c.ink}>{pricing.subtotal.toLocaleString("ar-EG")} EGP</CustomerUI.Typography>
+                   <Text variant="body" style={{ color: theme.colors.text.secondary }}>{t("checkout.subtotal", "Subtotal")}</Text>
+                   <Text variant="body" weight="bold" style={{ color: theme.colors.text.primary }}>{pricing.subtotal.toLocaleString("ar-EG")} EGP</Text>
                 </View>
                 <View style={[styles.summaryRow, { flexDirection: flexRow(IS_RTL) }]}>
-                   <CustomerUI.Typography variant="body" color={c.inkSoft}>{t("checkout.deliveryFee", "Delivery Fee")}</CustomerUI.Typography>
-                    <CustomerUI.Typography variant="body" weight="bold" color={pricing.shipping === 0 ? kit.color.success : c.ink}>{pricing.shipping === 0 ? t("checkout.free", "Free") : `${pricing.shipping.toLocaleString("ar-EG")} EGP`}</CustomerUI.Typography>
+                   <Text variant="body" style={{ color: theme.colors.text.secondary }}>{t("checkout.deliveryFee", "Delivery Fee")}</Text>
+                    <Text variant="body" weight="bold" style={{ color: pricing.shipping === 0 ? theme.colors.status.success : theme.colors.text.primary }}>{pricing.shipping === 0 ? t("checkout.free", "Free") : `${pricing.shipping.toLocaleString("ar-EG")} EGP`}</Text>
                 </View>
                 {pricing.discount > 0 && (
                   <View style={[styles.summaryRow, { flexDirection: flexRow(IS_RTL) }]}>
-                     <CustomerUI.Typography variant="body" color={kit.color.success}>{t("checkout.discount", "Discount")}</CustomerUI.Typography>
-                     <CustomerUI.Typography variant="body" weight="bold" color={kit.color.success}>-{pricing.discount.toLocaleString("ar-EG")} EGP</CustomerUI.Typography>
+                     <Text variant="body" style={{ color: theme.colors.status.success }}>{t("checkout.discount", "Discount")}</Text>
+                     <Text variant="body" weight="bold" style={{ color: theme.colors.status.success }}>-{pricing.discount.toLocaleString("ar-EG")} EGP</Text>
                   </View>
                 )}
-                <View style={[styles.summaryRow, styles.summaryTotal, { borderTopColor: c.line, flexDirection: flexRow(IS_RTL) }]}>
-                   <CustomerUI.Typography variant="h4" weight="bold" color={c.ink}>{t("checkout.total", "Final Total")}</CustomerUI.Typography>
-                   <CustomerUI.Typography variant="h3" weight="black" color={kit.color.accentDeep}>{pricing.total.toLocaleString("ar-EG")} EGP</CustomerUI.Typography>
+                <View style={[styles.summaryRow, styles.summaryTotal, { borderTopColor: theme.colors.border.default, flexDirection: flexRow(IS_RTL) }]}>
+                   <Text variant="h4" style={{ color: theme.colors.text.primary }}>{t("checkout.total", "Final Total")}</Text>
+                   <Text variant="h3" style={{ color: theme.colors.brand.primary }}>{pricing.total.toLocaleString("ar-EG")} EGP</Text>
                 </View>
              </View>
            </StepAccordion>
@@ -483,14 +479,14 @@ export default function CheckoutScreen() {
         </ScrollView>
 
         {activeStep === 4 && (
-          <Animated.View entering={SlideInDown.duration(300)} style={[styles.footerDock, { backgroundColor: c.surface, borderTopColor: c.line }]}>
+          <Animated.View entering={SlideInDown.duration(300)} style={[styles.footerDock, theme.shadows[3], { backgroundColor: theme.colors.canvas.surface, borderTopColor: theme.colors.border.default }]}>
              {errorMsg && (
-                <View style={[styles.errorDock, { backgroundColor: kit.color.dangerTint }]}>
-                   <Ionicons name="warning" size={16} color={kit.color.danger} />
-                   <CustomerUI.Typography variant="caption" weight="bold" color={kit.color.danger} style={{ marginLeft: 6 }}>{errorMsg}</CustomerUI.Typography>
+                <View style={[styles.errorDock, { backgroundColor: `${theme.colors.status.error}1A` }]}>
+                   <Ionicons name="warning" size={16} color={theme.colors.status.error} />
+                   <Text variant="caption" weight="bold" style={{ color: theme.colors.status.error, marginStart: 6 }}>{errorMsg}</Text>
                 </View>
              )}
-             <Button 
+             <Button
                 label={t("checkout.placeOrder", "Place Order")}
                 onPress={() => {
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
@@ -499,20 +495,22 @@ export default function CheckoutScreen() {
                 loading={isBlocked}
                 disabled={!quote.isDeliverable}
                 size="lg"
+                tone="gradient"
+                fullWidth
              />
           </Animated.View>
         )}
       </View>
-      
+
       {selectedAddress && (
-        <LocationDetailsModal 
-           visible={locationDetailsModal} 
+        <LocationDetailsModal
+           visible={locationDetailsModal}
            address={selectedAddress}
            quote={quote}
-           onClose={() => setLocationDetailsModal(false)} 
+           onClose={() => setLocationDetailsModal(false)}
         />
       )}
-      
+
       <AddressFormDrawer visible={isAddressDrawerOpen} onClose={() => setIsAddressDrawerOpen(false)} onSubmit={handleAddressSubmit} loading={false} />
     </KeyboardAvoidingView>
   );
@@ -522,42 +520,39 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1 },
   backBtn: { padding: 4 },
-  
-  accordionCard: { borderRadius: 16, borderWidth: 1, marginBottom: 12, overflow: "hidden", ...kit.shadow.raised },
+
+  accordionCard: { borderRadius: 16, borderWidth: 1, marginBottom: 12, overflow: "hidden" },
   accordionHeader: { padding: 16, alignItems: "center", justifyContent: "space-between" },
   stepBadge: { width: 28, height: 28, borderRadius: 14, alignItems: "center", justifyContent: "center" },
   accordionBody: { padding: 16, paddingTop: 0, borderTopWidth: StyleSheet.hairlineWidth, marginTop: 12 },
-  
+
   addressCard: { borderRadius: 12, borderWidth: 1, marginBottom: 12, overflow: "hidden" },
   addressCardRow: { padding: 16, alignItems: "center" },
   radioOuter: { width: 20, height: 20, borderRadius: 10, borderWidth: 2, alignItems: "center", justifyContent: "center" },
   radioInner: { width: 10, height: 10, borderRadius: 5 },
   addBtn: { alignItems: "center", paddingVertical: 12, justifyContent: "center" },
   emptyAddress: { alignItems: "center", paddingVertical: 20 },
-  
+
   smartZoneCard: { marginTop: 8, padding: 12, borderRadius: 12, borderWidth: 1 },
   smartZoneHeader: { alignItems: "center", marginBottom: 6 },
   smartZoneBody: { alignItems: "center", justifyContent: "space-between" },
-  
+
   warningBox: { padding: 12, borderRadius: 12, borderWidth: 1, marginTop: 8, alignItems: "center" },
-  
+
   methodCard: { borderRadius: 12, borderWidth: 1, padding: 16, alignItems: "center", marginBottom: 12 },
-  
+
   summaryCard: { borderRadius: 12, borderWidth: 1, padding: 16 },
   summaryRow: { justifyContent: "space-between", alignItems: "center", paddingVertical: 8 },
   summaryTotal: { borderTopWidth: 1, marginTop: 8, paddingTop: 16 },
-  
-  footerDock: { position: "absolute", bottom: 0, left: 0, right: 0, paddingHorizontal: 20, paddingTop: 16, borderTopWidth: 1, ...kit.shadow.floating },
+
+  footerDock: { position: "absolute", bottom: 0, left: 0, right: 0, paddingHorizontal: 20, paddingTop: 16, borderTopWidth: 1 },
   errorDock: { flexDirection: "row", alignItems: "center", padding: 12, borderRadius: 8, marginBottom: 12 },
-  
+
   successContent: { flex: 1, justifyContent: "center", alignItems: "center", paddingHorizontal: 20 },
   successIconCircle: { width: 120, height: 120, borderRadius: 60, alignItems: "center", justifyContent: "center" },
   successDetailsCard: { width: "100%", borderRadius: 16, borderWidth: 1, padding: 20, marginTop: 32 },
-  
-  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
-  modalSheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24, minHeight: 300, ...kit.shadow.floating },
-  modalHandle: { width: 40, height: 4, backgroundColor: kit.color.lineStrong, borderRadius: 2, alignSelf: "center", marginTop: 12, marginBottom: 12 },
-  modalHeader: { paddingHorizontal: 20, paddingBottom: 16, alignItems: "center", justifyContent: "space-between" },
-  branchMetaBox: { backgroundColor: "rgba(0,0,0,0.03)", borderRadius: 12, padding: 16 },
-  branchMetaRow: { alignItems: "center", paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: "rgba(0,0,0,0.1)" },
+
+  modalHeader: { paddingBottom: 16, alignItems: "center", justifyContent: "space-between" },
+  branchMetaBox: { borderRadius: 12, padding: 16 },
+  branchMetaRow: { alignItems: "center", paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth },
 });

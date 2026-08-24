@@ -88,7 +88,17 @@ function toNativeTheme(base: SemanticTheme, isRTL: boolean, isDark: boolean): Na
   };
 }
 
-const defaultTheme = toNativeTheme(lightTheme, false, false);
+/**
+ * Resolved light-mode NativeTheme, usable as a static import for module-scope
+ * constants that can't call useTheme() (e.g. a lookup table built once at
+ * import time). Components should always prefer useTheme() — this exists
+ * only so those constants have a correct, valid theme shape to read instead
+ * of an undefined reference. If a component-scope `const { theme } = useTheme()`
+ * exists in the same file, it correctly shadows this import within that
+ * function's scope, so importing this never blocks a screen from being fully
+ * theme-reactive where it actually renders.
+ */
+export const defaultTheme = toNativeTheme(lightTheme, false, false);
 const ThemeContext = createContext<ThemeContextValue>({
   theme: defaultTheme,
   mode: "light",

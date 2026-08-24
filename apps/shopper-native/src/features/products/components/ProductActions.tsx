@@ -1,8 +1,9 @@
+import { defaultTheme as theme } from "@pharmacy/ui-native";
 import React from "react";
 import { StyleSheet, View, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Animated from "react-native-reanimated";
-import { kit, Text as UIText, Button as KitButton } from "@pharmacy/ui-native";
+import { Text as UIText, Button as KitButton } from "@pharmacy/ui-native";
 import { isRtl, flexRow, FORWARD_CHEVRON } from "@/utils/layout";
 import { formatPrice } from "@/utils/format";
 import type { NativeProduct } from "@/features/products/types";
@@ -54,9 +55,9 @@ export const ProductActions = React.memo(function ProductActions({
           style={cta.viewCartTouchable}>
           {({ pressed }) => (
             <View style={[cta.viewCart, { flexDirection: flexRow(IS_RTL) }, pressed && cta.viewCartPressed]}>
-              <Ionicons name="cart-outline" size={14} color={kit.color.accentDeep} />
-              <UIText variant="body-sm" weight="black" style={{ color: kit.color.accentDeep }}>{t("product.viewCart")}</UIText>
-              <Ionicons name={FORWARD_CHEVRON} size={12} color={kit.color.accentDeep} />
+              <Ionicons name="cart-outline" size={14} color={theme.colors.brand.primary} />
+              <UIText variant="body-sm" weight="black" style={{ color: theme.colors.brand.primary }}>{t("product.viewCart")}</UIText>
+              <Ionicons name={FORWARD_CHEVRON} size={12} color={theme.colors.brand.primary} />
             </View>
           )}
         </Pressable>
@@ -70,7 +71,7 @@ export const ProductActions = React.memo(function ProductActions({
             accessibilityRole="button"
             accessibilityLabel={t("product.decrement")}
             style={({ pressed }) => [action.stepBtn, pressed && !(qty === 1) && action.stepBtnPressed, qty === 1 && action.stepBtnDisabled]}>
-            <Ionicons name="remove" size={20} color={qty === 1 ? kit.color.inkFaint : kit.color.inkSoft} />
+            <Ionicons name="remove" size={20} color={qty === 1 ? theme.colors.text.muted : theme.colors.text.secondary} />
           </Pressable>
 
           <View style={action.stepValue}>
@@ -83,7 +84,7 @@ export const ProductActions = React.memo(function ProductActions({
             accessibilityRole="button"
             accessibilityLabel={t("product.increment")}
             style={({ pressed }) => [action.stepBtnPrimary, pressed && !(qty >= maxQty) && action.stepBtnPrimaryPressed, qty >= maxQty && action.stepBtnDisabled]}>
-            <Ionicons name="add" size={20} color={kit.color.onAccent} />
+            <Ionicons name="add" size={20} color={theme.colors.text.inverse} />
           </Pressable>
         </View>
 
@@ -106,7 +107,7 @@ export const ProductActions = React.memo(function ProductActions({
         </Animated.View>
       </View>
       {product.inStock && product.stock > 0 && product.stock <= 10 && (
-        <UIText variant="caption" weight="bold" style={{ color: qty >= maxQty ? kit.color.danger : kit.color.warn, textAlign: "center" }}>
+        <UIText variant="caption" weight="bold" style={{ color: qty >= maxQty ? theme.colors.status.error : theme.colors.status.warning, textAlign: "center" }}>
           {qty >= maxQty ? t("product.stockMax") : t("product.stockRemaining", { count: product.stock })}
         </UIText>
       )}
@@ -115,19 +116,19 @@ export const ProductActions = React.memo(function ProductActions({
 });
 
 const cta = StyleSheet.create({
-  outer: { position: "absolute", bottom: 0, start: 0, end: 0, backgroundColor: kit.color.surface, paddingHorizontal: 16, paddingTop: 14, gap: 10, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: kit.color.line, shadowColor: "#0C2240", shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.10, shadowRadius: 18, elevation: 8 },
+  outer: { position: "absolute", bottom: 0, start: 0, end: 0, backgroundColor: theme.colors.canvas.surface, paddingHorizontal: 16, paddingTop: 14, gap: 10, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.colors.border.default, shadowColor: "#0C2240", shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.10, shadowRadius: 18, elevation: 8 },
   viewCartTouchable: { alignSelf: "center" },
-  viewCart: { alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 6, paddingHorizontal: 12, borderRadius: kit.radius.pill, backgroundColor: "transparent", alignSelf: "center" },
-  viewCartPressed: { backgroundColor: kit.color.accentTint },
+  viewCart: { alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 6, paddingHorizontal: 12, borderRadius: 9999, backgroundColor: "transparent", alignSelf: "center" },
+  viewCartPressed: { backgroundColor: theme.colors.brand.primaryLight },
   actionsRow: { alignItems: "center", gap: 12 },
 });
 
 const action = StyleSheet.create({
-  stepper: { flexDirection: flexRow(IS_RTL), alignItems: "center", backgroundColor: kit.color.well, borderRadius: 14, borderWidth: 1, borderColor: kit.color.line, padding: 3, gap: 3 },
-  stepBtn: { width: 42, height: 42, borderRadius: 11, alignItems: "center", justifyContent: "center", backgroundColor: kit.color.surface, borderWidth: 1, borderColor: kit.color.line },
-  stepBtnPressed: { backgroundColor: kit.color.accentTint, borderColor: kit.color.accent, transform: [{ scale: 0.96 }] },
+  stepper: { flexDirection: flexRow(IS_RTL), alignItems: "center", backgroundColor: theme.colors.canvas.surfaceMuted, borderRadius: 14, borderWidth: 1, borderColor: theme.colors.border.default, padding: 3, gap: 3 },
+  stepBtn: { width: 42, height: 42, borderRadius: 11, alignItems: "center", justifyContent: "center", backgroundColor: theme.colors.canvas.surface, borderWidth: 1, borderColor: theme.colors.border.default },
+  stepBtnPressed: { backgroundColor: theme.colors.brand.primaryLight, borderColor: theme.colors.brand.primary, transform: [{ scale: 0.96 }] },
   stepBtnDisabled: { opacity: 0.45 },
-  stepBtnPrimary: { width: 42, height: 42, borderRadius: 11, alignItems: "center", justifyContent: "center", backgroundColor: kit.color.accentDeep, borderWidth: 1, borderColor: kit.color.accentDeep },
+  stepBtnPrimary: { width: 42, height: 42, borderRadius: 11, alignItems: "center", justifyContent: "center", backgroundColor: theme.colors.brand.primary, borderWidth: 1, borderColor: theme.colors.brand.primary },
   stepBtnPrimaryPressed: { opacity: 0.88, transform: [{ scale: 0.96 }] },
   stepValue: { minWidth: 40, height: 42, alignItems: "center", justifyContent: "center" },
 });

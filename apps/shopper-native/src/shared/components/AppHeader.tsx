@@ -30,7 +30,7 @@
 
 
 
-import { kit } from "@pharmacy/ui-native";
+
 
 import React from "react";
 
@@ -50,7 +50,8 @@ import { flexRow, isRtl, textAlignStart, BACK_ARROW } from "@/utils/layout";
 
 import { useCartStore } from "@/stores/cart";
 
-import { theme } from "@pharmacy/design-tokens";
+import { theme as legacyTheme } from "@pharmacy/design-tokens";
+import { defaultTheme as theme } from "@pharmacy/ui-native";
 
 
 
@@ -114,9 +115,9 @@ export function AppHeader({
 
   const isHero = variant === "hero";
 
-  const fg     = isHero ? kit.color.white : kit.color.ink;
+  const fg     = isHero ? theme.colors.text.inverse : theme.colors.text.primary;
 
-  const subtle = isHero ? "rgba(255,255,255,0.85)" : kit.color.ink;
+  const subtle = isHero ? "rgba(255,255,255,0.85)" : theme.colors.text.primary;
 
 
 
@@ -176,7 +177,7 @@ export function AppHeader({
 
               styles.title,
 
-              { color: fg, fontFamily: theme.fonts.extrabold },
+              { color: fg, fontFamily: legacyTheme.fonts.extrabold },
 
             ]}>
 
@@ -224,9 +225,9 @@ export function AppHeader({
 
                       borderColor: isHero
 
-                        ? kit.color.ink
+                        ? theme.colors.text.primary
 
-                        : kit.color.surface,
+                        : theme.colors.canvas.surface,
 
                     },
 
@@ -268,7 +269,7 @@ const styles = StyleSheet.create({
 
   containerDefault: {
 
-    backgroundColor: kit.color.surface,
+    backgroundColor: theme.colors.canvas.surface,
 
     borderBottomWidth: StyleSheet.hairlineWidth,
 
@@ -284,17 +285,17 @@ const styles = StyleSheet.create({
 
     justifyContent:    "space-between",
 
-    height:            theme.layout.headerHeight,
+    height:            legacyTheme.layout.headerHeight,
 
-    paddingHorizontal: theme.layout.pagePaddingH,
+    paddingHorizontal: legacyTheme.layout.pagePaddingH,
 
   },
 
   iconBtn: {
 
-    width:          theme.layout.iconButtonSize,
+    width:          legacyTheme.layout.iconButtonSize,
 
-    height:         theme.layout.iconButtonSize,
+    height:         legacyTheme.layout.iconButtonSize,
 
     alignItems:     "center",
 
@@ -310,7 +311,7 @@ const styles = StyleSheet.create({
 
     textAlign:     textAlignStart(isRtl()),
 
-    fontSize:      theme.fontSize["2xl"],
+    fontSize:      theme.typography.sizes[24],
 
     letterSpacing: -0.4,
 
@@ -324,7 +325,7 @@ const styles = StyleSheet.create({
 
     alignItems:    "center",
 
-    gap:           theme.spacing[0.5],
+    gap:           2,
 
   },
 
@@ -348,7 +349,7 @@ const styles = StyleSheet.create({
 
     borderRadius:      9,
 
-    backgroundColor:   kit.color.danger,
+    backgroundColor:   theme.colors.status.error,
 
     borderWidth:       2,
 
@@ -366,7 +367,7 @@ const styles = StyleSheet.create({
 
     lineHeight:          10,        // must equal fontSize — prevents vertical push-down
 
-    fontFamily:          theme.fonts.extrabold,
+    fontFamily:          legacyTheme.fonts.extrabold,
 
     includeFontPadding:  false,     // Android: remove internal font top/bottom padding
 

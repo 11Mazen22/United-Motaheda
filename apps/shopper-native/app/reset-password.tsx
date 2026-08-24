@@ -16,12 +16,13 @@ import Animated, { FadeInDown, FadeIn } from "react-native-reanimated";
 import { requestPasswordReset, getAuthError } from "@/features/auth";
 import { Input } from "@/components/ui/Input";
 import { Button, kit, Text as UIText } from "@pharmacy/ui-native";
-import { useDarkColors } from "@/hooks/useDarkColors";
+import { useTheme } from "@pharmacy/ui-native";
+
 import { theme } from "@pharmacy/design-tokens";
 import { isRtl, textAlignStart, BACK_CHEVRON } from "@/utils/layout";
 
 export default function ResetPasswordScreen() {
-  const { c } = useDarkColors();
+  const { theme } = useTheme();
   const { t } = useTranslation();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -53,19 +54,19 @@ export default function ResetPasswordScreen() {
 
   return (
     <KeyboardAvoidingView 
-      style={{ flex: 1, backgroundColor: c.canvas }} 
+      style={{ flex: 1, backgroundColor: theme.colors.canvas.background }} 
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      <Animated.View entering={FadeIn.duration(200)} style={[styles.header, { paddingTop: insets.top, backgroundColor: c.surface, borderBottomColor: c.line }]}>
+      <Animated.View entering={FadeIn.duration(200)} style={[styles.header, { paddingTop: insets.top, backgroundColor: theme.colors.canvas.surface, borderBottomColor: theme.colors.border.default }]}>
         <Pressable 
           onPress={() => router.back()} 
           style={styles.backBtn}
           accessibilityRole="button"
           accessibilityLabel={t("common.back")}
         >
-          <Ionicons name={BACK_CHEVRON} size={24} color={c.ink} />
+          <Ionicons name={BACK_CHEVRON} size={24} color={theme.colors.text.primary} />
         </Pressable>
-        <UIText style={[styles.title, { color: c.ink }]}>{t("auth.resetTitle", { defaultValue: "Reset Password" })}</UIText>
+        <UIText style={[styles.title, { color: theme.colors.text.primary }]}>{t("auth.resetTitle", { defaultValue: "Reset Password" })}</UIText>
         <View style={{ width: 40 }} />
       </Animated.View>
 
@@ -77,23 +78,23 @@ export default function ResetPasswordScreen() {
         <Animated.View entering={FadeInDown.duration(300).delay(50)} style={styles.formContainer}>
           
           <View style={styles.iconContainer}>
-            <View style={[styles.iconTile, { backgroundColor: kit.color.accentTint, borderColor: `${kit.color.accent}28` }]}>
-              <Ionicons name="key-outline" size={28} color={kit.color.accentDeep} />
+            <View style={[styles.iconTile, { backgroundColor: theme.colors.brand.primaryLight, borderColor: `${theme.colors.brand.primary}28` }]}>
+              <Ionicons name="key-outline" size={28} color={theme.colors.brand.primary} />
             </View>
-            <UIText style={[styles.instruction, { color: c.inkSoft }]}>
+            <UIText style={[styles.instruction, { color: theme.colors.text.secondary }]}>
               {t("auth.resetInstruction", { defaultValue: "Enter your registered email address to receive a password reset link." })}
             </UIText>
           </View>
 
           {error && (
-            <Animated.View entering={FadeIn.duration(200)} style={[styles.errorBox, { backgroundColor: kit.color.dangerTint, borderColor: kit.color.danger }]}>
-              <Ionicons name="alert-circle-outline" size={20} color={kit.color.danger} />
-              <UIText style={[styles.errorText, { color: kit.color.danger, textAlign: TEXT_START }]}>{error}</UIText>
+            <Animated.View entering={FadeIn.duration(200)} style={[styles.errorBox, { backgroundColor: `${theme.colors.status.error}1A`, borderColor: theme.colors.status.error }]}>
+              <Ionicons name="alert-circle-outline" size={20} color={theme.colors.status.error} />
+              <UIText style={[styles.errorText, { color: theme.colors.status.error, textAlign: TEXT_START }]}>{error}</UIText>
             </Animated.View>
           )}
 
           {success && (
-            <Animated.View entering={FadeIn.duration(200)} style={[styles.errorBox, { backgroundColor: kit.color.successTint, borderColor: kit.color.success }]}>
+            <Animated.View entering={FadeIn.duration(200)} style={[styles.errorBox, { backgroundColor: `${theme.colors.status.success}1A`, borderColor: theme.colors.status.success }]}>
               <Ionicons name="checkmark-circle-outline" size={20} color={kit.color.successDeep} />
               <UIText style={[styles.errorText, { color: kit.color.successDeep, textAlign: TEXT_START }]}>
                 {t("auth.resetSuccess", { defaultValue: "Check your email for the reset link!" })}
@@ -102,7 +103,7 @@ export default function ResetPasswordScreen() {
           )}
 
           <View style={styles.inputGroup}>
-            <UIText style={[styles.label, { color: c.ink, textAlign: TEXT_START }]}>{t("auth.emailLabel")}</UIText>
+            <UIText style={[styles.label, { color: theme.colors.text.primary, textAlign: TEXT_START }]}>{t("auth.emailLabel")}</UIText>
             <Input
               value={email}
               onChangeText={(text) => { setEmail(text); setError(null); setSuccess(false); }}

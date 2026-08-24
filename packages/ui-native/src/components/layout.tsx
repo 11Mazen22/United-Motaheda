@@ -23,10 +23,13 @@ export interface ScreenProps { children: React.ReactNode; safeArea?: boolean; ed
 /** Safe-area, scrolling, and keyboard-aware screen root. */
 export function Screen({ children, safeArea = false, edgeToEdge = false, keyboardAvoiding = false, scroll = false, edgeTop = false, edgeBottom = false, background, style, contentStyle, scrollProps }: ScreenProps): React.ReactElement { const insets = useSafeAreaInsets(); const { theme } = useTheme(); const useTop = !edgeToEdge && (safeArea || edgeTop); const useBottom = !edgeToEdge && (safeArea || edgeBottom); let content: React.ReactNode = scroll ? <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} {...scrollProps} contentContainerStyle={contentStyle}>{children}</ScrollView> : <View style={[styles.flex, contentStyle]}>{children}</View>; if (keyboardAvoiding) content = <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === "ios" ? "padding" : undefined}>{content}</KeyboardAvoidingView>; return <View style={[styles.screen, { backgroundColor: background ?? theme.colors.canvas.background, paddingTop: useTop ? insets.top : 0, paddingBottom: useBottom ? insets.bottom : 0 }, style]}>{content}</View>; }
 
-export interface EmptyStateProps { illustration?: React.ReactNode; illustrationName?: IllustrationName; lottieSource?: LottieSource; title: string; subtitle?: string; action?: { label: string; onPress: () => void }; style?: StyleProp<ViewStyle>; }
-/** Fade-in empty state with optional primary recovery action. `illustrationName`/`lottieSource` are shorthands over the bundled art system (A11); `illustration` still accepts any custom node. */
-export function EmptyState({ illustration, illustrationName, lottieSource, title, subtitle, action, style }: EmptyStateProps): React.ReactElement {
-  const art = lottieSource ? <LottieMoment source={lottieSource} fallback={illustrationName ? <Illustration name={illustrationName} /> : illustration} /> : illustration ?? (illustrationName ? <Illustration name={illustrationName} /> : null);
+export interface EmptyStateProps { illustration?: React.ReactNode; illustrationName?: IllustrationName; lottieSource?: LottieSource; icon?: React.ComponentProps<typeof Ionicons>["name"]; title: string; subtitle?: string; action?: { label: string; onPress: () => void }; style?: StyleProp<ViewStyle>; }
+/** Fade-in empty state with optional primary recovery action. `illustrationName`/`lottieSource` are shorthands over the bundled art system (A11); `illustration` still accepts any custom node; `icon` is a lightweight shorthand for a single muted Ionicon when a full illustration isn't warranted. */
+export function EmptyState({ illustration, illustrationName, lottieSource, icon, title, subtitle, action, style }: EmptyStateProps): React.ReactElement {
+  const { theme } = useTheme();
+  const art = lottieSource
+    ? <LottieMoment source={lottieSource} fallback={illustrationName ? <Illustration name={illustrationName} /> : illustration} />
+    : illustration ?? (illustrationName ? <Illustration name={illustrationName} /> : icon ? <Ionicons name={icon} size={44} color={theme.colors.text.muted} /> : null);
   return <Animated.View entering={FadeIn} accessibilityLabel={title} style={[styles.state, style]}>{art}<Text variant="h3" align="center">{title}</Text>{subtitle ? <Text color="secondary" align="center">{subtitle}</Text> : null}{action ? <Button label={action.label} onPress={action.onPress} /> : null}</Animated.View>;
 }
 

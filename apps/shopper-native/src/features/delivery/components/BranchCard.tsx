@@ -20,7 +20,8 @@ import * as Haptics from "expo-haptics";
 
 import Animated, { FadeIn } from "react-native-reanimated";
 
-import { theme } from "@pharmacy/design-tokens";
+import { theme as legacyTheme } from "@pharmacy/design-tokens";
+import { defaultTheme as theme } from "@pharmacy/ui-native";
 
 import { kit } from "@pharmacy/ui-native";
 
@@ -106,7 +107,7 @@ export const BranchCard = memo(function BranchCard({
 
           size={16}
 
-          color={selected ? "#fff" : kit.color.accent}
+          color={selected ? "#fff" : theme.colors.brand.primary}
 
         />
 
@@ -170,7 +171,7 @@ export const BranchCard = memo(function BranchCard({
 
           <Animated.View entering={FadeIn.duration(200)} style={styles.distPill}>
 
-            <Ionicons name="navigate-outline" size={10} color={kit.color.accent} />
+            <Ionicons name="navigate-outline" size={10} color={theme.colors.brand.primary} />
 
             <UIText style={styles.distText}>{distanceKm.toFixed(1)} كم</UIText>
 
@@ -224,11 +225,11 @@ const styles = StyleSheet.create({
 
   cardSelected: {
 
-    borderColor: kit.color.accentTint,
+    borderColor: theme.colors.brand.primaryLight,
 
-    backgroundColor: kit.color.accentTint + "60",
+    backgroundColor: theme.colors.brand.primaryLight + "60",
 
-    ...theme.shadow.xs,
+    ...theme.shadows[0],
 
   },
 
@@ -240,7 +241,7 @@ const styles = StyleSheet.create({
 
     borderRadius: 12,
 
-    backgroundColor: kit.color.accentTint,
+    backgroundColor: theme.colors.brand.primaryLight,
 
     alignItems: "center",
 
@@ -248,13 +249,13 @@ const styles = StyleSheet.create({
 
   },
 
-  iconWrapSelected: { backgroundColor: kit.color.accentDeep },
+  iconWrapSelected: { backgroundColor: theme.colors.brand.primary },
 
   body: { flex: 1, gap: 3 },
 
   titleRow: { flexDirection: flexRow(isRtl()), alignItems: "center", gap: 6 },
 
-  title: { fontSize: 13, fontFamily: theme.fonts.black, color: kit.color.text.primary, textAlign: textAlignStart(isRtl()) },
+  title: { fontSize: 13, fontFamily: legacyTheme.fonts.black, color: kit.color.text.primary, textAlign: textAlignStart(isRtl()) },
 
   primaryBadge: {
 
@@ -268,11 +269,11 @@ const styles = StyleSheet.create({
 
   },
 
-  primaryBadgeText: { fontSize: 9, fontFamily: theme.fonts.bold, color: kit.color.amber[700] },
+  primaryBadgeText: { fontSize: 9, fontFamily: legacyTheme.fonts.bold, color: kit.color.amber[700] },
 
-  area: { fontSize: 11, fontFamily: theme.fonts.bold, color: kit.color.accent, textAlign: textAlignStart(isRtl()) },
+  area: { fontSize: 11, fontFamily: legacyTheme.fonts.bold, color: theme.colors.brand.primary, textAlign: textAlignStart(isRtl()) },
 
-  address: { fontSize: 11, fontFamily: theme.fonts.regular, color: kit.color.slate[500], textAlign: textAlignStart(isRtl()), lineHeight: 16 },
+  address: { fontSize: 11, fontFamily: legacyTheme.fonts.regular, color: kit.color.slate[500], textAlign: textAlignStart(isRtl()), lineHeight: 16 },
 
   metaRow: { flexDirection: flexRow(isRtl()), flexWrap: "wrap", gap: 6, marginTop: 4 },
 
@@ -294,7 +295,7 @@ const styles = StyleSheet.create({
 
   },
 
-  metaText: { fontSize: 9, fontFamily: theme.fonts.semibold, color: kit.color.slate[500] },
+  metaText: { fontSize: 9, fontFamily: legacyTheme.fonts.semibold, color: kit.color.slate[500] },
 
   right: { alignItems: "center", gap: 8, justifyContent: "center" },
 
@@ -306,7 +307,7 @@ const styles = StyleSheet.create({
 
     gap: 3,
 
-    backgroundColor: kit.color.accentTint,
+    backgroundColor: theme.colors.brand.primaryLight,
 
     paddingHorizontal: 7,
 
@@ -316,7 +317,7 @@ const styles = StyleSheet.create({
 
   },
 
-  distText: { fontSize: 9, fontFamily: theme.fonts.black, color: kit.color.accentDeep },
+  distText: { fontSize: 9, fontFamily: legacyTheme.fonts.black, color: theme.colors.brand.primary },
 
   radio: {
 
@@ -336,7 +337,7 @@ const styles = StyleSheet.create({
 
   },
 
-  radioActive: { borderColor: kit.color.accent },
+  radioActive: { borderColor: theme.colors.brand.primary },
 
   radioDot: {
 
@@ -346,7 +347,7 @@ const styles = StyleSheet.create({
 
     borderRadius: 4,
 
-    backgroundColor: kit.color.accentDeep,
+    backgroundColor: theme.colors.brand.primary,
 
   },
 

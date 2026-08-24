@@ -6,7 +6,7 @@ import React from "react";
 import { StyleSheet, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { Text as UIText } from "@pharmacy/ui-native";
-import { kit } from "@pharmacy/ui-native";
+
 import { theme } from "@pharmacy/design-tokens";
 
 export function AuthDivider() {
@@ -29,13 +29,13 @@ const s = StyleSheet.create({
   line: {
     flex:            1,
     height:          1,
-    backgroundColor: kit.color.line,
+    backgroundColor: theme.colors.border.default,
   },
   text: {
     fontFamily:         theme.fonts.bold,
     fontSize:           11,
     lineHeight:         16,
-    color:              kit.color.inkFaint,
+    color:              theme.colors.text.muted,
     letterSpacing:      0.5,
     textTransform:      "uppercase",
     includeFontPadding: false,

@@ -1,3 +1,4 @@
+import { defaultTheme as theme } from "@pharmacy/ui-native";
 /**
  * BarcodeScannerScreen — pharmacist barcode/QR scanner.
  *
@@ -123,7 +124,7 @@ function PermissionGate({ onRequest }: { onRequest: () => void }) {
 
       <View style={pgStyles.iconWell}>
 
-        <Ionicons name="camera-outline" size={48} color={kit.color.accentDeep} />
+        <Ionicons name="camera-outline" size={48} color={theme.colors.brand.primary} />
 
       </View>
 
@@ -175,9 +176,9 @@ const pgStyles = StyleSheet.create({
 
   root:       { flex: 1, alignItems: "center", justifyContent: "center", gap: 16, padding: 32 },
 
-  iconWell:   { width: 80, height: 80, borderRadius: 24, backgroundColor: kit.color.accentTint, alignItems: "center", justifyContent: "center" },
+  iconWell:   { width: 80, height: 80, borderRadius: 24, backgroundColor: theme.colors.brand.primaryLight, alignItems: "center", justifyContent: "center" },
 
-  btn:        { paddingHorizontal: 32, paddingVertical: 14, borderRadius: 12, backgroundColor: kit.color.accent, ...kit.shadow.brandGlow },
+  btn:        { paddingHorizontal: 32, paddingVertical: 14, borderRadius: 12, backgroundColor: theme.colors.brand.primary, ...theme.shadows[2] },
 
   btnPressed: { opacity: 0.85, transform: [{ scale: 0.98 }] },
 
@@ -253,7 +254,7 @@ function ProductCard({
 
       <Pressable onPress={onDismiss} style={rcStyles.close} hitSlop={12} accessibilityRole="button">
 
-        <Ionicons name="close-circle" size={22} color={kit.color.inkFaint} />
+        <Ionicons name="close-circle" size={22} color={theme.colors.text.muted} />
 
       </Pressable>
 
@@ -265,7 +266,7 @@ function ProductCard({
 
         <View style={rcStyles.barcodeIcon}>
 
-          <Ionicons name="barcode-outline" size={18} color={kit.color.accentDeep} />
+          <Ionicons name="barcode-outline" size={18} color={theme.colors.brand.primary} />
 
         </View>
 
@@ -329,7 +330,7 @@ function ProductCard({
 
         <Animated.View entering={FadeIn.duration(200)} style={rcStyles.warnRow}>
 
-          <Ionicons name="warning-outline" size={13} color={kit.color.danger} />
+          <Ionicons name="warning-outline" size={13} color={theme.colors.status.error} />
 
           <UIText style={rcStyles.warnText}>
 
@@ -353,7 +354,7 @@ function ProductCard({
 
         <View style={[rcStyles.catRow, { flexDirection: flexRow(IS_RTL) }]}>
 
-          <Ionicons name="folder-outline" size={12} color={kit.color.inkFaint} />
+          <Ionicons name="folder-outline" size={12} color={theme.colors.text.muted} />
 
           <UIText variant="caption" color="secondary">{product.categoryName}</UIText>
 
@@ -403,7 +404,7 @@ function ProductCard({
 
             <Pressable onPress={() => onAdjust(-1)} style={rcStyles.adjustBtn} accessibilityRole="button">
 
-              <Ionicons name="remove" size={18} color={kit.color.accentDeep} />
+              <Ionicons name="remove" size={18} color={theme.colors.brand.primary} />
 
             </Pressable>
 
@@ -421,7 +422,7 @@ function ProductCard({
 
             <Pressable onPress={() => onAdjust(1)} style={rcStyles.adjustBtn} accessibilityRole="button">
 
-              <Ionicons name="add" size={18} color={kit.color.accentDeep} />
+              <Ionicons name="add" size={18} color={theme.colors.brand.primary} />
 
             </Pressable>
 
@@ -481,7 +482,7 @@ const rcStyles = StyleSheet.create({
 
     end:             0,
 
-    backgroundColor:   kit.color.surface,
+    backgroundColor:   theme.colors.canvas.surface,
 
     borderTopStartRadius:  16,
 
@@ -515,7 +516,7 @@ const rcStyles = StyleSheet.create({
 
     width: 42, height: 42, borderRadius: 12,
 
-    backgroundColor: kit.color.accentTint,
+    backgroundColor: theme.colors.brand.primaryLight,
 
     alignItems: "center", justifyContent: "center",
 
@@ -523,21 +524,21 @@ const rcStyles = StyleSheet.create({
 
   },
 
-  price:     { fontSize: 18, fontFamily: "Cairo_900Black", color: kit.color.accentDeep },
+  price:     { fontSize: 18, fontFamily: "Cairo_900Black", color: theme.colors.brand.primary },
 
   stockGrid: { gap: 8 },
 
-  stockCell: { flex: 1, alignItems: "center", backgroundColor: kit.color.well, borderRadius: 12, paddingVertical: 10 },
+  stockCell: { flex: 1, alignItems: "center", backgroundColor: theme.colors.canvas.surfaceMuted, borderRadius: 12, paddingVertical: 10 },
 
-  stockVal:  { fontSize: 22, fontFamily: "Cairo_900Black", color: kit.color.ink },
+  stockVal:  { fontSize: 22, fontFamily: "Cairo_900Black", color: theme.colors.text.primary },
 
-  stockValWarn: { color: kit.color.danger },
+  stockValWarn: { color: theme.colors.status.error },
 
-  stockLabel:{ fontSize: 10, fontFamily: "Cairo_700Bold", color: kit.color.inkSoft, marginTop: 2 },
+  stockLabel:{ fontSize: 10, fontFamily: "Cairo_700Bold", color: theme.colors.text.secondary, marginTop: 2 },
 
-  warnRow:   { flexDirection: "row", alignItems: "center", gap: 6, padding: 10, borderRadius: 12, backgroundColor: kit.color.dangerTint },
+  warnRow:   { flexDirection: "row", alignItems: "center", gap: 6, padding: 10, borderRadius: 12, backgroundColor: `${theme.colors.status.error}1A` },
 
-  warnText:  { fontSize: 12, fontFamily: "Cairo_700Bold", color: kit.color.danger, flex: 1 },
+  warnText:  { fontSize: 12, fontFamily: "Cairo_700Bold", color: theme.colors.status.error, flex: 1 },
 
   catRow:    { alignItems: "center", gap: 6 },
 
@@ -549,11 +550,11 @@ const rcStyles = StyleSheet.create({
 
     borderRadius:    12,
 
-    backgroundColor: kit.color.well,
+    backgroundColor: theme.colors.canvas.surfaceMuted,
 
     borderWidth:     1,
 
-    borderColor:     kit.color.line,
+    borderColor:     theme.colors.border.default,
 
   },
 
@@ -573,7 +574,7 @@ const rcStyles = StyleSheet.create({
 
     borderRadius:      9999,
 
-    backgroundColor:   kit.color.accentTint,
+    backgroundColor:   theme.colors.brand.primaryLight,
 
   },
 
@@ -583,7 +584,7 @@ const rcStyles = StyleSheet.create({
 
     fontFamily: "Cairo_700Bold",
 
-    color:      kit.color.accentDeep,
+    color:      theme.colors.brand.primary,
 
   },
 
@@ -605,11 +606,11 @@ const rcStyles = StyleSheet.create({
 
     borderRadius:    14,
 
-    backgroundColor: kit.color.surface,
+    backgroundColor: theme.colors.canvas.surface,
 
     borderWidth:     1,
 
-    borderColor:     kit.color.line,
+    borderColor:     theme.colors.border.default,
 
     alignItems:      "center",
 
@@ -633,7 +634,7 @@ const rcStyles = StyleSheet.create({
 
     fontFamily: "Cairo_900Black",
 
-    color:      kit.color.ink,
+    color:      theme.colors.text.primary,
 
   },
 
@@ -643,7 +644,7 @@ const rcStyles = StyleSheet.create({
 
     fontFamily: "Cairo_400Regular",
 
-    color:      kit.color.inkFaint,
+    color:      theme.colors.text.muted,
 
   },
 
@@ -657,7 +658,7 @@ const rcStyles = StyleSheet.create({
 
     justifyContent: "center",
 
-    backgroundColor: kit.color.accent,
+    backgroundColor: theme.colors.brand.primary,
 
   },
 
@@ -919,11 +920,11 @@ export function BarcodeScannerScreen(): React.ReactElement {
 
     return (
 
-      <Screen edgeTop background={kit.color.canvas}>
+      <Screen edgeTop background={theme.colors.canvas.background}>
 
         <PharmacistScreenHeader title={t("pharmacist.scannerTitle", "الماسح الضوئي")} />
 
-        <View style={styles.centered}><ActivityIndicator size="large" color={kit.color.accent} /></View>
+        <View style={styles.centered}><ActivityIndicator size="large" color={theme.colors.brand.primary} /></View>
 
       </Screen>
 
@@ -937,7 +938,7 @@ export function BarcodeScannerScreen(): React.ReactElement {
 
     return (
 
-      <Screen edgeTop background={kit.color.canvas}>
+      <Screen edgeTop background={theme.colors.canvas.background}>
 
         <PharmacistScreenHeader title={t("pharmacist.scannerTitle", "الماسح الضوئي")} />
 
@@ -1101,7 +1102,7 @@ export function BarcodeScannerScreen(): React.ReactElement {
 
             size={20}
 
-            color={torchOn ? kit.color.accent : "#fff"}
+            color={torchOn ? theme.colors.brand.primary : "#fff"}
 
           />
 
@@ -1143,7 +1144,7 @@ export function BarcodeScannerScreen(): React.ReactElement {
 
         >
 
-          <Ionicons name="alert-circle-outline" size={16} color={kit.color.danger} />
+          <Ionicons name="alert-circle-outline" size={16} color={theme.colors.status.error} />
 
           <UIText style={styles.errorText}>{error}</UIText>
 
@@ -1159,7 +1160,7 @@ export function BarcodeScannerScreen(): React.ReactElement {
 
           <Pressable onPress={dismissResult} hitSlop={10}>
 
-            <Ionicons name="close" size={14} color={kit.color.danger} />
+            <Ionicons name="close" size={14} color={theme.colors.status.error} />
 
           </Pressable>
 
@@ -1275,7 +1276,7 @@ const styles = StyleSheet.create({
 
   },
 
-  modeBtnActive: { backgroundColor: kit.color.accent },
+  modeBtnActive: { backgroundColor: theme.colors.brand.primary },
 
   modeBtnText: { fontSize: 12, fontFamily: "Cairo_700Bold", color: "rgba(255,255,255,0.7)" },
 
@@ -1309,7 +1310,7 @@ const styles = StyleSheet.create({
 
     height:    28,
 
-    borderColor: kit.color.accent,
+    borderColor: theme.colors.brand.primary,
 
     borderWidth: 3,
 
@@ -1335,7 +1336,7 @@ const styles = StyleSheet.create({
 
     height:          2,
 
-    backgroundColor: kit.color.accent,
+    backgroundColor: theme.colors.brand.primary,
 
     opacity:         0.8,
 
@@ -1417,7 +1418,7 @@ const styles = StyleSheet.create({
 
     backgroundColor: "rgba(255,255,255,0.18)",
 
-    borderColor:     kit.color.accent,
+    borderColor:     theme.colors.brand.primary,
 
   },
 
@@ -1459,13 +1460,13 @@ const styles = StyleSheet.create({
 
     gap:               8,
 
-    backgroundColor:   kit.color.dangerTint,
+    backgroundColor:   `${theme.colors.status.error}1A`,
 
     borderRadius:      12,
 
     borderWidth:       1,
 
-    borderColor:       kit.color.danger,
+    borderColor:       theme.colors.status.error,
 
     paddingHorizontal: 14,
 
@@ -1473,7 +1474,7 @@ const styles = StyleSheet.create({
 
   },
 
-  errorText: { flex: 1, fontSize: 12, fontFamily: "Cairo_700Bold", color: kit.color.danger },
+  errorText: { flex: 1, fontSize: 12, fontFamily: "Cairo_700Bold", color: theme.colors.status.error },
 
   retryPill: {
 
@@ -1493,7 +1494,7 @@ const styles = StyleSheet.create({
 
     fontFamily: "Cairo_700Bold",
 
-    color:      kit.color.danger,
+    color:      theme.colors.status.error,
 
   },
 

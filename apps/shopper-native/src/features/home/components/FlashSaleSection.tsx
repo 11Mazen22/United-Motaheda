@@ -62,11 +62,13 @@ import * as Haptics from "expo-haptics";
 
 import { useTranslation } from "react-i18next";
 
-import { Text as UIText } from "@pharmacy/ui-native";
+import { Text as UIText, useTheme } from "@pharmacy/ui-native";
 
 import { theme } from "@pharmacy/design-tokens";
 
-import { kit } from "@pharmacy/ui-native";
+// Deliberately static — this file's "shop now" pill always sits on a fixed
+// white surface inside the dark gradient banner, regardless of app theme.
+const BANNER_BUTTON_TEXT = "#0A5F58";
 
 import { flexRow, isRtl, textAlignStart, FORWARD_CHEVRON } from "@/utils/layout";
 
@@ -256,7 +258,7 @@ const OfferBannerCard = memo(function OfferBannerCard({
 
             <UIText style={s.shopNowText}>{t("home.flashShopNow")}</UIText>
 
-            <Ionicons name={FORWARD_CHEVRON} size={13} color={kit.color.accentDeep} />
+            <Ionicons name={FORWARD_CHEVRON} size={13} color={BANNER_BUTTON_TEXT} />
 
           </Pressable>
 
@@ -396,6 +398,8 @@ export const FlashSaleSection = memo(function FlashSaleSection({
 
   const { t, i18n } = useTranslation();
 
+  const { theme } = useTheme();
+
   const lang        = i18n.language === "en" ? "en" as const : "ar" as const;
 
   const items       = products.slice(0, 8);
@@ -446,7 +450,7 @@ export const FlashSaleSection = memo(function FlashSaleSection({
 
         icon="flash"
 
-        accent={kit.color.danger}
+        accent={theme.colors.status.error}
 
         rightSlot={<CountdownDisplay />}
 
@@ -640,7 +644,7 @@ const s = StyleSheet.create({
 
     paddingVertical:   9,
 
-    borderRadius:      kit.radius.pill,
+    borderRadius:      9999,
 
     backgroundColor:   "#FFFFFF",
 
@@ -662,7 +666,7 @@ const s = StyleSheet.create({
 
     lineHeight:         17,
 
-    color:              kit.color.accentDeep,
+    color:              BANNER_BUTTON_TEXT,
 
     includeFontPadding: false,
 

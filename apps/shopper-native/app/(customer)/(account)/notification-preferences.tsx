@@ -1,14 +1,15 @@
 import React, { useState } from "react";
 import { Platform, Pressable, ScrollView, StyleSheet, Switch, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { kit, Text as UIText } from "@pharmacy/ui-native";
+import { Text as UIText } from "@pharmacy/ui-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import Animated, { FadeIn, FadeInDown, Layout } from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
 import { useTranslation } from "react-i18next";
-import { useDarkColors } from "@/hooks/useDarkColors";
+import { useTheme } from "@pharmacy/ui-native";
+
 import { theme } from "@pharmacy/design-tokens";
 import { flexRow, isRtl, textAlignStart, BACK_CHEVRON } from "@/utils/layout";
 
@@ -24,7 +25,7 @@ interface PreferenceSwitchProps {
 }
 
 function PreferenceSwitch({ title, description, value, onValueChange, isLast = false }: PreferenceSwitchProps) {
-  const { c } = useDarkColors();
+  const { theme } = useTheme();
   
   const handleToggle = (val: boolean) => {
     if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -32,23 +33,23 @@ function PreferenceSwitch({ title, description, value, onValueChange, isLast = f
   };
 
   return (
-    <View style={[styles.switchRow, { borderBottomColor: isLast ? "transparent" : c.line, flexDirection: flexRow(IS_RTL) }]}>
+    <View style={[styles.switchRow, { borderBottomColor: isLast ? "transparent" : theme.colors.border.default, flexDirection: flexRow(IS_RTL) }]}>
       <View style={styles.switchTextContainer}>
-        <UIText style={[styles.switchTitle, { color: c.ink, textAlign: TEXT_START }]}>{title}</UIText>
-        <UIText style={[styles.switchDesc, { color: c.inkSoft, textAlign: TEXT_START }]}>{description}</UIText>
+        <UIText style={[styles.switchTitle, { color: theme.colors.text.primary, textAlign: TEXT_START }]}>{title}</UIText>
+        <UIText style={[styles.switchDesc, { color: theme.colors.text.secondary, textAlign: TEXT_START }]}>{description}</UIText>
       </View>
       <Switch 
         value={value} 
         onValueChange={handleToggle} 
-        trackColor={{ false: c.line, true: kit.color.accent }}
-        ios_backgroundColor={c.line}
+        trackColor={{ false: theme.colors.border.default, true: theme.colors.brand.primary }}
+        ios_backgroundColor={theme.colors.border.default}
       />
     </View>
   );
 }
 
 export default function NotificationPreferencesScreen() {
-  const { c } = useDarkColors();
+  const { theme } = useTheme();
   const { t } = useTranslation();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -72,15 +73,15 @@ export default function NotificationPreferencesScreen() {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: c.canvas }}>
-      <Animated.View entering={FadeIn.duration(200)} style={[styles.header, { paddingTop: insets.top, backgroundColor: c.surface, borderBottomColor: c.line }]}>
+    <View style={{ flex: 1, backgroundColor: theme.colors.canvas.background }}>
+      <Animated.View entering={FadeIn.duration(200)} style={[styles.header, { paddingTop: insets.top, backgroundColor: theme.colors.canvas.surface, borderBottomColor: theme.colors.border.default }]}>
         <Pressable 
           onPress={() => router.back()} 
           style={styles.backBtn}
         >
-          <Ionicons name={BACK_CHEVRON} size={24} color={c.ink} />
+          <Ionicons name={BACK_CHEVRON} size={24} color={theme.colors.text.primary} />
         </Pressable>
-        <UIText style={[styles.title, { color: c.ink }]}>{t("profile.notifications", { defaultValue: "Notifications" })}</UIText>
+        <UIText style={[styles.title, { color: theme.colors.text.primary }]}>{t("profile.notifications", { defaultValue: "Notifications" })}</UIText>
         <View style={{ width: 40 }} />
       </Animated.View>
 
@@ -92,28 +93,28 @@ export default function NotificationPreferencesScreen() {
           
           <View style={styles.heroSection}>
             <LinearGradient
-              colors={[kit.color.accentTint, c.canvas]}
+              colors={[theme.colors.brand.primaryLight, theme.colors.canvas.background]}
               style={styles.heroRing}
             >
-               <Ionicons name="notifications" size={48} color={kit.color.accentDeep} />
+               <Ionicons name="notifications" size={48} color={theme.colors.brand.primary} />
             </LinearGradient>
-            <UIText style={[styles.heroInstruction, { color: c.inkSoft }]}>
+            <UIText style={[styles.heroInstruction, { color: theme.colors.text.secondary }]}>
               {t("profile.notificationsInstruction", { defaultValue: "Control how and when you want to be notified about your orders, health reminders, and exclusive offers." })}
             </UIText>
           </View>
 
           {/* Master Toggle */}
-          <View style={[styles.cardGroup, { backgroundColor: c.surface, borderColor: c.line, marginBottom: 24 }]}>
+          <View style={[styles.cardGroup, { backgroundColor: theme.colors.canvas.surface, borderColor: theme.colors.border.default, marginBottom: 24 }]}>
              <View style={[styles.switchRow, { flexDirection: flexRow(IS_RTL) }]}>
                <View style={styles.switchTextContainer}>
-                 <UIText style={[styles.switchTitle, { color: c.ink, textAlign: TEXT_START, fontSize: 16 }]}>
+                 <UIText style={[styles.switchTitle, { color: theme.colors.text.primary, textAlign: TEXT_START, fontSize: 16 }]}>
                    {t("notifications.allowAll", { defaultValue: "Allow Notifications" })}
                  </UIText>
                </View>
                <Switch 
                  value={masterToggle} 
                  onValueChange={handleMasterToggle} 
-                 trackColor={{ false: c.line, true: kit.color.success }}
+                 trackColor={{ false: theme.colors.border.default, true: theme.colors.status.success }}
                />
              </View>
           </View>
@@ -122,9 +123,9 @@ export default function NotificationPreferencesScreen() {
             <Animated.View layout={Layout.springify().damping(20)} entering={FadeInDown.duration(300)}>
               
               <View style={styles.sectionHeader}>
-                <UIText style={[styles.sectionTitle, { color: c.inkSoft, textAlign: TEXT_START }]}>{t("notifications.orders", { defaultValue: "ORDERS & DELIVERIES" })}</UIText>
+                <UIText style={[styles.sectionTitle, { color: theme.colors.text.secondary, textAlign: TEXT_START }]}>{t("notifications.orders", { defaultValue: "ORDERS & DELIVERIES" })}</UIText>
               </View>
-              <View style={[styles.cardGroup, { backgroundColor: c.surface, borderColor: c.line }]}>
+              <View style={[styles.cardGroup, { backgroundColor: theme.colors.canvas.surface, borderColor: theme.colors.border.default }]}>
                 <PreferenceSwitch 
                   title={t("notifications.orderStatus", { defaultValue: "Order Status" })}
                   description={t("notifications.orderStatusDesc", { defaultValue: "Get real-time updates on your delivery." })}
@@ -141,9 +142,9 @@ export default function NotificationPreferencesScreen() {
               </View>
 
               <View style={styles.sectionHeader}>
-                <UIText style={[styles.sectionTitle, { color: c.inkSoft, textAlign: TEXT_START }]}>{t("notifications.marketing", { defaultValue: "OFFERS & MARKETING" })}</UIText>
+                <UIText style={[styles.sectionTitle, { color: theme.colors.text.secondary, textAlign: TEXT_START }]}>{t("notifications.marketing", { defaultValue: "OFFERS & MARKETING" })}</UIText>
               </View>
-              <View style={[styles.cardGroup, { backgroundColor: c.surface, borderColor: c.line }]}>
+              <View style={[styles.cardGroup, { backgroundColor: theme.colors.canvas.surface, borderColor: theme.colors.border.default }]}>
                 <PreferenceSwitch 
                   title={t("notifications.promotions", { defaultValue: "Exclusive Promotions" })}
                   description={t("notifications.promotionsDesc", { defaultValue: "Discounts, flash sales, and special events." })}

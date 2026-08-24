@@ -9,8 +9,9 @@ import React, { useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { Text as UIText } from "@pharmacy/ui-native";
-import { kit } from "@pharmacy/ui-native";
-import { theme } from "@pharmacy/design-tokens";
+
+import { theme as legacyTheme } from "@pharmacy/design-tokens";
+import { defaultTheme as theme } from "@pharmacy/ui-native";
 import { setAppLanguage, type AppLanguage } from "@/i18n";
 
 export function LangSwitcher() {
@@ -37,7 +38,7 @@ export function LangSwitcher() {
       accessibilityRole="button"
       accessibilityLabel={isAr ? "Switch to English" : "التبديل إلى العربية"}>
       {loading ? (
-        <ActivityIndicator size="small" color={kit.color.accentDeep} />
+        <ActivityIndicator size="small" color={theme.colors.brand.primary} />
       ) : (
         <View style={s.inner}>
           <UIText style={s.flag}>{isAr ? "🇺🇸" : "🇸🇦"}</UIText>
@@ -52,10 +53,10 @@ const s = StyleSheet.create({
   btn: {
     height:          36,
     paddingHorizontal: 12,
-    borderRadius:    kit.radius.pill,
-    backgroundColor: kit.color.well,
+    borderRadius:    9999,
+    backgroundColor: theme.colors.canvas.surfaceMuted,
     borderWidth:     1,
-    borderColor:     kit.color.line,
+    borderColor:     theme.colors.border.default,
     alignItems:      "center",
     justifyContent:  "center",
     minWidth:        36,
@@ -71,10 +72,10 @@ const s = StyleSheet.create({
     includeFontPadding: false,
   },
   label: {
-    fontFamily:         theme.fonts.bold,
+    fontFamily:         legacyTheme.fonts.bold,
     fontSize:           12,
     lineHeight:         16,
-    color:              kit.color.inkSoft,
+    color:              theme.colors.text.secondary,
     includeFontPadding: false,
   },
 });

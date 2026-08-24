@@ -1,3 +1,4 @@
+import { defaultTheme as theme } from "@pharmacy/ui-native";
 /**
 
  * FeaturedSection — Horizontal Featured Products Carousel (V3)
@@ -71,7 +72,7 @@ import { sectionStyles } from "./home.styles";
 
 import { fetchFeaturedProducts, productKeys } from "@/features/products";
 
-import { kit } from "@pharmacy/ui-native";
+
 
 import { useScreenLayout } from "@/utils/responsive";
 
@@ -221,7 +222,7 @@ export const FeaturedSection = memo(function FeaturedSection({
 
         icon="star-outline"
 
-        accent={kit.color.warn}
+        accent={theme.colors.status.warning}
 
         onMore={onViewAll}
 

@@ -38,7 +38,6 @@ import { Platform, Pressable, StyleSheet, View } from "react-native";
 
 import { Image } from "expo-image";
 
-import { kit } from "@pharmacy/ui-native";
 
 import { Ionicons } from "@expo/vector-icons";
 
@@ -60,13 +59,15 @@ import * as Haptics from "expo-haptics";
 
 import { Text as UIText } from "@pharmacy/ui-native";
 
-import { theme } from "@pharmacy/design-tokens";
+import { defaultTheme as theme } from "@pharmacy/ui-native";
 
 import { flexRow, isRtl, FORWARD_CHEVRON } from "@/utils/layout";
 
 import { styles, HERO_GLASS, PROFILE } from "./profile.styles";
 
 
+
+const PRESS_SPRING = { damping: 18, stiffness: 360, mass: 0.7 } as const;
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>["name"];
 
@@ -142,9 +143,9 @@ const StatPill = memo(function StatPill({
 
 
 
-  const handleIn    = useCallback(() => { scale.value = withSpring(0.97, theme.animation.spring.press); }, [scale]);
+  const handleIn    = useCallback(() => { scale.value = withSpring(0.97, PRESS_SPRING); }, [scale]);
 
-  const handleOut   = useCallback(() => { scale.value = withSpring(1,   theme.animation.spring.press); }, [scale]);
+  const handleOut   = useCallback(() => { scale.value = withSpring(1,   PRESS_SPRING); }, [scale]);
 
   const handlePress = useCallback(() => {
 
@@ -244,9 +245,9 @@ const QuickActionTile = memo(function QuickActionTile({
 
   // 0.94 — more aggressive press for tiles vs. rows (0.985) / cards (0.97)
 
-  const handleIn    = useCallback(() => { scale.value = withSpring(0.94, theme.animation.spring.press); }, [scale]);
+  const handleIn    = useCallback(() => { scale.value = withSpring(0.94, PRESS_SPRING); }, [scale]);
 
-  const handleOut   = useCallback(() => { scale.value = withSpring(1,   theme.animation.spring.press); }, [scale]);
+  const handleOut   = useCallback(() => { scale.value = withSpring(1,   PRESS_SPRING); }, [scale]);
 
   const handlePress = useCallback(() => {
 
@@ -312,7 +313,7 @@ const QUICK_ACTIONS = [
 
     labelKey: "profile.myOrders",
 
-    grad:     [kit.color.accentDeep, kit.color.accent] as const,
+    grad:     [theme.colors.brand.primary, theme.colors.brand.primary] as const,
 
     route:    "/orders",
 
@@ -324,7 +325,7 @@ const QUICK_ACTIONS = [
 
     labelKey: "profile.wishlist",
 
-    grad:     [PROFILE.wishlistRed, kit.color.danger] as const,
+    grad:     [PROFILE.wishlistRed, theme.colors.status.error] as const,
 
     route:    "/favorites",
 
@@ -348,7 +349,7 @@ const QUICK_ACTIONS = [
 
     labelKey: "profile.addresses",
 
-    grad:     [kit.color.warn, "#f59e0b"] as const,
+    grad:     [theme.colors.status.warning, "#f59e0b"] as const,
 
     route:    "/addresses",
 
@@ -414,7 +415,7 @@ export const ProfileAuthHero = memo(function ProfileAuthHero({
 
     <View>
 
-      <View style={[styles.hero, { backgroundColor: kit.color.ink, paddingTop: insetsTop + 14 }]}>
+      <View style={[styles.hero, { backgroundColor: theme.colors.text.primary, paddingTop: insetsTop + 14 }]}>
 
 
 
@@ -510,7 +511,7 @@ export const ProfileAuthHero = memo(function ProfileAuthHero({
 
             <View style={styles.avatarRing} />
 
-            <View style={[styles.avatarGlow, { backgroundColor: kit.color.accent }]} />
+            <View style={[styles.avatarGlow, { backgroundColor: theme.colors.brand.primary }]} />
 
             {user.avatarUrl ? (
 
@@ -584,7 +585,7 @@ export const ProfileAuthHero = memo(function ProfileAuthHero({
 
           icon="bag-handle-outline"
 
-          accent={kit.color.accentDeep}
+          accent={theme.colors.brand.primary}
 
           onPress={goOrders}
 
@@ -600,7 +601,7 @@ export const ProfileAuthHero = memo(function ProfileAuthHero({
 
           icon="heart-outline"
 
-          accent={kit.color.danger}
+          accent={theme.colors.status.error}
 
           onPress={goWishlist}
 
@@ -616,7 +617,7 @@ export const ProfileAuthHero = memo(function ProfileAuthHero({
 
           icon="cart-outline"
 
-          accent={kit.color.warn}
+          accent={theme.colors.status.warning}
 
           onPress={goCart}
 
@@ -654,9 +655,9 @@ export const ProfileAuthHero = memo(function ProfileAuthHero({
 
                 */}
 
-                <View style={[styles.quickCardIcon, { backgroundColor: kit.color.accentTint }]}>
+                <View style={[styles.quickCardIcon, { backgroundColor: theme.colors.brand.primaryLight }]}>
 
-                  <Ionicons name="bag-handle" size={17} color={kit.color.accentDeep} />
+                  <Ionicons name="bag-handle" size={17} color={theme.colors.brand.primary} />
 
                 </View>
 
@@ -686,7 +687,7 @@ export const ProfileAuthHero = memo(function ProfileAuthHero({
 
                 </View>
 
-                <Ionicons name={FORWARD_CHEVRON} size={14} color={kit.color.inkFaint} />
+                <Ionicons name={FORWARD_CHEVRON} size={14} color={theme.colors.text.muted} />
 
               </View>
 

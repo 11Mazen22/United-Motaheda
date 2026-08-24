@@ -32,9 +32,10 @@ import { useTranslation } from "react-i18next";
 
 import { Text as UIText } from "@pharmacy/ui-native";
 
-import { theme } from "@pharmacy/design-tokens";
+import { theme as legacyTheme } from "@pharmacy/design-tokens";
+import { defaultTheme as theme } from "@pharmacy/ui-native";
 
-import { kit } from "@pharmacy/ui-native";
+
 
 import { flexRow, isRtl, textAlignStart, BACK_CHEVRON } from "@/utils/layout";
 
@@ -104,7 +105,7 @@ function CountdownUnit({ value, label }: { value: string; label: string }) {
 
       <LinearGradient
 
-        colors={[kit.color.accent, kit.color.accentDeep]}
+        colors={[theme.colors.brand.primary, theme.colors.brand.primary]}
 
         start={{ x: 0, y: 0 }}
 
@@ -260,7 +261,7 @@ export default function OffersScreen() {
 
         <LinearGradient
 
-          colors={[kit.color.accent + "22", kit.color.accent + "08", "transparent"]}
+          colors={[theme.colors.brand.primary + "22", theme.colors.brand.primary + "08", "transparent"]}
 
           start={{ x: 0, y: 0 }}
 
@@ -280,13 +281,13 @@ export default function OffersScreen() {
 
           <Pressable onPress={() => router.back()} hitSlop={12} style={s.navBtn}>
 
-            <Ionicons name={BACK_CHEVRON} size={17} color={kit.color.inkSoft} />
+            <Ionicons name={BACK_CHEVRON} size={17} color={theme.colors.text.secondary} />
 
           </Pressable>
 
           <Pressable onPress={() => router.push("/(customer)/(tabs)/cart")} style={s.navBtn}>
 
-            <Ionicons name="bag-outline" size={17} color={kit.color.inkSoft} />
+            <Ionicons name="bag-outline" size={17} color={theme.colors.text.secondary} />
 
           </Pressable>
 
@@ -300,7 +301,7 @@ export default function OffersScreen() {
 
           <View style={s.iconWell}>
 
-            <Ionicons name="flash" size={28} color={kit.color.accent} />
+            <Ionicons name="flash" size={28} color={theme.colors.brand.primary} />
 
           </View>
 
@@ -368,11 +369,11 @@ export default function OffersScreen() {
 
               size={13}
 
-              color={inStockOnly ? kit.color.accent : kit.color.inkFaint}
+              color={inStockOnly ? theme.colors.brand.primary : theme.colors.text.muted}
 
             />
 
-            <UIText style={[s.chipText, { color: inStockOnly ? kit.color.accent : kit.color.inkSoft }]}>
+            <UIText style={[s.chipText, { color: inStockOnly ? theme.colors.brand.primary : theme.colors.text.secondary }]}>
 
               {t("category.inStockOnly")}
 
@@ -398,9 +399,9 @@ export default function OffersScreen() {
 
               >
 
-                <Ionicons name={opt.icon} size={13} color={active ? kit.color.accent : kit.color.inkFaint} />
+                <Ionicons name={opt.icon} size={13} color={active ? theme.colors.brand.primary : theme.colors.text.muted} />
 
-                <UIText style={[s.chipText, { color: active ? kit.color.accent : kit.color.inkSoft }]}>
+                <UIText style={[s.chipText, { color: active ? theme.colors.brand.primary : theme.colors.text.secondary }]}>
 
                   {t(opt.labelKey)}
 
@@ -494,7 +495,7 @@ export default function OffersScreen() {
 
               <View style={{ paddingVertical: 24, alignItems: "center" }}>
 
-                <ActivityIndicator color={kit.color.accent} />
+                <ActivityIndicator color={theme.colors.brand.primary} />
 
               </View>
 
@@ -524,7 +525,7 @@ const s = StyleSheet.create({
 
     flex:            1,
 
-    backgroundColor: kit.color.canvas,
+    backgroundColor: theme.colors.canvas.background,
 
   },
 
@@ -532,7 +533,7 @@ const s = StyleSheet.create({
 
   header: {
 
-    backgroundColor:   kit.color.surface,
+    backgroundColor:   theme.colors.canvas.surface,
 
     paddingBottom:     16,
 
@@ -544,9 +545,9 @@ const s = StyleSheet.create({
 
     borderBottomWidth: StyleSheet.hairlineWidth,
 
-    borderBottomColor: kit.color.line,
+    borderBottomColor: theme.colors.border.default,
 
-    ...kit.shadow.raised,
+    ...theme.shadows[1],
 
   },
 
@@ -570,17 +571,17 @@ const s = StyleSheet.create({
 
     borderRadius:    13,
 
-    backgroundColor: kit.color.surface,
+    backgroundColor: theme.colors.canvas.surface,
 
     borderWidth:     1,
 
-    borderColor:     kit.color.line,
+    borderColor:     theme.colors.border.default,
 
     alignItems:      "center",
 
     justifyContent:  "center",
 
-    ...kit.shadow.raised,
+    ...theme.shadows[1],
 
   },
 
@@ -602,17 +603,17 @@ const s = StyleSheet.create({
 
     borderRadius:    21,
 
-    backgroundColor: kit.color.accentTint,
+    backgroundColor: theme.colors.brand.primaryLight,
 
     borderWidth:     1,
 
-    borderColor:     kit.color.accent + "33",
+    borderColor:     theme.colors.brand.primary + "33",
 
     alignItems:      "center",
 
     justifyContent:  "center",
 
-    ...kit.shadow.raised,
+    ...theme.shadows[1],
 
   },
 
@@ -626,13 +627,13 @@ const s = StyleSheet.create({
 
   eyebrow: {
 
-    fontFamily:         theme.fonts.bold,
+    fontFamily:         legacyTheme.fonts.bold,
 
     fontSize:           10,
 
     lineHeight:         14,
 
-    color:              kit.color.accent,
+    color:              theme.colors.brand.primary,
 
     letterSpacing:      0.8,
 
@@ -642,13 +643,13 @@ const s = StyleSheet.create({
 
   title: {
 
-    fontFamily:         theme.fonts.black,
+    fontFamily:         legacyTheme.fonts.black,
 
     fontSize:           22,
 
     lineHeight:         28,
 
-    color:              kit.color.ink,
+    color:              theme.colors.text.primary,
 
     letterSpacing:      -0.4,
 
@@ -664,13 +665,13 @@ const s = StyleSheet.create({
 
     gap:               5,
 
-    borderRadius:      kit.radius.pill,
+    borderRadius:      9999,
 
     paddingHorizontal: 10,
 
     paddingVertical:   4,
 
-    backgroundColor:   kit.color.accentTint,
+    backgroundColor:   theme.colors.brand.primaryLight,
 
   },
 
@@ -682,19 +683,19 @@ const s = StyleSheet.create({
 
     borderRadius:    3,
 
-    backgroundColor: kit.color.accent,
+    backgroundColor: theme.colors.brand.primary,
 
   },
 
   countText: {
 
-    fontFamily:         theme.fonts.bold,
+    fontFamily:         legacyTheme.fonts.bold,
 
     fontSize:           11,
 
     lineHeight:         15,
 
-    color:              kit.color.accent,
+    color:              theme.colors.brand.primary,
 
     includeFontPadding: false,
 
@@ -722,7 +723,7 @@ const s = StyleSheet.create({
 
     paddingVertical:   9,
 
-    borderRadius:      kit.radius.control,
+    borderRadius:      10,
 
     borderWidth:       1,
 
@@ -730,23 +731,23 @@ const s = StyleSheet.create({
 
   chipActive: {
 
-    backgroundColor: kit.color.accentTint,
+    backgroundColor: theme.colors.brand.primaryLight,
 
-    borderColor:     kit.color.accent + "44",
+    borderColor:     theme.colors.brand.primary + "44",
 
   },
 
   chipOff: {
 
-    backgroundColor: kit.color.well,
+    backgroundColor: theme.colors.canvas.surfaceMuted,
 
-    borderColor:     kit.color.line,
+    borderColor:     theme.colors.border.default,
 
   },
 
   chipText: {
 
-    fontFamily:         theme.fonts.semibold,
+    fontFamily:         legacyTheme.fonts.semibold,
 
     fontSize:           12,
 
@@ -800,7 +801,7 @@ const cs = StyleSheet.create({
 
   value: {
 
-    fontFamily:         theme.fonts.black,
+    fontFamily:         legacyTheme.fonts.black,
 
     fontSize:           16,
 
@@ -814,13 +815,13 @@ const cs = StyleSheet.create({
 
   unitLabel: {
 
-    fontFamily:         theme.fonts.semibold,
+    fontFamily:         legacyTheme.fonts.semibold,
 
     fontSize:           8,
 
     lineHeight:         10,
 
-    color:              kit.color.inkFaint,
+    color:              theme.colors.text.muted,
 
     includeFontPadding: false,
 
@@ -828,13 +829,13 @@ const cs = StyleSheet.create({
 
   colon: {
 
-    fontFamily:         theme.fonts.black,
+    fontFamily:         legacyTheme.fonts.black,
 
     fontSize:           16,
 
     lineHeight:         36,
 
-    color:              kit.color.accentDeep,
+    color:              theme.colors.brand.primary,
 
     includeFontPadding: false,
 

@@ -23,8 +23,9 @@ import { Pressable, StyleSheet, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
-import { kit } from "@pharmacy/ui-native";
-import { theme } from "@pharmacy/design-tokens";
+
+import { theme as legacyTheme } from "@pharmacy/design-tokens";
+import { defaultTheme as theme } from "@pharmacy/ui-native";
 import { Button } from "@pharmacy/ui-native";
 import { Text } from "@pharmacy/ui-native";
 import type { Prescription, RxStatus } from "@/stores/prescriptionsStore";
@@ -42,16 +43,16 @@ export interface RxCardProps {
 // ─── Status tokens ────────────────────────────────────────────────────────────
 
 const STATUS_COLOR: Record<RxStatus, string> = {
-  ready:    kit.color.success,
-  active:   kit.color.accentDeep,
-  expiring: kit.color.warn,
-  expired:  kit.color.inkFaint,
+  ready:    theme.colors.status.success,
+  active:   theme.colors.brand.primary,
+  expiring: theme.colors.status.warning,
+  expired:  theme.colors.text.muted,
 };
 const STATUS_TINT: Record<RxStatus, string> = {
-  ready:    kit.color.successTint,
-  active:   kit.color.accentTint,
-  expiring: kit.color.warnTint,
-  expired:  kit.color.well,
+  ready:    `${theme.colors.status.success}1A`,
+  active:   theme.colors.brand.primaryLight,
+  expiring: `${theme.colors.status.warning}1A`,
+  expired:  theme.colors.canvas.surfaceMuted,
 };
 
 function statusLabel(rx: Prescription, t: TFunction): string {
@@ -69,8 +70,8 @@ function statusLabel(rx: Prescription, t: TFunction): string {
 function ReviewBadge({ reviewStatus, t }: { reviewStatus: Prescription["reviewStatus"]; t: TFunction }): React.ReactElement | null {
   if (!reviewStatus || reviewStatus === "approved") return null;
   const isRejected = reviewStatus === "rejected";
-  const color = isRejected ? kit.color.danger : kit.color.warn;
-  const tint  = isRejected ? kit.color.dangerTint : kit.color.warnTint;
+  const color = isRejected ? theme.colors.status.error : theme.colors.status.warning;
+  const tint  = isRejected ? `${theme.colors.status.error}1A` : `${theme.colors.status.warning}1A`;
   return (
     <View style={[rb.badge, { backgroundColor: tint, borderColor: color + "33" }]}>
       <Ionicons name={isRejected ? "close-circle" : "time-outline"} size={10} color={color} />
@@ -211,13 +212,13 @@ export const RxCard = memo(
                 variant="body"
                 weight="bold"
                 numberOfLines={1}
-                style={{ textAlign: TEXT_START, color: isExpired ? kit.color.inkFaint : kit.color.ink }}>
+                style={{ textAlign: TEXT_START, color: isExpired ? theme.colors.text.muted : theme.colors.text.primary }}>
                 {rx.name}
               </Text>
               <Text
                 variant="caption"
                 numberOfLines={1}
-                style={{ textAlign: TEXT_START, color: kit.color.inkSoft, marginTop: 2 }}>
+                style={{ textAlign: TEXT_START, color: theme.colors.text.secondary, marginTop: 2 }}>
                 {rx.dose} · {rx.doctor}
               </Text>
               <Text
@@ -254,15 +255,15 @@ const s = StyleSheet.create({
 
   // ── Active variant ─────────────────────────────────────────────────────────
   activeCardTouchable: {
-    borderRadius: kit.radius.lg,
+    borderRadius: 12,
   },
   activeCard: {
-    backgroundColor: kit.color.surface,
-    borderRadius:    kit.radius.lg,
+    backgroundColor: theme.colors.canvas.surface,
+    borderRadius:    12,
     borderWidth:     1,
-    borderColor:     kit.color.line,
+    borderColor:     theme.colors.border.default,
     overflow:        "hidden",
-    ...kit.shadow.raised,
+    ...theme.shadows[1],
   },
   activeCardPressed: {
     opacity: 0.95,
@@ -282,20 +283,20 @@ const s = StyleSheet.create({
   activeTile: {
     width:          52,
     height:         52,
-    borderRadius:   kit.radius.control,
+    borderRadius:   10,
     alignItems:     "center",
     justifyContent: "center",
     flexShrink:     0,
   },
   activeName: {
-    fontFamily:         theme.fonts.black,
+    fontFamily:         legacyTheme.fonts.black,
     fontSize:           16,
     lineHeight:         22,
-    color:              kit.color.ink,
+    color:              theme.colors.text.primary,
     includeFontPadding: false,
   },
   doseText: {
-    color:              kit.color.inkSoft,
+    color:              theme.colors.text.secondary,
     marginTop:          2,
     includeFontPadding: false,
   },
@@ -305,10 +306,10 @@ const s = StyleSheet.create({
     gap:               5,
     paddingHorizontal: 10,
     paddingVertical:   5,
-    borderRadius:      kit.radius.pill,
+    borderRadius:      9999,
     flexShrink:        0,
     borderWidth:       1,
-    borderColor:       kit.color.line,
+    borderColor:       theme.colors.border.default,
   },
   statusDot: {
     width:        6,
@@ -316,14 +317,14 @@ const s = StyleSheet.create({
     borderRadius: 3,
   },
   statusPillText: {
-    fontFamily:         theme.fonts.black,
+    fontFamily:         legacyTheme.fonts.black,
     fontSize:           10,
     lineHeight:         14,
     includeFontPadding: false,
   },
   activeDivider: {
     height:          StyleSheet.hairlineWidth,
-    backgroundColor: kit.color.line,
+    backgroundColor: theme.colors.border.default,
     marginVertical:  14,
   },
   activeMetaRow: {
@@ -331,18 +332,18 @@ const s = StyleSheet.create({
     justifyContent: "space-between",
   },
   nextRefillEyebrow: {
-    fontFamily:         theme.fonts.bold,
+    fontFamily:         legacyTheme.fonts.bold,
     fontSize:           10,
     lineHeight:         14,
-    color:              kit.color.inkFaint,
+    color:              theme.colors.text.muted,
     letterSpacing:      0.5,
     includeFontPadding: false,
   },
   nextRefillValue: {
-    fontFamily:         theme.fonts.black,
+    fontFamily:         legacyTheme.fonts.black,
     fontSize:           13,
     lineHeight:         19,
-    color:              kit.color.ink,
+    color:              theme.colors.text.primary,
     marginTop:          2,
     includeFontPadding: false,
   },
@@ -351,9 +352,9 @@ const s = StyleSheet.create({
   // Outer Pressable: bare container only (no gap/flexDirection — a function-
   // style Pressable + gap combo corrupts layout on this app's RN/Fabric setup).
   listCardOuter: {
-    borderRadius: kit.radius.lg,
+    borderRadius: 12,
     overflow:     "hidden",
-    ...kit.shadow.raised,
+    ...theme.shadows[1],
   },
   // Inner View: all row layout (gap/flexDirection/padding) lives here instead.
   listCard: {
@@ -362,10 +363,10 @@ const s = StyleSheet.create({
     paddingVertical:   14,
     paddingHorizontal: 16,
     paddingEnd:        12,
-    backgroundColor:   kit.color.surface,
-    borderRadius:      kit.radius.lg,
+    backgroundColor:   theme.colors.canvas.surface,
+    borderRadius:      12,
     borderWidth:       1,
-    borderColor:       kit.color.line,
+    borderColor:       theme.colors.border.default,
     borderStartWidth:  3,
     // borderStartColor set dynamically above
   },
@@ -375,7 +376,7 @@ const s = StyleSheet.create({
   listTile: {
     width:          44,
     height:         44,
-    borderRadius:   kit.radius.control,
+    borderRadius:   10,
     alignItems:     "center",
     justifyContent: "center",
     flexShrink:     0,
@@ -385,10 +386,10 @@ const s = StyleSheet.create({
     minWidth: 0,
   },
   listDate: {
-    fontFamily:         theme.fonts.bold,
+    fontFamily:         legacyTheme.fonts.bold,
     fontSize:           10,
     lineHeight:         15,
-    color:              kit.color.inkFaint,
+    color:              theme.colors.text.muted,
     marginTop:          3,
     includeFontPadding: false,
   },
@@ -404,7 +405,7 @@ const rb = StyleSheet.create({
     marginTop:         4,
     paddingHorizontal: 7,
     paddingVertical:   3,
-    borderRadius:      kit.radius.pill,
+    borderRadius:      9999,
     borderWidth:       1,
   },
   text: {

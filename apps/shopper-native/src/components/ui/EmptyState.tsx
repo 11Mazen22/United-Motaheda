@@ -1,3 +1,4 @@
+import { defaultTheme as theme } from "@pharmacy/ui-native";
 import React from "react";
 
 import { View, StyleSheet, StyleProp, ViewStyle } from "react-native";
@@ -50,7 +51,7 @@ export function EmptyState({ icon = "cube-outline", title, subtitle, description
       style={[
         s.container,
 
-        { backgroundColor: kit.color.canvas },
+        { backgroundColor: theme.colors.canvas.background },
 
         style
 
@@ -66,9 +67,9 @@ export function EmptyState({ icon = "cube-outline", title, subtitle, description
 
           {
 
-            backgroundColor: `${kit.color.accent}15`,
+            backgroundColor: `${theme.colors.brand.primary}15`,
 
-            borderColor: kit.color.line,
+            borderColor: theme.colors.border.default,
 
           }
 
@@ -76,11 +77,11 @@ export function EmptyState({ icon = "cube-outline", title, subtitle, description
 
       >
 
-        <Ionicons name={icon} size={36} color={kit.color.accent} />
+        <Ionicons name={icon} size={36} color={theme.colors.brand.primary} />
 
       </View>
 
-      <Text variant="h3" align="center" style={{ color: kit.color.text.primary, marginTop: kit.sp(4) }}>
+      <Text variant="h3" align="center" style={{ color: kit.color.text.primary, marginTop: 16 }}>
 
         {title}
 
@@ -88,7 +89,7 @@ export function EmptyState({ icon = "cube-outline", title, subtitle, description
 
       {displaySubtitle ? (
 
-        <Text variant="body" align="center" style={{ color: kit.color.text.secondary, marginTop: kit.sp(2) }}>
+        <Text variant="body" align="center" style={{ color: kit.color.text.secondary, marginTop: 8 }}>
 
           {displaySubtitle}
 
@@ -98,7 +99,7 @@ export function EmptyState({ icon = "cube-outline", title, subtitle, description
 
       {resolvedAction ? (
 
-        <View style={{ marginTop: kit.sp(6) }}>
+        <View style={{ marginTop: 24 }}>
 
           <Button label={resolvedAction.label} onPress={resolvedAction.onPress} />
 
@@ -124,9 +125,9 @@ const s = StyleSheet.create({
 
     justifyContent: "center",
 
-    paddingHorizontal: kit.sp(8),
+    paddingHorizontal: 32,
 
-    paddingVertical: kit.sp(12),
+    paddingVertical: 48,
 
   },
 

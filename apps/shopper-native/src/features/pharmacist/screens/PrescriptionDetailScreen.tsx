@@ -1,484 +1,332 @@
 import React, { useState } from "react";
-
 import {
-
-  ActivityIndicator, ScrollView, StyleSheet, TextInput, View, Image, Dimensions
-
+  ActivityIndicator, ScrollView, StyleSheet, View, Dimensions,
 } from "react-native";
-
 import { useLocalSearchParams } from "expo-router";
+import { useTranslation } from "react-i18next";
+import * as Haptics from "expo-haptics";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import Animated, {
+  FadeIn,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
 
-import { useTranslation }       from "react-i18next";
-
-
-
-import { Screen, Text as UIText, Button, kit } from "@pharmacy/ui-native";
-import { useDarkColors } from "@/hooks/useDarkColors";
-
+import { Screen, Text as UIText, Button, Input, kit } from "@pharmacy/ui-native";
+import { useTheme } from "@pharmacy/ui-native";
 import { flexRow, isRtl } from "@/utils/layout";
-
 import { showErrorSheet, showSuccessSheet } from "@/shared/store/appSheetStore";
 
-
-
 import { usePrescription, usePrescriptionImage } from "../hooks/usePharmacistQueries";
+import { usePharmacistMutations } from "../hooks/usePharmacistMutations";
+import { PharmacistScreenHeader } from "../components/PharmacistScreenHeader";
 
-import { usePharmacistMutations }  from "../hooks/usePharmacistMutations";
-
-import { PharmacistScreenHeader }  from "../components/PharmacistScreenHeader";
-
-
-
-const IS_RTL     = isRtl();
-
+const IS_RTL = isRtl();
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
+const MAX_SCALE = 4;
 
+// ─── ZoomableImage — pinch/pan document viewer for verifying prescriptions ────
 
+function ZoomableImage({ uri }: { uri: string }) {
+  const scale = useSharedValue(1);
+  const savedScale = useSharedValue(1);
+  const translateX = useSharedValue(0);
+  const translateY = useSharedValue(0);
+  const savedX = useSharedValue(0);
+  const savedY = useSharedValue(0);
 
-export function PrescriptionDetailScreen(): React.ReactElement {
-
-  const { t }  = useTranslation();
-
-  const { c }  = useDarkColors();
-
-  const { id } = useLocalSearchParams<{ id: string }>();
-
-
-
-  const rxQuery   = usePrescription(id);
-
-  const mutations = usePharmacistMutations();
-
-
-
-  const [rejectionReason,  setRejectionReason]  = useState("");
-
-  const [showRejectForm,   setShowRejectForm]   = useState(false);
-
-
-
-  const rx = rxQuery.data;
-
-  const isPending = rx?.reviewStatus === "pending_review";
-
-  const imageQuery = usePrescriptionImage(rx?.imagePath);
-
-
-
-  const handleApprove = async () => {
-
-    if (!id) return;
-
-    try {
-
-      await mutations.reviewRx.mutateAsync({ id, input: { reviewStatus: "approved" } });
-
-      showSuccessSheet(t("pharmacist.rxApprovedTitle"), t("pharmacist.rxApprovedBody"));
-
-    } catch (e) {
-
-      showErrorSheet(t("pharmacist.actionFailedTitle"), e instanceof Error ? e.message : "");
-
-    }
-
+  const reset = () => {
+    "worklet";
+    scale.value = withTiming(1);
+    translateX.value = withTiming(0);
+    translateY.value = withTiming(0);
+    savedScale.value = 1;
+    savedX.value = 0;
+    savedY.value = 0;
   };
 
+  const pinch = Gesture.Pinch()
+    .onUpdate((e) => {
+      scale.value = Math.min(Math.max(savedScale.value * e.scale, 1), MAX_SCALE);
+    })
+    .onEnd(() => {
+      savedScale.value = scale.value;
+      if (scale.value <= 1) reset();
+    });
 
+  const pan = Gesture.Pan()
+    .onUpdate((e) => {
+      if (savedScale.value <= 1) return;
+      translateX.value = savedX.value + e.translationX;
+      translateY.value = savedY.value + e.translationY;
+    })
+    .onEnd(() => {
+      savedX.value = translateX.value;
+      savedY.value = translateY.value;
+    });
 
-  const handleReject = async () => {
+  const doubleTap = Gesture.Tap()
+    .numberOfTaps(2)
+    .onEnd(() => {
+      if (savedScale.value > 1) {
+        reset();
+      } else {
+        scale.value = withTiming(2.5);
+        savedScale.value = 2.5;
+      }
+    });
 
-    if (!id) return;
+  const composed = Gesture.Simultaneous(Gesture.Race(doubleTap, pan), pinch);
 
-    try {
-
-      await mutations.reviewRx.mutateAsync({
-
-        id,
-
-        input: {
-
-          reviewStatus:    "rejected",
-
-          rejectionReason:  rejectionReason || undefined,
-
-        },
-
-      });
-
-      showSuccessSheet(t("pharmacist.rxRejectedTitle"), t("pharmacist.rxRejectedBody"));
-
-      setShowRejectForm(false);
-
-    } catch (e) {
-
-      showErrorSheet(t("pharmacist.actionFailedTitle"), e instanceof Error ? e.message : "");
-
-    }
-
-  };
-
-
-
-  if (rxQuery.isLoading) {
-
-    return (
-
-      <Screen edgeTop background={c.canvas}>
-
-        <PharmacistScreenHeader title={t("pharmacist.prescriptionDetail", "Prescription Detail")} />
-
-        <View style={s.centered}><ActivityIndicator size="large" color={c.accent} /></View>
-
-      </Screen>
-
-    );
-
-  }
-
-
-
-  if (!rx) {
-
-    return (
-
-      <Screen edgeTop background={c.canvas}>
-
-        <PharmacistScreenHeader title={t("pharmacist.prescriptionDetail", "Prescription Detail")} />
-
-        <View style={s.centered}>
-
-          <UIText variant="card-title">{t("pharmacist.rxNotFound", "Prescription not found")}</UIText>
-
-        </View>
-
-      </Screen>
-
-    );
-
-  }
-
-
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: translateX.value },
+      { translateY: translateY.value },
+      { scale: scale.value },
+    ],
+  }));
 
   return (
-
-    <Screen edgeTop background={c.canvas}>
-
-      <PharmacistScreenHeader title={t("pharmacist.prescriptionDetail", "Prescription Detail")} hideBack={false} />
-
-
-
-      <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
-
-        {/* Document Viewer (min 50% height) */}
-
-        <View style={[s.imageBoxer, { backgroundColor: c.ink }]}>
-
-          {imageQuery.isLoading ? (
-
-            <ActivityIndicator size="large" color={c.accent} />
-
-          ) : imageQuery.error ? (
-
-            <UIText variant="caption" color="danger">{t("pharmacist.rxDocumentError", "Failed to load document")}</UIText>
-
-          ) : imageQuery.data ? (
-
-            <Image
-
-              source={{ uri: imageQuery.data }}
-
-              style={StyleSheet.absoluteFill}
-
-              resizeMode="contain"
-
-            />
-
-          ) : (
-
-            <UIText variant="caption" color="secondary">{t("pharmacist.noDocument", "No document available")}</UIText>
-
-          )}
-
-        </View>
-
-
-
-        <View style={[s.content, { backgroundColor: c.surface }]}>
-
-          {/* Patient info */}
-
-          <View style={[s.row, { justifyContent: "space-between", marginBottom: 12 }]}>
-
-            <View>
-
-              <UIText variant="body">{rx.customerName}</UIText>
-
-              <UIText variant="caption" color="secondary">
-
-                {new Date(rx.addedAt ?? "").toLocaleString()}
-
-              </UIText>
-
-            </View>
-
-            {/* Status */}
-
-            <View style={[s.statusBadge, {
-
-              backgroundColor: rx.reviewStatus === "approved" ? c.successTint :
-
-                               rx.reviewStatus === "rejected" ? c.dangerTint :
-
-                               c.warnTint
-
-            }]}>
-
-              <UIText variant="caption" weight="bold" style={{
-
-                color: rx.reviewStatus === "approved" ? c.success :
-
-                       rx.reviewStatus === "rejected" ? c.danger :
-
-                       c.warn
-
-              }}>
-
-                {rx.reviewStatus === "approved" ? t("pharmacist.rxApproved", "Approved") :
-
-                 rx.reviewStatus === "rejected" ? t("pharmacist.rxRejected", "Rejected") :
-
-                 t("pharmacist.rxPending", "Pending")}
-
-              </UIText>
-
-            </View>
-
-          </View>
-
-
-
-          {/* Pharmacist note */}
-
-          {rx.adminNotes ? (
-
-            <View style={[s.noteBox, { backgroundColor: c.well }]}>
-
-              <UIText variant="caption" weight="bold">{t("pharmacist.adminNotes", "Pharmacist Note")}</UIText>
-
-              <UIText variant="body-sm">{rx.adminNotes}</UIText>
-
-            </View>
-
-          ) : null}
-
-
-
-          {/* Reject Reason */}
-
-          {rx.rejectionReason ? (
-
-            <View style={[s.noteView, { backgroundColor: c.dangerTint }]}>
-
-              <UIText variant="caption" weight="bold" color="danger">{t("pharmacist.rejectionReason", "Rejection Reason")}</UIText>
-
-              <UIText variant="body-sm" color="danger">{rx.rejectionReason}</UIText>
-
-            </View>
-
-          ) : null}
-
-
-
-          {/* Actions */}
-
-          {isPending && (
-
-            <View style={s.actions}>
-
-              {!showRejectForm ? (
-
-                <>
-
-                  <Button
-
-                    label={t("pharmacist.actionApproveRx", "Approve")}
-
-                    full
-
-                    loading={mutations.reviewRx.isPending}
-
-                    onPress={handleApprove}
-
-                  />
-
-                  <Button
-
-                    label={t("pharmacist.actionRejectRx", "Reject")}
-
-                    variant="outline"
-
-                    full
-
-                    onPress={() => setShowRejectForm(true)}
-
-                  />
-
-                </>
-
-              ) : (
-
-                <>
-
-                  <TextInput
-
-                    value={rejectionReason}
-
-                    onChangeText={setRejectionReason}
-
-                    placeholder={t("pharmacist.rejectionReasonPlaceholder", "Reason for rejection")}
-
-                    placeholderTextColor={c.inkFaint}
-
-                    multiline
-
-                    style={[s.textInput, { backgroundColor: c.well, borderColor: c.danger, color: c.ink }]}
-
-                  />
-
-                  <Button
-
-                    label={t("pharmacist.confirmReject", "Confirm Reject")}
-
-                    full
-
-                    loading={mutations.reviewRx.isPending}
-
-                    onPress={handleReject}
-
-                    variant="danger"
-
-                  />
-
-                  <Button
-
-                    label={t("common.cancel", "Cancel")}
-
-                    variant="ghost"
-
-                    full
-
-                    onPress={() => setShowRejectForm(false)}
-
-                  />
-
-                </>
-
-              )}
-
-            </View>
-
-          )}
-
-        </View>
-
-      </ScrollView>
-
-    </Screen>
-
+    <GestureDetector gesture={composed}>
+      <Animated.View style={StyleSheet.absoluteFill}>
+        <Animated.Image
+          source={{ uri }}
+          style={[StyleSheet.absoluteFill, animatedStyle]}
+          resizeMode="contain"
+        />
+      </Animated.View>
+    </GestureDetector>
   );
-
 }
 
+// ─── Status meta ────────────────────────────────────────────────────────────
 
+function statusMeta(status: string, theme: ReturnType<typeof useTheme>["theme"]) {
+  if (status === "approved") return { color: theme.colors.status.success, labelKey: "pharmacist.rxApproved" };
+  if (status === "rejected") return { color: theme.colors.status.error, labelKey: "pharmacist.rxRejected" };
+  return { color: theme.colors.status.warning, labelKey: "pharmacist.rxPending" };
+}
+
+// ─── Screen ─────────────────────────────────────────────────────────────────
+
+export function PrescriptionDetailScreen(): React.ReactElement {
+  const { t } = useTranslation();
+  const { theme } = useTheme();
+  const { id } = useLocalSearchParams<{ id: string }>();
+
+  const rxQuery = usePrescription(id);
+  const mutations = usePharmacistMutations();
+
+  const [rejectionReason, setRejectionReason] = useState("");
+  const [showRejectForm, setShowRejectForm] = useState(false);
+
+  const rx = rxQuery.data;
+  const isPending = rx?.reviewStatus === "pending_review";
+  const imageQuery = usePrescriptionImage(rx?.imagePath);
+
+  const handleApprove = async () => {
+    if (!id) return;
+    try {
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+      await mutations.reviewRx.mutateAsync({ id, input: { reviewStatus: "approved" } });
+      showSuccessSheet(t("pharmacist.rxApprovedTitle"), t("pharmacist.rxApprovedBody"));
+    } catch (e) {
+      showErrorSheet(t("pharmacist.actionFailedTitle"), e instanceof Error ? e.message : "");
+    }
+  };
+
+  const handleReject = async () => {
+    if (!id) return;
+    try {
+      await mutations.reviewRx.mutateAsync({
+        id,
+        input: {
+          reviewStatus: "rejected",
+          rejectionReason: rejectionReason || undefined,
+        },
+      });
+      showSuccessSheet(t("pharmacist.rxRejectedTitle"), t("pharmacist.rxRejectedBody"));
+      setShowRejectForm(false);
+    } catch (e) {
+      showErrorSheet(t("pharmacist.actionFailedTitle"), e instanceof Error ? e.message : "");
+    }
+  };
+
+  if (rxQuery.isLoading) {
+    return (
+      <Screen edgeTop background={theme.colors.canvas.background}>
+        <PharmacistScreenHeader title={t("pharmacist.prescriptionDetail", "Prescription Detail")} />
+        <View style={s.centered}><ActivityIndicator size="large" color={theme.colors.brand.primary} /></View>
+      </Screen>
+    );
+  }
+
+  if (!rx) {
+    return (
+      <Screen edgeTop background={theme.colors.canvas.background}>
+        <PharmacistScreenHeader title={t("pharmacist.prescriptionDetail", "Prescription Detail")} />
+        <View style={s.centered}>
+          <UIText variant="card-title">{t("pharmacist.rxNotFound", "Prescription not found")}</UIText>
+        </View>
+      </Screen>
+    );
+  }
+
+  const meta = statusMeta(rx.reviewStatus, theme);
+
+  return (
+    <Screen edgeTop background={theme.colors.canvas.background}>
+      <PharmacistScreenHeader title={t("pharmacist.prescriptionDetail", "Prescription Detail")} hideBack={false} />
+
+      <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
+        {/* Document Viewer — pinch/pan/double-tap to inspect handwriting closely */}
+        <View style={[s.imageBoxer, { backgroundColor: theme.colors.text.primary }]}>
+          {imageQuery.isLoading ? (
+            <ActivityIndicator size="large" color={theme.colors.brand.primary} />
+          ) : imageQuery.error ? (
+            <UIText variant="caption" color="danger">{t("pharmacist.rxDocumentError", "Failed to load document")}</UIText>
+          ) : imageQuery.data ? (
+            <ZoomableImage uri={imageQuery.data} />
+          ) : (
+            <UIText variant="caption" color="secondary">{t("pharmacist.noDocument", "No document available")}</UIText>
+          )}
+          {imageQuery.data && (
+            <View style={s.zoomHint} pointerEvents="none">
+              <UIText variant="caption" color="inverse-muted">{t("pharmacist.pinchToZoom")}</UIText>
+            </View>
+          )}
+        </View>
+
+        <Animated.View entering={FadeIn.duration(240)} style={[s.content, { backgroundColor: theme.colors.canvas.surface }]}>
+          {/* Patient info */}
+          <View style={[s.row, { flexDirection: flexRow(IS_RTL), justifyContent: "space-between", marginBottom: 12 }]}>
+            <View>
+              <UIText variant="body">{rx.customerName}</UIText>
+              <UIText variant="caption" color="secondary">
+                {new Date(rx.addedAt ?? "").toLocaleString()}
+              </UIText>
+            </View>
+            <View style={[s.statusBadge, { backgroundColor: `${meta.color}1A` }]}>
+              <UIText variant="caption" weight="bold" style={{ color: meta.color }}>
+                {t(meta.labelKey, meta.labelKey)}
+              </UIText>
+            </View>
+          </View>
+
+          {/* Pharmacist note */}
+          {rx.adminNotes ? (
+            <View style={[s.noteBox, { backgroundColor: theme.colors.canvas.surfaceMuted }]}>
+              <UIText variant="caption" weight="bold">{t("pharmacist.adminNotes", "Pharmacist Note")}</UIText>
+              <UIText variant="body-sm">{rx.adminNotes}</UIText>
+            </View>
+          ) : null}
+
+          {/* Reject Reason */}
+          {rx.rejectionReason ? (
+            <View style={[s.noteView, { backgroundColor: `${theme.colors.status.error}1A` }]}>
+              <UIText variant="caption" weight="bold" color="danger">{t("pharmacist.rejectionReason", "Rejection Reason")}</UIText>
+              <UIText variant="body-sm" color="danger">{rx.rejectionReason}</UIText>
+            </View>
+          ) : null}
+
+          {/* Actions */}
+          {isPending && (
+            <View style={s.actions}>
+              {!showRejectForm ? (
+                <>
+                  <Button
+                    label={t("pharmacist.actionApproveRx", "Approve")}
+                    full
+                    loading={mutations.reviewRx.isPending}
+                    onPress={handleApprove}
+                  />
+                  <Button
+                    label={t("pharmacist.actionRejectRx", "Reject")}
+                    variant="outline"
+                    full
+                    onPress={() => setShowRejectForm(true)}
+                  />
+                </>
+              ) : (
+                <>
+                  <Input
+                    value={rejectionReason}
+                    onChangeText={setRejectionReason}
+                    placeholder={t("pharmacist.rejectionReasonPlaceholder", "Reason for rejection")}
+                    multiline
+                    style={s.textInput}
+                  />
+                  <Button
+                    label={t("pharmacist.confirmReject", "Confirm Reject")}
+                    full
+                    loading={mutations.reviewRx.isPending}
+                    onPress={handleReject}
+                    variant="danger"
+                  />
+                  <Button
+                    label={t("common.cancel", "Cancel")}
+                    variant="ghost"
+                    full
+                    onPress={() => setShowRejectForm(false)}
+                  />
+                </>
+              )}
+            </View>
+          )}
+        </Animated.View>
+      </ScrollView>
+    </Screen>
+  );
+}
 
 const s = StyleSheet.create({
-
   scroll: { paddingBottom: 60, flexGrow: 1 },
-
   centered: { alignItems: "center", justifyContent: "center", flex: 1 },
-
   imageBoxer: {
-
     width: "100%",
-
     minHeight: SCREEN_HEIGHT * 0.5,
-
     alignItems: "center",
-
     justifyContent: "center",
-
+    overflow: "hidden",
   },
-
+  zoomHint: {
+    position: "absolute",
+    bottom: 12,
+    alignSelf: "center",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+    backgroundColor: "rgba(0,0,0,0.45)",
+  },
   content: {
-
     padding: kit.inset.screen,
-
     flex: 1,
-
   },
-
   row: {
-
-    flexDirection: flexRow(IS_RTL),
-
     alignItems: "center",
-
   },
-
   statusBadge: {
-
     paddingHorizontal: 12,
-
     paddingVertical: 6,
-
     borderRadius: 9999,
-
   },
-
   noteBox: {
-
     padding: 12,
-
     borderRadius: 8,
-
     marginTop: 12,
-
   },
-
   actions: {
-
     marginTop: 24,
-
     gap: 12,
-
   },
-
   noteView: {
-
     padding: 12,
-
     borderRadius: 8,
-
     marginTop: 12,
-
   },
-
   textInput: {
-
-    borderRadius: 8,
-
-    borderWidth: 1,
-
-    padding: 12,
-
-    fontSize: 14,
-
-    fontFamily: kit.font.regular,
-
-    textAlignVertical: "top",
-
     minHeight: 80,
-
+    textAlignVertical: "top",
   },
-
 });

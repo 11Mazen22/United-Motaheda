@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Modal, Platform, Pressable, ScrollView, StyleSheet, View, TextInput, KeyboardAvoidingView } from "react-native";
-import { Text as UIText, kit, Button } from "@pharmacy/ui-native";
+import { Text as UIText, Button } from "@pharmacy/ui-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Location from "expo-location";
 import * as Haptics from "expo-haptics";
@@ -10,8 +10,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AddressMapPlaceholder } from "./AddressMapPlaceholder";
 import { ADDRESS_LABELS } from "../types";
 import type { AddressFormData, AddressLabel } from "../types";
-import { useDarkColors } from "@/hooks/useDarkColors";
-import { theme } from "@pharmacy/design-tokens";
+import { useTheme } from "@pharmacy/ui-native";
+
+import { theme as legacyTheme } from "@pharmacy/design-tokens";
+import { defaultTheme as theme } from "@pharmacy/ui-native";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
 
 interface AddressFormDrawerProps {
@@ -30,7 +32,7 @@ export function AddressFormDrawer({
   loading = false,
 }: AddressFormDrawerProps) {
   const { t } = useTranslation();
-  const { c } = useDarkColors();
+  const { theme } = useTheme();
   const insets = useSafeAreaInsets();
   const IS_RTL = isRtl();
 
@@ -106,15 +108,15 @@ export function AddressFormDrawer({
           <Animated.View entering={FadeIn.duration(200)} exiting={FadeOut.duration(200)} style={[StyleSheet.absoluteFill, { backgroundColor: "rgba(0,0,0,0.5)" }]} />
           <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
           
-          <Animated.View entering={SlideInDown.springify().damping(20)} exiting={SlideOutDown.duration(200)} style={[styles.sheet, { backgroundColor: c.surface, paddingTop: 12, paddingBottom: Math.max(insets.bottom, 20) }]}>
+          <Animated.View entering={SlideInDown.springify().damping(20)} exiting={SlideOutDown.duration(200)} style={[styles.sheet, { backgroundColor: theme.colors.canvas.surface, paddingTop: 12, paddingBottom: Math.max(insets.bottom, 20) }]}>
             <View style={styles.handle} />
             
             <View style={[styles.header, { flexDirection: flexRow(IS_RTL) }]}>
-              <UIText style={[styles.title, { color: c.ink }]}>
+              <UIText style={[styles.title, { color: theme.colors.text.primary }]}>
                 {initialData ? t("addresses.editTitle", { defaultValue: "Edit Address" }) : t("addresses.addTitle", { defaultValue: "New Address" })}
               </UIText>
               <Pressable onPress={onClose} style={styles.closeBtn}>
-                <Ionicons name="close-circle-outline" size={28} color={c.inkSoft} />
+                <Ionicons name="close-circle-outline" size={28} color={theme.colors.text.secondary} />
               </Pressable>
             </View>
 
@@ -122,17 +124,17 @@ export function AddressFormDrawer({
               
               {/* Smart Location Detect Banner */}
               {!initialData && (
-                <Pressable onPress={handleDetectLocation} style={[styles.detectBtn, { backgroundColor: isDetecting ? kit.color.accentTint : c.line, borderColor: smartZoneActive ? kit.color.success : "transparent" }]}>
+                <Pressable onPress={handleDetectLocation} style={[styles.detectBtn, { backgroundColor: isDetecting ? theme.colors.brand.primaryLight : theme.colors.border.default, borderColor: smartZoneActive ? theme.colors.status.success : "transparent" }]}>
                   <View style={styles.detectIconWrap}>
-                    <Animated.View style={[styles.detectPulse, { backgroundColor: kit.color.accentDeep }, animatedPulse]} />
-                    <Ionicons name="navigate" size={18} color={kit.color.onAccent} />
+                    <Animated.View style={[styles.detectPulse, { backgroundColor: theme.colors.brand.primary }, animatedPulse]} />
+                    <Ionicons name="navigate" size={18} color={theme.colors.text.inverse} />
                   </View>
                   <View style={{ flex: 1, paddingHorizontal: 12 }}>
-                    <UIText style={[styles.detectTitle, { color: c.ink, textAlign: textAlignStart(IS_RTL) }]}>
+                    <UIText style={[styles.detectTitle, { color: theme.colors.text.primary, textAlign: textAlignStart(IS_RTL) }]}>
                       {isDetecting ? t("addresses.detecting", { defaultValue: "Pinpointing location..." }) : smartZoneActive ? t("addresses.zoneDetected", { defaultValue: "Express Zone Confirmed" }) : t("addresses.detectLocation", { defaultValue: "Use Current Location" })}
                     </UIText>
                     {smartZoneActive && (
-                      <UIText style={[styles.detectSub, { color: kit.color.success, textAlign: textAlignStart(IS_RTL) }]}>
+                      <UIText style={[styles.detectSub, { color: theme.colors.status.success, textAlign: textAlignStart(IS_RTL) }]}>
                         {t("addresses.zoneFast", { defaultValue: "15 min delivery available" })}
                       </UIText>
                     )}
@@ -141,7 +143,7 @@ export function AddressFormDrawer({
               )}
 
               {/* Map View */}
-              <View style={[styles.mapWrap, { borderColor: c.line }]}>
+              <View style={[styles.mapWrap, { borderColor: theme.colors.border.default }]}>
                  <AddressMapPlaceholder lat={24.7136} lng={46.6753} compact={false} />
                  {smartZoneActive && (
                    <View style={styles.mapBadge}>
@@ -153,34 +155,34 @@ export function AddressFormDrawer({
 
               {/* Form Fields */}
               <View style={styles.formGroup}>
-                <UIText style={[styles.groupLabel, { color: c.inkSoft, textAlign: textAlignStart(IS_RTL) }]}>{t("addresses.details", { defaultValue: "ADDRESS DETAILS" })}</UIText>
-                <View style={[styles.card, { backgroundColor: c.canvas, borderColor: c.line }]}>
+                <UIText style={[styles.groupLabel, { color: theme.colors.text.secondary, textAlign: textAlignStart(IS_RTL) }]}>{t("addresses.details", { defaultValue: "ADDRESS DETAILS" })}</UIText>
+                <View style={[styles.card, { backgroundColor: theme.colors.canvas.background, borderColor: theme.colors.border.default }]}>
                   <TextInput
                     value={form.city}
                     onChangeText={(t) => setForm({ ...form, city: t })}
                     placeholder={t("addresses.city", { defaultValue: "City" })}
-                    placeholderTextColor={c.inkFaint}
-                    style={[styles.input, { color: c.ink, textAlign: IS_RTL ? "right" : "left", borderBottomColor: c.line, borderBottomWidth: 1 }]}
+                    placeholderTextColor={theme.colors.text.muted}
+                    style={[styles.input, { color: theme.colors.text.primary, textAlign: IS_RTL ? "right" : "left", borderBottomColor: theme.colors.border.default, borderBottomWidth: 1 }]}
                   />
                   <TextInput
                     value={form.district}
                     onChangeText={(t) => setForm({ ...form, district: t })}
                     placeholder={t("addresses.district", { defaultValue: "District" })}
-                    placeholderTextColor={c.inkFaint}
-                    style={[styles.input, { color: c.ink, textAlign: IS_RTL ? "right" : "left", borderBottomColor: c.line, borderBottomWidth: 1 }]}
+                    placeholderTextColor={theme.colors.text.muted}
+                    style={[styles.input, { color: theme.colors.text.primary, textAlign: IS_RTL ? "right" : "left", borderBottomColor: theme.colors.border.default, borderBottomWidth: 1 }]}
                   />
                   <TextInput
                     value={form.street}
                     onChangeText={(t) => setForm({ ...form, street: t })}
                     placeholder={t("addresses.street", { defaultValue: "Street Name" })}
-                    placeholderTextColor={c.inkFaint}
-                    style={[styles.input, { color: c.ink, textAlign: IS_RTL ? "right" : "left" }]}
+                    placeholderTextColor={theme.colors.text.muted}
+                    style={[styles.input, { color: theme.colors.text.primary, textAlign: IS_RTL ? "right" : "left" }]}
                   />
                 </View>
               </View>
 
               <View style={styles.formGroup}>
-                <UIText style={[styles.groupLabel, { color: c.inkSoft, textAlign: textAlignStart(IS_RTL) }]}>{t("addresses.deliveryOptions", { defaultValue: "LABEL" })}</UIText>
+                <UIText style={[styles.groupLabel, { color: theme.colors.text.secondary, textAlign: textAlignStart(IS_RTL) }]}>{t("addresses.deliveryOptions", { defaultValue: "LABEL" })}</UIText>
                 <View style={[styles.labelRow, { flexDirection: flexRow(IS_RTL) }]}>
                     {["home", "work", "other"].map((lbl) => {
                       const isSelected = form.label === lbl;
@@ -190,10 +192,10 @@ export function AddressFormDrawer({
                        <Pressable 
                          key={lbl}
                           onPress={() => setForm({ ...form, label: lbl as AddressLabel })}
-                         style={[styles.labelChip, { backgroundColor: isSelected ? config.bg : c.line, borderColor: isSelected ? config.color : "transparent" }]}
+                         style={[styles.labelChip, { backgroundColor: isSelected ? config.bg : theme.colors.border.default, borderColor: isSelected ? config.color : "transparent" }]}
                        >
-                          <Ionicons name={config.icon} size={16} color={isSelected ? config.color : c.inkSoft} />
-                          <UIText style={[styles.labelChipText, { color: isSelected ? config.color : c.inkSoft }]}>{t(config.labelKey)}</UIText>
+                          <Ionicons name={config.icon} size={16} color={isSelected ? config.color : theme.colors.text.secondary} />
+                          <UIText style={[styles.labelChipText, { color: isSelected ? config.color : theme.colors.text.secondary }]}>{t(config.labelKey)}</UIText>
                        </Pressable>
                      );
                    })}
@@ -202,7 +204,7 @@ export function AddressFormDrawer({
 
             </ScrollView>
             
-            <View style={[styles.footer, { borderTopColor: c.line }]}>
+            <View style={[styles.footer, { borderTopColor: theme.colors.border.default }]}>
               <Button label={t("common.save", { defaultValue: "Save Address" })} onPress={handleSave} loading={loading} />
             </View>
 
@@ -215,27 +217,27 @@ export function AddressFormDrawer({
 
 const styles = StyleSheet.create({
   overlay: { flex: 1, justifyContent: "flex-end" },
-  sheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: "90%", ...kit.shadow.floating },
-  handle: { width: 40, height: 4, borderRadius: 2, backgroundColor: kit.color.lineStrong, alignSelf: "center", marginBottom: 12 },
+  sheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: "90%", ...theme.shadows[3] },
+  handle: { width: 40, height: 4, borderRadius: 2, backgroundColor: theme.colors.border.strong, alignSelf: "center", marginBottom: 12 },
   header: { alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, marginBottom: 16 },
-  title: { fontFamily: theme.fonts.extrabold, fontSize: 20 },
+  title: { fontFamily: legacyTheme.fonts.extrabold, fontSize: 20 },
   closeBtn: { padding: 4 },
   scrollContent: { paddingHorizontal: 20, paddingBottom: 40 },
   detectBtn: { flexDirection: "row", alignItems: "center", padding: 16, borderRadius: 16, marginBottom: 20, borderWidth: 1 },
   detectIconWrap: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center", position: "relative" },
   detectPulse: { position: "absolute", width: "100%", height: "100%", borderRadius: 20 },
-  detectTitle: { fontFamily: theme.fonts.bold, fontSize: 15 },
-  detectSub: { fontFamily: theme.fonts.medium, fontSize: 13, marginTop: 2 },
+  detectTitle: { fontFamily: legacyTheme.fonts.bold, fontSize: 15 },
+  detectSub: { fontFamily: legacyTheme.fonts.medium, fontSize: 13, marginTop: 2 },
   mapWrap: { height: 160, borderRadius: 16, overflow: "hidden", marginBottom: 24, borderWidth: 1 },
   map: { flex: 1 },
-  mapBadge: { position: "absolute", bottom: 12, left: 12, backgroundColor: kit.color.accentDeep, flexDirection: "row", alignItems: "center", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, gap: 4, ...kit.shadow.raised },
-  mapBadgeText: { fontFamily: theme.fonts.bold, fontSize: 10, color: "#fff", letterSpacing: 1 },
+  mapBadge: { position: "absolute", bottom: 12, left: 12, backgroundColor: theme.colors.brand.primary, flexDirection: "row", alignItems: "center", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, gap: 4, ...theme.shadows[1] },
+  mapBadgeText: { fontFamily: legacyTheme.fonts.bold, fontSize: 10, color: "#fff", letterSpacing: 1 },
   formGroup: { marginBottom: 24 },
-  groupLabel: { fontFamily: theme.fonts.bold, fontSize: 12, letterSpacing: 0.5, marginBottom: 8, paddingHorizontal: 8 },
+  groupLabel: { fontFamily: legacyTheme.fonts.bold, fontSize: 12, letterSpacing: 0.5, marginBottom: 8, paddingHorizontal: 8 },
   card: { borderRadius: 16, borderWidth: 1, overflow: "hidden" },
-  input: { fontFamily: theme.fonts.bold, fontSize: 15, paddingHorizontal: 16, height: 56 },
+  input: { fontFamily: legacyTheme.fonts.bold, fontSize: 15, paddingHorizontal: 16, height: 56 },
   labelRow: { gap: 12 },
   labelChip: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, height: 44, borderRadius: 22, gap: 8, borderWidth: 1 },
-  labelChipText: { fontFamily: theme.fonts.bold, fontSize: 14 },
+  labelChipText: { fontFamily: legacyTheme.fonts.bold, fontSize: 14 },
   footer: { paddingHorizontal: 20, paddingTop: 16, borderTopWidth: StyleSheet.hairlineWidth },
 });

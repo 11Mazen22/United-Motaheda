@@ -1,3 +1,4 @@
+import { defaultTheme as theme } from "@pharmacy/ui-native";
 import React from "react";
 
 import { View, StyleSheet, TouchableOpacity } from "react-native";
@@ -44,7 +45,7 @@ export default function ScreenHeader({ title, subtitle, onBack, rightAction, tra
 
         { flexDirection: flexRow(rtl) },
 
-        !transparent && { backgroundColor: kit.color.canvas.surface, borderBottomWidth: 1, borderBottomColor: kit.color.border.default }
+        !transparent && { backgroundColor: theme.colors.canvas.background.surface, borderBottomWidth: 1, borderBottomColor: kit.color.border.default }
 
       ]}
 
@@ -118,9 +119,9 @@ export default function ScreenHeader({ title, subtitle, onBack, rightAction, tra
 
             {rightAction.badge !== undefined && rightAction.badge > 0 && (
 
-              <View style={[s.badge, { backgroundColor: kit.color.danger }]}>
+              <View style={[s.badge, { backgroundColor: theme.colors.status.error }]}>
 
-                <Text variant="badge" style={{ color: kit.color.white, fontSize: 10 }}>
+                <Text variant="badge" style={{ color: theme.colors.text.inverse, fontSize: 10 }}>
 
                   {rightAction.badge > 99 ? '99+' : rightAction.badge}
 
@@ -154,7 +155,7 @@ const s = StyleSheet.create({
 
     justifyContent: "space-between",
 
-    paddingHorizontal: kit.sp(2),
+    paddingHorizontal: 8,
 
   },
 
@@ -172,13 +173,13 @@ const s = StyleSheet.create({
 
     justifyContent: "center",
 
-    paddingHorizontal: kit.sp(2),
+    paddingHorizontal: 8,
 
   },
 
   iconButton: {
 
-    padding: kit.sp(2),
+    padding: 8,
 
   },
 

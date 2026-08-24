@@ -7,14 +7,14 @@
 
 import React from "react";
 import { Screen } from "@pharmacy/ui-native";
-import { useDarkColors } from "@/hooks/useDarkColors";
+import { useTheme } from "@pharmacy/ui-native";
 
 
 
 export function InventoryScreen(): React.ReactElement {
 
-  const { c } = useDarkColors();
+  const { theme } = useTheme();
 
-  return <Screen edgeTop background={c.canvas}>{null}</Screen>;
+  return <Screen edgeTop background={theme.colors.canvas.background}>{null}</Screen>;
 
 }

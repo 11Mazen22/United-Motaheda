@@ -1,3 +1,4 @@
+import { defaultTheme as theme } from "@pharmacy/ui-native";
 /**
 
  * AppLogo — reusable brand-mark renderer.
@@ -28,7 +29,7 @@ import { Ionicons } from "@expo/vector-icons";
 
 import Animated, { FadeIn, useReducedMotion } from "react-native-reanimated";
 
-import { kit } from "@pharmacy/ui-native";
+
 
 
 
@@ -140,7 +141,7 @@ export function AppLogo({ size = "md", style }: AppLogoProps): React.ReactElemen
 
           size={icon}
 
-          color={kit.color.accentDeep}
+          color={theme.colors.brand.primary}
 
         />
 

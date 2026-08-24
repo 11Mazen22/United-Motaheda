@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 
-import { useDarkColors } from '@/hooks/useDarkColors';
+import { useTheme } from "@pharmacy/ui-native";
 
 import { FlatList, Platform, Pressable, RefreshControl, StyleSheet, View } from "react-native";
 
@@ -8,9 +8,9 @@ import { showConfirmSheet, showErrorSheet } from "@/shared/store/appSheetStore";
 
 import { Ionicons } from "@expo/vector-icons";
 
-import { kit } from "@pharmacy/ui-native";
 
-import { theme } from "@pharmacy/design-tokens";
+import { theme as legacyTheme } from "@pharmacy/design-tokens";
+import { defaultTheme as theme } from "@pharmacy/ui-native";
 
 import { useRouter } from "expo-router";
 
@@ -74,7 +74,7 @@ const Row = React.memo(function Row({ item, index, onEdit, onDelete, onSetDefaul
 
 export default function AddressesScreen() {
 
-  const { c } = useDarkColors();
+  const { theme } = useTheme();
 
   const router = useRouter(), insets = useSafeAreaInsets(), { t } = useTranslation();
 
@@ -218,11 +218,11 @@ export default function AddressesScreen() {
 
           <Pressable onPress={() => router.back()} style={styles.backT} accessibilityRole="button" accessibilityLabel={t("common.back")}>
 
-            {({ pressed }) => <View style={[styles.back, pressed && styles.backP]}><Ionicons name={BACK_CHEVRON} size={18} color={c.inkSoft} /></View>}
+            {({ pressed }) => <View style={[styles.back, pressed && styles.backP]}><Ionicons name={BACK_CHEVRON} size={18} color={theme.colors.text.secondary} /></View>}
 
           </Pressable>
 
-          <View style={styles.tile}><Ionicons name="location-outline" size={22} color={c.accentDeep} /></View>
+          <View style={styles.tile}><Ionicons name="location-outline" size={22} color={theme.colors.brand.primary} /></View>
 
           <View style={{ flex: 1 }}>
 
@@ -234,7 +234,7 @@ export default function AddressesScreen() {
 
           <Pressable onPress={handleAdd} style={styles.addT} hitSlop={6} accessibilityRole="button" accessibilityLabel={t("addresses.addNew")}>
 
-            {({ pressed }) => <View style={[styles.add, pressed && styles.addP]}><Ionicons name="add" size={20} color={c.accentDeep} /></View>}
+            {({ pressed }) => <View style={[styles.add, pressed && styles.addP]}><Ionicons name="add" size={20} color={theme.colors.brand.primary} /></View>}
 
           </Pressable>
 
@@ -248,7 +248,7 @@ export default function AddressesScreen() {
 
         <View style={[s.chip, { flexDirection: flexRow(RTL) }]}> 
 
-          <Ionicons name="location" size={12} color={c.accentDeep} />
+          <Ionicons name="location" size={12} color={theme.colors.brand.primary} />
 
           <UIText style={s.chipT}>{t("addresses.count", { count: addresses.length })}</UIText>
 
@@ -256,9 +256,9 @@ export default function AddressesScreen() {
 
         {defaultAddr && <View style={[s.chip, s.chipOk, { flexDirection: flexRow(RTL) }]}> 
 
-          <Ionicons name="checkmark-circle" size={12} color={c.success} />
+          <Ionicons name="checkmark-circle" size={12} color={theme.colors.status.success} />
 
-          <UIText style={[s.chipT, { color: c.success }]}> {defaultAddr.city} • {t("addresses.default")} </UIText>
+          <UIText style={[s.chipT, { color: theme.colors.status.success }]}> {defaultAddr.city} • {t("addresses.default")} </UIText>
 
         </View>}
 
@@ -276,11 +276,11 @@ export default function AddressesScreen() {
 
             ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
 
-            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={c.accent} colors={[c.accent]} progressBackgroundColor={c.surface} />}
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.colors.brand.primary} colors={[theme.colors.brand.primary]} progressBackgroundColor={theme.colors.canvas.surface} />}
 
             ListHeaderComponent={addresses.length > 1 ? <View style={[s.secLbl, { flexDirection: flexRow(RTL) }]}> 
 
-              <View style={s.secBadge}><Ionicons name="map-outline" size={14} color={c.accentDeep} /></View>
+              <View style={s.secBadge}><Ionicons name="map-outline" size={14} color={theme.colors.brand.primary} /></View>
 
               <View style={{ flex: 1 }}>
 
@@ -296,7 +296,7 @@ export default function AddressesScreen() {
 
                 {({ pressed }) => <View style={[s.addCard, { flexDirection: flexRow(RTL) }, pressed && s.addCardP]}> 
 
-                  <View style={s.addIcon}><Ionicons name="add" size={22} color={c.accentDeep} /></View>
+                  <View style={s.addIcon}><Ionicons name="add" size={22} color={theme.colors.brand.primary} /></View>
 
                   <View style={{ flex: 1 }}>
 
@@ -306,7 +306,7 @@ export default function AddressesScreen() {
 
                   </View>
 
-                  <Ionicons name={FORWARD_CHEVRON} size={14} color={c.accentDeep} />
+                  <Ionicons name={FORWARD_CHEVRON} size={14} color={theme.colors.brand.primary} />
 
                 </View>}
 
@@ -330,33 +330,33 @@ export default function AddressesScreen() {
 
 const styles = StyleSheet.create({
 
-  screen: { flex: 1, backgroundColor: kit.color.canvas },
+  screen: { flex: 1, backgroundColor: theme.colors.canvas.background },
 
-  header: { paddingHorizontal: 20, paddingBottom: 16, backgroundColor: kit.color.surface, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: kit.color.line, ...kit.shadow.raised },
+  header: { paddingHorizontal: 20, paddingBottom: 16, backgroundColor: theme.colors.canvas.surface, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border.default, ...theme.shadows[1] },
 
   hRow: { flexDirection: flexRow(RTL), alignItems: "center", gap: 12, minHeight: 38 },
 
   backT: { borderRadius: 20, flexShrink: 0 },
 
-  back: { width: 40, height: 40, borderRadius: 20, backgroundColor: kit.color.surface, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: kit.color.line, ...kit.shadow.raised },
+  back: { width: 40, height: 40, borderRadius: 20, backgroundColor: theme.colors.canvas.surface, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: theme.colors.border.default, ...theme.shadows[1] },
 
-  backP: { backgroundColor: kit.color.well, transform: [{ scale: 0.94 }] },
+  backP: { backgroundColor: theme.colors.canvas.surfaceMuted, transform: [{ scale: 0.94 }] },
 
-  tile: { width: 52, height: 52, borderRadius: 16, backgroundColor: kit.color.accentTint, borderWidth: 1, borderColor: kit.color.line, alignItems: "center", justifyContent: "center", flexShrink: 0 },
+  tile: { width: 52, height: 52, borderRadius: 16, backgroundColor: theme.colors.brand.primaryLight, borderWidth: 1, borderColor: theme.colors.border.default, alignItems: "center", justifyContent: "center", flexShrink: 0 },
 
-  hTitle: { fontFamily: theme.fonts.black, fontSize: 18, letterSpacing: -0.4, color: kit.color.ink, includeFontPadding: false, textAlign: TA },
+  hTitle: { fontFamily: legacyTheme.fonts.black, fontSize: 18, letterSpacing: -0.4, color: theme.colors.text.primary, includeFontPadding: false, textAlign: TA },
 
-  hSub: { fontFamily: theme.fonts.semibold, fontSize: 11, color: kit.color.inkFaint, includeFontPadding: false, textAlign: TA, marginTop: 1 },
+  hSub: { fontFamily: legacyTheme.fonts.semibold, fontSize: 11, color: theme.colors.text.muted, includeFontPadding: false, textAlign: TA, marginTop: 1 },
 
   addT: { borderRadius: 13, flexShrink: 0 },
 
-  add: { width: 42, height: 42, borderRadius: 13, backgroundColor: kit.color.accentTint, borderWidth: 1, borderColor: kit.color.line, alignItems: "center", justifyContent: "center", ...kit.shadow.raised },
+  add: { width: 42, height: 42, borderRadius: 13, backgroundColor: theme.colors.brand.primaryLight, borderWidth: 1, borderColor: theme.colors.border.default, alignItems: "center", justifyContent: "center", ...theme.shadows[1] },
 
   addP: { transform: [{ scale: 0.93 }] },
 
   loadWrap: { flex: 1, padding: 20, gap: 12 },
 
-  shimmer: { height: 180, borderRadius: 20, backgroundColor: kit.color.well },
+  shimmer: { height: 180, borderRadius: 20, backgroundColor: theme.colors.canvas.surfaceMuted },
 
   emptyW: { flex: 1, justifyContent: "center", paddingHorizontal: 20 },
 
@@ -368,30 +368,30 @@ const styles = StyleSheet.create({
 
 const s = StyleSheet.create({
 
-  chips: { gap: 8, paddingHorizontal: 20, paddingVertical: 10, backgroundColor: kit.color.surface, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: kit.color.line },
+  chips: { gap: 8, paddingHorizontal: 20, paddingVertical: 10, backgroundColor: theme.colors.canvas.surface, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border.default },
 
-  chip: { alignItems: "center", gap: 5, backgroundColor: kit.color.accentTint, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, borderWidth: 1, borderColor: kit.color.line },
+  chip: { alignItems: "center", gap: 5, backgroundColor: theme.colors.brand.primaryLight, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, borderWidth: 1, borderColor: theme.colors.border.default },
 
-  chipOk: { backgroundColor: kit.color.successTint, borderColor: kit.color.success + "30" },
+  chipOk: { backgroundColor: `${theme.colors.status.success}1A`, borderColor: theme.colors.status.success + "30" },
 
-  chipT: { fontSize: 10, fontFamily: theme.fonts.bold, color: kit.color.accentDeep, includeFontPadding: false },
+  chipT: { fontSize: 10, fontFamily: legacyTheme.fonts.bold, color: theme.colors.brand.primary, includeFontPadding: false },
 
   secLbl: { alignItems: "center", gap: 12, marginBottom: 14 },
 
-  secBadge: { width: 34, height: 34, borderRadius: 11, backgroundColor: kit.color.accentTint, borderWidth: 1, borderColor: kit.color.line, alignItems: "center", justifyContent: "center", flexShrink: 0 },
+  secBadge: { width: 34, height: 34, borderRadius: 11, backgroundColor: theme.colors.brand.primaryLight, borderWidth: 1, borderColor: theme.colors.border.default, alignItems: "center", justifyContent: "center", flexShrink: 0 },
 
-  secEye: { fontSize: 10, fontFamily: theme.fonts.bold, color: kit.color.accentDeep, letterSpacing: 0.4, textAlign: TA, includeFontPadding: false },
+  secEye: { fontSize: 10, fontFamily: legacyTheme.fonts.bold, color: theme.colors.brand.primary, letterSpacing: 0.4, textAlign: TA, includeFontPadding: false },
 
   addCardT: { borderRadius: 18, marginTop: 14 },
 
-  addCard: { alignItems: "center", gap: 14, padding: 16, borderRadius: 18, backgroundColor: kit.color.surface, borderWidth: 1.5, borderColor: kit.color.line, borderStyle: "dashed", ...kit.shadow.raised },
+  addCard: { alignItems: "center", gap: 14, padding: 16, borderRadius: 18, backgroundColor: theme.colors.canvas.surface, borderWidth: 1.5, borderColor: theme.colors.border.default, borderStyle: "dashed", ...theme.shadows[1] },
 
-  addCardP: { backgroundColor: kit.color.accentTint, borderColor: "rgba(14,126,116,0.30)" },
+  addCardP: { backgroundColor: theme.colors.brand.primaryLight, borderColor: "rgba(14,126,116,0.30)" },
 
-  addIcon: { width: 48, height: 48, borderRadius: 14, backgroundColor: kit.color.accentTint, borderWidth: 1, borderColor: kit.color.line, alignItems: "center", justifyContent: "center", flexShrink: 0 },
+  addIcon: { width: 48, height: 48, borderRadius: 14, backgroundColor: theme.colors.brand.primaryLight, borderWidth: 1, borderColor: theme.colors.border.default, alignItems: "center", justifyContent: "center", flexShrink: 0 },
 
-  addLbl: { fontSize: 13, fontFamily: theme.fonts.bold, color: kit.color.ink, includeFontPadding: false },
+  addLbl: { fontSize: 13, fontFamily: legacyTheme.fonts.bold, color: theme.colors.text.primary, includeFontPadding: false },
 
-  addSub: { fontSize: 11, fontFamily: theme.fonts.regular, color: kit.color.inkFaint, marginTop: 2, includeFontPadding: false },
+  addSub: { fontSize: 11, fontFamily: legacyTheme.fonts.regular, color: theme.colors.text.muted, marginTop: 2, includeFontPadding: false },
 
 });

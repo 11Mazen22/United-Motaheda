@@ -1,3 +1,4 @@
+import { defaultTheme as theme } from "@pharmacy/ui-native";
 /**
  * PharmacistProfileScreen — pharmacist identity, settings, and sign-out.
  */
@@ -15,7 +16,7 @@ import { useTranslation } from "react-i18next";
 
 
 import { Screen, Text as UIText } from "@pharmacy/ui-native";
-import { useDarkColors } from "@/hooks/useDarkColors";
+import { useTheme } from "@pharmacy/ui-native";
 
 import { kit }                    from "@pharmacy/ui-native";
 
@@ -55,7 +56,7 @@ interface MenuRowProps {
 
 function MenuRow({ icon, label, onPress, danger = false }: MenuRowProps) {
 
-  const { c } = useDarkColors();
+  const { theme } = useTheme();
 
   return (
 
@@ -67,7 +68,7 @@ function MenuRow({ icon, label, onPress, danger = false }: MenuRowProps) {
 
         styles.menuRow,
 
-        pressed && { backgroundColor: c.well },
+        pressed && { backgroundColor: theme.colors.canvas.surfaceMuted },
 
         { flexDirection: flexRow(IS_RTL) }
 
@@ -77,9 +78,9 @@ function MenuRow({ icon, label, onPress, danger = false }: MenuRowProps) {
 
     >
 
-      <View style={[styles.menuIcon, { backgroundColor: danger ? c.dangerTint : c.accentTint }]}>
+      <View style={[styles.menuIcon, { backgroundColor: danger ? `${theme.colors.status.error}1A` : theme.colors.brand.primaryLight }]}>
 
-        <Ionicons name={icon} size={16} color={danger ? c.danger : c.accentDeep} />
+        <Ionicons name={icon} size={16} color={danger ? theme.colors.status.error : theme.colors.brand.primary} />
 
       </View>
 
@@ -87,7 +88,7 @@ function MenuRow({ icon, label, onPress, danger = false }: MenuRowProps) {
 
         variant="body-sm"
 
-        style={{ flex: 1, textAlign: TEXT_START, color: danger ? c.danger : c.ink }}
+        style={{ flex: 1, textAlign: TEXT_START, color: danger ? theme.colors.status.error : theme.colors.text.primary }}
 
       >
 
@@ -95,7 +96,7 @@ function MenuRow({ icon, label, onPress, danger = false }: MenuRowProps) {
 
       </UIText>
 
-      {!danger && <Ionicons name={FORWARD_CHEVRON} size={14} color={c.inkFaint} />}
+      {!danger && <Ionicons name={FORWARD_CHEVRON} size={14} color={theme.colors.text.muted} />}
 
     </Pressable>
 
@@ -107,7 +108,7 @@ function MenuRow({ icon, label, onPress, danger = false }: MenuRowProps) {
 
 export function PharmacistProfileScreen(): React.ReactElement {
 
-  const { c } = useDarkColors();
+  const { theme } = useTheme();
 
   const { t }              = useTranslation();
 
@@ -129,7 +130,7 @@ export function PharmacistProfileScreen(): React.ReactElement {
 
   return (
 
-    <Screen edgeTop background={c.canvas}>
+    <Screen edgeTop background={theme.colors.canvas.background}>
 
       <PharmacistScreenHeader title={t("pharmacist.profileTitle")} />
 
@@ -141,7 +142,7 @@ export function PharmacistProfileScreen(): React.ReactElement {
 
         <View style={styles.avatarSection}>
 
-          <View style={[styles.avatar, { backgroundColor: c.accent }]}>
+          <View style={[styles.avatar, { backgroundColor: theme.colors.brand.primary }]}>
 
             <UIText style={styles.avatarLetter}>
 
@@ -163,11 +164,11 @@ export function PharmacistProfileScreen(): React.ReactElement {
 
           </UIText>
 
-          <View style={[styles.roleBadge, { backgroundColor: c.accentTint, borderColor: c.accent }]}>
+          <View style={[styles.roleBadge, { backgroundColor: theme.colors.brand.primaryLight, borderColor: theme.colors.brand.primary }]}>
 
-            <Ionicons name="shield-checkmark-outline" size={12} color={c.accentDeep} />
+            <Ionicons name="shield-checkmark-outline" size={12} color={theme.colors.brand.primary} />
 
-            <UIText variant="eyebrow" style={{ color: c.accentDeep }}>
+            <UIText variant="eyebrow" style={{ color: theme.colors.brand.primary }}>
 
               {t("pharmacist.roleLabel")}
 
@@ -181,13 +182,13 @@ export function PharmacistProfileScreen(): React.ReactElement {
 
         {/* Stats */}
 
-        <View style={[styles.statsCard, { backgroundColor: c.surface, borderColor: c.line }]}>
+        <View style={[styles.statsCard, { backgroundColor: theme.colors.canvas.surface, borderColor: theme.colors.border.default }]}>
 
           <View style={[styles.statRow, { flexDirection: flexRow(IS_RTL) }]}>
 
-            <View style={[styles.menuIcon, { backgroundColor: c.accentTint }]}>
+            <View style={[styles.menuIcon, { backgroundColor: theme.colors.brand.primaryLight }]}>
 
-              <Ionicons name="bag-handle-outline" size={16} color={c.accentDeep} />
+              <Ionicons name="bag-handle-outline" size={16} color={theme.colors.brand.primary} />
 
             </View>
 
@@ -203,9 +204,9 @@ export function PharmacistProfileScreen(): React.ReactElement {
 
           <View style={[styles.statRow, { flexDirection: flexRow(IS_RTL) }]}>
 
-            <View style={[styles.menuIcon, { backgroundColor: c.warnTint }]}>
+            <View style={[styles.menuIcon, { backgroundColor: `${theme.colors.status.warning}1A` }]}>
 
-              <Ionicons name="document-text-outline" size={16} color={c.warn} />
+              <Ionicons name="document-text-outline" size={16} color={theme.colors.status.warning} />
 
             </View>
 
@@ -221,9 +222,9 @@ export function PharmacistProfileScreen(): React.ReactElement {
 
           <View style={[styles.statRow, { flexDirection: flexRow(IS_RTL) }]}>
 
-            <View style={[styles.menuIcon, { backgroundColor: c.dangerTint }]}>
+            <View style={[styles.menuIcon, { backgroundColor: `${theme.colors.status.error}1A` }]}>
 
-              <Ionicons name="alert-circle-outline" size={16} color={c.danger} />
+              <Ionicons name="alert-circle-outline" size={16} color={theme.colors.status.error} />
 
             </View>
 
@@ -243,7 +244,7 @@ export function PharmacistProfileScreen(): React.ReactElement {
 
         {/* Menu */}
 
-        <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.line }]}>          <MenuRow
+        <View style={[styles.card, { backgroundColor: theme.colors.canvas.surface, borderColor: theme.colors.border.default }]}>          <MenuRow
 
             icon="notifications-outline"
 
@@ -253,7 +254,7 @@ export function PharmacistProfileScreen(): React.ReactElement {
 
           />
 
-          <View style={[styles.divider, { backgroundColor: c.line }]} />
+          <View style={[styles.divider, { backgroundColor: theme.colors.border.default }]} />
 
           <MenuRow
 
@@ -265,7 +266,7 @@ export function PharmacistProfileScreen(): React.ReactElement {
 
           />
 
-          <View style={[styles.divider, { backgroundColor: c.line }]} />
+          <View style={[styles.divider, { backgroundColor: theme.colors.border.default }]} />
 
           <MenuRow
 
@@ -277,7 +278,7 @@ export function PharmacistProfileScreen(): React.ReactElement {
 
           />
 
-          <View style={[styles.divider, { backgroundColor: c.line }]} />
+          <View style={[styles.divider, { backgroundColor: theme.colors.border.default }]} />
 
           <MenuRow
 
@@ -293,7 +294,7 @@ export function PharmacistProfileScreen(): React.ReactElement {
 
 
 
-        <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.line, marginTop: 12 }]}>          <MenuRow
+        <View style={[styles.card, { backgroundColor: theme.colors.canvas.surface, borderColor: theme.colors.border.default, marginTop: 12 }]}>          <MenuRow
 
             icon="log-out-outline"
 
@@ -335,7 +336,7 @@ const styles = StyleSheet.create({
 
     justifyContent:  "center",
 
-    ...kit.shadow.brandGlow,
+    ...theme.shadows[2],
 
   },
 
@@ -377,7 +378,7 @@ const styles = StyleSheet.create({
 
     overflow:         "hidden",
 
-    ...kit.shadow.card,
+    ...theme.shadows[1],
 
   },
 
@@ -393,7 +394,7 @@ const styles = StyleSheet.create({
 
     overflow:         "hidden",
 
-    ...kit.shadow.card,
+    ...theme.shadows[1],
 
   },
 
@@ -413,7 +414,7 @@ const styles = StyleSheet.create({
 
     borderBottomWidth: StyleSheet.hairlineWidth,
 
-    borderBottomColor: kit.color.line,
+    borderBottomColor: theme.colors.border.default,
 
   },
 
@@ -423,7 +424,7 @@ const styles = StyleSheet.create({
 
     fontFamily: "Cairo_900Black",
 
-    color:      kit.color.ink,
+    color:      theme.colors.text.primary,
 
   },
 

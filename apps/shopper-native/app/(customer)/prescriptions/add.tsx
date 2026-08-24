@@ -1,4 +1,5 @@
-import { useDarkColors } from "@/hooks/useDarkColors";
+import { defaultTheme as theme } from "@pharmacy/ui-native";
+import { useTheme } from "@pharmacy/ui-native";
 
 import React, { useMemo } from "react";
 
@@ -12,7 +13,7 @@ import { useTranslation } from "react-i18next";
 
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { kit, CustomerUI } from "@pharmacy/ui-native";
+import { CustomerUI } from "@pharmacy/ui-native";
 
 import { Text } from "@pharmacy/ui-native";
 
@@ -48,8 +49,8 @@ const TEXT_START = textAlignStart(IS_RTL);
 
 
 function EntryCard({ option }: { option: EntryOption }): React.ReactElement {
-  const { c } = useDarkColors();
-  const s = React.useMemo(() => get_s(c), [c]);
+  const { theme } = useTheme();
+  const s = React.useMemo(() => get_s(), []);
 
   return (
     <Pressable
@@ -71,7 +72,7 @@ function EntryCard({ option }: { option: EntryOption }): React.ReactElement {
             </Text>
           </View>
           <View style={s.chevronWell}>
-            <Ionicons name={FORWARD_CHEVRON} size={16} color={c.inkSoft} />
+            <Ionicons name={FORWARD_CHEVRON} size={16} color={theme.colors.text.secondary} />
           </View>
         </View>
       )}
@@ -81,8 +82,8 @@ function EntryCard({ option }: { option: EntryOption }): React.ReactElement {
 
 
 export default function Page(): React.ReactElement {
-  const { c } = useDarkColors();
-  const s = React.useMemo(() => get_s(c), [c]);
+  const { theme } = useTheme();
+  const s = React.useMemo(() => get_s(), []);
   const router   = useRouter();
   const insets   = useSafeAreaInsets();
   const { t }    = useTranslation();
@@ -91,8 +92,8 @@ export default function Page(): React.ReactElement {
     {
       key:         "scan",
       icon:        "scan-outline",
-      tint:        c.accentDeep,
-      bg:          c.accentTint,
+      tint:        theme.colors.brand.primary,
+      bg:          theme.colors.brand.primaryLight,
       title:       t("prescriptions.scan"),
       description: t("prescriptions.addScanDesc"),
       onPress:     () => router.push("/prescriptions/scan" as never),
@@ -100,8 +101,8 @@ export default function Page(): React.ReactElement {
     {
       key:         "manual",
       icon:        "keypad-outline",
-      tint:        c.warn,
-      bg:          c.warnTint,
+      tint:        theme.colors.status.warning,
+      bg:          `${theme.colors.status.warning}1A`,
       title:       t("prescriptions.manual"),
       description: t("prescriptions.addManualDesc"),
       onPress:     () => router.push("/prescriptions/manual" as never),
@@ -115,7 +116,7 @@ export default function Page(): React.ReactElement {
       description: t("prescriptions.addTransferDesc"),
       onPress:     () => router.push("/prescriptions/transfer" as never),
     },
-  ], [router, t, c.accentDeep, c.accentTint, c.warn, c.warnTint]);
+  ], [router, t, theme.colors.brand.primary, theme.colors.brand.primaryLight, theme.colors.status.warning, `${theme.colors.status.warning}1A`]);
 
   return (
     <View style={s.screen}>
@@ -129,7 +130,7 @@ export default function Page(): React.ReactElement {
             style={s.backBtnTouchable}>
             {({ pressed }) => (
               <View style={[s.backBtn, pressed && s.backBtnPressed]}>
-                <Ionicons name={BACK_CHEVRON} size={20} color={c.ink} />
+                <Ionicons name={BACK_CHEVRON} size={20} color={theme.colors.text.primary} />
               </View>
             )}
           </Pressable>
@@ -138,7 +139,7 @@ export default function Page(): React.ReactElement {
 
         <View style={s.identityRow}>
           <View style={s.heroTile}>
-            <Ionicons name="add-circle-outline" size={24} color={c.accentDeep} />
+            <Ionicons name="add-circle-outline" size={24} color={theme.colors.brand.primary} />
           </View>
           <View style={s.identityText}>
             <Text weight="bold" style={s.eyebrow}>
@@ -170,7 +171,7 @@ export default function Page(): React.ReactElement {
 
         <CustomerUI.Notice
           variant="warning"
-          icon={<Ionicons name="shield-checkmark-outline" size={18} color={c.warn} />}
+          icon={<Ionicons name="shield-checkmark-outline" size={18} color={theme.colors.status.warning} />}
           message={t("prescriptions.controlledBody")}
         />
       </ScrollView>
@@ -180,19 +181,19 @@ export default function Page(): React.ReactElement {
 
 
 
-function get_s(c: { canvas: string; surface: string; line: string; accentDeep: string; accentTint: string; ink: string; inkSoft: string; inkFaint: string; warn: string; warnTint: string; well: string; danger: string }) { return StyleSheet.create({
+function get_s() { return StyleSheet.create({
   screen: {
     flex:            1,
-    backgroundColor: c.canvas,
+    backgroundColor: theme.colors.canvas.background,
   },
   header: {
     paddingHorizontal: 20,
     paddingBottom:     20,
     gap:               18,
-    backgroundColor:   c.surface,
+    backgroundColor:   theme.colors.canvas.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: c.line,
-    ...kit.shadow.raised,
+    borderBottomColor: theme.colors.border.default,
+    ...theme.shadows[1],
   },
   navRow: {
     flexDirection: flexRow(IS_RTL),
@@ -204,9 +205,9 @@ function get_s(c: { canvas: string; surface: string; line: string; accentDeep: s
     width:           38,
     height:          38,
     borderRadius:    14,
-    backgroundColor: c.well,
+    backgroundColor: theme.colors.canvas.surfaceMuted,
     borderWidth:     1,
-    borderColor:     c.line,
+    borderColor:     theme.colors.border.default,
     alignItems:      "center",
     justifyContent:  "center",
   },
@@ -220,9 +221,9 @@ function get_s(c: { canvas: string; surface: string; line: string; accentDeep: s
     width:           56,
     height:          56,
     borderRadius:    18,
-    backgroundColor: c.accentTint,
+    backgroundColor: theme.colors.brand.primaryLight,
     borderWidth:     1,
-    borderColor:     c.line,
+    borderColor:     theme.colors.border.default,
     alignItems:      "center",
     justifyContent:  "center",
     flexShrink:      0,
@@ -231,7 +232,7 @@ function get_s(c: { canvas: string; surface: string; line: string; accentDeep: s
   eyebrow: {
     fontSize:           10,
     lineHeight:         14,
-    color:              c.accentDeep,
+    color:              theme.colors.brand.primary,
     letterSpacing:      0.6,
     textTransform:      "uppercase",
     textAlign:          TEXT_START,
@@ -240,7 +241,7 @@ function get_s(c: { canvas: string; surface: string; line: string; accentDeep: s
   title: {
     fontSize:           28,
     lineHeight:         34,
-    color:              c.ink,
+    color:              theme.colors.text.primary,
     letterSpacing:      -0.6,
     textAlign:          TEXT_START,
     includeFontPadding: false,
@@ -248,29 +249,29 @@ function get_s(c: { canvas: string; surface: string; line: string; accentDeep: s
   sectionLabel: {
     fontSize:           11,
     lineHeight:         16,
-    color:              c.inkFaint,
+    color:              theme.colors.text.muted,
     letterSpacing:      0.5,
     textTransform:      "uppercase",
     textAlign:          TEXT_START,
     marginBottom:       4,
     includeFontPadding: false,
   },
-  cardOuter: { borderRadius: kit.radius.lg },
+  cardOuter: { borderRadius: 12 },
   card: {
     flexDirection:     flexRow(IS_RTL),
     alignItems:        "center",
     gap:               14,
     paddingHorizontal: 16,
     paddingVertical:   16,
-    backgroundColor:   c.surface,
-    borderRadius:      kit.radius.lg,
+    backgroundColor:   theme.colors.canvas.surface,
+    borderRadius:      12,
     borderWidth:       1,
-    borderColor:       c.line,
-    ...kit.shadow.raised,
+    borderColor:       theme.colors.border.default,
+    ...theme.shadows[1],
   },
   cardPressed: {
     opacity:    0.92,
-    backgroundColor: c.well,
+    backgroundColor: theme.colors.canvas.surfaceMuted,
     transform:  [{ scale: 0.99 }],
   },
   iconTile: {
@@ -285,7 +286,7 @@ function get_s(c: { canvas: string; surface: string; line: string; accentDeep: s
   cardTitle: {
     fontSize:           15,
     lineHeight:         21,
-    color:              c.ink,
+    color:              theme.colors.text.primary,
     letterSpacing:      -0.2,
     textAlign:          TEXT_START,
     includeFontPadding: false,
@@ -293,7 +294,7 @@ function get_s(c: { canvas: string; surface: string; line: string; accentDeep: s
   cardDesc: {
     fontSize:           12,
     lineHeight:         18,
-    color:              c.inkSoft,
+    color:              theme.colors.text.secondary,
     textAlign:          TEXT_START,
     includeFontPadding: false,
   },

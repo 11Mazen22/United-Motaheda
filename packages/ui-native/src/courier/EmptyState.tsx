@@ -1,5 +1,6 @@
 import { View, type StyleProp, type ViewStyle } from "react-native";
 import { StyleSheet } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import Animated, { FadeIn } from "react-native-reanimated";
 import { useCourierTheme } from "./useCourierTheme";
 import { Typography } from "./Typography";
@@ -10,16 +11,17 @@ export interface EmptyStateProps {
   subtitle?: string;
   actionLabel?: string;
   onAction?: () => void;
+  icon?: React.ComponentProps<typeof Ionicons>["name"];
   style?: StyleProp<ViewStyle>;
 }
 
-export function EmptyState({ title, subtitle, actionLabel, onAction, style }: EmptyStateProps) {
+export function EmptyState({ title, subtitle, actionLabel, onAction, icon = "cube-outline", style }: EmptyStateProps) {
   const { theme } = useCourierTheme();
   return (
     <Animated.View entering={FadeIn} style={[styles.state, style]}>
       <View style={styles.iconWrap}>
         <View style={[styles.iconCircle, { borderColor: theme.colors.border.default }]}>
-          <Typography scale="metric" color="muted">∅</Typography>
+          <Ionicons name={icon} size={32} color={theme.colors.text.muted} />
         </View>
       </View>
       <Typography scale="sectionHead" align="center">{title}</Typography>

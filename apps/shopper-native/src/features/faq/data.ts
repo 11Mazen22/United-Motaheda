@@ -1,3 +1,4 @@
+import { defaultTheme as theme } from "@pharmacy/ui-native";
 
 
 import { kit } from "@pharmacy/ui-native";
@@ -40,7 +41,7 @@ export interface FAQCategoryConfig {
 
 export const FAQ_CATEGORIES: FAQCategoryConfig[] = [
 
-  { key: "orders",   label: "الطلبات",     icon: "bag-handle-outline",   color: kit.color.accent, bg: "#ECFEFF" },
+  { key: "orders",   label: "الطلبات",     icon: "bag-handle-outline",   color: theme.colors.brand.primary, bg: "#ECFEFF" },
 
   { key: "delivery", label: "التوصيل",     icon: "bicycle-outline",      color: "#7C3AED", bg: "#FAF5FF" },
 

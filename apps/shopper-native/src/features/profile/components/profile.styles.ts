@@ -14,7 +14,8 @@
 
 import { StyleSheet } from "react-native";
 
-import { theme } from "@pharmacy/design-tokens";
+import { theme as legacyTheme } from "@pharmacy/design-tokens";
+import { defaultTheme as theme } from "@pharmacy/ui-native";
 import { kit } from "@pharmacy/ui-native";
 
 import { flexRow, isRtl } from "@/utils/layout";
@@ -91,7 +92,7 @@ export const PROFILE = {
 
 export const styles = StyleSheet.create({
 
-  screen: { flex: 1, backgroundColor: kit.color.canvas },
+  screen: { flex: 1, backgroundColor: theme.colors.canvas.background },
 
 
 
@@ -263,15 +264,15 @@ export const styles = StyleSheet.create({
 
     height:            18,
 
-    paddingHorizontal: theme.spacing.xs,
+    paddingHorizontal: legacyTheme.spacing.xs,
 
     borderRadius:      9,
 
-    backgroundColor:   kit.color.danger,
+    backgroundColor:   theme.colors.status.error,
 
     borderWidth:       2,
 
-    borderColor:       kit.color.canvas,
+    borderColor:       theme.colors.canvas.background,
 
     alignItems:        "center",
 
@@ -281,13 +282,13 @@ export const styles = StyleSheet.create({
 
   heroIconBadgeText: {
 
-    color:              kit.color.surface,
+    color:              theme.colors.canvas.surface,
 
     fontSize:           10,
 
     lineHeight:         12,
 
-    fontFamily:         theme.fonts.extrabold,
+    fontFamily:         legacyTheme.fonts.extrabold,
 
     includeFontPadding: false,
 
@@ -381,7 +382,7 @@ export const styles = StyleSheet.create({
 
     borderRadius:    30,
 
-    backgroundColor: kit.color.surface,
+    backgroundColor: theme.colors.canvas.surface,
 
     alignItems:      "center",
 
@@ -399,9 +400,9 @@ export const styles = StyleSheet.create({
 
     fontSize:           38,
 
-    fontFamily:         theme.fonts.black,
+    fontFamily:         legacyTheme.fonts.black,
 
-    color:              kit.color.canvas,
+    color:              theme.colors.canvas.background,
 
     includeFontPadding: false,
 
@@ -411,7 +412,7 @@ export const styles = StyleSheet.create({
 
   },
 
-  heroTextGroup: { alignItems: "flex-start", gap: theme.spacing.xs },
+  heroTextGroup: { alignItems: "flex-start", gap: legacyTheme.spacing.xs },
 
   userNameNew:   { letterSpacing: -0.4 },
 
@@ -421,7 +422,7 @@ export const styles = StyleSheet.create({
 
   guestHero: {
 
-    paddingHorizontal: theme.layout.pagePaddingH,  // 20 — consistent with auth hero
+    paddingHorizontal: legacyTheme.layout.pagePaddingH,  // 20 — consistent with auth hero
 
     paddingBottom:     44,
 
@@ -451,7 +452,7 @@ export const styles = StyleSheet.create({
 
     borderColor:     HERO_GLASS.w15,
 
-    marginBottom:    theme.spacing.xs,
+    marginBottom:    legacyTheme.spacing.xs,
 
   },
 
@@ -459,7 +460,7 @@ export const styles = StyleSheet.create({
 
     letterSpacing: -0.4,
 
-    marginTop:     theme.spacing.sm,
+    marginTop:     legacyTheme.spacing.sm,
 
   },
 
@@ -475,7 +476,7 @@ export const styles = StyleSheet.create({
 
     width:     "100%",
 
-    marginTop: theme.spacing.lg,
+    marginTop: legacyTheme.spacing.lg,
 
     gap:       9,
 
@@ -483,7 +484,7 @@ export const styles = StyleSheet.create({
 
   guestPrimaryBtn: {
 
-    backgroundColor: kit.color.surface,
+    backgroundColor: theme.colors.canvas.surface,
 
     borderRadius:    16,
 
@@ -491,7 +492,7 @@ export const styles = StyleSheet.create({
 
     alignItems:      "center",
 
-    ...theme.shadow.md,
+    ...theme.shadows[1],
 
   },
 
@@ -523,9 +524,9 @@ export const styles = StyleSheet.create({
 
     flexDirection:     flexRow(isRtl()),
 
-    backgroundColor:   kit.color.surface,
+    backgroundColor:   theme.colors.canvas.surface,
 
-    marginHorizontal:  theme.layout.pagePaddingH,
+    marginHorizontal:  legacyTheme.layout.pagePaddingH,
 
     marginTop:         -40,
 
@@ -533,15 +534,15 @@ export const styles = StyleSheet.create({
 
     paddingVertical:   22,
 
-    paddingHorizontal: theme.spacing.xs,
+    paddingHorizontal: legacyTheme.spacing.xs,
 
-    ...theme.shadow.xl,
+    ...theme.shadows[3],
 
     shadowOpacity:     0.12,
 
     borderWidth:       1,
 
-    borderColor:       kit.color.line,
+    borderColor:       theme.colors.border.default,
 
   },
 
@@ -579,7 +580,7 @@ export const styles = StyleSheet.create({
 
     width:           StyleSheet.hairlineWidth,
 
-    backgroundColor: kit.color.lineStrong,
+    backgroundColor: theme.colors.border.strong,
 
     marginVertical:  10,
 
@@ -595,7 +596,7 @@ export const styles = StyleSheet.create({
 
   quickCardWrap: {
 
-    paddingHorizontal: theme.layout.pagePaddingH,  // 20 — matches section bounds
+    paddingHorizontal: legacyTheme.layout.pagePaddingH,  // 20 — matches section bounds
 
     marginTop:         14,
 
@@ -607,15 +608,15 @@ export const styles = StyleSheet.create({
 
     alignItems:      "center",
 
-    gap:             theme.spacing.md,
+    gap:             legacyTheme.spacing.md,
 
-    backgroundColor: kit.color.surface,
+    backgroundColor: theme.colors.canvas.surface,
 
     borderRadius:    16,
 
     padding:         14,
 
-    ...theme.shadow.card,
+    ...kit.shadow.card,
 
   },
 
@@ -627,11 +628,11 @@ export const styles = StyleSheet.create({
 
     borderRadius:    13,
 
-    backgroundColor: kit.color.accentTint,
+    backgroundColor: theme.colors.brand.primaryLight,
 
     borderWidth:     1,
 
-    borderColor:     kit.color.accentTint,
+    borderColor:     theme.colors.brand.primaryLight,
 
     alignItems:      "center",
 
@@ -659,7 +660,7 @@ export const styles = StyleSheet.create({
 
     borderRadius:    3.5,
 
-    backgroundColor: kit.color.success,
+    backgroundColor: theme.colors.status.success,
 
   },
 
@@ -675,7 +676,7 @@ export const styles = StyleSheet.create({
 
     gap:               10,
 
-    paddingHorizontal: theme.layout.pagePaddingH,
+    paddingHorizontal: legacyTheme.layout.pagePaddingH,
 
     marginTop:         20,
 
@@ -685,19 +686,19 @@ export const styles = StyleSheet.create({
 
     flex:              1,
 
-    backgroundColor:   kit.color.surface,
+    backgroundColor:   theme.colors.canvas.surface,
 
     borderRadius:      20,
 
     paddingVertical:   22,
 
-    paddingHorizontal: theme.spacing.sm,
+    paddingHorizontal: legacyTheme.spacing.sm,
 
     alignItems:        "center",
 
     gap:               12,
 
-    shadowColor:       kit.color.canvas,
+    shadowColor:       theme.colors.canvas.background,
 
     shadowOffset:      { width: 0, height: 6 },
 
@@ -709,7 +710,7 @@ export const styles = StyleSheet.create({
 
     borderWidth:       1,
 
-    borderColor:       kit.color.line,
+    borderColor:       theme.colors.border.default,
 
   },
 
@@ -775,9 +776,9 @@ export const styles = StyleSheet.create({
 
   section: {
 
-    paddingHorizontal: theme.layout.pagePaddingH,  // 20 — forces whole group to pagePaddingH bounds
+    paddingHorizontal: legacyTheme.layout.pagePaddingH,  // 20 — forces whole group to pagePaddingH bounds
 
-    marginTop:         theme.spacing['2xl'],        // 24
+    marginTop:         24,
 
     gap:               10,
 
@@ -785,7 +786,7 @@ export const styles = StyleSheet.create({
 
   sectionLabelNew: {
 
-    marginBottom: theme.spacing.xs,
+    marginBottom: legacyTheme.spacing.xs,
 
   },
 
@@ -795,13 +796,13 @@ export const styles = StyleSheet.create({
 
   menuCard: {
 
-    backgroundColor: kit.color.surface,   // white card on bg background
+    backgroundColor: theme.colors.canvas.surface,   // white card on bg background
 
     borderRadius:    16,
 
     overflow:        "hidden",
 
-    ...theme.shadow.sm,
+    ...theme.shadows[0],
 
   },
 
@@ -821,9 +822,9 @@ export const styles = StyleSheet.create({
 
     alignItems:        "center",
 
-    gap:               theme.spacing.md,
+    gap:               legacyTheme.spacing.md,
 
-    paddingHorizontal: theme.spacing.lg,
+    paddingHorizontal: legacyTheme.spacing.lg,
 
     paddingVertical:   16,           // was 15 — strict 16px spec
 
@@ -833,7 +834,7 @@ export const styles = StyleSheet.create({
 
     borderBottomWidth: StyleSheet.hairlineWidth,
 
-    borderBottomColor: kit.color.line,
+    borderBottomColor: theme.colors.border.default,
 
   },
 
@@ -879,17 +880,17 @@ export const styles = StyleSheet.create({
 
     borderRadius:      12,
 
-    backgroundColor:   kit.color.accentTint,
+    backgroundColor:   theme.colors.brand.primaryLight,
 
     borderWidth:       1,
 
-    borderColor:       kit.color.accentTint,
+    borderColor:       theme.colors.brand.primaryLight,
 
     alignItems:        "center",
 
     justifyContent:    "center",
 
-    paddingHorizontal: theme.spacing.sm,
+    paddingHorizontal: legacyTheme.spacing.sm,
 
   },
 
@@ -905,7 +906,7 @@ export const styles = StyleSheet.create({
 
     gap:           6,
 
-    paddingBottom: theme.spacing.md,
+    paddingBottom: legacyTheme.spacing.md,
 
   },
 
@@ -917,7 +918,7 @@ export const styles = StyleSheet.create({
 
     gap:               6,
 
-    backgroundColor:   kit.color.accentTint,
+    backgroundColor:   theme.colors.brand.primaryLight,
 
     borderRadius:      999,
 
@@ -927,13 +928,13 @@ export const styles = StyleSheet.create({
 
     borderWidth:       1,
 
-    borderColor:       kit.color.accentTint,
+    borderColor:       theme.colors.brand.primaryLight,
 
   },
 
   footerVersionNew: {
 
-    marginTop: theme.spacing.xs,
+    marginTop: legacyTheme.spacing.xs,
 
   },
 

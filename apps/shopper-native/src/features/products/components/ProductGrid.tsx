@@ -1,3 +1,4 @@
+import { defaultTheme as theme } from "@pharmacy/ui-native";
 /**
  * ProductGrid — 2-column product grid with platform-specific rendering.
  *
@@ -27,7 +28,7 @@ import {
 } from "react-native";
 import { FlashList } from "@shopify/flash-list";
 import { ProductCard } from "@/components/ProductCard";
-import { kit } from "@pharmacy/ui-native";
+
 import { flexRow, isRtl } from "@/utils/layout";
 import { useScreenLayout } from "@/utils/responsive";
 import type { NativeProduct } from "../types";
@@ -103,8 +104,8 @@ export const ProductGrid = React.memo(function ProductGrid({
       <RefreshControl
         refreshing={refreshing ?? false}
         onRefresh={onRefresh}
-        tintColor={kit.color.accent}
-        colors={[kit.color.accent]}
+        tintColor={theme.colors.brand.primary}
+        colors={[theme.colors.brand.primary]}
       />
     ) : undefined;
 

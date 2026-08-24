@@ -18,7 +18,8 @@ import { Text as UIText } from "@pharmacy/ui-native";
 
 import { kit }            from "@pharmacy/ui-native";
 
-import { theme }          from "@pharmacy/design-tokens";
+import { theme as legacyTheme } from "@pharmacy/design-tokens";
+import { defaultTheme as theme } from "@pharmacy/ui-native";
 
 import { BACK_CHEVRON, flexRow, isRtl, textAlignStart } from "@/utils/layout";
 
@@ -86,7 +87,7 @@ export function PharmacistScreenHeader({
 
         >
 
-          <Ionicons name={BACK_CHEVRON} size={22} color={kit.color.ink} />
+          <Ionicons name={BACK_CHEVRON} size={22} color={theme.colors.text.primary} />
 
         </Pressable>
 
@@ -132,11 +133,11 @@ const s = StyleSheet.create({
 
     paddingVertical:   16,
 
-    backgroundColor:   kit.color.surface,
+    backgroundColor:   theme.colors.canvas.surface,
 
     borderBottomWidth: StyleSheet.hairlineWidth,
 
-    borderBottomColor: kit.color.line,
+    borderBottomColor: theme.colors.border.default,
 
   },
 
@@ -176,9 +177,9 @@ const s = StyleSheet.create({
 
     lineHeight:         26,
 
-    fontFamily:         theme.fonts.black,
+    fontFamily:         legacyTheme.fonts.black,
 
-    color:              kit.color.ink,
+    color:              theme.colors.text.primary,
 
     letterSpacing:      -0.3,
 
@@ -194,9 +195,9 @@ const s = StyleSheet.create({
 
     lineHeight:         16,
 
-    fontFamily:         theme.fonts.regular,
+    fontFamily:         legacyTheme.fonts.regular,
 
-    color:              kit.color.inkFaint,
+    color:              theme.colors.text.muted,
 
     textAlign:          TEXT_START,
 

@@ -6,7 +6,6 @@ import { Text as UIText } from "@pharmacy/ui-native";
 
 import { Ionicons } from "@expo/vector-icons";
 
-import { kit } from "@pharmacy/ui-native";
 
 import { PressableScale } from "@/shared/motion";
 
@@ -30,9 +29,10 @@ import { EmptyState } from "@/components/ui/EmptyState";
 
 import { Skeleton } from "@/components/ui/Skeleton";
 
-import { useDarkColors } from "@/hooks/useDarkColors";
+import { useTheme } from "@pharmacy/ui-native";
 
-import { theme } from "@pharmacy/design-tokens";
+import { theme as legacyTheme } from "@pharmacy/design-tokens";
+import { defaultTheme as theme } from "@pharmacy/ui-native";
 
 import { flexRow, isRtl, textAlignStart, BACK_CHEVRON } from "@/utils/layout";
 
@@ -42,15 +42,15 @@ const RTL = isRtl(), TA = textAlignStart(RTL);
 
 type IconName = React.ComponentProps<typeof Ionicons>["name"];
 
-const TYPE_CFG = (c: { accentDeep: string; accentTint: string; warn: string; warnTint: string; danger: string; dangerTint: string; inkSoft: string; well: string }): Record<NotifType, { icon: IconName; color: string; bg: string; labelKey: string }> => ({
+const TYPE_CFG = (): Record<NotifType, { icon: IconName; color: string; bg: string; labelKey: string }> => ({
 
-  order: { icon: "bag-handle", color: c.accentDeep, bg: c.accentTint, labelKey: "notifications.typeOrder" },
+  order: { icon: "bag-handle", color: theme.colors.brand.primary, bg: theme.colors.brand.primaryLight, labelKey: "notifications.typeOrder" },
 
-  offer: { icon: "pricetag", color: c.warn, bg: c.warnTint, labelKey: "notifications.typeOffer" },
+  offer: { icon: "pricetag", color: theme.colors.status.warning, bg: `${theme.colors.status.warning}1A`, labelKey: "notifications.typeOffer" },
 
-  health: { icon: "heart", color: c.danger, bg: c.dangerTint, labelKey: "notifications.typeHealth" },
+  health: { icon: "heart", color: theme.colors.status.error, bg: `${theme.colors.status.error}1A`, labelKey: "notifications.typeHealth" },
 
-  system: { icon: "settings-outline", color: c.inkSoft, bg: c.well, labelKey: "notifications.typeSystem" },
+  system: { icon: "settings-outline", color: theme.colors.text.secondary, bg: theme.colors.canvas.surfaceMuted, labelKey: "notifications.typeSystem" },
 
 });
 
@@ -170,9 +170,9 @@ function DeleteAction({ progress, onPress }: { progress: { value: number }; onPr
 
 const NotifRow = React.memo(function NotifRow({ item, onPress, onDelete }: { item: AppNotification; onPress: () => void; onDelete: () => void }) {
 
-  const { t } = useTranslation(), { c } = useDarkColors();
+  const { t } = useTranslation();
 
-  const cfg = TYPE_CFG(c)[item.type] ?? TYPE_CFG(c).system;
+  const cfg = TYPE_CFG()[item.type] ?? TYPE_CFG().system;
 
   const handleDelete = useCallback(() => { if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {}); onDelete(); }, [onDelete]);
 
@@ -184,7 +184,7 @@ const NotifRow = React.memo(function NotifRow({ item, onPress, onDelete }: { ite
 
     renderRightActions={RTL ? undefined : renderAction} renderLeftActions={RTL ? renderAction : undefined}>
 
-    <PressableScale onPress={onPress} scaleTo={0.985} hitSlop={6} android_ripple={{ color: c.well }} accessibilityRole="button"
+    <PressableScale onPress={onPress} scaleTo={0.985} hitSlop={6} android_ripple={{ color: theme.colors.canvas.surfaceMuted }} accessibilityRole="button"
 
       accessibilityLabel={`${item.title}. ${item.body}`} accessibilityState={{ selected: !item.isRead }}
 
@@ -224,7 +224,7 @@ const NotifRow = React.memo(function NotifRow({ item, onPress, onDelete }: { ite
 
 export default function NotificationsScreen() {
 
-  const { c } = useDarkColors();
+  const { theme } = useTheme();
 
   const router = useRouter(), insets = useSafeAreaInsets(), { t } = useTranslation();
 
@@ -258,11 +258,11 @@ export default function NotificationsScreen() {
 
         <Pressable onPress={() => router.back()} style={n.back} hitSlop={10} accessibilityRole="button" accessibilityLabel={t("common.back")}>
 
-          <Ionicons name={BACK_CHEVRON} size={18} color={c.inkSoft} />
+          <Ionicons name={BACK_CHEVRON} size={18} color={theme.colors.text.secondary} />
 
         </Pressable>
 
-        <View style={n.tile}><Ionicons name="notifications-outline" size={22} color={c.accentDeep} /></View>
+        <View style={n.tile}><Ionicons name="notifications-outline" size={22} color={theme.colors.brand.primary} /></View>
 
         <View style={{ flex: 1 }}>
 
@@ -278,7 +278,7 @@ export default function NotificationsScreen() {
 
         <Pressable onPress={() => router.push("/notification-preferences")} style={n.setting} hitSlop={6} accessibilityRole="button">
 
-          <Ionicons name="settings-outline" size={17} color={c.inkSoft} />
+          <Ionicons name="settings-outline" size={17} color={theme.colors.text.secondary} />
 
         </Pressable>
 
@@ -320,9 +320,9 @@ export default function NotificationsScreen() {
 
         maxToRenderPerBatch={12} initialNumToRender={10} windowSize={7}
 
-        refreshControl={<RefreshControl refreshing={loading} onRefresh={() => refetch()} tintColor={c.accent} />}
+        refreshControl={<RefreshControl refreshing={loading} onRefresh={() => refetch()} tintColor={theme.colors.brand.primary} />}
 
-        ListFooterComponent={isFetchingNextPage ? <View style={{ paddingVertical: 16 }}><ActivityIndicator color={c.accent} /></View> : null}
+        ListFooterComponent={isFetchingNextPage ? <View style={{ paddingVertical: 16 }}><ActivityIndicator color={theme.colors.brand.primary} /></View> : null}
 
         ListEmptyComponent={<View style={{ paddingTop: 60 }}><EmptyState icon="notifications-off-outline" title={t("notifications.empty")} description={filter !== "all" ? t("notifications.emptyFiltered") : undefined} actionLabel={filter !== "all" ? t("notifications.filterAll") : undefined} onAction={filter !== "all" ? () => setFilter("all") : undefined} /></View>}
 
@@ -336,39 +336,39 @@ export default function NotificationsScreen() {
 
 const n = StyleSheet.create({
 
-  screen: { flex: 1, backgroundColor: kit.color.canvas },
+  screen: { flex: 1, backgroundColor: theme.colors.canvas.background },
 
-  header: { paddingHorizontal: 16, paddingBottom: 14, gap: 12, backgroundColor: kit.color.surface, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: kit.color.line, ...kit.shadow.raised },
+  header: { paddingHorizontal: 16, paddingBottom: 14, gap: 12, backgroundColor: theme.colors.canvas.surface, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border.default, ...theme.shadows[1] },
 
   hTop: { alignItems: "center", gap: 12 },
 
-  back: { width: 40, height: 40, borderRadius: 20, backgroundColor: kit.color.surface, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: kit.color.line, ...kit.shadow.raised, flexShrink: 0 },
+  back: { width: 40, height: 40, borderRadius: 20, backgroundColor: theme.colors.canvas.surface, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: theme.colors.border.default, ...theme.shadows[1], flexShrink: 0 },
 
-  tile: { width: 52, height: 52, borderRadius: 16, backgroundColor: kit.color.accentTint, borderWidth: 1, borderColor: kit.color.line, alignItems: "center", justifyContent: "center", flexShrink: 0 },
+  tile: { width: 52, height: 52, borderRadius: 16, backgroundColor: theme.colors.brand.primaryLight, borderWidth: 1, borderColor: theme.colors.border.default, alignItems: "center", justifyContent: "center", flexShrink: 0 },
 
-  hTitle: { fontFamily: theme.fonts.black, fontSize: 18, letterSpacing: -0.4, color: kit.color.ink, textAlign: TA, includeFontPadding: false },
+  hTitle: { fontFamily: legacyTheme.fonts.black, fontSize: 18, letterSpacing: -0.4, color: theme.colors.text.primary, textAlign: TA, includeFontPadding: false },
 
   unread: { alignItems: "center", gap: 5, marginTop: 2 },
 
-  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: kit.color.accent, flexShrink: 0 },
+  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: theme.colors.brand.primary, flexShrink: 0 },
 
-  unreadT: { fontSize: 10, fontFamily: theme.fonts.bold, color: kit.color.accentDeep, includeFontPadding: false },
+  unreadT: { fontSize: 10, fontFamily: legacyTheme.fonts.bold, color: theme.colors.brand.primary, includeFontPadding: false },
 
-  setting: { width: 40, height: 40, borderRadius: 20, backgroundColor: kit.color.well, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: kit.color.line, flexShrink: 0 },
+  setting: { width: 40, height: 40, borderRadius: 20, backgroundColor: theme.colors.canvas.surfaceMuted, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: theme.colors.border.default, flexShrink: 0 },
 
   filterBar: { alignItems: "center", gap: 8 },
 
   filterRow: { gap: 6, paddingEnd: 4 },
 
-  chip: { paddingHorizontal: 13, paddingVertical: 7, borderRadius: 20, backgroundColor: kit.color.well, borderWidth: 1, borderColor: kit.color.line },
+  chip: { paddingHorizontal: 13, paddingVertical: 7, borderRadius: 20, backgroundColor: theme.colors.canvas.surfaceMuted, borderWidth: 1, borderColor: theme.colors.border.default },
 
-  chipA: { backgroundColor: kit.color.ink, borderColor: kit.color.ink },
+  chipA: { backgroundColor: theme.colors.text.primary, borderColor: theme.colors.text.primary },
 
-  chipT: { fontSize: 10.5, fontFamily: theme.fonts.bold, color: kit.color.inkSoft, includeFontPadding: false },
+  chipT: { fontSize: 10.5, fontFamily: legacyTheme.fonts.bold, color: theme.colors.text.secondary, includeFontPadding: false },
 
-  chipTA: { color: "#fff", fontFamily: theme.fonts.black },
+  chipTA: { color: "#fff", fontFamily: legacyTheme.fonts.black },
 
-  markAll: { fontSize: 11, fontFamily: theme.fonts.bold, color: kit.color.accentDeep, includeFontPadding: false, flexShrink: 0 },
+  markAll: { fontSize: 11, fontFamily: legacyTheme.fonts.bold, color: theme.colors.brand.primary, includeFontPadding: false, flexShrink: 0 },
 
 
 
@@ -376,19 +376,19 @@ const n = StyleSheet.create({
 
   secHdr: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 8 },
 
-  secHdrT: { fontSize: 11, fontFamily: theme.fonts.black, letterSpacing: 0.4, textTransform: "uppercase", color: kit.color.inkFaint, includeFontPadding: false },
+  secHdrT: { fontSize: 11, fontFamily: legacyTheme.fonts.black, letterSpacing: 0.4, textTransform: "uppercase", color: theme.colors.text.muted, includeFontPadding: false },
 
   delWrap: { width: 72, alignItems: "center", justifyContent: "center" },
 
-  delBtn: { width: 48, height: 48, borderRadius: 14, backgroundColor: kit.color.danger, alignItems: "center", justifyContent: "center" },
+  delBtn: { width: 48, height: 48, borderRadius: 14, backgroundColor: theme.colors.status.error, alignItems: "center", justifyContent: "center" },
 
 
 
-  card: { flexDirection: flexRow(RTL), alignItems: "flex-start", gap: 14, paddingHorizontal: 16, paddingVertical: 16, backgroundColor: kit.color.surface, borderRadius: 18, borderWidth: 1, borderColor: kit.color.line, ...kit.shadow.raised },
+  card: { flexDirection: flexRow(RTL), alignItems: "flex-start", gap: 14, paddingHorizontal: 16, paddingVertical: 16, backgroundColor: theme.colors.canvas.surface, borderRadius: 18, borderWidth: 1, borderColor: theme.colors.border.default, ...theme.shadows[1] },
 
-  unreadCard: { backgroundColor: kit.color.accentTint, borderColor: `${kit.color.accent}22`, borderStartWidth: 3, borderStartColor: kit.color.accent },
+  unreadCard: { backgroundColor: theme.colors.brand.primaryLight, borderColor: `${theme.colors.brand.primary}22`, borderStartWidth: 3, borderStartColor: theme.colors.brand.primary },
 
-  read: { backgroundColor: kit.color.surface },
+  read: { backgroundColor: theme.colors.canvas.surface },
 
   icon: { width: 46, height: 46, borderRadius: 14, alignItems: "center", justifyContent: "center", marginTop: 1, flexShrink: 0, borderWidth: 1 },
 
@@ -396,18 +396,18 @@ const n = StyleSheet.create({
 
   titleRow: { alignItems: "center", justifyContent: "space-between", gap: 8 },
 
-  title: { flex: 1, fontSize: 13.5, fontFamily: theme.fonts.bold, color: kit.color.inkSoft, includeFontPadding: false },
+  title: { flex: 1, fontSize: 13.5, fontFamily: legacyTheme.fonts.bold, color: theme.colors.text.secondary, includeFontPadding: false },
 
-  titleU: { fontFamily: theme.fonts.black, color: kit.color.ink },
+  titleU: { fontFamily: legacyTheme.fonts.black, color: theme.colors.text.primary },
 
-  time: { fontSize: 10, fontFamily: theme.fonts.semibold, color: kit.color.inkFaint, includeFontPadding: false, writingDirection: "ltr", fontVariant: ["tabular-nums"] },
+  time: { fontSize: 10, fontFamily: legacyTheme.fonts.semibold, color: theme.colors.text.muted, includeFontPadding: false, writingDirection: "ltr", fontVariant: ["tabular-nums"] },
 
-  body: { fontSize: 12.5, fontFamily: theme.fonts.regular, color: kit.color.inkSoft, lineHeight: 19, includeFontPadding: false },
+  body: { fontSize: 12.5, fontFamily: legacyTheme.fonts.regular, color: theme.colors.text.secondary, lineHeight: 19, includeFontPadding: false },
 
   typePill: { alignSelf: "flex-start", alignItems: "center", gap: 4, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3, marginTop: 3, borderWidth: 1, borderColor: "rgba(0,0,0,0.04)" },
 
   typeDot: { width: 6, height: 6, borderRadius: 3, opacity: 0.8 },
 
-  typeTxt: { fontSize: 9, fontFamily: theme.fonts.bold, includeFontPadding: false },
+  typeTxt: { fontSize: 9, fontFamily: legacyTheme.fonts.bold, includeFontPadding: false },
 
 });

@@ -1,3 +1,4 @@
+import { defaultTheme as theme } from "@pharmacy/ui-native";
 /**
  * AnalyticsDashboardScreen — live KPI dashboard for the pharmacist.
  *
@@ -76,9 +77,9 @@ function MetricRow({
 
   icon,
 
-  iconColor = kit.color.accentDeep,
+  iconColor = theme.colors.brand.primary,
 
-  iconBg = kit.color.accentTint,
+  iconBg = theme.colors.brand.primaryLight,
 
   caption,
 
@@ -144,7 +145,7 @@ const mrStyles = StyleSheet.create({
 
   iconWell:{ width: 34, height: 34, borderRadius: 10, alignItems: "center", justifyContent: "center", flexShrink: 0 },
 
-  value:   { fontSize: 16, fontFamily: "Cairo_900Black", color: kit.color.ink },
+  value:   { fontSize: 16, fontFamily: "Cairo_900Black", color: theme.colors.text.primary },
 
 });
 
@@ -178,7 +179,7 @@ function Section({
 
       <View style={[scStyles.header, { flexDirection: flexRow(IS_RTL) }]}>        <View style={scStyles.iconWell}>
 
-          <Ionicons name={icon} size={14} color={kit.color.accentDeep} />
+          <Ionicons name={icon} size={14} color={theme.colors.brand.primary} />
 
         </View>
 
@@ -200,15 +201,15 @@ const scStyles = StyleSheet.create({
 
   root: {
 
-    backgroundColor: kit.color.surface,
+    backgroundColor: theme.colors.canvas.surface,
 
     borderRadius:    16,
 
     borderWidth:     1,
 
-    borderColor:     kit.color.line,
+    borderColor:     theme.colors.border.default,
 
-    ...kit.shadow.card,
+    ...theme.shadows[1],
 
   },
 
@@ -226,7 +227,7 @@ const scStyles = StyleSheet.create({
 
     borderBottomWidth: StyleSheet.hairlineWidth,
 
-    borderBottomColor: kit.color.line,
+    borderBottomColor: theme.colors.border.default,
 
   },
 
@@ -234,7 +235,7 @@ const scStyles = StyleSheet.create({
 
     width: 28, height: 28, borderRadius: 9,
 
-    backgroundColor: kit.color.accentTint,
+    backgroundColor: theme.colors.brand.primaryLight,
 
     alignItems: "center", justifyContent: "center",
 
@@ -328,11 +329,11 @@ const bcStyles = StyleSheet.create({
 
   barCol:   { flex: 1, alignItems: "center", gap: 3 },
 
-  barTrack: { flex: 1, width: "80%", backgroundColor: kit.color.well, borderRadius: 4, overflow: "hidden", justifyContent: "flex-end" },
+  barTrack: { flex: 1, width: "80%", backgroundColor: theme.colors.canvas.surfaceMuted, borderRadius: 4, overflow: "hidden", justifyContent: "flex-end" },
 
-  barFill:  { backgroundColor: kit.color.accent, borderRadius: 4 },
+  barFill:  { backgroundColor: theme.colors.brand.primary, borderRadius: 4 },
 
-  barLabel: { fontSize: 8, fontFamily: "Cairo_700Bold", color: kit.color.inkFaint },
+  barLabel: { fontSize: 8, fontFamily: "Cairo_700Bold", color: theme.colors.text.muted },
 
 });
 
@@ -380,17 +381,17 @@ const bkStyles = StyleSheet.create({
 
   card: {
 
-    flex: 1, backgroundColor: kit.color.surface, borderRadius: 16,
+    flex: 1, backgroundColor: theme.colors.canvas.surface, borderRadius: 16,
 
-    padding: 16, gap: 8, borderWidth: 1, borderColor: kit.color.line, ...kit.shadow.card,
+    padding: 16, gap: 8, borderWidth: 1, borderColor: theme.colors.border.default, ...theme.shadows[1],
 
   },
 
   iconWell: { width: 44, height: 44, borderRadius: 14, alignItems: "center", justifyContent: "center" },
 
-  value: { fontSize: 28, lineHeight: 34, fontFamily: "Cairo_900Black", color: kit.color.ink, includeFontPadding: false },
+  value: { fontSize: 28, lineHeight: 34, fontFamily: "Cairo_900Black", color: theme.colors.text.primary, includeFontPadding: false },
 
-  label: { fontSize: 12, fontFamily: "Cairo_700Bold", color: kit.color.inkSoft, textAlign: TEXT_START, includeFontPadding: false },
+  label: { fontSize: 12, fontFamily: "Cairo_700Bold", color: theme.colors.text.secondary, textAlign: TEXT_START, includeFontPadding: false },
 
 });
 
@@ -452,17 +453,17 @@ export function AnalyticsDashboardScreen(): React.ReactElement {
 
   const funnelData: { status: string; count: number; color: string }[] = [
 
-    { status: t("pharmacist.statusPending"),         count: orders.filter((o) => o.status === "pending").length,          color: kit.color.warn },
+    { status: t("pharmacist.statusPending"),         count: orders.filter((o) => o.status === "pending").length,          color: theme.colors.status.warning },
 
-    { status: t("pharmacist.statusVerification"),    count: orders.filter((o) => o.status === "verification").length,     color: kit.color.accentDeep },
+    { status: t("pharmacist.statusVerification"),    count: orders.filter((o) => o.status === "verification").length,     color: theme.colors.brand.primary },
 
-    { status: t("pharmacist.statusPaymentPending"),  count: orders.filter((o) => o.status === "payment_pending").length,  color: kit.color.accentDeep },
+    { status: t("pharmacist.statusPaymentPending"),  count: orders.filter((o) => o.status === "payment_pending").length,  color: theme.colors.brand.primary },
 
-    { status: t("pharmacist.statusPaymentApproved"), count: orders.filter((o) => o.status === "payment_approved").length, color: kit.color.success },
+    { status: t("pharmacist.statusPaymentApproved"), count: orders.filter((o) => o.status === "payment_approved").length, color: theme.colors.status.success },
 
-    { status: t("pharmacist.statusPreparing"),       count: orders.filter((o) => o.status === "preparing").length,        color: kit.color.accentDeep },
+    { status: t("pharmacist.statusPreparing"),       count: orders.filter((o) => o.status === "preparing").length,        color: theme.colors.brand.primary },
 
-    { status: t("pharmacist.statusReady"),           count: orders.filter((o) => o.status === "ready").length,            color: kit.color.accent },
+    { status: t("pharmacist.statusReady"),           count: orders.filter((o) => o.status === "ready").length,            color: theme.colors.brand.primary },
 
   ].filter((d) => d.count > 0);
 
@@ -500,13 +501,13 @@ export function AnalyticsDashboardScreen(): React.ReactElement {
 
   return (
 
-    <Screen edgeTop background={kit.color.canvas}>
+    <Screen edgeTop background={theme.colors.canvas.background}>
 
       {/* Header with gradient */}
 
       <LinearGradient
 
-        colors={[kit.color.accentDeep, kit.color.accent]}
+        colors={[theme.colors.brand.primary, theme.colors.brand.primary]}
 
         start={{ x: 0, y: 0 }}
 
@@ -536,7 +537,7 @@ export function AnalyticsDashboardScreen(): React.ReactElement {
 
       {isLoading ? (
 
-        <View style={styles.centered}><ActivityIndicator size="large" color={kit.color.accent} /></View>
+        <View style={styles.centered}><ActivityIndicator size="large" color={theme.colors.brand.primary} /></View>
 
       ) : (
 
@@ -554,7 +555,7 @@ export function AnalyticsDashboardScreen(): React.ReactElement {
 
               onRefresh={onRefresh}
 
-              tintColor={kit.color.accent}
+              tintColor={theme.colors.brand.primary}
 
             />
 
@@ -572,9 +573,9 @@ export function AnalyticsDashboardScreen(): React.ReactElement {
 
               icon="bag-handle-outline"
 
-              iconColor={kit.color.accentDeep}
+              iconColor={theme.colors.brand.primary}
 
-              iconBg={kit.color.accentTint}
+              iconBg={theme.colors.brand.primaryLight}
 
             />
 
@@ -586,9 +587,9 @@ export function AnalyticsDashboardScreen(): React.ReactElement {
 
               icon="cash-outline"
 
-              iconColor={kit.color.success}
+              iconColor={theme.colors.status.success}
 
-              iconBg={kit.color.successTint}
+              iconBg={`${theme.colors.status.success}1A`}
 
             />
 
@@ -602,9 +603,9 @@ export function AnalyticsDashboardScreen(): React.ReactElement {
 
               icon="checkmark-circle-outline"
 
-              iconColor={kit.color.success}
+              iconColor={theme.colors.status.success}
 
-              iconBg={kit.color.successTint}
+              iconBg={`${theme.colors.status.success}1A`}
 
             />
 
@@ -616,9 +617,9 @@ export function AnalyticsDashboardScreen(): React.ReactElement {
 
               icon="close-circle-outline"
 
-              iconColor={kit.color.danger}
+              iconColor={theme.colors.status.error}
 
-              iconBg={kit.color.dangerTint}
+              iconBg={`${theme.colors.status.error}1A`}
 
             />
 
@@ -674,15 +675,15 @@ export function AnalyticsDashboardScreen(): React.ReactElement {
 
             delay={120}
 
-          >            <MetricRow label={t("pharmacist.rxPending")}  value={rxPending}  icon="time-outline"             iconColor={kit.color.warn}    iconBg={kit.color.warnTint} />
+          >            <MetricRow label={t("pharmacist.rxPending")}  value={rxPending}  icon="time-outline"             iconColor={theme.colors.status.warning}    iconBg={`${theme.colors.status.warning}1A`} />
 
             <View style={styles.divider} />
 
-            <MetricRow label={t("pharmacist.rxApproved")} value={rxApproved} icon="checkmark-circle-outline" iconColor={kit.color.success}  iconBg={kit.color.successTint} />
+            <MetricRow label={t("pharmacist.rxApproved")} value={rxApproved} icon="checkmark-circle-outline" iconColor={theme.colors.status.success}  iconBg={`${theme.colors.status.success}1A`} />
 
             <View style={styles.divider} />
 
-            <MetricRow label={t("pharmacist.rxRejected")} value={rxRejected} icon="close-circle-outline"     iconColor={kit.color.danger}   iconBg={kit.color.dangerTint} />
+            <MetricRow label={t("pharmacist.rxRejected")} value={rxRejected} icon="close-circle-outline"     iconColor={theme.colors.status.error}   iconBg={`${theme.colors.status.error}1A`} />
 
           </Section>
 
@@ -706,9 +707,9 @@ export function AnalyticsDashboardScreen(): React.ReactElement {
 
               icon="alert-circle-outline"
 
-              iconColor={kit.color.danger}
+              iconColor={theme.colors.status.error}
 
-              iconBg={kit.color.dangerTint}
+              iconBg={`${theme.colors.status.error}1A`}
 
               caption={t("pharmacist.analyticsLowStockCaption", "مخزون أقل من 5 وحدات")}
 
@@ -830,7 +831,7 @@ const styles = StyleSheet.create({
 
   funnelCount: { fontSize: 16, fontFamily: "Cairo_900Black" },
 
-  divider:     { height: StyleSheet.hairlineWidth, backgroundColor: kit.color.line, marginVertical: 2 },
+  divider:     { height: StyleSheet.hairlineWidth, backgroundColor: theme.colors.border.default, marginVertical: 2 },
 
 });
 

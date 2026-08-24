@@ -1,3 +1,4 @@
+import { defaultTheme as theme } from "@pharmacy/ui-native";
 /**
  * OrderStatusChip — coloured pill for pharmacist order statuses.
  *
@@ -14,9 +15,6 @@ import { useTranslation }   from "react-i18next";
 
 import { Text as UIText }   from "@pharmacy/ui-native";
 
-import { kit }              from "@pharmacy/ui-native";
-
-import { useDarkColors }    from "@/hooks/useDarkColors";
 
 import { flexRow, isRtl }   from "@/utils/layout";
 
@@ -42,33 +40,33 @@ interface ChipMeta {
 
 
 
-const STATUS_MAP: Record<PharmacistOrderStatus, (c: ReturnType<typeof useDarkColors>) => ChipMeta> = {
+const STATUS_MAP: Record<PharmacistOrderStatus, () => ChipMeta> = {
 
-  pending:         ({ c }) => ({ labelKey: "pharmacist.statusPending",        color: c.warn,       bg: c.warnTint,    icon: "time-outline"              }),
+  pending:         () => ({ labelKey: "pharmacist.statusPending",        color: theme.colors.status.warning,       bg: `${theme.colors.status.warning}1A`,    icon: "time-outline"              }),
 
-  confirmed:       ({ c }) => ({ labelKey: "pharmacist.statusConfirmed",      color: c.accentDeep, bg: c.accentTint,  icon: "checkmark-circle-outline"  }),
+  confirmed:       () => ({ labelKey: "pharmacist.statusConfirmed",      color: theme.colors.brand.primary, bg: theme.colors.brand.primaryLight,  icon: "checkmark-circle-outline"  }),
 
-  verification:    ({ c }) => ({ labelKey: "pharmacist.statusVerification",   color: c.accent,     bg: c.accentTint,  icon: "shield-checkmark-outline"  }),
+  verification:    () => ({ labelKey: "pharmacist.statusVerification",   color: theme.colors.brand.primary,     bg: theme.colors.brand.primaryLight,  icon: "shield-checkmark-outline"  }),
 
-  payment_pending: ({ c }) => ({ labelKey: "pharmacist.statusPaymentPending", color: c.accentDeep, bg: c.accentTint,  icon: "card-outline"              }),
+  payment_pending: () => ({ labelKey: "pharmacist.statusPaymentPending", color: theme.colors.brand.primary, bg: theme.colors.brand.primaryLight,  icon: "card-outline"              }),
 
-  payment_approved:({ c }) => ({ labelKey: "pharmacist.statusPaymentApproved",color: c.success,    bg: c.successTint, icon: "checkmark-circle-outline"  }),
+  payment_approved:() => ({ labelKey: "pharmacist.statusPaymentApproved",color: theme.colors.status.success,    bg: `${theme.colors.status.success}1A`, icon: "checkmark-circle-outline"  }),
 
-  preparing:       ({ c }) => ({ labelKey: "pharmacist.statusPreparing",      color: c.accentDeep, bg: c.accentTint,  icon: "construct-outline"         }),
+  preparing:       () => ({ labelKey: "pharmacist.statusPreparing",      color: theme.colors.brand.primary, bg: theme.colors.brand.primaryLight,  icon: "construct-outline"         }),
 
-  ready:           ({ c }) => ({ labelKey: "pharmacist.statusReady",          color: c.accentDeep, bg: c.accentTint,  icon: "cube-outline"              }),
+  ready:           () => ({ labelKey: "pharmacist.statusReady",          color: theme.colors.brand.primary, bg: theme.colors.brand.primaryLight,  icon: "cube-outline"              }),
 
-  driver_assigned: ({ c }) => ({ labelKey: "pharmacist.statusDriverAssigned", color: c.inkSoft,    bg: c.well,        icon: "car-outline"               }),
+  driver_assigned: () => ({ labelKey: "pharmacist.statusDriverAssigned", color: theme.colors.text.secondary,    bg: theme.colors.canvas.surfaceMuted,        icon: "car-outline"               }),
 
-  driver_accepted: ({ c }) => ({ labelKey: "pharmacist.statusDriverAccepted", color: c.inkSoft,    bg: c.well,        icon: "car-sport-outline"         }),
+  driver_accepted: () => ({ labelKey: "pharmacist.statusDriverAccepted", color: theme.colors.text.secondary,    bg: theme.colors.canvas.surfaceMuted,        icon: "car-sport-outline"         }),
 
-  out_for_delivery:({ c }) => ({ labelKey: "pharmacist.statusOutForDelivery", color: c.accent,     bg: c.accentTint,  icon: "navigate-outline"          }),
+  out_for_delivery:() => ({ labelKey: "pharmacist.statusOutForDelivery", color: theme.colors.brand.primary,     bg: theme.colors.brand.primaryLight,  icon: "navigate-outline"          }),
 
-  delivered:       ({ c }) => ({ labelKey: "pharmacist.statusDelivered",      color: c.success,    bg: c.successTint, icon: "checkmark-done-outline"    }),
+  delivered:       () => ({ labelKey: "pharmacist.statusDelivered",      color: theme.colors.status.success,    bg: `${theme.colors.status.success}1A`, icon: "checkmark-done-outline"    }),
 
-  cancelled:       ({ c }) => ({ labelKey: "pharmacist.statusCancelled",      color: c.danger,     bg: c.dangerTint,  icon: "close-circle-outline"      }),
+  cancelled:       () => ({ labelKey: "pharmacist.statusCancelled",      color: theme.colors.status.error,     bg: `${theme.colors.status.error}1A`,  icon: "close-circle-outline"      }),
 
-  archived:        ({ c }) => ({ labelKey: "pharmacist.statusArchived",       color: c.inkFaint,   bg: c.well,        icon: "archive-outline"           }),
+  archived:        () => ({ labelKey: "pharmacist.statusArchived",       color: theme.colors.text.muted,   bg: theme.colors.canvas.surfaceMuted,        icon: "archive-outline"           }),
 
 };
 
@@ -88,9 +86,7 @@ export function OrderStatusChip({ status, size = "md" }: Props) {
 
   const { t }  = useTranslation();
 
-  const { c }  = useDarkColors();
-
-  const meta   = STATUS_MAP[status]?.(c) ?? STATUS_MAP.pending({ c });
+  const meta   = STATUS_MAP[status]?.() ?? STATUS_MAP.pending();
 
   const small  = size === "sm";
 
@@ -152,7 +148,7 @@ const s = StyleSheet.create({
 
     paddingVertical:   6,
 
-    borderRadius:      kit.radius.pill,
+    borderRadius:      9999,
 
   },
 

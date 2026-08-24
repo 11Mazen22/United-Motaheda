@@ -16,9 +16,11 @@ import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 
 import { useAuth, updateProfile } from "@/features/auth";
-import { Button, kit, Text as UIText } from "@pharmacy/ui-native";
-import { useDarkColors } from "@/hooks/useDarkColors";
-import { theme } from "@pharmacy/design-tokens";
+import { Button, Text as UIText } from "@pharmacy/ui-native";
+import { useTheme } from "@pharmacy/ui-native";
+
+import { theme as legacyTheme } from "@pharmacy/design-tokens";
+import { defaultTheme as theme } from "@pharmacy/ui-native";
 import { flexRow, isRtl, textAlignStart, BACK_CHEVRON } from "@/utils/layout";
 import { TextInput } from "react-native-gesture-handler";
 
@@ -37,26 +39,26 @@ interface FormRowProps {
 }
 
 function FormRow({ label, value, onChangeText, placeholder, editable = true, autoCapitalize = "none", keyboardType = "default", isLast = false }: FormRowProps) {
-  const { c } = useDarkColors();
+  const { theme } = useTheme();
   return (
-    <View style={[styles.row, { borderBottomColor: isLast ? "transparent" : c.line, flexDirection: flexRow(IS_RTL) }]}>
-      <UIText style={[styles.rowLabel, { color: c.inkSoft, textAlign: TEXT_START }]}>{label}</UIText>
+    <View style={[styles.row, { borderBottomColor: isLast ? "transparent" : theme.colors.border.default, flexDirection: flexRow(IS_RTL) }]}>
+      <UIText style={[styles.rowLabel, { color: theme.colors.text.secondary, textAlign: TEXT_START }]}>{label}</UIText>
       <TextInput
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
-        placeholderTextColor={c.inkFaint}
+        placeholderTextColor={theme.colors.text.muted}
         editable={editable}
         autoCapitalize={autoCapitalize}
         keyboardType={keyboardType}
-        style={[styles.rowInput, { color: editable ? c.ink : c.inkFaint, textAlign: IS_RTL ? "left" : "right" }]}
+        style={[styles.rowInput, { color: editable ? theme.colors.text.primary : theme.colors.text.muted, textAlign: IS_RTL ? "left" : "right" }]}
       />
     </View>
   );
 }
 
 export default function EditProfileScreen() {
-  const { c } = useDarkColors();
+  const { theme } = useTheme();
   const { t } = useTranslation();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -93,19 +95,19 @@ export default function EditProfileScreen() {
 
   return (
     <KeyboardAvoidingView 
-      style={{ flex: 1, backgroundColor: c.canvas }} 
+      style={{ flex: 1, backgroundColor: theme.colors.canvas.background }} 
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      <Animated.View entering={FadeIn.duration(200)} style={[styles.header, { paddingTop: insets.top, backgroundColor: c.surface, borderBottomColor: c.line }]}>
+      <Animated.View entering={FadeIn.duration(200)} style={[styles.header, { paddingTop: insets.top, backgroundColor: theme.colors.canvas.surface, borderBottomColor: theme.colors.border.default }]}>
         <Pressable 
           onPress={() => router.back()} 
           style={styles.backBtn}
           accessibilityRole="button"
           accessibilityLabel={t("common.back")}
         >
-          <Ionicons name={BACK_CHEVRON} size={24} color={c.ink} />
+          <Ionicons name={BACK_CHEVRON} size={24} color={theme.colors.text.primary} />
         </Pressable>
-        <UIText style={[styles.title, { color: c.ink }]}>{t("profile.menuEditProfile")}</UIText>
+        <UIText style={[styles.title, { color: theme.colors.text.primary }]}>{t("profile.menuEditProfile")}</UIText>
         <View style={{ width: 40 }} />
       </Animated.View>
 
@@ -122,8 +124,8 @@ export default function EditProfileScreen() {
               colors={["#0A5F58", "#12A898"]}
               style={styles.avatarRing}
             >
-              <View style={[styles.avatarInner, { backgroundColor: c.surface }]}>
-                <UIText style={[styles.avatarInitials, { color: c.ink }]}>
+              <View style={[styles.avatarInner, { backgroundColor: theme.colors.canvas.surface }]}>
+                <UIText style={[styles.avatarInitials, { color: theme.colors.text.primary }]}>
                   {name ? name.substring(0, 2).toUpperCase() : (user?.email ? user.email.substring(0, 2).toUpperCase() : "US")}
                 </UIText>
               </View>
@@ -134,18 +136,18 @@ export default function EditProfileScreen() {
           </View>
 
           {error && (
-            <Animated.View entering={FadeIn.duration(200)} style={[styles.errorBox, { backgroundColor: kit.color.dangerTint, borderColor: kit.color.danger }]}>
-              <Ionicons name="alert-circle-outline" size={20} color={kit.color.danger} />
-              <UIText style={[styles.errorText, { color: kit.color.danger, textAlign: TEXT_START }]}>{error}</UIText>
+            <Animated.View entering={FadeIn.duration(200)} style={[styles.errorBox, { backgroundColor: `${theme.colors.status.error}1A`, borderColor: theme.colors.status.error }]}>
+              <Ionicons name="alert-circle-outline" size={20} color={theme.colors.status.error} />
+              <UIText style={[styles.errorText, { color: theme.colors.status.error, textAlign: TEXT_START }]}>{error}</UIText>
             </Animated.View>
           )}
 
           {/* iOS Style Card Group */}
           <View style={styles.sectionHeader}>
-            <UIText style={[styles.sectionTitle, { color: c.inkSoft, textAlign: TEXT_START }]}>{t("profile.personalInfo", { defaultValue: "PERSONAL INFORMATION" })}</UIText>
+            <UIText style={[styles.sectionTitle, { color: theme.colors.text.secondary, textAlign: TEXT_START }]}>{t("profile.personalInfo", { defaultValue: "PERSONAL INFORMATION" })}</UIText>
           </View>
           
-          <View style={[styles.cardGroup, { backgroundColor: c.surface, borderColor: c.line }]}>
+          <View style={[styles.cardGroup, { backgroundColor: theme.colors.canvas.surface, borderColor: theme.colors.border.default }]}>
             <FormRow 
               label={t("profile.name")}
               value={name}
@@ -161,22 +163,22 @@ export default function EditProfileScreen() {
               isLast={true}
             />
           </View>
-          <UIText style={[styles.helper, { color: c.inkFaint, textAlign: TEXT_START }]}>
+          <UIText style={[styles.helper, { color: theme.colors.text.muted, textAlign: TEXT_START }]}>
             {t("profile.emailUneditable", { defaultValue: "Your email address cannot be changed as it is used for login." })}
           </UIText>
 
           {/* Danger Zone */}
           <View style={styles.sectionHeader}>
-            <UIText style={[styles.sectionTitle, { color: kit.color.danger, textAlign: TEXT_START }]}>{t("profile.dangerZone", { defaultValue: "DANGER ZONE" })}</UIText>
+            <UIText style={[styles.sectionTitle, { color: theme.colors.status.error, textAlign: TEXT_START }]}>{t("profile.dangerZone", { defaultValue: "DANGER ZONE" })}</UIText>
           </View>
           
-          <View style={[styles.cardGroup, { backgroundColor: c.surface, borderColor: c.line }]}>
+          <View style={[styles.cardGroup, { backgroundColor: theme.colors.canvas.surface, borderColor: theme.colors.border.default }]}>
              <Pressable style={[styles.dangerRow, { flexDirection: flexRow(IS_RTL) }]}>
-                <Ionicons name="trash-outline" size={20} color={kit.color.danger} />
+                <Ionicons name="trash-outline" size={20} color={theme.colors.status.error} />
                 <UIText style={[styles.dangerText, { textAlign: TEXT_START }]}>{t("profile.deleteAccount", { defaultValue: "Delete Account" })}</UIText>
              </Pressable>
           </View>
-          <UIText style={[styles.helper, { color: c.inkFaint, textAlign: TEXT_START }]}>
+          <UIText style={[styles.helper, { color: theme.colors.text.muted, textAlign: TEXT_START }]}>
             {t("profile.deleteWarning", { defaultValue: "Permanently delete your account and all associated data." })}
           </UIText>
 
@@ -188,7 +190,7 @@ export default function EditProfileScreen() {
         <Animated.View 
           entering={SlideInDown.duration(300)} 
           exiting={SlideOutDown.duration(200)}
-          style={[styles.stickyFooter, { paddingBottom: Math.max(insets.bottom, 20), backgroundColor: c.surface, borderTopColor: c.line }]}
+          style={[styles.stickyFooter, { paddingBottom: Math.max(insets.bottom, 20), backgroundColor: theme.colors.canvas.surface, borderTopColor: theme.colors.border.default }]}
         >
           <Button
             label={t("common.save", { defaultValue: "Save Changes" })}
@@ -218,7 +220,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   title: {
-    fontFamily: theme.fonts.bold,
+    fontFamily: legacyTheme.fonts.bold,
     fontSize: 18,
   },
   content: {
@@ -245,7 +247,7 @@ const styles = StyleSheet.create({
     borderColor: "transparent",
   },
   avatarInitials: {
-    fontFamily: theme.fonts.extrabold,
+    fontFamily: legacyTheme.fonts.extrabold,
     fontSize: 32,
   },
   editAvatarBtn: {
@@ -253,9 +255,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   editAvatarText: {
-    fontFamily: theme.fonts.bold,
+    fontFamily: legacyTheme.fonts.bold,
     fontSize: 14,
-    color: kit.color.accentDeep,
+    color: theme.colors.brand.primary,
   },
   sectionHeader: {
     marginTop: 24,
@@ -263,7 +265,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
   sectionTitle: {
-    fontFamily: theme.fonts.bold,
+    fontFamily: legacyTheme.fonts.bold,
     fontSize: 12,
     letterSpacing: 0.5,
   },
@@ -280,12 +282,12 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   rowLabel: {
-    fontFamily: theme.fonts.medium,
+    fontFamily: legacyTheme.fonts.medium,
     fontSize: 15,
   },
   rowInput: {
     flex: 1,
-    fontFamily: theme.fonts.bold,
+    fontFamily: legacyTheme.fonts.bold,
     fontSize: 15,
     paddingVertical: 12,
   },
@@ -297,12 +299,12 @@ const styles = StyleSheet.create({
   },
   dangerText: {
     flex: 1,
-    fontFamily: theme.fonts.bold,
+    fontFamily: legacyTheme.fonts.bold,
     fontSize: 15,
-    color: kit.color.danger,
+    color: theme.colors.status.error,
   },
   helper: {
-    fontFamily: theme.fonts.regular,
+    fontFamily: legacyTheme.fonts.regular,
     fontSize: 12,
     marginTop: 8,
     paddingHorizontal: 8,
@@ -319,7 +321,7 @@ const styles = StyleSheet.create({
   },
   errorText: {
     flex: 1,
-    fontFamily: theme.fonts.regular,
+    fontFamily: legacyTheme.fonts.regular,
     fontSize: 13,
   },
   stickyFooter: {
@@ -330,6 +332,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 16,
     borderTopWidth: StyleSheet.hairlineWidth,
-    ...kit.shadow.raised,
+    ...theme.shadows[1],
   },
 });

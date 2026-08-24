@@ -1,3 +1,4 @@
+import { defaultTheme as theme } from "@pharmacy/ui-native";
 import React, { useEffect } from "react";
 
 import { Platform, Pressable, ScrollView, View } from "react-native";
@@ -34,7 +35,7 @@ import { Text as UIText } from "@pharmacy/ui-native";
 
 import { AppHeader } from "@/shared/components";
 
-import { kit, Button } from "@pharmacy/ui-native";
+import { Button } from "@pharmacy/ui-native";
 
 import { emptyS } from "./orders.styles";
 
@@ -44,11 +45,11 @@ import { emptyS } from "./orders.styles";
 
 const CAT_CHIPS = [
 
-  { icon: "leaf-outline"     as const, labelKey: "home.qaVitamins", color: kit.color.success,    bg: kit.color.successTint },
+  { icon: "leaf-outline"     as const, labelKey: "home.qaVitamins", color: theme.colors.status.success,    bg: `${theme.colors.status.success}1A` },
 
-  { icon: "sparkles-outline" as const, labelKey: "home.qaMomBaby",  color: kit.color.warn,       bg: kit.color.warnTint    },
+  { icon: "sparkles-outline" as const, labelKey: "home.qaMomBaby",  color: theme.colors.status.warning,       bg: `${theme.colors.status.warning}1A`    },
 
-  { icon: "medkit-outline"   as const, labelKey: "home.qaRx",       color: kit.color.accentDeep, bg: kit.color.accentTint  },
+  { icon: "medkit-outline"   as const, labelKey: "home.qaRx",       color: theme.colors.brand.primary, bg: theme.colors.brand.primaryLight  },
 
 ] as const;
 
@@ -88,7 +89,7 @@ export function EmptyOrdersState({ showBack }: { showBack: boolean }): React.Rea
 
   return (
 
-    <View style={{ flex: 1, backgroundColor: kit.color.canvas }}>
+    <View style={{ flex: 1, backgroundColor: theme.colors.canvas.background }}>
 
       <AppHeader title={t("orders.title")} showBack={showBack} />
 
@@ -106,13 +107,13 @@ export function EmptyOrdersState({ showBack }: { showBack: boolean }): React.Rea
 
             <View style={emptyS.illusRing}>
 
-              <Ionicons name="bag-handle-outline" size={64} color={kit.color.accentDeep} />
+              <Ionicons name="bag-handle-outline" size={64} color={theme.colors.brand.primary} />
 
             </View>
 
             <View style={emptyS.illusBadge}>
 
-              <Ionicons name="add" size={14} color={kit.color.onInk} />
+              <Ionicons name="add" size={14} color={theme.colors.text.inverse} />
 
             </View>
 

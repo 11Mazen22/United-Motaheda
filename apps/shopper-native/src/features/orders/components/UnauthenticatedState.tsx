@@ -16,7 +16,8 @@ import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { Text as UIText } from "@pharmacy/ui-native";
-import { theme } from "@pharmacy/design-tokens";
+import { theme as legacyTheme } from "@pharmacy/design-tokens";
+import { defaultTheme as theme } from "@pharmacy/ui-native";
 import { kit, Button } from "@pharmacy/ui-native";
 import { flexRow, isRtl, textAlignStart, BACK_CHEVRON } from "@/utils/layout";
 
@@ -26,20 +27,20 @@ const FEATURES = [
   {
     icon:     "location-outline"      as const,
     labelKey: "orders.featureTrack",
-    color:    kit.color.success,
-    bg:       kit.color.successTint,
+    color:    theme.colors.status.success,
+    bg:       `${theme.colors.status.success}1A`,
   },
   {
     icon:     "notifications-outline" as const,
     labelKey: "orders.featureAlerts",
-    color:    kit.color.warn,
-    bg:       kit.color.warnTint,
+    color:    theme.colors.status.warning,
+    bg:       `${theme.colors.status.warning}1A`,
   },
   {
     icon:     "reload-outline"        as const,
     labelKey: "orders.featureReorder",
-    color:    kit.color.accentDeep,
-    bg:       kit.color.accentTint,
+    color:    theme.colors.brand.primary,
+    bg:       theme.colors.brand.primaryLight,
   },
 ] as const;
 
@@ -76,21 +77,21 @@ export function UnauthenticatedState({ showBack }: { showBack: boolean }): React
                 style={s.backBtn}
                 accessibilityRole="button"
                 accessibilityLabel={t("common.back")}>
-                <Ionicons name={BACK_CHEVRON} size={18} color={kit.color.inkSoft} />
+                <Ionicons name={BACK_CHEVRON} size={18} color={theme.colors.text.secondary} />
               </Pressable>
             ) : (
               <View style={s.backBtnSpacer} />
             )}
             <UIText style={s.pageEyebrow}>{t("orders.eyebrow")}</UIText>
             <View style={s.headerIconTile}>
-              <Ionicons name="bag-handle-outline" size={17} color={kit.color.accentDeep} />
+              <Ionicons name="bag-handle-outline" size={17} color={theme.colors.brand.primary} />
             </View>
           </View>
 
           {/* Bag tile */}
           <Animated.View entering={FadeInUp.duration(420).delay(60)}>
             <View style={s.iconTile}>
-              <Ionicons name="bag-outline" size={42} color={kit.color.accentDeep} />
+              <Ionicons name="bag-outline" size={42} color={theme.colors.brand.primary} />
             </View>
           </Animated.View>
 
@@ -137,7 +138,7 @@ export function UnauthenticatedState({ showBack }: { showBack: boolean }): React
 
           {/* Privacy note */}
           <View style={s.privacyRow}>
-            <Ionicons name="shield-checkmark-outline" size={13} color={kit.color.inkFaint} />
+            <Ionicons name="shield-checkmark-outline" size={13} color={theme.colors.text.muted} />
             <UIText style={s.privacyText}>{t("orders.privacyNote")}</UIText>
           </View>
         </Animated.View>
@@ -149,12 +150,12 @@ export function UnauthenticatedState({ showBack }: { showBack: boolean }): React
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const s = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: kit.color.canvas },
+  screen: { flex: 1, backgroundColor: theme.colors.canvas.background },
 
   hero: {
     alignItems:        "center",
-    paddingBottom:     kit.sp(8),
-    paddingHorizontal: theme.layout.pagePaddingH,
+    paddingBottom:     32,
+    paddingHorizontal: legacyTheme.layout.pagePaddingH,
     gap:               theme.spacing[3],
   },
 
@@ -169,24 +170,24 @@ const s = StyleSheet.create({
     width:           40,
     height:          40,
     borderRadius:    20,
-    backgroundColor: kit.color.surface,
+    backgroundColor: theme.colors.canvas.surface,
     alignItems:      "center",
     justifyContent:  "center",
     borderWidth:     1,
-    borderColor:     kit.color.line,
+    borderColor:     theme.colors.border.default,
   },
   backBtnSpacer: { width: 40, height: 40 },
   pageEyebrow: {
     fontSize: 13, lineHeight: 19,
-    fontFamily: theme.fonts.black,
-    color: kit.color.ink,
+    fontFamily: legacyTheme.fonts.black,
+    color: theme.colors.text.primary,
     includeFontPadding: false,
   },
   headerIconTile: {
     width:           40,
     height:          40,
     borderRadius:    14,
-    backgroundColor: kit.color.accentTint,
+    backgroundColor: theme.colors.brand.primaryLight,
     alignItems:      "center",
     justifyContent:  "center",
   },
@@ -197,60 +198,60 @@ const s = StyleSheet.create({
     borderRadius:    28,
     alignItems:      "center",
     justifyContent:  "center",
-    backgroundColor: kit.color.accentTint,
+    backgroundColor: theme.colors.brand.primaryLight,
   },
 
-  heroText:  { alignItems: "center", gap: theme.spacing.sm },
+  heroText:  { alignItems: "center", gap: legacyTheme.spacing.sm },
   heroTitle: {
-    fontFamily: theme.fonts.black,
+    fontFamily: legacyTheme.fonts.black,
     fontSize: kit.type.title.fontSize,
     lineHeight: kit.type.title.lineHeight,
-    color: kit.color.ink,
+    color: theme.colors.text.primary,
     textAlign: "center",
     includeFontPadding: false,
   },
   heroSub: {
-    fontFamily: theme.fonts.regular,
+    fontFamily: legacyTheme.fonts.regular,
     fontSize: 13, lineHeight: 20,
-    color: kit.color.inkSoft,
+    color: theme.colors.text.secondary,
     maxWidth: 280,
     textAlign: "center",
     includeFontPadding: false,
   },
 
   card: {
-    marginHorizontal:  theme.spacing.lg,
-    backgroundColor:   kit.color.surface,
-    borderRadius:      kit.radius.sheet - 4,
-    paddingVertical:   theme.spacing.xl,
-    paddingHorizontal: theme.layout.pagePaddingH,
-    gap:               theme.spacing.lg,
+    marginHorizontal:  legacyTheme.spacing.lg,
+    backgroundColor:   theme.colors.canvas.surface,
+    borderRadius:      20 - 4,
+    paddingVertical:   legacyTheme.spacing.xl,
+    paddingHorizontal: legacyTheme.layout.pagePaddingH,
+    gap:               legacyTheme.spacing.lg,
     borderWidth:       1,
-    borderColor:       kit.color.line,
-    ...kit.shadow.raised,
+    borderColor:       theme.colors.border.default,
+    ...theme.shadows[1],
   },
 
   divider: {
     flexDirection: flexRow(isRtl()),
     alignItems:    "center",
-    gap:           theme.spacing.md,
+    gap:           legacyTheme.spacing.md,
   },
   dividerLine: {
     flex:            1,
     height:          StyleSheet.hairlineWidth,
-    backgroundColor: kit.color.lineStrong,
+    backgroundColor: theme.colors.border.strong,
   },
   dividerText: {
-    fontFamily: theme.fonts.regular,
+    fontFamily: legacyTheme.fonts.regular,
     fontSize: 12, lineHeight: 18,
-    color: kit.color.inkFaint,
+    color: theme.colors.text.muted,
     includeFontPadding: false,
   },
 
   feature: {
     flexDirection: flexRow(isRtl()),
     alignItems:    "center",
-    gap:           theme.spacing.md,
+    gap:           legacyTheme.spacing.md,
   },
   featureIcon: {
     width:          34,
@@ -261,9 +262,9 @@ const s = StyleSheet.create({
   },
   featureLabel: {
     flex:       1,
-    fontFamily: theme.fonts.semibold,
+    fontFamily: legacyTheme.fonts.semibold,
     fontSize: 13, lineHeight: 20,
-    color: kit.color.ink,
+    color: theme.colors.text.primary,
     textAlign: textAlignStart(isRtl()),
     includeFontPadding: false,
   },
@@ -275,9 +276,9 @@ const s = StyleSheet.create({
     gap:            5,
   },
   privacyText: {
-    fontFamily: theme.fonts.regular,
+    fontFamily: legacyTheme.fonts.regular,
     fontSize: 11, lineHeight: 16,
-    color: kit.color.inkFaint,
+    color: theme.colors.text.muted,
     includeFontPadding: false,
   },
 });

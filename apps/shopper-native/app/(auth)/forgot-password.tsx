@@ -56,7 +56,8 @@ import { kit } from "@pharmacy/ui-native";
 
 
 
-import { theme } from "@pharmacy/design-tokens";
+import { theme as legacyTheme } from "@pharmacy/design-tokens";
+import { defaultTheme as theme } from "@pharmacy/ui-native";
 
 import { flexRow, isRtl, textAlignStart, BACK_CHEVRON } from "@/utils/layout";
 
@@ -162,7 +163,7 @@ export default function ForgotPasswordScreen() {
 
             accessibilityLabel={t("forgotPassword.backLabel")}>
 
-            <Ionicons name={BACK_CHEVRON} size={20} color={kit.color.inkSoft} />
+            <Ionicons name={BACK_CHEVRON} size={20} color={theme.colors.text.secondary} />
 
           </Pressable>
 
@@ -180,9 +181,9 @@ export default function ForgotPasswordScreen() {
 
           style={s.brandWrap}>
 
-          <View style={[s.ringOuter, sent && { backgroundColor: kit.color.successTint }]}>
+          <View style={[s.ringOuter, sent && { backgroundColor: `${theme.colors.status.success}1A` }]}>
 
-            <View style={[s.ringInner, sent && { borderColor: `${kit.color.success}30` }]}>
+            <View style={[s.ringInner, sent && { borderColor: `${theme.colors.status.success}30` }]}>
 
               <Ionicons
 
@@ -190,7 +191,7 @@ export default function ForgotPasswordScreen() {
 
                 size={30}
 
-                color={sent ? kit.color.success : kit.color.accentDeep}
+                color={sent ? theme.colors.status.success : theme.colors.brand.primary}
 
               />
 
@@ -228,7 +229,7 @@ export default function ForgotPasswordScreen() {
 
                   <View style={s.errorIcon}>
 
-                    <Ionicons name="alert-circle" size={15} color={kit.color.danger} />
+                    <Ionicons name="alert-circle" size={15} color={theme.colors.status.error} />
 
                   </View>
 
@@ -260,7 +261,7 @@ export default function ForgotPasswordScreen() {
 
                 autoComplete="email"
 
-                leftIcon={<Ionicons name="mail-outline" size={18} color={kit.color.inkFaint} />}
+                leftIcon={<Ionicons name="mail-outline" size={18} color={theme.colors.text.muted} />}
 
               />
 
@@ -280,7 +281,7 @@ export default function ForgotPasswordScreen() {
 
                 onPress={handleSubmit}
 
-                style={{ marginTop: kit.sp(1) }}
+                style={{ marginTop: 4 }}
 
               />
 
@@ -304,7 +305,7 @@ export default function ForgotPasswordScreen() {
 
               <View style={[s.tipBox, { flexDirection: flexRow(IS_RTL) }]}>
 
-                <Ionicons name="information-circle-outline" size={16} color={kit.color.accentDeep} />
+                <Ionicons name="information-circle-outline" size={16} color={theme.colors.brand.primary} />
 
                 <UIText style={[s.tipText, { textAlign: TEXT_START }]}>{t("forgotPassword.spamTip")}</UIText>
 
@@ -324,7 +325,7 @@ export default function ForgotPasswordScreen() {
 
                 onPress={() => { setSent(false); setEmail(""); }}
 
-                style={{ marginTop: kit.sp(1) }}
+                style={{ marginTop: 4 }}
 
               />
 
@@ -360,7 +361,7 @@ export default function ForgotPasswordScreen() {
 
 const s = StyleSheet.create({
 
-  root:    { flex: 1, backgroundColor: kit.color.canvas },
+  root:    { flex: 1, backgroundColor: theme.colors.canvas.background },
 
   content: { flexGrow: 1, paddingHorizontal: 20 },
 
@@ -380,19 +381,19 @@ const s = StyleSheet.create({
 
     justifyContent:  "center",
 
-    backgroundColor: kit.color.surface,
+    backgroundColor: theme.colors.canvas.surface,
 
     borderWidth:     1,
 
-    borderColor:     kit.color.line,
+    borderColor:     theme.colors.border.default,
 
-    ...kit.shadow.raised,
+    ...theme.shadows[1],
 
   },
 
 
 
-  brandWrap: { alignItems: "center", gap: 16, marginTop: kit.sp(4), marginBottom: kit.sp(6) },
+  brandWrap: { alignItems: "center", gap: 16, marginTop: 16, marginBottom: 24 },
 
   ringOuter: {
 
@@ -402,11 +403,11 @@ const s = StyleSheet.create({
 
     borderRadius:    50,
 
-    backgroundColor: kit.color.accentTint,
+    backgroundColor: theme.colors.brand.primaryLight,
 
     borderWidth:     1,
 
-    borderColor:     kit.color.line,
+    borderColor:     theme.colors.border.default,
 
     alignItems:      "center",
 
@@ -422,29 +423,29 @@ const s = StyleSheet.create({
 
     borderRadius:    22,
 
-    backgroundColor: kit.color.surface,
+    backgroundColor: theme.colors.canvas.surface,
 
     borderWidth:     1,
 
-    borderColor:     kit.color.line,
+    borderColor:     theme.colors.border.default,
 
     alignItems:      "center",
 
     justifyContent:  "center",
 
-    ...kit.shadow.brandGlow,
+    ...theme.shadows[2],
 
   },
 
   title: {
 
-    fontFamily:         theme.fonts.black,
+    fontFamily:         legacyTheme.fonts.black,
 
     fontSize:           kit.type.title.fontSize,
 
     lineHeight:         kit.type.title.lineHeight,
 
-    color:              kit.color.ink,
+    color:              theme.colors.text.primary,
 
     textAlign:          "center",
 
@@ -454,13 +455,13 @@ const s = StyleSheet.create({
 
   subtitle: {
 
-    fontFamily:         theme.fonts.regular,
+    fontFamily:         legacyTheme.fonts.regular,
 
     fontSize:           kit.type.body.fontSize,
 
     lineHeight:         kit.type.body.lineHeight,
 
-    color:              kit.color.inkSoft,
+    color:              theme.colors.text.secondary,
 
     textAlign:          "center",
 
@@ -472,7 +473,7 @@ const s = StyleSheet.create({
 
 
 
-  form: { gap: kit.sp(3) },
+  form: { gap: 12 },
 
   errorBox: {
 
@@ -482,13 +483,13 @@ const s = StyleSheet.create({
 
     padding:         12,
 
-    backgroundColor: kit.color.dangerTint,
+    backgroundColor: `${theme.colors.status.error}1A`,
 
-    borderRadius:    kit.radius.control,
+    borderRadius:    10,
 
     borderWidth:     1,
 
-    borderColor:     `${kit.color.danger}25`,
+    borderColor:     `${theme.colors.status.error}25`,
 
   },
 
@@ -500,7 +501,7 @@ const s = StyleSheet.create({
 
     borderRadius:    9,
 
-    backgroundColor: `${kit.color.danger}10`,
+    backgroundColor: `${theme.colors.status.error}10`,
 
     alignItems:      "center",
 
@@ -514,13 +515,13 @@ const s = StyleSheet.create({
 
     flex:               1,
 
-    fontFamily:         theme.fonts.bold,
+    fontFamily:         legacyTheme.fonts.bold,
 
     fontSize:           12,
 
     lineHeight:         17,
 
-    color:              kit.color.danger,
+    color:              theme.colors.status.error,
 
     includeFontPadding: false,
 
@@ -528,13 +529,13 @@ const s = StyleSheet.create({
 
   hint: {
 
-    fontFamily:         theme.fonts.regular,
+    fontFamily:         legacyTheme.fonts.regular,
 
     fontSize:           13,
 
     lineHeight:         21,
 
-    color:              kit.color.inkSoft,
+    color:              theme.colors.text.secondary,
 
     includeFontPadding: false,
 
@@ -542,17 +543,17 @@ const s = StyleSheet.create({
 
 
 
-  successContent: { alignItems: "center", gap: kit.sp(3), paddingTop: kit.sp(1) },
+  successContent: { alignItems: "center", gap: 12, paddingTop: 4 },
 
   successBody: {
 
-    fontFamily:         theme.fonts.regular,
+    fontFamily:         legacyTheme.fonts.regular,
 
     fontSize:           14,
 
     lineHeight:         24,
 
-    color:              kit.color.inkSoft,
+    color:              theme.colors.text.secondary,
 
     maxWidth:           300,
 
@@ -560,7 +561,7 @@ const s = StyleSheet.create({
 
   },
 
-  successEmail: { fontFamily: theme.fonts.bold, color: kit.color.ink },
+  successEmail: { fontFamily: legacyTheme.fonts.bold, color: theme.colors.text.primary },
 
   tipBox: {
 
@@ -568,15 +569,15 @@ const s = StyleSheet.create({
 
     gap:             8,
 
-    backgroundColor: kit.color.accentTint,
+    backgroundColor: theme.colors.brand.primaryLight,
 
-    borderRadius:    kit.radius.control,
+    borderRadius:    10,
 
     padding:         12,
 
     borderWidth:     1,
 
-    borderColor:     kit.color.line,
+    borderColor:     theme.colors.border.default,
 
   },
 
@@ -584,13 +585,13 @@ const s = StyleSheet.create({
 
     flex:               1,
 
-    fontFamily:         theme.fonts.regular,
+    fontFamily:         legacyTheme.fonts.regular,
 
     fontSize:           12,
 
     lineHeight:         17,
 
-    color:              kit.color.accentDeep,
+    color:              theme.colors.brand.primary,
 
     includeFontPadding: false,
 
@@ -598,15 +599,15 @@ const s = StyleSheet.create({
 
 
 
-  footer: { alignItems: "center", justifyContent: "center", gap: 6, marginTop: kit.sp(2) },
+  footer: { alignItems: "center", justifyContent: "center", gap: 6, marginTop: 8 },
 
   footerText: {
 
-    fontFamily:         theme.fonts.regular,
+    fontFamily:         legacyTheme.fonts.regular,
 
     fontSize:           13,
 
-    color:              kit.color.inkSoft,
+    color:              theme.colors.text.secondary,
 
     includeFontPadding: false,
 
@@ -614,11 +615,11 @@ const s = StyleSheet.create({
 
   footerLink: {
 
-    fontFamily:         theme.fonts.black,
+    fontFamily:         legacyTheme.fonts.black,
 
     fontSize:           13,
 
-    color:              kit.color.accentDeep,
+    color:              theme.colors.brand.primary,
 
     includeFontPadding: false,
 

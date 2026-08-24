@@ -14,9 +14,10 @@ import { useTranslation } from "react-i18next";
 
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
 
-import { theme } from "@pharmacy/design-tokens";
+import { theme as legacyTheme } from "@pharmacy/design-tokens";
+import { defaultTheme as theme } from "@pharmacy/ui-native";
 
-import { kit } from "@pharmacy/ui-native";
+
 
 import type { PaymentMethod } from "../types";
 
@@ -44,11 +45,11 @@ interface Props {
 
 const TYPE_COLORS: Record<string, { accent: string; bg: string }> = {
 
-  cod:           { accent: kit.color.success, bg: kit.color.successTint },
+  cod:           { accent: theme.colors.status.success, bg: `${theme.colors.status.success}1A` },
 
   instapay:      { accent: "#7c3aed",         bg: "#f5f3ff"             },
 
-  vodafone_cash: { accent: kit.color.danger,  bg: kit.color.dangerTint  },
+  vodafone_cash: { accent: theme.colors.status.error,  bg: `${theme.colors.status.error}1A`  },
 
 };
 
@@ -122,7 +123,7 @@ export function PaymentMethodCard({ method, selected, onSelect }: Props) {
 
                 backgroundColor:  colors.bg,
 
-                ...kit.shadow.raised,
+                ...theme.shadows[1],
 
               },
 
@@ -194,7 +195,7 @@ export function PaymentMethodCard({ method, selected, onSelect }: Props) {
 
                   <Animated.View entering={FadeIn.duration(200)} style={[styles.secureBadge, { flexDirection: flexRow(IS_RTL) }]}>
 
-                    <Ionicons name="shield-checkmark" size={10} color={kit.color.success} />
+                    <Ionicons name="shield-checkmark" size={10} color={theme.colors.status.success} />
 
                     <UIText style={styles.secureText}>{t("payment.secure")}</UIText>
 
@@ -222,7 +223,7 @@ export function PaymentMethodCard({ method, selected, onSelect }: Props) {
 
           <View style={[styles.detailRow, { flexDirection: flexRow(IS_RTL) }]}>
 
-            <Ionicons name="information-circle-outline" size={14} color={kit.color.inkFaint} />
+            <Ionicons name="information-circle-outline" size={14} color={theme.colors.text.muted} />
 
             <UIText style={styles.detailText}>{t(method.detailsKey)}</UIText>
 
@@ -234,7 +235,7 @@ export function PaymentMethodCard({ method, selected, onSelect }: Props) {
 
               <Ionicons name="call-outline" size={14} color={colors.accent} />
 
-              <UIText style={[styles.detailText, { color: colors.accent, fontFamily: theme.fonts.bold }]}>
+              <UIText style={[styles.detailText, { color: colors.accent, fontFamily: legacyTheme.fonts.bold }]}>
 
                 {method.phone}
 
@@ -270,9 +271,9 @@ const styles = StyleSheet.create({
 
     borderWidth:     1.5,
 
-    borderColor:     kit.color.line,
+    borderColor:     theme.colors.border.default,
 
-    backgroundColor: kit.color.surface,
+    backgroundColor: theme.colors.canvas.surface,
 
     overflow:        "hidden",
 
@@ -308,7 +309,7 @@ const styles = StyleSheet.create({
 
     borderWidth:    2,
 
-    borderColor:    kit.color.lineStrong,
+    borderColor:    theme.colors.border.strong,
 
     alignItems:     "center",
 
@@ -346,9 +347,9 @@ const styles = StyleSheet.create({
 
     fontSize:           14,
 
-    fontFamily:         theme.fonts.bold,
+    fontFamily:         legacyTheme.fonts.bold,
 
-    color:              kit.color.ink,
+    color:              theme.colors.text.primary,
 
     textAlign:          textAlignStart(IS_RTL),
 
@@ -360,9 +361,9 @@ const styles = StyleSheet.create({
 
     fontSize:           11,
 
-    fontFamily:         theme.fonts.regular,
+    fontFamily:         legacyTheme.fonts.regular,
 
-    color:              kit.color.inkFaint,
+    color:              theme.colors.text.muted,
 
     textAlign:          textAlignStart(IS_RTL),
 
@@ -384,9 +385,9 @@ const styles = StyleSheet.create({
 
     fontSize:           11,
 
-    fontFamily:         theme.fonts.semibold,
+    fontFamily:         legacyTheme.fonts.semibold,
 
-    color:              kit.color.inkSoft,
+    color:              theme.colors.text.secondary,
 
     textAlign:          textAlignStart(IS_RTL),
 
@@ -404,7 +405,7 @@ const styles = StyleSheet.create({
 
     marginTop:         4,
 
-    backgroundColor:   kit.color.successTint,
+    backgroundColor:   `${theme.colors.status.success}1A`,
 
     paddingHorizontal: 7,
 
@@ -418,9 +419,9 @@ const styles = StyleSheet.create({
 
     fontSize:           9,
 
-    fontFamily:         theme.fonts.bold,
+    fontFamily:         legacyTheme.fonts.bold,
 
-    color:              kit.color.success,
+    color:              theme.colors.status.success,
 
     includeFontPadding: false,
 
@@ -436,13 +437,13 @@ const styles = StyleSheet.create({
 
     borderRadius: 14,
 
-    backgroundColor: kit.color.well,
+    backgroundColor: theme.colors.canvas.surfaceMuted,
 
     gap:         8,
 
     borderWidth: 1,
 
-    borderColor: kit.color.line,
+    borderColor: theme.colors.border.default,
 
   },
 
@@ -460,9 +461,9 @@ const styles = StyleSheet.create({
 
     fontSize:           11,
 
-    fontFamily:         theme.fonts.semibold,
+    fontFamily:         legacyTheme.fonts.semibold,
 
-    color:              kit.color.inkSoft,
+    color:              theme.colors.text.secondary,
 
     textAlign:          textAlignStart(IS_RTL),
 

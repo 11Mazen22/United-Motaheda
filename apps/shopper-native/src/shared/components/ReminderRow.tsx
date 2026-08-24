@@ -9,8 +9,9 @@ import React from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import { kit } from "@pharmacy/ui-native";
-import { theme } from "@pharmacy/design-tokens";
+
+import { theme as legacyTheme } from "@pharmacy/design-tokens";
+import { defaultTheme as theme } from "@pharmacy/ui-native";
 import { Text } from "@pharmacy/ui-native";
 import { Button } from "@pharmacy/ui-native";
 import { flexRow, isRtl } from "@/utils/layout";
@@ -59,7 +60,7 @@ export function ReminderRow({
             : t("reminder.accessNotTaken", { name: r.name })
         }>
         <View style={[s.circle, r.taken && s.circleChecked]}>
-          {r.taken && <Ionicons name="checkmark" size={13} color={kit.color.onInk} />}
+          {r.taken && <Ionicons name="checkmark" size={13} color={theme.colors.text.inverse} />}
         </View>
       </Pressable>
 
@@ -90,7 +91,7 @@ export function ReminderRow({
         <Text
           numberOfLines={1}
           align="right"
-          style={[s.time, r.taken && { color: kit.color.inkFaint }]}>
+          style={[s.time, r.taken && { color: theme.colors.text.muted }]}>
           {r.time}
         </Text>
       </View>
@@ -132,16 +133,16 @@ const s = StyleSheet.create({
     width:           28,
     height:          28,
     borderRadius:    14,
-    backgroundColor: kit.color.well,
+    backgroundColor: theme.colors.canvas.surfaceMuted,
     borderWidth:     2,
-    borderColor:     kit.color.lineStrong,
+    borderColor:     theme.colors.border.strong,
     alignItems:      "center",
     justifyContent:  "center",
     flexShrink:      0,
   },
   circleChecked: {
-    backgroundColor: kit.color.success,
-    borderColor:     kit.color.success,
+    backgroundColor: theme.colors.status.success,
+    borderColor:     theme.colors.status.success,
   },
 
   // Text
@@ -150,29 +151,29 @@ const s = StyleSheet.create({
     minWidth: 0,
   },
   drugName: {
-    fontFamily:         theme.fonts.black,
+    fontFamily:         legacyTheme.fonts.black,
     fontSize:           14,
     lineHeight:         20,
-    color:              kit.color.ink,
+    color:              theme.colors.text.primary,
     includeFontPadding: false,
   },
   drugNameTaken: {
     textDecorationLine: "line-through",
-    color:              kit.color.inkFaint,
+    color:              theme.colors.text.muted,
   },
   doseNote: {
-    fontFamily:         theme.fonts.regular,
+    fontFamily:         legacyTheme.fonts.regular,
     fontSize:           12,
     lineHeight:         17,
-    color:              kit.color.inkSoft,
+    color:              theme.colors.text.secondary,
     marginTop:          2,
     includeFontPadding: false,
   },
   time: {
-    fontFamily:         theme.fonts.black,
+    fontFamily:         legacyTheme.fonts.black,
     fontSize:           11,
     lineHeight:         16,
-    color:              kit.color.accentDeep,
+    color:              theme.colors.brand.primary,
     marginTop:          3,
     letterSpacing:      0.3,
     includeFontPadding: false,

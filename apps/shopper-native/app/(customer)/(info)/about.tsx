@@ -14,11 +14,11 @@ import * as Haptics from "expo-haptics";
 
 import Animated, { FadeIn, FadeInDown, FadeInUp } from "react-native-reanimated";
 
-import { kit } from "@pharmacy/ui-native";
 
 import { useTranslation } from "react-i18next";
 
-import { theme } from "@pharmacy/design-tokens";
+import { theme as legacyTheme } from "@pharmacy/design-tokens";
+import { defaultTheme as theme } from "@pharmacy/ui-native";
 
 import { AppLogo } from "@/shared/components/AppLogo";
 
@@ -58,7 +58,7 @@ function ContactRow({ icon, label, value, color, onPress }: { icon: React.Compon
 
       </View>
 
-      <Ionicons name={FORWARD_CHEVRON} size={16} color={kit.color.inkFaint} />
+      <Ionicons name={FORWARD_CHEVRON} size={16} color={theme.colors.text.muted} />
 
     </View>}
 
@@ -100,11 +100,11 @@ export default function AboutScreen() {
 
         <Pressable onPress={() => router.back()} style={a.back} hitSlop={10} accessibilityRole="button" accessibilityLabel={t("common.back")}>
 
-          <Ionicons name={BACK_CHEVRON} size={18} color={kit.color.inkSoft} />
+          <Ionicons name={BACK_CHEVRON} size={18} color={theme.colors.text.secondary} />
 
         </Pressable>
 
-        <View style={a.tile}><Ionicons name="information-circle-outline" size={22} color={kit.color.accentDeep} /></View>
+        <View style={a.tile}><Ionicons name="information-circle-outline" size={22} color={theme.colors.brand.primary} /></View>
 
         <View style={{ flex: 1 }}>
 
@@ -130,7 +130,7 @@ export default function AboutScreen() {
 
           <View style={[a.verBadge, { flexDirection: flexRow(RTL) }]}> 
 
-            <Ionicons name="git-branch-outline" size={11} color={kit.color.accentDeep} />
+            <Ionicons name="git-branch-outline" size={11} color={theme.colors.brand.primary} />
 
             <UIText style={a.verTxt}>{t("profile.version", { ver: APP_VERSION })}</UIText>
 
@@ -144,7 +144,7 @@ export default function AboutScreen() {
 
           <View style={[a.secHdr, { flexDirection: flexRow(RTL) }]}> 
 
-            <View style={a.secBadge}><Ionicons name="heart-outline" size={14} color={kit.color.accentDeep} /></View>
+            <View style={a.secBadge}><Ionicons name="heart-outline" size={14} color={theme.colors.brand.primary} /></View>
 
             <UIText style={[a.secTitle, { textAlign: TA }]}>{t("about.whoWeAreTitle")}</UIText>
 
@@ -160,7 +160,7 @@ export default function AboutScreen() {
 
           <View style={[a.secHdr, { flexDirection: flexRow(RTL) }]}> 
 
-            <View style={a.secBadge}><Ionicons name="stats-chart-outline" size={14} color={kit.color.accentDeep} /></View>
+            <View style={a.secBadge}><Ionicons name="stats-chart-outline" size={14} color={theme.colors.brand.primary} /></View>
 
             <UIText style={[a.secTitle, { textAlign: TA }]}>{t("about.statsTitle")}</UIText>
 
@@ -186,7 +186,7 @@ export default function AboutScreen() {
 
           <View style={[a.secHdr, { flexDirection: flexRow(RTL) }]}> 
 
-            <View style={a.secBadge}><Ionicons name="call-outline" size={14} color={kit.color.accentDeep} /></View>
+            <View style={a.secBadge}><Ionicons name="call-outline" size={14} color={theme.colors.brand.primary} /></View>
 
             <UIText style={[a.secTitle, { textAlign: TA }]}>{t("about.contact")}</UIText>
 
@@ -198,11 +198,11 @@ export default function AboutScreen() {
 
             <View style={a.divider} />
 
-            <ContactRow icon="call-outline" label={t("about.phoneLabel")} value="+20 111 234 3212" color={kit.color.accentDeep} onPress={() => Linking.openURL("tel:+201112343212").catch(() => {})} />
+            <ContactRow icon="call-outline" label={t("about.phoneLabel")} value="+20 111 234 3212" color={theme.colors.brand.primary} onPress={() => Linking.openURL("tel:+201112343212").catch(() => {})} />
 
             <View style={a.divider} />
 
-            <ContactRow icon="mail-outline" label={t("about.emailLabel")} value="united.pharmacy.eg@gmail.com" color={kit.color.accent} onPress={() => Linking.openURL("mailto:united.pharmacy.eg@gmail.com").catch(() => {})} />
+            <ContactRow icon="mail-outline" label={t("about.emailLabel")} value="united.pharmacy.eg@gmail.com" color={theme.colors.brand.primary} onPress={() => Linking.openURL("mailto:united.pharmacy.eg@gmail.com").catch(() => {})} />
 
           </View>
 
@@ -214,7 +214,7 @@ export default function AboutScreen() {
 
           <View style={[a.secHdr, { flexDirection: flexRow(RTL) }]}> 
 
-            <View style={a.secBadge}><Ionicons name="phone-portrait-outline" size={14} color={kit.color.accentDeep} /></View>
+            <View style={a.secBadge}><Ionicons name="phone-portrait-outline" size={14} color={theme.colors.brand.primary} /></View>
 
             <UIText style={[a.secTitle, { textAlign: TA }]}>{t("about.appInfoTitle")}</UIText>
 
@@ -250,17 +250,17 @@ export default function AboutScreen() {
 
 const a = StyleSheet.create({
 
-  screen: { flex: 1, backgroundColor: kit.color.canvas },
+  screen: { flex: 1, backgroundColor: theme.colors.canvas.background },
 
-  header: { alignItems: "center", gap: 14, paddingHorizontal: 20, paddingVertical: 14, backgroundColor: kit.color.surface, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: kit.color.line, ...kit.shadow.raised },
+  header: { alignItems: "center", gap: 14, paddingHorizontal: 20, paddingVertical: 14, backgroundColor: theme.colors.canvas.surface, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border.default, ...theme.shadows[1] },
 
-  back: { width: 40, height: 40, borderRadius: 20, backgroundColor: kit.color.surface, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: kit.color.line, ...kit.shadow.raised, flexShrink: 0 },
+  back: { width: 40, height: 40, borderRadius: 20, backgroundColor: theme.colors.canvas.surface, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: theme.colors.border.default, ...theme.shadows[1], flexShrink: 0 },
 
-  tile: { width: 52, height: 52, borderRadius: 16, backgroundColor: kit.color.accentTint, borderWidth: 1, borderColor: kit.color.line, alignItems: "center", justifyContent: "center", flexShrink: 0 },
+  tile: { width: 52, height: 52, borderRadius: 16, backgroundColor: theme.colors.brand.primaryLight, borderWidth: 1, borderColor: theme.colors.border.default, alignItems: "center", justifyContent: "center", flexShrink: 0 },
 
-  hTitle: { fontFamily: theme.fonts.black, fontSize: 18, letterSpacing: -0.3, color: kit.color.ink, includeFontPadding: false },
+  hTitle: { fontFamily: legacyTheme.fonts.black, fontSize: 18, letterSpacing: -0.3, color: theme.colors.text.primary, includeFontPadding: false },
 
-  hSub: { fontFamily: theme.fonts.semibold, fontSize: 11, color: kit.color.inkFaint, includeFontPadding: false },
+  hSub: { fontFamily: legacyTheme.fonts.semibold, fontSize: 11, color: theme.colors.text.muted, includeFontPadding: false },
 
 
 
@@ -268,17 +268,17 @@ const a = StyleSheet.create({
 
 
 
-  brand: { alignItems: "center", gap: 16, paddingVertical: 32, paddingHorizontal: 20, backgroundColor: kit.color.surface, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: kit.color.line },
+  brand: { alignItems: "center", gap: 16, paddingVertical: 32, paddingHorizontal: 20, backgroundColor: theme.colors.canvas.surface, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border.default },
 
-  ringO: { width: 112, height: 112, borderRadius: 56, backgroundColor: kit.color.accentTint, borderWidth: 1, borderColor: kit.color.line, alignItems: "center", justifyContent: "center" },
+  ringO: { width: 112, height: 112, borderRadius: 56, backgroundColor: theme.colors.brand.primaryLight, borderWidth: 1, borderColor: theme.colors.border.default, alignItems: "center", justifyContent: "center" },
 
-  ringI: { width: 76, height: 76, borderRadius: 22, backgroundColor: kit.color.surface, borderWidth: 1, borderColor: kit.color.line, alignItems: "center", justifyContent: "center", ...kit.shadow.brandGlow },
+  ringI: { width: 76, height: 76, borderRadius: 22, backgroundColor: theme.colors.canvas.surface, borderWidth: 1, borderColor: theme.colors.border.default, alignItems: "center", justifyContent: "center", ...theme.shadows[2] },
 
-  tagline: { fontFamily: theme.fonts.semibold, fontSize: 14, lineHeight: 22, color: kit.color.inkSoft, maxWidth: 280, includeFontPadding: false },
+  tagline: { fontFamily: legacyTheme.fonts.semibold, fontSize: 14, lineHeight: 22, color: theme.colors.text.secondary, maxWidth: 280, includeFontPadding: false },
 
-  verBadge: { alignItems: "center", gap: 5, backgroundColor: kit.color.accentTint, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 5, borderWidth: 1, borderColor: kit.color.line },
+  verBadge: { alignItems: "center", gap: 5, backgroundColor: theme.colors.brand.primaryLight, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 5, borderWidth: 1, borderColor: theme.colors.border.default },
 
-  verTxt: { fontFamily: theme.fonts.bold, fontSize: 11, color: kit.color.accentDeep, includeFontPadding: false },
+  verTxt: { fontFamily: legacyTheme.fonts.bold, fontSize: 11, color: theme.colors.brand.primary, includeFontPadding: false },
 
 
 
@@ -286,25 +286,25 @@ const a = StyleSheet.create({
 
   secHdr: { alignItems: "center", gap: 10 },
 
-  secBadge: { width: 32, height: 32, borderRadius: 10, backgroundColor: kit.color.accentTint, borderWidth: 1, borderColor: kit.color.line, alignItems: "center", justifyContent: "center", flexShrink: 0 },
+  secBadge: { width: 32, height: 32, borderRadius: 10, backgroundColor: theme.colors.brand.primaryLight, borderWidth: 1, borderColor: theme.colors.border.default, alignItems: "center", justifyContent: "center", flexShrink: 0 },
 
-  secTitle: { flex: 1, fontFamily: theme.fonts.extrabold, fontSize: 13, color: kit.color.ink, letterSpacing: -0.1, includeFontPadding: false },
+  secTitle: { flex: 1, fontFamily: legacyTheme.fonts.extrabold, fontSize: 13, color: theme.colors.text.primary, letterSpacing: -0.1, includeFontPadding: false },
 
 
 
-  card: { backgroundColor: kit.color.surface, borderRadius: 16, overflow: "hidden", borderWidth: 1, borderColor: kit.color.line, ...kit.shadow.raised },
+  card: { backgroundColor: theme.colors.canvas.surface, borderRadius: 16, overflow: "hidden", borderWidth: 1, borderColor: theme.colors.border.default, ...theme.shadows[1] },
 
-  desc: { fontFamily: theme.fonts.regular, fontSize: 14, color: kit.color.inkSoft, lineHeight: 24, padding: 16, includeFontPadding: false },
+  desc: { fontFamily: legacyTheme.fonts.regular, fontSize: 14, color: theme.colors.text.secondary, lineHeight: 24, padding: 16, includeFontPadding: false },
 
 
 
   statsRow: { gap: 10 },
 
-  statCard: { flex: 1, backgroundColor: kit.color.surface, borderRadius: 16, padding: 16, alignItems: "center", gap: 4, borderWidth: 1, borderColor: kit.color.line, ...kit.shadow.raised },
+  statCard: { flex: 1, backgroundColor: theme.colors.canvas.surface, borderRadius: 16, padding: 16, alignItems: "center", gap: 4, borderWidth: 1, borderColor: theme.colors.border.default, ...theme.shadows[1] },
 
-  statV: { fontFamily: theme.fonts.black, fontSize: 22, color: kit.color.accentDeep, letterSpacing: -0.4, includeFontPadding: false },
+  statV: { fontFamily: legacyTheme.fonts.black, fontSize: 22, color: theme.colors.brand.primary, letterSpacing: -0.4, includeFontPadding: false },
 
-  statL: { fontFamily: theme.fonts.semibold, fontSize: 10, color: kit.color.inkFaint, includeFontPadding: false },
+  statL: { fontFamily: legacyTheme.fonts.semibold, fontSize: 10, color: theme.colors.text.muted, includeFontPadding: false },
 
 
 
@@ -312,22 +312,22 @@ const a = StyleSheet.create({
 
   row: { alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 14 },
 
-  rowP: { backgroundColor: kit.color.well },
+  rowP: { backgroundColor: theme.colors.canvas.surfaceMuted },
 
   icon: { width: 42, height: 42, borderRadius: 13, alignItems: "center", justifyContent: "center" },
 
-  lbl: { fontFamily: theme.fonts.semibold, fontSize: 10, color: kit.color.inkFaint, includeFontPadding: false },
+  lbl: { fontFamily: legacyTheme.fonts.semibold, fontSize: 10, color: theme.colors.text.muted, includeFontPadding: false },
 
-  val: { fontFamily: theme.fonts.bold, fontSize: 13, color: kit.color.ink, includeFontPadding: false },
+  val: { fontFamily: legacyTheme.fonts.bold, fontSize: 13, color: theme.colors.text.primary, includeFontPadding: false },
 
   infoRow: { alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 13 },
 
-  infoLbl: { fontFamily: theme.fonts.semibold, fontSize: 13, color: kit.color.inkSoft, includeFontPadding: false },
+  infoLbl: { fontFamily: legacyTheme.fonts.semibold, fontSize: 13, color: theme.colors.text.secondary, includeFontPadding: false },
 
-  infoVal: { fontFamily: theme.fonts.bold, fontSize: 13, color: kit.color.ink, includeFontPadding: false },
+  infoVal: { fontFamily: legacyTheme.fonts.bold, fontSize: 13, color: theme.colors.text.primary, includeFontPadding: false },
 
-  divider: { height: StyleSheet.hairlineWidth, backgroundColor: kit.color.line, marginHorizontal: 16 },
+  divider: { height: StyleSheet.hairlineWidth, backgroundColor: theme.colors.border.default, marginHorizontal: 16 },
 
-  copyright: { fontFamily: theme.fonts.regular, fontSize: 11, color: kit.color.inkFaint, textAlign: "center", paddingTop: 28, paddingBottom: 8, includeFontPadding: false },
+  copyright: { fontFamily: legacyTheme.fonts.regular, fontSize: 11, color: theme.colors.text.muted, textAlign: "center", paddingTop: 28, paddingBottom: 8, includeFontPadding: false },
 
 });

@@ -32,9 +32,9 @@ import { useTranslation } from "react-i18next";
 
 import { Text as UIText } from "@pharmacy/ui-native";
 
-import { theme } from "@pharmacy/design-tokens";
+import { theme as legacyTheme } from "@pharmacy/design-tokens";
+import { defaultTheme as theme } from "@pharmacy/ui-native";
 
-import { kit } from "@pharmacy/ui-native";
 
 import { flexRow, isRtl, textAlignStart, BACK_CHEVRON } from "@/utils/layout";
 
@@ -114,7 +114,7 @@ function OrdersHeader({
 
               <View style={[h.backBtn, pressed && h.backBtnPressed]}>
 
-                <Ionicons name={BACK_CHEVRON} size={18} color={kit.color.inkSoft} />
+                <Ionicons name={BACK_CHEVRON} size={18} color={theme.colors.text.secondary} />
 
               </View>
 
@@ -128,7 +128,7 @@ function OrdersHeader({
 
         <View style={h.iconTile}>
 
-          <Ionicons name="bag-handle-outline" size={22} color={kit.color.accentDeep} />
+          <Ionicons name="bag-handle-outline" size={22} color={theme.colors.brand.primary} />
 
         </View>
 
@@ -152,9 +152,9 @@ function OrdersHeader({
 
         <View style={[h.statCell, h.statCellBorder]}>
 
-          <View style={[h.statIconWell, { backgroundColor: kit.color.accentTint }]}>
+          <View style={[h.statIconWell, { backgroundColor: theme.colors.brand.primaryLight }]}>
 
-            <Ionicons name="bag-handle-outline" size={13} color={kit.color.accentDeep} />
+            <Ionicons name="bag-handle-outline" size={13} color={theme.colors.brand.primary} />
 
           </View>
 
@@ -168,9 +168,9 @@ function OrdersHeader({
 
         <View style={[h.statCell, h.statCellBorder]}>
 
-          <View style={[h.statIconWell, { backgroundColor: kit.color.warnTint }]}>
+          <View style={[h.statIconWell, { backgroundColor: `${theme.colors.status.warning}1A` }]}>
 
-            <Ionicons name="refresh-outline" size={13} color={kit.color.warn} />
+            <Ionicons name="refresh-outline" size={13} color={theme.colors.status.warning} />
 
           </View>
 
@@ -184,9 +184,9 @@ function OrdersHeader({
 
         <View style={h.statCell}>
 
-          <View style={[h.statIconWell, { backgroundColor: kit.color.successTint }]}>
+          <View style={[h.statIconWell, { backgroundColor: `${theme.colors.status.success}1A` }]}>
 
-            <Ionicons name="checkmark-circle-outline" size={13} color={kit.color.success} />
+            <Ionicons name="checkmark-circle-outline" size={13} color={theme.colors.status.success} />
 
           </View>
 
@@ -254,7 +254,7 @@ function OrdersList({
 
   return (
 
-    <View style={{ flex: 1, backgroundColor: kit.color.canvas }}>
+    <View style={{ flex: 1, backgroundColor: theme.colors.canvas.background }}>
 
       <OrdersHeader
 
@@ -300,9 +300,9 @@ function OrdersList({
 
             onRefresh={onRefresh}
 
-            tintColor={kit.color.accent}
+            tintColor={theme.colors.brand.primary}
 
-            colors={[kit.color.accent]}
+            colors={[theme.colors.brand.primary]}
 
           />
 
@@ -334,7 +334,7 @@ function OrdersErrorState({
 
   return (
 
-    <View style={{ flex: 1, backgroundColor: kit.color.canvas }}>
+    <View style={{ flex: 1, backgroundColor: theme.colors.canvas.background }}>
 
       <OrdersHeader t={t} insetsTop={insetsTop} orders={[]} showBack={showBack} onBack={onBack} />
 
@@ -378,7 +378,7 @@ function OrdersLoadingState({
 
   return (
 
-    <View style={{ flex: 1, backgroundColor: kit.color.canvas }}>
+    <View style={{ flex: 1, backgroundColor: theme.colors.canvas.background }}>
 
       <OrdersHeader t={t} insetsTop={insetsTop} orders={[]} showBack={showBack} onBack={onBack} />
 
@@ -535,13 +535,13 @@ const h = StyleSheet.create({
 
     gap:               16,
 
-    backgroundColor:   kit.color.surface,
+    backgroundColor:   theme.colors.canvas.surface,
 
     borderBottomWidth: StyleSheet.hairlineWidth,
 
-    borderBottomColor: kit.color.line,
+    borderBottomColor: theme.colors.border.default,
 
-    ...kit.shadow.raised,
+    ...theme.shadows[1],
 
   },
 
@@ -583,7 +583,7 @@ const h = StyleSheet.create({
 
     borderRadius:    20,
 
-    backgroundColor: kit.color.well,
+    backgroundColor: theme.colors.canvas.surfaceMuted,
 
     alignItems:      "center",
 
@@ -591,7 +591,7 @@ const h = StyleSheet.create({
 
     borderWidth:     1,
 
-    borderColor:     kit.color.line,
+    borderColor:     theme.colors.border.default,
 
     flexShrink:      0,
 
@@ -607,13 +607,13 @@ const h = StyleSheet.create({
 
   eyebrow: {
 
-    fontFamily:         theme.fonts.bold,
+    fontFamily:         legacyTheme.fonts.bold,
 
     fontSize:           10,
 
     lineHeight:         14,
 
-    color:              kit.color.accentDeep,
+    color:              theme.colors.brand.primary,
 
     letterSpacing:      0.5,
 
@@ -625,13 +625,13 @@ const h = StyleSheet.create({
 
   title: {
 
-    fontFamily:         theme.fonts.black,
+    fontFamily:         legacyTheme.fonts.black,
 
     fontSize:           28,
 
     lineHeight:         36,
 
-    color:              kit.color.ink,
+    color:              theme.colors.text.primary,
 
     letterSpacing:      -0.6,
 
@@ -649,7 +649,7 @@ const h = StyleSheet.create({
 
     borderRadius:    16,
 
-    backgroundColor: kit.color.accentTint,
+    backgroundColor: theme.colors.brand.primaryLight,
 
     alignItems:      "center",
 
@@ -657,7 +657,7 @@ const h = StyleSheet.create({
 
     borderWidth:     1,
 
-    borderColor:     kit.color.line,
+    borderColor:     theme.colors.border.default,
 
     flexShrink:      0,
 
@@ -671,17 +671,17 @@ const h = StyleSheet.create({
 
     flexDirection:   flexRow(isRtl()),
 
-    backgroundColor: kit.color.surface,
+    backgroundColor: theme.colors.canvas.surface,
 
-    borderRadius:    kit.radius.lg,
+    borderRadius:    12,
 
     borderWidth:     1,
 
-    borderColor:     kit.color.line,
+    borderColor:     theme.colors.border.default,
 
     overflow:        "hidden",
 
-    ...kit.shadow.raised,
+    ...theme.shadows[1],
 
   },
 
@@ -703,7 +703,7 @@ const h = StyleSheet.create({
 
     borderEndWidth: StyleSheet.hairlineWidth,
 
-    borderEndColor: kit.color.lineStrong,
+    borderEndColor: theme.colors.border.strong,
 
   },
 
@@ -723,13 +723,13 @@ const h = StyleSheet.create({
 
   statVal: {
 
-    fontFamily:         theme.fonts.black,
+    fontFamily:         legacyTheme.fonts.black,
 
     fontSize:           20,
 
     lineHeight:         26,
 
-    color:              kit.color.ink,
+    color:              theme.colors.text.primary,
 
     letterSpacing:      -0.4,
 
@@ -739,13 +739,13 @@ const h = StyleSheet.create({
 
   statLbl: {
 
-    fontFamily:         theme.fonts.regular,
+    fontFamily:         legacyTheme.fonts.regular,
 
     fontSize:           9,
 
     lineHeight:         13,
 
-    color:              kit.color.inkFaint,
+    color:              theme.colors.text.muted,
 
     textAlign:          "center",
 

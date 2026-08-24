@@ -46,7 +46,8 @@ import { useDeliveryContext } from "@/features/delivery";
 
 import { Text as UIText } from "@pharmacy/ui-native";
 
-import { theme } from "@pharmacy/design-tokens";
+import { theme as legacyTheme } from "@pharmacy/design-tokens";
+import { defaultTheme as theme } from "@pharmacy/ui-native";
 
 import { kit } from "@pharmacy/ui-native";
 
@@ -186,7 +187,7 @@ export const CartDrawer = forwardRef<CartDrawerRef>(function CartDrawer(_, ref) 
 
             <View style={styles.bagIcon}>
 
-              <Ionicons name="bag-handle" size={16} color={kit.color.accentDeep} />
+              <Ionicons name="bag-handle" size={16} color={theme.colors.brand.primary} />
 
             </View>
 
@@ -282,7 +283,7 @@ export const CartDrawer = forwardRef<CartDrawerRef>(function CartDrawer(_, ref) 
 
                   weight="bold"
 
-                  style={delivery.isFree ? { color: kit.color.success.strong } : undefined}>
+                  style={delivery.isFree ? { color: theme.colors.status.success.strong } : undefined}>
 
                   {delivery.isFree ? t("common.free") : formatPrice(delivery.cost)}
 
@@ -294,13 +295,13 @@ export const CartDrawer = forwardRef<CartDrawerRef>(function CartDrawer(_, ref) 
 
                 <View style={styles.totalsRow}>
 
-                  <UIText variant="body-sm" style={{ color: kit.color.success.strong }}>
+                  <UIText variant="body-sm" style={{ color: theme.colors.status.success.strong }}>
 
                     {t("cart.discount")}
 
                   </UIText>
 
-                  <UIText variant="body-sm" weight="bold" style={{ color: kit.color.success.strong }}>
+                  <UIText variant="body-sm" weight="bold" style={{ color: theme.colors.status.success.strong }}>
 
                     −{formatPrice(pricing.discount)}
 
@@ -478,7 +479,7 @@ function CartDrawerRow({
 
           <View style={styles.lowStockBadge}>
 
-            <Ionicons name="alert-circle" size={11} color={kit.color.danger} />
+            <Ionicons name="alert-circle" size={11} color={theme.colors.status.error} />
 
             <UIText style={styles.lowStockText}>
 
@@ -518,7 +519,7 @@ function CartDrawerRow({
 
               style={styles.qtyBtn}>
 
-              <Ionicons name="remove" size={14} color={kit.color.accentDeep} />
+              <Ionicons name="remove" size={14} color={theme.colors.brand.primary} />
 
             </Pressable>
 
@@ -546,7 +547,7 @@ function CartDrawerRow({
 
                 size={14}
 
-                color={isAtMax ? kit.color.inkFaint : kit.color.accentDeep}
+                color={isAtMax ? theme.colors.text.muted : theme.colors.brand.primary}
 
               />
 
@@ -596,7 +597,7 @@ function EmptyCartBody() {
 
       <View style={styles.emptyIcon}>
 
-        <Ionicons name="bag-outline" size={34} color={kit.color.accentDeep} />
+        <Ionicons name="bag-outline" size={34} color={theme.colors.brand.primary} />
 
       </View>
 
@@ -628,7 +629,7 @@ const styles = StyleSheet.create({
 
   background: {
 
-    backgroundColor:      kit.color.surface,
+    backgroundColor:      theme.colors.canvas.surface,
 
     borderTopStartRadius:  24,
 
@@ -760,11 +761,11 @@ const styles = StyleSheet.create({
 
     padding:         14,
 
-    backgroundColor: kit.color.surface,
+    backgroundColor: theme.colors.canvas.surface,
 
     borderRadius:    16,
 
-    ...theme.shadow.card,
+    ...kit.shadow.card,
 
   },
 
@@ -774,7 +775,7 @@ const styles = StyleSheet.create({
 
     height:          68,
 
-    borderRadius:    theme.radius.lg,
+    borderRadius:    legacyTheme.radius.lg,
 
     backgroundColor: kit.color.surfaceSunken,
 
@@ -806,7 +807,7 @@ const styles = StyleSheet.create({
 
   rowPriceNew: {
 
-    color:         kit.color.accentDeep,
+    color:         theme.colors.brand.primary,
 
     letterSpacing: -0.3,
 
@@ -854,7 +855,7 @@ const styles = StyleSheet.create({
 
     borderRadius:    7,
 
-    backgroundColor: kit.color.surface,
+    backgroundColor: theme.colors.canvas.surface,
 
     alignItems:      "center",
 
@@ -902,9 +903,9 @@ const styles = StyleSheet.create({
 
     paddingVertical:   3,
 
-    borderRadius:      kit.radius.pill,
+    borderRadius:      9999,
 
-    backgroundColor:   kit.color.dangerTint,
+    backgroundColor:   `${theme.colors.status.error}1A`,
 
     alignSelf:         "flex-start",
 
@@ -916,9 +917,9 @@ const styles = StyleSheet.create({
 
     fontSize:   10,
 
-    fontFamily: theme.fonts.bold,
+    fontFamily: legacyTheme.fonts.bold,
 
-    color:      kit.color.danger,
+    color:      theme.colors.status.error,
 
   },
 
@@ -942,7 +943,7 @@ const styles = StyleSheet.create({
 
     borderTopColor:    kit.color.border.hairline,
 
-    backgroundColor:   kit.color.surface,
+    backgroundColor:   theme.colors.canvas.surface,
 
   },
 
@@ -988,7 +989,7 @@ const styles = StyleSheet.create({
 
   grandTotalValue: {
 
-    color:         kit.color.accentDeep,
+    color:         theme.colors.brand.primary,
 
     letterSpacing: -0.5,
 
@@ -1064,7 +1065,7 @@ const styles = StyleSheet.create({
 
     borderRadius:    14,
 
-    backgroundColor: kit.color.accentDeep,
+    backgroundColor: theme.colors.brand.primary,
 
     flexDirection:   flexRow(isRtl()),
 
@@ -1074,7 +1075,7 @@ const styles = StyleSheet.create({
 
     gap:             8,
 
-    ...theme.shadow.brand,
+    ...kit.shadow.brandGlow,
 
   },
 
@@ -1126,7 +1127,7 @@ const styles = StyleSheet.create({
 
     marginBottom:    12,
 
-    ...theme.shadow.brandGlow,
+    ...kit.shadow.brandGlow,
 
   },
 

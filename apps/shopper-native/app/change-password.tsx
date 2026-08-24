@@ -16,9 +16,11 @@ import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 
 import { updatePassword, getAuthError } from "@/features/auth";
-import { Button, kit, Text as UIText } from "@pharmacy/ui-native";
-import { useDarkColors } from "@/hooks/useDarkColors";
-import { theme } from "@pharmacy/design-tokens";
+import { Button, Text as UIText } from "@pharmacy/ui-native";
+import { useTheme } from "@pharmacy/ui-native";
+
+import { theme as legacyTheme } from "@pharmacy/design-tokens";
+import { defaultTheme as theme } from "@pharmacy/ui-native";
 import { isRtl, textAlignStart, BACK_CHEVRON } from "@/utils/layout";
 import { TextInput } from "react-native-gesture-handler";
 
@@ -34,25 +36,25 @@ interface PasswordRowProps {
 }
 
 function PasswordRow({ label, value, onChangeText, placeholder, isLast = false }: PasswordRowProps) {
-  const { c } = useDarkColors();
+  const { theme } = useTheme();
   return (
-    <View style={[styles.row, { borderBottomColor: isLast ? "transparent" : c.line }]}>
-      <UIText style={[styles.rowLabel, { color: c.inkSoft, textAlign: TEXT_START, marginBottom: 8 }]}>{label}</UIText>
+    <View style={[styles.row, { borderBottomColor: isLast ? "transparent" : theme.colors.border.default }]}>
+      <UIText style={[styles.rowLabel, { color: theme.colors.text.secondary, textAlign: TEXT_START, marginBottom: 8 }]}>{label}</UIText>
       <TextInput
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
-        placeholderTextColor={c.inkFaint}
+        placeholderTextColor={theme.colors.text.muted}
         secureTextEntry
         autoComplete="new-password"
-        style={[styles.rowInput, { color: c.ink, textAlign: IS_RTL ? "right" : "left" }]}
+        style={[styles.rowInput, { color: theme.colors.text.primary, textAlign: IS_RTL ? "right" : "left" }]}
       />
     </View>
   );
 }
 
 export default function ChangePasswordScreen() {
-  const { c } = useDarkColors();
+  const { theme } = useTheme();
   const { t } = useTranslation();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -76,9 +78,9 @@ export default function ChangePasswordScreen() {
   }, [password]);
 
   const strengthColor = useMemo(() => {
-    if (strength <= 1) return kit.color.danger;
-    if (strength <= 3) return kit.color.warn;
-    return kit.color.success;
+    if (strength <= 1) return theme.colors.status.error;
+    if (strength <= 3) return theme.colors.status.warning;
+    return theme.colors.status.success;
   }, [strength]);
 
   const strengthLabel = useMemo(() => {
@@ -121,19 +123,19 @@ export default function ChangePasswordScreen() {
 
   return (
     <KeyboardAvoidingView 
-      style={{ flex: 1, backgroundColor: c.canvas }} 
+      style={{ flex: 1, backgroundColor: theme.colors.canvas.background }} 
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      <Animated.View entering={FadeIn.duration(200)} style={[styles.header, { paddingTop: insets.top, backgroundColor: c.surface, borderBottomColor: c.line }]}>
+      <Animated.View entering={FadeIn.duration(200)} style={[styles.header, { paddingTop: insets.top, backgroundColor: theme.colors.canvas.surface, borderBottomColor: theme.colors.border.default }]}>
         <Pressable 
           onPress={() => router.back()} 
           style={styles.backBtn}
           accessibilityRole="button"
           accessibilityLabel={t("common.back")}
         >
-          <Ionicons name={BACK_CHEVRON} size={24} color={c.ink} />
+          <Ionicons name={BACK_CHEVRON} size={24} color={theme.colors.text.primary} />
         </Pressable>
-        <UIText style={[styles.title, { color: c.ink }]}>{t("profile.menuSecurity", { defaultValue: "Security" })}</UIText>
+        <UIText style={[styles.title, { color: theme.colors.text.primary }]}>{t("profile.menuSecurity", { defaultValue: "Security" })}</UIText>
         <View style={{ width: 40 }} />
       </Animated.View>
 
@@ -146,28 +148,28 @@ export default function ChangePasswordScreen() {
           
           <View style={styles.heroSection}>
             <LinearGradient
-              colors={[kit.color.accentTint, c.canvas]}
+              colors={[theme.colors.brand.primaryLight, theme.colors.canvas.background]}
               style={styles.heroRing}
             >
-               <Ionicons name="shield-checkmark" size={48} color={kit.color.accentDeep} />
+               <Ionicons name="shield-checkmark" size={48} color={theme.colors.brand.primary} />
             </LinearGradient>
-            <UIText style={[styles.heroInstruction, { color: c.inkSoft }]}>
+            <UIText style={[styles.heroInstruction, { color: theme.colors.text.secondary }]}>
               {t("profile.changePasswordInstruction", { defaultValue: "Create a new strong password for your account to maintain security." })}
             </UIText>
           </View>
 
           {error && (
-            <Animated.View entering={FadeIn.duration(200)} style={[styles.errorBox, { backgroundColor: kit.color.dangerTint, borderColor: kit.color.danger }]}>
-              <Ionicons name="alert-circle-outline" size={20} color={kit.color.danger} />
-              <UIText style={[styles.errorText, { color: kit.color.danger, textAlign: TEXT_START }]}>{error}</UIText>
+            <Animated.View entering={FadeIn.duration(200)} style={[styles.errorBox, { backgroundColor: `${theme.colors.status.error}1A`, borderColor: theme.colors.status.error }]}>
+              <Ionicons name="alert-circle-outline" size={20} color={theme.colors.status.error} />
+              <UIText style={[styles.errorText, { color: theme.colors.status.error, textAlign: TEXT_START }]}>{error}</UIText>
             </Animated.View>
           )}
 
           <View style={styles.sectionHeader}>
-            <UIText style={[styles.sectionTitle, { color: c.inkSoft, textAlign: TEXT_START }]}>{t("auth.passwordRules", { defaultValue: "NEW CREDENTIALS" })}</UIText>
+            <UIText style={[styles.sectionTitle, { color: theme.colors.text.secondary, textAlign: TEXT_START }]}>{t("auth.passwordRules", { defaultValue: "NEW CREDENTIALS" })}</UIText>
           </View>
 
-          <View style={[styles.cardGroup, { backgroundColor: c.surface, borderColor: c.line }]}>
+          <View style={[styles.cardGroup, { backgroundColor: theme.colors.canvas.surface, borderColor: theme.colors.border.default }]}>
             <PasswordRow 
               label={t("auth.newPasswordLabel", { defaultValue: "New Password" })}
               value={password}
@@ -178,7 +180,7 @@ export default function ChangePasswordScreen() {
             {/* Strength Meter Inside Card */}
             {password.length > 0 && (
               <Animated.View entering={FadeIn.duration(300)} style={styles.strengthContainer}>
-                <View style={[styles.strengthTrack, { backgroundColor: c.line }]}>
+                <View style={[styles.strengthTrack, { backgroundColor: theme.colors.border.default }]}>
                   <Animated.View 
                     style={[styles.strengthFill, { width: `${(strength / 5) * 100}%`, backgroundColor: strengthColor }]} 
                   />
@@ -197,10 +199,10 @@ export default function ChangePasswordScreen() {
           </View>
 
           <View style={styles.rulesContainer}>
-            <UIText style={[styles.ruleText, { color: password.length >= 6 ? kit.color.success : c.inkFaint, textAlign: TEXT_START }]}>
+            <UIText style={[styles.ruleText, { color: password.length >= 6 ? theme.colors.status.success : theme.colors.text.muted, textAlign: TEXT_START }]}>
                <Ionicons name={password.length >= 6 ? "checkmark-circle" : "ellipse-outline"} size={14} /> {t("auth.ruleLength", { defaultValue: "At least 6 characters" })}
             </UIText>
-            <UIText style={[styles.ruleText, { color: /[0-9]/.test(password) ? kit.color.success : c.inkFaint, textAlign: TEXT_START }]}>
+            <UIText style={[styles.ruleText, { color: /[0-9]/.test(password) ? theme.colors.status.success : theme.colors.text.muted, textAlign: TEXT_START }]}>
                <Ionicons name={/[0-9]/.test(password) ? "checkmark-circle" : "ellipse-outline"} size={14} /> {t("auth.ruleNumber", { defaultValue: "Contains a number" })}
             </UIText>
           </View>
@@ -213,7 +215,7 @@ export default function ChangePasswordScreen() {
         <Animated.View 
           entering={SlideInDown.duration(300)} 
           exiting={SlideOutDown.duration(200)}
-          style={[styles.stickyFooter, { paddingBottom: Math.max(insets.bottom, 20), backgroundColor: c.surface, borderTopColor: c.line }]}
+          style={[styles.stickyFooter, { paddingBottom: Math.max(insets.bottom, 20), backgroundColor: theme.colors.canvas.surface, borderTopColor: theme.colors.border.default }]}
         >
           <Button
             label={t("common.update", { defaultValue: "Update Password" })}
@@ -243,7 +245,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   title: {
-    fontFamily: theme.fonts.bold,
+    fontFamily: legacyTheme.fonts.bold,
     fontSize: 18,
   },
   content: {
@@ -264,7 +266,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   heroInstruction: {
-    fontFamily: theme.fonts.regular,
+    fontFamily: legacyTheme.fonts.regular,
     fontSize: 15,
     textAlign: "center",
     lineHeight: 22,
@@ -275,7 +277,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
   sectionTitle: {
-    fontFamily: theme.fonts.bold,
+    fontFamily: legacyTheme.fonts.bold,
     fontSize: 12,
     letterSpacing: 0.5,
   },
@@ -290,11 +292,11 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   rowLabel: {
-    fontFamily: theme.fonts.medium,
+    fontFamily: legacyTheme.fonts.medium,
     fontSize: 13,
   },
   rowInput: {
-    fontFamily: theme.fonts.bold,
+    fontFamily: legacyTheme.fonts.bold,
     fontSize: 18,
     paddingVertical: 4,
     letterSpacing: 3,
@@ -303,7 +305,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingBottom: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: kit.color.lineStrong,
+    borderBottomColor: theme.colors.border.strong,
   },
   strengthTrack: {
     height: 4,
@@ -317,7 +319,7 @@ const styles = StyleSheet.create({
     borderRadius: 2,
   },
   strengthText: {
-    fontFamily: theme.fonts.bold,
+    fontFamily: legacyTheme.fonts.bold,
     fontSize: 12,
   },
   rulesContainer: {
@@ -326,7 +328,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   ruleText: {
-    fontFamily: theme.fonts.medium,
+    fontFamily: legacyTheme.fonts.medium,
     fontSize: 13,
   },
   errorBox: {
@@ -340,7 +342,7 @@ const styles = StyleSheet.create({
   },
   errorText: {
     flex: 1,
-    fontFamily: theme.fonts.regular,
+    fontFamily: legacyTheme.fonts.regular,
     fontSize: 13,
   },
   stickyFooter: {
@@ -351,6 +353,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 16,
     borderTopWidth: StyleSheet.hairlineWidth,
-    ...kit.shadow.raised,
+    ...theme.shadows[1],
   },
 });

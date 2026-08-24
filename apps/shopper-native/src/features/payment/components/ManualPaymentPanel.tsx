@@ -38,9 +38,10 @@ import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
 
 import { Input } from "@/components/ui/Input";
 
-import { theme } from "@pharmacy/design-tokens";
+import { theme as legacyTheme } from "@pharmacy/design-tokens";
+import { defaultTheme as theme } from "@pharmacy/ui-native";
 
-import { kit } from "@pharmacy/ui-native";
+
 
 import { MANUAL_PAYMENT_WALLET_NUMBER } from "../constants";
 
@@ -206,7 +207,7 @@ export const ManualPaymentPanel = memo(function ManualPaymentPanel({
 
               <View style={styles.uploadPlaceholder}>
 
-                <Ionicons name="image-outline" size={32} color={kit.color.inkSoft[400]} />
+                <Ionicons name="image-outline" size={32} color={theme.colors.text.secondary[400]} />
 
                 <UIText style={styles.uploadPlaceholderText}>{t("payment.pickReceipt")}</UIText>
 
@@ -240,9 +241,9 @@ const styles = StyleSheet.create({
 
     fontSize: 12,
 
-    fontFamily: theme.fonts.semibold,
+    fontFamily: legacyTheme.fonts.semibold,
 
-    color: kit.color.inkSoft[600],
+    color: theme.colors.text.secondary[600],
 
     textAlign: textAlignStart(isRtl()),
 
@@ -262,11 +263,11 @@ const styles = StyleSheet.create({
 
     borderRadius: 16,
 
-    backgroundColor: kit.color.accentTint,
+    backgroundColor: theme.colors.brand.primaryLight,
 
     borderWidth: 1,
 
-    borderColor: kit.color.line.brandSoft,
+    borderColor: theme.colors.border.default.brandSoft,
 
   },
 
@@ -274,9 +275,9 @@ const styles = StyleSheet.create({
 
     fontSize: 32,
 
-    fontFamily: theme.fonts.black,
+    fontFamily: legacyTheme.fonts.black,
 
-    color: kit.color.accentDeep,
+    color: theme.colors.brand.primary,
 
     letterSpacing: 1,
 
@@ -304,7 +305,7 @@ const styles = StyleSheet.create({
 
     borderRadius: 12,
 
-    backgroundColor: kit.color.accentDeep,
+    backgroundColor: theme.colors.brand.primary,
 
   },
 
@@ -318,7 +319,7 @@ const styles = StyleSheet.create({
 
     fontSize: 13,
 
-    fontFamily: theme.fonts.bold,
+    fontFamily: legacyTheme.fonts.bold,
 
     color: "#fff",
 
@@ -328,9 +329,9 @@ const styles = StyleSheet.create({
 
     fontSize: 12,
 
-    fontFamily: theme.fonts.bold,
+    fontFamily: legacyTheme.fonts.bold,
 
-    color: kit.color.ink.secondary,
+    color: theme.colors.text.primary.secondary,
 
     textAlign: textAlignStart(isRtl()),
 
@@ -350,13 +351,13 @@ const styles = StyleSheet.create({
 
     borderWidth: 1.5,
 
-    borderColor: kit.color.line.default,
+    borderColor: theme.colors.border.default.default,
 
     borderStyle: "dashed",
 
     overflow: "hidden",
 
-    backgroundColor: kit.color.canvas,
+    backgroundColor: theme.colors.canvas.background,
 
   },
 
@@ -398,9 +399,9 @@ const styles = StyleSheet.create({
 
     fontSize: 12,
 
-    fontFamily: theme.fonts.semibold,
+    fontFamily: legacyTheme.fonts.semibold,
 
-    color: kit.color.inkSoft[500],
+    color: theme.colors.text.secondary[500],
 
     textAlign: "center",
 
@@ -418,9 +419,9 @@ const styles = StyleSheet.create({
 
     fontSize: 12,
 
-    fontFamily: theme.fonts.semibold,
+    fontFamily: legacyTheme.fonts.semibold,
 
-    color: kit.color.danger.strong,
+    color: theme.colors.status.error.strong,
 
     textAlign: textAlignStart(isRtl()),
 

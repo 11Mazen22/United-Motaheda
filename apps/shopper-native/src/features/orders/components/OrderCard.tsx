@@ -56,9 +56,10 @@ import { Badge } from "@/components/ui/Badge";
 
 import { Text as UIText } from "@pharmacy/ui-native";
 
-import { theme } from "@pharmacy/design-tokens";
+import { theme as legacyTheme } from "@pharmacy/design-tokens";
+import { defaultTheme as theme } from "@pharmacy/ui-native";
 
-import { kit } from "@pharmacy/ui-native";
+
 
 import { formatPrice } from "@/utils/format";
 
@@ -91,39 +92,39 @@ export const STATUS_META: Record<
 
 > = {
 
-  pending:           { labelKey: "orders.pending",           variant: "warning", icon: "time-outline",             dot: kit.color.warn          },
+  pending:           { labelKey: "orders.pending",           variant: "warning", icon: "time-outline",             dot: theme.colors.status.warning          },
 
-  pending_payment:   { labelKey: "orders.pendingPayment",    variant: "warning", icon: "card-outline",             dot: kit.color.warn          },
+  pending_payment:   { labelKey: "orders.pendingPayment",    variant: "warning", icon: "card-outline",             dot: theme.colors.status.warning          },
 
-  confirmed:         { labelKey: "orders.pending",           variant: "warning", icon: "checkmark-circle-outline", dot: kit.color.warn          },
+  confirmed:         { labelKey: "orders.pending",           variant: "warning", icon: "checkmark-circle-outline", dot: theme.colors.status.warning          },
 
-  verification:      { labelKey: "orders.processing",        variant: "brand",   icon: "shield-checkmark-outline", dot: kit.color.accent       },
+  verification:      { labelKey: "orders.processing",        variant: "brand",   icon: "shield-checkmark-outline", dot: theme.colors.brand.primary       },
 
-  payment_pending:   { labelKey: "orders.pendingPayment",    variant: "warning", icon: "card-outline",             dot: kit.color.warn          },
+  payment_pending:   { labelKey: "orders.pendingPayment",    variant: "warning", icon: "card-outline",             dot: theme.colors.status.warning          },
 
-  payment_approved:  { labelKey: "orders.processing",        variant: "brand",   icon: "checkmark-circle-outline", dot: kit.color.success      },
+  payment_approved:  { labelKey: "orders.processing",        variant: "brand",   icon: "checkmark-circle-outline", dot: theme.colors.status.success      },
 
-  processing:        { labelKey: "orders.processing",        variant: "brand",   icon: "refresh-outline",          dot: kit.color.accent        },
+  processing:        { labelKey: "orders.processing",        variant: "brand",   icon: "refresh-outline",          dot: theme.colors.brand.primary        },
 
-  preparing:         { labelKey: "orders.processing",        variant: "brand",   icon: "refresh-outline",          dot: kit.color.accent        },
+  preparing:         { labelKey: "orders.processing",        variant: "brand",   icon: "refresh-outline",          dot: theme.colors.brand.primary        },
 
-  ready:             { labelKey: "orders.shipped",           variant: "brand",   icon: "cube-outline",             dot: kit.color.accent        },
+  ready:             { labelKey: "orders.shipped",           variant: "brand",   icon: "cube-outline",             dot: theme.colors.brand.primary        },
 
-  shipped:           { labelKey: "orders.shipped",           variant: "brand",   icon: "car-outline",              dot: kit.color.accent        },
+  shipped:           { labelKey: "orders.shipped",           variant: "brand",   icon: "car-outline",              dot: theme.colors.brand.primary        },
 
-  picked_up:         { labelKey: "orders.shipped",           variant: "brand",   icon: "car-outline",              dot: kit.color.accent        },
+  picked_up:         { labelKey: "orders.shipped",           variant: "brand",   icon: "car-outline",              dot: theme.colors.brand.primary        },
 
-  driver_assigned:   { labelKey: "orders.shipped",           variant: "brand",   icon: "car-outline",              dot: kit.color.accent        },
+  driver_assigned:   { labelKey: "orders.shipped",           variant: "brand",   icon: "car-outline",              dot: theme.colors.brand.primary        },
 
-  driver_accepted:   { labelKey: "orders.shipped",           variant: "brand",   icon: "car-outline",              dot: kit.color.accent        },
+  driver_accepted:   { labelKey: "orders.shipped",           variant: "brand",   icon: "car-outline",              dot: theme.colors.brand.primary        },
 
-  out_for_delivery:  { labelKey: "orders.shipped",           variant: "brand",   icon: "car-outline",              dot: kit.color.accent        },
+  out_for_delivery:  { labelKey: "orders.shipped",           variant: "brand",   icon: "car-outline",              dot: theme.colors.brand.primary        },
 
-  delivered:         { labelKey: "orders.delivered",         variant: "success", icon: "checkmark-circle-outline", dot: kit.color.success       },
+  delivered:         { labelKey: "orders.delivered",         variant: "success", icon: "checkmark-circle-outline", dot: theme.colors.status.success       },
 
-  cancelled:         { labelKey: "orders.cancelled",         variant: "error",   icon: "close-circle-outline",     dot: kit.color.danger        },
+  cancelled:         { labelKey: "orders.cancelled",         variant: "error",   icon: "close-circle-outline",     dot: theme.colors.status.error        },
 
-  archived:          { labelKey: "orders.delivered",         variant: "neutral", icon: "archive-outline",          dot: kit.color.inkFaint     },
+  archived:          { labelKey: "orders.delivered",         variant: "neutral", icon: "archive-outline",          dot: theme.colors.text.muted     },
 
 };
 
@@ -157,13 +158,13 @@ export function paymentDot(status: string): string | null {
 
   switch (status) {
 
-    case "pending_verification": return kit.color.warn;
+    case "pending_verification": return theme.colors.status.warning;
 
     case "verified":
 
-    case "paid":                 return kit.color.success;
+    case "paid":                 return theme.colors.status.success;
 
-    case "failed":               return kit.color.danger;
+    case "failed":               return theme.colors.status.error;
 
     default:                     return null;
 
@@ -207,7 +208,7 @@ const TIMELINE_STEPS: StepDef[] = [
 
 
 
-const EMERALD = kit.color.success;
+const EMERALD = theme.colors.status.success;
 
 
 
@@ -277,7 +278,7 @@ const TrackingTimeline = memo(function TrackingTimeline({
 
                   size={isCurrent ? 13 : 11}
 
-                  color={isDone || isCurrent ? kit.color.onInk : kit.color.inkFaint}
+                  color={isDone || isCurrent ? theme.colors.text.inverse : theme.colors.text.muted}
 
                 />
 
@@ -521,7 +522,7 @@ export const OrderCard = memo(function OrderCard({
 
               <View style={oc.thumbFallback}>
 
-                <Ionicons name="medkit-outline" size={20} color={kit.color.inkFaint} />
+                <Ionicons name="medkit-outline" size={20} color={theme.colors.text.muted} />
 
               </View>
 
@@ -563,7 +564,7 @@ export const OrderCard = memo(function OrderCard({
 
           </View>
 
-          <Ionicons name={FORWARD_CHEVRON} size={14} color={kit.color.inkFaint} />
+          <Ionicons name={FORWARD_CHEVRON} size={14} color={theme.colors.text.muted} />
 
         </View>
 
@@ -645,11 +646,11 @@ const oc = StyleSheet.create({
 
   orderRef: {
 
-    fontFamily:         theme.fonts.black,
+    fontFamily:         legacyTheme.fonts.black,
 
     fontSize:           14,
 
-    color:              kit.color.ink,
+    color:              theme.colors.text.primary,
 
     textAlign:          textAlignStart(isRtl()),
 
@@ -667,11 +668,11 @@ const oc = StyleSheet.create({
 
   orderDate: {
 
-    fontFamily:         theme.fonts.regular,
+    fontFamily:         legacyTheme.fonts.regular,
 
     fontSize:           11,
 
-    color:              kit.color.inkFaint,
+    color:              theme.colors.text.muted,
 
     textAlign:          textAlignStart(isRtl()),
 
@@ -691,7 +692,7 @@ const oc = StyleSheet.create({
 
     gap:             12,
 
-    backgroundColor: kit.color.well,
+    backgroundColor: theme.colors.canvas.surfaceMuted,
 
     borderRadius:    14,
 
@@ -709,7 +710,7 @@ const oc = StyleSheet.create({
 
     overflow:        "hidden",
 
-    backgroundColor: kit.color.surface,
+    backgroundColor: theme.colors.canvas.surface,
 
     flexShrink:      0,
 
@@ -723,7 +724,7 @@ const oc = StyleSheet.create({
 
     justifyContent:  "center",
 
-    backgroundColor: kit.color.well,
+    backgroundColor: theme.colors.canvas.surfaceMuted,
 
   },
 
@@ -741,17 +742,17 @@ const oc = StyleSheet.create({
 
     borderTopWidth: StyleSheet.hairlineWidth,
 
-    borderTopColor: kit.color.line,
+    borderTopColor: theme.colors.border.default,
 
   },
 
   totalText: {
 
-    fontFamily:         theme.fonts.black,
+    fontFamily:         legacyTheme.fonts.black,
 
     fontSize:           17,
 
-    color:              kit.color.ink,
+    color:              theme.colors.text.primary,
 
     letterSpacing:      -0.4,
 
@@ -829,7 +830,7 @@ const tl = StyleSheet.create({
 
     borderRadius:   14,
 
-    backgroundColor: kit.color.accent,
+    backgroundColor: theme.colors.brand.primary,
 
     shadowColor:     EMERALD,
 
@@ -851,7 +852,7 @@ const tl = StyleSheet.create({
 
     borderWidth:     1.5,
 
-    borderColor:     kit.color.lineStrong,
+    borderColor:     theme.colors.border.strong,
 
   },
 
@@ -871,7 +872,7 @@ const tl = StyleSheet.create({
 
   lineActive: { backgroundColor: EMERALD },
 
-  lineGray:   { backgroundColor: kit.color.lineStrong },
+  lineGray:   { backgroundColor: theme.colors.border.strong },
 
 
 

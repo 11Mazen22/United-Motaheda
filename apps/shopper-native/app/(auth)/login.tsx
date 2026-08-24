@@ -29,9 +29,11 @@ import { LangSwitcher } from "@/features/auth/components/LangSwitcher";
 import { SocialButtons } from "@/features/auth/components/SocialButtons";
 import { AuthDivider } from "@/features/auth/components/AuthDivider";
 import { AppLogo } from "@/shared/components/AppLogo";
-import { Button, Text as UIText, kit } from "@pharmacy/ui-native";
-import { useDarkColors } from "@/hooks/useDarkColors";
-import { theme } from "@pharmacy/design-tokens";
+import { Button, Text as UIText } from "@pharmacy/ui-native";
+import { useTheme } from "@pharmacy/ui-native";
+
+import { theme as legacyTheme } from "@pharmacy/design-tokens";
+import { defaultTheme as theme } from "@pharmacy/ui-native";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
 import { TextInput } from "react-native";
 
@@ -51,7 +53,7 @@ interface FloatingInputProps {
 }
 
 function FloatingInput({ label, icon, secure, value, onChangeText, autoCapitalize = "none", keyboardType = "default" }: FloatingInputProps) {
-  const { c } = useDarkColors();
+  const { theme } = useTheme();
   const [focused, setFocused] = useState(false);
   const focusAnim = useSharedValue(0);
 
@@ -65,19 +67,19 @@ function FloatingInput({ label, icon, secure, value, onChangeText, autoCapitaliz
         { translateY: focusAnim.value * -12 },
         { scale: 1 - focusAnim.value * 0.15 }
       ],
-      color: interpolateColor(focusAnim.value, [0, 1], [c.inkFaint, kit.color.accentDeep])
+      color: interpolateColor(focusAnim.value, [0, 1], [theme.colors.text.muted, theme.colors.brand.primary])
     };
   });
 
   const animatedBorderStyle = useAnimatedStyle(() => {
     return {
-      borderColor: interpolateColor(focusAnim.value, [0, 1], [c.line, kit.color.accentDeep])
+      borderColor: interpolateColor(focusAnim.value, [0, 1], [theme.colors.border.default, theme.colors.brand.primary])
     };
   });
 
   return (
-    <Animated.View style={[styles.inputContainer, animatedBorderStyle, { backgroundColor: c.surface, flexDirection: flexRow(IS_RTL) }]}>
-      <Ionicons name={icon} size={20} color={focused ? kit.color.accentDeep : c.inkFaint} style={{ marginHorizontal: 4 }} />
+    <Animated.View style={[styles.inputContainer, animatedBorderStyle, { backgroundColor: theme.colors.canvas.surface, flexDirection: flexRow(IS_RTL) }]}>
+      <Ionicons name={icon} size={20} color={focused ? theme.colors.brand.primary : theme.colors.text.muted} style={{ marginHorizontal: 4 }} />
       <View style={styles.inputWrapper}>
         <Animated.Text style={[styles.floatingLabel, animatedLabelStyle, { textAlign: TEXT_START }]}>
           {label}
@@ -90,7 +92,7 @@ function FloatingInput({ label, icon, secure, value, onChangeText, autoCapitaliz
           secureTextEntry={secure}
           autoCapitalize={autoCapitalize}
           keyboardType={keyboardType}
-          style={[styles.textInput, { color: c.ink, textAlign: IS_RTL ? "right" : "left", paddingTop: focused || value ? 8 : 0 }]}
+          style={[styles.textInput, { color: theme.colors.text.primary, textAlign: IS_RTL ? "right" : "left", paddingTop: focused || value ? 8 : 0 }]}
         />
       </View>
     </Animated.View>
@@ -98,7 +100,7 @@ function FloatingInput({ label, icon, secure, value, onChangeText, autoCapitaliz
 }
 
 export default function LoginScreen() {
-  const { c } = useDarkColors();
+  const { theme } = useTheme();
   const { t } = useTranslation();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -143,10 +145,10 @@ export default function LoginScreen() {
   };
 
   return (
-    <KeyboardAvoidingView style={[styles.root, { backgroundColor: c.canvas }]} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+    <KeyboardAvoidingView style={[styles.root, { backgroundColor: theme.colors.canvas.background }]} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <View style={[styles.topBar, { paddingTop: insets.top, flexDirection: flexRow(IS_RTL) }]}>
         <Pressable onPress={() => router.back()} style={styles.closeBtn}>
-          <Ionicons name="close" size={28} color={c.ink} />
+          <Ionicons name="close" size={28} color={theme.colors.text.primary} />
         </Pressable>
         <LangSwitcher />
       </View>
@@ -156,20 +158,20 @@ export default function LoginScreen() {
         {/* Massive Smart Hero */}
         <Animated.View entering={FadeInDown.duration(600).springify()} style={styles.heroSection}>
           <View style={styles.logoWrapper}>
-            <Animated.View style={[styles.halo, { backgroundColor: kit.color.accentTint }, animatedHalo]} />
+            <Animated.View style={[styles.halo, { backgroundColor: theme.colors.brand.primaryLight }, animatedHalo]} />
             <AppLogo size={80} />
           </View>
-          <UIText style={[styles.welcomeTitle, { color: c.ink }]}>{t("auth.welcomeBack", { defaultValue: "Welcome Back" })}</UIText>
-          <UIText style={[styles.welcomeSub, { color: c.inkSoft }]}>{t("auth.loginSubtitle", { defaultValue: "Sign in securely to your premium pharmacy experience." })}</UIText>
+          <UIText style={[styles.welcomeTitle, { color: theme.colors.text.primary }]}>{t("auth.welcomeBack", { defaultValue: "Welcome Back" })}</UIText>
+          <UIText style={[styles.welcomeSub, { color: theme.colors.text.secondary }]}>{t("auth.loginSubtitle", { defaultValue: "Sign in securely to your premium pharmacy experience." })}</UIText>
         </Animated.View>
 
         {/* Form Card */}
-        <Animated.View entering={FadeInDown.duration(600).delay(100).springify()} style={[styles.formCard, { backgroundColor: c.surface }]}>
+        <Animated.View entering={FadeInDown.duration(600).delay(100).springify()} style={[styles.formCard, { backgroundColor: theme.colors.canvas.surface }]}>
           
           {error ? (
-            <Animated.View entering={FadeIn.duration(200)} style={[styles.errorBox, { backgroundColor: kit.color.dangerTint, borderColor: kit.color.danger }]}>
-              <Ionicons name="alert-circle" size={20} color={kit.color.danger} />
-              <UIText style={[styles.errorText, { color: kit.color.danger }]}>{error}</UIText>
+            <Animated.View entering={FadeIn.duration(200)} style={[styles.errorBox, { backgroundColor: `${theme.colors.status.error}1A`, borderColor: theme.colors.status.error }]}>
+              <Ionicons name="alert-circle" size={20} color={theme.colors.status.error} />
+              <UIText style={[styles.errorText, { color: theme.colors.status.error }]}>{error}</UIText>
             </Animated.View>
           ) : null}
 
@@ -206,8 +208,8 @@ export default function LoginScreen() {
           />
 
           <View style={styles.biometricHint}>
-             <Ionicons name="scan-outline" size={16} color={c.inkFaint} />
-             <UIText style={[styles.biometricText, { color: c.inkFaint }]}>{t("auth.biometricHint", { defaultValue: "FaceID enabled for this device" })}</UIText>
+             <Ionicons name="scan-outline" size={16} color={theme.colors.text.muted} />
+             <UIText style={[styles.biometricText, { color: theme.colors.text.muted }]}>{t("auth.biometricHint", { defaultValue: "FaceID enabled for this device" })}</UIText>
           </View>
 
         </Animated.View>
@@ -221,7 +223,7 @@ export default function LoginScreen() {
         </Animated.View>
 
         <Animated.View entering={FadeIn.duration(800).delay(300)} style={styles.footerRow}>
-          <UIText style={[styles.footerText, { color: c.inkSoft }]}>{t("auth.noAccount", { defaultValue: "New to United Pharmacy?" })}</UIText>
+          <UIText style={[styles.footerText, { color: theme.colors.text.secondary }]}>{t("auth.noAccount", { defaultValue: "New to United Pharmacy?" })}</UIText>
           <Link href="/(auth)/register" asChild>
             <Pressable>
               <UIText style={styles.footerLink}>{t("auth.createAccount", { defaultValue: "Create Account" })}</UIText>
@@ -242,21 +244,21 @@ const styles = StyleSheet.create({
   heroSection: { alignItems: "center", marginBottom: 32 },
   logoWrapper: { width: 120, height: 120, alignItems: "center", justifyContent: "center", marginBottom: 24 },
   halo: { position: "absolute", width: 140, height: 140, borderRadius: 70 },
-  welcomeTitle: { fontFamily: theme.fonts.extrabold, fontSize: 28, marginBottom: 8, textAlign: "center" },
-  welcomeSub: { fontFamily: theme.fonts.regular, fontSize: 15, textAlign: "center", paddingHorizontal: 20, lineHeight: 22 },
-  formCard: { borderRadius: 24, padding: 24, marginBottom: 24, ...kit.shadow.raised },
+  welcomeTitle: { fontFamily: legacyTheme.fonts.extrabold, fontSize: 28, marginBottom: 8, textAlign: "center" },
+  welcomeSub: { fontFamily: legacyTheme.fonts.regular, fontSize: 15, textAlign: "center", paddingHorizontal: 20, lineHeight: 22 },
+  formCard: { borderRadius: 24, padding: 24, marginBottom: 24, ...theme.shadows[1] },
   inputContainer: { height: 64, borderRadius: 16, borderWidth: 1, alignItems: "center", paddingHorizontal: 16 },
   inputWrapper: { flex: 1, height: "100%", justifyContent: "center", position: "relative" },
-  floatingLabel: { position: "absolute", left: 0, fontFamily: theme.fonts.bold, fontSize: 15 },
-  textInput: { fontFamily: theme.fonts.bold, fontSize: 16, height: "100%", width: "100%" },
+  floatingLabel: { position: "absolute", left: 0, fontFamily: legacyTheme.fonts.bold, fontSize: 15 },
+  textInput: { fontFamily: legacyTheme.fonts.bold, fontSize: 16, height: "100%", width: "100%" },
   optionsRow: { justifyContent: "flex-end", marginTop: 12, marginBottom: 24 },
-  forgotText: { fontFamily: theme.fonts.bold, fontSize: 13, color: kit.color.accentDeep },
+  forgotText: { fontFamily: legacyTheme.fonts.bold, fontSize: 13, color: theme.colors.brand.primary },
   loginBtn: { height: 56, borderRadius: 16 },
   biometricHint: { flexDirection: "row", alignItems: "center", justifyContent: "center", marginTop: 16, gap: 6 },
-  biometricText: { fontFamily: theme.fonts.medium, fontSize: 12 },
+  biometricText: { fontFamily: legacyTheme.fonts.medium, fontSize: 12 },
   errorBox: { flexDirection: "row", alignItems: "center", padding: 12, borderRadius: 12, borderWidth: 1, gap: 8, marginBottom: 16 },
-  errorText: { flex: 1, fontFamily: theme.fonts.bold, fontSize: 13 },
+  errorText: { flex: 1, fontFamily: legacyTheme.fonts.bold, fontSize: 13 },
   footerRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", marginTop: 32, gap: 6 },
-  footerText: { fontFamily: theme.fonts.medium, fontSize: 14 },
-  footerLink: { fontFamily: theme.fonts.bold, fontSize: 14, color: kit.color.accentDeep },
+  footerText: { fontFamily: legacyTheme.fonts.medium, fontSize: 14 },
+  footerLink: { fontFamily: legacyTheme.fonts.bold, fontSize: 14, color: theme.colors.brand.primary },
 });

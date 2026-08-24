@@ -1,3 +1,4 @@
+import { defaultTheme as theme } from "@pharmacy/ui-native";
 /**
  * InventoryIntelligenceScreen — pharmacist inventory intelligence dashboard.
  *
@@ -49,8 +50,8 @@ import Animated, { FadeInDown } from "react-native-reanimated";
 
 
 
-import { Screen, Text as UIText } from "@pharmacy/ui-native";
-import { useDarkColors } from "@/hooks/useDarkColors";
+import { Screen, Text as UIText, EmptyState } from "@pharmacy/ui-native";
+import { useTheme, type NativeTheme } from "@pharmacy/ui-native";
 
 import { kit }                    from "@pharmacy/ui-native";
 
@@ -76,7 +77,6 @@ import { pharmacistQueryKeys } from "../hooks/queryKeys";
 
 import { PharmacistScreenHeader } from "../components/PharmacistScreenHeader";
 
-import EmptyState from "@/components/EmptyState";
 
 import type { PharmacistProduct } from "../api/types";
 
@@ -96,7 +96,7 @@ type InventoryTab = "lowstock" | "search" | "outofstock";
 
 
 
-function urgencyColor(available: number, colors: ReturnType<typeof useDarkColors>): string {
+function urgencyColor(available: number, colors: NativeTheme["colors"]): string {
 
   if (available === 0) return colors.danger;
 
@@ -130,7 +130,7 @@ function ProductCard({
 
   onScan:  (barcode: string) => void;
 
-  colors: ReturnType<typeof useDarkColors>;
+  colors: NativeTheme["colors"];
 
 }) {
 
@@ -304,7 +304,7 @@ function ProductCard({
 
 export function InventoryIntelligenceScreen(): React.ReactElement {
 
-  const { c } = useDarkColors();
+  const { theme } = useTheme();
 
   const { t }       = useTranslation();
 
@@ -430,7 +430,7 @@ export function InventoryIntelligenceScreen(): React.ReactElement {
 
   return (
 
-    <Screen edgeTop background={c.canvas}>
+    <Screen edgeTop background={theme.colors.canvas.background}>
 
       <PharmacistScreenHeader
 
@@ -452,7 +452,7 @@ export function InventoryIntelligenceScreen(): React.ReactElement {
 
           >
 
-            <Ionicons name="barcode-outline" size={18} color={c.accentDeep} />
+            <Ionicons name="barcode-outline" size={18} color={theme.colors.brand.primary} />
 
           </Pressable>
 
@@ -464,9 +464,9 @@ export function InventoryIntelligenceScreen(): React.ReactElement {
 
       {/* Search bar — always visible */}
 
-      <View style={[styles.searchBar, { flexDirection: flexRow(IS_RTL), backgroundColor: c.well, borderColor: c.line }]}>
+      <View style={[styles.searchBar, { flexDirection: flexRow(IS_RTL), backgroundColor: theme.colors.canvas.surfaceMuted, borderColor: theme.colors.border.default }]}>
 
-        <Ionicons name="search-outline" size={16} color={c.inkFaint} />
+        <Ionicons name="search-outline" size={16} color={theme.colors.text.muted} />
 
         <TextInput
 
@@ -476,13 +476,13 @@ export function InventoryIntelligenceScreen(): React.ReactElement {
 
           placeholder={t('pharmacist.inventorySearch')}
 
-          placeholderTextColor={c.inkFaint}
+          placeholderTextColor={theme.colors.text.muted}
 
           autoCorrect={false}
 
           autoCapitalize="none"
 
-          style={[styles.searchInput, { color: c.ink }]}
+          style={[styles.searchInput, { color: theme.colors.text.primary }]}
 
           returnKeyType="search"
 
@@ -492,7 +492,7 @@ export function InventoryIntelligenceScreen(): React.ReactElement {
 
           <Pressable onPress={() => { setRawQuery(''); setTab('lowstock'); }} hitSlop={8}>
 
-            <Ionicons name="close-circle" size={16} color={c.inkFaint} />
+            <Ionicons name="close-circle" size={16} color={theme.colors.text.muted} />
 
           </Pressable>
 
@@ -534,13 +534,13 @@ export function InventoryIntelligenceScreen(): React.ReactElement {
 
               }}
 
-              style={[styles.tab, active && styles.tabActive, { backgroundColor: active ? c.accent : c.well, borderColor: active ? c.accent : c.line }]}
+              style={[styles.tab, active && styles.tabActive, { backgroundColor: active ? theme.colors.brand.primary : theme.colors.canvas.surfaceMuted, borderColor: active ? theme.colors.brand.primary : theme.colors.border.default }]}
 
               accessibilityRole="button"
 
             >
 
-              <UIText style={[styles.tabText, active && styles.tabTextActive, { color: active ? c.white : c.inkSoft }]}>                {labels[tabKey]}
+              <UIText style={[styles.tabText, active && styles.tabTextActive, { color: active ? theme.colors.text.inverse : theme.colors.text.secondary }]}>                {labels[tabKey]}
 
               </UIText>
 
@@ -574,9 +574,9 @@ export function InventoryIntelligenceScreen(): React.ReactElement {
 
             onRefresh={onRefresh}
 
-            tintColor={c.accent}
+            tintColor={theme.colors.brand.primary}
 
-            colors={[c.accent]}
+            colors={[theme.colors.brand.primary]}
 
           />
 
@@ -584,7 +584,7 @@ export function InventoryIntelligenceScreen(): React.ReactElement {
 
         renderItem={({ item, index }) => (
 
-          <ProductCard product={item} index={index} onScan={handleScan} colors={c} />
+          <ProductCard product={item} index={index} onScan={handleScan} colors={theme.colors} />
 
         )}
 
@@ -596,7 +596,7 @@ export function InventoryIntelligenceScreen(): React.ReactElement {
 
             <View style={styles.empty}>
 
-              <ActivityIndicator size="large" color={c.accent} />
+              <ActivityIndicator size="large" color={theme.colors.brand.primary} />
 
             </View>
 
@@ -610,9 +610,7 @@ export function InventoryIntelligenceScreen(): React.ReactElement {
 
               subtitle={t("errors.network")}
 
-              actionLabel={t("common.retry")}
-
-              onAction={() => void onRefresh()}
+              action={{ label: t("common.retry"), onPress: () => void onRefresh() }}
 
             />
 
@@ -646,11 +644,11 @@ const styles = StyleSheet.create({
 
     width: 38, height: 38, borderRadius: 12,
 
-    backgroundColor: kit.color.accentTint,
+    backgroundColor: theme.colors.brand.primaryLight,
 
     alignItems: "center", justifyContent: "center",
 
-    borderWidth: 1, borderColor: kit.color.accentDeep,
+    borderWidth: 1, borderColor: theme.colors.brand.primary,
 
   },
 
@@ -768,13 +766,13 @@ const styles = StyleSheet.create({
 
     borderTopWidth: StyleSheet.hairlineWidth,
 
-    borderTopColor: kit.color.line,
+    borderTopColor: theme.colors.border.default,
 
   },
 
   stockCell:   { flex: 1, alignItems: "center", borderRadius: 10, paddingVertical: 8 },
 
-  stockValue:  { fontSize: 18, fontFamily: "Cairo_900Black", color: kit.color.ink },
+  stockValue:  { fontSize: 18, fontFamily: "Cairo_900Black", color: theme.colors.text.primary },
 
   stockLabel:  { fontSize: 9,  fontFamily: "Cairo_700Bold",  marginTop: 2 },
 
@@ -802,7 +800,7 @@ const styles = StyleSheet.create({
 
     borderRadius:      12,
 
-    backgroundColor:   kit.color.accentTint,
+    backgroundColor:   theme.colors.brand.primaryLight,
 
   },
 

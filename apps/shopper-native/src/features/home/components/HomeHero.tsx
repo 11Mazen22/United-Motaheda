@@ -1,3 +1,4 @@
+import { defaultTheme as theme } from "@pharmacy/ui-native";
 import React, { memo, useMemo } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
@@ -5,7 +6,7 @@ import { Ionicons } from "@expo/vector-icons";
 
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { useTranslation } from "react-i18next";
-import { CustomerUI, kit } from "@pharmacy/ui-native";
+import { CustomerUI } from "@pharmacy/ui-native";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
 import { useScreenLayout } from "@/utils/responsive";
 import { useAuth } from "@/features/auth";
@@ -35,7 +36,7 @@ export const HomeHero = memo(function HomeHero({ onScanRx, onDeals, onSearch, on
     <View style={styles.container}>
       {/* Background Deep Luxury Gradient */}
       <LinearGradient
-        colors={[kit.color.accentDeep, kit.color.accent, kit.color.surface]}
+        colors={[theme.colors.brand.primary, theme.colors.brand.primary, theme.colors.canvas.surface]}
         locations={[0, 0.4, 1]}
         style={StyleSheet.absoluteFillObject}
       />
@@ -52,7 +53,7 @@ export const HomeHero = memo(function HomeHero({ onScanRx, onDeals, onSearch, on
 
         <Pressable onPress={onSearch} style={styles.searchBox}>
           <View style={[styles.searchInner, { flexDirection: flexRow(IS_RTL) }]}>
-            <Ionicons name="search" size={20} color={kit.color.inkSoft} />
+            <Ionicons name="search" size={20} color={theme.colors.text.secondary} />
             <CustomerUI.Typography scale="buttonMd" color="muted" style={{ marginHorizontal: 12, flex: 1, textAlign: textAlignStart(IS_RTL) }}>
               {t("home.searchPlaceholder", "Search medicines, products...")}
             </CustomerUI.Typography>
@@ -114,7 +115,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   scanBtn: {
-    backgroundColor: kit.color.accent,
+    backgroundColor: theme.colors.brand.primary,
     width: 36,
     height: 36,
     borderRadius: 18,

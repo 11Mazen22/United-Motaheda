@@ -1,5 +1,5 @@
 /**
- * Deals screen ?" O1OU^O  O-OOUSOc (Exclusive Offers).
+ * Deals screen — عروض حصرية (Exclusive Offers).
  * Shows all products that currently have an active promotion / sale price.
  */
 
@@ -17,12 +17,11 @@ import { useTranslation } from "react-i18next";
 import { Ionicons } from "@expo/vector-icons";
 import { StatusBar } from "expo-status-bar";
 
-import { CustomerUI } from "@pharmacy/ui-native";
+import { Text, EmptyState, ErrorState, Skeleton, useTheme } from "@pharmacy/ui-native";
 import { BACK_CHEVRON, isRtl, textAlignStart } from "@/utils/layout";
 import { useScreenLayout } from "@/utils/responsive";
 import { useInfiniteProducts } from "@/features/products";
 import { ProductCard } from "@/components/ProductCard";
-import { SkeletonCard } from "@/features/orders/components/OrderCard";
 
 const IS_RTL = isRtl();
 const TEXT_START = textAlignStart(IS_RTL);
@@ -34,7 +33,7 @@ export default function DealsScreen() {
   const { t, i18n } = useTranslation();
   const insets = useSafeAreaInsets();
   const { pagePad } = useScreenLayout();
-  const theme = CustomerUI.useLuxuryTheme();
+  const { theme, isDark } = useTheme();
   const lang = (i18n.language === "en" ? "en" : "ar") as "ar" | "en";
 
   const {
@@ -56,44 +55,44 @@ export default function DealsScreen() {
     (id: string) => router.push({ pathname: "/(customer)/(shop)/product/[id]" as unknown as never, params: { id } }),
     [router],
   );
+  const retry = useCallback(async () => { await refetch(); }, [refetch]);
 
   return (
-    <View style={[s.screen, { backgroundColor: theme.colors.canvas }]}>
-      <StatusBar style={theme.isDark ? "light" : "dark"} />
+    <View style={[s.screen, { backgroundColor: theme.colors.canvas.background }]}>
+      <StatusBar style={isDark ? "light" : "dark"} />
 
-      {/* Header */}
-      <View style={[s.header, { paddingTop: insets.top + 10, backgroundColor: theme.colors.surface, borderBottomColor: theme.colors.line }]}>
+      <View style={[s.header, { paddingTop: insets.top + 10, backgroundColor: theme.colors.canvas.surface, borderBottomColor: theme.colors.border.default }]}>
         <Pressable
           onPress={() => router.back()}
           hitSlop={12}
           accessibilityRole="button"
-          style={[s.backBtn, { backgroundColor: theme.colors.background, borderColor: theme.colors.line }]}
+          accessibilityLabel={t("common.back")}
+          style={[s.backBtn, { backgroundColor: theme.colors.canvas.background, borderColor: theme.colors.border.default }]}
         >
-          <Ionicons name={BACK_CHEVRON} size={20} color={theme.colors.ink} />
+          <Ionicons name={BACK_CHEVRON} size={20} color={theme.colors.text.primary} />
         </Pressable>
         <View style={s.headerText}>
-          <CustomerUI.Typography variant="h3" weight="black" color={theme.colors.ink} style={{ textAlign: TEXT_START }}>
+          <Text variant="h3" style={{ color: theme.colors.text.primary, textAlign: TEXT_START }}>
              {t("home.flashTitle")}
-          </CustomerUI.Typography>
+          </Text>
           {products.length > 0 && (
-            <CustomerUI.Typography variant="caption" color={theme.colors.inkFaint} style={{ textAlign: TEXT_START }}>
+            <Text variant="caption" style={{ color: theme.colors.text.muted, textAlign: TEXT_START }}>
               {products.length} {t("common.products", "products")}
-            </CustomerUI.Typography>
+            </Text>
           )}
         </View>
       </View>
 
-      {/* Content */}
       {isLoading ? (
         <View style={[s.skeletonGrid, { paddingHorizontal: pagePad }]}>
           {[1, 2, 3, 4, 5, 6].map((i) => (
             <View key={i} style={s.skeletonItem}>
-              <SkeletonCard />
+              <Skeleton width="100%" height={220} borderRadius={16} />
             </View>
           ))}
         </View>
       ) : isError ? (
-        <CustomerUI.ErrorState message={t("errors.network")} retry={() => refetch()} />
+        <ErrorState message={t("errors.network")} retry={retry} />
       ) : (
         <FlashList
           data={products}
@@ -127,13 +126,13 @@ export default function DealsScreen() {
             <RefreshControl
               refreshing={isLoading}
               onRefresh={refetch}
-              tintColor={theme.colors.accentDeep}
-              colors={[theme.colors.accentDeep]}
+              tintColor={theme.colors.brand.primary}
+              colors={[theme.colors.brand.primary]}
             />
           }
           ListEmptyComponent={
-            <CustomerUI.EmptyState 
-                icon="pricetag-outline"
+            <EmptyState
+                illustrationName="empty"
                 title={t("home.flashNoDeals", "No active deals right now")}
             />
           }

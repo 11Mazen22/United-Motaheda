@@ -1,29 +1,50 @@
-import React, { useCallback, useState } from "react";
-import { View, ScrollView, RefreshControl, Pressable, StyleSheet } from "react-native";
+import React, { useCallback, useMemo, useState } from "react";
+import { RefreshControl, StyleSheet, View } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
-import Animated, { SlideInRight } from "react-native-reanimated";
-import { useDarkColors } from "@/hooks/useDarkColors";
+import Animated, { FadeInDown } from "react-native-reanimated";
+
+import {
+  Screen,
+  Text,
+  Card,
+  Chip,
+  Avatar,
+  EmptyState,
+  ErrorState,
+  SkeletonCard,
+  StatusIndicator,
+  useTheme,
+} from "@pharmacy/ui-native";
+
 import { useAuth } from "@/features/auth";
 import { isRtl, flexRow } from "@/utils/layout";
 
 import { usePharmacistOrderQueue, usePharmacistDashboard, useAllPrescriptions } from "../hooks/usePharmacistQueries";
 import { pharmacistQueryKeys } from "../hooks/queryKeys";
 import { OrderQueueCard } from "../components/OrderQueueCard";
-import { PharmacistUI as PUI } from "@pharmacy/ui-native";
 
 const IS_RTL = isRtl();
 
+function timeAgo(iso: string, t: (k: string, opts?: Record<string, unknown>) => string): string {
+  const diffMin = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 60_000));
+  if (diffMin < 1) return t("pharmacist.submittedAt", { time: "<1m" });
+  if (diffMin < 60) return t("pharmacist.submittedAt", { time: `${diffMin}m` });
+  const hrs = Math.floor(diffMin / 60);
+  if (hrs < 24) return t("pharmacist.submittedAt", { time: `${hrs}h` });
+  return t("pharmacist.submittedAt", { time: `${Math.floor(hrs / 24)}d` });
+}
+
 export function WorkbenchScreen(): React.ReactElement {
   const { t } = useTranslation();
-  const { c } = useDarkColors();
+  const { theme } = useTheme();
   const router = useRouter();
   const { user } = useAuth();
   const qc = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
-  const [activeTab, setActiveTab] = useState<'orders' | 'prescriptions'>('orders');
+  const [activeTab, setActiveTab] = useState<"orders" | "prescriptions">("orders");
 
   const queueQ = usePharmacistOrderQueue();
   const statsQ = usePharmacistDashboard();
@@ -32,6 +53,9 @@ export function WorkbenchScreen(): React.ReactElement {
   const stats = statsQ.data;
   const orders = queueQ.data ?? [];
   const pendingRx = rxQ.data ?? [];
+  const isLive = queueQ.isFetching || statsQ.isFetching || rxQ.isFetching;
+
+  const activeQuery = activeTab === "orders" ? queueQ : rxQ;
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -43,112 +67,169 @@ export function WorkbenchScreen(): React.ReactElement {
     setRefreshing(false);
   }, [qc]);
 
+  const initials = useMemo(() => (user?.name?.trim()?.[0] ?? "P").toUpperCase(), [user?.name]);
+
   return (
-    <View style={[styles.container, { backgroundColor: c.canvas }]}>
-      {/* Operational Header */}
-      <View style={[styles.header, { backgroundColor: c.surface, borderBottomColor: c.line }]}>
+    <Screen edgeTop background={theme.colors.canvas.background} scroll={false}>
+      {/* Header */}
+      <View style={[styles.header, { backgroundColor: theme.colors.canvas.surface, borderBottomColor: theme.colors.border.default }]}>
         <View style={[styles.headerTop, { flexDirection: flexRow(IS_RTL) }]}>
-          <View>
-            <PUI.Typography scale="caption" color="secondary" style={{ letterSpacing: 1.5, marginBottom: 4 }}>{t("pharmacist.station", "STATION 01 • ACTIVE")}</PUI.Typography>
-            <PUI.Typography scale="screenTitle" color="primary">{t("pharmacist.workbench", "Workbench")}</PUI.Typography>
+          <View style={{ flex: 1 }}>
+            <View style={[styles.liveRow, { flexDirection: flexRow(IS_RTL) }]}>
+              <StatusIndicator active={isLive} pulse={isLive} />
+              <Text variant="eyebrow" color="brand" style={styles.eyebrowSpacing}>
+                {isLive ? t("pharmacist.liveQueue", "Live") : t("pharmacist.eyebrow")}
+              </Text>
+            </View>
+            <Text variant="screen-title" color="primary">{t("pharmacist.workbench", "Workbench")}</Text>
           </View>
-          <View style={[styles.avatar, { backgroundColor: c.accent }]}>
-            <PUI.Typography scale="badge" color="inverse">{user?.name?.[0] ?? 'P'}</PUI.Typography>
-          </View>
+          <Avatar initials={initials} size="md" status={isLive ? "online" : undefined} />
         </View>
 
-        {/* Metric Cards */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.metricsScroll}>
-          <PUI.Card padding="md" style={styles.metricCard}>
-            <PUI.Typography scale="metric" color="danger">{stats?.pendingPayment ?? 0}</PUI.Typography>
-            <PUI.Typography scale="caption" color="secondary">{t("pharmacist.pendingOrders", "Pending")}</PUI.Typography>
-          </PUI.Card>
-          <PUI.Card padding="md" style={styles.metricCard}>
-            <PUI.Typography scale="metric" color="warn">{stats?.preparing ?? 0}</PUI.Typography>
-            <PUI.Typography scale="caption" color="secondary">{t("pharmacist.processing", "Processing")}</PUI.Typography>
-          </PUI.Card>
-          <PUI.Card padding="md" style={styles.metricCard}>
-            <PUI.Typography scale="metric" color="brand">{pendingRx.length}</PUI.Typography>
-            <PUI.Typography scale="caption" color="secondary">{t("pharmacist.rxReviews", "Rx Reviews")}</PUI.Typography>
-          </PUI.Card>
-        </ScrollView>
+        {/* Metric cards */}
+        <View style={[styles.metricsRow, { flexDirection: flexRow(IS_RTL) }]}>
+          <Card padding="md" style={styles.metricCard}>
+            <Text variant="metric" color="brand">{stats?.activeOrders ?? 0}</Text>
+            <Text variant="caption" color="secondary">{t("pharmacist.statActiveOrders")}</Text>
+          </Card>
+          <Card padding="md" style={styles.metricCard}>
+            <Text variant="metric" color="warn">{stats?.preparing ?? 0}</Text>
+            <Text variant="caption" color="secondary">{t("pharmacist.statPreparing")}</Text>
+          </Card>
+          <Card padding="md" style={styles.metricCard}>
+            <Text variant="metric" color="danger">{pendingRx.length}</Text>
+            <Text variant="caption" color="secondary">{t("pharmacist.statPendingRx")}</Text>
+          </Card>
+        </View>
       </View>
 
-      {/* Segmented Control */}
-      <View style={[styles.segmentContainer, { backgroundColor: c.well }]}>
-        <PUI.Chip
-          label={t("pharmacist.orderQueue", "Order Queue")}
-          selected={activeTab === 'orders'}
+      {/* Segmented control */}
+      <View style={[styles.segmentContainer, { flexDirection: flexRow(IS_RTL), backgroundColor: theme.colors.canvas.surfaceMuted }]}>
+        <Chip
+          label={t("pharmacist.orderQueueTitle")}
+          selected={activeTab === "orders"}
           selectable
-          onPress={() => setActiveTab('orders')}
+          onPress={() => setActiveTab("orders")}
           style={styles.segmentBtn}
         />
-        <PUI.Chip
-          label={t("pharmacist.prescriptions", "Prescriptions")}
-          selected={activeTab === 'prescriptions'}
+        <Chip
+          label={t("pharmacist.rxQueueTitle")}
+          selected={activeTab === "prescriptions"}
           selectable
-          onPress={() => setActiveTab('prescriptions')}
+          onPress={() => setActiveTab("prescriptions")}
           style={styles.segmentBtn}
         />
       </View>
 
-      {/* Data Feed */}
-      <ScrollView
-        style={styles.feed}
-        contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={c.accent} />}
-      >
-        {activeTab === 'orders' ? (
-          orders.length === 0 ? (
-             <PUI.EmptyState title={t("pharmacist.queueClear", "Queue Clear")} subtitle={t("pharmacist.noPending", "No pending orders to process.")} />
-          ) : (
-            orders.map((o, i) => (
-              <Animated.View key={o.id} entering={SlideInRight.delay(i * 50).springify()}>
-                <OrderQueueCard order={o} onPress={() => router.push(`/(pharmacist)/order/${o.id}`)} />
-              </Animated.View>
-            ))
-          )
-        ) : (
-          pendingRx.length === 0 ? (
-            <PUI.EmptyState title={t("pharmacist.noPrescriptions", "No Prescriptions")} subtitle={t("pharmacist.allReviewed", "All prescriptions have been reviewed.")} />
+      {/* Data feed */}
+      {activeQuery.isLoading ? (
+        <View style={styles.feedContent}>
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
+        </View>
+      ) : activeQuery.isError ? (
+        <ErrorState
+          message={t("common.error")}
+          retry={() => { void activeQuery.refetch(); }}
+        />
+      ) : (
+        <Animated.ScrollView
+          style={styles.feed}
+          contentContainerStyle={styles.feedContent}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.colors.brand.primary} />}
+        >
+          {activeTab === "orders" ? (
+            orders.length === 0 ? (
+              <EmptyState title={t("pharmacist.emptyQueueTitle")} subtitle={t("pharmacist.emptyQueueBody")} />
+            ) : (
+              orders.map((o, i) => (
+                <Animated.View key={o.id} entering={FadeInDown.delay(i * 40).duration(260)} style={styles.cardSpacing}>
+                  <OrderQueueCard order={o} onPress={() => router.push(`/(pharmacist)/order/${o.id}`)} />
+                </Animated.View>
+              ))
+            )
+          ) : pendingRx.length === 0 ? (
+            <EmptyState title={t("pharmacist.emptyRxTitle")} subtitle={t("pharmacist.emptyRxBody")} />
           ) : (
             pendingRx.map((rx, i) => (
-              <Animated.View key={rx.id} entering={SlideInRight.delay(i * 50).springify()}>
-                <Pressable
-                  onPress={() => router.push(`/(pharmacist)/prescription/${rx.id}`)}
-                  style={({ pressed }) => [
-                    styles.rxCard,
-                    { backgroundColor: pressed ? c.well : c.surface, borderColor: c.line }
-                  ]}
-                >
-                  <View style={[styles.rxIcon, { backgroundColor: c.accentTint }]}>
-                    <Ionicons name="document-text" size={24} color={c.accentDeep} />
+              <Animated.View key={rx.id} entering={FadeInDown.delay(i * 40).duration(260)} style={styles.cardSpacing}>
+                <Card onPress={() => router.push(`/(pharmacist)/prescription/${rx.id}`)} padding="md">
+                  <View style={[styles.rxRow, { flexDirection: flexRow(IS_RTL) }]}>
+                    <View style={[styles.rxIcon, { backgroundColor: theme.colors.brand.primaryLight }]}>
+                      <Ionicons name="document-text" size={22} color={theme.colors.brand.primary} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text variant="card-title" color="primary" numberOfLines={1}>{rx.customerName || rx.name}</Text>
+                      <Text variant="caption" color="secondary">{timeAgo(rx.createdAt, t)}</Text>
+                    </View>
+                    <Ionicons name={IS_RTL ? "chevron-back" : "chevron-forward"} size={18} color={theme.colors.text.muted} />
                   </View>
-                  <View style={{ flex: 1, paddingHorizontal: 12 }}>
-                    <PUI.Typography scale="sectionHead" color="primary">{rx.customerName || rx.name}</PUI.Typography>
-                    <PUI.Typography scale="caption" color="secondary">{t("pharmacist.submitted", "Submitted")}: {new Date(rx.createdAt).toLocaleTimeString()}</PUI.Typography>
-                  </View>
-                  <Ionicons name="chevron-forward" size={20} color={c.inkFaint} />
-                </Pressable>
+                </Card>
               </Animated.View>
             ))
-          )
-        )}
-      </ScrollView>
-    </View>
+          )}
+        </Animated.ScrollView>
+      )}
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  header: { paddingTop: 60, paddingBottom: 16, borderBottomWidth: 1 },
-  headerTop: { paddingHorizontal: 20, justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
-  avatar: { width: 40, height: 40, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
-  metricsScroll: { paddingHorizontal: 16, gap: 12 },
-  metricCard: { width: 140 },
-  segmentContainer: { flexDirection: 'row', margin: 16, borderRadius: 8, padding: 4 },
-  segmentBtn: { flex: 1 },
-  feed: { flex: 1 },
-  rxCard: { padding: 16, borderRadius: 16, flexDirection: 'row', alignItems: 'center', marginBottom: 12, borderWidth: 1 },
-  rxIcon: { width: 48, height: 48, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  header: {
+    paddingHorizontal: 20,
+    paddingBottom: 16,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    gap: 16,
+  },
+  headerTop: {
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingTop: 12,
+  },
+  liveRow: {
+    alignItems: "center",
+    gap: 6,
+    marginBottom: 4,
+  },
+  eyebrowSpacing: {
+    letterSpacing: 1,
+  },
+  metricsRow: {
+    gap: 10,
+  },
+  metricCard: {
+    flex: 1,
+  },
+  segmentContainer: {
+    margin: 16,
+    borderRadius: 12,
+    padding: 4,
+    gap: 8,
+  },
+  segmentBtn: {
+    flex: 1,
+  },
+  feed: {
+    flex: 1,
+  },
+  feedContent: {
+    paddingHorizontal: 16,
+    paddingBottom: 100,
+  },
+  cardSpacing: {
+    marginBottom: 12,
+  },
+  rxRow: {
+    alignItems: "center",
+    gap: 12,
+  },
+  rxIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+  },
 });

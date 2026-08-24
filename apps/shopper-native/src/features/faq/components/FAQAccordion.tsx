@@ -28,7 +28,8 @@ import Animated, {
 
 } from "react-native-reanimated";
 
-import { theme } from "@pharmacy/design-tokens";
+import { theme as legacyTheme } from "@pharmacy/design-tokens";
+import { defaultTheme as theme } from "@pharmacy/ui-native";
 
 import { kit } from "@pharmacy/ui-native";
 
@@ -156,7 +157,7 @@ export const FAQAccordion = memo(function FAQAccordion({
 
               size={14}
 
-              color={expanded ? kit.color.accent : kit.color.slate[400]}
+              color={expanded ? theme.colors.brand.primary : kit.color.slate[400]}
 
             />
 
@@ -216,15 +217,15 @@ const styles = StyleSheet.create({
 
     borderColor: kit.color.border.default,
 
-    ...theme.shadow.xs,
+    ...theme.shadows[0],
 
   },
 
   cardExpanded: {
 
-    borderColor: kit.color.accentTint,
+    borderColor: theme.colors.brand.primaryLight,
 
-    ...theme.shadow.sm,
+    ...theme.shadows[0],
 
   },
 
@@ -256,7 +257,7 @@ const styles = StyleSheet.create({
 
     fontSize:   14,                        // bumped from 13 → more readable
 
-    fontFamily: theme.fonts.black,         // bold by default (was: bold)
+    fontFamily: legacyTheme.fonts.black,         // bold by default (was: bold)
 
     color:      kit.color.text.primary, // was slate[700]
 
@@ -268,7 +269,7 @@ const styles = StyleSheet.create({
 
   questionExpanded: {
 
-    color: kit.color.accentDeep,        // accent tint when open
+    color: theme.colors.brand.primary,        // accent tint when open
 
   },
 
@@ -290,7 +291,7 @@ const styles = StyleSheet.create({
 
   chevronWrapExpanded: {
 
-    backgroundColor: kit.color.accentTint,
+    backgroundColor: theme.colors.brand.primaryLight,
 
   },
 
@@ -314,7 +315,7 @@ const styles = StyleSheet.create({
 
     fontSize:   13,
 
-    fontFamily: theme.fonts.regular,
+    fontFamily: legacyTheme.fonts.regular,
 
     color:      kit.color.text.muted,   // softer hierarchy vs question (kit.color.text.muted)
 
@@ -342,7 +343,7 @@ const styles = StyleSheet.create({
 
     fontSize: 9,
 
-    fontFamily: theme.fonts.bold,
+    fontFamily: legacyTheme.fonts.bold,
 
   },
 

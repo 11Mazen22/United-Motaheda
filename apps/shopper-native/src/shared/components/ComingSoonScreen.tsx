@@ -16,7 +16,7 @@
 
 
 
-import { kit } from "@pharmacy/ui-native";
+
 
 import React from "react";
 
@@ -30,7 +30,8 @@ import { AppHeader } from "./AppHeader";
 
 import { Text } from "@pharmacy/ui-native";
 
-import { theme } from "@pharmacy/design-tokens";
+import { theme as legacyTheme } from "@pharmacy/design-tokens";
+import { defaultTheme as theme } from "@pharmacy/ui-native";
 
 
 
@@ -68,7 +69,7 @@ export function ComingSoonScreen({
 
         <View style={styles.iconWrap}>
 
-          <Ionicons name={icon} size={32} color={kit.color.accent} />
+          <Ionicons name={icon} size={32} color={theme.colors.brand.primary} />
 
         </View>
 
@@ -102,7 +103,7 @@ const styles = StyleSheet.create({
 
     flex: 1,
 
-    backgroundColor: kit.color.canvas,
+    backgroundColor: theme.colors.canvas.background,
 
   },
 
@@ -114,9 +115,9 @@ const styles = StyleSheet.create({
 
     justifyContent: "center",
 
-    padding:        theme.layout.pagePaddingH,
+    padding:        legacyTheme.layout.pagePaddingH,
 
-    gap:            theme.spacing[1.5],
+    gap:            6,
 
   },
 
@@ -126,9 +127,9 @@ const styles = StyleSheet.create({
 
     height:          72,
 
-    borderRadius:    theme.radius["2xl"],
+    borderRadius:    theme.radii["2xl"],
 
-    backgroundColor: kit.color.accentTint,
+    backgroundColor: theme.colors.brand.primaryLight,
 
     alignItems:      "center",
 

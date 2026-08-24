@@ -36,7 +36,8 @@ import Animated, {
 
 } from "react-native-reanimated";
 
-import { theme } from "@pharmacy/design-tokens";
+import { theme as legacyTheme } from "@pharmacy/design-tokens";
+import { defaultTheme as theme } from "@pharmacy/ui-native";
 
 import { kit } from "@pharmacy/ui-native";
 
@@ -112,7 +113,7 @@ export function Input({
 
   const lineCount   = numberOfLines ?? 1;
 
-  const lineHeight  = 22; // matches theme.typography.size.lg line height
+  const lineHeight  = 22; // matches legacyTheme.typography.size.lg line height
 
   const verticalPad = 12;
 
@@ -120,7 +121,7 @@ export function Input({
 
     ? lineHeight * lineCount + verticalPad * 2
 
-    : theme.layout.inputHeight;
+    : legacyTheme.layout.inputHeight;
 
 
 
@@ -140,9 +141,9 @@ export function Input({
 
       [
 
-        error ? kit.color.danger : kit.color.line,
+        error ? theme.colors.status.error : theme.colors.border.default,
 
-        error ? kit.color.danger : kit.color.accentDeep,
+        error ? theme.colors.status.error : theme.colors.brand.primary,
 
       ],
 
@@ -192,19 +193,19 @@ export function Input({
 
           <UIText style={{
 
-            fontSize:           theme.fontSize.sm,
+            fontSize:           theme.typography.sizes[14],
 
-            fontFamily:         theme.fonts.bold,
+            fontFamily:         legacyTheme.fonts.bold,
 
             color:              error
 
-              ? kit.color.danger
+              ? theme.colors.status.error
 
               : focused
 
-              ? kit.color.accentDeep
+              ? theme.colors.brand.primary
 
-              : kit.color.inkSoft,
+              : theme.colors.text.secondary,
 
             textAlign:          textAlignStart(_isRtl),
 
@@ -222,11 +223,11 @@ export function Input({
 
             <UIText style={{
 
-              fontSize:           theme.fontSize.xs,
+              fontSize:           theme.typography.sizes[12],
 
-              fontFamily:         theme.fonts.regular,
+              fontFamily:         legacyTheme.fonts.regular,
 
-              color:              kit.color.inkFaint,
+              color:              theme.colors.text.muted,
 
               includeFontPadding: false,
 
@@ -260,9 +261,9 @@ export function Input({
 
             minHeight,
 
-            borderRadius:      kit.radius.control,
+            borderRadius:      10,
 
-            backgroundColor:   focused ? kit.color.surface : kit.color.well,
+            backgroundColor:   focused ? theme.colors.canvas.surface : theme.colors.canvas.surfaceMuted,
 
             paddingHorizontal: 14,
 
@@ -270,7 +271,7 @@ export function Input({
 
             gap:               10,
 
-            ...(focused && !error ? theme.shadow.brandGlow : theme.shadow.xs),
+            ...(focused && !error ? kit.shadow.brandGlow : theme.shadows[0]),
 
           },
 
@@ -298,11 +299,11 @@ export function Input({
 
             flex:           1,
 
-            fontSize:       theme.fontSize.md,
+            fontSize:       theme.typography.sizes[16],
 
-            fontFamily:     theme.fonts.regular,
+            fontFamily:     legacyTheme.fonts.regular,
 
-            color:          kit.color.ink,
+            color:          theme.colors.text.primary,
 
             textAlign:      textAlignStart(_isRtl),
 
@@ -328,7 +329,7 @@ export function Input({
 
           numberOfLines={numberOfLines}
 
-          placeholderTextColor={kit.color.inkFaint}
+          placeholderTextColor={theme.colors.text.muted}
 
           onFocus={handleFocus}
 
@@ -362,11 +363,11 @@ export function Input({
 
         <UIText style={{
 
-          fontSize:  theme.fontSize.xs,
+          fontSize:  theme.typography.sizes[12],
 
-          fontFamily: theme.fonts.regular,
+          fontFamily: legacyTheme.fonts.regular,
 
-          color:     error ? kit.color.danger : kit.color.inkFaint,
+          color:     error ? theme.colors.status.error : theme.colors.text.muted,
 
           textAlign: textAlignStart(_isRtl),
 

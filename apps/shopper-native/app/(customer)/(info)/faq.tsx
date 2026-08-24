@@ -6,7 +6,6 @@ import { Text as UIText } from "@pharmacy/ui-native";
 
 import { Ionicons } from "@expo/vector-icons";
 
-import { kit } from "@pharmacy/ui-native";
 
 import { useRouter } from "expo-router";
 
@@ -24,7 +23,8 @@ import { EmptyState } from "@/components/ui/EmptyState";
 
 import { FAQ_DATA, FAQ_CATEGORIES, type FAQCategory, type FAQItem } from "@/features/faq";
 
-import { theme } from "@pharmacy/design-tokens";
+import { theme as legacyTheme } from "@pharmacy/design-tokens";
+import { defaultTheme as theme } from "@pharmacy/ui-native";
 
 import { flexRow, isRtl, textAlignStart, BACK_CHEVRON, FORWARD_CHEVRON } from "@/utils/layout";
 
@@ -106,11 +106,11 @@ export default function FAQScreen() {
 
         <Pressable onPress={() => router.back()} style={s.back} hitSlop={10} accessibilityRole="button" accessibilityLabel={t("common.back")}>
 
-          <Ionicons name={BACK_CHEVRON} size={18} color={kit.color.inkSoft} />
+          <Ionicons name={BACK_CHEVRON} size={18} color={theme.colors.text.secondary} />
 
         </Pressable>
 
-        <View style={s.tile}><Ionicons name="help-circle-outline" size={22} color={kit.color.accentDeep} /></View>
+        <View style={s.tile}><Ionicons name="help-circle-outline" size={22} color={theme.colors.brand.primary} /></View>
 
         <View style={{ flex: 1 }}>
 
@@ -128,13 +128,13 @@ export default function FAQScreen() {
 
         <View style={[s.searchBar, { flexDirection: flexRow(RTL) }]}> 
 
-          <Ionicons name="search-outline" size={16} color={kit.color.inkFaint} />
+          <Ionicons name="search-outline" size={16} color={theme.colors.text.muted} />
 
-          <TextInput value={query} onChangeText={setQuery} placeholder={t("faq.searchPlaceholder")} placeholderTextColor={kit.color.inkFaint} style={s.searchInput} textAlign={TA as "left" | "right"} />
+          <TextInput value={query} onChangeText={setQuery} placeholder={t("faq.searchPlaceholder")} placeholderTextColor={theme.colors.text.muted} style={s.searchInput} textAlign={TA as "left" | "right"} />
 
           {query.length > 0 && <Pressable onPress={() => setQuery("")} hitSlop={8} accessibilityRole="button" accessibilityLabel={t("faq.clearSearch")}>
 
-            <Ionicons name="close-circle" size={16} color={kit.color.inkFaint} />
+            <Ionicons name="close-circle" size={16} color={theme.colors.text.muted} />
 
           </Pressable>}
 
@@ -172,7 +172,7 @@ export default function FAQScreen() {
 
         <View style={[s.contactRow, { flexDirection: flexRow(RTL) }]}> 
 
-          <Ionicons name="chatbubbles-outline" size={16} color={kit.color.accentDeep} />
+          <Ionicons name="chatbubbles-outline" size={16} color={theme.colors.brand.primary} />
 
           <UIText style={[s.contactTxt, { textAlign: TA }]}>{t("faq.notFound")}</UIText>
 
@@ -182,7 +182,7 @@ export default function FAQScreen() {
 
               <UIText style={s.contactBtnTxt}>{t("faq.contactUs")}</UIText>
 
-              <Ionicons name={FORWARD_CHEVRON} size={12} color={kit.color.accentDeep} />
+              <Ionicons name={FORWARD_CHEVRON} size={12} color={theme.colors.brand.primary} />
 
             </View>}
 
@@ -202,50 +202,50 @@ export default function FAQScreen() {
 
 const s = StyleSheet.create({
 
-  screen: { flex: 1, backgroundColor: kit.color.canvas },
+  screen: { flex: 1, backgroundColor: theme.colors.canvas.background },
 
-  header: { alignItems: "center", gap: 14, paddingHorizontal: 20, paddingVertical: 14, backgroundColor: kit.color.surface, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: kit.color.line, ...kit.shadow.raised },
+  header: { alignItems: "center", gap: 14, paddingHorizontal: 20, paddingVertical: 14, backgroundColor: theme.colors.canvas.surface, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border.default, ...theme.shadows[1] },
 
-  back: { width: 40, height: 40, borderRadius: 20, backgroundColor: kit.color.surface, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: kit.color.line, ...kit.shadow.raised, flexShrink: 0 },
+  back: { width: 40, height: 40, borderRadius: 20, backgroundColor: theme.colors.canvas.surface, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: theme.colors.border.default, ...theme.shadows[1], flexShrink: 0 },
 
-  tile: { width: 52, height: 52, borderRadius: 16, backgroundColor: kit.color.accentTint, borderWidth: 1, borderColor: kit.color.line, alignItems: "center", justifyContent: "center", flexShrink: 0 },
+  tile: { width: 52, height: 52, borderRadius: 16, backgroundColor: theme.colors.brand.primaryLight, borderWidth: 1, borderColor: theme.colors.border.default, alignItems: "center", justifyContent: "center", flexShrink: 0 },
 
-  hTitle: { fontFamily: theme.fonts.black, fontSize: 18, letterSpacing: -0.3, color: kit.color.ink, includeFontPadding: false },
+  hTitle: { fontFamily: legacyTheme.fonts.black, fontSize: 18, letterSpacing: -0.3, color: theme.colors.text.primary, includeFontPadding: false },
 
-  hSub: { fontFamily: theme.fonts.semibold, fontSize: 11, color: kit.color.inkFaint, includeFontPadding: false },
-
-
-
-  searchWrap: { paddingHorizontal: 20, paddingVertical: 12, backgroundColor: kit.color.canvas },
-
-  searchBar: { alignItems: "center", gap: 10, backgroundColor: kit.color.well, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 11, borderWidth: 1, borderColor: kit.color.line },
-
-  searchInput: { flex: 1, fontFamily: theme.fonts.regular, fontSize: 13, color: kit.color.ink, paddingVertical: 0, includeFontPadding: false } as unknown as never,
+  hSub: { fontFamily: legacyTheme.fonts.semibold, fontSize: 11, color: theme.colors.text.muted, includeFontPadding: false },
 
 
 
-  rail: { paddingVertical: 8, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: kit.color.line, backgroundColor: kit.color.canvas },
+  searchWrap: { paddingHorizontal: 20, paddingVertical: 12, backgroundColor: theme.colors.canvas.background },
+
+  searchBar: { alignItems: "center", gap: 10, backgroundColor: theme.colors.canvas.surfaceMuted, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 11, borderWidth: 1, borderColor: theme.colors.border.default },
+
+  searchInput: { flex: 1, fontFamily: legacyTheme.fonts.regular, fontSize: 13, color: theme.colors.text.primary, paddingVertical: 0, includeFontPadding: false } as unknown as never,
+
+
+
+  rail: { paddingVertical: 8, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border.default, backgroundColor: theme.colors.canvas.background },
 
   list: { padding: 20 },
 
   results: { marginBottom: 12 },
 
-  resultsT: { fontFamily: theme.fonts.semibold, fontSize: 11, color: kit.color.inkFaint, includeFontPadding: false },
+  resultsT: { fontFamily: legacyTheme.fonts.semibold, fontSize: 11, color: theme.colors.text.muted, includeFontPadding: false },
 
 
 
-  contactBar: { position: "absolute", bottom: 0, start: 0, end: 0, backgroundColor: kit.color.surface, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: kit.color.line, paddingTop: 12, paddingHorizontal: 20, ...kit.shadow.raised },
+  contactBar: { position: "absolute", bottom: 0, start: 0, end: 0, backgroundColor: theme.colors.canvas.surface, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.colors.border.default, paddingTop: 12, paddingHorizontal: 20, ...theme.shadows[1] },
 
   contactRow: { alignItems: "center", gap: 8 },
 
-  contactTxt: { flex: 1, fontFamily: theme.fonts.semibold, fontSize: 12, color: kit.color.inkSoft, includeFontPadding: false },
+  contactTxt: { flex: 1, fontFamily: legacyTheme.fonts.semibold, fontSize: 12, color: theme.colors.text.secondary, includeFontPadding: false },
 
   contactBtnT: { borderRadius: 10, flexShrink: 0 },
 
-  contactBtn: { alignItems: "center", gap: 4, backgroundColor: kit.color.accentTint, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, borderWidth: 1, borderColor: kit.color.line },
+  contactBtn: { alignItems: "center", gap: 4, backgroundColor: theme.colors.brand.primaryLight, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, borderWidth: 1, borderColor: theme.colors.border.default },
 
-  contactBtnP: { backgroundColor: kit.color.line },
+  contactBtnP: { backgroundColor: theme.colors.border.default },
 
-  contactBtnTxt: { fontFamily: theme.fonts.bold, fontSize: 11, color: kit.color.accentDeep, includeFontPadding: false },
+  contactBtnTxt: { fontFamily: legacyTheme.fonts.bold, fontSize: 11, color: theme.colors.brand.primary, includeFontPadding: false },
 
 });

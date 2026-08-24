@@ -20,9 +20,10 @@ import { Ionicons } from "@expo/vector-icons";
 
 import { useTranslation } from "react-i18next";
 
-import { theme } from "@pharmacy/design-tokens";
+import { theme as legacyTheme } from "@pharmacy/design-tokens";
+import { defaultTheme as theme } from "@pharmacy/ui-native";
 
-import { kit } from "@pharmacy/ui-native";
+
 
 import { flexRow, isRtl } from "@/utils/layout";
 
@@ -176,7 +177,7 @@ export const AuthGateModal = React.memo(function AuthGateModal({
 
             <View style={s.orb}>
 
-              <Ionicons name="person-circle" size={42} color={kit.color.accentDeep} />
+              <Ionicons name="person-circle" size={42} color={theme.colors.brand.primary} />
 
             </View>
 
@@ -202,7 +203,7 @@ export const AuthGateModal = React.memo(function AuthGateModal({
 
                 <View key={i} style={s.pill}>
 
-                  <Ionicons name={icon} size={11} color={kit.color.accentDeep} />
+                  <Ionicons name={icon} size={11} color={theme.colors.brand.primary} />
 
                 </View>
 
@@ -224,7 +225,7 @@ export const AuthGateModal = React.memo(function AuthGateModal({
 
               <View style={s.signInInner}>
 
-                <Ionicons name="log-in-outline" size={18} color={kit.color.onInk} />
+                <Ionicons name="log-in-outline" size={18} color={theme.colors.text.inverse} />
 
                 <UIText style={s.signInText}>{t("checkout.authGateSignIn")}</UIText>
 
@@ -274,9 +275,9 @@ const s = StyleSheet.create({
 
     maxWidth:          360,
 
-    backgroundColor:   kit.color.surface,
+    backgroundColor:   theme.colors.canvas.surface,
 
-    borderRadius:      kit.radius.sheet,
+    borderRadius:      20,
 
     paddingBottom:     28,
 
@@ -286,7 +287,7 @@ const s = StyleSheet.create({
 
     overflow:          "hidden",
 
-    ...kit.shadow.floating,
+    ...theme.shadows[3],
 
   },
 
@@ -318,7 +319,7 @@ const s = StyleSheet.create({
 
     borderWidth:     1.5,
 
-    borderColor:     kit.color.accent,
+    borderColor:     theme.colors.brand.primary,
 
   },
 
@@ -330,7 +331,7 @@ const s = StyleSheet.create({
 
     borderRadius:    38,
 
-    backgroundColor: kit.color.accentTint,
+    backgroundColor: theme.colors.brand.primaryLight,
 
     alignItems:      "center",
 
@@ -352,11 +353,11 @@ const s = StyleSheet.create({
 
   title: {
 
-    fontFamily:    theme.fonts.black,
+    fontFamily:    legacyTheme.fonts.black,
 
     fontSize:      20,
 
-    color:         kit.color.ink,
+    color:         theme.colors.text.primary,
 
     textAlign:     "center",
 
@@ -368,11 +369,11 @@ const s = StyleSheet.create({
 
   body: {
 
-    fontFamily: theme.fonts.regular,
+    fontFamily: legacyTheme.fonts.regular,
 
     fontSize:   13.5,
 
-    color:      kit.color.inkSoft,
+    color:      theme.colors.text.secondary,
 
     textAlign:  "center",
 
@@ -402,7 +403,7 @@ const s = StyleSheet.create({
 
     borderRadius:    10,
 
-    backgroundColor: kit.color.accentTint,
+    backgroundColor: theme.colors.brand.primaryLight,
 
     alignItems:      "center",
 
@@ -410,13 +411,13 @@ const s = StyleSheet.create({
 
     borderWidth:     1,
 
-    borderColor:     kit.color.line,
+    borderColor:     theme.colors.border.default,
 
   },
 
   actions:   { width: "100%", gap: 10, marginTop: 20 },
 
-  signInBtn: { borderRadius: kit.radius.control, overflow: "hidden" },
+  signInBtn: { borderRadius: 10, overflow: "hidden" },
 
   signInInner: {
 
@@ -430,19 +431,19 @@ const s = StyleSheet.create({
 
     paddingVertical: 16,
 
-    borderRadius:    kit.radius.control,
+    borderRadius:    10,
 
-    backgroundColor: kit.color.ink,
+    backgroundColor: theme.colors.text.primary,
 
   },
 
   signInText: {
 
-    fontFamily:    theme.fonts.black,
+    fontFamily:    legacyTheme.fonts.black,
 
     fontSize:      15,
 
-    color:         kit.color.onInk,
+    color:         theme.colors.text.inverse,
 
     letterSpacing: -0.3,
 
@@ -452,11 +453,11 @@ const s = StyleSheet.create({
 
   dismissText: {
 
-    fontFamily: theme.fonts.semibold,
+    fontFamily: legacyTheme.fonts.semibold,
 
     fontSize:   13,
 
-    color:      kit.color.inkFaint,
+    color:      theme.colors.text.muted,
 
   },
 

@@ -7,8 +7,9 @@ import { useTranslation } from "react-i18next";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
 import { PaymentMethodCard } from "./PaymentMethodCard";
 import { usePaymentStore } from "../store";
-import { theme } from "@pharmacy/design-tokens";
-import { kit } from "@pharmacy/ui-native";
+import { theme as legacyTheme } from "@pharmacy/design-tokens";
+import { defaultTheme as theme } from "@pharmacy/ui-native";
+
 
 interface Props {
   compact?: boolean;
@@ -25,7 +26,7 @@ export function PaymentMethodSelector({ compact }: Props) {
       {!compact && (
         <View style={styles.header}>
           <View style={styles.headerIcon}>
-            <Ionicons name="shield-checkmark-outline" size={14} color={kit.color.accent} />
+            <Ionicons name="shield-checkmark-outline" size={14} color={theme.colors.brand.primary} />
           </View>
           <View>
             <UIText style={styles.headerTitle}>{t("payment.paymentMethod")}</UIText>
@@ -49,9 +50,9 @@ export function PaymentMethodSelector({ compact }: Props) {
       {/* Trust footer */}
       {!compact && (
         <Animated.View entering={FadeInDown.delay(250).duration(250)} style={[styles.trustRow, { flexDirection: flexRow(isRtl()) }]}>
-          <Ionicons name="lock-closed" size={12} color={kit.color.inkFaint} />
+          <Ionicons name="lock-closed" size={12} color={theme.colors.text.muted} />
           <UIText style={styles.trustText}>{t("payment.allTransactionsSecure")}</UIText>
-          <Ionicons name="shield-checkmark" size={12} color={kit.color.success} />
+          <Ionicons name="shield-checkmark" size={12} color={theme.colors.status.success} />
         </Animated.View>
       )}
     </View>
@@ -69,20 +70,20 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 10,
-    backgroundColor: kit.color.accentTint,
+    backgroundColor: theme.colors.brand.primaryLight,
     alignItems: "center",
     justifyContent: "center",
   },
   headerTitle: {
     fontSize: 15,
-    fontFamily: theme.fonts.black,
-    color: kit.color.ink,
+    fontFamily: legacyTheme.fonts.black,
+    color: theme.colors.text.primary,
     textAlign: textAlignStart(isRtl()),
   },
   headerDesc: {
     fontSize: 11,
-    fontFamily: theme.fonts.regular,
-    color: kit.color.inkFaint,
+    fontFamily: legacyTheme.fonts.regular,
+    color: theme.colors.text.muted,
     textAlign: textAlignStart(isRtl()),
   },
   list: { gap: 10 },
@@ -92,11 +93,11 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingVertical: 10,
     borderRadius: 12,
-    backgroundColor: kit.color.well,
+    backgroundColor: theme.colors.canvas.surfaceMuted,
   },
   trustText: {
     fontSize: 10,
-    fontFamily: theme.fonts.semibold,
-    color: kit.color.inkFaint,
+    fontFamily: legacyTheme.fonts.semibold,
+    color: theme.colors.text.muted,
   },
 });

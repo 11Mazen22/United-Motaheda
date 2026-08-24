@@ -8,8 +8,9 @@ import { useTranslation } from "react-i18next";
 import { AddressMapPlaceholder } from "./AddressMapPlaceholder";
 import { ADDRESS_LABELS } from "../types";
 import type { Address } from "../types";
-import { theme } from "@pharmacy/design-tokens";
-import { kit } from "@pharmacy/ui-native";
+import { theme as legacyTheme } from "@pharmacy/design-tokens";
+import { defaultTheme as theme } from "@pharmacy/ui-native";
+
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>["name"];
@@ -46,7 +47,7 @@ export function AddressCard({ address, onEdit, onDelete, onSetDefault }: Props) 
   const smartZone = address.city?.toLowerCase().includes("riyadh") 
     ? t("addresses.zoneFast", { defaultValue: "Express Delivery Zone" })
     : t("addresses.zoneStandard", { defaultValue: "Standard Zone" });
-  const zoneColor = address.city?.toLowerCase().includes("riyadh") ? kit.color.success : kit.color.accentDeep;
+  const zoneColor = address.city?.toLowerCase().includes("riyadh") ? theme.colors.status.success : theme.colors.brand.primary;
 
   return (
     <Animated.View entering={FadeIn.duration(400)} style={styles.card}>
@@ -71,7 +72,7 @@ export function AddressCard({ address, onEdit, onDelete, onSetDefault }: Props) 
           </View>
           {address.is_default && (
             <View style={[styles.defaultBadge, { flexDirection: flexRow(IS_RTL) }]}>
-              <Ionicons name="checkmark-circle" size={14} color={kit.color.accentDeep} />
+              <Ionicons name="checkmark-circle" size={14} color={theme.colors.brand.primary} />
               <UIText style={styles.defaultText}>{t("addresses.default")}</UIText>
             </View>
           )}
@@ -93,7 +94,7 @@ export function AddressCard({ address, onEdit, onDelete, onSetDefault }: Props) 
             onEdit();
           }}
         >
-          <Ionicons name="create-outline" size={18} color={kit.color.inkSoft} />
+          <Ionicons name="create-outline" size={18} color={theme.colors.text.secondary} />
           <UIText style={styles.actionText}>{t("common.edit")}</UIText>
         </Pressable>
 
@@ -104,8 +105,8 @@ export function AddressCard({ address, onEdit, onDelete, onSetDefault }: Props) 
             onDelete();
           }}
         >
-          <Ionicons name="trash-outline" size={18} color={kit.color.danger} />
-          <UIText style={[styles.actionText, { color: kit.color.danger }]}>{t("common.delete")}</UIText>
+          <Ionicons name="trash-outline" size={18} color={theme.colors.status.error} />
+          <UIText style={[styles.actionText, { color: theme.colors.status.error }]}>{t("common.delete")}</UIText>
         </Pressable>
 
         {!address.is_default && (
@@ -126,11 +127,11 @@ export function AddressCard({ address, onEdit, onDelete, onSetDefault }: Props) 
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: kit.color.surface,
+    backgroundColor: theme.colors.canvas.surface,
     borderRadius: 20,
     overflow: "hidden",
     marginBottom: 16,
-    ...kit.shadow.raised,
+    ...theme.shadows[1],
   },
   map: {
     height: 120,
@@ -147,7 +148,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     alignItems: "center",
     gap: 6,
-    ...kit.shadow.floating,
+    ...theme.shadows[3],
     zIndex: 10,
   },
   pulseContainer: {
@@ -168,7 +169,7 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
   zoneText: {
-    fontFamily: theme.fonts.bold,
+    fontFamily: legacyTheme.fonts.bold,
     fontSize: 11,
     letterSpacing: 0.5,
   },
@@ -188,7 +189,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   labelText: {
-    fontFamily: theme.fonts.bold,
+    fontFamily: legacyTheme.fonts.bold,
     fontSize: 12,
   },
   defaultBadge: {
@@ -196,20 +197,20 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   defaultText: {
-    fontFamily: theme.fonts.bold,
+    fontFamily: legacyTheme.fonts.bold,
     fontSize: 12,
-    color: kit.color.accentDeep,
+    color: theme.colors.brand.primary,
   },
   street: {
-    fontFamily: theme.fonts.extrabold,
+    fontFamily: legacyTheme.fonts.extrabold,
     fontSize: 18,
-    color: kit.color.ink,
+    color: theme.colors.text.primary,
     marginBottom: 4,
   },
   details: {
-    fontFamily: theme.fonts.medium,
+    fontFamily: legacyTheme.fonts.medium,
     fontSize: 14,
-    color: kit.color.inkSoft,
+    color: theme.colors.text.secondary,
     marginBottom: 8,
   },
   notesRow: {
@@ -219,16 +220,16 @@ const styles = StyleSheet.create({
   },
   notes: {
     flex: 1,
-    fontFamily: theme.fonts.regular,
+    fontFamily: legacyTheme.fonts.regular,
     fontSize: 13,
-    color: kit.color.inkFaint,
+    color: theme.colors.text.muted,
   },
   actions: {
     paddingHorizontal: 20,
     paddingVertical: 12,
-    backgroundColor: kit.color.canvas,
+    backgroundColor: theme.colors.canvas.background,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: kit.color.line,
+    borderTopColor: theme.colors.border.default,
     justifyContent: "space-between",
     alignItems: "center",
   },
@@ -240,17 +241,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   actionText: {
-    fontFamily: theme.fonts.bold,
+    fontFamily: legacyTheme.fonts.bold,
     fontSize: 14,
-    color: kit.color.inkSoft,
+    color: theme.colors.text.secondary,
   },
   actionBtnPrimary: {
-    backgroundColor: kit.color.accentTint,
+    backgroundColor: theme.colors.brand.primaryLight,
     borderRadius: 12,
   },
   actionTextPrimary: {
-    fontFamily: theme.fonts.bold,
+    fontFamily: legacyTheme.fonts.bold,
     fontSize: 14,
-    color: kit.color.accentDeep,
+    color: theme.colors.brand.primary,
   },
 });

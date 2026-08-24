@@ -28,7 +28,8 @@ import { useTranslation }       from "react-i18next";
 
 
 import { Screen, Text as UIText, kit } from "@pharmacy/ui-native";
-import { useDarkColors } from "@/hooks/useDarkColors";
+import { useTheme } from "@pharmacy/ui-native";
+
 
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
 
@@ -116,7 +117,7 @@ export function PharmacistOrderDetailScreen(): React.ReactElement {
 
   const { id } = useLocalSearchParams<{ id: string }>();
 
-  const { c } = useDarkColors();
+  const { theme } = useTheme();
 
   
 
@@ -184,13 +185,13 @@ export function PharmacistOrderDetailScreen(): React.ReactElement {
 
     return (
 
-      <Screen edgeTop background={c.canvas}>
+      <Screen edgeTop background={theme.colors.canvas.background}>
 
         <PharmacistScreenHeader title={`#${(id ?? "").slice(-8).toUpperCase()}`} />
 
         <View style={s.centered}>
 
-          <ActivityIndicator size="large" color={c.accent} />
+          <ActivityIndicator size="large" color={theme.colors.brand.primary} />
 
         </View>
 
@@ -206,13 +207,13 @@ export function PharmacistOrderDetailScreen(): React.ReactElement {
 
     return (
 
-      <Screen edgeTop background={c.canvas}>
+      <Screen edgeTop background={theme.colors.canvas.background}>
 
         <PharmacistScreenHeader title={t("pharmacist.orderNotFound")} />
 
         <View style={s.centered}>
 
-          <Ionicons name="alert-circle-outline" size={40} color={c.inkFaint} />
+          <Ionicons name="alert-circle-outline" size={40} color={theme.colors.text.muted} />
 
           <UIText variant="card-title" style={{ marginTop: 10, textAlign: "center" }}>
 
@@ -244,7 +245,7 @@ export function PharmacistOrderDetailScreen(): React.ReactElement {
 
   return (
 
-    <Screen edgeTop background={c.canvas} edgeBottom>
+    <Screen edgeTop background={theme.colors.canvas.background} edgeBottom>
 
       <PharmacistScreenHeader title={t("pharmacist.orderDetails")} />
 
@@ -254,7 +255,7 @@ export function PharmacistOrderDetailScreen(): React.ReactElement {
 
         {/* Top: Order number + timestamp + status */}
 
-        <View style={[s.topCard, { backgroundColor: c.surface, borderBottomColor: c.line }]}>
+        <View style={[s.topCard, { backgroundColor: theme.colors.canvas.surface, borderBottomColor: theme.colors.border.default }]}>
 
           <View style={[s.row, { justifyContent: "space-between" }]}>
 
@@ -280,7 +281,7 @@ export function PharmacistOrderDetailScreen(): React.ReactElement {
 
         {/* Customer section */}
 
-        <View style={[s.section, { backgroundColor: c.surface, borderTopColor: c.line, borderBottomColor: c.line }]}>
+        <View style={[s.section, { backgroundColor: theme.colors.canvas.surface, borderTopColor: theme.colors.border.default, borderBottomColor: theme.colors.border.default }]}>
 
           <UIText variant="eyebrow" color="secondary" style={{ marginBottom: 8, textAlign: TEXT_START }}>
 
@@ -298,11 +299,11 @@ export function PharmacistOrderDetailScreen(): React.ReactElement {
 
             </View>
 
-            <Pressable onPress={() => Linking.openURL(`tel:${order.customerPhone}`)} style={[s.phoneBtn, { backgroundColor: c.accentTint }]}>
+            <Pressable onPress={() => Linking.openURL(`tel:${order.customerPhone}`)} style={[s.phoneBtn, { backgroundColor: theme.colors.brand.primaryLight }]}>
 
-              <Ionicons name="call" size={16} color={c.accentDeep} />
+              <Ionicons name="call" size={16} color={theme.colors.brand.primary} />
 
-              <UIText variant="body-sm" style={{ color: c.accentDeep }}>{order.customerPhone}</UIText>
+              <UIText variant="body-sm" style={{ color: theme.colors.brand.primary }}>{order.customerPhone}</UIText>
 
             </Pressable>
 
@@ -314,7 +315,7 @@ export function PharmacistOrderDetailScreen(): React.ReactElement {
 
         {/* Items list */}
 
-        <View style={[s.section, { backgroundColor: c.surface, borderTopColor: c.line, borderBottomColor: c.line }]}>
+        <View style={[s.section, { backgroundColor: theme.colors.canvas.surface, borderTopColor: theme.colors.border.default, borderBottomColor: theme.colors.border.default }]}>
 
           <UIText variant="eyebrow" color="secondary" style={{ marginBottom: 8, textAlign: TEXT_START }}>
 
@@ -326,7 +327,7 @@ export function PharmacistOrderDetailScreen(): React.ReactElement {
 
             {order.items.map((item, index) => (
 
-              <View key={item.productId} style={[s.tableRow, index === 0 && { borderTopWidth: 0 }, { borderTopColor: c.line }]}>
+              <View key={item.productId} style={[s.tableRow, index === 0 && { borderTopWidth: 0 }, { borderTopColor: theme.colors.border.default }]}>
 
                 {item.imageUrl ? (
 
@@ -334,9 +335,9 @@ export function PharmacistOrderDetailScreen(): React.ReactElement {
 
                 ) : (
 
-                  <View style={[s.itemImg, s.itemImgPlaceholder, { backgroundColor: c.well }]}>
+                  <View style={[s.itemImg, s.itemImgPlaceholder, { backgroundColor: theme.colors.canvas.surfaceMuted }]}>
 
-                    <Ionicons name="medkit" size={16} color={c.inkFaint} />
+                    <Ionicons name="medkit" size={16} color={theme.colors.text.muted} />
 
                   </View>
 
@@ -372,7 +373,7 @@ export function PharmacistOrderDetailScreen(): React.ReactElement {
 
         {/* Pricing summary */}
 
-        <View style={[s.summaryBox, { backgroundColor: c.surface, borderColor: c.line }]}>
+        <View style={[s.summaryBox, { backgroundColor: theme.colors.canvas.surface, borderColor: theme.colors.border.default }]}>
 
           <View style={s.summaryRow}>
 
@@ -402,11 +403,11 @@ export function PharmacistOrderDetailScreen(): React.ReactElement {
 
           </View>
 
-          <View style={[s.summaryRow, s.summaryTotal, { borderTopColor: c.line }]}>
+          <View style={[s.summaryRow, s.summaryTotal, { borderTopColor: theme.colors.border.default }]}>
 
             <UIText variant="body" weight="bold">{t("pharmacist.total")}</UIText>
 
-            <UIText variant="body" style={{ color: c.accentDeep }}>{formatPrice(order.total)}</UIText>
+            <UIText variant="body" style={{ color: theme.colors.brand.primary }}>{formatPrice(order.total)}</UIText>
 
           </View>
 

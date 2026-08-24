@@ -27,14 +27,15 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { AppLogo }        from "@/shared/components/AppLogo";
-import { kit }            from "@pharmacy/ui-native";
-import { theme }          from "@pharmacy/design-tokens";
+
+import { theme as legacyTheme } from "@pharmacy/design-tokens";
+import { defaultTheme as theme } from "@pharmacy/ui-native";
 import { onSplashExited } from "@/shared/splashBridge";
 import { isRtl }          from "@/utils/layout";
 
 const IS_RTL  = isRtl();
 const { width: W, height: H } = Dimensions.get("window");
-const PAGE_H  = theme.layout.pagePaddingH; // 20
+const PAGE_H  = legacyTheme.layout.pagePaddingH; // 20
 
 const LOGO_PX   = 80;
 const LOGO_HALF = LOGO_PX / 2; // 40
@@ -50,14 +51,14 @@ interface ParticleDef {
 }
 
 const PARTICLES: ParticleDef[] = [
-  { x: 0.04, y: 0.06, size: 110, delay: 60,  color: kit.color.accentTint  },
-  { x: 0.74, y: 0.04, size: 150, delay: 100, color: kit.color.warnTint    },
-  { x: 0.08, y: 0.70, size:  90, delay: 140, color: kit.color.accentTint  },
-  { x: 0.68, y: 0.60, size: 120, delay:  80, color: kit.color.successTint },
-  { x: 0.38, y: 0.84, size:  95, delay: 180, color: kit.color.accentTint  },
-  { x: 0.87, y: 0.36, size:  75, delay: 220, color: kit.color.dangerTint  },
-  { x: 0.01, y: 0.42, size: 130, delay:  40, color: kit.color.accentTint  },
-  { x: 0.60, y: 0.16, size:  70, delay: 160, color: kit.color.warnTint    },
+  { x: 0.04, y: 0.06, size: 110, delay: 60,  color: theme.colors.brand.primaryLight  },
+  { x: 0.74, y: 0.04, size: 150, delay: 100, color: `${theme.colors.status.warning}1A`    },
+  { x: 0.08, y: 0.70, size:  90, delay: 140, color: theme.colors.brand.primaryLight  },
+  { x: 0.68, y: 0.60, size: 120, delay:  80, color: `${theme.colors.status.success}1A` },
+  { x: 0.38, y: 0.84, size:  95, delay: 180, color: theme.colors.brand.primaryLight  },
+  { x: 0.87, y: 0.36, size:  75, delay: 220, color: `${theme.colors.status.error}1A`  },
+  { x: 0.01, y: 0.42, size: 130, delay:  40, color: theme.colors.brand.primaryLight  },
+  { x: 0.60, y: 0.16, size:  70, delay: 160, color: `${theme.colors.status.warning}1A`    },
 ];
 
 // ── AmbientParticle ───────────────────────────────────────────────────────────
@@ -279,7 +280,7 @@ export function ArrivalOverlay({ topInset, onComplete }: ArrivalOverlayProps) {
 
 const s = StyleSheet.create({
   overlay: {
-    backgroundColor: kit.color.canvas,
+    backgroundColor: theme.colors.canvas.background,
     zIndex:          999,
   },
   logoTile: {
@@ -288,11 +289,11 @@ const s = StyleSheet.create({
     start: W / 2 - LOGO_HALF,
     width:    LOGO_PX,
     height:   LOGO_PX,
-    ...kit.shadow.floating,
+    ...theme.shadows[3],
   },
   sweepLine: {
     position:        "absolute",
     height:          1.5,
-    backgroundColor: kit.color.accent,
+    backgroundColor: theme.colors.brand.primary,
   },
 });

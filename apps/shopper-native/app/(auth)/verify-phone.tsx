@@ -1,3 +1,4 @@
+import { defaultTheme as theme } from "@pharmacy/ui-native";
 /**
 
  * /(auth)/verify-phone — full-screen phone-OTP step after email confirmation.
@@ -26,7 +27,7 @@ import { PhoneVerifyModal, sendPhoneOtp } from "@/features/auth";
 
 import { Text } from "@pharmacy/ui-native";
 
-import { kit } from "@pharmacy/ui-native";
+
 
 import { flexRow, isRtl } from "@/utils/layout";
 
@@ -121,7 +122,7 @@ export default function VerifyPhoneScreen() {
 
                 size={30}
 
-                color={isError ? "#E53E3E" : kit.color.accentDeep}
+                color={isError ? "#E53E3E" : theme.colors.brand.primary}
 
               />
 
@@ -153,7 +154,7 @@ export default function VerifyPhoneScreen() {
 
             <Animated.View entering={FadeIn.duration(300).delay(280)} style={{ marginTop: 28 }}>
 
-              <ActivityIndicator size="large" color={kit.color.accent} />
+              <ActivityIndicator size="large" color={theme.colors.brand.primary} />
 
             </Animated.View>
 
@@ -165,7 +166,7 @@ export default function VerifyPhoneScreen() {
 
           <View style={[s.trustFootnote, { flexDirection: flexRow(IS_RTL) }]}>
 
-            <Ionicons name="shield-checkmark" size={12} color={kit.color.inkFaint} />
+            <Ionicons name="shield-checkmark" size={12} color={theme.colors.text.muted} />
 
             <Text variant="eyebrow" color="tertiary">
 
@@ -211,7 +212,7 @@ export default function VerifyPhoneScreen() {
 
 const s = StyleSheet.create({
 
-  screen: { flex: 1, backgroundColor: kit.color.canvas },
+  screen: { flex: 1, backgroundColor: theme.colors.canvas.background },
 
 
 
@@ -239,11 +240,11 @@ const s = StyleSheet.create({
 
     borderRadius:    50,
 
-    backgroundColor: kit.color.accentTint,
+    backgroundColor: theme.colors.brand.primaryLight,
 
     borderWidth:     1,
 
-    borderColor:     kit.color.line,
+    borderColor:     theme.colors.border.default,
 
     alignItems:      "center",
 
@@ -261,17 +262,17 @@ const s = StyleSheet.create({
 
     borderRadius:    22,
 
-    backgroundColor: kit.color.surface,
+    backgroundColor: theme.colors.canvas.surface,
 
     borderWidth:     1,
 
-    borderColor:     kit.color.line,
+    borderColor:     theme.colors.border.default,
 
     alignItems:      "center",
 
     justifyContent:  "center",
 
-    ...kit.shadow.brandGlow,
+    ...theme.shadows[2],
 
   },
 

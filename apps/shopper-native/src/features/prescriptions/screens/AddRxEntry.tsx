@@ -1,3 +1,4 @@
+import { defaultTheme as theme } from "@pharmacy/ui-native";
 /**
  * AddRxEntry — entry-point for adding a new prescription.
  *
@@ -21,7 +22,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { kit } from "@pharmacy/ui-native";
+
 import { Text } from "@pharmacy/ui-native";
 import {
   flexRow,
@@ -98,7 +99,7 @@ function EntryCard({ option }: { option: EntryOption }): React.ReactElement {
             <Ionicons
               name={FORWARD_CHEVRON}
               size={16}
-              color={option.comingSoon ? kit.color.inkFaint : kit.color.inkSoft}
+              color={option.comingSoon ? theme.colors.text.muted : theme.colors.text.secondary}
             />
           </View>
         </View>
@@ -145,8 +146,8 @@ export function AddRxEntry(): React.ReactElement {
     {
       key:         "manual",
       icon:        "keypad-outline",
-      tint:        kit.color.warn,
-      bg:          kit.color.warnTint,
+      tint:        theme.colors.status.warning,
+      bg:          `${theme.colors.status.warning}1A`,
       title:       t("prescriptions.addManualTitle"),
       description: t("prescriptions.addManualDesc"),
       onPress:     () => router.push("/prescriptions/manual" as never),
@@ -154,8 +155,8 @@ export function AddRxEntry(): React.ReactElement {
     {
       key:         "scan",
       icon:        "scan-outline",
-      tint:        kit.color.accentDeep,
-      bg:          kit.color.accentTint,
+      tint:        theme.colors.brand.primary,
+      bg:          theme.colors.brand.primaryLight,
       title:       t("prescriptions.addScanTitle"),
       description: t("prescriptions.addScanDesc"),
       onPress:     () => router.push("/prescriptions/scan" as never),
@@ -186,7 +187,7 @@ export function AddRxEntry(): React.ReactElement {
             style={s.backBtnTouchable}>
             {({ pressed }) => (
               <View style={[s.backBtn, pressed && s.backBtnPressed]}>
-                <Ionicons name={BACK_CHEVRON} size={20} color={kit.color.ink} />
+                <Ionicons name={BACK_CHEVRON} size={20} color={theme.colors.text.primary} />
               </View>
             )}
           </Pressable>
@@ -197,7 +198,7 @@ export function AddRxEntry(): React.ReactElement {
 
         <View style={s.identityRow}>
           <View style={s.heroTile}>
-            <Ionicons name="add-circle-outline" size={24} color={kit.color.accentDeep} />
+            <Ionicons name="add-circle-outline" size={24} color={theme.colors.brand.primary} />
           </View>
           <View style={s.identityText}>
             <Text weight="bold" style={s.eyebrow}>
@@ -232,7 +233,7 @@ export function AddRxEntry(): React.ReactElement {
         <View style={s.infoCallout}>
           <View style={s.infoHead}>
             <View style={s.infoIconWell}>
-              <Ionicons name="shield-checkmark-outline" size={18} color={kit.color.warn} />
+              <Ionicons name="shield-checkmark-outline" size={18} color={theme.colors.status.warning} />
             </View>
             <Text weight="bold" style={s.infoEyebrow} numberOfLines={1}>
               {t("prescriptions.controlledEyebrow")}
@@ -258,7 +259,7 @@ const BADGE_RADIUS = 999;
 const s = StyleSheet.create({
   screen: {
     flex:            1,
-    backgroundColor: kit.color.canvas,
+    backgroundColor: theme.colors.canvas.background,
   },
 
   // ── Header ──────────────────────────────────────────────────────────────
@@ -266,10 +267,10 @@ const s = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom:     20,
     gap:               18,
-    backgroundColor:   kit.color.surface,
+    backgroundColor:   theme.colors.canvas.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: kit.color.line,
-    ...kit.shadow.raised,
+    borderBottomColor: theme.colors.border.default,
+    ...theme.shadows[1],
   },
   navRow: {
     flexDirection: flexRow(IS_RTL),
@@ -287,9 +288,9 @@ const s = StyleSheet.create({
     width:           38,
     height:          38,
     borderRadius:    14,
-    backgroundColor: kit.color.well,
+    backgroundColor: theme.colors.canvas.surfaceMuted,
     borderWidth:     1,
-    borderColor:     kit.color.line,
+    borderColor:     theme.colors.border.default,
     alignItems:      "center",
     justifyContent:  "center",
   },
@@ -306,9 +307,9 @@ const s = StyleSheet.create({
     width:           56,
     height:          56,
     borderRadius:    18,
-    backgroundColor: kit.color.accentTint,
+    backgroundColor: theme.colors.brand.primaryLight,
     borderWidth:     1,
-    borderColor:     kit.color.line,
+    borderColor:     theme.colors.border.default,
     alignItems:      "center",
     justifyContent:  "center",
     flexShrink:      0,
@@ -320,7 +321,7 @@ const s = StyleSheet.create({
   eyebrow: {
     fontSize:           10,
     lineHeight:         14,
-    color:              kit.color.accentDeep,
+    color:              theme.colors.brand.primary,
     letterSpacing:      0.6,
     textAlign:          TEXT_START,
     textTransform:      "uppercase",
@@ -329,7 +330,7 @@ const s = StyleSheet.create({
   title: {
     fontSize:           28,
     lineHeight:         34,
-    color:              kit.color.ink,
+    color:              theme.colors.text.primary,
     letterSpacing:      -0.6,
     textAlign:          TEXT_START,
     includeFontPadding: false,
@@ -339,7 +340,7 @@ const s = StyleSheet.create({
   sectionLabel: {
     fontSize:           11,
     lineHeight:         16,
-    color:              kit.color.inkFaint,
+    color:              theme.colors.text.muted,
     letterSpacing:      0.5,
     textTransform:      "uppercase",
     textAlign:          TEXT_START,
@@ -352,7 +353,7 @@ const s = StyleSheet.create({
   // gap corrupts layout on this app's RN/Fabric setup). Radius kept so the
   // touch ripple/highlight matches the card's rounded shape.
   cardOuter: {
-    borderRadius: kit.radius.lg,
+    borderRadius: 12,
   },
   // Inner View: all row layout + visuals live here instead.
   card: {
@@ -361,15 +362,15 @@ const s = StyleSheet.create({
     gap:               14,
     paddingHorizontal: CARD_PAD_H,
     paddingVertical:   CARD_PAD_V,
-    backgroundColor:   kit.color.surface,
-    borderRadius:      kit.radius.lg,
+    backgroundColor:   theme.colors.canvas.surface,
+    borderRadius:      12,
     borderWidth:       1,
-    borderColor:       kit.color.line,
-    ...kit.shadow.raised,
+    borderColor:       theme.colors.border.default,
+    ...theme.shadows[1],
   },
   cardPressed: {
     opacity:         0.92,
-    backgroundColor: kit.color.well,
+    backgroundColor: theme.colors.canvas.surfaceMuted,
     transform:       [{ scale: 0.99 }],
   },
   cardMuted: {
@@ -396,7 +397,7 @@ const s = StyleSheet.create({
     flex:               1,
     fontSize:           15,
     lineHeight:         21,
-    color:              kit.color.ink,
+    color:              theme.colors.text.primary,
     letterSpacing:      -0.2,
     textAlign:          TEXT_START,
     includeFontPadding: false,
@@ -404,7 +405,7 @@ const s = StyleSheet.create({
   cardDesc: {
     fontSize:           12,
     lineHeight:         18,
-    color:              kit.color.inkSoft,
+    color:              theme.colors.text.secondary,
     textAlign:          TEXT_START,
     includeFontPadding: false,
   },
@@ -421,16 +422,16 @@ const s = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical:   3,
     borderRadius:      BADGE_RADIUS,
-    backgroundColor:   kit.color.warnTint,
+    backgroundColor:   `${theme.colors.status.warning}1A`,
     borderWidth:       StyleSheet.hairlineWidth,
-    borderColor:       kit.color.warn,
+    borderColor:       theme.colors.status.warning,
     flexShrink:        0,
   },
   comingSoonText: {
     fontSize:           10,
     lineHeight:         14,
     letterSpacing:      0.6,
-    color:              kit.color.warn,
+    color:              theme.colors.status.warning,
     textTransform:      "uppercase",
     includeFontPadding: false,
   },
@@ -440,8 +441,8 @@ const s = StyleSheet.create({
     marginTop:       12,
     padding:         16,
     gap:             10,
-    backgroundColor: kit.color.warnTint,
-    borderRadius:    kit.radius.lg,
+    backgroundColor: `${theme.colors.status.warning}1A`,
+    borderRadius:    12,
     borderWidth:     1,
     borderColor:     "rgba(245,158,11,0.32)",
   },
@@ -463,7 +464,7 @@ const s = StyleSheet.create({
     flex:               1,
     fontSize:           12,
     lineHeight:         18,
-    color:              kit.color.warn,
+    color:              theme.colors.status.warning,
     letterSpacing:      0.3,
     textTransform:      "uppercase",
     textAlign:          TEXT_START,
@@ -472,7 +473,7 @@ const s = StyleSheet.create({
   infoText: {
     fontSize:           13,
     lineHeight:         20,
-    color:              kit.color.inkSoft,
+    color:              theme.colors.text.secondary,
     textAlign:          TEXT_START,
     includeFontPadding: false,
   },

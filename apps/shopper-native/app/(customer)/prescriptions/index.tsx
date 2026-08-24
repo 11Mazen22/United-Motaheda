@@ -1,4 +1,5 @@
-import { useDarkColors } from "@/hooks/useDarkColors";
+import { defaultTheme as theme } from "@pharmacy/ui-native";
+import { useTheme } from "@pharmacy/ui-native";
 
 import React, { useCallback, useMemo, useState } from "react";
 
@@ -12,7 +13,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useTranslation } from "react-i18next";
 
-import { kit, Button, SegmentedToggle, type SegmentOption } from "@pharmacy/ui-native";
+import { Button, SegmentedToggle, type SegmentOption } from "@pharmacy/ui-native";
 
 import { Text } from "@pharmacy/ui-native";
 
@@ -88,9 +89,7 @@ interface StatCellProps {
 
 function StatCell({ icon, tint, tintBg, value, label, divider }: StatCellProps): React.ReactElement {
 
-  const { c } = useDarkColors();
-
-  const s = React.useMemo(() => get_s(c), [c]);
+  const s = React.useMemo(() => get_s(), []);
 
   return (
 
@@ -134,9 +133,7 @@ interface CenteredStateProps {
 
 function CenteredState({ icon, tint, tintBg, title, body, ctaLabel, ctaIcon, onCta }: CenteredStateProps): React.ReactElement {
 
-  const { c } = useDarkColors();
-
-  const s = React.useMemo(() => get_s(c), [c]);
+  const s = React.useMemo(() => get_s(), []);
 
   return (
 
@@ -164,9 +161,9 @@ function CenteredState({ icon, tint, tintBg, title, body, ctaLabel, ctaIcon, onC
 
 export default function Page(): React.ReactElement {
 
-  const { c } = useDarkColors();
+  const { theme } = useTheme();
 
-  const s = React.useMemo(() => get_s(c), [c]);
+  const s = React.useMemo(() => get_s(), []);
 
   const { t }         = useTranslation();
 
@@ -304,7 +301,7 @@ export default function Page(): React.ReactElement {
 
                 <View style={s.disclosureIcon}>
 
-                  <Ionicons name="time-outline" size={14} color={c.inkFaint} />
+                  <Ionicons name="time-outline" size={14} color={theme.colors.text.muted} />
 
                 </View>
 
@@ -316,7 +313,7 @@ export default function Page(): React.ReactElement {
 
                 <View style={s.disclosureChevron}>
 
-                  <Ionicons name={item.open ? "chevron-up" : FORWARD_CHEVRON} size={14} color={c.inkFaint} />
+                  <Ionicons name={item.open ? "chevron-up" : FORWARD_CHEVRON} size={14} color={theme.colors.text.muted} />
 
                 </View>
 
@@ -348,7 +345,7 @@ export default function Page(): React.ReactElement {
 
     );
 
-  }, [goToDetail, goToRefill, t, c.inkFaint, s.disclosure, s.disclosureChevron, s.disclosureIcon, s.disclosurePressed, s.disclosureRow, s.disclosureText, s.disclosureTouchable]);
+  }, [goToDetail, goToRefill, t, theme.colors.text.muted, s.disclosure, s.disclosureChevron, s.disclosureIcon, s.disclosurePressed, s.disclosureRow, s.disclosureText, s.disclosureTouchable]);
 
 
 
@@ -376,7 +373,7 @@ export default function Page(): React.ReactElement {
 
           {({ pressed }) => (
 
-            <View style={[s.backBtn, pressed && s.backBtnPressed]}> <Ionicons name={BACK_CHEVRON} size={20} color={c.ink} /> </View>
+            <View style={[s.backBtn, pressed && s.backBtnPressed]}> <Ionicons name={BACK_CHEVRON} size={20} color={theme.colors.text.primary} /> </View>
 
           )}
 
@@ -404,7 +401,7 @@ export default function Page(): React.ReactElement {
 
         {({ pressed }) => (
 
-          <View style={[s.addPill, pressed && s.addPillPressed]}> <Ionicons name="add" size={14} color={c.accentDeep} style={IS_RTL ? { marginStart: 6 } : { marginEnd: 6 }} />
+          <View style={[s.addPill, pressed && s.addPillPressed]}> <Ionicons name="add" size={14} color={theme.colors.brand.primary} style={IS_RTL ? { marginStart: 6 } : { marginEnd: 6 }} />
 
             <Text weight="black" style={s.addPillText}> {t("prescriptions.addShort")} </Text>
 
@@ -418,7 +415,7 @@ export default function Page(): React.ReactElement {
 
       <View style={s.identityRow}>
 
-        <View style={s.heroTile}> <Ionicons name="medkit" size={24} color={c.accentDeep} /> </View>
+        <View style={s.heroTile}> <Ionicons name="medkit" size={24} color={theme.colors.brand.primary} /> </View>
 
         <View style={s.identityText}>
 
@@ -492,9 +489,9 @@ export default function Page(): React.ReactElement {
 
           icon="cloud-offline-outline"
 
-          tint={c.danger}
+          tint={theme.colors.status.error}
 
-          tintBg={c.dangerTint}
+          tintBg={`${theme.colors.status.error}1A`}
 
           title={t("prescriptions.errorTitle")}
 
@@ -528,9 +525,9 @@ export default function Page(): React.ReactElement {
 
           icon="medkit-outline"
 
-          tint={c.accentDeep}
+          tint={theme.colors.brand.primary}
 
-          tintBg={c.accentTint}
+          tintBg={theme.colors.brand.primaryLight}
 
           title={t("prescriptions.emptyTitle")}
 
@@ -566,9 +563,9 @@ export default function Page(): React.ReactElement {
 
           icon="alert-circle-outline"
 
-          tint={c.warn}
+          tint={theme.colors.status.warning}
 
-          tintBg={c.warnTint}
+          tintBg={`${theme.colors.status.warning}1A`}
 
           value={expiringCount}
 
@@ -582,9 +579,9 @@ export default function Page(): React.ReactElement {
 
           icon="checkmark-circle-outline"
 
-          tint={c.success}
+          tint={theme.colors.status.success}
 
-          tintBg={c.successTint}
+          tintBg={`${theme.colors.status.success}1A`}
 
           value={readyCount}
 
@@ -598,9 +595,9 @@ export default function Page(): React.ReactElement {
 
           icon="medkit-outline"
 
-          tint={c.accentDeep}
+          tint={theme.colors.brand.primary}
 
-          tintBg={c.accentTint}
+          tintBg={theme.colors.brand.primaryLight}
 
           value={totalActive}
 
@@ -648,7 +645,7 @@ export default function Page(): React.ReactElement {
 
           <View style={s.filterEmpty}>
 
-            <View style={s.filterEmptyIcon}> <Ionicons name="funnel-outline" size={22} color={c.inkFaint} /> </View>
+            <View style={s.filterEmptyIcon}> <Ionicons name="funnel-outline" size={22} color={theme.colors.text.muted} /> </View>
 
             <Text weight="bold" style={s.filterEmptyText}> {t("prescriptions.filterEmpty")} </Text>
 
@@ -674,9 +671,9 @@ export default function Page(): React.ReactElement {
 
             onRefresh={refetch}
 
-            tintColor={c.accent}
+            tintColor={theme.colors.brand.primary}
 
-            colors={[c.accent]}
+            colors={[theme.colors.brand.primary]}
 
           />
 
@@ -714,9 +711,9 @@ export default function Page(): React.ReactElement {
 
 
 
-function get_s(c: { canvas: string; surface: string; line: string; ink: string; inkSoft: string; inkFaint: string; accentDeep: string; accentTint: string; warn: string; warnTint: string; success: string; successTint: string; well: string; danger: string }) { return StyleSheet.create({
+function get_s() { return StyleSheet.create({
 
-  screen: { flex: 1, backgroundColor: c.canvas },
+  screen: { flex: 1, backgroundColor: theme.colors.canvas.background },
 
 
 
@@ -728,13 +725,13 @@ function get_s(c: { canvas: string; surface: string; line: string; ink: string; 
 
     gap:               18,
 
-    backgroundColor:   c.surface,
+    backgroundColor:   theme.colors.canvas.surface,
 
     borderBottomWidth: StyleSheet.hairlineWidth,
 
-    borderBottomColor: c.line,
+    borderBottomColor: theme.colors.border.default,
 
-    ...kit.shadow.raised,
+    ...theme.shadows[1],
 
   },
 
@@ -764,11 +761,11 @@ function get_s(c: { canvas: string; surface: string; line: string; ink: string; 
 
     borderRadius:    14,
 
-    backgroundColor: c.well,
+    backgroundColor: theme.colors.canvas.surfaceMuted,
 
     borderWidth:     1,
 
-    borderColor:     c.line,
+    borderColor:     theme.colors.border.default,
 
     alignItems:      "center",
 
@@ -786,7 +783,7 @@ function get_s(c: { canvas: string; surface: string; line: string; ink: string; 
 
   addPillTouchable: {
 
-    borderRadius: kit.radius.pill,
+    borderRadius: 9999,
 
   },
 
@@ -796,9 +793,9 @@ function get_s(c: { canvas: string; surface: string; line: string; ink: string; 
 
     alignItems:        "center",
 
-    backgroundColor:   c.accentTint,
+    backgroundColor:   theme.colors.brand.primaryLight,
 
-    borderRadius:      kit.radius.pill,
+    borderRadius:      9999,
 
     paddingHorizontal: 14,
 
@@ -824,7 +821,7 @@ function get_s(c: { canvas: string; surface: string; line: string; ink: string; 
 
     lineHeight:         16,
 
-    color:              c.accentDeep,
+    color:              theme.colors.brand.primary,
 
     includeFontPadding: false,
 
@@ -848,11 +845,11 @@ function get_s(c: { canvas: string; surface: string; line: string; ink: string; 
 
     borderRadius:    18,
 
-    backgroundColor: c.accentTint,
+    backgroundColor: theme.colors.brand.primaryLight,
 
     borderWidth:     1,
 
-    borderColor:     c.line,
+    borderColor:     theme.colors.border.default,
 
     alignItems:      "center",
 
@@ -876,7 +873,7 @@ function get_s(c: { canvas: string; surface: string; line: string; ink: string; 
 
     lineHeight:         14,
 
-    color:              c.accentDeep,
+    color:              theme.colors.brand.primary,
 
     letterSpacing:      0.6,
 
@@ -894,7 +891,7 @@ function get_s(c: { canvas: string; surface: string; line: string; ink: string; 
 
     lineHeight:         34,
 
-    color:              c.ink,
+    color:              theme.colors.text.primary,
 
     letterSpacing:      -0.6,
 
@@ -908,11 +905,11 @@ function get_s(c: { canvas: string; surface: string; line: string; ink: string; 
 
   statsBand: {
 
-    backgroundColor:   c.surface,
+    backgroundColor:   theme.colors.canvas.surface,
 
     borderBottomWidth: StyleSheet.hairlineWidth,
 
-    borderBottomColor: c.line,
+    borderBottomColor: theme.colors.border.default,
 
   },
 
@@ -936,7 +933,7 @@ function get_s(c: { canvas: string; surface: string; line: string; ink: string; 
 
     borderEndWidth: StyleSheet.hairlineWidth,
 
-    borderEndColor: c.line,
+    borderEndColor: theme.colors.border.default,
 
   },
 
@@ -960,7 +957,7 @@ function get_s(c: { canvas: string; surface: string; line: string; ink: string; 
 
     lineHeight:         28,
 
-    color:              c.ink,
+    color:              theme.colors.text.primary,
 
     letterSpacing:      -0.4,
 
@@ -974,7 +971,7 @@ function get_s(c: { canvas: string; surface: string; line: string; ink: string; 
 
     lineHeight:         13,
 
-    color:              c.inkFaint,
+    color:              theme.colors.text.muted,
 
     letterSpacing:      0.4,
 
@@ -996,7 +993,7 @@ function get_s(c: { canvas: string; surface: string; line: string; ink: string; 
 
     paddingBottom:     2,
 
-    backgroundColor:   c.canvas,
+    backgroundColor:   theme.colors.canvas.background,
 
   },
 
@@ -1018,11 +1015,11 @@ function get_s(c: { canvas: string; surface: string; line: string; ink: string; 
 
     borderRadius:    18,
 
-    backgroundColor: c.well,
+    backgroundColor: theme.colors.canvas.surfaceMuted,
 
     borderWidth:     1,
 
-    borderColor:     c.line,
+    borderColor:     theme.colors.border.default,
 
     alignItems:      "center",
 
@@ -1036,7 +1033,7 @@ function get_s(c: { canvas: string; surface: string; line: string; ink: string; 
 
     lineHeight:         19,
 
-    color:              c.inkFaint,
+    color:              theme.colors.text.muted,
 
     textAlign:          "center",
 
@@ -1048,19 +1045,19 @@ function get_s(c: { canvas: string; surface: string; line: string; ink: string; 
 
   disclosureTouchable: {
 
-    borderRadius: kit.radius.lg,
+    borderRadius: 12,
 
   },
 
   disclosure: {
 
-    backgroundColor:   c.surface,
+    backgroundColor:   theme.colors.canvas.surface,
 
-    borderRadius:      kit.radius.lg,
+    borderRadius:      12,
 
     borderWidth:       1,
 
-    borderColor:       c.line,
+    borderColor:       theme.colors.border.default,
 
     overflow:          "hidden",
 
@@ -1068,7 +1065,7 @@ function get_s(c: { canvas: string; surface: string; line: string; ink: string; 
 
   disclosurePressed: {
 
-    backgroundColor: c.well,
+    backgroundColor: theme.colors.canvas.surfaceMuted,
 
   },
 
@@ -1092,7 +1089,7 @@ function get_s(c: { canvas: string; surface: string; line: string; ink: string; 
 
     borderRadius:    10,
 
-    backgroundColor: c.well,
+    backgroundColor: theme.colors.canvas.surfaceMuted,
 
     alignItems:      "center",
 
@@ -1110,7 +1107,7 @@ function get_s(c: { canvas: string; surface: string; line: string; ink: string; 
 
     lineHeight:         18,
 
-    color:              c.inkSoft,
+    color:              theme.colors.text.secondary,
 
     textAlign:          TEXT_START,
 
@@ -1172,7 +1169,7 @@ function get_s(c: { canvas: string; surface: string; line: string; ink: string; 
 
     lineHeight:         26,
 
-    color:              c.ink,
+    color:              theme.colors.text.primary,
 
     textAlign:          "center",
 
@@ -1188,7 +1185,7 @@ function get_s(c: { canvas: string; surface: string; line: string; ink: string; 
 
     lineHeight:         22,
 
-    color:              c.inkSoft,
+    color:              theme.colors.text.secondary,
 
     textAlign:          "center",
 
@@ -1212,17 +1209,17 @@ function get_s(c: { canvas: string; surface: string; line: string; ink: string; 
 
   skeletonCard: {
 
-    backgroundColor: c.surface,
+    backgroundColor: theme.colors.canvas.surface,
 
-    borderRadius:    kit.radius.lg,
+    borderRadius:    12,
 
     borderWidth:     1,
 
-    borderColor:     c.line,
+    borderColor:     theme.colors.border.default,
 
     overflow:        "hidden",
 
-    ...kit.shadow.raised,
+    ...theme.shadows[1],
 
   },
 
@@ -1230,7 +1227,7 @@ function get_s(c: { canvas: string; surface: string; line: string; ink: string; 
 
     height:          4,
 
-    backgroundColor: c.well,
+    backgroundColor: theme.colors.canvas.surfaceMuted,
 
   },
 
@@ -1250,9 +1247,9 @@ function get_s(c: { canvas: string; surface: string; line: string; ink: string; 
 
     height:          44,
 
-    borderRadius:    kit.radius.control,
+    borderRadius:    10,
 
-    backgroundColor: c.well,
+    backgroundColor: theme.colors.canvas.surfaceMuted,
 
     flexShrink:      0,
 
@@ -1264,7 +1261,7 @@ function get_s(c: { canvas: string; surface: string; line: string; ink: string; 
 
     borderRadius:    6,
 
-    backgroundColor: c.well,
+    backgroundColor: theme.colors.canvas.surfaceMuted,
 
   },
 
@@ -1284,11 +1281,11 @@ function get_s(c: { canvas: string; surface: string; line: string; ink: string; 
 
     paddingTop:        12,
 
-    backgroundColor:   c.surface,
+    backgroundColor:   theme.colors.canvas.surface,
 
     borderTopWidth:    StyleSheet.hairlineWidth,
 
-    borderTopColor:    c.line,
+    borderTopColor:    theme.colors.border.default,
 
   },
 

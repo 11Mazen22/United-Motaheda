@@ -16,7 +16,8 @@ import { Ionicons }       from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { Text as UIText } from "@pharmacy/ui-native";
 import { kit }            from "@pharmacy/ui-native";
-import { theme }          from "@pharmacy/design-tokens";
+import { theme as legacyTheme } from "@pharmacy/design-tokens";
+import { defaultTheme as theme } from "@pharmacy/ui-native";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
 import type { CheckoutDraft }             from "../resilience";
 
@@ -50,13 +51,13 @@ export function DraftRecoveryBanner({ draft, onRestore, onDiscard }: Props) {
     >
       <View style={[s.row, { flexDirection: flexRow(IS_RTL) }]}>
         <View style={s.iconWell}>
-          <Ionicons name="time-outline" size={16} color={kit.color.accentDeep} />
+          <Ionicons name="time-outline" size={16} color={theme.colors.brand.primary} />
         </View>
         <View style={{ flex: 1 }}>
           <UIText
             variant="body-sm"
             weight="bold"
-            style={{ textAlign: TEXT_START, color: kit.color.ink }}
+            style={{ textAlign: TEXT_START, color: theme.colors.text.primary }}
           >
             {t("checkout.draftRecoveryTitle", "استكمال الطلب السابق")}
           </UIText>
@@ -79,7 +80,7 @@ export function DraftRecoveryBanner({ draft, onRestore, onDiscard }: Props) {
           accessibilityRole="button"
           accessibilityLabel={t("checkout.draftRestore", "استكمال")}
         >
-          <Ionicons name="arrow-forward-circle" size={14} color={kit.color.onAccent} />
+          <Ionicons name="arrow-forward-circle" size={14} color={theme.colors.text.inverse} />
           <UIText style={s.restoreText}>
             {t("checkout.draftRestore", "استكمال")}
           </UIText>
@@ -105,13 +106,13 @@ const s = StyleSheet.create({
     marginHorizontal: kit.inset.screen,
     marginTop:        12,
     marginBottom:     4,
-    backgroundColor:  kit.color.accentTint,
-    borderRadius:     kit.radius.xl,
+    backgroundColor:  theme.colors.brand.primaryLight,
+    borderRadius:     16,
     borderWidth:      1.5,
-    borderColor:      kit.color.accent,
+    borderColor:      theme.colors.brand.primary,
     padding:          14,
     gap:              12,
-    ...kit.shadow.card,
+    ...theme.shadows[1],
   },
   row: {
     alignItems: "flex-start",
@@ -126,7 +127,7 @@ const s = StyleSheet.create({
     justifyContent:  "center",
     flexShrink:      0,
     borderWidth:     1,
-    borderColor:     kit.color.line,
+    borderColor:     theme.colors.border.default,
   },
   actions: {
     gap: 8,
@@ -137,17 +138,17 @@ const s = StyleSheet.create({
     gap:               6,
     paddingHorizontal: 16,
     paddingVertical:   9,
-    borderRadius:      kit.radius.lg,
-    backgroundColor:   kit.color.accent,
-    ...kit.shadow.brandGlow,
+    borderRadius:      12,
+    backgroundColor:   theme.colors.brand.primary,
+    ...theme.shadows[2],
   },
   discardBtn: {
     paddingHorizontal: 16,
     paddingVertical:   9,
-    borderRadius:      kit.radius.lg,
+    borderRadius:      12,
     backgroundColor:   "#fff",
     borderWidth:       1,
-    borderColor:       kit.color.line,
+    borderColor:       theme.colors.border.default,
   },
   btnPressed: {
     opacity:   0.82,
@@ -155,12 +156,12 @@ const s = StyleSheet.create({
   },
   restoreText: {
     fontSize:   12,
-    fontFamily: theme.fonts.black,
+    fontFamily: legacyTheme.fonts.black,
     color:      "#fff",
   },
   discardText: {
     fontSize:   12,
-    fontFamily: theme.fonts.bold,
-    color:      kit.color.inkSoft,
+    fontFamily: legacyTheme.fonts.bold,
+    color:      theme.colors.text.secondary,
   },
 });

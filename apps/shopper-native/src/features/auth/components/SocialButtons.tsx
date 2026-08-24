@@ -1,3 +1,4 @@
+import { defaultTheme as theme } from "@pharmacy/ui-native";
 /**
  * SocialButtons — "Continue with Google" button.
  *
@@ -18,7 +19,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import Animated, { FadeInUp } from "react-native-reanimated";
 import { Text as UIText } from "@pharmacy/ui-native";
-import { kit } from "@pharmacy/ui-native";
+
 import { isRtl, flexRow } from "@/utils/layout";
 
 export type SocialProvider = "google";
@@ -67,19 +68,19 @@ export function SocialButtons({ onSocialPress, loading = false }: Props) {
 const s = StyleSheet.create({
   // Row container — icon + label centered as a single cluster.
   btn: {
-    ...kit.shadow.raised,
+    ...theme.shadows[1],
     flexDirection:     flexRow(IS_RTL),
     alignItems:        "center",
     justifyContent:    "center",
     minHeight:         52,
     paddingHorizontal: 16,
-    borderRadius:      kit.radius.lg,
-    backgroundColor:   kit.color.surface,
+    borderRadius:      12,
+    backgroundColor:   theme.colors.canvas.surface,
     borderWidth:       1,
-    borderColor:       kit.color.line,
+    borderColor:       theme.colors.border.default,
   },
   btnPressed: {
-    backgroundColor: kit.color.well,
+    backgroundColor: theme.colors.canvas.surfaceMuted,
     transform:       [{ scale: 0.99 }],
   },
 
@@ -99,7 +100,7 @@ const s = StyleSheet.create({
   label: {
     fontSize:           14,
     lineHeight:         20,
-    color:              kit.color.ink,
+    color:              theme.colors.text.primary,
     letterSpacing:      -0.1,
     includeFontPadding: false,
     flexShrink:         1,

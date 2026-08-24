@@ -58,7 +58,8 @@ import Animated, {
 
 import { LinearGradient } from "expo-linear-gradient";
 
-import { theme } from "@pharmacy/design-tokens";
+import { theme as legacyTheme } from "@pharmacy/design-tokens";
+import { defaultTheme as theme } from "@pharmacy/ui-native";
 
 import { kit } from "@pharmacy/ui-native";
 
@@ -88,7 +89,7 @@ interface SkeletonProps {
 
 
 
-export function Skeleton({ width = "100%", height = 16, radius = theme.radius.md, style }: SkeletonProps) {
+export function Skeleton({ width = "100%", height = 16, radius = legacyTheme.radius.md, style }: SkeletonProps) {
 
   const progress = useSharedValue(0);
 
@@ -202,13 +203,13 @@ export function ProductCardSkeleton() {
 
     <View style={{
 
-      backgroundColor: kit.color.surface,
+      backgroundColor: theme.colors.canvas.surface,
 
       borderRadius:    18,                // matches ProductCard.gridCard
 
       overflow:        "hidden",
 
-      ...theme.shadow.card,
+      ...kit.shadow.card,
 
     }}>
 
@@ -262,7 +263,7 @@ export function CategoryCardSkeleton() {
 
   // matches CategoryCard.pill — 104w × 168h × radius["2xl"] (22)
 
-  return <Skeleton width={104} height={168} radius={theme.radius['2xl']} />;
+  return <Skeleton width={104} height={168} radius={theme.radii['2xl']} />;
 
 }
 
@@ -274,7 +275,7 @@ export function OrderCardSkeleton() {
 
     <View style={{
 
-      backgroundColor: kit.color.surface,
+      backgroundColor: theme.colors.canvas.surface,
 
       borderRadius:    18,
 
@@ -282,7 +283,7 @@ export function OrderCardSkeleton() {
 
       gap:             14,
 
-      ...theme.shadow.card,
+      ...kit.shadow.card,
 
     }}>
 
@@ -316,7 +317,7 @@ export function OrderCardSkeleton() {
 
         backgroundColor: kit.color.surfaceSunken,
 
-        borderRadius: theme.radius.lg,
+        borderRadius: legacyTheme.radius.lg,
 
         padding: 12,
 
@@ -328,7 +329,7 @@ export function OrderCardSkeleton() {
 
       }}>
 
-        <Skeleton width={54} height={54} radius={theme.radius.md} />
+        <Skeleton width={54} height={54} radius={legacyTheme.radius.md} />
 
         <View style={{ flex: 1, gap: 5 }}>
 

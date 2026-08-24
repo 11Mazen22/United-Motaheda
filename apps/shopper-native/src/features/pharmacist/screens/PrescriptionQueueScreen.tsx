@@ -1,3 +1,4 @@
+import { defaultTheme as theme } from "@pharmacy/ui-native";
 /**
  * PrescriptionQueueScreen — pharmacist reBox queue for pending prescriptions.
  *
@@ -32,7 +33,7 @@ import { useQueryClient }  from "@tanstack/react-query";
 
 
 import { Screen, Text as UIText, Card, Chip, EmptyState as PUIEmptyState } from "@pharmacy/ui-native";
-import { useDarkColors } from "@/hooks/useDarkColors";
+import { useTheme } from "@pharmacy/ui-native";
 
 import { kit } from "@pharmacy/ui-native";
 
@@ -72,7 +73,7 @@ function RxCard({ rx, onPress }: { rx: PharmacistPrescription; onPress: () => vo
 
   const { t } = useTranslation();
 
-  const { c } = useDarkColors();
+  const { theme } = useTheme();
 
 
 
@@ -80,13 +81,13 @@ function RxCard({ rx, onPress }: { rx: PharmacistPrescription; onPress: () => vo
 
     rx.reviewStatus === "approved"
 
-      ? c.success
+      ? theme.colors.status.success
 
       : rx.reviewStatus === "rejected"
 
-        ? c.danger
+        ? theme.colors.status.error
 
-        : c.warn;
+        : theme.colors.status.warning;
 
 
 
@@ -94,13 +95,13 @@ function RxCard({ rx, onPress }: { rx: PharmacistPrescription; onPress: () => vo
 
     rx.reviewStatus === "approved"
 
-      ? c.successTint
+      ? `${theme.colors.status.success}1A`
 
       : rx.reviewStatus === "rejected"
 
-        ? c.dangerTint
+        ? `${theme.colors.status.error}1A`
 
-        : c.warnTint;
+        : `${theme.colors.status.warning}1A`;
 
 
 
@@ -126,7 +127,7 @@ function RxCard({ rx, onPress }: { rx: PharmacistPrescription; onPress: () => vo
 
         </UIText>
 
-        <Ionicons name={FORWARD_CHEVRON} size={14} color={c.inkFaint} />
+        <Ionicons name={FORWARD_CHEVRON} size={14} color={theme.colors.text.muted} />
 
       </View>
 
@@ -162,7 +163,7 @@ export function PrescriptionQueueScreen(): React.ReactElement {
 
   const { t }       = useTranslation();
 
-  const { c }       = useDarkColors();
+  const { theme } = useTheme();
 
   const router      = useRouter();
 
@@ -194,7 +195,7 @@ export function PrescriptionQueueScreen(): React.ReactElement {
 
   return (
 
-    <Screen edgeTop background={c.canvas}>
+    <Screen edgeTop background={theme.colors.canvas.background}>
 
       <PharmacistScreenHeader
 
@@ -252,7 +253,7 @@ export function PrescriptionQueueScreen(): React.ReactElement {
 
             onRefresh={onRefresh}
 
-            tintColor={c.accent}
+            tintColor={theme.colors.brand.primary}
 
           />
 
@@ -278,7 +279,7 @@ export function PrescriptionQueueScreen(): React.ReactElement {
 
             <View style={s.empty}>
 
-              <ActivityIndicator size="large" color={c.accent} />
+              <ActivityIndicator size="large" color={theme.colors.brand.primary} />
 
             </View>
 
@@ -286,7 +287,7 @@ export function PrescriptionQueueScreen(): React.ReactElement {
 
             <PUIEmptyState
 
-              illustration={<Ionicons name="document-text-outline" size={32} color={c.inkFaint} />}
+              illustration={<Ionicons name="document-text-outline" size={32} color={theme.colors.text.muted} />}
 
               title={t("pharmacist.emptyRxTitle")}
 
@@ -324,17 +325,17 @@ const s = StyleSheet.create({
 
   filterChip: {
 
-    borderColor:     kit.color.line,
+    borderColor:     theme.colors.border.default,
 
-    backgroundColor: kit.color.surface,
+    backgroundColor: theme.colors.canvas.surface,
 
   },
 
   filterChipActive: {
 
-    backgroundColor: kit.color.accentTint,
+    backgroundColor: theme.colors.brand.primaryLight,
 
-    borderColor:     kit.color.accent,
+    borderColor:     theme.colors.brand.primary,
 
   },
 
@@ -354,7 +355,7 @@ const s = StyleSheet.create({
 
     borderWidth:     1,
 
-    borderColor:     kit.color.line,
+    borderColor:     theme.colors.border.default,
 
   },
 

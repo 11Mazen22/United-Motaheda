@@ -1,9 +1,10 @@
+import { defaultTheme as theme } from "@pharmacy/ui-native";
 import React from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { Text as UIText, kit } from "@pharmacy/ui-native";
-import { useDarkColors } from "@/hooks/useDarkColors";
+import { useTheme } from "@pharmacy/ui-native";
 import { FORWARD_CHEVRON, flexRow, isRtl } from "@/utils/layout";
 import { formatPrice } from "@/utils/format";
 import { OrderStatusChip } from "./OrderStatusChip";
@@ -26,10 +27,10 @@ function formatAge(ms: number): string {
 
 export function OrderQueueCard({ order, onPress }: Props) {
   const { t } = useTranslation();
-  const { c } = useDarkColors();
+  const { theme } = useTheme();
   const isUrgent = (order.ageMs ?? 0) > 30 * 60_000;
   
-  const borderStartColor = isUrgent ? c.warn : c.accent;
+  const borderStartColor = isUrgent ? theme.colors.status.warning : theme.colors.brand.primary;
 
   return (
     <Pressable
@@ -37,7 +38,7 @@ export function OrderQueueCard({ order, onPress }: Props) {
       style={({ pressed }) => [
         styles.card,
         pressed && styles.cardPressed,
-        { borderStartColor, borderStartWidth: 4, flexDirection: flexRow(IS_RTL), backgroundColor: pressed ? c.well : c.surface, borderColor: c.line }
+        { borderStartColor, borderStartWidth: 4, flexDirection: flexRow(IS_RTL), backgroundColor: pressed ? theme.colors.canvas.surfaceMuted : theme.colors.canvas.surface, borderColor: theme.colors.border.default }
       ]}
       accessibilityRole="button"
       accessibilityLabel={`Order ${order.id.slice(-8)} for ${order.customerName}`}
@@ -51,9 +52,9 @@ export function OrderQueueCard({ order, onPress }: Props) {
         </View>
         <View style={[styles.row, { marginTop: 6 }]}>
           <UIText variant="caption" color="muted">{order.items.length} {t("pharmacist.items", "منتجات")}</UIText>
-          <View style={[styles.dot, { backgroundColor: c.inkFaint }]} />
+          <View style={[styles.dot, { backgroundColor: theme.colors.text.muted }]} />
           <View style={styles.row}>
-            {isUrgent && <Ionicons name="warning" size={12} color={c.warn} style={{ marginEnd: 2 }} />}
+            {isUrgent && <Ionicons name="warning" size={12} color={theme.colors.status.warning} style={{ marginEnd: 2 }} />}
             <UIText variant="caption" color={isUrgent ? "warn" : "secondary"}>{formatAge(order.ageMs ?? 0)}</UIText>
           </View>
         </View>
@@ -65,7 +66,7 @@ export function OrderQueueCard({ order, onPress }: Props) {
 
       <View style={styles.colRight}>
         <UIText style={styles.total}>{formatPrice(order.total)}</UIText>
-        <Ionicons name={FORWARD_CHEVRON} size={16} color={c.inkFaint} style={{ marginTop: 2 }} />
+        <Ionicons name={FORWARD_CHEVRON} size={16} color={theme.colors.text.muted} style={{ marginTop: 2 }} />
       </View>
     </Pressable>
   );
@@ -73,13 +74,13 @@ export function OrderQueueCard({ order, onPress }: Props) {
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: kit.radius.md,
+    borderRadius: 8,
     paddingVertical: 14,
     paddingHorizontal: 12,
     borderWidth: 1,
     alignItems: "center",
     gap: 12,
-    ...kit.shadow.card,
+    ...theme.shadows[1],
   },
   cardPressed: {
     opacity: 0.85,
@@ -109,6 +110,6 @@ const styles = StyleSheet.create({
   total: {
     fontSize: 14,
     fontFamily: kit.font.bold,
-    color: kit.color.ink,
+    color: theme.colors.text.primary,
   },
 });

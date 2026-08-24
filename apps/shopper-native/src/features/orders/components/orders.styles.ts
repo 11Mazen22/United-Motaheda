@@ -7,9 +7,10 @@
  * EmptyOrdersState, and UnauthenticatedState moved to the light kit.
  */
 import { StyleSheet } from "react-native";
-import { theme } from "@pharmacy/design-tokens";
+import { theme as legacyTheme } from "@pharmacy/design-tokens";
+import { defaultTheme as theme } from "@pharmacy/ui-native";
 import { flexRow, isRtl, valueTextAlign } from "@/utils/layout";
-import { kit } from "@pharmacy/ui-native";
+
 
 // ── Empty state (authenticated, no orders)
 export const emptyS = StyleSheet.create({
@@ -19,24 +20,24 @@ export const emptyS = StyleSheet.create({
     paddingHorizontal: theme.spacing[3],
     gap:               theme.spacing[3],
   },
-  illusWrap: { marginBottom: theme.spacing.xs },
+  illusWrap: { marginBottom: legacyTheme.spacing.xs },
   illusBg: {
     width:           160,
     height:          160,
     borderRadius:    80,
     alignItems:      "center",
     justifyContent:  "center",
-    backgroundColor: kit.color.accentTint,
+    backgroundColor: theme.colors.brand.primaryLight,
   },
   illusRing: {
     width:          130,
     height:         130,
     borderRadius:   65,
     borderWidth:    1.5,
-    borderColor:    kit.color.line,
+    borderColor:    theme.colors.border.default,
     alignItems:     "center",
     justifyContent: "center",
-    backgroundColor: kit.color.surface,
+    backgroundColor: theme.colors.canvas.surface,
   },
   illusBadge: {
     position:        "absolute",
@@ -45,15 +46,15 @@ export const emptyS = StyleSheet.create({
     width:           28,
     height:          28,
     borderRadius:    14,
-    backgroundColor: kit.color.accent,
+    backgroundColor: theme.colors.brand.primary,
     alignItems:      "center",
     justifyContent:  "center",
     borderWidth:     2,
-    borderColor:     kit.color.surface,
+    borderColor:     theme.colors.canvas.surface,
   },
   textBlock: {
     alignItems: "center",
-    gap:        theme.spacing.sm,
+    gap:        legacyTheme.spacing.sm,
   },
   headline: { letterSpacing: -0.4 },
   sub: {
@@ -64,7 +65,7 @@ export const emptyS = StyleSheet.create({
   catsSection: {
     width:      "100%",
     alignItems: "center",
-    marginTop:  theme.spacing.sm,
+    marginTop:  legacyTheme.spacing.sm,
   },
   catRow: {
     flexDirection:  flexRow(isRtl()),
@@ -78,10 +79,10 @@ export const emptyS = StyleSheet.create({
     gap:               7,
     paddingHorizontal: 14,
     height:            40,
-    borderRadius:      kit.radius.pill,
+    borderRadius:      9999,
   },
   catLabel: {
-    fontFamily: theme.fonts.bold,
+    fontFamily: legacyTheme.fonts.bold,
     fontSize: 12, lineHeight: 18,
     includeFontPadding: false,
   },
@@ -92,20 +93,20 @@ export const emptyS = StyleSheet.create({
 // useScreenLayout().pagePad so the gutter scales on tablet/large-tablet.
 export const listS = StyleSheet.create({
   listContent: {
-    paddingHorizontal: theme.layout.pagePaddingH,
-    paddingTop:        theme.spacing.lg,
-    paddingBottom:     theme.spacing.lg,
-    gap:               theme.spacing.md,
+    paddingHorizontal: legacyTheme.layout.pagePaddingH,
+    paddingTop:        legacyTheme.spacing.lg,
+    paddingBottom:     legacyTheme.spacing.lg,
+    gap:               legacyTheme.spacing.md,
   },
   card: {
-    backgroundColor:   kit.color.surface,
-    borderRadius:      kit.radius.card,
+    backgroundColor:   theme.colors.canvas.surface,
+    borderRadius:      16,
     paddingHorizontal: 16,
     paddingVertical:   18,
     gap:               14,
     borderWidth:       1,
-    borderColor:       kit.color.line,
-    ...kit.shadow.raised,
+    borderColor:       theme.colors.border.default,
+    ...theme.shadows[1],
   },
   cardFooter: {
     flexDirection:  flexRow(isRtl()),
@@ -113,14 +114,14 @@ export const listS = StyleSheet.create({
     justifyContent: "space-between",
     paddingTop:     10,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: kit.color.line,
+    borderTopColor: theme.colors.border.default,
   },
   // Footer total — value-shaped, LTR-locked
   totalText: {
-    fontFamily:         theme.fonts.black,
+    fontFamily:         legacyTheme.fonts.black,
     fontSize:           17,
     lineHeight:         24,
-    color:              kit.color.ink,
+    color:              theme.colors.text.primary,
     textAlign:          valueTextAlign,
     includeFontPadding: false,
   },
@@ -128,15 +129,15 @@ export const listS = StyleSheet.create({
     flexDirection: flexRow(isRtl()),
     alignItems:    "center",
     gap:           10,
-    marginTop:     theme.spacing.xs,
+    marginTop:     legacyTheme.spacing.xs,
   },
   skeletonItems: {
     flexDirection:   flexRow(isRtl()),
     alignItems:      "center",
-    gap:             theme.spacing.md,
-    backgroundColor: kit.color.well,
+    gap:             legacyTheme.spacing.md,
+    backgroundColor: theme.colors.canvas.surfaceMuted,
     borderRadius:    14,
-    padding:         theme.spacing.md,
+    padding:         legacyTheme.spacing.md,
   },
   skeletonFooter: {
     flexDirection:  flexRow(isRtl()),
@@ -144,14 +145,14 @@ export const listS = StyleSheet.create({
     justifyContent: "space-between",
     paddingTop:     10,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: kit.color.line,
+    borderTopColor: theme.colors.border.default,
   },
   skeletonRect: {
-    backgroundColor: kit.color.well,
+    backgroundColor: theme.colors.canvas.surfaceMuted,
     borderRadius:    6,
   },
   skeletonContainer: {
-    gap:     theme.spacing.md,
-    padding: theme.spacing.lg,
+    gap:     legacyTheme.spacing.md,
+    padding: legacyTheme.spacing.lg,
   },
 });

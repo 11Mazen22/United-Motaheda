@@ -1,7 +1,8 @@
 import React from "react";
 import { View, StyleSheet } from "react-native";
-import { Text as UIText, Button, kit } from "@pharmacy/ui-native";
-import { theme } from "@pharmacy/design-tokens";
+import { Text as UIText, Button } from "@pharmacy/ui-native";
+import { theme as legacyTheme } from "@pharmacy/design-tokens";
+import { defaultTheme as theme } from "@pharmacy/ui-native";
 
 export default function ConfirmationSheet({ title, body, confirmLabel = "Confirm", cancelLabel = "Cancel", onConfirm, onCancel }: {
   title: string;
@@ -24,7 +25,7 @@ export default function ConfirmationSheet({ title, body, confirmLabel = "Confirm
 }
 
 const s = StyleSheet.create({
-  wrap: { padding: 18, borderTopStartRadius: kit.radius.xl, borderTopEndRadius: kit.radius.xl, backgroundColor: kit.color.canvas },
-  title: { fontFamily: theme.fonts.semibold, fontSize: 16 },
+  wrap: { padding: 18, borderTopStartRadius: 16, borderTopEndRadius: 16, backgroundColor: theme.colors.canvas.background },
+  title: { fontFamily: legacyTheme.fonts.semibold, fontSize: 16 },
   actions: { marginTop: 14, flexDirection: "row", gap: 10, justifyContent: "flex-end" },
 });

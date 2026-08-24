@@ -1,8 +1,9 @@
 import React from "react";
 import { StyleSheet, View, type StyleProp, type TextStyle, type ViewStyle } from "react-native";
 import { Text as UIText, Card } from "@pharmacy/ui-native";
-import { kit } from "@pharmacy/ui-native";
-import { theme } from "@pharmacy/design-tokens";
+
+import { theme as legacyTheme } from "@pharmacy/design-tokens";
+import { defaultTheme as theme } from "@pharmacy/ui-native";
 import { flexRow, isRtl } from "@/utils/layout";
 
 const IS_RTL = isRtl();
@@ -24,11 +25,11 @@ export default function MetricCard({ label, value, icon, compact, inverse, accen
 }
 
 const s = StyleSheet.create({
-  wrap: { padding: 12, borderRadius: 12, backgroundColor: kit.color.surface },
+  wrap: { padding: 12, borderRadius: 12, backgroundColor: theme.colors.canvas.surface },
   compact: { padding: 8 },
-  inverse: { backgroundColor: kit.color.ink },
+  inverse: { backgroundColor: theme.colors.text.primary },
   inner: { flexDirection: flexRow(IS_RTL), alignItems: "center", gap: 12 },
-  icon: { width: 44, height: 44, borderRadius: 10, backgroundColor: kit.color.well, alignItems: "center", justifyContent: "center" },
+  icon: { width: 44, height: 44, borderRadius: 10, backgroundColor: theme.colors.canvas.surfaceMuted, alignItems: "center", justifyContent: "center" },
   iconCompact: { width: 32, height: 32, borderRadius: 8 },
-  value: { marginTop: 4, fontFamily: theme.fonts.black },
+  value: { marginTop: 4, fontFamily: legacyTheme.fonts.black },
 });

@@ -36,9 +36,10 @@ import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
 
 import { useBannerStore } from "../banner-store";
 
-import { theme } from "@pharmacy/design-tokens";
+import { theme as legacyTheme } from "@pharmacy/design-tokens";
+import { defaultTheme as theme } from "@pharmacy/ui-native";
 
-import { kit } from "@pharmacy/ui-native";
+
 
 
 
@@ -78,13 +79,13 @@ const TYPE_META: Record<string, {
 
 }> = {
 
-  order:  { icon: "bag-check-outline",    color: kit.color.accentDeep, bg: kit.color.accentTint, labelKey: "notification.order"  },
+  order:  { icon: "bag-check-outline",    color: theme.colors.brand.primary, bg: theme.colors.brand.primaryLight, labelKey: "notification.order"  },
 
-  offer:  { icon: "pricetag-outline",     color: kit.color.warn,       bg: kit.color.warnTint,   labelKey: "notification.offer"  },
+  offer:  { icon: "pricetag-outline",     color: theme.colors.status.warning,       bg: `${theme.colors.status.warning}1A`,   labelKey: "notification.offer"  },
 
-  health: { icon: "heart-circle-outline", color: kit.color.danger,    bg: kit.color.dangerTint, labelKey: "notification.health" },
+  health: { icon: "heart-circle-outline", color: theme.colors.status.error,    bg: `${theme.colors.status.error}1A`, labelKey: "notification.health" },
 
-  system: { icon: "sparkles-outline",     color: kit.color.inkSoft,   bg: kit.color.well,       labelKey: "notification.system" },
+  system: { icon: "sparkles-outline",     color: theme.colors.text.secondary,   bg: theme.colors.canvas.surfaceMuted,       labelKey: "notification.system" },
 
 };
 
@@ -362,7 +363,7 @@ export function NotificationBanner() {
 
         <Pressable onPress={handleDismiss} hitSlop={14} style={styles.closeBtn}>
 
-          <Ionicons name="close" size={12} color={kit.color.inkFaint} />
+          <Ionicons name="close" size={12} color={theme.colors.text.muted} />
 
         </Pressable>
 
@@ -412,7 +413,7 @@ const styles = StyleSheet.create({
 
     gap:               10,
 
-    backgroundColor:   kit.color.surface,
+    backgroundColor:   theme.colors.canvas.surface,
 
     borderRadius:      24,
 
@@ -424,7 +425,7 @@ const styles = StyleSheet.create({
 
     overflow:          "hidden",
 
-    ...kit.shadow.floating,
+    ...theme.shadows[3],
 
     borderWidth:       1,
 
@@ -468,15 +469,15 @@ const styles = StyleSheet.create({
 
   labelRow:    { flexDirection: flexRow(isRtl()), alignItems: "center", gap: 6 },
 
-  bannerLabel: { fontSize: 10, fontFamily: theme.fonts.extrabold, letterSpacing: 0.9, textAlign: textAlignStart(isRtl()) },
+  bannerLabel: { fontSize: 10, fontFamily: legacyTheme.fonts.extrabold, letterSpacing: 0.9, textAlign: textAlignStart(isRtl()) },
 
   queuePill:   { minWidth: 20, height: 18, paddingHorizontal: 5, borderRadius: 9, alignItems: "center", justifyContent: "center" },
 
-  queueText:   { fontSize: 10, fontFamily: theme.fonts.black },
+  queueText:   { fontSize: 10, fontFamily: legacyTheme.fonts.black },
 
-  bannerTitle: { fontSize: theme.fontSize.md, fontFamily: theme.fonts.black, color: kit.color.ink, textAlign: textAlignStart(isRtl()) },
+  bannerTitle: { fontSize: theme.typography.sizes[16], fontFamily: legacyTheme.fonts.black, color: theme.colors.text.primary, textAlign: textAlignStart(isRtl()) },
 
-  bannerBody:  { fontSize: theme.fontSize.sm, fontFamily: theme.fonts.regular, color: kit.color.inkSoft, lineHeight: 20, textAlign: textAlignStart(isRtl()) },
+  bannerBody:  { fontSize: theme.typography.sizes[14], fontFamily: legacyTheme.fonts.regular, color: theme.colors.text.secondary, lineHeight: 20, textAlign: textAlignStart(isRtl()) },
 
   closeBtn: {
 
@@ -486,7 +487,7 @@ const styles = StyleSheet.create({
 
     borderRadius:    8,
 
-    backgroundColor: kit.color.well,
+    backgroundColor: theme.colors.canvas.surfaceMuted,
 
     alignItems:      "center",
 
@@ -494,7 +495,7 @@ const styles = StyleSheet.create({
 
     borderWidth:     StyleSheet.hairlineWidth,
 
-    borderColor:     kit.color.line,
+    borderColor:     theme.colors.border.default,
 
   },
 
@@ -510,7 +511,7 @@ const styles = StyleSheet.create({
 
     height:          2.5,
 
-    backgroundColor: kit.color.line,
+    backgroundColor: theme.colors.border.default,
 
   },
 

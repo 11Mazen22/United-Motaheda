@@ -1,4 +1,6 @@
-import { useDarkColors } from "@/hooks/useDarkColors";
+import { defaultTheme as theme } from "@pharmacy/ui-native";
+import { useTheme } from "@pharmacy/ui-native";
+
 /**
 
  * PrescriptionDetail — medication command center.
@@ -67,7 +69,7 @@ import { useTranslation } from "react-i18next";
 
 import Animated, { FadeInDown } from "react-native-reanimated";
 
-import { kit, Button } from "@pharmacy/ui-native";
+import { Button } from "@pharmacy/ui-native";
 
 import { Text } from "@pharmacy/ui-native";
 
@@ -109,23 +111,23 @@ const TEXT_START = textAlignStart(IS_RTL);
 
 
 
-function rxStatusColor(status: RxStatus, c: { success: string; accentDeep: string; warn: string; inkFaint: string; inkSoft: string }): string {
+function rxStatusColor(status: RxStatus): string {
   switch (status) {
-    case 'ready': return c.success;
-    case 'active': return c.accentDeep;
-    case 'expiring': return c.warn;
-    case 'expired': return c.inkFaint;
-    default: return c.inkSoft;
+    case 'ready': return theme.colors.status.success;
+    case 'active': return theme.colors.brand.primary;
+    case 'expiring': return theme.colors.status.warning;
+    case 'expired': return theme.colors.text.muted;
+    default: return theme.colors.text.secondary;
   }
 }
 
-function rxStatusTint(status: RxStatus, c: { successTint: string; accentTint: string; warnTint: string; well: string }): string {
+function rxStatusTint(status: RxStatus): string {
   switch (status) {
-    case 'ready': return c.successTint;
-    case 'active': return c.accentTint;
-    case 'expiring': return c.warnTint;
-    case 'expired': return c.accentTint;
-    default: return c.well;
+    case 'ready': return `${theme.colors.status.success}1A`;
+    case 'active': return theme.colors.brand.primaryLight;
+    case 'expiring': return `${theme.colors.status.warning}1A`;
+    case 'expired': return theme.colors.brand.primaryLight;
+    default: return theme.colors.canvas.surfaceMuted;
   }
 }
 
@@ -226,8 +228,8 @@ export default function Page({ id }: { id: string | undefined }): React.ReactEle
 
   
   
-  const { c } = useDarkColors();
-  const s = React.useMemo(() => get_s(c), [c]);
+  const { theme } = useTheme();
+  const s = React.useMemo(() => get_s(), []);
 const { t, i18n } = useTranslation();
 
   const router      = useRouter();
@@ -394,7 +396,7 @@ const { t, i18n } = useTranslation();
 
           <View style={s.notFoundIcon}>
 
-            <Ionicons name="medkit-outline" size={36} color={c.inkFaint} />
+            <Ionicons name="medkit-outline" size={36} color={theme.colors.text.muted} />
 
           </View>
 
@@ -420,8 +422,8 @@ const { t, i18n } = useTranslation();
 
 
 
-  const color     = rxStatusColor(rx.status, c);
-  const tint      = rxStatusTint(rx.status, c);
+  const color     = rxStatusColor(rx.status);
+  const tint      = rxStatusTint(rx.status);
   const isExpired = rx.status === "expired";
 
 
@@ -482,7 +484,7 @@ const { t, i18n } = useTranslation();
 
               <View style={s.reviewBannerIconWell}>
 
-                <Ionicons name="time-outline" size={16} color={c.warn} />
+                <Ionicons name="time-outline" size={16} color={theme.colors.status.warning} />
 
               </View>
 
@@ -516,13 +518,13 @@ const { t, i18n } = useTranslation();
 
               <View style={[s.reviewBannerIconWell, s.reviewBannerIconWellDanger]}>
 
-                <Ionicons name="close-circle-outline" size={16} color={c.danger} />
+                <Ionicons name="close-circle-outline" size={16} color={theme.colors.status.error} />
 
               </View>
 
               <View style={s.reviewBannerText}>
 
-                <Text weight="black" style={[s.reviewBannerTitle, { color: c.danger }]}>
+                <Text weight="black" style={[s.reviewBannerTitle, { color: theme.colors.status.error }]}>
 
                   {t("prescriptions.reviewRejectedTitle")}
 
@@ -588,7 +590,7 @@ const { t, i18n } = useTranslation();
 
                   placeholder={t("prescriptions.ocrFieldNamePh")}
 
-                  placeholderTextColor={c.inkFaint}
+                  placeholderTextColor={theme.colors.text.muted}
 
                   style={s.heroNameInput}
 
@@ -606,7 +608,7 @@ const { t, i18n } = useTranslation();
 
                   placeholder={t("prescriptions.ocrFieldDosePh")}
 
-                  placeholderTextColor={c.inkFaint}
+                  placeholderTextColor={theme.colors.text.muted}
 
                   style={s.heroDoseInput}
 
@@ -624,7 +626,7 @@ const { t, i18n } = useTranslation();
 
                   placeholder={t("prescriptions.ocrFieldDoctorPh")}
 
-                  placeholderTextColor={c.inkFaint}
+                  placeholderTextColor={theme.colors.text.muted}
 
                   style={s.heroDoseInput}
 
@@ -664,7 +666,7 @@ const { t, i18n } = useTranslation();
 
                 <View style={s.controlledIconWell}>
 
-                  <Ionicons name="shield-half-outline" size={14} color={c.danger} />
+                  <Ionicons name="shield-half-outline" size={14} color={theme.colors.status.error} />
 
                 </View>
 
@@ -736,7 +738,7 @@ const { t, i18n } = useTranslation();
 
                 <View style={s.etaPill}>
 
-                  <Ionicons name="time-outline" size={12} color={c.accentDeep} />
+                  <Ionicons name="time-outline" size={12} color={theme.colors.brand.primary} />
 
                   <Text weight="bold" style={s.etaText}>
 
@@ -798,7 +800,7 @@ const { t, i18n } = useTranslation();
 
               value={String(rx.refills)}
 
-              accent={rx.refills > 0 ? c.accentDeep : c.inkFaint}
+              accent={rx.refills > 0 ? theme.colors.brand.primary : theme.colors.text.muted}
 
             />
 
@@ -822,7 +824,7 @@ const { t, i18n } = useTranslation();
 
                 value={t("prescriptions.scheduleN", { n: rx.schedule })}
 
-                accent={c.danger}
+                accent={theme.colors.status.error}
 
               />
 
@@ -860,7 +862,7 @@ const { t, i18n } = useTranslation();
 
               <View style={s.histEmptyIcon}>
 
-                <Ionicons name="receipt-outline" size={22} color={c.inkFaint} />
+                <Ionicons name="receipt-outline" size={22} color={theme.colors.text.muted} />
 
               </View>
 
@@ -916,7 +918,7 @@ const { t, i18n } = useTranslation();
 
             <View style={s.safetyIconWell}>
 
-              <Ionicons name="lock-closed" size={14} color={c.accentDeep} />
+              <Ionicons name="lock-closed" size={14} color={theme.colors.brand.primary} />
 
             </View>
 
@@ -936,7 +938,7 @@ const { t, i18n } = useTranslation();
 
           {rx.isControlled && (
 
-            <Text style={[s.safetyBody, { color: c.danger, marginTop: 4 }]}>
+            <Text style={[s.safetyBody, { color: theme.colors.status.error, marginTop: 4 }]}>
 
               {t("prescriptions.safetyControlled")}
 
@@ -1023,8 +1025,8 @@ function Header({
 }: HeaderProps) {
 
   
-  const { c } = useDarkColors();
-  const s = React.useMemo(() => get_s(c), [c]);
+  const { theme } = useTheme();
+  const s = React.useMemo(() => get_s(), []);
 const { t } = useTranslation();
 
   const showActions = !!(onEdit && onDelete && onSave && onCancel);
@@ -1051,7 +1053,7 @@ const { t } = useTranslation();
 
             <View style={[s.backBtn, pressed && s.backBtnPressed]}>
 
-              <Ionicons name={BACK_CHEVRON} size={20} color={c.ink} />
+              <Ionicons name={BACK_CHEVRON} size={20} color={theme.colors.text.primary} />
 
             </View>
 
@@ -1087,7 +1089,7 @@ const { t } = useTranslation();
 
                     <View style={[s.iconBtn, pressed && s.iconBtnPressed, savePending && s.iconBtnDisabled]}>
 
-                      <Ionicons name="close-outline" size={20} color={c.ink} />
+                      <Ionicons name="close-outline" size={20} color={theme.colors.text.primary} />
 
                     </View>
 
@@ -1113,7 +1115,7 @@ const { t } = useTranslation();
 
                     <View style={[s.iconBtn, s.iconBtnAccent, pressed && s.iconBtnPressed, savePending && s.iconBtnDisabled]}>
 
-                      <Ionicons name="checkmark-outline" size={20} color={c.accentDeep} />
+                      <Ionicons name="checkmark-outline" size={20} color={theme.colors.brand.primary} />
 
                     </View>
 
@@ -1143,7 +1145,7 @@ const { t } = useTranslation();
 
                     <View style={[s.iconBtn, pressed && s.iconBtnPressed]}>
 
-                      <Ionicons name="pencil-outline" size={18} color={c.ink} />
+                      <Ionicons name="pencil-outline" size={18} color={theme.colors.text.primary} />
 
                     </View>
 
@@ -1169,7 +1171,7 @@ const { t } = useTranslation();
 
                     <View style={[s.iconBtn, pressed && s.iconBtnPressed, deletePending && s.iconBtnDisabled]}>
 
-                      <Ionicons name="trash-outline" size={18} color={c.danger} />
+                      <Ionicons name="trash-outline" size={18} color={theme.colors.status.error} />
 
                     </View>
 
@@ -1187,7 +1189,7 @@ const { t } = useTranslation();
 
           <View style={s.secureBadge}>
 
-            <Ionicons name="shield-checkmark" size={12} color={c.success} />
+            <Ionicons name="shield-checkmark" size={12} color={theme.colors.status.success} />
 
             <Text weight="black" style={s.secureText}>
 
@@ -1214,15 +1216,15 @@ const { t } = useTranslation();
 function LifecycleTrack({ stage, labels }: { stage: 0 | 1 | 2; labels: [string, string, string] }) {
 
   
-  const { c } = useDarkColors();
-  const lc = React.useMemo(() => get_lc(c), [c]);
+  const { theme } = useTheme();
+  const lc = React.useMemo(() => get_lc(theme.colors), [theme.colors]);
 const stages = [
 
-    { label: labels[0], icon: "checkmark-circle" as IoniconsName, color: c.success },
+    { label: labels[0], icon: "checkmark-circle" as IoniconsName, color: theme.colors.status.success },
 
-    { label: labels[1], icon: "alert-circle"     as IoniconsName, color: c.warn },
+    { label: labels[1], icon: "alert-circle"     as IoniconsName, color: theme.colors.status.warning },
 
-    { label: labels[2], icon: "close-circle"     as IoniconsName, color: c.inkFaint },
+    { label: labels[2], icon: "close-circle"     as IoniconsName, color: theme.colors.text.muted },
 
   ];
 
@@ -1250,9 +1252,9 @@ const stages = [
 
                   {
 
-                    backgroundColor: reached ? st.color + "1A" : c.well,
+                    backgroundColor: reached ? st.color + "1A" : theme.colors.canvas.surfaceMuted,
 
-                    borderColor:     reached ? st.color        : c.lineStrong,
+                    borderColor:     reached ? st.color        : theme.colors.border.strong,
 
                   },
 
@@ -1266,7 +1268,7 @@ const stages = [
 
                   size={18}
 
-                  color={reached ? st.color : c.lineStrong}
+                  color={reached ? st.color : theme.colors.border.strong}
 
                 />
 
@@ -1280,7 +1282,7 @@ const stages = [
 
                   lc.label,
 
-                  { color: reached ? c.ink : c.inkFaint },
+                  { color: reached ? theme.colors.text.primary : theme.colors.text.muted },
 
                 ]}
 
@@ -1300,7 +1302,7 @@ const stages = [
 
                   lc.bar,
 
-                  { backgroundColor: i < stage ? stages[i].color : c.lineStrong },
+                  { backgroundColor: i < stage ? stages[i].color : theme.colors.border.strong },
 
                 ]}
 
@@ -1330,8 +1332,8 @@ function RefillTimeline({
 
 }: { refill: RefillRequest; label: (status: RefillStatus) => string }) {
 
-  const { c } = useDarkColors();
-  const tl = React.useMemo(() => get_tl(c), [c]);
+  const { theme } = useTheme();
+  const tl = React.useMemo(() => get_tl(), []);
 
   const currentIdx = REFILL_STEPS.findIndex((st) => st.key === refill.status);
 
@@ -1360,9 +1362,9 @@ function RefillTimeline({
 
                   {
 
-                     borderColor:     done || current ? c.accentDeep : c.lineStrong,
+                     borderColor:     done || current ? theme.colors.brand.primary : theme.colors.border.strong,
 
-                    backgroundColor: done ? c.accentDeep : c.surface,
+                    backgroundColor: done ? theme.colors.brand.primary : theme.colors.canvas.surface,
 
                   },
 
@@ -1372,7 +1374,7 @@ function RefillTimeline({
 
                 {done ? (
 
-                  <Ionicons name="checkmark" size={13} color={c.onAccent} />
+                  <Ionicons name="checkmark" size={13} color={theme.colors.text.inverse} />
 
                 ) : (
 
@@ -1382,7 +1384,7 @@ function RefillTimeline({
 
                     size={13}
 
-                    color={current ? c.accentDeep : c.inkFaint}
+                    color={current ? theme.colors.brand.primary : theme.colors.text.muted}
 
                   />
 
@@ -1398,7 +1400,7 @@ function RefillTimeline({
 
                     tl.connector,
 
-                    { backgroundColor: done ? c.accentDeep : c.line },
+                    { backgroundColor: done ? theme.colors.brand.primary : theme.colors.border.default },
 
                   ]}
 
@@ -1418,7 +1420,7 @@ function RefillTimeline({
 
                   tl.label,
 
-                  { color: future ? c.inkFaint : current ? c.accentDeep : c.ink },
+                  { color: future ? theme.colors.text.muted : current ? theme.colors.brand.primary : theme.colors.text.primary },
 
                 ]}>
 
@@ -1449,13 +1451,13 @@ function Fact({
 }: { icon: IoniconsName; label: string; value: string; accent?: string }) {
 
   
-  const { c } = useDarkColors();
+  const { theme } = useTheme();
 
-  const f = React.useMemo(() => get_f(c), [c]);
+  const f = React.useMemo(() => get_f(), []);
 
 
 
-const tone = accent ?? c.inkFaint;
+const tone = accent ?? theme.colors.text.muted;
 
   return (
 
@@ -1494,8 +1496,8 @@ function RefillHistoryRow({
 }: { refill: RefillRequest; label: string; dateLabel: string; egp: string }) {
 
   
-  const { c } = useDarkColors();
-  const h = React.useMemo(() => get_h(c), [c]);
+  const { theme } = useTheme();
+  const h = React.useMemo(() => get_h(), []);
 
 
 
@@ -1504,17 +1506,17 @@ function RefillHistoryRow({
 
   const delivered = refill.status === "delivered";
 
-  const tone = cancelled ? c.danger
+  const tone = cancelled ? theme.colors.status.error
 
-             : delivered ? c.success
+             : delivered ? theme.colors.status.success
 
-             : c.accentDeep;
+             : theme.colors.brand.primary;
 
-  const tint = cancelled ? c.dangerTint
+  const tint = cancelled ? `${theme.colors.status.error}1A`
 
-             : delivered ? c.successTint
+             : delivered ? `${theme.colors.status.success}1A`
 
-             : c.accentTint;
+             : theme.colors.brand.primaryLight;
 
   return (
 
@@ -1582,9 +1584,9 @@ function RefillHistoryRow({
 
 
 
-function get_s(c: DarkColors) { return StyleSheet.create({
+function get_s() { return StyleSheet.create({
 
-  screen: { flex: 1, backgroundColor: c.canvas },
+  screen: { flex: 1, backgroundColor: theme.colors.canvas.background },
 
 
 
@@ -1596,13 +1598,13 @@ function get_s(c: DarkColors) { return StyleSheet.create({
 
     paddingBottom:     16,
 
-    backgroundColor:   c.surface,
+    backgroundColor:   theme.colors.canvas.surface,
 
     borderBottomWidth: StyleSheet.hairlineWidth,
 
-    borderBottomColor: c.line,
+    borderBottomColor: theme.colors.border.default,
 
-    ...kit.shadow.raised,
+    ...theme.shadows[1],
 
   },
 
@@ -1632,11 +1634,11 @@ function get_s(c: DarkColors) { return StyleSheet.create({
 
     borderRadius:    14,
 
-    backgroundColor: c.well,
+    backgroundColor: theme.colors.canvas.surfaceMuted,
 
     borderWidth:     1,
 
-    borderColor:     c.line,
+    borderColor:     theme.colors.border.default,
 
     alignItems:      "center",
 
@@ -1682,11 +1684,11 @@ function get_s(c: DarkColors) { return StyleSheet.create({
 
     borderRadius:    12,
 
-    backgroundColor: c.well,
+    backgroundColor: theme.colors.canvas.surfaceMuted,
 
     borderWidth:     1,
 
-    borderColor:     c.line,
+    borderColor:     theme.colors.border.default,
 
     alignItems:      "center",
 
@@ -1696,7 +1698,7 @@ function get_s(c: DarkColors) { return StyleSheet.create({
 
   iconBtnAccent: {
 
-    backgroundColor: c.accentTint,
+    backgroundColor: theme.colors.brand.primaryLight,
 
     borderColor:     "rgba(14,126,116,0.18)",
 
@@ -1724,9 +1726,9 @@ function get_s(c: DarkColors) { return StyleSheet.create({
 
     gap:               6,
 
-    backgroundColor:   c.successTint,
+    backgroundColor:   `${theme.colors.status.success}1A`,
 
-    borderRadius:      kit.radius.pill,
+    borderRadius:      9999,
 
     paddingHorizontal: 12,
 
@@ -1748,7 +1750,7 @@ function get_s(c: DarkColors) { return StyleSheet.create({
 
     textTransform:      "uppercase",
 
-    color:              c.success,
+    color:              theme.colors.status.success,
 
     includeFontPadding: false,
 
@@ -1760,17 +1762,17 @@ function get_s(c: DarkColors) { return StyleSheet.create({
 
   heroCard: {
 
-    backgroundColor: c.surface,
+    backgroundColor: theme.colors.canvas.surface,
 
-    borderRadius:    kit.radius.xl,
+    borderRadius:    16,
 
     borderWidth:     1,
 
-    borderColor:     c.line,
+    borderColor:     theme.colors.border.default,
 
     overflow:        "hidden",
 
-    ...kit.shadow.floating,
+    ...theme.shadows[3],
 
   },
 
@@ -1816,7 +1818,7 @@ function get_s(c: DarkColors) { return StyleSheet.create({
 
     paddingVertical:   8,
 
-    borderRadius:      kit.radius.pill,
+    borderRadius:      9999,
 
     borderWidth:       1,
 
@@ -1852,7 +1854,7 @@ function get_s(c: DarkColors) { return StyleSheet.create({
 
     letterSpacing:      -0.6,
 
-    color:              c.ink,
+    color:              theme.colors.text.primary,
 
     textAlign:          TEXT_START,
 
@@ -1866,7 +1868,7 @@ function get_s(c: DarkColors) { return StyleSheet.create({
 
     lineHeight:         20,
 
-    color:              c.inkSoft,
+    color:              theme.colors.text.secondary,
 
     textAlign:          TEXT_START,
 
@@ -1882,7 +1884,7 @@ function get_s(c: DarkColors) { return StyleSheet.create({
 
     letterSpacing:      -0.4,
 
-    color:              c.ink,
+    color:              theme.colors.text.primary,
 
     textAlign:          TEXT_START,
 
@@ -1890,7 +1892,7 @@ function get_s(c: DarkColors) { return StyleSheet.create({
 
     borderBottomWidth:  1.5,
 
-    borderBottomColor:  c.accent,
+    borderBottomColor:  theme.colors.brand.primary,
 
     includeFontPadding: false,
 
@@ -1902,7 +1904,7 @@ function get_s(c: DarkColors) { return StyleSheet.create({
 
     lineHeight:         20,
 
-    color:              c.inkSoft,
+    color:              theme.colors.text.secondary,
 
     textAlign:          TEXT_START,
 
@@ -1910,7 +1912,7 @@ function get_s(c: DarkColors) { return StyleSheet.create({
 
     borderBottomWidth:  1,
 
-    borderBottomColor:  c.line,
+    borderBottomColor:  theme.colors.border.default,
 
     includeFontPadding: false,
 
@@ -1924,9 +1926,9 @@ function get_s(c: DarkColors) { return StyleSheet.create({
 
     gap:               10,
 
-    backgroundColor:   c.dangerTint,
+    backgroundColor:   `${theme.colors.status.error}1A`,
 
-    borderRadius:      kit.radius.lg,
+    borderRadius:      12,
 
     paddingHorizontal: 12,
 
@@ -1964,7 +1966,7 @@ function get_s(c: DarkColors) { return StyleSheet.create({
 
     lineHeight:         16,
 
-    color:              c.danger,
+    color:              theme.colors.status.error,
 
     textAlign:          TEXT_START,
 
@@ -1978,19 +1980,19 @@ function get_s(c: DarkColors) { return StyleSheet.create({
 
   card: {
 
-    backgroundColor: c.surface,
+    backgroundColor: theme.colors.canvas.surface,
 
-    borderRadius:    kit.radius.lg,
+    borderRadius:    12,
 
     borderWidth:     1,
 
-    borderColor:     c.line,
+    borderColor:     theme.colors.border.default,
 
     padding:         16,
 
     gap:             14,
 
-    ...kit.shadow.raised,
+    ...theme.shadows[1],
 
   },
 
@@ -2012,7 +2014,7 @@ function get_s(c: DarkColors) { return StyleSheet.create({
 
     lineHeight:         18,
 
-    color:              c.inkSoft,
+    color:              theme.colors.text.secondary,
 
     letterSpacing:      0.5,
 
@@ -2036,9 +2038,9 @@ function get_s(c: DarkColors) { return StyleSheet.create({
 
     gap:               6,
 
-    backgroundColor:   c.accentTint,
+    backgroundColor:   theme.colors.brand.primaryLight,
 
-    borderRadius:      kit.radius.pill,
+    borderRadius:      9999,
 
     paddingHorizontal: 10,
 
@@ -2052,7 +2054,7 @@ function get_s(c: DarkColors) { return StyleSheet.create({
 
     lineHeight:         14,
 
-    color:              c.accentDeep,
+    color:              theme.colors.brand.primary,
 
     includeFontPadding: false,
 
@@ -2070,7 +2072,7 @@ function get_s(c: DarkColors) { return StyleSheet.create({
 
     borderTopWidth: StyleSheet.hairlineWidth,
 
-    borderTopColor: c.line,
+    borderTopColor: theme.colors.border.default,
 
   },
 
@@ -2078,7 +2080,7 @@ function get_s(c: DarkColors) { return StyleSheet.create({
 
     fontSize:           11,
 
-    color:              c.inkFaint,
+    color:              theme.colors.text.muted,
 
     letterSpacing:      0.3,
 
@@ -2092,7 +2094,7 @@ function get_s(c: DarkColors) { return StyleSheet.create({
 
     fontSize:           13,
 
-    color:              c.ink,
+    color:              theme.colors.text.primary,
 
     includeFontPadding: false,
 
@@ -2136,11 +2138,11 @@ function get_s(c: DarkColors) { return StyleSheet.create({
 
     borderRadius:    17,
 
-    backgroundColor: c.well,
+    backgroundColor: theme.colors.canvas.surfaceMuted,
 
     borderWidth:     1,
 
-    borderColor:     c.line,
+    borderColor:     theme.colors.border.default,
 
     alignItems:      "center",
 
@@ -2154,7 +2156,7 @@ function get_s(c: DarkColors) { return StyleSheet.create({
 
     lineHeight:         20,
 
-    color:              c.ink,
+    color:              theme.colors.text.primary,
 
     textAlign:          "center",
 
@@ -2168,7 +2170,7 @@ function get_s(c: DarkColors) { return StyleSheet.create({
 
     lineHeight:         18,
 
-    color:              c.inkFaint,
+    color:              theme.colors.text.muted,
 
     textAlign:          "center",
 
@@ -2184,9 +2186,9 @@ function get_s(c: DarkColors) { return StyleSheet.create({
 
   reviewBanner: {
 
-    backgroundColor: c.warnTint,
+    backgroundColor: `${theme.colors.status.warning}1A`,
 
-    borderRadius:    kit.radius.lg,
+    borderRadius:    12,
 
     borderWidth:     1,
 
@@ -2198,7 +2200,7 @@ function get_s(c: DarkColors) { return StyleSheet.create({
 
   reviewBannerDanger: {
 
-    backgroundColor: c.dangerTint,
+    backgroundColor: `${theme.colors.status.error}1A`,
 
     borderColor:     "rgba(239,68,68,0.28)",
 
@@ -2250,7 +2252,7 @@ function get_s(c: DarkColors) { return StyleSheet.create({
 
     lineHeight:         17,
 
-    color:              c.warn,
+    color:              theme.colors.status.warning,
 
     letterSpacing:      0.2,
 
@@ -2266,7 +2268,7 @@ function get_s(c: DarkColors) { return StyleSheet.create({
 
     lineHeight:         20,
 
-    color:              c.inkSoft,
+    color:              theme.colors.text.secondary,
 
     textAlign:          TEXT_START,
 
@@ -2280,9 +2282,9 @@ function get_s(c: DarkColors) { return StyleSheet.create({
 
   safetyCard: {
 
-    backgroundColor: c.accentTint,
+    backgroundColor: theme.colors.brand.primaryLight,
 
-    borderRadius:    kit.radius.lg,
+    borderRadius:    12,
 
     borderWidth:     1,
 
@@ -2326,7 +2328,7 @@ function get_s(c: DarkColors) { return StyleSheet.create({
 
     lineHeight:         17,
 
-    color:              c.accentDeep,
+    color:              theme.colors.brand.primary,
 
     letterSpacing:      0.5,
 
@@ -2342,7 +2344,7 @@ function get_s(c: DarkColors) { return StyleSheet.create({
 
     lineHeight:         20,
 
-    color:              c.inkSoft,
+    color:              theme.colors.text.secondary,
 
     textAlign:          TEXT_START,
 
@@ -2368,11 +2370,11 @@ function get_s(c: DarkColors) { return StyleSheet.create({
 
     paddingTop:        12,
 
-    backgroundColor:   c.surface,
+    backgroundColor:   theme.colors.canvas.surface,
 
     borderTopWidth:    StyleSheet.hairlineWidth,
 
-    borderTopColor:    c.line,
+    borderTopColor:    theme.colors.border.default,
 
   },
 
@@ -2402,11 +2404,11 @@ function get_s(c: DarkColors) { return StyleSheet.create({
 
     borderRadius:    28,
 
-    backgroundColor: c.well,
+    backgroundColor: theme.colors.canvas.surfaceMuted,
 
     borderWidth:     1,
 
-    borderColor:     c.line,
+    borderColor:     theme.colors.border.default,
 
     alignItems:      "center",
 
@@ -2422,7 +2424,7 @@ function get_s(c: DarkColors) { return StyleSheet.create({
 
     lineHeight:         26,
 
-    color:              c.ink,
+    color:              theme.colors.text.primary,
 
     letterSpacing:      -0.3,
 
@@ -2438,7 +2440,7 @@ function get_s(c: DarkColors) { return StyleSheet.create({
 
     lineHeight:         21,
 
-    color:              c.inkSoft,
+    color:              theme.colors.text.secondary,
 
     textAlign:          "center",
 
@@ -2530,7 +2532,7 @@ function get_lc(_c: DarkColors) { return StyleSheet.create({
 
 
 
-function get_tl(c: DarkColors) { return StyleSheet.create({
+function get_tl() { return StyleSheet.create({
 
   row: {
 
@@ -2566,7 +2568,7 @@ function get_tl(c: DarkColors) { return StyleSheet.create({
 
     borderWidth:     2,
 
-    backgroundColor: c.accentTint,
+    backgroundColor: theme.colors.brand.primaryLight,
 
   },
 
@@ -2614,7 +2616,7 @@ function get_tl(c: DarkColors) { return StyleSheet.create({
 
 
 
-function get_f(c: DarkColors) { return StyleSheet.create({
+function get_f() { return StyleSheet.create({
 
   cell: {
 
@@ -2660,7 +2662,7 @@ function get_f(c: DarkColors) { return StyleSheet.create({
 
     lineHeight:         14,
 
-    color:              c.inkFaint,
+    color:              theme.colors.text.muted,
 
     letterSpacing:      0.4,
 
@@ -2678,7 +2680,7 @@ function get_f(c: DarkColors) { return StyleSheet.create({
 
     lineHeight:         20,
 
-    color:              c.ink,
+    color:              theme.colors.text.primary,
 
     letterSpacing:      -0.2,
 
@@ -2696,7 +2698,7 @@ function get_f(c: DarkColors) { return StyleSheet.create({
 
 
 
-function get_h(c: DarkColors) { return StyleSheet.create({
+function get_h() { return StyleSheet.create({
 
   row: {
 
@@ -2704,9 +2706,9 @@ function get_h(c: DarkColors) { return StyleSheet.create({
 
     gap:               12,
 
-    backgroundColor:   c.well,
+    backgroundColor:   theme.colors.canvas.surfaceMuted,
 
-    borderRadius:      kit.radius.lg,
+    borderRadius:      12,
 
     paddingHorizontal: 12,
 
@@ -2714,7 +2716,7 @@ function get_h(c: DarkColors) { return StyleSheet.create({
 
     borderWidth:       1,
 
-    borderColor:       c.line,
+    borderColor:       theme.colors.border.default,
 
   },
 
@@ -2760,7 +2762,7 @@ function get_h(c: DarkColors) { return StyleSheet.create({
 
     lineHeight:         15,
 
-    color:              c.inkFaint,
+    color:              theme.colors.text.muted,
 
     textAlign:          TEXT_START,
 
@@ -2774,7 +2776,7 @@ function get_h(c: DarkColors) { return StyleSheet.create({
 
     lineHeight:         16,
 
-    color:              c.danger,
+    color:              theme.colors.status.error,
 
     textAlign:          TEXT_START,
 
@@ -2790,7 +2792,7 @@ function get_h(c: DarkColors) { return StyleSheet.create({
 
     lineHeight:         19,
 
-    color:              c.ink,
+    color:              theme.colors.text.primary,
 
     includeFontPadding: false,
 

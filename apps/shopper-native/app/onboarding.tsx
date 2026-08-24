@@ -43,7 +43,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useTranslation } from "react-i18next";
 import { AppLogo } from "@/shared/components/AppLogo";
 import { Text as UIText } from "@pharmacy/ui-native";
-import { theme } from "@pharmacy/design-tokens";
+import { theme as legacyTheme } from "@pharmacy/design-tokens";
+import { defaultTheme as theme } from "@pharmacy/ui-native";
 import { ONBOARDING_KEY } from "@/lib/onboardingKey";
 import { flexRow, isRtl, textAlignStart, FORWARD_CHEVRON } from "@/utils/layout";
 import { PressableScale } from "@/shared/motion";
@@ -328,7 +329,7 @@ const Segment = memo(function Segment({
     <Animated.View
       style={[
         chrome.segment,
-        { backgroundColor: active ? kit.color.ink : kit.color.lineStrong },
+        { backgroundColor: active ? theme.colors.text.primary : theme.colors.border.strong },
         style,
       ]}
     />
@@ -442,7 +443,7 @@ export default function OnboardingScreen() {
     opacity:   pulseOpacity.value,
   }));
 
-  const currentTone = SLIDES[index]?.tone ?? kit.color.accent;
+  const currentTone = SLIDES[index]?.tone ?? theme.colors.brand.primary;
 
   return (
     <View style={chrome.root}>
@@ -498,7 +499,7 @@ export default function OnboardingScreen() {
             <UIText style={chrome.skipText} numberOfLines={1}>
               {t("onboarding.skip")}
             </UIText>
-            <Ionicons name="close" size={13} color={kit.color.inkFaint} />
+            <Ionicons name="close" size={13} color={theme.colors.text.muted} />
           </View>
         </PressableScale>
       </Animated.View>
@@ -565,7 +566,7 @@ export default function OnboardingScreen() {
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const chrome = StyleSheet.create({
-  root: { flex: 1, backgroundColor: kit.color.canvas },
+  root: { flex: 1, backgroundColor: theme.colors.canvas.background },
 
   topRow: {
     position:          "absolute",
@@ -574,7 +575,7 @@ const chrome = StyleSheet.create({
     zIndex:            20,
     alignItems:        "center",
     justifyContent:    "space-between",
-    paddingHorizontal: kit.sp(5),
+    paddingHorizontal: 20,
   },
   brand:     { alignItems: "center", gap: 10 },
   brandMark: {
@@ -582,35 +583,35 @@ const chrome = StyleSheet.create({
     height:          36,
     borderRadius:    12,
     overflow:        "hidden",
-    backgroundColor: kit.color.surface,
+    backgroundColor: theme.colors.canvas.surface,
     borderWidth:     1,
-    borderColor:     kit.color.line,
+    borderColor:     theme.colors.border.default,
   },
   brandName: {
-    fontFamily:         theme.fonts.black,
+    fontFamily:         legacyTheme.fonts.black,
     fontSize:           13,
     lineHeight:         18,
-    color:              kit.color.ink,
+    color:              theme.colors.text.primary,
     includeFontPadding: false,
   },
   // Skip pill — sized like a touchable target (≥44pt) and visually quieter
   // than the brand mark so the eye reads brand → progress → CTA, not skip.
   skipChip: {
     minHeight:         36,
-    backgroundColor:   kit.color.surface,
-    borderRadius:      kit.radius.pill,
+    backgroundColor:   theme.colors.canvas.surface,
+    borderRadius:      9999,
     borderWidth:       1,
-    borderColor:       kit.color.line,
+    borderColor:       theme.colors.border.default,
     paddingHorizontal: 16,
     paddingVertical:   8,
-    ...kit.shadow.raised,
+    ...theme.shadows[1],
   },
   skipInner: { alignItems: "center", justifyContent: "center", gap: 6 },
   skipText: {
-    fontFamily:         theme.fonts.bold,
+    fontFamily:         legacyTheme.fonts.bold,
     fontSize:           12,
     lineHeight:         18,
-    color:              kit.color.inkSoft,
+    color:              theme.colors.text.secondary,
     includeFontPadding: false,
     flexShrink:         0,
   },
@@ -622,7 +623,7 @@ const chrome = StyleSheet.create({
     zIndex:            20,
     alignItems:        "center",
     justifyContent:    "space-between",
-    paddingHorizontal: kit.sp(6),
+    paddingHorizontal: 24,
     minHeight:         60,
   },
   segments: { alignItems: "center", gap: 6 },
@@ -646,18 +647,18 @@ const chrome = StyleSheet.create({
     height:         60,
     borderRadius:   30,
     paddingHorizontal: 8,
-    ...kit.shadow.floating,
+    ...theme.shadows[3],
   },
   // On the last slide the FAB widens into a labelled CTA. The label
   // ("ابدأ الآن" / "Start Now") gets generous horizontal breathing room
   // so it never crowds the checkmark glyph.
   fabWide: {
-    paddingHorizontal: kit.sp(7),
+    paddingHorizontal: 28,
     minWidth:          180,
   },
   fabCompact: { height: 54, minWidth: 54, borderRadius: 27 },
   fabLabel: {
-    fontFamily:         theme.fonts.black,
+    fontFamily:         legacyTheme.fonts.black,
     fontSize:           14,
     lineHeight:         20,
     color:              "#fff",
@@ -723,10 +724,10 @@ const page = StyleSheet.create({
     borderRadius:    20,
     alignItems:      "center",
     justifyContent:  "center",
-    backgroundColor: kit.color.surface,
+    backgroundColor: theme.colors.canvas.surface,
     borderWidth:     1,
-    borderColor:     kit.color.line,
-    ...kit.shadow.raised,
+    borderColor:     theme.colors.border.default,
+    ...theme.shadows[1],
   },
   sat2: {
     position:        "absolute",
@@ -737,10 +738,10 @@ const page = StyleSheet.create({
     borderRadius:    14,
     alignItems:      "center",
     justifyContent:  "center",
-    backgroundColor: kit.color.surface,
+    backgroundColor: theme.colors.canvas.surface,
     borderWidth:     1,
-    borderColor:     kit.color.line,
-    ...kit.shadow.raised,
+    borderColor:     theme.colors.border.default,
+    ...theme.shadows[1],
   },
 
   statChip: {
@@ -749,48 +750,48 @@ const page = StyleSheet.create({
     end:               "10%",
     alignItems:        "baseline",
     gap:               5,
-    backgroundColor:   kit.color.surface,
-    borderRadius:      kit.radius.pill,
+    backgroundColor:   theme.colors.canvas.surface,
+    borderRadius:      9999,
     paddingHorizontal: 18,
     paddingVertical:   10,
     borderWidth:       1,
-    borderColor:       kit.color.line,
-    ...kit.shadow.raised,
+    borderColor:       theme.colors.border.default,
+    ...theme.shadows[1],
   },
   statValue: {
-    fontFamily:         theme.fonts.black,
+    fontFamily:         legacyTheme.fonts.black,
     fontSize:           22,
     lineHeight:         28,
-    color:              kit.color.ink,
+    color:              theme.colors.text.primary,
     letterSpacing:      -0.5,
     includeFontPadding: false,
   },
   statLabel: {
-    fontFamily:         theme.fonts.bold,
+    fontFamily:         legacyTheme.fonts.bold,
     fontSize:           11,
     lineHeight:         16,
-    color:              kit.color.inkSoft,
+    color:              theme.colors.text.secondary,
     includeFontPadding: false,
   },
 
   panel: {
-    backgroundColor:     kit.color.surface,
-    borderTopStartRadius: kit.radius.sheet + 6,
-    borderTopEndRadius:   kit.radius.sheet + 6,
+    backgroundColor:     theme.colors.canvas.surface,
+    borderTopStartRadius: 20 + 6,
+    borderTopEndRadius:   20 + 6,
     borderTopWidth:      StyleSheet.hairlineWidth,
-    borderTopColor:      kit.color.line,
-    paddingHorizontal:   kit.sp(7),
-    paddingTop:          kit.sp(7),
-    gap:                 kit.sp(2),
+    borderTopColor:      theme.colors.border.default,
+    paddingHorizontal:   28,
+    paddingTop:          28,
+    gap:                 8,
   },
 
   stepRow: { alignItems: "center", gap: 8 },
   stepDot: { width: 8, height: 8, borderRadius: 4, flexShrink: 0 },
   step: {
-    fontFamily:         theme.fonts.black,
+    fontFamily:         legacyTheme.fonts.black,
     fontSize:           11,
     lineHeight:         15,
-    color:              kit.color.inkFaint,
+    color:              theme.colors.text.muted,
     letterSpacing:      2.2,
     textAlign:          TEXT_START,
     writingDirection:   "ltr",
@@ -798,7 +799,7 @@ const page = StyleSheet.create({
   },
 
   eyebrow: {
-    fontFamily:         theme.fonts.bold,
+    fontFamily:         legacyTheme.fonts.bold,
     fontSize:           11,
     lineHeight:         16,
     letterSpacing:      1.4,
@@ -809,20 +810,20 @@ const page = StyleSheet.create({
   },
 
   title: {
-    fontFamily:         theme.fonts.black,
+    fontFamily:         legacyTheme.fonts.black,
     fontSize:           34,
     lineHeight:         41,
-    color:              kit.color.ink,
+    color:              theme.colors.text.primary,
     textAlign:          TEXT_START,
     letterSpacing:      -0.7,
     includeFontPadding: false,
   },
 
   body: {
-    fontFamily:         theme.fonts.regular,
+    fontFamily:         legacyTheme.fonts.regular,
     fontSize:           15,
     lineHeight:         24,
-    color:              kit.color.inkSoft,
+    color:              theme.colors.text.secondary,
     textAlign:          TEXT_START,
     includeFontPadding: false,
   },
@@ -838,11 +839,11 @@ const page = StyleSheet.create({
     gap:            6,
     paddingHorizontal: 12,
     paddingVertical:   7,
-    borderRadius:   kit.radius.pill,
+    borderRadius:   9999,
     borderWidth:    1,
   },
   featurePillText: {
-    fontFamily:         theme.fonts.bold,
+    fontFamily:         legacyTheme.fonts.bold,
     fontSize:           12,
     lineHeight:         16,
     includeFontPadding: false,

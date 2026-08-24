@@ -1,4 +1,5 @@
-import { useDarkColors } from "@/hooks/useDarkColors";
+import { defaultTheme as theme } from "@pharmacy/ui-native";
+import { useTheme } from "@pharmacy/ui-native";
 
 import React, { useCallback, useRef, useState } from "react";
 
@@ -16,7 +17,7 @@ import { useTranslation } from "react-i18next";
 
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { kit, CustomerUI } from "@pharmacy/ui-native";
+import { CustomerUI } from "@pharmacy/ui-native";
 
 import { Text } from "@pharmacy/ui-native";
 
@@ -40,8 +41,8 @@ type ScreenPhase = "camera" | "preview" | "uploading";
 
 
 export default function ScanScreen(): React.ReactElement {
-  const { c } = useDarkColors();
-  const s = React.useMemo(() => get_s(c), [c]);
+  const { theme } = useTheme();
+  const s = React.useMemo(() => get_s(), []);
   const router   = useRouter();
   const insets   = useSafeAreaInsets();
   const { t }    = useTranslation();
@@ -120,7 +121,7 @@ export default function ScanScreen(): React.ReactElement {
         <ScanHeader insets={insets} onBack={() => router.back()} title={t("prescriptions.scanTitle")} />
         <View style={s.permissionWrap}>
           <View style={s.permissionIcon}>
-            <Ionicons name="camera-outline" size={36} color={c.accentDeep} />
+            <Ionicons name="camera-outline" size={36} color={theme.colors.brand.primary} />
           </View>
           <Text weight="black" style={s.permissionTitle}>
             {t("prescriptions.scanPermissionTitle")}
@@ -143,7 +144,7 @@ export default function ScanScreen(): React.ReactElement {
               onPress={handleGallery}
               variant="ghost"
               fullWidth
-              icon={<Ionicons name="images-outline" size={18} color={c.accentDeep} />}
+              icon={<Ionicons name="images-outline" size={18} color={theme.colors.brand.primary} />}
             />
           </View>
         </View>
@@ -267,8 +268,8 @@ export default function ScanScreen(): React.ReactElement {
 function ScanHeader({
   insets, onBack, title,
 }: { insets: { top: number }; onBack: () => void; title: string }): React.ReactElement {
-  const { c } = useDarkColors();
-  const s = React.useMemo(() => get_s(c), [c]);
+  const { theme } = useTheme();
+  const s = React.useMemo(() => get_s(), []);
   const { t } = useTranslation();
   return (
     <View style={[s.header, { paddingTop: insets.top + 12 }]}>
@@ -281,7 +282,7 @@ function ScanHeader({
           style={s.backBtnTouchable}>
           {({ pressed }) => (
             <View style={[s.backBtn, pressed && s.backBtnPressed]}>
-              <Ionicons name={BACK_CHEVRON} size={20} color={c.ink} />
+              <Ionicons name={BACK_CHEVRON} size={20} color={theme.colors.text.primary} />
             </View>
           )}
         </Pressable>
@@ -296,25 +297,25 @@ function ScanHeader({
 
 
 
-function get_s(c: { canvas: string; surface: string; line: string; accentDeep: string; accentTint: string; ink: string; inkSoft: string; inkFaint: string; warn: string; warnTint: string; well: string; danger: string }) { return StyleSheet.create({
-  screen: { flex: 1, backgroundColor: c.canvas },
+function get_s() { return StyleSheet.create({
+  screen: { flex: 1, backgroundColor: theme.colors.canvas.background },
   header: {
     paddingHorizontal: 20, paddingBottom: 16,
-    backgroundColor: c.surface,
+    backgroundColor: theme.colors.canvas.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: c.line,
-    ...kit.shadow.raised,
+    borderBottomColor: theme.colors.border.default,
+    ...theme.shadows[1],
   },
   headerRow: { alignItems: "center", justifyContent: "space-between", minHeight: 38 },
   backBtnTouchable: { borderRadius: 14 },
   backBtn: {
     width: 38, height: 38, borderRadius: 14,
-    backgroundColor: c.well, borderWidth: 1, borderColor: c.line,
+    backgroundColor: theme.colors.canvas.surfaceMuted, borderWidth: 1, borderColor: theme.colors.border.default,
     alignItems: "center", justifyContent: "center",
   },
   backBtnPressed: { opacity: 0.7, transform: [{ scale: 0.96 }] },
   headerTitle: {
-    flex: 1, fontSize: 17, lineHeight: 22, color: c.ink,
+    flex: 1, fontSize: 17, lineHeight: 22, color: theme.colors.text.primary,
     textAlign: "center", letterSpacing: -0.2, includeFontPadding: false,
   },
   permissionWrap: {
@@ -323,21 +324,21 @@ function get_s(c: { canvas: string; surface: string; line: string; accentDeep: s
   },
   permissionIcon: {
     width: 84, height: 84, borderRadius: 28,
-    backgroundColor: c.accentTint, borderWidth: 1, borderColor: c.line,
+    backgroundColor: theme.colors.brand.primaryLight, borderWidth: 1, borderColor: theme.colors.border.default,
     alignItems: "center", justifyContent: "center", marginBottom: 4,
   },
   permissionTitle: {
-    fontSize: 19, lineHeight: 26, color: c.ink,
+    fontSize: 19, lineHeight: 26, color: theme.colors.text.primary,
     textAlign: "center", letterSpacing: -0.3, includeFontPadding: false,
   },
   permissionBody: {
-    fontSize: 14, lineHeight: 22, color: c.inkSoft,
+    fontSize: 14, lineHeight: 22, color: theme.colors.text.secondary,
     textAlign: "center", maxWidth: 320, includeFontPadding: false,
   },
   permissionCta: { width: "100%", maxWidth: 280, marginTop: 12 },
   overlay: { ...StyleSheet.absoluteFillObject, alignItems: "center", justifyContent: "center", gap: 20 },
   frame: {
-    width: "78%", aspectRatio: 0.75, borderRadius: kit.radius.lg,
+    width: "78%", aspectRatio: 0.75, borderRadius: 12,
     borderWidth: 2.5, borderColor: "rgba(255,255,255,0.85)",
   },
   guideText: {
@@ -382,8 +383,8 @@ function get_s(c: { canvas: string; surface: string; line: string; accentDeep: s
   },
   previewContainer: { flex: 1, padding: 20, gap: 20 },
   imageWrapper: {
-    flex: 1, borderRadius: kit.radius.lg, overflow: "hidden",
-    backgroundColor: c.well, borderWidth: 1, borderColor: c.line,
+    flex: 1, borderRadius: 12, overflow: "hidden",
+    backgroundColor: theme.colors.canvas.surfaceMuted, borderWidth: 1, borderColor: theme.colors.border.default,
   },
   uploadingOverlay: {
     ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.6)",
@@ -392,13 +393,13 @@ function get_s(c: { canvas: string; surface: string; line: string; accentDeep: s
   uploadingText: { color: "#fff", fontSize: 15 },
   previewActions: { paddingTop: 10 },
   previewNotice: {
-    fontSize: 13, color: c.inkSoft, textAlign: "center",
+    fontSize: 13, color: theme.colors.text.secondary, textAlign: "center",
     marginBottom: 16, includeFontPadding: false,
   },
   errorBanner: {
     flexDirection: flexRow(IS_RTL), alignItems: "center",
     gap: 8, paddingHorizontal: 14, paddingVertical: 10,
-    borderRadius: kit.radius.md, backgroundColor: "rgba(220,38,38,0.92)",
+    borderRadius: 8, backgroundColor: "rgba(220,38,38,0.92)",
   },
   errorBannerText: { flex: 1, fontSize: 13, color: "#fff", textAlign: TEXT_START },
 }); }

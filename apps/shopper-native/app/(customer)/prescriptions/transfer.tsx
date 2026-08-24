@@ -1,4 +1,5 @@
-import { useDarkColors } from "@/hooks/useDarkColors";
+import { defaultTheme as theme } from "@pharmacy/ui-native";
+import { useTheme } from "@pharmacy/ui-native";
 
 import React, { useCallback, useMemo, useState } from "react";
 
@@ -12,7 +13,7 @@ import { useTranslation } from "react-i18next";
 
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { kit, CustomerUI } from "@pharmacy/ui-native";
+import { CustomerUI } from "@pharmacy/ui-native";
 
 import { Text } from "@pharmacy/ui-native";
 
@@ -43,8 +44,8 @@ function branchName(
 
 
 export default function Page(): React.ReactElement {
-  const { c } = useDarkColors();
-  const s = React.useMemo(() => get_s(c), [c]);
+  const { theme } = useTheme();
+  const s = React.useMemo(() => get_s(), []);
   const router    = useRouter();
   const insets    = useSafeAreaInsets();
   const { t, i18n } = useTranslation();
@@ -104,7 +105,7 @@ export default function Page(): React.ReactElement {
             style={s.backBtnTouchable}>
             {({ pressed }) => (
               <View style={[s.backBtn, pressed && s.backBtnPressed]}>
-                <Ionicons name={BACK_CHEVRON} size={20} color={c.ink} />
+                <Ionicons name={BACK_CHEVRON} size={20} color={theme.colors.text.primary} />
               </View>
             )}
           </Pressable>
@@ -157,11 +158,11 @@ export default function Page(): React.ReactElement {
                     selected && s.branchRowSelected,
                     pressed && s.branchRowPressed,
                   ]}>
-                    <View style={[s.branchIconWell, selected && { backgroundColor: c.accentTint }]}>
+                    <View style={[s.branchIconWell, selected && { backgroundColor: theme.colors.brand.primaryLight }]}>
                       <Ionicons
                         name={selected ? "checkmark-circle" : "storefront-outline"}
                         size={20}
-                        color={selected ? c.accentDeep : c.inkSoft}
+                        color={selected ? theme.colors.brand.primary : theme.colors.text.secondary}
                       />
                     </View>
                     <View style={s.branchText}>
@@ -226,26 +227,26 @@ export default function Page(): React.ReactElement {
 
 
 
-function get_s(c: { canvas: string; surface: string; line: string; accentDeep: string; accentTint: string; ink: string; inkSoft: string; inkFaint: string; warn: string; warnTint: string; well: string; danger: string; accent: string }) { return StyleSheet.create({
-  screen: { flex: 1, backgroundColor: c.canvas },
+function get_s() { return StyleSheet.create({
+  screen: { flex: 1, backgroundColor: theme.colors.canvas.background },
   header: {
     paddingHorizontal: 20, paddingBottom: 20, gap: 18,
-    backgroundColor: c.surface,
-    borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: c.line,
-    ...kit.shadow.raised,
+    backgroundColor: theme.colors.canvas.surface,
+    borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border.default,
+    ...theme.shadows[1],
   },
   navRow: { flexDirection: flexRow(IS_RTL), alignItems: "center", minHeight: 38 },
   backBtnTouchable: { borderRadius: 14 },
   backBtn: {
     width: 38, height: 38, borderRadius: 14,
-    backgroundColor: c.well, borderWidth: 1, borderColor: c.line,
+    backgroundColor: theme.colors.canvas.surfaceMuted, borderWidth: 1, borderColor: theme.colors.border.default,
     alignItems: "center", justifyContent: "center",
   },
   backBtnPressed: { opacity: 0.7, transform: [{ scale: 0.96 }] },
   identityRow: { flexDirection: flexRow(IS_RTL), alignItems: "center", gap: 14 },
   heroTile: {
     width: 56, height: 56, borderRadius: 18,
-    backgroundColor: "#F5F3FF", borderWidth: 1, borderColor: c.line,
+    backgroundColor: "#F5F3FF", borderWidth: 1, borderColor: theme.colors.border.default,
     alignItems: "center", justifyContent: "center", flexShrink: 0,
   },
   identityText: { flex: 1, gap: 2 },
@@ -255,49 +256,49 @@ function get_s(c: { canvas: string; surface: string; line: string; accentDeep: s
     textAlign: TEXT_START, includeFontPadding: false,
   },
   title: {
-    fontSize: 26, lineHeight: 32, color: c.ink,
+    fontSize: 26, lineHeight: 32, color: theme.colors.text.primary,
     letterSpacing: -0.5, textAlign: TEXT_START, includeFontPadding: false,
   },
   scroll: { flex: 1 },
   scrollContent: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 16, gap: 16 },
   fieldLabel: {
-    fontSize: 13, lineHeight: 18, color: c.ink,
+    fontSize: 13, lineHeight: 18, color: theme.colors.text.primary,
     textAlign: TEXT_START, includeFontPadding: false,
   },
   fieldHint: {
-    fontSize: 12, lineHeight: 17, color: c.inkSoft,
+    fontSize: 12, lineHeight: 17, color: theme.colors.text.secondary,
     textAlign: TEXT_START, marginTop: -10, includeFontPadding: false,
   },
   branchList: { gap: 10 },
-  branchTouchable: { borderRadius: kit.radius.lg },
+  branchTouchable: { borderRadius: 12 },
   branchRow: {
     flexDirection: flexRow(IS_RTL), alignItems: "center", gap: 12,
     paddingHorizontal: 14, paddingVertical: 12,
-    backgroundColor: c.surface, borderRadius: kit.radius.lg,
-    borderWidth: 1.5, borderColor: c.line, ...kit.shadow.raised,
+    backgroundColor: theme.colors.canvas.surface, borderRadius: 12,
+    borderWidth: 1.5, borderColor: theme.colors.border.default, ...theme.shadows[1],
   },
-  branchRowSelected: { borderColor: c.accent, backgroundColor: c.accentTint },
+  branchRowSelected: { borderColor: theme.colors.brand.primary, backgroundColor: theme.colors.brand.primaryLight },
   branchRowPressed: { opacity: 0.92, transform: [{ scale: 0.99 }] },
   branchIconWell: {
     width: 40, height: 40, borderRadius: 14,
-    backgroundColor: c.well, alignItems: "center", justifyContent: "center", flexShrink: 0,
+    backgroundColor: theme.colors.canvas.surfaceMuted, alignItems: "center", justifyContent: "center", flexShrink: 0,
   },
   branchText: { flex: 1, gap: 2 },
   branchName: {
-    fontSize: 14, lineHeight: 19, color: c.ink,
+    fontSize: 14, lineHeight: 19, color: theme.colors.text.primary,
     textAlign: TEXT_START, includeFontPadding: false,
   },
   branchAddress: {
-    fontSize: 12, lineHeight: 16, color: c.inkSoft,
+    fontSize: 12, lineHeight: 16, color: theme.colors.text.secondary,
     textAlign: TEXT_START, includeFontPadding: false,
   },
   errorText: {
-    fontSize: 13, lineHeight: 18, color: c.danger,
+    fontSize: 13, lineHeight: 18, color: theme.colors.status.error,
     textAlign: TEXT_START, includeFontPadding: false,
   },
   ctaBar: {
     paddingHorizontal: 20, paddingTop: 12,
-    backgroundColor: c.surface,
-    borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.line,
+    backgroundColor: theme.colors.canvas.surface,
+    borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.colors.border.default,
   },
 }); }

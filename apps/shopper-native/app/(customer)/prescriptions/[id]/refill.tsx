@@ -1,4 +1,5 @@
-import { useDarkColors } from "@/hooks/useDarkColors";
+import { defaultTheme as theme } from "@pharmacy/ui-native";
+import { useTheme } from "@pharmacy/ui-native";
 /**
  * Refill flow — quick request for an existing prescription.
  * Confirm quantity + delivery method, then submit via useRequestRefill.
@@ -16,7 +17,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useTranslation } from "react-i18next";
 
-import { kit, CustomerUI } from "@pharmacy/ui-native";
+import { CustomerUI } from "@pharmacy/ui-native";
 
 import { Text } from "@pharmacy/ui-native";
 
@@ -63,8 +64,8 @@ interface DeliveryOption {
 
 
 export default function RefillPage(): React.ReactElement {
-  const { c } = useDarkColors();
-  const s = React.useMemo(() => get_s(c), [c]);
+  const { theme } = useTheme();
+  const s = React.useMemo(() => get_s(), []);
   const { t, i18n } = useTranslation();
 
   const { id }      = useLocalSearchParams<{ id: string }>();
@@ -80,10 +81,10 @@ export default function RefillPage(): React.ReactElement {
   const [ctaHeight, setCtaHeight] = useState(110);
 
   const DELIVERY_OPTIONS: DeliveryOption[] = useMemo(() => [
-    { key: "same_day", icon: "flash-outline",     title: t("prescriptions.refillSameDay"),   eta: t("prescriptions.refillSameDayEta"),   tone: c.warn,       toneBg: c.warnTint },
-    { key: "standard",  icon: "bicycle-outline",  title: t("prescriptions.refillStandard"),  eta: t("prescriptions.refillStandardEta"),  tone: c.accentDeep,  toneBg: c.accentTint },
-    { key: "pickup",    icon: "storefront-outline", title: t("prescriptions.refillPickup"),   eta: t("prescriptions.refillPickupEta"),   tone: c.success,    toneBg: c.successTint },
-  ], [t, c.accentDeep, c.accentTint, c.success, c.successTint, c.warn, c.warnTint]);
+    { key: "same_day", icon: "flash-outline",     title: t("prescriptions.refillSameDay"),   eta: t("prescriptions.refillSameDayEta"),   tone: theme.colors.status.warning,       toneBg: `${theme.colors.status.warning}1A` },
+    { key: "standard",  icon: "bicycle-outline",  title: t("prescriptions.refillStandard"),  eta: t("prescriptions.refillStandardEta"),  tone: theme.colors.brand.primary,  toneBg: theme.colors.brand.primaryLight },
+    { key: "pickup",    icon: "storefront-outline", title: t("prescriptions.refillPickup"),   eta: t("prescriptions.refillPickupEta"),   tone: theme.colors.status.success,    toneBg: `${theme.colors.status.success}1A` },
+  ], [t, theme.colors.brand.primary, theme.colors.brand.primaryLight, theme.colors.status.success, `${theme.colors.status.success}1A`, theme.colors.status.warning, `${theme.colors.status.warning}1A`]);
 
   const selectedOption = DELIVERY_OPTIONS.find((o) => o.key === selected) ?? DELIVERY_OPTIONS[1];
 
@@ -104,7 +105,7 @@ export default function RefillPage(): React.ReactElement {
         <Header insets={insets} onBack={() => router.back()} />
         <View style={s.centered}>
           <View style={s.notFoundIcon}>
-            <Ionicons name="medkit-outline" size={36} color={c.inkFaint} />
+            <Ionicons name="medkit-outline" size={36} color={theme.colors.text.muted} />
           </View>
           <Text weight="black" style={s.notFoundTitle}>{t("prescriptions.notFound")}</Text>
           <Text style={s.notFoundBody}>{t("prescriptions.notFoundSub")}</Text>
@@ -123,8 +124,8 @@ export default function RefillPage(): React.ReactElement {
         showsVerticalScrollIndicator={false}>
 
         <View style={s.rxCard}>
-          <View style={[s.rxTile, { backgroundColor: c.accentTint }]}>
-            <Ionicons name="medkit" size={26} color={c.accentDeep} />
+          <View style={[s.rxTile, { backgroundColor: theme.colors.brand.primaryLight }]}>
+            <Ionicons name="medkit" size={26} color={theme.colors.brand.primary} />
           </View>
           <View style={s.rxText}>
             <Text weight="bold" style={s.rxEyebrow}>{t("prescriptions.refillFor")}</Text>
@@ -156,7 +157,7 @@ export default function RefillPage(): React.ReactElement {
               accessibilityLabel={t("prescriptions.refillQtyDec")}
               accessibilityRole="button"
               style={s.stepBtn}>
-              <Ionicons name="remove-outline" size={20} color={c.ink} />
+              <Ionicons name="remove-outline" size={20} color={theme.colors.text.primary} />
             </Pressable>
             <Text weight="black" style={s.qtyValue}>{quantity}</Text>
             <Pressable
@@ -164,15 +165,15 @@ export default function RefillPage(): React.ReactElement {
               accessibilityLabel={t("prescriptions.refillQtyInc")}
               accessibilityRole="button"
               style={s.stepBtn}>
-              <Ionicons name="add-outline" size={20} color={c.ink} />
+              <Ionicons name="add-outline" size={20} color={theme.colors.text.primary} />
             </Pressable>
           </View>
         </View>
 
         <View style={s.summaryCard}>
           <View style={s.summaryRow}>
-            <View style={[s.summaryIconWell, { backgroundColor: c.well }]}>
-              <Ionicons name="location-outline" size={16} color={c.inkSoft} />
+            <View style={[s.summaryIconWell, { backgroundColor: theme.colors.canvas.surfaceMuted }]}>
+              <Ionicons name="location-outline" size={16} color={theme.colors.text.secondary} />
             </View>
             <View style={s.summaryText}>
               <Text weight="bold" style={s.summaryLabel}>{t("prescriptions.refillFromBranch")}</Text>
@@ -224,8 +225,7 @@ interface DeliveryOptionCardProps {
 }
 
 function DeliveryOptionCard({ option, selected, onSelect }: DeliveryOptionCardProps): React.ReactElement {
-  const { c } = useDarkColors();
-  const s = React.useMemo(() => get_s(c), [c]);
+  const s = React.useMemo(() => get_s(), []);
   return (
     <Pressable
       onPress={onSelect}
@@ -252,8 +252,8 @@ function DeliveryOptionCard({ option, selected, onSelect }: DeliveryOptionCardPr
 
 
 function Header({ insets, onBack }: { insets: { top: number }; onBack: () => void }) {
-  const { c } = useDarkColors();
-  const s = React.useMemo(() => get_s(c), [c]);
+  const { theme } = useTheme();
+  const s = React.useMemo(() => get_s(), []);
   const { t } = useTranslation();
   return (
     <View style={[s.header, { paddingTop: insets.top + 12 }]}>
@@ -264,14 +264,14 @@ function Header({ insets, onBack }: { insets: { top: number }; onBack: () => voi
           accessibilityRole="button"
           accessibilityLabel={t("common.back")}
           style={({ pressed }) => [s.backBtn, pressed && s.backBtnPressed]}>
-          <Ionicons name={BACK_CHEVRON} size={20} color={c.ink} />
+          <Ionicons name={BACK_CHEVRON} size={20} color={theme.colors.text.primary} />
         </Pressable>
         <View style={{ flex: 1 }} />
       </View>
 
       <View style={s.identityRow}>
         <View style={s.heroTile}>
-          <Ionicons name="refresh" size={22} color={c.accentDeep} />
+          <Ionicons name="refresh" size={22} color={theme.colors.brand.primary} />
         </View>
         <View style={s.identityText}>
           <Text weight="bold" style={s.eyebrow}>{t("prescriptions.refillEyebrow")}</Text>
@@ -284,148 +284,148 @@ function Header({ insets, onBack }: { insets: { top: number }; onBack: () => voi
 
 
 
-function get_s(c: { canvas: string; surface: string; line: string; lineStrong: string; accentDeep: string; accentTint: string; ink: string; inkSoft: string; inkFaint: string; warn: string; warnTint: string; success: string; successTint: string; well: string; danger: string }) { return StyleSheet.create({
-  screen: { flex: 1, backgroundColor: c.canvas },
+function get_s() { return StyleSheet.create({
+  screen: { flex: 1, backgroundColor: theme.colors.canvas.background },
   header: {
     paddingHorizontal: 20, paddingBottom: 20, gap: 18,
-    backgroundColor: c.surface,
-    borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: c.line,
-    ...kit.shadow.raised,
+    backgroundColor: theme.colors.canvas.surface,
+    borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border.default,
+    ...theme.shadows[1],
   },
   headerRow: { flexDirection: flexRow(IS_RTL), alignItems: "center", minHeight: 38 },
   backBtn: {
     width: 38, height: 38, borderRadius: 14,
-    backgroundColor: c.well, borderWidth: 1, borderColor: c.line,
+    backgroundColor: theme.colors.canvas.surfaceMuted, borderWidth: 1, borderColor: theme.colors.border.default,
     alignItems: "center", justifyContent: "center",
   },
   backBtnPressed: { opacity: 0.7, transform: [{ scale: 0.96 }] },
   identityRow: { flexDirection: flexRow(IS_RTL), alignItems: "center", gap: 14 },
   heroTile: {
     width: 56, height: 56, borderRadius: 18,
-    backgroundColor: c.accentTint, borderWidth: 1, borderColor: c.line,
+    backgroundColor: theme.colors.brand.primaryLight, borderWidth: 1, borderColor: theme.colors.border.default,
     alignItems: "center", justifyContent: "center", flexShrink: 0,
   },
   identityText: { flex: 1, gap: 2 },
   eyebrow: {
-    fontSize: 10, lineHeight: 14, color: c.accentDeep,
+    fontSize: 10, lineHeight: 14, color: theme.colors.brand.primary,
     letterSpacing: 0.6, textTransform: "uppercase",
     textAlign: TEXT_START, includeFontPadding: false,
   },
   title: {
-    fontSize: 26, lineHeight: 32, color: c.ink,
+    fontSize: 26, lineHeight: 32, color: theme.colors.text.primary,
     letterSpacing: -0.5, textAlign: TEXT_START, includeFontPadding: false,
   },
   rxCard: {
     flexDirection: flexRow(IS_RTL), alignItems: "center", gap: 14,
-    padding: 18, backgroundColor: c.surface,
-    borderRadius: kit.radius.xl, borderWidth: 1, borderColor: c.line,
-    ...kit.shadow.raised,
+    padding: 18, backgroundColor: theme.colors.canvas.surface,
+    borderRadius: 16, borderWidth: 1, borderColor: theme.colors.border.default,
+    ...theme.shadows[1],
   },
   rxTile: { width: 60, height: 60, borderRadius: 20, alignItems: "center", justifyContent: "center", flexShrink: 0 },
   rxText: { flex: 1, gap: 3 },
   rxEyebrow: {
-    fontSize: 10, lineHeight: 14, color: c.inkFaint,
+    fontSize: 10, lineHeight: 14, color: theme.colors.text.muted,
     letterSpacing: 0.5, textTransform: "uppercase",
     textAlign: TEXT_START, includeFontPadding: false,
   },
   rxName: {
-    fontSize: 18, lineHeight: 24, color: c.ink,
+    fontSize: 18, lineHeight: 24, color: theme.colors.text.primary,
     letterSpacing: -0.3, textAlign: TEXT_START, includeFontPadding: false,
   },
   rxDose: {
-    fontSize: 13, lineHeight: 18, color: c.inkSoft,
+    fontSize: 13, lineHeight: 18, color: theme.colors.text.secondary,
     textAlign: TEXT_START, includeFontPadding: false,
   },
   sectionLabel: {
-    fontSize: 11, lineHeight: 16, color: c.inkFaint,
+    fontSize: 11, lineHeight: 16, color: theme.colors.text.muted,
     letterSpacing: 0.5, textTransform: "uppercase",
     textAlign: TEXT_START, includeFontPadding: false,
   },
   optionCard: {
     flexDirection: flexRow(IS_RTL), alignItems: "center", gap: 14,
     paddingHorizontal: 16, paddingVertical: 14,
-    backgroundColor: c.surface, borderRadius: kit.radius.lg,
-    borderWidth: 1.5, borderColor: c.line, ...kit.shadow.raised,
+    backgroundColor: theme.colors.canvas.surface, borderRadius: 12,
+    borderWidth: 1.5, borderColor: theme.colors.border.default, ...theme.shadows[1],
   },
   optionCardSelected: { borderWidth: 2, backgroundColor: "#FAFEFD" },
   optionCardPressed: { opacity: 0.92, transform: [{ scale: 0.99 }] },
   optionIconWell: { width: 48, height: 48, borderRadius: 16, alignItems: "center", justifyContent: "center", flexShrink: 0 },
   optionText: { flex: 1, gap: 3 },
   optionTitle: {
-    fontSize: 15, lineHeight: 20, color: c.ink,
+    fontSize: 15, lineHeight: 20, color: theme.colors.text.primary,
     letterSpacing: -0.2, textAlign: TEXT_START, includeFontPadding: false,
   },
   optionEta: {
-    fontSize: 12, lineHeight: 16, color: c.inkSoft,
+    fontSize: 12, lineHeight: 16, color: theme.colors.text.secondary,
     textAlign: TEXT_START, includeFontPadding: false,
   },
-  radio: { width: 22, height: 22, borderRadius: 11, borderWidth: 1.5, borderColor: c.lineStrong, flexShrink: 0 },
+  radio: { width: 22, height: 22, borderRadius: 11, borderWidth: 1.5, borderColor: theme.colors.border.strong, flexShrink: 0 },
   qtyCard: {
     flexDirection: flexRow(IS_RTL), alignItems: "center", gap: 12,
     paddingHorizontal: 16, paddingVertical: 14,
-    backgroundColor: c.surface, borderRadius: kit.radius.lg,
-    borderWidth: 1, borderColor: c.line,
+    backgroundColor: theme.colors.canvas.surface, borderRadius: 12,
+    borderWidth: 1, borderColor: theme.colors.border.default,
   },
   qtyText: { flex: 1, gap: 2, justifyContent: "center" },
   qtyLabel: {
-    fontSize: 15, lineHeight: 20, color: c.ink,
+    fontSize: 15, lineHeight: 20, color: theme.colors.text.primary,
     textAlign: TEXT_START, includeFontPadding: false,
   },
   qtyHelp: {
-    fontSize: 12, lineHeight: 16, color: c.inkSoft,
+    fontSize: 12, lineHeight: 16, color: theme.colors.text.secondary,
     textAlign: TEXT_START, includeFontPadding: false,
   },
   stepper: { flexDirection: flexRow(IS_RTL), alignItems: "center", gap: 12 },
   stepBtn: {
     width: 40, height: 40, borderRadius: 12,
-    backgroundColor: c.well, borderWidth: 1, borderColor: c.line,
+    backgroundColor: theme.colors.canvas.surfaceMuted, borderWidth: 1, borderColor: theme.colors.border.default,
     alignItems: "center", justifyContent: "center",
   },
   qtyValue: {
-    fontSize: 20, lineHeight: 26, color: c.ink, minWidth: 28,
+    fontSize: 20, lineHeight: 26, color: theme.colors.text.primary, minWidth: 28,
     textAlign: "center", includeFontPadding: false,
   },
   summaryCard: {
-    backgroundColor: c.surface, borderRadius: kit.radius.lg,
-    borderWidth: 1, borderColor: c.line, padding: 14,
+    backgroundColor: theme.colors.canvas.surface, borderRadius: 12,
+    borderWidth: 1, borderColor: theme.colors.border.default, padding: 14,
   },
   summaryRow: { flexDirection: flexRow(IS_RTL), alignItems: "center", gap: 12 },
   summaryIconWell: { width: 36, height: 36, borderRadius: 12, alignItems: "center", justifyContent: "center", flexShrink: 0 },
   summaryText: { flex: 1, gap: 2 },
   summaryLabel: {
-    fontSize: 10, lineHeight: 14, color: c.inkFaint,
+    fontSize: 10, lineHeight: 14, color: theme.colors.text.muted,
     letterSpacing: 0.4, textTransform: "uppercase",
     textAlign: TEXT_START, includeFontPadding: false,
   },
   summaryValue: {
-    fontSize: 14, lineHeight: 19, color: c.ink,
+    fontSize: 14, lineHeight: 19, color: theme.colors.text.primary,
     textAlign: TEXT_START, includeFontPadding: false,
   },
   ctaBar: {
     position: "absolute", start: 0, end: 0, bottom: 0,
     paddingHorizontal: 20, paddingTop: 14, gap: 10,
-    backgroundColor: c.surface,
-    borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.line,
+    backgroundColor: theme.colors.canvas.surface,
+    borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.colors.border.default,
   },
   ctaEyebrowRow: { flexDirection: flexRow(IS_RTL), alignItems: "center", gap: 10 },
   ctaEyebrow: {
-    fontSize: 10, lineHeight: 14, color: c.inkFaint,
+    fontSize: 10, lineHeight: 14, color: theme.colors.text.muted,
     letterSpacing: 0.5, textTransform: "uppercase", includeFontPadding: false,
   },
-  ctaPill: { flexDirection: flexRow(IS_RTL), alignItems: "center", gap: 5, paddingHorizontal: 10, paddingVertical: 4, borderRadius: kit.radius.pill },
+  ctaPill: { flexDirection: flexRow(IS_RTL), alignItems: "center", gap: 5, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 9999 },
   ctaPillText: { fontSize: 11, lineHeight: 15, letterSpacing: 0.3, includeFontPadding: false },
   centered: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 32, gap: 12 },
   notFoundIcon: {
     width: 84, height: 84, borderRadius: 28,
-    backgroundColor: c.well, borderWidth: 1, borderColor: c.line,
+    backgroundColor: theme.colors.canvas.surfaceMuted, borderWidth: 1, borderColor: theme.colors.border.default,
     alignItems: "center", justifyContent: "center", marginBottom: 4,
   },
   notFoundTitle: {
-    fontSize: 19, lineHeight: 26, color: c.ink,
+    fontSize: 19, lineHeight: 26, color: theme.colors.text.primary,
     letterSpacing: -0.3, textAlign: "center", includeFontPadding: false,
   },
   notFoundBody: {
-    fontSize: 14, lineHeight: 21, color: c.inkSoft,
+    fontSize: 14, lineHeight: 21, color: theme.colors.text.secondary,
     textAlign: "center", maxWidth: 320, includeFontPadding: false,
   },
 }); }

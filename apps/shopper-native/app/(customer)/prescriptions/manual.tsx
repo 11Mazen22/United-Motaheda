@@ -1,4 +1,5 @@
-import { useDarkColors } from "@/hooks/useDarkColors";
+import { defaultTheme as theme } from "@pharmacy/ui-native";
+import { useTheme } from "@pharmacy/ui-native";
 
 import React, { useCallback, useMemo, useState } from "react";
 
@@ -12,7 +13,7 @@ import { useTranslation } from "react-i18next";
 
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { kit, CustomerUI } from "@pharmacy/ui-native";
+import { CustomerUI } from "@pharmacy/ui-native";
 
 import { Text } from "@pharmacy/ui-native";
 
@@ -34,8 +35,8 @@ const TEXT_START = textAlignStart(IS_RTL);
 
 
 export default function Page(): React.ReactElement {
-  const { c } = useDarkColors();
-  const s = React.useMemo(() => get_s(c), [c]);
+  const { theme } = useTheme();
+  const s = React.useMemo(() => get_s(), []);
   const router    = useRouter();
   const insets    = useSafeAreaInsets();
   const { t }     = useTranslation();
@@ -94,7 +95,7 @@ export default function Page(): React.ReactElement {
             style={s.backBtnTouchable}>
             {({ pressed }) => (
               <View style={[s.backBtn, pressed && s.backBtnPressed]}>
-                <Ionicons name={BACK_CHEVRON} size={20} color={c.ink} />
+                <Ionicons name={BACK_CHEVRON} size={20} color={theme.colors.text.primary} />
               </View>
             )}
           </Pressable>
@@ -103,7 +104,7 @@ export default function Page(): React.ReactElement {
 
         <View style={s.identityRow}>
           <View style={s.heroTile}>
-            <Ionicons name="keypad-outline" size={24} color={c.warn} />
+            <Ionicons name="keypad-outline" size={24} color={theme.colors.status.warning} />
           </View>
           <View style={s.identityText}>
             <Text weight="bold" style={s.eyebrow}>
@@ -193,39 +194,39 @@ export default function Page(): React.ReactElement {
 
 
 
-function get_s(c: { canvas: string; surface: string; line: string; accentDeep: string; accentTint: string; ink: string; inkSoft: string; inkFaint: string; warn: string; warnTint: string; well: string; danger: string }) { return StyleSheet.create({
-  screen: { flex: 1, backgroundColor: c.canvas },
+function get_s() { return StyleSheet.create({
+  screen: { flex: 1, backgroundColor: theme.colors.canvas.background },
   header: {
     paddingHorizontal: 20,
     paddingBottom:     20,
     gap:               18,
-    backgroundColor:   c.surface,
+    backgroundColor:   theme.colors.canvas.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: c.line,
-    ...kit.shadow.raised,
+    borderBottomColor: theme.colors.border.default,
+    ...theme.shadows[1],
   },
   navRow: { flexDirection: flexRow(IS_RTL), alignItems: "center", minHeight: 38 },
   backBtnTouchable: { borderRadius: 14 },
   backBtn: {
     width: 38, height: 38, borderRadius: 14,
-    backgroundColor: c.well, borderWidth: 1, borderColor: c.line,
+    backgroundColor: theme.colors.canvas.surfaceMuted, borderWidth: 1, borderColor: theme.colors.border.default,
     alignItems: "center", justifyContent: "center",
   },
   backBtnPressed: { opacity: 0.7, transform: [{ scale: 0.96 }] },
   identityRow: { flexDirection: flexRow(IS_RTL), alignItems: "center", gap: 14 },
   heroTile: {
     width: 56, height: 56, borderRadius: 18,
-    backgroundColor: c.warnTint, borderWidth: 1, borderColor: c.line,
+    backgroundColor: `${theme.colors.status.warning}1A`, borderWidth: 1, borderColor: theme.colors.border.default,
     alignItems: "center", justifyContent: "center", flexShrink: 0,
   },
   identityText: { flex: 1, gap: 2 },
   eyebrow: {
-    fontSize: 10, lineHeight: 14, color: c.accentDeep,
+    fontSize: 10, lineHeight: 14, color: theme.colors.brand.primary,
     letterSpacing: 0.6, textTransform: "uppercase",
     textAlign: TEXT_START, includeFontPadding: false,
   },
   title: {
-    fontSize: 28, lineHeight: 34, color: c.ink,
+    fontSize: 28, lineHeight: 34, color: theme.colors.text.primary,
     letterSpacing: -0.6, textAlign: TEXT_START, includeFontPadding: false,
   },
   scroll: { flex: 1 },
@@ -233,13 +234,13 @@ function get_s(c: { canvas: string; surface: string; line: string; accentDeep: s
     paddingHorizontal: 20, paddingTop: 20, paddingBottom: 16, gap: 16,
   },
   errorText: {
-    fontSize: 13, lineHeight: 18, color: c.danger,
+    fontSize: 13, lineHeight: 18, color: theme.colors.status.error,
     textAlign: TEXT_START, includeFontPadding: false,
   },
   ctaBar: {
     paddingHorizontal: 20, paddingTop: 12,
-    backgroundColor: c.surface,
+    backgroundColor: theme.colors.canvas.surface,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: c.line,
+    borderTopColor: theme.colors.border.default,
   },
 }); }

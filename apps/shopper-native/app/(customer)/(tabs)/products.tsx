@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo } from "react";
-import { FlatList, Platform, Pressable, StyleSheet, View } from "react-native";
+import { ActivityIndicator, FlatList, Platform, Pressable, StyleSheet, View } from "react-native";
 import { GestureDetector } from "react-native-gesture-handler";
 import Animated from "react-native-reanimated";
 import { useRouter } from "expo-router";
@@ -10,7 +10,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { fetchCategories } from "@/services/productsApi";
 import type { NativeCategory } from "@/features/products/types";
 import { CategoryCard } from "@/components/CategoryCard";
-import { CustomerUI, kit } from "@pharmacy/ui-native";
+import { Text, EmptyState, ErrorState, useTheme } from "@pharmacy/ui-native";
 import { useCartStore } from "@/stores/cart";
 import { useMountTiming } from "@/lib/devTiming";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
@@ -21,35 +21,34 @@ import { useTabSwipeGesture } from "@/shared/navigation/useTabSwipeGesture";
 
 const IS_RTL = isRtl();
 const TEXT_START = textAlignStart(IS_RTL);
-
 const GRID_GAP = 12;
 
 function StatsStrip({ catCount, loading }: { catCount: number; loading: boolean }) {
   const { t } = useTranslation();
-  const theme = CustomerUI.useCustomerTheme();
+  const { theme } = useTheme();
   const { pagePad } = useScreenLayout();
 
   const items = [
-    { icon: "grid-outline" as const, value: "", label: t("products.statCategories"), color: theme.colors.accentDeep, tint: theme.colors.accentTint },
-    { icon: "cube-outline" as const, value: "5000+", label: t("products.statItems"), color: kit.color.success, tint: kit.color.successTint },
-    { icon: "flash-outline" as const, value: IS_RTL ? "30د" : "30min", label: t("products.statFastLabel"), color: kit.color.warn, tint: kit.color.warnTint },
-    { icon: "shield-checkmark-outline" as const, value: "100%", label: t("products.statOriginalLabel"), color: "#7c3aed", tint: "#f5f3ff" },
+    { icon: "grid-outline" as const, value: "", label: t("products.statCategories"), color: theme.colors.brand.primary, tint: theme.colors.brand.primaryLight },
+    { icon: "cube-outline" as const, value: "5000+", label: t("products.statItems"), color: theme.colors.status.success, tint: `${theme.colors.status.success}1A` },
+    { icon: "flash-outline" as const, value: IS_RTL ? "30د" : "30min", label: t("products.statFastLabel"), color: theme.colors.status.warning, tint: `${theme.colors.status.warning}1A` },
+    { icon: "shield-checkmark-outline" as const, value: "100%", label: t("products.statOriginalLabel"), color: theme.colors.chart.series3, tint: `${theme.colors.chart.series3}1A` },
   ];
 
   return (
-    <View style={[st.row, { flexDirection: flexRow(IS_RTL), marginHorizontal: pagePad }]}>
+    <View style={[st.row, { flexDirection: flexRow(IS_RTL), marginHorizontal: pagePad, borderColor: theme.colors.border.default }]}>
       {items.map((item, i) => (
-        <View key={i} style={[st.item, i > 0 && (IS_RTL ? st.itemBorderRight : st.itemBorderLeft)]}>
+        <View key={i} style={[st.item, i > 0 && (IS_RTL ? { borderRightWidth: StyleSheet.hairlineWidth, borderRightColor: theme.colors.border.default } : { borderLeftWidth: StyleSheet.hairlineWidth, borderLeftColor: theme.colors.border.default })]}>
           <View style={[st.icon, { backgroundColor: item.tint }]}>
             <Ionicons name={item.icon} size={13} color={item.color} />
           </View>
           <View style={st.textCol}>
-            <CustomerUI.Typography variant="caption" weight="bold" color={item.color} style={{ textAlign: TEXT_START }}>
+            <Text variant="caption" weight="bold" style={{ color: item.color, textAlign: TEXT_START }}>
               {i === 0 ? (loading ? "..." : String(catCount)) : item.value}
-            </CustomerUI.Typography>
-            <CustomerUI.Typography variant="caption" color={theme.colors.inkSoft} style={{ textAlign: TEXT_START, fontSize: 9 }}>
+            </Text>
+            <Text variant="caption" style={{ color: theme.colors.text.secondary, textAlign: TEXT_START, fontSize: 9 }}>
               {item.label}
-            </CustomerUI.Typography>
+            </Text>
           </View>
         </View>
       ))}
@@ -58,10 +57,8 @@ function StatsStrip({ catCount, loading }: { catCount: number; loading: boolean 
 }
 
 const st = StyleSheet.create({
-  row: { paddingVertical: 12, borderTopWidth: StyleSheet.hairlineWidth, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(15,23,42,0.08)', marginBottom: 24, marginTop: 12 },
+  row: { paddingVertical: 12, borderTopWidth: StyleSheet.hairlineWidth, borderBottomWidth: StyleSheet.hairlineWidth, marginBottom: 24, marginTop: 12 },
   item: { flex: 1, paddingVertical: 8, alignItems: "center", justifyContent: "center", gap: 8 },
-  itemBorderLeft: { borderLeftWidth: StyleSheet.hairlineWidth, borderLeftColor: 'rgba(15,23,42,0.08)' },
-  itemBorderRight: { borderRightWidth: StyleSheet.hairlineWidth, borderRightColor: 'rgba(15,23,42,0.08)' },
   icon: { width: 32, height: 32, borderRadius: 12, alignItems: "center", justifyContent: "center" },
   textCol: { alignItems: "center", justifyContent: "center", gap: 2 },
 });
@@ -73,7 +70,7 @@ export default function ProductsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const cartCount = useCartStore((s) => s.itemCount());
-  const theme = CustomerUI.useCustomerTheme();
+  const { theme } = useTheme();
   const lang = i18n.language === "en" ? "en" as const : "ar" as const;
 
   const { pagePad, numColumns, width } = useScreenLayout();
@@ -96,40 +93,41 @@ export default function ProductsScreen() {
     (item: { id: string; nameEn?: string; name: string }) => router.push({ pathname: "/(customer)/(shop)/category/[id]", params: { id: item.id, nameEn: item.nameEn ?? "", name: item.name ?? "" } }),
     [router]
   );
+  const retry = useCallback(async () => { await refetch(); }, [refetch]);
 
   const ListHeaderComponent = useCallback(() => (
     <>
       <View style={[s.header, { paddingTop: insets.top + 14, paddingHorizontal: pagePad }]}>
         <View style={[s.headerRow, { flexDirection: flexRow(IS_RTL) }]}>
           <View style={[s.headerLeft, { flexDirection: flexRow(IS_RTL) }]}>
-            <View style={[s.headerIconTile, { backgroundColor: theme.colors.accentTint }]}>
-              <Ionicons name="grid" size={20} color={theme.colors.accentDeep} />
+            <View style={[s.headerIconTile, { backgroundColor: theme.colors.brand.primaryLight }]}>
+              <Ionicons name="grid" size={20} color={theme.colors.brand.primary} />
             </View>
             <View>
-              <CustomerUI.Typography variant="caption" weight="bold" color={theme.colors.accentDeep} style={{ textTransform: "uppercase" }}>
+              <Text variant="caption" weight="bold" style={{ color: theme.colors.brand.primary, textTransform: "uppercase" }}>
                 {t("products.headerEyebrow")}
-              </CustomerUI.Typography>
-              <CustomerUI.Typography variant="h3" weight="black" color={theme.colors.ink}>
+              </Text>
+              <Text variant="h3" style={{ color: theme.colors.text.primary }}>
                 {t("products.title")}
-              </CustomerUI.Typography>
+              </Text>
             </View>
           </View>
 
-          <Pressable onPress={goCart} accessibilityRole="button" style={[s.cartBtn, { backgroundColor: theme.colors.surface, borderColor: theme.colors.line }]}>
-            <Ionicons name="bag-outline" size={19} color={theme.colors.inkSoft} />
+          <Pressable onPress={goCart} accessibilityRole="button" accessibilityLabel={t("tabs.cart")} style={[s.cartBtn, { backgroundColor: theme.colors.canvas.surface, borderColor: theme.colors.border.default }]}>
+            <Ionicons name="bag-outline" size={19} color={theme.colors.text.secondary} />
             {cartCount > 0 && (
-              <View style={s.cartBadge}>
-                <CustomerUI.Typography variant="caption" weight="black" color="#FFF" style={{ fontSize: 9 }}>{cartCount > 9 ? "9+" : cartCount}</CustomerUI.Typography>
+              <View style={[s.cartBadge, { backgroundColor: theme.colors.status.error, borderColor: theme.colors.canvas.surface }]}>
+                <Text variant="caption" weight="black" style={{ color: theme.colors.text.inverse, fontSize: 9 }}>{cartCount > 9 ? "9+" : cartCount}</Text>
               </View>
             )}
           </Pressable>
         </View>
 
-        <Pressable onPress={goSearch} accessibilityRole="button" style={[s.searchBar, { flexDirection: flexRow(IS_RTL), backgroundColor: theme.colors.background }]}>
-          <View style={s.searchIconWell}><Ionicons name="search" size={16} color={theme.colors.accentDeep} /></View>
-          <CustomerUI.Typography variant="body" color={theme.colors.inkFaint} style={[s.searchHint, { textAlign: TEXT_START }]}>
+        <Pressable onPress={goSearch} accessibilityRole="button" accessibilityLabel={t("search.placeholder")} style={[s.searchBar, { flexDirection: flexRow(IS_RTL), backgroundColor: theme.colors.canvas.background }]}>
+          <View style={[s.searchIconWell, theme.shadows[1], { backgroundColor: theme.colors.canvas.surface }]}><Ionicons name="search" size={16} color={theme.colors.brand.primary} /></View>
+          <Text variant="body" style={{ color: theme.colors.text.muted, flex: 1, textAlign: TEXT_START }}>
             {t("search.placeholder")}
-          </CustomerUI.Typography>
+          </Text>
         </Pressable>
       </View>
       <StatsStrip catCount={categories.length} loading={catsLoading} />
@@ -147,13 +145,13 @@ export default function ProductsScreen() {
 
   return (
     <GestureDetector gesture={gesture}>
-      <Animated.View style={[s.root, { backgroundColor: theme.colors.canvas }, animatedStyle]}>
+      <Animated.View style={[s.root, { backgroundColor: theme.colors.canvas.background }, animatedStyle]}>
         {catsLoading ? (
-           <View style={{ flex: 1, padding: pagePad, paddingTop: insets.top + 80 }}><CustomerUI.ActivityIndicator size="large" /></View>
+           <View style={{ flex: 1, padding: pagePad, paddingTop: insets.top + 80 }}><ActivityIndicator size="large" color={theme.colors.brand.primary} /></View>
         ) : isError ? (
-           <CustomerUI.ErrorState message={t("errors.network")} retry={() => refetch()} />
+           <ErrorState message={t("errors.network")} retry={retry} />
         ) : categories.length === 0 ? (
-           <CustomerUI.EmptyState title={t("products.noProducts")} />
+           <EmptyState illustrationName="empty" title={t("products.noProducts")} />
         ) : (
           <FlatList
             data={categories}
@@ -162,7 +160,7 @@ export default function ProductsScreen() {
             key={catCols}
             renderItem={renderItem}
             ListHeaderComponent={ListHeaderComponent}
-            contentContainerStyle={{ paddingBottom: theme.lx.size.tabBarHeight + 24 }}
+            contentContainerStyle={{ paddingBottom: insets.bottom + 96 }}
             columnWrapperStyle={{ gap: GRID_GAP, paddingHorizontal: pagePad }}
             showsVerticalScrollIndicator={false}
           />
@@ -179,9 +177,8 @@ const s = StyleSheet.create({
   headerLeft: { alignItems: "center", gap: 12 },
   headerIconTile: { width: 44, height: 44, borderRadius: 14, alignItems: "center", justifyContent: "center" },
   cartBtn: { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center", borderWidth: 1 },
-  cartBadge: { position: "absolute", top: -2, right: -4, minWidth: 18, height: 18, borderRadius: 9, backgroundColor: kit.color.danger, alignItems: "center", justifyContent: "center", paddingHorizontal: 4, borderWidth: 2, borderColor: "#FFFFFF" },
+  cartBadge: { position: "absolute", top: -2, end: -4, minWidth: 18, height: 18, borderRadius: 9, alignItems: "center", justifyContent: "center", paddingHorizontal: 4, borderWidth: 2 },
   searchBar: { height: 48, borderRadius: 16, alignItems: "center", paddingHorizontal: 6, gap: 10 },
-  searchIconWell: { width: 36, height: 36, borderRadius: 12, backgroundColor: "#FFF", alignItems: "center", justifyContent: "center", shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 },
-  searchHint: { flex: 1 },
+  searchIconWell: { width: 36, height: 36, borderRadius: 12, alignItems: "center", justifyContent: "center" },
   sectionHead: { marginBottom: 16 },
 });

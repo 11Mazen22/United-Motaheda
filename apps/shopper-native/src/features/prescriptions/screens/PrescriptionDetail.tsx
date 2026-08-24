@@ -1,3 +1,4 @@
+import { defaultTheme as theme } from "@pharmacy/ui-native";
 /**
  * PrescriptionDetail — medication command center.
  *
@@ -32,7 +33,7 @@ import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import Animated, { FadeInDown } from "react-native-reanimated";
-import { kit, Button } from "@pharmacy/ui-native";
+import { Button } from "@pharmacy/ui-native";
 import { Text } from "@pharmacy/ui-native";
 import { flexRow, isRtl, textAlignStart, BACK_CHEVRON } from "@/utils/layout";
 import { useAuth } from "@/features/auth";
@@ -54,16 +55,16 @@ const TEXT_START = textAlignStart(IS_RTL);
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const STATUS_COLOR: Record<RxStatus, string> = {
-  ready:    kit.color.success,
-  active:   kit.color.accentDeep,
-  expiring: kit.color.warn,
-  expired:  kit.color.inkFaint,
+  ready:    theme.colors.status.success,
+  active:   theme.colors.brand.primary,
+  expiring: theme.colors.status.warning,
+  expired:  theme.colors.text.muted,
 };
 const STATUS_TINT: Record<RxStatus, string> = {
-  ready:    kit.color.successTint,
-  active:   kit.color.accentTint,
-  expiring: kit.color.warnTint,
-  expired:  kit.color.well,
+  ready:    `${theme.colors.status.success}1A`,
+  active:   theme.colors.brand.primaryLight,
+  expiring: `${theme.colors.status.warning}1A`,
+  expired:  theme.colors.canvas.surfaceMuted,
 };
 
 // Rx validity lifecycle: 0=active, 1=expiring, 2=expired
@@ -185,7 +186,7 @@ export function PrescriptionDetail({ id }: { id: string | undefined }): React.Re
         <Header insets={insets} onBack={() => router.back()} />
         <View style={s.centered}>
           <View style={s.notFoundIcon}>
-            <Ionicons name="medkit-outline" size={36} color={kit.color.inkFaint} />
+            <Ionicons name="medkit-outline" size={36} color={theme.colors.text.muted} />
           </View>
           <Text weight="black" style={s.notFoundTitle}>
             {t("prescriptions.notFound")}
@@ -230,7 +231,7 @@ export function PrescriptionDetail({ id }: { id: string | undefined }): React.Re
           <Animated.View entering={FadeInDown.duration(240)} style={s.reviewBanner}>
             <View style={[s.reviewBannerRow, { flexDirection: flexRow(IS_RTL) }]}>
               <View style={s.reviewBannerIconWell}>
-                <Ionicons name="time-outline" size={16} color={kit.color.warn} />
+                <Ionicons name="time-outline" size={16} color={theme.colors.status.warning} />
               </View>
               <View style={s.reviewBannerText}>
                 <Text weight="black" style={s.reviewBannerTitle}>
@@ -247,10 +248,10 @@ export function PrescriptionDetail({ id }: { id: string | undefined }): React.Re
           <Animated.View entering={FadeInDown.duration(240)} style={[s.reviewBanner, s.reviewBannerDanger]}>
             <View style={[s.reviewBannerRow, { flexDirection: flexRow(IS_RTL) }]}>
               <View style={[s.reviewBannerIconWell, s.reviewBannerIconWellDanger]}>
-                <Ionicons name="close-circle-outline" size={16} color={kit.color.danger} />
+                <Ionicons name="close-circle-outline" size={16} color={theme.colors.status.error} />
               </View>
               <View style={s.reviewBannerText}>
-                <Text weight="black" style={[s.reviewBannerTitle, { color: kit.color.danger }]}>
+                <Text weight="black" style={[s.reviewBannerTitle, { color: theme.colors.status.error }]}>
                   {t("prescriptions.reviewRejectedTitle")}
                 </Text>
                 <Text style={s.reviewBannerBody}>
@@ -283,7 +284,7 @@ export function PrescriptionDetail({ id }: { id: string | undefined }): React.Re
                   value={editName}
                   onChangeText={setEditName}
                   placeholder={t("prescriptions.ocrFieldNamePh")}
-                  placeholderTextColor={kit.color.inkFaint}
+                  placeholderTextColor={theme.colors.text.muted}
                   style={s.heroNameInput}
                   textAlign={TEXT_START as "left" | "right"}
                   editable={!update.isPending}
@@ -292,7 +293,7 @@ export function PrescriptionDetail({ id }: { id: string | undefined }): React.Re
                   value={editDose}
                   onChangeText={setEditDose}
                   placeholder={t("prescriptions.ocrFieldDosePh")}
-                  placeholderTextColor={kit.color.inkFaint}
+                  placeholderTextColor={theme.colors.text.muted}
                   style={s.heroDoseInput}
                   textAlign={TEXT_START as "left" | "right"}
                   editable={!update.isPending}
@@ -301,7 +302,7 @@ export function PrescriptionDetail({ id }: { id: string | undefined }): React.Re
                   value={editDoctor}
                   onChangeText={setEditDoctor}
                   placeholder={t("prescriptions.ocrFieldDoctorPh")}
-                  placeholderTextColor={kit.color.inkFaint}
+                  placeholderTextColor={theme.colors.text.muted}
                   style={s.heroDoseInput}
                   textAlign={TEXT_START as "left" | "right"}
                   editable={!update.isPending}
@@ -321,7 +322,7 @@ export function PrescriptionDetail({ id }: { id: string | undefined }): React.Re
             {rx.isControlled && (
               <View style={s.controlledBadge}>
                 <View style={s.controlledIconWell}>
-                  <Ionicons name="shield-half-outline" size={14} color={kit.color.danger} />
+                  <Ionicons name="shield-half-outline" size={14} color={theme.colors.status.error} />
                 </View>
                 <Text weight="bold" style={s.controlledText} numberOfLines={1}>
                   {rx.schedule
@@ -357,7 +358,7 @@ export function PrescriptionDetail({ id }: { id: string | undefined }): React.Re
               </Text>
               {inFlight.eta && (
                 <View style={s.etaPill}>
-                  <Ionicons name="time-outline" size={12} color={kit.color.accentDeep} />
+                  <Ionicons name="time-outline" size={12} color={theme.colors.brand.primary} />
                   <Text weight="bold" style={s.etaText}>
                     {t("prescriptions.trackingEta")}: {inFlight.eta}
                   </Text>
@@ -388,7 +389,7 @@ export function PrescriptionDetail({ id }: { id: string | undefined }): React.Re
               icon="repeat-outline"
               label={t("prescriptions.factRefills")}
               value={String(rx.refills)}
-              accent={rx.refills > 0 ? kit.color.accentDeep : kit.color.inkFaint}
+              accent={rx.refills > 0 ? theme.colors.brand.primary : theme.colors.text.muted}
             />
             <Fact icon="calendar-outline" label={t("prescriptions.factNextRefill")} value={rx.nextRefill} />
             <Fact icon="person-outline"   label={t("prescriptions.factDoctor")}     value={rx.doctor} />
@@ -400,7 +401,7 @@ export function PrescriptionDetail({ id }: { id: string | undefined }): React.Re
                 icon="shield-half-outline"
                 label={t("prescriptions.factSchedule")}
                 value={t("prescriptions.scheduleN", { n: rx.schedule })}
-                accent={kit.color.danger}
+                accent={theme.colors.status.error}
               />
             )}
             <Fact
@@ -419,7 +420,7 @@ export function PrescriptionDetail({ id }: { id: string | undefined }): React.Re
           {refills.length === 0 ? (
             <View style={s.histEmpty}>
               <View style={s.histEmptyIcon}>
-                <Ionicons name="receipt-outline" size={22} color={kit.color.inkFaint} />
+                <Ionicons name="receipt-outline" size={22} color={theme.colors.text.muted} />
               </View>
               <Text weight="black" style={s.histEmptyTitle}>
                 {t("prescriptions.historyEmpty")}
@@ -447,7 +448,7 @@ export function PrescriptionDetail({ id }: { id: string | undefined }): React.Re
         <Animated.View entering={FadeInDown.delay(300).duration(280)} style={s.safetyCard}>
           <View style={s.safetyHead}>
             <View style={s.safetyIconWell}>
-              <Ionicons name="lock-closed" size={14} color={kit.color.accentDeep} />
+              <Ionicons name="lock-closed" size={14} color={theme.colors.brand.primary} />
             </View>
             <Text weight="black" style={s.safetyTitle}>
               {t("prescriptions.safetyTitle")}
@@ -457,7 +458,7 @@ export function PrescriptionDetail({ id }: { id: string | undefined }): React.Re
             {t("prescriptions.safetyStored")}
           </Text>
           {rx.isControlled && (
-            <Text style={[s.safetyBody, { color: kit.color.danger, marginTop: 4 }]}>
+            <Text style={[s.safetyBody, { color: theme.colors.status.error, marginTop: 4 }]}>
               {t("prescriptions.safetyControlled")}
             </Text>
           )}
@@ -513,7 +514,7 @@ function Header({
           style={s.backBtnTouchable}>
           {({ pressed }) => (
             <View style={[s.backBtn, pressed && s.backBtnPressed]}>
-              <Ionicons name={BACK_CHEVRON} size={20} color={kit.color.ink} />
+              <Ionicons name={BACK_CHEVRON} size={20} color={theme.colors.text.primary} />
             </View>
           )}
         </Pressable>
@@ -531,7 +532,7 @@ function Header({
                   style={s.iconBtnTouchable}>
                   {({ pressed }) => (
                     <View style={[s.iconBtn, pressed && s.iconBtnPressed, savePending && s.iconBtnDisabled]}>
-                      <Ionicons name="close-outline" size={20} color={kit.color.ink} />
+                      <Ionicons name="close-outline" size={20} color={theme.colors.text.primary} />
                     </View>
                   )}
                 </Pressable>
@@ -544,7 +545,7 @@ function Header({
                   style={s.iconBtnTouchable}>
                   {({ pressed }) => (
                     <View style={[s.iconBtn, s.iconBtnAccent, pressed && s.iconBtnPressed, savePending && s.iconBtnDisabled]}>
-                      <Ionicons name="checkmark-outline" size={20} color={kit.color.accentDeep} />
+                      <Ionicons name="checkmark-outline" size={20} color={theme.colors.brand.primary} />
                     </View>
                   )}
                 </Pressable>
@@ -559,7 +560,7 @@ function Header({
                   style={s.iconBtnTouchable}>
                   {({ pressed }) => (
                     <View style={[s.iconBtn, pressed && s.iconBtnPressed]}>
-                      <Ionicons name="pencil-outline" size={18} color={kit.color.ink} />
+                      <Ionicons name="pencil-outline" size={18} color={theme.colors.text.primary} />
                     </View>
                   )}
                 </Pressable>
@@ -572,7 +573,7 @@ function Header({
                   style={s.iconBtnTouchable}>
                   {({ pressed }) => (
                     <View style={[s.iconBtn, pressed && s.iconBtnPressed, deletePending && s.iconBtnDisabled]}>
-                      <Ionicons name="trash-outline" size={18} color={kit.color.danger} />
+                      <Ionicons name="trash-outline" size={18} color={theme.colors.status.error} />
                     </View>
                   )}
                 </Pressable>
@@ -581,7 +582,7 @@ function Header({
           )}
 
           <View style={s.secureBadge}>
-            <Ionicons name="shield-checkmark" size={12} color={kit.color.success} />
+            <Ionicons name="shield-checkmark" size={12} color={theme.colors.status.success} />
             <Text weight="black" style={s.secureText}>
               {t("prescriptions.secure")}
             </Text>
@@ -595,9 +596,9 @@ function Header({
 /** 3-stage Rx validity track: Active → Refill Due → Expired */
 function LifecycleTrack({ stage, labels }: { stage: 0 | 1 | 2; labels: [string, string, string] }) {
   const stages = [
-    { label: labels[0], icon: "checkmark-circle" as IoniconsName, color: kit.color.success },
-    { label: labels[1], icon: "alert-circle"     as IoniconsName, color: kit.color.warn },
-    { label: labels[2], icon: "close-circle"     as IoniconsName, color: kit.color.inkFaint },
+    { label: labels[0], icon: "checkmark-circle" as IoniconsName, color: theme.colors.status.success },
+    { label: labels[1], icon: "alert-circle"     as IoniconsName, color: theme.colors.status.warning },
+    { label: labels[2], icon: "close-circle"     as IoniconsName, color: theme.colors.text.muted },
   ];
   return (
     <View style={[lc.row, { flexDirection: flexRow(IS_RTL) }]}>
@@ -611,22 +612,22 @@ function LifecycleTrack({ stage, labels }: { stage: 0 | 1 | 2; labels: [string, 
                 style={[
                   lc.dot,
                   {
-                    backgroundColor: reached ? st.color + "1A" : kit.color.well,
-                    borderColor:     reached ? st.color        : kit.color.lineStrong,
+                    backgroundColor: reached ? st.color + "1A" : theme.colors.canvas.surfaceMuted,
+                    borderColor:     reached ? st.color        : theme.colors.border.strong,
                   },
                   isCurrent && { borderWidth: 2 },
                 ]}>
                 <Ionicons
                   name={st.icon}
                   size={18}
-                  color={reached ? st.color : kit.color.lineStrong}
+                  color={reached ? st.color : theme.colors.border.strong}
                 />
               </View>
               <Text
                 weight={isCurrent ? "black" : "bold"}
                 style={[
                   lc.label,
-                  { color: reached ? kit.color.ink : kit.color.inkFaint },
+                  { color: reached ? theme.colors.text.primary : theme.colors.text.muted },
                 ]}
                 numberOfLines={1}>
                 {st.label}
@@ -636,7 +637,7 @@ function LifecycleTrack({ stage, labels }: { stage: 0 | 1 | 2; labels: [string, 
               <View
                 style={[
                   lc.bar,
-                  { backgroundColor: i < stage ? stages[i].color : kit.color.lineStrong },
+                  { backgroundColor: i < stage ? stages[i].color : theme.colors.border.strong },
                 ]}
               />
             )}
@@ -658,7 +659,7 @@ function RefillTimeline({
         const done    = i < currentIdx;
         const current = i === currentIdx;
         const future  = i > currentIdx;
-        const c       = done || current ? kit.color.accentDeep : kit.color.lineStrong;
+        const c       = done || current ? theme.colors.brand.primary : theme.colors.border.strong;
         return (
           <View key={step.key} style={[tl.row, { flexDirection: flexRow(IS_RTL) }]}>
             <View style={tl.rail}>
@@ -667,17 +668,17 @@ function RefillTimeline({
                   tl.node,
                   {
                     borderColor:     c,
-                    backgroundColor: done ? kit.color.accentDeep : kit.color.surface,
+                    backgroundColor: done ? theme.colors.brand.primary : theme.colors.canvas.surface,
                   },
                   current && tl.nodeCurrent,
                 ]}>
                 {done ? (
-                  <Ionicons name="checkmark" size={13} color={kit.color.onAccent} />
+                  <Ionicons name="checkmark" size={13} color={theme.colors.text.inverse} />
                 ) : (
                   <Ionicons
                     name={step.icon}
                     size={13}
-                    color={current ? kit.color.accentDeep : kit.color.inkFaint}
+                    color={current ? theme.colors.brand.primary : theme.colors.text.muted}
                   />
                 )}
               </View>
@@ -685,7 +686,7 @@ function RefillTimeline({
                 <View
                   style={[
                     tl.connector,
-                    { backgroundColor: done ? kit.color.accentDeep : kit.color.line },
+                    { backgroundColor: done ? theme.colors.brand.primary : theme.colors.border.default },
                   ]}
                 />
               )}
@@ -695,7 +696,7 @@ function RefillTimeline({
                 weight={current ? "black" : "bold"}
                 style={[
                   tl.label,
-                  { color: future ? kit.color.inkFaint : current ? kit.color.accentDeep : kit.color.ink },
+                  { color: future ? theme.colors.text.muted : current ? theme.colors.brand.primary : theme.colors.text.primary },
                 ]}>
                 {label(step.key)}
               </Text>
@@ -710,7 +711,7 @@ function RefillTimeline({
 function Fact({
   icon, label, value, accent,
 }: { icon: IoniconsName; label: string; value: string; accent?: string }) {
-  const tone = accent ?? kit.color.inkFaint;
+  const tone = accent ?? theme.colors.text.muted;
   return (
     <View style={f.cell}>
       <View style={f.head}>
@@ -731,12 +732,12 @@ function RefillHistoryRow({
 }: { refill: RefillRequest; label: string; dateLabel: string; egp: string }) {
   const cancelled = refill.status === "cancelled";
   const delivered = refill.status === "delivered";
-  const tone = cancelled ? kit.color.danger
-             : delivered ? kit.color.success
-             : kit.color.accentDeep;
-  const tint = cancelled ? kit.color.dangerTint
-             : delivered ? kit.color.successTint
-             : kit.color.accentTint;
+  const tone = cancelled ? theme.colors.status.error
+             : delivered ? theme.colors.status.success
+             : theme.colors.brand.primary;
+  const tint = cancelled ? `${theme.colors.status.error}1A`
+             : delivered ? `${theme.colors.status.success}1A`
+             : theme.colors.brand.primaryLight;
   return (
     <View style={[h.row, { flexDirection: flexRow(IS_RTL) }]}>
       <View style={[h.dot, { backgroundColor: tint }]}>
@@ -771,16 +772,16 @@ function RefillHistoryRow({
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const s = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: kit.color.canvas },
+  screen: { flex: 1, backgroundColor: theme.colors.canvas.background },
 
   // ── Header ─────────────────────────────────────────────────────────────
   header: {
     paddingHorizontal: 20,
     paddingBottom:     16,
-    backgroundColor:   kit.color.surface,
+    backgroundColor:   theme.colors.canvas.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: kit.color.line,
-    ...kit.shadow.raised,
+    borderBottomColor: theme.colors.border.default,
+    ...theme.shadows[1],
   },
   headerRow: {
     flexDirection:  flexRow(IS_RTL),
@@ -795,9 +796,9 @@ const s = StyleSheet.create({
     width:           38,
     height:          38,
     borderRadius:    14,
-    backgroundColor: kit.color.well,
+    backgroundColor: theme.colors.canvas.surfaceMuted,
     borderWidth:     1,
-    borderColor:     kit.color.line,
+    borderColor:     theme.colors.border.default,
     alignItems:      "center",
     justifyContent:  "center",
   },
@@ -820,14 +821,14 @@ const s = StyleSheet.create({
     width:           36,
     height:          36,
     borderRadius:    12,
-    backgroundColor: kit.color.well,
+    backgroundColor: theme.colors.canvas.surfaceMuted,
     borderWidth:     1,
-    borderColor:     kit.color.line,
+    borderColor:     theme.colors.border.default,
     alignItems:      "center",
     justifyContent:  "center",
   },
   iconBtnAccent: {
-    backgroundColor: kit.color.accentTint,
+    backgroundColor: theme.colors.brand.primaryLight,
     borderColor:     "rgba(14,126,116,0.18)",
   },
   iconBtnPressed: {
@@ -841,8 +842,8 @@ const s = StyleSheet.create({
     flexDirection:     flexRow(IS_RTL),
     alignItems:        "center",
     gap:               6,
-    backgroundColor:   kit.color.successTint,
-    borderRadius:      kit.radius.pill,
+    backgroundColor:   `${theme.colors.status.success}1A`,
+    borderRadius:      9999,
     paddingHorizontal: 12,
     paddingVertical:   7,
     borderWidth:       1,
@@ -853,18 +854,18 @@ const s = StyleSheet.create({
     lineHeight:         15,
     letterSpacing:      0.5,
     textTransform:      "uppercase",
-    color:              kit.color.success,
+    color:              theme.colors.status.success,
     includeFontPadding: false,
   },
 
   // ── Hero ───────────────────────────────────────────────────────────────
   heroCard: {
-    backgroundColor: kit.color.surface,
-    borderRadius:    kit.radius.xl,
+    backgroundColor: theme.colors.canvas.surface,
+    borderRadius:    16,
     borderWidth:     1,
-    borderColor:     kit.color.line,
+    borderColor:     theme.colors.border.default,
     overflow:        "hidden",
-    ...kit.shadow.floating,
+    ...theme.shadows[3],
   },
   heroStripe: { height: 5, width: "100%" },
   heroBody: { padding: 20, gap: 8 },
@@ -887,7 +888,7 @@ const s = StyleSheet.create({
     gap:               7,
     paddingHorizontal: 12,
     paddingVertical:   8,
-    borderRadius:      kit.radius.pill,
+    borderRadius:      9999,
     borderWidth:       1,
   },
   statusDot: {
@@ -905,14 +906,14 @@ const s = StyleSheet.create({
     fontSize:           26,
     lineHeight:         32,
     letterSpacing:      -0.6,
-    color:              kit.color.ink,
+    color:              theme.colors.text.primary,
     textAlign:          TEXT_START,
     includeFontPadding: false,
   },
   heroDose: {
     fontSize:           14,
     lineHeight:         20,
-    color:              kit.color.inkSoft,
+    color:              theme.colors.text.secondary,
     textAlign:          TEXT_START,
     includeFontPadding: false,
   },
@@ -920,29 +921,29 @@ const s = StyleSheet.create({
     fontSize:           22,
     lineHeight:         28,
     letterSpacing:      -0.4,
-    color:              kit.color.ink,
+    color:              theme.colors.text.primary,
     textAlign:          TEXT_START,
     paddingVertical:    4,
     borderBottomWidth:  1.5,
-    borderBottomColor:  kit.color.accent,
+    borderBottomColor:  theme.colors.brand.primary,
     includeFontPadding: false,
   },
   heroDoseInput: {
     fontSize:           14,
     lineHeight:         20,
-    color:              kit.color.inkSoft,
+    color:              theme.colors.text.secondary,
     textAlign:          TEXT_START,
     paddingVertical:    4,
     borderBottomWidth:  1,
-    borderBottomColor:  kit.color.line,
+    borderBottomColor:  theme.colors.border.default,
     includeFontPadding: false,
   },
   controlledBadge: {
     flexDirection:     flexRow(IS_RTL),
     alignItems:        "center",
     gap:               10,
-    backgroundColor:   kit.color.dangerTint,
-    borderRadius:      kit.radius.lg,
+    backgroundColor:   `${theme.colors.status.error}1A`,
+    borderRadius:      12,
     paddingHorizontal: 12,
     paddingVertical:   10,
     marginTop:         8,
@@ -961,20 +962,20 @@ const s = StyleSheet.create({
     flex:               1,
     fontSize:           12,
     lineHeight:         16,
-    color:              kit.color.danger,
+    color:              theme.colors.status.error,
     textAlign:          TEXT_START,
     includeFontPadding: false,
   },
 
   // ── Generic card ───────────────────────────────────────────────────────
   card: {
-    backgroundColor: kit.color.surface,
-    borderRadius:    kit.radius.lg,
+    backgroundColor: theme.colors.canvas.surface,
+    borderRadius:    12,
     borderWidth:     1,
-    borderColor:     kit.color.line,
+    borderColor:     theme.colors.border.default,
     padding:         16,
     gap:             14,
-    ...kit.shadow.raised,
+    ...theme.shadows[1],
   },
   cardTitleRow: {
     flexDirection:  flexRow(IS_RTL),
@@ -985,7 +986,7 @@ const s = StyleSheet.create({
   cardTitle: {
     fontSize:           13,
     lineHeight:         18,
-    color:              kit.color.inkSoft,
+    color:              theme.colors.text.secondary,
     letterSpacing:      0.5,
     textTransform:      "uppercase",
     textAlign:          TEXT_START,
@@ -997,15 +998,15 @@ const s = StyleSheet.create({
     flexDirection:     flexRow(IS_RTL),
     alignItems:        "center",
     gap:               6,
-    backgroundColor:   kit.color.accentTint,
-    borderRadius:      kit.radius.pill,
+    backgroundColor:   theme.colors.brand.primaryLight,
+    borderRadius:      9999,
     paddingHorizontal: 10,
     paddingVertical:   5,
   },
   etaText: {
     fontSize:           10,
     lineHeight:         14,
-    color:              kit.color.accentDeep,
+    color:              theme.colors.brand.primary,
     includeFontPadding: false,
   },
   trackingNoRow: {
@@ -1014,18 +1015,18 @@ const s = StyleSheet.create({
     justifyContent: "space-between",
     paddingTop:     14,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: kit.color.line,
+    borderTopColor: theme.colors.border.default,
   },
   trackingNoLabel: {
     fontSize:           11,
-    color:              kit.color.inkFaint,
+    color:              theme.colors.text.muted,
     letterSpacing:      0.3,
     textTransform:      "uppercase",
     includeFontPadding: false,
   },
   trackingNoValue: {
     fontSize:           13,
-    color:              kit.color.ink,
+    color:              theme.colors.text.primary,
     includeFontPadding: false,
   },
 
@@ -1047,23 +1048,23 @@ const s = StyleSheet.create({
     width:           52,
     height:          52,
     borderRadius:    17,
-    backgroundColor: kit.color.well,
+    backgroundColor: theme.colors.canvas.surfaceMuted,
     borderWidth:     1,
-    borderColor:     kit.color.line,
+    borderColor:     theme.colors.border.default,
     alignItems:      "center",
     justifyContent:  "center",
   },
   histEmptyTitle: {
     fontSize:           14,
     lineHeight:         20,
-    color:              kit.color.ink,
+    color:              theme.colors.text.primary,
     textAlign:          "center",
     includeFontPadding: false,
   },
   histEmptySub: {
     fontSize:           12,
     lineHeight:         18,
-    color:              kit.color.inkFaint,
+    color:              theme.colors.text.muted,
     textAlign:          "center",
     maxWidth:           280,
     includeFontPadding: false,
@@ -1071,14 +1072,14 @@ const s = StyleSheet.create({
 
   // ── Staff review banner ─────────────────────────────────────────────────
   reviewBanner: {
-    backgroundColor: kit.color.warnTint,
-    borderRadius:    kit.radius.lg,
+    backgroundColor: `${theme.colors.status.warning}1A`,
+    borderRadius:    12,
     borderWidth:     1,
     borderColor:     "rgba(245,158,11,0.32)",
     padding:         14,
   },
   reviewBannerDanger: {
-    backgroundColor: kit.color.dangerTint,
+    backgroundColor: `${theme.colors.status.error}1A`,
     borderColor:     "rgba(239,68,68,0.28)",
   },
   reviewBannerRow: {
@@ -1104,7 +1105,7 @@ const s = StyleSheet.create({
   reviewBannerTitle: {
     fontSize:           12,
     lineHeight:         17,
-    color:              kit.color.warn,
+    color:              theme.colors.status.warning,
     letterSpacing:      0.2,
     textAlign:          TEXT_START,
     includeFontPadding: false,
@@ -1112,15 +1113,15 @@ const s = StyleSheet.create({
   reviewBannerBody: {
     fontSize:           13,
     lineHeight:         20,
-    color:              kit.color.inkSoft,
+    color:              theme.colors.text.secondary,
     textAlign:          TEXT_START,
     includeFontPadding: false,
   },
 
   // ── Safety card ───────────────────────────────────────────────────────
   safetyCard: {
-    backgroundColor: kit.color.accentTint,
-    borderRadius:    kit.radius.lg,
+    backgroundColor: theme.colors.brand.primaryLight,
+    borderRadius:    12,
     borderWidth:     1,
     borderColor:     "rgba(14,126,116,0.18)",
     padding:         16,
@@ -1142,7 +1143,7 @@ const s = StyleSheet.create({
   safetyTitle: {
     fontSize:           12,
     lineHeight:         17,
-    color:              kit.color.accentDeep,
+    color:              theme.colors.brand.primary,
     letterSpacing:      0.5,
     textTransform:      "uppercase",
     includeFontPadding: false,
@@ -1150,7 +1151,7 @@ const s = StyleSheet.create({
   safetyBody: {
     fontSize:           13,
     lineHeight:         20,
-    color:              kit.color.inkSoft,
+    color:              theme.colors.text.secondary,
     textAlign:          TEXT_START,
     includeFontPadding: false,
   },
@@ -1163,9 +1164,9 @@ const s = StyleSheet.create({
     bottom:            0,
     paddingHorizontal: 20,
     paddingTop:        12,
-    backgroundColor:   kit.color.surface,
+    backgroundColor:   theme.colors.canvas.surface,
     borderTopWidth:    StyleSheet.hairlineWidth,
-    borderTopColor:    kit.color.line,
+    borderTopColor:    theme.colors.border.default,
   },
 
   // ── Not-found centered state ──────────────────────────────────────────
@@ -1180,9 +1181,9 @@ const s = StyleSheet.create({
     width:           84,
     height:          84,
     borderRadius:    28,
-    backgroundColor: kit.color.well,
+    backgroundColor: theme.colors.canvas.surfaceMuted,
     borderWidth:     1,
-    borderColor:     kit.color.line,
+    borderColor:     theme.colors.border.default,
     alignItems:      "center",
     justifyContent:  "center",
     marginBottom:    4,
@@ -1190,7 +1191,7 @@ const s = StyleSheet.create({
   notFoundTitle: {
     fontSize:           19,
     lineHeight:         26,
-    color:              kit.color.ink,
+    color:              theme.colors.text.primary,
     letterSpacing:      -0.3,
     textAlign:          "center",
     includeFontPadding: false,
@@ -1198,7 +1199,7 @@ const s = StyleSheet.create({
   notFoundBody: {
     fontSize:           14,
     lineHeight:         21,
-    color:              kit.color.inkSoft,
+    color:              theme.colors.text.secondary,
     textAlign:          "center",
     maxWidth:           320,
     includeFontPadding: false,
@@ -1262,7 +1263,7 @@ const tl = StyleSheet.create({
   },
   nodeCurrent: {
     borderWidth:     2,
-    backgroundColor: kit.color.accentTint,
+    backgroundColor: theme.colors.brand.primaryLight,
   },
   connector: {
     width:          2,
@@ -1309,7 +1310,7 @@ const f = StyleSheet.create({
     flex:               1,
     fontSize:           10,
     lineHeight:         14,
-    color:              kit.color.inkFaint,
+    color:              theme.colors.text.muted,
     letterSpacing:      0.4,
     textTransform:      "uppercase",
     textAlign:          TEXT_START,
@@ -1318,7 +1319,7 @@ const f = StyleSheet.create({
   value: {
     fontSize:           15,
     lineHeight:         20,
-    color:              kit.color.ink,
+    color:              theme.colors.text.primary,
     letterSpacing:      -0.2,
     textAlign:          TEXT_START,
     includeFontPadding: false,
@@ -1331,12 +1332,12 @@ const h = StyleSheet.create({
   row: {
     alignItems:        "center",
     gap:               12,
-    backgroundColor:   kit.color.well,
-    borderRadius:      kit.radius.lg,
+    backgroundColor:   theme.colors.canvas.surfaceMuted,
+    borderRadius:      12,
     paddingHorizontal: 12,
     paddingVertical:   12,
     borderWidth:       1,
-    borderColor:       kit.color.line,
+    borderColor:       theme.colors.border.default,
   },
   dot: {
     width:          34,
@@ -1359,14 +1360,14 @@ const h = StyleSheet.create({
   date: {
     fontSize:           11,
     lineHeight:         15,
-    color:              kit.color.inkFaint,
+    color:              theme.colors.text.muted,
     textAlign:          TEXT_START,
     includeFontPadding: false,
   },
   rejectionReason: {
     fontSize:           11,
     lineHeight:         16,
-    color:              kit.color.danger,
+    color:              theme.colors.status.error,
     textAlign:          TEXT_START,
     marginTop:          2,
     includeFontPadding: false,
@@ -1374,7 +1375,7 @@ const h = StyleSheet.create({
   total: {
     fontSize:           14,
     lineHeight:         19,
-    color:              kit.color.ink,
+    color:              theme.colors.text.primary,
     includeFontPadding: false,
     flexShrink:         0,
   },

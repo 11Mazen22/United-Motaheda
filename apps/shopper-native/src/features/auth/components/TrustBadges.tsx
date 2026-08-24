@@ -8,8 +8,9 @@ import { StyleSheet, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { Text as UIText } from "@pharmacy/ui-native";
-import { kit } from "@pharmacy/ui-native";
-import { theme } from "@pharmacy/design-tokens";
+
+import { theme as legacyTheme } from "@pharmacy/design-tokens";
+import { defaultTheme as theme } from "@pharmacy/ui-native";
 import { flexRow, isRtl } from "@/utils/layout";
 
 const IS_RTL = isRtl();
@@ -32,7 +33,7 @@ export function TrustBadges() {
       {BADGES.map((b, i) => (
         <React.Fragment key={b.labelKey}>
           <View style={s.badge}>
-            <Ionicons name={b.icon} size={13} color={kit.color.success} />
+            <Ionicons name={b.icon} size={13} color={theme.colors.status.success} />
             <UIText style={s.label}>{t(b.labelKey)}</UIText>
           </View>
           {i < BADGES.length - 1 && <View style={s.dot} />}
@@ -56,16 +57,16 @@ const s = StyleSheet.create({
     gap:           4,
   },
   label: {
-    fontFamily:         theme.fonts.bold,
+    fontFamily:         legacyTheme.fonts.bold,
     fontSize:           11,
     lineHeight:         15,
-    color:              kit.color.inkFaint,
+    color:              theme.colors.text.muted,
     includeFontPadding: false,
   },
   dot: {
     width:           3,
     height:          3,
     borderRadius:    2,
-    backgroundColor: kit.color.line,
+    backgroundColor: theme.colors.border.default,
   },
 });

@@ -1,3 +1,4 @@
+import { defaultTheme as theme } from "@pharmacy/ui-native";
 /**
  * PrescriptionsList — the user's prescription roster.
  *
@@ -28,7 +29,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
-import { kit, Button, SegmentedToggle, type SegmentOption } from "@pharmacy/ui-native";
+import { Button, SegmentedToggle, type SegmentOption } from "@pharmacy/ui-native";
 import { Text } from "@pharmacy/ui-native";
 import { RxCard } from "@/shared/components/RxCard";
 import { useAuth } from "@/features/auth";
@@ -131,7 +132,7 @@ export function PrescriptionsList(): React.ReactElement {
             <View style={[s.disclosure, pressed && s.disclosurePressed]}>
               <View style={[s.disclosureRow, { flexDirection: flexRow(IS_RTL) }]}>
                 <View style={s.disclosureIcon}>
-                  <Ionicons name="time-outline" size={14} color={kit.color.inkFaint} />
+                  <Ionicons name="time-outline" size={14} color={theme.colors.text.muted} />
                 </View>
                 <Text weight="bold" style={s.disclosureText}>
                   {item.open
@@ -142,7 +143,7 @@ export function PrescriptionsList(): React.ReactElement {
                   <Ionicons
                     name={item.open ? "chevron-up" : FORWARD_CHEVRON}
                     size={14}
-                    color={kit.color.inkFaint}
+                    color={theme.colors.text.muted}
                   />
                 </View>
               </View>
@@ -179,7 +180,7 @@ export function PrescriptionsList(): React.ReactElement {
             style={s.backBtnTouchable}>
             {({ pressed }) => (
               <View style={[s.backBtn, pressed && s.backBtnPressed]}>
-                <Ionicons name={BACK_CHEVRON} size={20} color={kit.color.ink} />
+                <Ionicons name={BACK_CHEVRON} size={20} color={theme.colors.text.primary} />
               </View>
             )}
           </Pressable>
@@ -195,7 +196,7 @@ export function PrescriptionsList(): React.ReactElement {
           style={s.addPillTouchable}>
           {({ pressed }) => (
             <View style={[s.addPill, pressed && s.addPillPressed]}>
-              <Ionicons name="add" size={14} color={kit.color.accentDeep} style={IS_RTL ? { marginStart: 6 } : { marginEnd: 6 }} />
+              <Ionicons name="add" size={14} color={theme.colors.brand.primary} style={IS_RTL ? { marginStart: 6 } : { marginEnd: 6 }} />
               <Text weight="black" style={s.addPillText}>
                 {t("prescriptions.addShort")}
               </Text>
@@ -206,7 +207,7 @@ export function PrescriptionsList(): React.ReactElement {
 
       <View style={s.identityRow}>
         <View style={s.heroTile}>
-          <Ionicons name="medkit" size={24} color={kit.color.accentDeep} />
+          <Ionicons name="medkit" size={24} color={theme.colors.brand.primary} />
         </View>
         <View style={s.identityText}>
           <Text weight="bold" style={s.eyebrow}>
@@ -250,8 +251,8 @@ export function PrescriptionsList(): React.ReactElement {
         {header}
         <CenteredState
           icon="cloud-offline-outline"
-          tint={kit.color.danger}
-          tintBg={kit.color.dangerTint}
+          tint={theme.colors.status.error}
+          tintBg={`${theme.colors.status.error}1A`}
           title={t("prescriptions.errorTitle")}
           body={t("prescriptions.errorBody")}
           ctaLabel={t("common.retry")}
@@ -269,8 +270,8 @@ export function PrescriptionsList(): React.ReactElement {
         {header}
         <CenteredState
           icon="medkit-outline"
-          tint={kit.color.accentDeep}
-          tintBg={kit.color.accentTint}
+          tint={theme.colors.brand.primary}
+          tintBg={theme.colors.brand.primaryLight}
           title={t("prescriptions.emptyTitle")}
           body={t("prescriptions.emptyBody")}
           ctaLabel={t("prescriptions.addTitle")}
@@ -290,24 +291,24 @@ export function PrescriptionsList(): React.ReactElement {
       <View style={[s.statsBand, { flexDirection: flexRow(IS_RTL) }]}>
         <StatCell
           icon="alert-circle-outline"
-          tint={kit.color.warn}
-          tintBg={kit.color.warnTint}
+          tint={theme.colors.status.warning}
+          tintBg={`${theme.colors.status.warning}1A`}
           value={expiringCount}
           label={t("prescriptions.statExpiring")}
           divider
         />
         <StatCell
           icon="checkmark-circle-outline"
-          tint={kit.color.success}
-          tintBg={kit.color.successTint}
+          tint={theme.colors.status.success}
+          tintBg={`${theme.colors.status.success}1A`}
           value={readyCount}
           label={t("prescriptions.statReady")}
           divider
         />
         <StatCell
           icon="medkit-outline"
-          tint={kit.color.accentDeep}
-          tintBg={kit.color.accentTint}
+          tint={theme.colors.brand.primary}
+          tintBg={theme.colors.brand.primaryLight}
           value={totalActive}
           label={t("prescriptions.statTotal")}
         />
@@ -333,7 +334,7 @@ export function PrescriptionsList(): React.ReactElement {
         ListEmptyComponent={
           <View style={s.filterEmpty}>
             <View style={s.filterEmptyIcon}>
-              <Ionicons name="funnel-outline" size={22} color={kit.color.inkFaint} />
+              <Ionicons name="funnel-outline" size={22} color={theme.colors.text.muted} />
             </View>
             <Text weight="bold" style={s.filterEmptyText}>
               {t("prescriptions.filterEmpty")}
@@ -349,8 +350,8 @@ export function PrescriptionsList(): React.ReactElement {
           <RefreshControl
             refreshing={isRefetching}
             onRefresh={refetch}
-            tintColor={kit.color.accent}
-            colors={[kit.color.accent]}
+            tintColor={theme.colors.brand.primary}
+            colors={[theme.colors.brand.primary]}
           />
         }
         showsVerticalScrollIndicator={false}
@@ -432,7 +433,7 @@ function CenteredState({
 const s = StyleSheet.create({
   screen: {
     flex:            1,
-    backgroundColor: kit.color.canvas,
+    backgroundColor: theme.colors.canvas.background,
   },
 
   // ── Header ──────────────────────────────────────────────────────────────────
@@ -440,10 +441,10 @@ const s = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom:     20,
     gap:               18,
-    backgroundColor:   kit.color.surface,
+    backgroundColor:   theme.colors.canvas.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: kit.color.line,
-    ...kit.shadow.raised,
+    borderBottomColor: theme.colors.border.default,
+    ...theme.shadows[1],
   },
   navRow: {
     flexDirection:  flexRow(IS_RTL),
@@ -462,9 +463,9 @@ const s = StyleSheet.create({
     width:           38,
     height:          38,
     borderRadius:    14,
-    backgroundColor: kit.color.well,
+    backgroundColor: theme.colors.canvas.surfaceMuted,
     borderWidth:     1,
-    borderColor:     kit.color.line,
+    borderColor:     theme.colors.border.default,
     alignItems:      "center",
     justifyContent:  "center",
   },
@@ -473,13 +474,13 @@ const s = StyleSheet.create({
     transform: [{ scale: 0.96 }],
   },
   addPillTouchable: {
-    borderRadius: kit.radius.pill,
+    borderRadius: 9999,
   },
   addPill: {
     flexDirection:     flexRow(IS_RTL),
     alignItems:        "center",
-    backgroundColor:   kit.color.accentTint,
-    borderRadius:      kit.radius.pill,
+    backgroundColor:   theme.colors.brand.primaryLight,
+    borderRadius:      9999,
     paddingHorizontal: 14,
     paddingVertical:   9,
     borderWidth:       1,
@@ -492,7 +493,7 @@ const s = StyleSheet.create({
   addPillText: {
     fontSize:           12,
     lineHeight:         16,
-    color:              kit.color.accentDeep,
+    color:              theme.colors.brand.primary,
     includeFontPadding: false,
   },
   identityRow: {
@@ -504,9 +505,9 @@ const s = StyleSheet.create({
     width:           56,
     height:          56,
     borderRadius:    18,
-    backgroundColor: kit.color.accentTint,
+    backgroundColor: theme.colors.brand.primaryLight,
     borderWidth:     1,
-    borderColor:     kit.color.line,
+    borderColor:     theme.colors.border.default,
     alignItems:      "center",
     justifyContent:  "center",
     flexShrink:      0,
@@ -518,7 +519,7 @@ const s = StyleSheet.create({
   eyebrow: {
     fontSize:           10,
     lineHeight:         14,
-    color:              kit.color.accentDeep,
+    color:              theme.colors.brand.primary,
     letterSpacing:      0.6,
     textTransform:      "uppercase",
     textAlign:          TEXT_START,
@@ -527,7 +528,7 @@ const s = StyleSheet.create({
   title: {
     fontSize:           28,
     lineHeight:         34,
-    color:              kit.color.ink,
+    color:              theme.colors.text.primary,
     letterSpacing:      -0.6,
     textAlign:          TEXT_START,
     includeFontPadding: false,
@@ -535,9 +536,9 @@ const s = StyleSheet.create({
 
   // ── Stats band ──────────────────────────────────────────────────────────────
   statsBand: {
-    backgroundColor:   kit.color.surface,
+    backgroundColor:   theme.colors.canvas.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: kit.color.line,
+    borderBottomColor: theme.colors.border.default,
   },
   statCell: {
     flex:            1,
@@ -549,7 +550,7 @@ const s = StyleSheet.create({
   },
   statCellDivider: {
     borderEndWidth: StyleSheet.hairlineWidth,
-    borderEndColor: kit.color.line,
+    borderEndColor: theme.colors.border.default,
   },
   statIconWell: {
     width:          34,
@@ -561,14 +562,14 @@ const s = StyleSheet.create({
   statValue: {
     fontSize:           22,
     lineHeight:         28,
-    color:              kit.color.ink,
+    color:              theme.colors.text.primary,
     letterSpacing:      -0.4,
     includeFontPadding: false,
   },
   statLabel: {
     fontSize:           9,
     lineHeight:         13,
-    color:              kit.color.inkFaint,
+    color:              theme.colors.text.muted,
     letterSpacing:      0.4,
     textTransform:      "uppercase",
     textAlign:          "center",
@@ -580,7 +581,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop:        14,
     paddingBottom:     2,
-    backgroundColor:   kit.color.canvas,
+    backgroundColor:   theme.colors.canvas.background,
   },
   filterEmpty: {
     alignItems:      "center",
@@ -591,33 +592,33 @@ const s = StyleSheet.create({
     width:           56,
     height:          56,
     borderRadius:    18,
-    backgroundColor: kit.color.well,
+    backgroundColor: theme.colors.canvas.surfaceMuted,
     borderWidth:     1,
-    borderColor:     kit.color.line,
+    borderColor:     theme.colors.border.default,
     alignItems:      "center",
     justifyContent:  "center",
   },
   filterEmptyText: {
     fontSize:           13,
     lineHeight:         19,
-    color:              kit.color.inkFaint,
+    color:              theme.colors.text.muted,
     textAlign:          "center",
     includeFontPadding: false,
   },
 
   // ── Disclosure row ──────────────────────────────────────────────────────────
   disclosureTouchable: {
-    borderRadius: kit.radius.lg,
+    borderRadius: 12,
   },
   disclosure: {
-    backgroundColor:   kit.color.surface,
-    borderRadius:      kit.radius.lg,
+    backgroundColor:   theme.colors.canvas.surface,
+    borderRadius:      12,
     borderWidth:       1,
-    borderColor:       kit.color.line,
+    borderColor:       theme.colors.border.default,
     overflow:          "hidden",
   },
   disclosurePressed: {
-    backgroundColor: kit.color.well,
+    backgroundColor: theme.colors.canvas.surfaceMuted,
   },
   disclosureRow: {
     alignItems:        "center",
@@ -629,7 +630,7 @@ const s = StyleSheet.create({
     width:           32,
     height:          32,
     borderRadius:    10,
-    backgroundColor: kit.color.well,
+    backgroundColor: theme.colors.canvas.surfaceMuted,
     alignItems:      "center",
     justifyContent:  "center",
     flexShrink:      0,
@@ -638,7 +639,7 @@ const s = StyleSheet.create({
     flex:               1,
     fontSize:           12,
     lineHeight:         18,
-    color:              kit.color.inkSoft,
+    color:              theme.colors.text.secondary,
     textAlign:          TEXT_START,
     includeFontPadding: false,
   },
@@ -670,7 +671,7 @@ const s = StyleSheet.create({
   emptyTitle: {
     fontSize:           19,
     lineHeight:         26,
-    color:              kit.color.ink,
+    color:              theme.colors.text.primary,
     textAlign:          "center",
     letterSpacing:      -0.3,
     includeFontPadding: false,
@@ -678,7 +679,7 @@ const s = StyleSheet.create({
   emptyBody: {
     fontSize:           14,
     lineHeight:         22,
-    color:              kit.color.inkSoft,
+    color:              theme.colors.text.secondary,
     textAlign:          "center",
     maxWidth:           320,
     includeFontPadding: false,
@@ -695,16 +696,16 @@ const s = StyleSheet.create({
 
   // ── Skeleton ────────────────────────────────────────────────────────────────
   skeletonCard: {
-    backgroundColor: kit.color.surface,
-    borderRadius:    kit.radius.lg,
+    backgroundColor: theme.colors.canvas.surface,
+    borderRadius:    12,
     borderWidth:     1,
-    borderColor:     kit.color.line,
+    borderColor:     theme.colors.border.default,
     overflow:        "hidden",
-    ...kit.shadow.raised,
+    ...theme.shadows[1],
   },
   skeletonStripe: {
     height:          4,
-    backgroundColor: kit.color.well,
+    backgroundColor: theme.colors.canvas.surfaceMuted,
   },
   skeletonBody: {
     padding:    16,
@@ -714,14 +715,14 @@ const s = StyleSheet.create({
   skeletonTile: {
     width:           44,
     height:          44,
-    borderRadius:    kit.radius.control,
-    backgroundColor: kit.color.well,
+    borderRadius:    10,
+    backgroundColor: theme.colors.canvas.surfaceMuted,
     flexShrink:      0,
   },
   skeletonLine: {
     height:          12,
     borderRadius:    6,
-    backgroundColor: kit.color.well,
+    backgroundColor: theme.colors.canvas.surfaceMuted,
   },
 
   // ── Sticky CTA ──────────────────────────────────────────────────────────────
@@ -732,8 +733,8 @@ const s = StyleSheet.create({
     bottom:            0,
     paddingHorizontal: 20,
     paddingTop:        12,
-    backgroundColor:   kit.color.surface,
+    backgroundColor:   theme.colors.canvas.surface,
     borderTopWidth:    StyleSheet.hairlineWidth,
-    borderTopColor:    kit.color.line,
+    borderTopColor:    theme.colors.border.default,
   },
 });

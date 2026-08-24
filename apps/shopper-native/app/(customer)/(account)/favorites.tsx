@@ -10,7 +10,6 @@ import { Image } from "expo-image";
 
 import { Ionicons } from "@expo/vector-icons";
 
-import { kit } from "@pharmacy/ui-native";
 
 import { useRouter } from "expo-router";
 
@@ -32,9 +31,10 @@ import { EmptyState } from "@/components/ui/EmptyState";
 
 import { Text as UIText } from "@pharmacy/ui-native";
 
-import { useDarkColors } from "@/hooks/useDarkColors";
+import { useTheme } from "@pharmacy/ui-native";
 
-import { theme } from "@pharmacy/design-tokens";
+import { theme as legacyTheme } from "@pharmacy/design-tokens";
+import { defaultTheme as theme } from "@pharmacy/ui-native";
 
 import { formatPrice } from "@/utils/format";
 
@@ -48,25 +48,25 @@ const RTL = isRtl(), TA = textAlignStart(RTL);
 
 const Skeleton = memo(function Skeleton() {
 
-  const { c } = useDarkColors();
+  const { theme } = useTheme();
 
   return (
 
-    <View style={[s.card, { flexDirection: flexRow(RTL), backgroundColor: c.surface, borderColor: c.line }]}>
+    <View style={[s.card, { flexDirection: flexRow(RTL), backgroundColor: theme.colors.canvas.surface, borderColor: theme.colors.border.default }]}>
 
-      <View style={[s.img, { backgroundColor: c.canvas }]} />
+      <View style={[s.img, { backgroundColor: theme.colors.canvas.background }]} />
 
       <View style={{ flex: 1, gap: 8 }}>
 
-        <View style={{ width: "40%", height: 9, backgroundColor: c.line, borderRadius: 6 }} />
+        <View style={{ width: "40%", height: 9, backgroundColor: theme.colors.border.default, borderRadius: 6 }} />
 
-        <View style={{ width: "85%", height: 13, backgroundColor: c.line, borderRadius: 6 }} />
+        <View style={{ width: "85%", height: 13, backgroundColor: theme.colors.border.default, borderRadius: 6 }} />
 
-        <View style={{ width: "35%", height: 15, backgroundColor: c.line, borderRadius: 6, marginTop: 4 }} />
+        <View style={{ width: "35%", height: 15, backgroundColor: theme.colors.border.default, borderRadius: 6, marginTop: 4 }} />
 
       </View>
 
-      <View style={s.acts}><View style={{ width: 40, height: 40, borderRadius: 13, backgroundColor: c.canvas }} /></View>
+      <View style={s.acts}><View style={{ width: 40, height: 40, borderRadius: 13, backgroundColor: theme.colors.canvas.background }} /></View>
 
     </View>
 
@@ -78,7 +78,7 @@ const Skeleton = memo(function Skeleton() {
 
 const Card = memo(function Card({ product, index }: { product: NativeProduct; index: number }) {
 
-  const { c } = useDarkColors();
+  const { theme } = useTheme();
 
   const router = useRouter(), { t } = useTranslation();
 
@@ -110,7 +110,7 @@ const Card = memo(function Card({ product, index }: { product: NativeProduct; in
 
           {product.imageUrl ? <Image source={{ uri: product.imageUrl }} style={{ width: "100%", height: "100%" }} contentFit="contain" transition={180} />
 
-            : <><View style={[StyleSheet.absoluteFill, { backgroundColor: c.accentTint }]} /><Ionicons name="medkit-outline" size={28} color={c.lineStrong} /></>}
+            : <><View style={[StyleSheet.absoluteFill, { backgroundColor: theme.colors.brand.primaryLight }]} /><Ionicons name="medkit-outline" size={28} color={theme.colors.border.strong} /></>}
 
           {!product.inStock && <View style={s.oos}><UIText variant="eyebrow" color="inverse">{t("common.outOfStock")}</UIText></View>}
 
@@ -142,7 +142,7 @@ const Card = memo(function Card({ product, index }: { product: NativeProduct; in
 
         accessibilityState={{ disabled: !product.inStock }} style={[s.cartBtn, inCart && s.cartOn, !product.inStock && s.cartOff]}>
 
-        <Ionicons name={inCart ? "checkmark" : "cart-outline"} size={16} color={inCart ? "#fff" : product.inStock ? c.accentDeep : c.inkFaint} />
+        <Ionicons name={inCart ? "checkmark" : "cart-outline"} size={16} color={inCart ? "#fff" : product.inStock ? theme.colors.brand.primary : theme.colors.text.muted} />
 
       </Pressable>
 
@@ -156,7 +156,7 @@ const Card = memo(function Card({ product, index }: { product: NativeProduct; in
 
 export default function FavoritesScreen() {
 
-  const { c } = useDarkColors();
+  const { theme } = useTheme();
 
   const { t } = useTranslation(), router = useRouter(), insets = useSafeAreaInsets();
 
@@ -196,7 +196,7 @@ export default function FavoritesScreen() {
 
           <Pressable onPress={() => router.back()} style={s.back} hitSlop={10} accessibilityRole="button" accessibilityLabel={t("common.back")}>
 
-            <Ionicons name={BACK_CHEVRON} size={18} color={c.inkSoft} />
+            <Ionicons name={BACK_CHEVRON} size={18} color={theme.colors.text.secondary} />
 
           </Pressable>
 
@@ -260,52 +260,52 @@ export default function FavoritesScreen() {
 
 const s = StyleSheet.create({
 
-  screen: { flex: 1, backgroundColor: kit.color.canvas },
+  screen: { flex: 1, backgroundColor: theme.colors.canvas.background },
 
   wrap: { paddingBottom: 12 },
 
-  header: { paddingHorizontal: 20, paddingBottom: 16, backgroundColor: kit.color.surface, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: kit.color.line, ...kit.shadow.raised },
+  header: { paddingHorizontal: 20, paddingBottom: 16, backgroundColor: theme.colors.canvas.surface, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border.default, ...theme.shadows[1] },
 
   hRow: { alignItems: "center", gap: 12 },
 
-  back: { width: 40, height: 40, borderRadius: 20, backgroundColor: kit.color.surface, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: kit.color.line, ...kit.shadow.raised, flexShrink: 0 },
+  back: { width: 40, height: 40, borderRadius: 20, backgroundColor: theme.colors.canvas.surface, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: theme.colors.border.default, ...theme.shadows[1], flexShrink: 0 },
 
   tile: { width: 52, height: 52, borderRadius: 16, backgroundColor: "rgba(229,62,62,0.08)", borderWidth: 1, borderColor: "rgba(229,62,62,0.16)", alignItems: "center", justifyContent: "center", flexShrink: 0 },
 
-  hTitle: { fontFamily: theme.fonts.black, fontSize: 18, letterSpacing: -0.4, color: kit.color.ink, includeFontPadding: false, textAlign: TA },
+  hTitle: { fontFamily: legacyTheme.fonts.black, fontSize: 18, letterSpacing: -0.4, color: theme.colors.text.primary, includeFontPadding: false, textAlign: TA },
 
-  hSub: { fontFamily: theme.fonts.semibold, fontSize: 11, color: kit.color.inkFaint, includeFontPadding: false, textAlign: TA, marginTop: 1 },
+  hSub: { fontFamily: legacyTheme.fonts.semibold, fontSize: 11, color: theme.colors.text.muted, includeFontPadding: false, textAlign: TA, marginTop: 1 },
 
   clr: { width: 40, height: 40, borderRadius: 13, backgroundColor: "rgba(229,62,62,0.08)", borderWidth: 1, borderColor: "rgba(229,62,62,0.16)", alignItems: "center", justifyContent: "center", flexShrink: 0 },
 
-  chipRow: { gap: 8, paddingHorizontal: 20, paddingVertical: 10, backgroundColor: kit.color.surface, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: kit.color.line },
+  chipRow: { gap: 8, paddingHorizontal: 20, paddingVertical: 10, backgroundColor: theme.colors.canvas.surface, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border.default },
 
   chip: { alignItems: "center", gap: 5, backgroundColor: "rgba(229,62,62,0.08)", paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, borderWidth: 1, borderColor: "rgba(229,62,62,0.16)" },
 
-  chipT: { fontSize: 10, fontFamily: theme.fonts.bold, color: "#E53E3E", includeFontPadding: false },
+  chipT: { fontSize: 10, fontFamily: legacyTheme.fonts.bold, color: "#E53E3E", includeFontPadding: false },
 
   listHdr: { marginBottom: 12 },
 
-  listHdrT: { fontFamily: theme.fonts.semibold, fontSize: 11, color: kit.color.inkFaint, letterSpacing: 0.3, textTransform: "uppercase", textAlign: TA, includeFontPadding: false },
+  listHdrT: { fontFamily: legacyTheme.fonts.semibold, fontSize: 11, color: theme.colors.text.muted, letterSpacing: 0.3, textTransform: "uppercase", textAlign: TA, includeFontPadding: false },
 
 
 
-  card: { alignItems: "center", gap: 14, backgroundColor: kit.color.surface, borderRadius: 16, padding: 14, marginHorizontal: 20, marginBottom: 12, borderWidth: 1, borderColor: kit.color.line, ...kit.shadow.raised },
+  card: { alignItems: "center", gap: 14, backgroundColor: theme.colors.canvas.surface, borderRadius: 16, padding: 14, marginHorizontal: 20, marginBottom: 12, borderWidth: 1, borderColor: theme.colors.border.default, ...theme.shadows[1] },
 
-  img: { width: 82, height: 82, borderRadius: 14, backgroundColor: kit.color.well, alignItems: "center", justifyContent: "center", overflow: "hidden", flexShrink: 0 },
+  img: { width: 82, height: 82, borderRadius: 14, backgroundColor: theme.colors.canvas.surfaceMuted, alignItems: "center", justifyContent: "center", overflow: "hidden", flexShrink: 0 },
 
   oos: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.50)", alignItems: "center", justifyContent: "center" },
 
   name: { lineHeight: 20 },
 
-  price: { fontSize: 15, fontFamily: theme.fonts.black, color: kit.color.accentDeep, letterSpacing: -0.3, marginTop: 2, includeFontPadding: false },
+  price: { fontSize: 15, fontFamily: legacyTheme.fonts.black, color: theme.colors.brand.primary, letterSpacing: -0.3, marginTop: 2, includeFontPadding: false },
 
   acts: { alignItems: "center", gap: 10 },
 
-  cartBtn: { width: 40, height: 40, borderRadius: 13, backgroundColor: kit.color.accentTint, borderWidth: 1, borderColor: kit.color.line, alignItems: "center", justifyContent: "center", ...kit.shadow.raised },
+  cartBtn: { width: 40, height: 40, borderRadius: 13, backgroundColor: theme.colors.brand.primaryLight, borderWidth: 1, borderColor: theme.colors.border.default, alignItems: "center", justifyContent: "center", ...theme.shadows[1] },
 
-  cartOn: { backgroundColor: kit.color.accentDeep, borderColor: kit.color.accentDeep },
+  cartOn: { backgroundColor: theme.colors.brand.primary, borderColor: theme.colors.brand.primary },
 
-  cartOff: { backgroundColor: kit.color.well, borderColor: kit.color.line },
+  cartOff: { backgroundColor: theme.colors.canvas.surfaceMuted, borderColor: theme.colors.border.default },
 
 });

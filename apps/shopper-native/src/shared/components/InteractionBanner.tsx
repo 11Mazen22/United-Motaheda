@@ -24,7 +24,6 @@
 
 
 
-import { kit } from "@pharmacy/ui-native";
 
 import React from "react";
 
@@ -34,7 +33,8 @@ import { Ionicons } from "@expo/vector-icons";
 
 import { useTranslation } from "react-i18next";
 
-import { theme } from "@pharmacy/design-tokens";
+import { theme as legacyTheme } from "@pharmacy/design-tokens";
+import { defaultTheme as theme } from "@pharmacy/ui-native";
 
 import { Card, Text } from "@pharmacy/ui-native";
 
@@ -106,49 +106,49 @@ const SEVERITY_CONFIG: Record<InteractionSeverity, {
 
   mild: {
 
-    bannerBg: kit.color.warnTint,
+    bannerBg: `${theme.colors.status.warning}1A`,
 
-    bannerFg: kit.color.warn,
+    bannerFg: theme.colors.status.warning,
 
-    pinBg:    kit.color.warn,
+    pinBg:    theme.colors.status.warning,
 
     badge:    "neutral",
 
     labelKey: "interaction.severity.mild",
 
-    accent:   kit.color.warn,
+    accent:   theme.colors.status.warning,
 
   },
 
   moderate: {
 
-    bannerBg: kit.color.warnTint,
+    bannerBg: `${theme.colors.status.warning}1A`,
 
-    bannerFg: kit.color.warn,
+    bannerFg: theme.colors.status.warning,
 
-    pinBg:    kit.color.warn,
+    pinBg:    theme.colors.status.warning,
 
     badge:    "warning",
 
     labelKey: "interaction.severity.moderate",
 
-    accent:   kit.color.warn,
+    accent:   theme.colors.status.warning,
 
   },
 
   severe: {
 
-    bannerBg: kit.color.dangerTint,
+    bannerBg: `${theme.colors.status.error}1A`,
 
-    bannerFg: kit.color.danger,
+    bannerFg: theme.colors.status.error,
 
-    pinBg:    kit.color.danger,
+    pinBg:    theme.colors.status.error,
 
     badge:    "error",
 
     labelKey: "interaction.severity.severe",
 
-    accent:   kit.color.danger,
+    accent:   theme.colors.status.error,
 
   },
 
@@ -166,9 +166,9 @@ function DrugPip({ drug }: { drug: DrugRef }): React.ReactElement {
 
       <View style={{
 
-        width: 48, height: 48, borderRadius: theme.radius.lg,
+        width: 48, height: 48, borderRadius: legacyTheme.radius.lg,
 
-        backgroundColor: kit.color.accentTint,
+        backgroundColor: theme.colors.brand.primaryLight,
 
         alignItems: "center", justifyContent: "center",
 
@@ -176,7 +176,7 @@ function DrugPip({ drug }: { drug: DrugRef }): React.ReactElement {
 
       }}>
 
-        <Ionicons name="medkit" size={22} color={kit.color.accent} />
+        <Ionicons name="medkit" size={22} color={theme.colors.brand.primary} />
 
       </View>
 
@@ -234,7 +234,7 @@ export function InteractionBanner({
 
   return (
 
-    <Card padding={0} radius={theme.layout.cardRadius} style={{ overflow: "hidden" }}>
+    <Card padding={0} radius={legacyTheme.layout.cardRadius} style={{ overflow: "hidden" }}>
 
       {/* Banner strip */}
 
@@ -248,7 +248,7 @@ export function InteractionBanner({
 
         paddingHorizontal: theme.spacing[2],
 
-        paddingVertical:   theme.spacing[1.5],
+        paddingVertical:   6,
 
         backgroundColor:   cfg.bannerBg,
 
@@ -256,7 +256,7 @@ export function InteractionBanner({
 
         <View style={{
 
-          width: 36, height: 36, borderRadius: theme.radius.md,
+          width: 36, height: 36, borderRadius: legacyTheme.radius.md,
 
           backgroundColor: cfg.pinBg,
 
@@ -300,7 +300,7 @@ export function InteractionBanner({
 
           alignItems:     "center",
 
-          gap:            theme.spacing[1.5],
+          gap:            6,
 
           marginBottom:   theme.spacing[2],
 
@@ -332,7 +332,7 @@ export function InteractionBanner({
 
         {watchFor && watchFor.length > 0 && (
 
-          <View style={{ marginTop: theme.spacing[1.5], gap: theme.spacing[1] }}>
+          <View style={{ marginTop: 6, gap: theme.spacing[1] }}>
 
             <Text variant="eyebrow" color="tertiary" align="right">
 

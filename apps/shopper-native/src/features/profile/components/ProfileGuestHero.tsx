@@ -48,7 +48,7 @@ import React, { memo } from "react";
 
 import { StyleSheet, View } from "react-native";
 
-import { kit } from "@pharmacy/ui-native";
+
 
 import { Ionicons } from "@expo/vector-icons";
 
@@ -64,7 +64,8 @@ import { AppLogo } from "@/shared/components/AppLogo";
 
 import { PressableScale } from "@/shared/motion";
 
-import { theme } from "@pharmacy/design-tokens";
+import { theme as legacyTheme } from "@pharmacy/design-tokens";
+import { defaultTheme as theme } from "@pharmacy/ui-native";
 
 import { HERO_GLASS } from "./profile.styles";
 
@@ -94,9 +95,9 @@ interface ProfileGuestHeroProps {
 
 const BENEFITS: { icon: IoniconsName; labelKey: string; tint: string; bg: string }[] = [
 
-  { icon: "bag-check-outline", labelKey: "profile.featureOrders",   tint: kit.color.success,   bg: "rgba(13,184,168,0.16)" },
+  { icon: "bag-check-outline", labelKey: "profile.featureOrders",   tint: theme.colors.status.success,   bg: "rgba(13,184,168,0.16)" },
 
-  { icon: "heart-outline",     labelKey: "profile.featureWishlist", tint: kit.color.danger,   bg: "rgba(244,63,94,0.16)"  },
+  { icon: "heart-outline",     labelKey: "profile.featureWishlist", tint: theme.colors.status.error,   bg: "rgba(244,63,94,0.16)"  },
 
 ];
 
@@ -120,7 +121,7 @@ export const ProfileGuestHero = memo(function ProfileGuestHero({ insetsTop }: Pr
 
   return (
 
-    <View style={[s.hero, { backgroundColor: kit.color.ink, paddingTop: insetsTop + 28 }]}>
+    <View style={[s.hero, { backgroundColor: theme.colors.text.primary, paddingTop: insetsTop + 28 }]}>
 
 
 
@@ -186,9 +187,9 @@ export const ProfileGuestHero = memo(function ProfileGuestHero({ insetsTop }: Pr
 
           accessibilityLabel={t("auth.createAccount")}>
 
-          <View style={[s.primaryGrad, { backgroundColor: kit.color.accent }]}>
+          <View style={[s.primaryGrad, { backgroundColor: theme.colors.brand.primary }]}>
 
-            <Ionicons name="person-add-outline" size={18} color={kit.color.onInk} />
+            <Ionicons name="person-add-outline" size={18} color={theme.colors.text.inverse} />
 
             <UIText weight="black" style={s.primaryText}>
 
@@ -278,7 +279,7 @@ const s = StyleSheet.create({
 
   hero: {
 
-    paddingHorizontal: theme.layout.pagePaddingH,
+    paddingHorizontal: legacyTheme.layout.pagePaddingH,
 
     paddingBottom:     30,
 
@@ -430,7 +431,7 @@ const s = StyleSheet.create({
 
     overflow:     "hidden",
 
-    shadowColor:  kit.color.accent,
+    shadowColor:  theme.colors.brand.primary,
 
     shadowOffset: { width: 0, height: 8 },
 
@@ -462,7 +463,7 @@ const s = StyleSheet.create({
 
   primaryText: {
 
-    color:              kit.color.surface,
+    color:              theme.colors.canvas.surface,
 
     fontSize:           15,
 

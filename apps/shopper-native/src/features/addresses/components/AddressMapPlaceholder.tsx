@@ -57,7 +57,8 @@ import { useTranslation } from "react-i18next";
 
 import { geocodeAddress } from "@/lib/geocoding";
 
-import { theme } from "@pharmacy/design-tokens";
+import { theme as legacyTheme } from "@pharmacy/design-tokens";
+import { defaultTheme as theme } from "@pharmacy/ui-native";
 
 import { kit } from "@pharmacy/ui-native";
 
@@ -217,7 +218,7 @@ function MapPlaceholder({ height }: { height: number }) {
 
         <View style={styles.pinCircle}>
 
-          <Ionicons name="location" size={22} color={kit.color.accentDeep} />
+          <Ionicons name="location" size={22} color={theme.colors.brand.primary} />
 
         </View>
 
@@ -231,7 +232,7 @@ function MapPlaceholder({ height }: { height: number }) {
 
       <View style={styles.placeholderLabel}>
 
-        <Ionicons name="navigate-circle-outline" size={14} color={kit.color.accentDeep} />
+        <Ionicons name="navigate-circle-outline" size={14} color={theme.colors.brand.primary} />
 
         <UIText style={styles.placeholderText}>
 
@@ -345,7 +346,7 @@ export function AddressMapPlaceholder({
 
         <View style={[styles.loadingBox, { height }]}>
 
-          <ActivityIndicator color={kit.color.accentDeep} />
+          <ActivityIndicator color={theme.colors.brand.primary} />
 
           <UIText style={styles.loadingText}>{t("addressForm.locating")}</UIText>
 
@@ -403,7 +404,7 @@ export function AddressMapPlaceholder({
 
         <View style={styles.coordBadge}>
 
-          <Ionicons name="navigate" size={10} color={kit.color.accentDeep} />
+          <Ionicons name="navigate" size={10} color={theme.colors.brand.primary} />
 
           <UIText style={styles.coordText}>
 
@@ -437,7 +438,7 @@ export function AddressMapPlaceholder({
 
           <View style={[styles.openMapsBtn, pressed && styles.openMapsBtnPressed]}>
 
-            <Ionicons name="map-outline" size={13} color={kit.color.accentDeep} />
+            <Ionicons name="map-outline" size={13} color={theme.colors.brand.primary} />
 
             <UIText style={styles.openMapsText}>{t("addressForm.openInMaps")}</UIText>
 
@@ -477,7 +478,7 @@ const styles = StyleSheet.create({
 
   container: {
 
-    borderRadius: kit.radius.lg,
+    borderRadius: 12,
 
     overflow: "hidden",
 
@@ -493,7 +494,7 @@ const styles = StyleSheet.create({
 
   loadingBox: {
 
-    borderRadius:   kit.radius.lg,
+    borderRadius:   12,
 
     backgroundColor: kit.color.slate[50],
 
@@ -513,7 +514,7 @@ const styles = StyleSheet.create({
 
     fontSize:   12,
 
-    fontFamily: theme.fonts.semibold,
+    fontFamily: legacyTheme.fonts.semibold,
 
     color:      kit.color.text.tertiary,
 
@@ -523,7 +524,7 @@ const styles = StyleSheet.create({
 
   placeholder: {
 
-    borderRadius:   kit.radius.lg,
+    borderRadius:   12,
 
     overflow:       "hidden",
 
@@ -611,7 +612,7 @@ const styles = StyleSheet.create({
 
     justifyContent:  "center",
 
-    shadowColor:     kit.color.accentDeep,
+    shadowColor:     theme.colors.brand.primary,
 
     shadowOffset:    { width: 0, height: 4 },
 
@@ -671,7 +672,7 @@ const styles = StyleSheet.create({
 
     fontSize:   11,
 
-    fontFamily: theme.fonts.semibold,
+    fontFamily: legacyTheme.fonts.semibold,
 
     color:      kit.color.text.secondary,
 
@@ -713,7 +714,7 @@ const styles = StyleSheet.create({
 
     fontSize:   9,
 
-    fontFamily: theme.fonts.semibold,
+    fontFamily: legacyTheme.fonts.semibold,
 
     color:      kit.color.slate[500],
 
@@ -771,7 +772,7 @@ const styles = StyleSheet.create({
 
   openMapsBtnPressed: {
 
-    backgroundColor: kit.color.accentTint,
+    backgroundColor: theme.colors.brand.primaryLight,
 
   },
 
@@ -779,9 +780,9 @@ const styles = StyleSheet.create({
 
     fontSize:   11,
 
-    fontFamily: theme.fonts.bold,
+    fontFamily: legacyTheme.fonts.bold,
 
-    color:      kit.color.accentDeep,
+    color:      theme.colors.brand.primary,
 
   },
 
@@ -817,7 +818,7 @@ const styles = StyleSheet.create({
 
     fontSize:   10,
 
-    fontFamily: theme.fonts.bold,
+    fontFamily: legacyTheme.fonts.bold,
 
     color:      "#059669",
 

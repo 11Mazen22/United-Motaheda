@@ -4,8 +4,9 @@ import Animated, { FadeIn, FadeInDown, FadeInUp } from "react-native-reanimated"
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { Text as UIText } from "@pharmacy/ui-native";
-import { kit, Button } from "@pharmacy/ui-native";
-import { theme } from "@pharmacy/design-tokens";
+import { Button } from "@pharmacy/ui-native";
+import { theme as legacyTheme } from "@pharmacy/design-tokens";
+import { defaultTheme as theme } from "@pharmacy/ui-native";
 import { flexRow, isRtl } from "@/utils/layout";
 
 const IS_RTL = isRtl();
@@ -13,9 +14,9 @@ const IS_RTL = isRtl();
 type IoniconsName = React.ComponentProps<typeof Ionicons>["name"];
 
 const TRUST: Array<{ icon: IoniconsName; labelKey: string; color: string; tint: string }> = [
-  { icon: "flash-outline",            labelKey: "checkout.trust1", color: kit.color.success,    tint: kit.color.successTint },
-  { icon: "shield-checkmark-outline", labelKey: "checkout.trust2", color: kit.color.accentDeep, tint: kit.color.accentTint  },
-  { icon: "star-outline",             labelKey: "checkout.trust3", color: kit.color.warn,        tint: kit.color.warnTint    },
+  { icon: "flash-outline",            labelKey: "checkout.trust1", color: theme.colors.status.success,    tint: `${theme.colors.status.success}1A` },
+  { icon: "shield-checkmark-outline", labelKey: "checkout.trust2", color: theme.colors.brand.primary, tint: theme.colors.brand.primaryLight  },
+  { icon: "star-outline",             labelKey: "checkout.trust3", color: theme.colors.status.warning,        tint: `${theme.colors.status.warning}1A`    },
 ];
 
 interface EmptyCartScreenProps {
@@ -37,7 +38,7 @@ export const EmptyCartScreen = React.memo(function EmptyCartScreen({
         entering={FadeInDown.duration(460).springify().damping(16)}
         style={s.iconRing}>
         <View style={s.iconTile}>
-          <Ionicons name="cart-outline" size={44} color={kit.color.accentDeep} />
+          <Ionicons name="cart-outline" size={44} color={theme.colors.brand.primary} />
         </View>
       </Animated.View>
 
@@ -80,7 +81,7 @@ export const EmptyCartScreen = React.memo(function EmptyCartScreen({
 const s = StyleSheet.create({
   screen: {
     flex:              1,
-    backgroundColor:   kit.color.canvas,
+    backgroundColor:   theme.colors.canvas.background,
     alignItems:        "center",
     paddingHorizontal: 32,
   },
@@ -90,9 +91,9 @@ const s = StyleSheet.create({
     width:           120,
     height:          120,
     borderRadius:    60,
-    backgroundColor: kit.color.accentTint,
+    backgroundColor: theme.colors.brand.primaryLight,
     borderWidth:     1.5,
-    borderColor:     kit.color.line,
+    borderColor:     theme.colors.border.default,
     alignItems:      "center",
     justifyContent:  "center",
     marginBottom:    28,
@@ -101,12 +102,12 @@ const s = StyleSheet.create({
     width:           80,
     height:          80,
     borderRadius:    40,
-    backgroundColor: kit.color.surface,
+    backgroundColor: theme.colors.canvas.surface,
     borderWidth:     1,
-    borderColor:     kit.color.line,
+    borderColor:     theme.colors.border.default,
     alignItems:      "center",
     justifyContent:  "center",
-    ...kit.shadow.brandGlow,
+    ...theme.shadows[2],
     shadowOpacity:   0.14,
   },
 
@@ -146,10 +147,10 @@ const s = StyleSheet.create({
     paddingVertical:   6,
     borderRadius:      999,
     borderWidth:       1,
-    borderColor:       kit.color.line,
+    borderColor:       theme.colors.border.default,
   },
   trustText: {
-    fontFamily:         theme.fonts.bold,
+    fontFamily:         legacyTheme.fonts.bold,
     fontSize:           11,
     includeFontPadding: false,
   },

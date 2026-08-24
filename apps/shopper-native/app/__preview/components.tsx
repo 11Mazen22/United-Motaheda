@@ -26,7 +26,8 @@ import { Stack, useRouter } from "expo-router";
 
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { theme } from "@pharmacy/design-tokens";
+import { theme as legacyTheme } from "@pharmacy/design-tokens";
+import { defaultTheme as theme } from "@pharmacy/ui-native";
 
 import {
 
@@ -180,7 +181,7 @@ export default function ComponentPreview(): React.ReactElement | null {
 
           contentContainerStyle={{
 
-            padding: theme.spacing[2.5],
+            padding: 10,
 
             gap: theme.spacing[2],
 
@@ -192,11 +193,11 @@ export default function ComponentPreview(): React.ReactElement | null {
 
             <RxCard prescription={RX_READY}    variant="active" />
 
-            <View style={{ height: theme.spacing[1.5] }} />
+            <View style={{ height: 6 }} />
 
             <RxCard prescription={RX_EXPIRING} variant="active" />
 
-            <View style={{ height: theme.spacing[1.5] }} />
+            <View style={{ height: 6 }} />
 
             <RxCard prescription={RX_EXPIRED}  variant="active" />
 
@@ -222,7 +223,7 @@ export default function ComponentPreview(): React.ReactElement | null {
 
           <Section title="ReminderRow">
 
-            <View style={{ backgroundColor: kit.color.surface, borderRadius: theme.layout.cardRadius, borderWidth: 1, borderColor: kit.color.border.default }}>
+            <View style={{ backgroundColor: theme.colors.canvas.surface, borderRadius: legacyTheme.layout.cardRadius, borderWidth: 1, borderColor: kit.color.border.default }}>
 
               {reminders.map((r, i) => (
 
@@ -378,7 +379,7 @@ export default function ComponentPreview(): React.ReactElement | null {
 
           <Section title="PrescriptionsList · empty state (static)">
 
-            <View style={{ height: 320, backgroundColor: kit.color.surface, borderRadius: theme.layout.cardRadius, borderWidth: 1, borderColor: kit.color.border.default, overflow: "hidden" }}>
+            <View style={{ height: 320, backgroundColor: theme.colors.canvas.surface, borderRadius: legacyTheme.layout.cardRadius, borderWidth: 1, borderColor: kit.color.border.default, overflow: "hidden" }}>
 
               <EmptyState
 

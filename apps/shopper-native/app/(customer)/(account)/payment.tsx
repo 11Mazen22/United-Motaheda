@@ -10,7 +10,8 @@
 
 import React from "react";
 
-import { useDarkColors } from '@/hooks/useDarkColors';
+import { useTheme, type NativeTheme } from "@pharmacy/ui-native";
+
 
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 
@@ -31,7 +32,6 @@ import { PaymentMethodSelector, usePaymentStore } from "@/features/payment";
 import { Text as UIText } from "@pharmacy/ui-native";
 
 import { flexRow, isRtl, textAlignStart, BACK_CHEVRON } from "@/utils/layout";
-import { theme } from "@pharmacy/design-tokens";
 
 
 
@@ -61,8 +61,8 @@ const TRUST_ITEMS: { icon: IoniconsName; labelKey: string }[] = [
 
 export default function PaymentScreen() {
 
-  const { c } = useDarkColors();
-  const s = getStyles(c, theme);
+  const { theme } = useTheme();
+  const s = getStyles(theme);
 
 
 
@@ -116,7 +116,7 @@ export default function PaymentScreen() {
 
           style={s.backBtn}>
 
-          <Ionicons name={BACK_CHEVRON} size={18} color={c.inkSoft} />
+          <Ionicons name={BACK_CHEVRON} size={18} color={theme.colors.text.secondary} />
 
         </Pressable>
 
@@ -124,7 +124,7 @@ export default function PaymentScreen() {
 
         <View style={s.iconTile}>
 
-          <Ionicons name="card-outline" size={22} color={c.accentDeep} />
+          <Ionicons name="card-outline" size={22} color={theme.colors.brand.primary} />
 
         </View>
 
@@ -186,7 +186,7 @@ export default function PaymentScreen() {
 
             <View style={[s.sectionBadge, { flexDirection: flexRow(IS_RTL) }]}>
 
-              <Ionicons name="list-outline" size={14} color={c.accentDeep} />
+              <Ionicons name="list-outline" size={14} color={theme.colors.brand.primary} />
 
             </View>
 
@@ -210,7 +210,7 @@ export default function PaymentScreen() {
 
               <View style={s.trustIcon}>
 
-                <Ionicons name={item.icon} size={14} color={c.accentDeep} />
+                <Ionicons name={item.icon} size={14} color={theme.colors.brand.primary} />
 
               </View>
 
@@ -228,7 +228,7 @@ export default function PaymentScreen() {
 
         <Animated.View entering={FadeInDown.delay(240).duration(280)} style={[s.infoNote, { flexDirection: flexRow(IS_RTL) }]}>
 
-          <Ionicons name="information-circle-outline" size={16} color={c.accentDeep} />
+          <Ionicons name="information-circle-outline" size={16} color={theme.colors.brand.primary} />
 
           <UIText style={[s.infoText, { textAlign: TEXT_START }]}>{t("payment.infoNote")}</UIText>
 
@@ -246,9 +246,9 @@ export default function PaymentScreen() {
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
-const getStyles = (c: { canvas: string; surface: string; line: string; accentDeep: string; accentTint: string; ink: string; inkSoft: string; inkFaint: string; warn: string; warnTint: string; success: string; successTint: string; danger: string; dangerTint: string; well: string }, theme: { fonts: { black: string; bold: string; semibold: string; medium: string; regular: string }; layout: { pagePaddingH: number } }) => StyleSheet.create({
+const getStyles = (theme: NativeTheme) => StyleSheet.create({
 
-  screen: { flex: 1, backgroundColor: c.canvas },
+  screen: { flex: 1, backgroundColor: theme.colors.canvas.background },
 
 
 
@@ -266,13 +266,13 @@ const getStyles = (c: { canvas: string; surface: string; line: string; accentDee
 
     paddingBottom:     16,
 
-    backgroundColor:   c.surface,
+    backgroundColor:   theme.colors.canvas.surface,
 
     borderBottomWidth: StyleSheet.hairlineWidth,
 
-    borderBottomColor: c.line,
+    borderBottomColor: theme.colors.border.default,
 
-    ...kit.shadow.raised,
+    ...theme.shadows[1],
 
   },
 
@@ -284,7 +284,7 @@ const getStyles = (c: { canvas: string; surface: string; line: string; accentDee
 
     borderRadius:    20,
 
-    backgroundColor: c.surface,
+    backgroundColor: theme.colors.canvas.surface,
 
     alignItems:      "center",
 
@@ -292,9 +292,9 @@ const getStyles = (c: { canvas: string; surface: string; line: string; accentDee
 
     borderWidth:     1,
 
-    borderColor:     c.line,
+    borderColor:     theme.colors.border.default,
 
-    ...kit.shadow.raised,
+    ...theme.shadows[1],
 
     flexShrink:      0,
 
@@ -308,11 +308,11 @@ const getStyles = (c: { canvas: string; surface: string; line: string; accentDee
 
     borderRadius:    16,
 
-    backgroundColor: c.accentTint,
+    backgroundColor: theme.colors.brand.primaryLight,
 
     borderWidth:     1,
 
-    borderColor:     c.line,
+    borderColor:     theme.colors.border.default,
 
     alignItems:      "center",
 
@@ -324,13 +324,13 @@ const getStyles = (c: { canvas: string; surface: string; line: string; accentDee
 
   headerTitle: {
 
-    fontFamily:         theme.fonts.black,
+    fontFamily:         kit.font.black,
 
     fontSize:           18,
 
     letterSpacing:      -0.4,
 
-    color:              c.ink,
+    color:              theme.colors.text.primary,
 
     includeFontPadding: false,
 
@@ -340,11 +340,11 @@ const getStyles = (c: { canvas: string; surface: string; line: string; accentDee
 
   headerSubtitle: {
 
-    fontFamily:         theme.fonts.semibold,
+    fontFamily:         kit.font.semiBold,
 
     fontSize:           11,
 
-    color:              c.inkFaint,
+    color:              theme.colors.text.muted,
 
     includeFontPadding: false,
 
@@ -374,15 +374,15 @@ const getStyles = (c: { canvas: string; surface: string; line: string; accentDee
 
     borderRadius:    16,
 
-    backgroundColor: c.accentTint,
+    backgroundColor: theme.colors.brand.primaryLight,
 
     borderWidth:     1,
 
-    borderColor:     c.line,
+    borderColor:     theme.colors.border.default,
 
     overflow:        "hidden",
 
-    ...kit.shadow.raised,
+    ...theme.shadows[1],
 
   },
 
@@ -394,7 +394,7 @@ const getStyles = (c: { canvas: string; surface: string; line: string; accentDee
 
     borderRadius:    11,
 
-    backgroundColor: c.accentDeep,
+    backgroundColor: theme.colors.brand.primary,
 
     alignItems:      "center",
 
@@ -406,13 +406,13 @@ const getStyles = (c: { canvas: string; surface: string; line: string; accentDee
 
   currentLabel: {
 
-    fontFamily:         theme.fonts.bold,
+    fontFamily:         kit.font.bold,
 
     fontSize:           10,
 
     letterSpacing:      0.5,
 
-    color:              c.accentDeep,
+    color:              theme.colors.brand.primary,
 
     includeFontPadding: false,
 
@@ -420,11 +420,11 @@ const getStyles = (c: { canvas: string; surface: string; line: string; accentDee
 
   currentValue: {
 
-    fontFamily:         theme.fonts.black,
+    fontFamily:         kit.font.black,
 
     fontSize:           14,
 
-    color:              c.ink,
+    color:              theme.colors.text.primary,
 
     lineHeight:         19,
 
@@ -444,7 +444,7 @@ const getStyles = (c: { canvas: string; surface: string; line: string; accentDee
 
     width:           3,
 
-    backgroundColor: c.accentDeep,
+    backgroundColor: theme.colors.brand.primary,
 
   },
 
@@ -472,11 +472,11 @@ const getStyles = (c: { canvas: string; surface: string; line: string; accentDee
 
     borderRadius:    11,
 
-    backgroundColor: c.accentTint,
+    backgroundColor: theme.colors.brand.primaryLight,
 
     borderWidth:     1,
 
-    borderColor:     c.line,
+    borderColor:     theme.colors.border.default,
 
     alignItems:      "center",
 
@@ -486,13 +486,13 @@ const getStyles = (c: { canvas: string; surface: string; line: string; accentDee
 
   sectionTitle: {
 
-    fontFamily:         theme.fonts.black,
+    fontFamily:         kit.font.black,
 
     fontSize:           13,
 
     letterSpacing:      0.3,
 
-    color:              c.inkSoft,
+    color:              theme.colors.text.secondary,
 
     includeFontPadding: false,
 
@@ -516,13 +516,13 @@ const getStyles = (c: { canvas: string; surface: string; line: string; accentDee
 
     borderRadius:      16,
 
-    backgroundColor:   c.surface,
+    backgroundColor:   theme.colors.canvas.surface,
 
     borderWidth:       1,
 
-    borderColor:       c.line,
+    borderColor:       theme.colors.border.default,
 
-    ...kit.shadow.raised,
+    ...theme.shadows[1],
 
   },
 
@@ -544,11 +544,11 @@ const getStyles = (c: { canvas: string; surface: string; line: string; accentDee
 
     borderRadius:    11,
 
-    backgroundColor: c.accentTint,
+    backgroundColor: theme.colors.brand.primaryLight,
 
     borderWidth:     1,
 
-    borderColor:     c.line,
+    borderColor:     theme.colors.border.default,
 
     alignItems:      "center",
 
@@ -558,11 +558,11 @@ const getStyles = (c: { canvas: string; surface: string; line: string; accentDee
 
   trustText: {
 
-    fontFamily:         theme.fonts.bold,
+    fontFamily:         kit.font.bold,
 
     fontSize:           9,
 
-    color:              c.inkSoft,
+    color:              theme.colors.text.secondary,
 
     textAlign:          "center",
 
@@ -584,11 +584,11 @@ const getStyles = (c: { canvas: string; surface: string; line: string; accentDee
 
     borderRadius:    14,
 
-    backgroundColor: c.accentTint,
+    backgroundColor: theme.colors.brand.primaryLight,
 
     borderWidth:     1,
 
-    borderColor:     c.line,
+    borderColor:     theme.colors.border.default,
 
   },
 
@@ -596,13 +596,13 @@ const getStyles = (c: { canvas: string; surface: string; line: string; accentDee
 
     flex:               1,
 
-    fontFamily:         theme.fonts.regular,
+    fontFamily:         kit.font.regular,
 
     fontSize:           12,
 
     lineHeight:         18,
 
-    color:              c.accentDeep,
+    color:              theme.colors.brand.primary,
 
     includeFontPadding: false,
 

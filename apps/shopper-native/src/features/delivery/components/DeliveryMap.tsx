@@ -98,9 +98,10 @@ import Animated, {
 
 import { Text as UIText } from "@pharmacy/ui-native";
 
-import { kit }            from "@pharmacy/ui-native";
 
-import { theme }          from "@pharmacy/design-tokens";
+
+import { theme as legacyTheme } from "@pharmacy/design-tokens";
+import { defaultTheme as theme } from "@pharmacy/ui-native";
 
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
 
@@ -276,7 +277,7 @@ const pinS = StyleSheet.create({
 
     borderRadius:    22,
 
-    backgroundColor: kit.color.accent,
+    backgroundColor: theme.colors.brand.primary,
 
     alignItems:      "center",
 
@@ -304,7 +305,7 @@ const pinS = StyleSheet.create({
 
     height:                      10,
 
-    backgroundColor:             kit.color.accent,
+    backgroundColor:             theme.colors.brand.primary,
 
     borderBottomStartRadius:      2,
 
@@ -340,7 +341,7 @@ function BranchMarker({
 
   const open = isOpenNow(branch);
 
-  const iconColor = selected ? "#fff" : open ? kit.color.accentDeep : kit.color.inkFaint;
+  const iconColor = selected ? "#fff" : open ? theme.colors.brand.primary : theme.colors.text.muted;
 
 
 
@@ -384,7 +385,7 @@ function BranchMarker({
 
           <View style={[bmS.badge, bmS.badgePickup]}>
 
-            <Ionicons name="walk-outline" size={8} color={kit.color.accentDeep} />
+            <Ionicons name="walk-outline" size={8} color={theme.colors.brand.primary} />
 
           </View>
 
@@ -448,11 +449,11 @@ const bmS = StyleSheet.create({
 
     borderRadius:    22,
 
-    backgroundColor: kit.color.surface,
+    backgroundColor: theme.colors.canvas.surface,
 
     borderWidth:     2,
 
-    borderColor:     kit.color.accentDeep,
+    borderColor:     theme.colors.brand.primary,
 
     alignItems:      "center",
 
@@ -472,9 +473,9 @@ const bmS = StyleSheet.create({
 
   rootSelected: {
 
-    backgroundColor: kit.color.accentDeep,
+    backgroundColor: theme.colors.brand.primary,
 
-    borderColor:     kit.color.accent,
+    borderColor:     theme.colors.brand.primary,
 
     width:           52,
 
@@ -486,9 +487,9 @@ const bmS = StyleSheet.create({
 
   rootClosed: {
 
-    backgroundColor: kit.color.well,
+    backgroundColor: theme.colors.canvas.surfaceMuted,
 
-    borderColor:     kit.color.lineStrong,
+    borderColor:     theme.colors.border.strong,
 
     opacity:         0.7,
 
@@ -526,17 +527,17 @@ const bmS = StyleSheet.create({
 
   badge24h: {
 
-    backgroundColor: kit.color.ink,
+    backgroundColor: theme.colors.text.primary,
 
   },
 
   badgePickup: {
 
-    backgroundColor: kit.color.accentTint,
+    backgroundColor: theme.colors.brand.primaryLight,
 
     borderWidth:     1,
 
-    borderColor:     kit.color.accentDeep,
+    borderColor:     theme.colors.brand.primary,
 
   },
 
@@ -554,7 +555,7 @@ const bmS = StyleSheet.create({
 
     fontSize:   7,
 
-    fontFamily: theme.fonts.black,
+    fontFamily: legacyTheme.fonts.black,
 
     color:      "#fff",
 
@@ -570,7 +571,7 @@ const bmS = StyleSheet.create({
 
     transform:         [{ translateX: -16 }],
 
-    backgroundColor:   kit.color.ink,
+    backgroundColor:   theme.colors.text.primary,
 
     paddingHorizontal: 5,
 
@@ -588,7 +589,7 @@ const bmS = StyleSheet.create({
 
     fontSize:   8,
 
-    fontFamily: theme.fonts.bold,
+    fontFamily: legacyTheme.fonts.bold,
 
     color:      "#fff",
 
@@ -600,7 +601,7 @@ const bmS = StyleSheet.create({
 
     bottom:          -18,
 
-    backgroundColor: kit.color.dangerTint,
+    backgroundColor: `${theme.colors.status.error}1A`,
 
     paddingHorizontal: 5,
 
@@ -614,9 +615,9 @@ const bmS = StyleSheet.create({
 
     fontSize:   8,
 
-    fontFamily: theme.fonts.bold,
+    fontFamily: legacyTheme.fonts.bold,
 
-    color:      kit.color.danger,
+    color:      theme.colors.status.error,
 
   },
 
@@ -644,7 +645,7 @@ function BranchCallout({ branch }: { branch: Branch }) {
 
         <View style={[calloutS.statusPill, open ? calloutS.open : calloutS.closed]}>
 
-          <UIText style={[calloutS.statusText, { color: open ? kit.color.success : kit.color.danger }]}>
+          <UIText style={[calloutS.statusText, { color: open ? theme.colors.status.success : theme.colors.status.error }]}>
 
             {open ? "مفتوح" : "مغلق"}
 
@@ -682,7 +683,7 @@ function Cap({ icon, label }: { icon: React.ComponentProps<typeof Ionicons>["nam
 
     <View style={[calloutS.cap, { flexDirection: flexRow(IS_RTL) }]}>
 
-      <Ionicons name={icon} size={10} color={kit.color.accentDeep} />
+      <Ionicons name={icon} size={10} color={theme.colors.brand.primary} />
 
       <UIText style={calloutS.capText}>{label}</UIText>
 
@@ -700,7 +701,7 @@ const calloutS = StyleSheet.create({
 
     backgroundColor: "#fff",
 
-    borderRadius:    kit.radius.lg,
+    borderRadius:    12,
 
     padding:         10,
 
@@ -720,7 +721,7 @@ const calloutS = StyleSheet.create({
 
     borderWidth:     1,
 
-    borderColor:     kit.color.line,
+    borderColor:     theme.colors.border.default,
 
   },
 
@@ -734,7 +735,7 @@ const calloutS = StyleSheet.create({
 
     borderRadius:    4,
 
-    backgroundColor: kit.color.accent,
+    backgroundColor: theme.colors.brand.primary,
 
     flexShrink:      0,
 
@@ -746,9 +747,9 @@ const calloutS = StyleSheet.create({
 
     fontSize:   12,
 
-    fontFamily: theme.fonts.black,
+    fontFamily: legacyTheme.fonts.black,
 
-    color:      kit.color.ink,
+    color:      theme.colors.text.primary,
 
     textAlign:  TEXT_START,
 
@@ -760,25 +761,25 @@ const calloutS = StyleSheet.create({
 
     paddingVertical:   2,
 
-    borderRadius:      kit.radius.pill,
+    borderRadius:      9999,
 
     flexShrink:        0,
 
   },
 
-  open:       { backgroundColor: kit.color.successTint },
+  open:       { backgroundColor: `${theme.colors.status.success}1A` },
 
-  closed:     { backgroundColor: kit.color.dangerTint  },
+  closed:     { backgroundColor: `${theme.colors.status.error}1A`  },
 
-  statusText: { fontSize: 9, fontFamily: theme.fonts.black },
+  statusText: { fontSize: 9, fontFamily: legacyTheme.fonts.black },
 
   addr: {
 
     fontSize:   10,
 
-    fontFamily: theme.fonts.regular,
+    fontFamily: legacyTheme.fonts.regular,
 
-    color:      kit.color.inkSoft,
+    color:      theme.colors.text.secondary,
 
     textAlign:  TEXT_START,
 
@@ -796,13 +797,13 @@ const calloutS = StyleSheet.create({
 
     paddingVertical:   3,
 
-    borderRadius:      kit.radius.pill,
+    borderRadius:      9999,
 
-    backgroundColor:   kit.color.accentTint,
+    backgroundColor:   theme.colors.brand.primaryLight,
 
   },
 
-  capText: { fontSize: 8, fontFamily: theme.fonts.bold, color: kit.color.accentDeep },
+  capText: { fontSize: 8, fontFamily: legacyTheme.fonts.bold, color: theme.colors.brand.primary },
 
 });
 
@@ -1048,9 +1049,9 @@ export function DeliveryMap({
 
             radius={ZONE_RADIUS_M}
 
-            strokeColor={`${kit.color.accent}55`}
+            strokeColor={`${theme.colors.brand.primary}55`}
 
-            fillColor={`${kit.color.accent}12`}
+            fillColor={`${theme.colors.brand.primary}12`}
 
             strokeWidth={1.5}
 
@@ -1172,7 +1173,7 @@ export function DeliveryMap({
 
           >
 
-            <Ionicons name="close-circle" size={18} color={kit.color.inkFaint} />
+            <Ionicons name="close-circle" size={18} color={theme.colors.text.muted} />
 
           </Pressable>
 
@@ -1204,11 +1205,11 @@ export function DeliveryMap({
 
           {locating ? (
 
-            <ActivityIndicator size="small" color={kit.color.accentDeep} />
+            <ActivityIndicator size="small" color={theme.colors.brand.primary} />
 
           ) : (
 
-            <Ionicons name="navigate" size={18} color={kit.color.accentDeep} />
+            <Ionicons name="navigate" size={18} color={theme.colors.brand.primary} />
 
           )}
 
@@ -1230,7 +1231,7 @@ export function DeliveryMap({
 
         >
 
-          <Ionicons name="grid-outline" size={18} color={kit.color.accentDeep} />
+          <Ionicons name="grid-outline" size={18} color={theme.colors.brand.primary} />
 
         </Pressable>
 
@@ -1246,7 +1247,7 @@ export function DeliveryMap({
 
           <View style={s.coordIcon}>
 
-            <Ionicons name="location-outline" size={13} color={kit.color.accentDeep} />
+            <Ionicons name="location-outline" size={13} color={theme.colors.brand.primary} />
 
           </View>
 
@@ -1314,15 +1315,15 @@ const s = StyleSheet.create({
 
     minHeight:       320,
 
-    borderRadius:    kit.radius.xl,
+    borderRadius:    16,
 
     overflow:        "hidden",
 
-    backgroundColor: kit.color.well,
+    backgroundColor: theme.colors.canvas.surfaceMuted,
 
     borderWidth:     1,
 
-    borderColor:     kit.color.line,
+    borderColor:     theme.colors.border.default,
 
   },
 
@@ -1360,7 +1361,7 @@ const s = StyleSheet.create({
 
     borderWidth:     1,
 
-    borderColor:     kit.color.line,
+    borderColor:     theme.colors.border.default,
 
     shadowColor:     "#000",
 
@@ -1416,9 +1417,9 @@ const s = StyleSheet.create({
 
     bottom:            12,
 
-    backgroundColor:   kit.color.ink,
+    backgroundColor:   theme.colors.text.primary,
 
-    borderRadius:      kit.radius.xl,
+    borderRadius:      16,
 
     paddingHorizontal: 16,
 
@@ -1468,7 +1469,7 @@ const s = StyleSheet.create({
 
     fontSize:   11,
 
-    fontFamily: theme.fonts.semibold,
+    fontFamily: legacyTheme.fonts.semibold,
 
     color:      "rgba(255,255,255,0.72)",
 
@@ -1478,9 +1479,9 @@ const s = StyleSheet.create({
 
     fontSize:   10,
 
-    fontFamily: theme.fonts.bold,
+    fontFamily: legacyTheme.fonts.bold,
 
-    color:      kit.color.accent,
+    color:      theme.colors.brand.primary,
 
     flexShrink: 0,
 
@@ -1496,13 +1497,13 @@ const s = StyleSheet.create({
 
     gap:             8,
 
-    backgroundColor: kit.color.accent,
+    backgroundColor: theme.colors.brand.primary,
 
-    borderRadius:    kit.radius.lg,
+    borderRadius:    12,
 
     paddingVertical: 13,
 
-    ...kit.shadow.brandGlow,
+    ...theme.shadows[2],
 
   },
 
@@ -1518,7 +1519,7 @@ const s = StyleSheet.create({
 
     fontSize:   14,
 
-    fontFamily: theme.fonts.black,
+    fontFamily: legacyTheme.fonts.black,
 
     color:      "#fff",
 

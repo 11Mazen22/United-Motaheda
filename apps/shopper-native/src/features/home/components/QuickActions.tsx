@@ -26,13 +26,14 @@ import { useTranslation } from "react-i18next";
 
 import { Text as UIText } from "@pharmacy/ui-native";
 
-import { theme } from "@pharmacy/design-tokens";
+import { theme as legacyTheme } from "@pharmacy/design-tokens";
+import { defaultTheme as theme } from "@pharmacy/ui-native";
 
 import { flexRow, isRtl, textAlignStart, FORWARD_CHEVRON } from "@/utils/layout";
 
 import { PressableScale } from "@/shared/motion";
 
-import { kit } from "@pharmacy/ui-native";
+
 
 import { useScreenLayout } from "@/utils/responsive";
 
@@ -92,13 +93,13 @@ export const QuickActions = memo(function QuickActions({ onNavigate }: QuickActi
 
   const cards: ActionCardDef[] = [
 
-    { icon: "scan-outline",       label: t("home.qaScanLabel"),    sub: t("home.qaScanSub"),    route: "/prescriptions/scan", accent: kit.color.accent,   tint: kit.color.accentTint  },
+    { icon: "scan-outline",       label: t("home.qaScanLabel"),    sub: t("home.qaScanSub"),    route: "/prescriptions/scan", accent: theme.colors.brand.primary,   tint: theme.colors.brand.primaryLight  },
 
-    { icon: "repeat-outline",     label: t("home.qaRefillLabel"),  sub: t("home.qaRefillSub"),  route: "/(customer)/(tabs)/meds",        accent: kit.color.warn,     tint: kit.color.warnTint    },
+    { icon: "repeat-outline",     label: t("home.qaRefillLabel"),  sub: t("home.qaRefillSub"),  route: "/(customer)/(tabs)/meds",        accent: theme.colors.status.warning,     tint: `${theme.colors.status.warning}1A`    },
 
-    { icon: "bag-handle-outline", label: t("home.qaReorderLabel"), sub: t("home.qaReorderSub"), route: "/(customer)/(tabs)/orders",      accent: kit.color.success,  tint: kit.color.successTint },
+    { icon: "bag-handle-outline", label: t("home.qaReorderLabel"), sub: t("home.qaReorderSub"), route: "/(customer)/(tabs)/orders",      accent: theme.colors.status.success,  tint: `${theme.colors.status.success}1A` },
 
-    { icon: "compass-outline",    label: t("home.qaExploreLabel"), sub: t("home.qaExploreSub"), route: "/(customer)/(tabs)/products",    accent: kit.color.danger,   tint: kit.color.dangerTint  },
+    { icon: "compass-outline",    label: t("home.qaExploreLabel"), sub: t("home.qaExploreSub"), route: "/(customer)/(tabs)/products",    accent: theme.colors.status.error,   tint: `${theme.colors.status.error}1A`  },
 
   ];
 
@@ -198,7 +199,7 @@ const ActionCard = memo(function ActionCard({
 
         </View>
 
-        <Ionicons name={FORWARD_CHEVRON} size={14} color={kit.color.inkFaint} />
+        <Ionicons name={FORWARD_CHEVRON} size={14} color={theme.colors.text.muted} />
 
       </View>
 
@@ -222,9 +223,9 @@ const cs = StyleSheet.create({
 
     flexWrap:      "wrap",
 
-    paddingTop:    kit.sp(4),
+    paddingTop:    16,
 
-    paddingBottom: kit.sp(1),
+    paddingBottom: 4,
 
     gap:           CARD_GAP,
 
@@ -232,21 +233,21 @@ const cs = StyleSheet.create({
 
   card: {
 
-    backgroundColor: kit.color.surface,
+    backgroundColor: theme.colors.canvas.surface,
 
-    borderRadius:    kit.radius.lg,
+    borderRadius:    12,
 
     borderWidth:     1,
 
-    borderColor:     kit.color.line,
+    borderColor:     theme.colors.border.default,
 
-    padding:         kit.sp(4),
+    padding:         16,
 
     justifyContent:  "space-between",
 
     overflow:        "hidden",
 
-    ...kit.shadow.raised,
+    ...theme.shadows[1],
 
   },
 
@@ -292,13 +293,13 @@ const cs = StyleSheet.create({
 
   label: {
 
-    fontFamily:         theme.fonts.black,
+    fontFamily:         legacyTheme.fonts.black,
 
     fontSize:           14,
 
     lineHeight:         20,
 
-    color:              kit.color.ink,
+    color:              theme.colors.text.primary,
 
     textAlign:          TEXT_START,
 
@@ -308,13 +309,13 @@ const cs = StyleSheet.create({
 
   sub: {
 
-    fontFamily:         theme.fonts.regular,
+    fontFamily:         legacyTheme.fonts.regular,
 
     fontSize:           11,
 
     lineHeight:         16,
 
-    color:              kit.color.inkFaint,
+    color:              theme.colors.text.muted,
 
     textAlign:          TEXT_START,
 

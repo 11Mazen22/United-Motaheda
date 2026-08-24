@@ -3,9 +3,8 @@ import { Platform, Pressable, StyleSheet, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useTranslation } from "react-i18next";
-import { CustomerUI } from "@pharmacy/ui-native";
+import { CustomerUI, useTheme } from "@pharmacy/ui-native";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
-import { kit } from "@pharmacy/ui-native";
 import { useScreenLayout } from "@/utils/responsive";
 import { useUnreadCount } from "@/features/notifications";
 import { useAuth } from "@/features/auth";
@@ -19,8 +18,8 @@ const IS_RTL = isRtl();
 export const DeliveryHeader = memo(function DeliveryHeader() {
   const { t } = useTranslation();
   const { isTablet, pagePad } = useScreenLayout();
-  const theme = CustomerUI.useLuxuryTheme();
-  
+  const { theme } = useTheme();
+
   const { user: authUser } = useAuth();
   const unreadCount = useUnreadCount(authUser?.id);
   const notifBadge = typeof unreadCount === "number" ? unreadCount : 0;
@@ -42,6 +41,9 @@ export const DeliveryHeader = memo(function DeliveryHeader() {
     setIsAddressDrawerOpen(false);
   }, [authUser?.id, addAddress]);
 
+  const pinTone = quote.isDeliverable ? theme.colors.status.success : theme.colors.status.error;
+  const pinTint = quote.isDeliverable ? `${theme.colors.status.success}1A` : `${theme.colors.status.error}1A`;
+
   return (
     <>
       <View
@@ -50,44 +52,48 @@ export const DeliveryHeader = memo(function DeliveryHeader() {
           {
             paddingTop: isTablet ? 14 : 10,
             paddingHorizontal: pagePad,
-            backgroundColor: theme.colors.surface,
-            borderBottomColor: theme.colors.line,
+            backgroundColor: theme.colors.canvas.surface,
+            borderBottomColor: theme.colors.border.default,
+            flexDirection: flexRow(IS_RTL),
           },
         ]}
       >
-        <Pressable 
+        <Pressable
           style={[s.locationBox, { flexDirection: flexRow(IS_RTL) }]}
           onPress={() => setIsAddressDrawerOpen(true)}
+          accessibilityRole="button"
+          accessibilityLabel={t("home.deliverTo", "Delivering to")}
         >
-           <View style={[s.iconCircle, { backgroundColor: quote.isDeliverable ? kit.color.successTint : kit.color.dangerTint }]}>
-              <Ionicons name={quote.isDeliverable ? "location" : "location-outline"} size={18} color={quote.isDeliverable ? kit.color.success : kit.color.danger} />
+           <View style={[s.iconCircle, { backgroundColor: pinTint }]}>
+              <Ionicons name={quote.isDeliverable ? "location" : "location-outline"} size={18} color={pinTone} />
            </View>
-           
+
            <View style={s.textBlock}>
-             <CustomerUI.Typography variant="caption" weight="bold" color={theme.colors.inkSoft} style={{ textAlign: textAlignStart(IS_RTL) }}>
+             <CustomerUI.Typography variant="caption" weight="bold" color={theme.colors.text.secondary} style={{ textAlign: textAlignStart(IS_RTL) }}>
                {t("home.deliverTo", "Delivering to")}
              </CustomerUI.Typography>
-             
+
              <View style={[s.row, { flexDirection: flexRow(IS_RTL) }]}>
-                <CustomerUI.Typography variant="body" weight="black" color={theme.colors.ink} style={{ textAlign: textAlignStart(IS_RTL) }} numberOfLines={1}>
+                <CustomerUI.Typography variant="body" weight="black" color={theme.colors.text.primary} style={{ textAlign: textAlignStart(IS_RTL) }} numberOfLines={1}>
                   {selectedAddress ? (selectedAddress.label || selectedAddress.street) : t("home.selectLocation", "Select your location")}
                 </CustomerUI.Typography>
-                <Ionicons name="chevron-down" size={16} color={theme.colors.ink} style={{ marginHorizontal: 4 }} />
+                <Ionicons name="chevron-down" size={16} color={theme.colors.text.primary} style={{ marginStart: 4 }} />
              </View>
            </View>
         </Pressable>
 
-        {/* Action buttons */}
         <View style={[s.actions, { flexDirection: flexRow(IS_RTL) }]}>
           <Pressable
             onPress={() => {
               if (Platform.OS !== "web") Haptics.selectionAsync().catch(() => {});
             }}
-            style={[s.actionBtn, { backgroundColor: theme.colors.surface, borderColor: theme.colors.line }]}
+            accessibilityRole="button"
+            accessibilityLabel={t("notifications.title", "Notifications")}
+            style={[s.actionBtn, { backgroundColor: theme.colors.canvas.surface, borderColor: theme.colors.border.default }]}
           >
-            <Ionicons name="notifications-outline" size={22} color={theme.colors.ink} />
+            <Ionicons name="notifications-outline" size={22} color={theme.colors.text.primary} />
             {notifBadge > 0 && (
-              <View style={s.notifBadge}>
+              <View style={[s.notifBadge, { backgroundColor: theme.colors.status.error, borderColor: theme.colors.canvas.surface }]}>
                 <CustomerUI.Typography variant="caption" weight="black" color="#FFF" style={{ fontSize: 9 }}>
                   {notifBadge > 9 ? "9+" : notifBadge}
                 </CustomerUI.Typography>
@@ -104,7 +110,6 @@ export const DeliveryHeader = memo(function DeliveryHeader() {
 const s = StyleSheet.create({
   header: {
     paddingBottom: 12,
-    flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     borderBottomWidth: StyleSheet.hairlineWidth,
@@ -112,7 +117,7 @@ const s = StyleSheet.create({
   locationBox: {
     alignItems: "center",
     flex: 1,
-    marginRight: 16,
+    marginEnd: 16,
   },
   iconCircle: {
     width: 36,
@@ -144,15 +149,13 @@ const s = StyleSheet.create({
   notifBadge: {
     position: "absolute",
     top: -2,
-    right: -4,
+    end: -4,
     minWidth: 18,
     height: 18,
     borderRadius: 9,
-    backgroundColor: kit.color.danger,
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 4,
     borderWidth: 2,
-    borderColor: "#FFFFFF",
   },
 });
