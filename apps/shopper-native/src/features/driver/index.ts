@@ -12,6 +12,7 @@ export { AssignmentOfferDetail }  from "./screens/AssignmentOfferDetail";
 export { DeliveryExecutionScreen } from "./screens/DeliveryExecutionScreen";
 export { IssueReportScreen }      from "./screens/IssueReportScreen";
 export { DriverProfileScreen }    from "./screens/DriverProfileScreen";
+export { DriverApplicationEntry } from "./screens/DriverApplicationEntry";
 export { DriverScreenHeader }      from "./components/DriverScreenHeader";
 
 export {
@@ -27,6 +28,7 @@ export {
 
 export { useDriverMutations } from "./hooks/useDriverMutations";
 export { useDriverRealtimeSync } from "./hooks/useDriverRealtimeSync";
+export { useMyDriverProfile, useMyDriverProfilePolling, driverProfileQueryKeys } from "./hooks/useDriverProfile";
 
 export type {
   ManifestOrder,
@@ -34,4 +36,7 @@ export type {
   DeliveryIssue,
   IssueReasonCode,
   AssignmentResponseStatus,
+  DriverProfileRecord,
+  DriverApplicationStatus,
+  DriverApplicationInput,
 } from "./api";

@@ -403,16 +403,34 @@ export async function confirmPickup(orderId: string, assignmentId: string, drive
   notifyCustomerOrderUpdate(orderId, "picked_up");
 }
 
+/** Thrown when mark_delivery_arrival's geofence check rejects the call —
+ * detected via the RPC error's `hint` field, which the RPC sets to this
+ * exact string, rather than string-matching the human-readable message. */
+export class TooFarFromDestinationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "TooFarFromDestinationError";
+  }
+}
+
 export async function markArrival(
   assignmentId: string,
   orderId: string,
   stage: "pharmacy" | "customer",
+  coords: { lat: number; lng: number },
 ): Promise<DeliveryAssignment> {
   const { data, error } = await supabase.rpc("mark_delivery_arrival", {
     p_assignment_id: assignmentId,
     p_stage: stage,
+    p_lat: coords.lat,
+    p_lng: coords.lng,
   });
-  if (error) throw error;
+  if (error) {
+    if ((error as { hint?: string }).hint === "too_far_from_destination") {
+      throw new TooFarFromDestinationError(error.message);
+    }
+    throw error;
+  }
   if (stage === "customer") notifyCustomerOrderUpdate(orderId, "driver_arrived");
   return mapAssignmentRow(data as RawAssignmentRow);
 }
@@ -497,4 +515,135 @@ export async function pushDriverLocation(payload: DriverLocationPayload): Promis
   });
 
   if (error) throw error;
+}
+
+// ─── Driver application (vetting/approval flow) ──────────────────────────────
+// Against apps/api's DriverProfile table (Prisma-managed, PascalCase columns),
+// not the delivery_assignments/orders tables above. RLS: an authenticated
+// user can SELECT/INSERT only their own row (userId = auth.uid()), and can
+// never set status directly — see
+// apps/api/prisma/migrations/20260824105530_driver_profile_self_access_rls.
+// status only ever changes via apps/api's admin approval endpoints.
+
+export type DriverApplicationStatus =
+  | "PENDING_APPROVAL"
+  | "APPROVED"
+  | "ACTIVE"
+  | "SUSPENDED"
+  | "REJECTED"
+  | "INACTIVE";
+
+export type DriverDocumentType = "license" | "id" | "vehicle" | "insurance";
+
+export interface DriverProfileRecord {
+  id: string;
+  userId: string;
+  vehicleType: string;
+  vehiclePlate: string | null;
+  vehicleModel: string | null;
+  vehicleColor: string | null;
+  licenseNumber: string | null;
+  licensePhotoUrl: string | null;
+  idPhotoUrl: string | null;
+  vehiclePhotoUrl: string | null;
+  insurancePhotoUrl: string | null;
+  status: DriverApplicationStatus;
+  rejectionReason: string | null;
+  createdAt: string;
+}
+
+interface RawDriverProfileRow {
+  id: string;
+  userId: string;
+  vehicleType: string;
+  vehiclePlate: string | null;
+  vehicleModel: string | null;
+  vehicleColor: string | null;
+  licenseNumber: string | null;
+  licensePhotoUrl: string | null;
+  idPhotoUrl: string | null;
+  vehiclePhotoUrl: string | null;
+  insurancePhotoUrl: string | null;
+  status: DriverApplicationStatus;
+  rejectionReason: string | null;
+  createdAt: string;
+}
+
+const DRIVER_PROFILE_COLUMNS =
+  'id, userId, vehicleType, vehiclePlate, vehicleModel, vehicleColor, licenseNumber, licensePhotoUrl, idPhotoUrl, vehiclePhotoUrl, insurancePhotoUrl, status, rejectionReason, createdAt';
+
+function mapDriverProfileRow(row: RawDriverProfileRow): DriverProfileRecord {
+  return { ...row };
+}
+
+/** The caller's own driver application, if one exists — null before they've
+ * ever applied. Powers both the (driver) route gate and the application
+ * entry point's "form vs. pending status" decision. */
+export async function getMyDriverProfile(userId: string): Promise<DriverProfileRecord | null> {
+  const { data, error } = await supabase
+    .from("DriverProfile")
+    .select(DRIVER_PROFILE_COLUMNS)
+    .eq("userId", userId)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data ? mapDriverProfileRow(data as RawDriverProfileRow) : null;
+}
+
+export interface DriverApplicationInput {
+  vehicleType: "motorcycle" | "car" | "van";
+  vehiclePlate: string;
+  vehicleModel: string;
+  vehicleColor: string;
+  licensePhotoUrl: string;
+  idPhotoUrl: string;
+  vehiclePhotoUrl: string;
+  insurancePhotoUrl: string;
+}
+
+/** Creates the caller's own application (status defaults to
+ * PENDING_APPROVAL server-side). The unique constraint on userId means this
+ * can only ever succeed once — there is no resubmit-after-rejection path
+ * yet, matching the driver-app-consolidation plan's Phase 3 scope. */
+export async function createDriverApplication(
+  userId: string,
+  input: DriverApplicationInput,
+): Promise<DriverProfileRecord> {
+  const { data, error } = await supabase
+    .from("DriverProfile")
+    .insert({ userId, ...input })
+    .select(DRIVER_PROFILE_COLUMNS)
+    .single();
+
+  if (error) throw error;
+  return mapDriverProfileRow(data as RawDriverProfileRow);
+}
+
+/** Uploads one document image to the private driver-documents bucket and
+ * returns a getPublicUrl()-shaped string. The bucket is private (identity
+ * documents), so this URL is not directly fetchable — it exists only so
+ * apps/api's existing getSignedUrl()/deleteDriverDocument() helpers, which
+ * already parse "last 3 path segments" out of exactly this URL shape, keep
+ * working unchanged. Actual display always requires resolving through a
+ * signed URL. */
+export async function uploadDriverDocument(
+  userId: string,
+  documentType: DriverDocumentType,
+  localUri: string,
+): Promise<string> {
+  const mime = localUri.toLowerCase().endsWith(".png") ? "image/png" : "image/jpeg";
+  const ext = mime === "image/png" ? "png" : "jpg";
+  const path = `${userId}/${documentType}/${Date.now()}.${ext}`;
+
+  const response = await fetch(localUri);
+  if (!response.ok) throw new Error("read_failed");
+  const blob = await response.blob();
+
+  const { error } = await supabase.storage
+    .from("driver-documents")
+    .upload(path, blob, { contentType: mime, upsert: false });
+  if (error) throw error;
+
+  const { data } = supabase.storage.from("driver-documents").getPublicUrl(path);
+  return data.publicUrl;
 }

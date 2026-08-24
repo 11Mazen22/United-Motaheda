@@ -62,8 +62,8 @@ export function useDriverMutations(driverId: string | undefined) {
   });
 
   const arrival = useMutation({
-    mutationFn: (args: { assignmentId: string; orderId: string; stage: "pharmacy" | "customer" }) =>
-      markArrival(args.assignmentId, args.orderId, args.stage),
+    mutationFn: (args: { assignmentId: string; orderId: string; stage: "pharmacy" | "customer"; coords: { lat: number; lng: number } }) =>
+      markArrival(args.assignmentId, args.orderId, args.stage, args.coords),
     onSuccess: (_data, args) => {
       invalidateAll();
       if (args.stage === "customer") {

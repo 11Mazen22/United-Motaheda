@@ -26,7 +26,7 @@ import { formatPrice } from "@/utils/format";
 import { showErrorSheet, showSuccessSheet } from "@/shared/store/appSheetStore";
 import { useDriverOrderDetail, useMyAssignmentForOrder } from "../hooks/useDriverManifest";
 import { useDriverMutations } from "../hooks/useDriverMutations";
-import { pushDriverLocation } from "../api";
+import { pushDriverLocation, TooFarFromDestinationError } from "../api";
 import { DriverScreenHeader } from "../components/DriverScreenHeader";
 import ActionDock from "../components/ActionDock";
 import ProgressTracker from "../components/ProgressTracker";
@@ -63,12 +63,24 @@ export function DeliveryExecutionScreen(): React.ReactElement {
   const handleArrival = async (stage: "pharmacy" | "customer") => {
     if (!orderId || !assignment) return;
     try {
-      await mutations.arrival.mutateAsync({ orderId, assignmentId: assignment.id, stage });
+      const permission = await ExpoLocation.requestForegroundPermissionsAsync();
+      if (permission.status !== "granted") {
+        showErrorSheet(t("driver.actionFailedTitle"), t("driver.locationPermissionRequired", "Location access is required to confirm arrival."));
+        return;
+      }
+      const position = await ExpoLocation.getCurrentPositionAsync({ accuracy: ExpoLocation.Accuracy.Balanced });
+      const coords = { lat: position.coords.latitude, lng: position.coords.longitude };
+
+      await mutations.arrival.mutateAsync({ orderId, assignmentId: assignment.id, stage, coords });
       showSuccessSheet(
         stage === "pharmacy" ? t("driver.arrivedAtPharmacyTitle", "Arrived at pharmacy") : t("driver.arrivedAtCustomerTitle", "Arrived at customer"),
         stage === "pharmacy" ? t("driver.arrivedAtPharmacyBody", "You can now confirm pickup.") : t("driver.arrivedAtCustomerBody", "You can now complete delivery."),
       );
     } catch (e) {
+      if (e instanceof TooFarFromDestinationError) {
+        showErrorSheet(t("driver.tooFarTitle", "You're too far away"), t("driver.tooFarBody", "Get closer to the customer's location and try again."));
+        return;
+      }
       showErrorSheet(t("driver.actionFailedTitle"), e instanceof Error ? e.message : t("driver.actionFailedBody"));
     }
   };
