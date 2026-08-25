@@ -195,27 +195,6 @@ function formatDate(iso: string, locale: string): string {
 
 
 
-type DarkColors = {
-  canvas: string
-  surface: string
-  line: string
-  lineStrong: string
-  accent: string
-  accentDeep: string
-  accentTint: string
-  ink: string
-  inkSoft: string
-  inkFaint: string
-  warn: string
-  warnTint: string
-  success: string
-  successTint: string
-  danger: string
-  dangerTint: string
-  well: string
-  onAccent: string
-}
-
 // ═══════════════════════════════════════════════════════════════════════════════
 
 // Screen
@@ -2458,7 +2437,7 @@ function get_s() { return StyleSheet.create({
 
 
 
-function get_lc(_c: DarkColors) { return StyleSheet.create({
+function get_lc(_c: unknown) { return StyleSheet.create({
 
   row: {
 

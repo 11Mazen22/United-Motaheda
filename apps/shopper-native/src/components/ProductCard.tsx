@@ -111,7 +111,7 @@ const CartControl = memo(function CartControl({ product }: { product: NativeProd
 
   if (qty === 0) {
     return (
-      <Animated.View style={[styles.addBtn, { backgroundColor: theme.colors.accent }, animStyle]}>
+      <Animated.View style={[styles.addBtn, { backgroundColor: theme.colors.brand.accent }, animStyle]}>
         <Pressable onPress={handleAdd} hitSlop={6} accessibilityRole="button" accessibilityLabel="Add to cart" style={styles.addBtnInner}>
           <Ionicons name="add" size={20} color="#FFFFFF" />
         </Pressable>
@@ -120,15 +120,15 @@ const CartControl = memo(function CartControl({ product }: { product: NativeProd
   }
 
   return (
-    <Animated.View style={[styles.stepper, { backgroundColor: theme.colors.surface, borderColor: theme.colors.accent }, animStyle]}>
+    <Animated.View style={[styles.stepper, { backgroundColor: theme.colors.surface, borderColor: theme.colors.brand.accent }, animStyle]}>
       <Pressable onPress={handleDecrement} style={styles.stepBtn}>
-        <Ionicons name={qty === 1 ? "trash-outline" : "remove"} size={16} color={theme.colors.accent} />
+        <Ionicons name={qty === 1 ? "trash-outline" : "remove"} size={16} color={theme.colors.brand.accent} />
       </Pressable>
       <CustomerUI.Typography variant="bodySm" weight="bold" color={theme.colors.ink}>
         {qty}
       </CustomerUI.Typography>
       <Pressable onPress={handleIncrement} style={styles.stepBtn}>
-        <Ionicons name="add" size={16} color={theme.colors.accent} />
+        <Ionicons name="add" size={16} color={theme.colors.brand.accent} />
       </Pressable>
     </Animated.View>
   );
@@ -174,7 +174,7 @@ export const ProductCard = memo(function ProductCard({
 
           {/* Badge */}
           {effectiveBadge && (
-            <View style={[styles.badge, { backgroundColor: effectiveBadge === 'sale' ? theme.colors.danger : effectiveBadge === 'new' ? theme.colors.accent : '#F59E0B' }]}>
+            <View style={[styles.badge, { backgroundColor: effectiveBadge === 'sale' ? theme.colors.status.error : effectiveBadge === 'new' ? theme.colors.brand.accent : '#F59E0B' }]}>
               <CustomerUI.Typography variant="caption" weight="bold" color="#FFF" style={{ fontSize: 9 }}>
                 {effectiveBadge === 'sale' ? (effectiveDiscount ? `-${effectiveDiscount}%` : t("product.sale")) : effectiveBadge === 'new' ? t("product.new") : t("product.bestseller")}
               </CustomerUI.Typography>

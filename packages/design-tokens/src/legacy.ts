@@ -477,7 +477,7 @@ export const animation = {
 
 // ─── Gradients ────────────────────────────────────────────────────────────────
 
-export const gradients = {
+const gradients = {
   // Hero backgrounds
   heroPrimary:   ['#021D2E', '#053348', '#0A4A65'] as string[],
   heroMid:       ['#053348', '#0A4A65'] as string[],
@@ -513,7 +513,7 @@ export const catGradients = gradients.categories;
 
 // ─── Z-index ──────────────────────────────────────────────────────────────────
 
-export const zIndex = {
+const zIndex = {
   base:       0,
   raised:     10,
   dropdown:   20,

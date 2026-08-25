@@ -1,44 +1,33 @@
-import React from "react";
-import { Pressable, StyleSheet, View } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import { Text as UIText } from "@pharmacy/ui-native";
-import { kit } from "@pharmacy/ui-native";
-import { theme as legacyTheme } from "@pharmacy/design-tokens";
-import { defaultTheme as theme } from "@pharmacy/ui-native";
-import { flexRow, isRtl, textAlignStart, BACK_CHEVRON } from "@/utils/layout";
-
-const IS_RTL = isRtl();
-const TEXT_START = textAlignStart(IS_RTL);
-
-interface Props {
-  title: string;
-  subtitle?: string;
-  trailing?: React.ReactNode;
-}
-
-/** Shared driver chrome keeps every operational screen visually consistent. */
-export function DriverScreenHeader({ title, subtitle, trailing }: Props): React.ReactElement {
-  const router = useRouter();
-  return (
-    <View style={s.wrap}>
-      <Pressable onPress={() => router.back()} style={s.back} hitSlop={8} accessibilityRole="button" accessibilityLabel="Back">
-        <Ionicons name={BACK_CHEVRON} size={18} color={theme.colors.text.secondary} />
-      </Pressable>
-      <View style={s.copy}>
-        <UIText style={s.title} numberOfLines={1}>{title}</UIText>
-        {subtitle ? <UIText style={s.subtitle} numberOfLines={1}>{subtitle}</UIText> : null}
-      </View>
-      {trailing ? <View style={s.trailing}>{trailing}</View> : null}
-    </View>
-  );
-}
-
-const s = StyleSheet.create({
-  wrap: { flexDirection: flexRow(IS_RTL), alignItems: "center", gap: 12, paddingHorizontal: kit.inset.screen, paddingTop: 12, paddingBottom: 16 },
-  back: { width: 42, height: 42, borderRadius: 14, backgroundColor: theme.colors.canvas.surface, borderWidth: 1, borderColor: theme.colors.border.default, alignItems: "center", justifyContent: "center", ...theme.shadows[1] },
-  copy: { flex: 1, minWidth: 0 },
-  title: { fontFamily: legacyTheme.fonts.black, fontSize: 18, color: theme.colors.text.primary, textAlign: TEXT_START },
-  subtitle: { marginTop: 2, fontFamily: legacyTheme.fonts.regular, fontSize: 11, color: theme.colors.text.secondary, textAlign: TEXT_START },
-  trailing: { flexShrink: 0 },
-});
+import React from "react";
+import { useRouter } from "expo-router";
+import { ScreenHeader, useTheme } from "@pharmacy/ui-native";
+
+interface Props {
+  title: string;
+  subtitle?: string;
+  trailing?: React.ReactNode;
+}
+
+/**
+ * Driver's chrome — a thin wrapper around the canonical ScreenHeader, kept
+ * so every existing call site (driver screens pass {title, subtitle,
+ * trailing}) needs no changes. Uses the "floating" back-button treatment
+ * (a raised circular chip) and start-aligned title, matching the driver
+ * persona's slightly more tactile operational feel.
+ */
+export function DriverScreenHeader({ title, subtitle, trailing }: Props): React.ReactElement {
+  const router = useRouter();
+  const { theme } = useTheme();
+  return (
+    <ScreenHeader
+      title={title}
+      subtitle={subtitle}
+      trailing={trailing}
+      onBack={() => router.back()}
+      align="start"
+      backStyle="floating"
+      transparent
+      style={{ height: undefined, paddingHorizontal: theme.spacing.screenH, paddingTop: 12, paddingBottom: 16 }}
+    />
+  );
+}

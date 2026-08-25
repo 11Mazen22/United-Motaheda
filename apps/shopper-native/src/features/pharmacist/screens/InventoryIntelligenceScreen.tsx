@@ -98,11 +98,11 @@ type InventoryTab = "lowstock" | "search" | "outofstock";
 
 function urgencyColor(available: number, colors: NativeTheme["colors"]): string {
 
-  if (available === 0) return colors.danger;
+  if (available === 0) return colors.status.error;
 
-  if (available <= 3)  return colors.warn;
+  if (available <= 3)  return colors.status.warning;
 
-  return colors.warn;
+  return colors.status.warning;
 
 }
 
@@ -172,7 +172,7 @@ function ProductCard({
 
           </View>
 
-          <UIText style={[styles.price, { color: colors.accentDeep }]}>{formatPrice(product.effectivePrice)}</UIText>
+          <UIText style={[styles.price, { color: colors.brand.primaryDark }]}>{formatPrice(product.effectivePrice)}</UIText>
 
         </View>
 
@@ -184,7 +184,7 @@ function ProductCard({
 
           {product.code && (
 
-            <View style={[styles.chip, { flexDirection: flexRow(IS_RTL), backgroundColor: colors.well, borderColor: colors.line }]}>
+            <View style={[styles.chip, { flexDirection: flexRow(IS_RTL), backgroundColor: colors.canvas.surfaceMuted, borderColor: colors.line }]}>
 
               <Ionicons name="barcode-outline" size={10} color={colors.inkSoft} />
 
@@ -196,7 +196,7 @@ function ProductCard({
 
           {product.categoryName && (
 
-            <View style={[styles.chip, { flexDirection: flexRow(IS_RTL), backgroundColor: colors.well, borderColor: colors.line }]}>
+            <View style={[styles.chip, { flexDirection: flexRow(IS_RTL), backgroundColor: colors.canvas.surfaceMuted, borderColor: colors.line }]}>
 
               <Ionicons name="folder-outline" size={10} color={colors.inkSoft} />
 
@@ -208,11 +208,11 @@ function ProductCard({
 
           {isOut && (
 
-            <View style={[styles.chip, styles.chipDanger, { flexDirection: flexRow(IS_RTL), backgroundColor: colors.dangerTint, borderColor: colors.danger }]}>
+            <View style={[styles.chip, styles.chipDanger, { flexDirection: flexRow(IS_RTL), backgroundColor: colors.statusSoft.error.bg, borderColor: colors.status.error }]}>
 
-              <Ionicons name="close-circle" size={10} color={colors.danger} />
+              <Ionicons name="close-circle" size={10} color={colors.status.error} />
 
-              <UIText style={[styles.chipText, { color: colors.danger }]}>                {t("pharmacist.stockExhausted", "نفد المخزون")}
+              <UIText style={[styles.chipText, { color: colors.status.error }]}>                {t("pharmacist.stockExhausted", "نفد المخزون")}
 
               </UIText>
 
@@ -238,7 +238,7 @@ function ProductCard({
 
           ].map(({ label, value, warn }) => (
 
-            <View key={label} style={[styles.stockCell, { backgroundColor: colors.well }]}>
+            <View key={label} style={[styles.stockCell, { backgroundColor: colors.canvas.surfaceMuted }]}>
 
               <UIText
 
@@ -272,7 +272,7 @@ function ProductCard({
 
               onPress={() => onScan(product.barcode!)}
 
-              style={({ pressed }) => [styles.scanBtn, pressed && { opacity: 0.75 }, { backgroundColor: colors.accentTint, borderColor: colors.line }]}
+              style={({ pressed }) => [styles.scanBtn, pressed && { opacity: 0.75 }, { backgroundColor: colors.brand.primaryLight, borderColor: colors.line }]}
 
               accessibilityRole="button"
 
@@ -280,7 +280,7 @@ function ProductCard({
 
             >
 
-              <Ionicons name="barcode-outline" size={14} color={colors.accentDeep} />
+              <Ionicons name="barcode-outline" size={14} color={colors.brand.primaryDark} />
 
             </Pressable>
 

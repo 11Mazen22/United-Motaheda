@@ -3,13 +3,12 @@ import { Platform, type ViewStyle } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   darkTheme,
+  darkShadowOpacity,
   lightTheme,
   resolveTheme,
   type SemanticTheme,
   type ThemeName,
 } from "@pharmacy/design-tokens";
-
-import { kit } from "./kit";
 
 const THEME_PREFERENCE_STORAGE_KEY = "@pharmacy/theme-preference";
 function isThemePreference(value: unknown): value is ThemePreference {
@@ -26,7 +25,14 @@ export type NativeTheme = Omit<SemanticTheme, "shadows" | "colors"> & {
   isDark: boolean;
   direction: "rtl" | "ltr";
   shadows: ReadonlyArray<ViewStyle>;
-  colors: SemanticTheme["colors"] & typeof kit.color & {
+  /** A dedicated brand-tinted glow shadow — distinct from the neutral
+   *  elevation ladder above, for the rare moment that wants a colored glow
+   *  rather than a neutral drop shadow (e.g. a primary CTA's resting state). */
+  brandGlow: ViewStyle;
+  colors: SemanticTheme["colors"] & {
+    /** Convenience aliases kept for the handful of call sites that already
+     *  used them (previously sourced from the static, non-reactive kit.color
+     *  — now properly reactive, derived from the canonical semantic colors). */
     background: string;
     surface: string;
     line: string;
@@ -67,24 +73,34 @@ function nativeShadow(elevation: number, color: string, opacity: number, radius:
 }
 
 function toNativeTheme(base: SemanticTheme, isRTL: boolean, isDark: boolean): NativeTheme {
+  const c = base.colors;
   return {
     ...base,
     isRTL,
     isDark,
     direction: isRTL ? "rtl" : "ltr",
-    shadows: Object.values(base.shadows).map((value) =>
-      nativeShadow(value.elevation, value.color, value.opacity, value.blur),
+    // Dark mode leans on pure-black opacity (per darkShadowOpacity) rather
+    // than a colored shadow — colored shadows are nearly invisible on
+    // near-black surfaces, so elevation there is carried by the
+    // surface-lightness ramp plus this opacity boost instead.
+    shadows: Object.entries(base.shadows).map(([key, value]) =>
+      nativeShadow(
+        value.elevation,
+        isDark ? "#000000" : value.color,
+        isDark ? darkShadowOpacity[key as keyof typeof darkShadowOpacity] : value.opacity,
+        value.blur,
+      ),
     ),
+    brandGlow: nativeShadow(2, c.brand.primary, isDark ? 0.24 : 0.12, 12),
     colors: {
-      ...base.colors,
-      ...(isDark ? kit.darkColor : kit.color),
-      background: (isDark ? kit.darkColor : kit.color).canvas,
-      surface: (isDark ? kit.darkColor : kit.color).surface,
-      line: (isDark ? kit.darkColor : kit.color).line,
-      ink: (isDark ? kit.darkColor : kit.color).ink,
-      inkSoft: (isDark ? kit.darkColor : kit.color).inkSoft,
-      inkFaint: (isDark ? kit.darkColor : kit.color).inkFaint,
-    } as any,
+      ...c,
+      background: c.canvas.background,
+      surface: c.canvas.surface,
+      line: c.border.default,
+      ink: c.text.primary,
+      inkSoft: c.text.secondary,
+      inkFaint: c.text.muted,
+    },
   };
 }
 

@@ -267,7 +267,7 @@ const styles = StyleSheet.create({
 
     borderWidth: 1,
 
-    borderColor: theme.colors.border.default.brandSoft,
+    borderColor: theme.colors.brand.primary,
 
   },
 
@@ -331,7 +331,7 @@ const styles = StyleSheet.create({
 
     fontFamily: legacyTheme.fonts.bold,
 
-    color: theme.colors.text.primary.secondary,
+    color: theme.colors.text.secondary,
 
     textAlign: textAlignStart(isRtl()),
 
@@ -351,7 +351,7 @@ const styles = StyleSheet.create({
 
     borderWidth: 1.5,
 
-    borderColor: theme.colors.border.default.default,
+    borderColor: theme.colors.border.default,
 
     borderStyle: "dashed",
 
@@ -421,7 +421,7 @@ const styles = StyleSheet.create({
 
     fontFamily: legacyTheme.fonts.semibold,
 
-    color: theme.colors.status.error.strong,
+    color: theme.colors.status.error,
 
     textAlign: textAlignStart(isRtl()),
 
