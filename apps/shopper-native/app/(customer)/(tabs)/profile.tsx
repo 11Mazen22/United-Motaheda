@@ -25,7 +25,7 @@ import { useOrderStore } from "@/stores/orders";
 import { Text as UIText } from "@pharmacy/ui-native";
 
 
-import { useTheme } from "@pharmacy/ui-native";
+import { useTheme, type NativeTheme } from "@pharmacy/ui-native";
 
 import { useTranslation } from "react-i18next";
 
@@ -43,7 +43,6 @@ import { flexRow, isRtl, textAlignStart, FORWARD_CHEVRON } from "@/utils/layout"
 import { useTabSwipeGesture } from "@/shared/navigation/useTabSwipeGesture";
 
 import { theme as legacyTheme } from "@pharmacy/design-tokens";
-import { defaultTheme as theme } from "@pharmacy/ui-native";
 
 
 
@@ -67,9 +66,9 @@ const waUrl = (lang: string) => {
 
 
 
-const SectionLabel = memo(function SectionLabel({ icon, label, accent }: {
+const SectionLabel = memo(function SectionLabel({ icon, label, accent, styles }: {
 
-  icon: React.ComponentProps<typeof Ionicons>["name"]; label: string; accent?: string;
+  icon: React.ComponentProps<typeof Ionicons>["name"]; label: string; accent?: string; styles: ReturnType<typeof getStyles>;
 
 }) {
 
@@ -97,9 +96,9 @@ const SectionLabel = memo(function SectionLabel({ icon, label, accent }: {
 
 
 
-const MenuRow = memo(function MenuRow({ icon, label, subtitle, onPress, badge, color, danger, last }: {
+const MenuRow = memo(function MenuRow({ icon, label, subtitle, onPress, badge, color, danger, last, styles }: {
 
-  icon: React.ComponentProps<typeof Ionicons>["name"]; label: string; subtitle?: string; onPress: () => void; badge?: number | string; color?: string; danger?: boolean; last?: boolean;
+  icon: React.ComponentProps<typeof Ionicons>["name"]; label: string; subtitle?: string; onPress: () => void; badge?: number | string; color?: string; danger?: boolean; last?: boolean; styles: ReturnType<typeof getStyles>;
 
 }) {
 
@@ -162,6 +161,8 @@ const MenuRow = memo(function MenuRow({ icon, label, subtitle, onPress, badge, c
 export default function ProfileScreen() {
 
   const { theme, preference: themeMode } = useTheme();
+
+  const styles = useMemo(() => getStyles(theme), [theme]);
 
   const { gesture, animatedStyle } = useTabSwipeGesture("profile");
 
@@ -231,20 +232,20 @@ export default function ProfileScreen() {
 
         <View style={styles.sec}>
 
-          <SectionLabel icon="person-outline" label={t("profile.sectionAccount")} />
+          <SectionLabel icon="person-outline" label={t("profile.sectionAccount")} styles={styles} />
 
           <View style={styles.card}>
 
-            {user && <MenuRow icon="create-outline" color={theme.colors.brand.primary} label={t("profile.menuEditProfile")} subtitle={t("profile.menuEditProfileSubtitle")} onPress={go("/edit-profile")} />}
+            {user && <MenuRow icon="create-outline" color={theme.colors.brand.primary} label={t("profile.menuEditProfile")} subtitle={t("profile.menuEditProfileSubtitle")} onPress={go("/edit-profile")} styles={styles} />}
 
-            <MenuRow icon="lock-closed-outline" color={theme.colors.text.secondary} label={t("profile.menuSecurity")} subtitle={t("profile.menuSecuritySubtitle")} onPress={go("/change-password")} />
+            <MenuRow icon="lock-closed-outline" color={theme.colors.text.secondary} label={t("profile.menuSecurity")} subtitle={t("profile.menuSecuritySubtitle")} onPress={go("/change-password")} styles={styles} />
 
-            <MenuRow icon="language-outline" color="#2563EB" label={t("language.label")} subtitle={language === "ar" ? t("language.en") : t("language.ar")} onPress={toggleLanguage} />
+            <MenuRow icon="language-outline" color="#2563EB" label={t("language.label")} subtitle={language === "ar" ? t("language.en") : t("language.ar")} onPress={toggleLanguage} styles={styles} />
 
-            <MenuRow icon="notifications-outline" color={theme.colors.status.warning} label={t("profile.notifications")} subtitle={t("profile.notificationsSubtitle")} onPress={go("/(customer)/(account)/notifications")} last={!(user && (!user.role || user.role === "customer"))} />
+            <MenuRow icon="notifications-outline" color={theme.colors.status.warning} label={t("profile.notifications")} subtitle={t("profile.notificationsSubtitle")} onPress={go("/(customer)/(account)/notifications")} last={!(user && (!user.role || user.role === "customer"))} styles={styles} />
 
             {user && (!user.role || user.role === "customer") && (
-              <MenuRow icon="bicycle-outline" color={theme.colors.brand.primary} label={t("profile.menuBecomeDriver")} subtitle={t("profile.menuBecomeDriverSubtitle")} onPress={go("/driver-application")} last />
+              <MenuRow icon="bicycle-outline" color={theme.colors.brand.primary} label={t("profile.menuBecomeDriver")} subtitle={t("profile.menuBecomeDriverSubtitle")} onPress={go("/driver-application")} last styles={styles} />
             )}
 
           </View>
@@ -255,13 +256,13 @@ export default function ProfileScreen() {
 
         <View style={styles.sec}>
 
-          <SectionLabel icon="cube-outline" label={t("profile.sectionDelivery")} accent={theme.colors.status.success} />
+          <SectionLabel icon="cube-outline" label={t("profile.sectionDelivery")} accent={theme.colors.status.success} styles={styles} />
 
           <View style={styles.card}>
 
-            <MenuRow icon="location-outline" color={theme.colors.status.success} label={t("profile.menuAddresses")} subtitle={t("profile.menuAddressesSubtitle")} onPress={go("/(customer)/(account)/addresses")} />
+            <MenuRow icon="location-outline" color={theme.colors.status.success} label={t("profile.menuAddresses")} subtitle={t("profile.menuAddressesSubtitle")} onPress={go("/(customer)/(account)/addresses")} styles={styles} />
 
-            <MenuRow icon="card-outline" color="#7C3AED" label={t("profile.menuPayment")} subtitle={t("profile.menuPaymentSubtitle")} onPress={go("/(customer)/(account)/payment")} last />
+            <MenuRow icon="card-outline" color="#7C3AED" label={t("profile.menuPayment")} subtitle={t("profile.menuPaymentSubtitle")} onPress={go("/(customer)/(account)/payment")} last styles={styles} />
 
           </View>
 
@@ -271,11 +272,11 @@ export default function ProfileScreen() {
 
         <View style={styles.sec}>
 
-          <SectionLabel icon="bag-handle-outline" label={t("profile.sectionOrders")} />
+          <SectionLabel icon="bag-handle-outline" label={t("profile.sectionOrders")} styles={styles} />
 
           <View style={styles.card}>
 
-            <MenuRow icon="receipt-outline" color={theme.colors.brand.primary} label={t("profile.orderHistory")} onPress={() => router.push("/(customer)/(account)/orders")} last />
+            <MenuRow icon="receipt-outline" color={theme.colors.brand.primary} label={t("profile.orderHistory")} onPress={() => router.push("/(customer)/(account)/orders")} last styles={styles} />
 
           </View>
 
@@ -285,11 +286,11 @@ export default function ProfileScreen() {
 
         <View style={styles.sec}>
 
-          <SectionLabel icon="settings-outline" label={t("profile.sectionPreferences")} accent={theme.colors.text.secondary} />
+          <SectionLabel icon="settings-outline" label={t("profile.sectionPreferences")} accent={theme.colors.text.secondary} styles={styles} />
 
           <View style={styles.card}>
 
-            <MenuRow icon="moon-outline" color="#6366F1" label={t("profile.theme")} subtitle={themeMode === "dark" ? t("profile.themeDark") : themeMode === "light" ? t("profile.themeLight") : t("profile.themeSystem")} onPress={() => setShowThemePicker(true)} last />
+            <MenuRow icon="moon-outline" color="#6366F1" label={t("profile.theme")} subtitle={themeMode === "dark" ? t("profile.themeDark") : themeMode === "light" ? t("profile.themeLight") : t("profile.themeSystem")} onPress={() => setShowThemePicker(true)} last styles={styles} />
 
           </View>
 
@@ -299,15 +300,15 @@ export default function ProfileScreen() {
 
         <View style={styles.sec}>
 
-          <SectionLabel icon="headset-outline" label={t("profile.sectionSupport")} accent="#16A34A" />
+          <SectionLabel icon="headset-outline" label={t("profile.sectionSupport")} accent="#16A34A" styles={styles} />
 
           <View style={styles.card}>
 
-            <MenuRow icon="logo-whatsapp" color="#16A34A" label={t("profile.whatsapp")} subtitle={t("profile.whatsappSubtitle")} onPress={callWhatsApp} />
+            <MenuRow icon="logo-whatsapp" color="#16A34A" label={t("profile.whatsapp")} subtitle={t("profile.whatsappSubtitle")} onPress={callWhatsApp} styles={styles} />
 
-            <MenuRow icon="call-outline" color={theme.colors.brand.primary} label={t("profile.callUs")} subtitle="01112343212" onPress={callPhone} />
+            <MenuRow icon="call-outline" color={theme.colors.brand.primary} label={t("profile.callUs")} subtitle="01112343212" onPress={callPhone} styles={styles} />
 
-            <MenuRow icon="help-circle-outline" color="#6366F1" label={t("profile.faq")} onPress={go("/(customer)/(info)/faq")} last />
+            <MenuRow icon="help-circle-outline" color="#6366F1" label={t("profile.faq")} onPress={go("/(customer)/(info)/faq")} last styles={styles} />
 
           </View>
 
@@ -317,15 +318,15 @@ export default function ProfileScreen() {
 
         <View style={styles.sec}>
 
-          <SectionLabel icon="document-text-outline" label={t("profile.sectionLegal")} />
+          <SectionLabel icon="document-text-outline" label={t("profile.sectionLegal")} styles={styles} />
 
           <View style={styles.card}>
 
-            <MenuRow icon="business-outline" color={theme.colors.brand.primary} label={t("profile.aboutPharmacy")} onPress={go("/(customer)/(info)/about")} />
+            <MenuRow icon="business-outline" color={theme.colors.brand.primary} label={t("profile.aboutPharmacy")} onPress={go("/(customer)/(info)/about")} styles={styles} />
 
-            <MenuRow icon="shield-checkmark-outline" color={theme.colors.status.success} label={t("profile.privacy")} onPress={go("/(customer)/(info)/privacy")} />
+            <MenuRow icon="shield-checkmark-outline" color={theme.colors.status.success} label={t("profile.privacy")} onPress={go("/(customer)/(info)/privacy")} styles={styles} />
 
-            <MenuRow icon="document-text-outline" color={theme.colors.text.secondary} label={t("profile.terms")} onPress={go("/(customer)/(info)/terms")} last />
+            <MenuRow icon="document-text-outline" color={theme.colors.text.secondary} label={t("profile.terms")} onPress={go("/(customer)/(info)/terms")} last styles={styles} />
 
           </View>
 
@@ -401,7 +402,9 @@ export default function ProfileScreen() {
 
 
 
-const styles = StyleSheet.create({
+function getStyles(theme: NativeTheme) {
+
+  return StyleSheet.create({
 
   slRow: { alignItems: "center", gap: 10, paddingHorizontal: legacyTheme.layout.pagePaddingH, marginBottom: 12 },
 
@@ -469,4 +472,6 @@ const styles = StyleSheet.create({
 
   fVer: { fontFamily: legacyTheme.fonts.regular, fontSize: 10, lineHeight: 14, color: theme.colors.text.muted, includeFontPadding: false, marginTop: 4 },
 
-});
+  });
+
+}

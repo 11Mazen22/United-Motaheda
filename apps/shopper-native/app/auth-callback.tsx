@@ -1,17 +1,16 @@
-import { defaultTheme as theme } from "@pharmacy/ui-native";
 /**
  * /auth-callback — lands here after OAuth (Google) or email-confirmation
  * deep links. Exchanges the PKCE `code` param for a real session, then
  * routes onward. See src/features/auth/context.tsx and socialAuth.ts for
  * the deep-link handoff that gets the user here.
  */
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import Animated, { FadeIn, FadeInUp } from "react-native-reanimated";
 import { useTranslation } from "react-i18next";
-import { Text, Button } from "@pharmacy/ui-native";
+import { Text, Button, useTheme, type NativeTheme } from "@pharmacy/ui-native";
 import { supabase } from "@/lib/supabase";
 import { PHONE_VERIFICATION_ENABLED } from "@/features/auth/phoneOtp";
 import { flexRow, isRtl } from "@/utils/layout";
@@ -21,6 +20,8 @@ const IS_RTL = isRtl();
 type Stage = "exchanging" | "error";
 
 export default function AuthCallbackScreen(): React.ReactElement {
+  const { theme } = useTheme();
+  const s = useMemo(() => getStyles(theme), [theme]);
   const { t } = useTranslation();
   const router = useRouter();
   const { code } = useLocalSearchParams<{ code?: string }>();
@@ -105,7 +106,8 @@ export default function AuthCallbackScreen(): React.ReactElement {
   );
 }
 
-const s = StyleSheet.create({
+function getStyles(theme: NativeTheme) {
+return StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.colors.canvas.background },
   centerStack: {
     flex: 1,
@@ -156,3 +158,4 @@ const s = StyleSheet.create({
     gap: 6,
   },
 });
+}

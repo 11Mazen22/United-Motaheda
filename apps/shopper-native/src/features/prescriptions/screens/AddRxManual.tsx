@@ -1,4 +1,3 @@
-import { defaultTheme as theme } from "@pharmacy/ui-native";
 /**
  * AddRxManual — manual Rx-number entry, now a real create flow.
  *
@@ -49,8 +48,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Button } from "@pharmacy/ui-native";
-import { Text } from "@pharmacy/ui-native";
+import { Button, Text, useTheme, type NativeTheme } from "@pharmacy/ui-native";
 import { flexRow, isRtl, textAlignStart, BACK_CHEVRON } from "@/utils/layout";
 import { useAuth } from "@/features/auth";
 import { usePrescriptions } from "../hooks/usePrescriptions";
@@ -79,6 +77,8 @@ interface DigitDisplayProps {
  * the native numeric keyboard.
  */
 function DigitDisplay({ rxNumber, reduced, onPress }: DigitDisplayProps): React.ReactElement {
+  const { theme } = useTheme();
+  const d = useMemo(() => getDigitStyles(theme), [theme]);
   const { t } = useTranslation();
   const { width } = useWindowDimensions();
 
@@ -165,6 +165,7 @@ interface InfoBannerProps {
 }
 
 function InfoBanner({ tone, text, cta }: InfoBannerProps): React.ReactElement {
+  const { theme } = useTheme();
   const palette = tone === "found"
     ? { bg: `${theme.colors.status.success}1A`, border: theme.colors.status.success, icon: theme.colors.status.success, name: "checkmark-circle" as const }
     : tone === "not_found"
@@ -214,6 +215,8 @@ const KEY_ROWS: ((string | "del" | "blank"))[][] = [
 
 /** Tight 3-column keypad. Keys are uniform width via `flex: 1`. */
 function Keypad({ onDigit, onBackspace, disabled }: KeypadProps): React.ReactElement {
+  const { theme } = useTheme();
+  const k = useMemo(() => getKeypadStyles(theme), [theme]);
   const { t } = useTranslation();
 
   return (
@@ -254,6 +257,8 @@ function Keypad({ onDigit, onBackspace, disabled }: KeypadProps): React.ReactEle
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export function AddRxManual(): React.ReactElement {
+  const { theme } = useTheme();
+  const s = useMemo(() => getStyles(theme), [theme]);
   const router    = useRouter();
   const insets    = useSafeAreaInsets();
   const reduced   = useReducedMotion() ?? false;
@@ -440,7 +445,8 @@ export function AddRxManual(): React.ReactElement {
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
-const s = StyleSheet.create({
+function getStyles(theme: NativeTheme) {
+  return StyleSheet.create({
   screen: {
     flex:            1,
     backgroundColor: theme.colors.canvas.background,
@@ -579,11 +585,13 @@ const s = StyleSheet.create({
     borderTopWidth:    StyleSheet.hairlineWidth,
     borderTopColor:    theme.colors.border.default,
   },
-});
+  });
+}
 
 // ─── Digit display styles ─────────────────────────────────────────────────────
 
-const d = StyleSheet.create({
+function getDigitStyles(theme: NativeTheme) {
+  return StyleSheet.create({
   row: {
     // Always physical LTR (never mirrored) — see the comment where this
     // style is applied for why numbers must not follow RTL row-reversal.
@@ -634,7 +642,8 @@ const d = StyleSheet.create({
     borderRadius:    3,
     backgroundColor: theme.colors.border.default,
   },
-});
+  });
+}
 
 // ─── Info banner styles ───────────────────────────────────────────────────────
 
@@ -668,7 +677,8 @@ const b = StyleSheet.create({
 
 // ─── Keypad styles ────────────────────────────────────────────────────────────
 
-const k = StyleSheet.create({
+function getKeypadStyles(theme: NativeTheme) {
+  return StyleSheet.create({
   grid: {
     gap: 10,
   },
@@ -717,4 +727,5 @@ const k = StyleSheet.create({
   cellBlank: {
     flex: 1,
   },
-});
+  });
+}

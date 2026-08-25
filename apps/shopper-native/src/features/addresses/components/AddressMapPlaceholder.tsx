@@ -22,7 +22,7 @@
 
 
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 
 import {
 
@@ -58,9 +58,7 @@ import { useTranslation } from "react-i18next";
 import { geocodeAddress } from "@/lib/geocoding";
 
 import { theme as legacyTheme } from "@pharmacy/design-tokens";
-import { defaultTheme as theme } from "@pharmacy/ui-native";
-
-import { kit } from "@pharmacy/ui-native";
+import { useTheme, type NativeTheme } from "@pharmacy/ui-native";
 
 import { flexRow, isRtl } from "@/utils/layout";
 
@@ -172,6 +170,10 @@ function MapPlaceholder({ height }: { height: number }) {
 
   const { t } = useTranslation();
 
+  const { theme } = useTheme();
+
+  const styles = useMemo(() => getStyles(theme), [theme]);
+
   const opacity = useSharedValue(0.4);
 
   useEffect(() => {
@@ -267,6 +269,10 @@ export function AddressMapPlaceholder({
 }: Props) {
 
   const { t }  = useTranslation();
+
+  const { theme } = useTheme();
+
+  const styles = useMemo(() => getStyles(theme), [theme]);
 
   const height = heightProp ?? (compact ? 120 : 200);
 
@@ -474,7 +480,9 @@ export function AddressMapPlaceholder({
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
-const styles = StyleSheet.create({
+function getStyles(theme: NativeTheme) {
+
+  return StyleSheet.create({
 
   container: {
 
@@ -484,7 +492,7 @@ const styles = StyleSheet.create({
 
     position: "relative",
 
-    backgroundColor: kit.color.slate[100],
+    backgroundColor: theme.colors.neutrals[100],
 
   },
 
@@ -496,7 +504,7 @@ const styles = StyleSheet.create({
 
     borderRadius:   12,
 
-    backgroundColor: kit.color.slate[50],
+    backgroundColor: theme.colors.neutrals[100],
 
     alignItems:     "center",
 
@@ -506,7 +514,7 @@ const styles = StyleSheet.create({
 
     borderWidth:    1,
 
-    borderColor:    kit.color.border.default,
+    borderColor:    theme.colors.border.default,
 
   },
 
@@ -516,7 +524,7 @@ const styles = StyleSheet.create({
 
     fontFamily: legacyTheme.fonts.semibold,
 
-    color:      kit.color.text.tertiary,
+    color:      theme.colors.text.muted,
 
   },
 
@@ -536,7 +544,7 @@ const styles = StyleSheet.create({
 
     borderWidth:    1,
 
-    borderColor:    kit.color.border.default,
+    borderColor:    theme.colors.border.default,
 
   },
 
@@ -664,7 +672,7 @@ const styles = StyleSheet.create({
 
     borderWidth:     1,
 
-    borderColor:     kit.color.border.default,
+    borderColor:     theme.colors.border.default,
 
   },
 
@@ -674,7 +682,7 @@ const styles = StyleSheet.create({
 
     fontFamily: legacyTheme.fonts.semibold,
 
-    color:      kit.color.text.secondary,
+    color:      theme.colors.text.secondary,
 
   },
 
@@ -706,7 +714,7 @@ const styles = StyleSheet.create({
 
     borderWidth:       1,
 
-    borderColor:       kit.color.border.default,
+    borderColor:       theme.colors.border.default,
 
   },
 
@@ -716,7 +724,7 @@ const styles = StyleSheet.create({
 
     fontFamily: legacyTheme.fonts.semibold,
 
-    color:      kit.color.slate[500],
+    color:      theme.colors.neutrals[500],
 
   },
 
@@ -766,7 +774,7 @@ const styles = StyleSheet.create({
 
     borderWidth:       1,
 
-    borderColor:       kit.color.border.brandSoft,
+    borderColor:       `${theme.colors.brand.primary}33`,
 
   },
 
@@ -824,5 +832,7 @@ const styles = StyleSheet.create({
 
   },
 
-});
+  });
+
+}
 

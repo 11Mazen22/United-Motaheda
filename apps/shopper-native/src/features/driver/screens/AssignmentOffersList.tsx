@@ -1,15 +1,14 @@
-import { defaultTheme as theme } from "@pharmacy/ui-native";
 /**
  * AssignmentOffersList — all pending assignment offers awaiting this
  * driver's response. Usually just one, but staff can offer more than one
  * order at a time, so this list exists rather than assuming a single offer.
  */
-import React from "react";
+import React, { useMemo } from "react";
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, View } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import { Screen, Text as UIText, Card, EmptyState } from "@pharmacy/ui-native";
+import { Screen, Text as UIText, Card, EmptyState, useTheme } from "@pharmacy/ui-native";
 import { kit } from "@pharmacy/ui-native";
 import { useAuth } from "@/features/auth";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
@@ -24,6 +23,7 @@ const TEXT_START = textAlignStart(IS_RTL);
 
 export function AssignmentOffersList(): React.ReactElement {
   const { t } = useTranslation();
+  const { theme } = useTheme();
   const router = useRouter();
   const { user } = useAuth();
   const offersQuery = useDriverOffers(user?.id);
@@ -31,6 +31,43 @@ export function AssignmentOffersList(): React.ReactElement {
   const mutations = useDriverMutations(user?.id);
   const [pendingAccept, setPendingAccept] = React.useState<string | null>(null);
   const [pendingDecline, setPendingDecline] = React.useState<string | null>(null);
+
+  const s = useMemo(() => StyleSheet.create({
+    listContent: {
+      paddingHorizontal: kit.inset.screen,
+      paddingBottom: 40,
+    },
+    card: {
+      flexDirection: flexRow(IS_RTL),
+      alignItems: "center",
+      gap: 12,
+      backgroundColor: theme.colors.canvas.surface,
+      borderRadius: 16,
+      padding: 16,
+      borderWidth: 1,
+      borderColor: `${theme.colors.status.warning}1A`,
+      ...theme.shadows[1],
+    },
+    offerActions: { flexDirection: flexRow(IS_RTL), alignItems: 'center', gap: 8 },
+    acceptBtn: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12, backgroundColor: theme.colors.brand.primaryLight },
+    declineBtn: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12, backgroundColor: theme.colors.canvas.surface },
+    viewBtn: { paddingHorizontal: 10, paddingVertical: 8, borderRadius: 12, backgroundColor: 'transparent' },
+    offerIcon: { width: 42, height: 42, borderRadius: 14, backgroundColor: `${theme.colors.status.warning}1A`, alignItems: "center", justifyContent: "center" },
+    cardTitleRow: { flexDirection: flexRow(IS_RTL), alignItems: "center", justifyContent: "space-between", gap: 8 },
+    newPill: { width: 24, height: 24, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: `${theme.colors.status.warning}1A` },
+    emptyState: {
+      alignItems: "center",
+      paddingVertical: 60,
+      paddingHorizontal: 24,
+    },
+    retryBtn: { marginTop: 14, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 9999, backgroundColor: theme.colors.brand.primaryLight },
+    offerLeft: { width: 58, alignItems: 'center', justifyContent: 'center' },
+    offerBody: { flex: 1 },
+    metaRow: { flexDirection: flexRow(IS_RTL), gap: 10, marginTop: 8, alignItems: 'center' },
+    metaItem: { flexDirection: flexRow(IS_RTL), gap: 6, alignItems: 'center' },
+    offerActionsCol: { flexDirection: 'column', gap: 8, marginStart: 8, alignItems: 'flex-end' },
+    btnBusy: { opacity: 0.7 },
+  }), [theme]);
 
   const handleAccept = async (assignmentId: string) => {
     setPendingAccept(assignmentId);
@@ -127,40 +164,3 @@ export function AssignmentOffersList(): React.ReactElement {
     </Screen>
   );
 }
-
-const s = StyleSheet.create({
-  listContent: {
-    paddingHorizontal: kit.inset.screen,
-    paddingBottom: 40,
-  },
-  card: {
-    flexDirection: flexRow(IS_RTL),
-    alignItems: "center",
-    gap: 12,
-    backgroundColor: theme.colors.canvas.surface,
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: `${theme.colors.status.warning}1A`,
-    ...theme.shadows[1],
-  },
-  offerActions: { flexDirection: flexRow(IS_RTL), alignItems: 'center', gap: 8 },
-  acceptBtn: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12, backgroundColor: theme.colors.brand.primaryLight },
-  declineBtn: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12, backgroundColor: theme.colors.canvas.surface },
-  viewBtn: { paddingHorizontal: 10, paddingVertical: 8, borderRadius: 12, backgroundColor: 'transparent' },
-  offerIcon: { width: 42, height: 42, borderRadius: 14, backgroundColor: `${theme.colors.status.warning}1A`, alignItems: "center", justifyContent: "center" },
-  cardTitleRow: { flexDirection: flexRow(IS_RTL), alignItems: "center", justifyContent: "space-between", gap: 8 },
-  newPill: { width: 24, height: 24, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: `${theme.colors.status.warning}1A` },
-  emptyState: {
-    alignItems: "center",
-    paddingVertical: 60,
-    paddingHorizontal: 24,
-  },
-  retryBtn: { marginTop: 14, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 9999, backgroundColor: theme.colors.brand.primaryLight },
-  offerLeft: { width: 58, alignItems: 'center', justifyContent: 'center' },
-  offerBody: { flex: 1 },
-  metaRow: { flexDirection: flexRow(IS_RTL), gap: 10, marginTop: 8, alignItems: 'center' },
-  metaItem: { flexDirection: flexRow(IS_RTL), gap: 6, alignItems: 'center' },
-  offerActionsCol: { flexDirection: 'column', gap: 8, marginStart: 8, alignItems: 'flex-end' },
-  btnBusy: { opacity: 0.7 },
-});

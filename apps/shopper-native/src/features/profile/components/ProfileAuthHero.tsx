@@ -32,7 +32,7 @@
 
  */
 
-import React, { memo, useCallback } from "react";
+import React, { memo, useCallback, useMemo } from "react";
 
 import { Platform, Pressable, StyleSheet, View } from "react-native";
 
@@ -59,11 +59,11 @@ import * as Haptics from "expo-haptics";
 
 import { Text as UIText } from "@pharmacy/ui-native";
 
-import { defaultTheme as theme } from "@pharmacy/ui-native";
+import { useTheme, type NativeTheme } from "@pharmacy/ui-native";
 
 import { flexRow, isRtl, FORWARD_CHEVRON } from "@/utils/layout";
 
-import { styles, HERO_GLASS, PROFILE } from "./profile.styles";
+import { getProfileStyles, HERO_GLASS, PROFILE } from "./profile.styles";
 
 
 
@@ -121,7 +121,7 @@ interface ProfileAuthHeroProps {
 
 const StatPill = memo(function StatPill({
 
-  value, label, icon, accent, onPress,
+  value, label, icon, accent, onPress, styles,
 
 }: {
 
@@ -134,6 +134,8 @@ const StatPill = memo(function StatPill({
   accent:  string;
 
   onPress: () => void;
+
+  styles:  ReturnType<typeof getProfileStyles>;
 
 }) {
 
@@ -231,9 +233,9 @@ interface TileProps {
 
 const QuickActionTile = memo(function QuickActionTile({
 
-  icon, labelKey, grad, route, onPress,
+  icon, labelKey, grad, route, onPress, styles,
 
-}: TileProps) {
+}: TileProps & { styles: ReturnType<typeof getProfileStyles> }) {
 
   const { t } = useTranslation();
 
@@ -301,11 +303,13 @@ const QuickActionTile = memo(function QuickActionTile({
 
 
 
-// ─── Module-level quick actions (zero re-allocation per render) ───────────────
+// ─── Quick actions factory (theme-dependent, memoized per render in the component) ──
 
 
 
-const QUICK_ACTIONS = [
+function getQuickActions(theme: NativeTheme) {
+
+  return [
 
   {
 
@@ -355,7 +359,9 @@ const QUICK_ACTIONS = [
 
   },
 
-] as const;
+  ] as const;
+
+}
 
 
 
@@ -378,6 +384,12 @@ export const ProfileAuthHero = memo(function ProfileAuthHero({
   insetsTop,
 
 }: ProfileAuthHeroProps) {
+
+  const { theme } = useTheme();
+
+  const styles = useMemo(() => getProfileStyles(theme), [theme]);
+
+  const QUICK_ACTIONS = useMemo(() => getQuickActions(theme), [theme]);
 
   const router = useRouter();
 
@@ -578,6 +590,7 @@ export const ProfileAuthHero = memo(function ProfileAuthHero({
       <View style={styles.statsCard}>
 
         <StatPill
+          styles={styles}
 
           value={orderCount}
 
@@ -594,6 +607,7 @@ export const ProfileAuthHero = memo(function ProfileAuthHero({
         <View style={styles.statDivider} />
 
         <StatPill
+          styles={styles}
 
           value={wishlistCount}
 
@@ -610,6 +624,7 @@ export const ProfileAuthHero = memo(function ProfileAuthHero({
         <View style={styles.statDivider} />
 
         <StatPill
+          styles={styles}
 
           value={cartCount}
 
@@ -708,6 +723,7 @@ export const ProfileAuthHero = memo(function ProfileAuthHero({
         {QUICK_ACTIONS.map((a) => (
 
           <QuickActionTile
+            styles={styles}
 
             key={a.route}
 

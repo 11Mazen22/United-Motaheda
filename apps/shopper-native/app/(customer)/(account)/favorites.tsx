@@ -1,4 +1,4 @@
-import React, { memo, useCallback } from "react";
+import React, { memo, useCallback, useMemo } from "react";
 
 import { Platform, Pressable, StyleSheet, View } from "react-native";
 
@@ -31,10 +31,9 @@ import { EmptyState } from "@/components/ui/EmptyState";
 
 import { Text as UIText } from "@pharmacy/ui-native";
 
-import { useTheme } from "@pharmacy/ui-native";
+import { useTheme, type NativeTheme } from "@pharmacy/ui-native";
 
 import { theme as legacyTheme } from "@pharmacy/design-tokens";
-import { defaultTheme as theme } from "@pharmacy/ui-native";
 
 import { formatPrice } from "@/utils/format";
 
@@ -46,15 +45,15 @@ const RTL = isRtl(), TA = textAlignStart(RTL);
 
 
 
-const Skeleton = memo(function Skeleton() {
+const Skeleton = memo(function Skeleton({ styles }: { styles: ReturnType<typeof getStyles> }) {
 
   const { theme } = useTheme();
 
   return (
 
-    <View style={[s.card, { flexDirection: flexRow(RTL), backgroundColor: theme.colors.canvas.surface, borderColor: theme.colors.border.default }]}>
+    <View style={[styles.card, { flexDirection: flexRow(RTL), backgroundColor: theme.colors.canvas.surface, borderColor: theme.colors.border.default }]}>
 
-      <View style={[s.img, { backgroundColor: theme.colors.canvas.background }]} />
+      <View style={[styles.img, { backgroundColor: theme.colors.canvas.background }]} />
 
       <View style={{ flex: 1, gap: 8 }}>
 
@@ -66,7 +65,7 @@ const Skeleton = memo(function Skeleton() {
 
       </View>
 
-      <View style={s.acts}><View style={{ width: 40, height: 40, borderRadius: 13, backgroundColor: theme.colors.canvas.background }} /></View>
+      <View style={styles.acts}><View style={{ width: 40, height: 40, borderRadius: 13, backgroundColor: theme.colors.canvas.background }} /></View>
 
     </View>
 
@@ -76,7 +75,7 @@ const Skeleton = memo(function Skeleton() {
 
 
 
-const Card = memo(function Card({ product, index }: { product: NativeProduct; index: number }) {
+const Card = memo(function Card({ product, index, styles }: { product: NativeProduct; index: number; styles: ReturnType<typeof getStyles> }) {
 
   const { theme } = useTheme();
 
@@ -102,17 +101,17 @@ const Card = memo(function Card({ product, index }: { product: NativeProduct; in
 
   return (
 
-    <Animated.View entering={FadeInDown.duration(280).delay(index * 50)} exiting={FadeOutRight.duration(220)} layout={Layout.springify()} style={[s.card, { flexDirection: flexRow(RTL) }]}>
+    <Animated.View entering={FadeInDown.duration(280).delay(index * 50)} exiting={FadeOutRight.duration(220)} layout={Layout.springify()} style={[styles.card, { flexDirection: flexRow(RTL) }]}>
 
       <Pressable onPress={() => router.push({ pathname: "/product/[id]", params: { id: product.id } })}>
 
-        <View style={s.img}>
+        <View style={styles.img}>
 
           {product.imageUrl ? <Image source={{ uri: product.imageUrl }} style={{ width: "100%", height: "100%" }} contentFit="contain" transition={180} />
 
             : <><View style={[StyleSheet.absoluteFill, { backgroundColor: theme.colors.brand.primaryLight }]} /><Ionicons name="medkit-outline" size={28} color={theme.colors.border.strong} /></>}
 
-          {!product.inStock && <View style={s.oos}><UIText variant="eyebrow" color="inverse">{t("common.outOfStock")}</UIText></View>}
+          {!product.inStock && <View style={styles.oos}><UIText variant="eyebrow" color="inverse">{t("common.outOfStock")}</UIText></View>}
 
         </View>
 
@@ -126,11 +125,11 @@ const Card = memo(function Card({ product, index }: { product: NativeProduct; in
 
         <Pressable onPress={() => router.push({ pathname: "/product/[id]", params: { id: product.id } })}>
 
-          <UIText variant="body-sm" weight="bold" align={TA} numberOfLines={2} style={s.name}>{name}</UIText>
+          <UIText variant="body-sm" weight="bold" align={TA} numberOfLines={2} style={styles.name}>{name}</UIText>
 
         </Pressable>
 
-        <UIText style={[s.price, { textAlign: TA }]}> {formatPrice(product.price)} </UIText>
+        <UIText style={[styles.price, { textAlign: TA }]}> {formatPrice(product.price)} </UIText>
 
       </View>
 
@@ -140,7 +139,7 @@ const Card = memo(function Card({ product, index }: { product: NativeProduct; in
 
         accessibilityLabel={!product.inStock ? t("wishlist.notAvailable", { name }) : inCart ? t("wishlist.inCart", { name }) : t("wishlist.addToCartLabel", { name })}
 
-        accessibilityState={{ disabled: !product.inStock }} style={[s.cartBtn, inCart && s.cartOn, !product.inStock && s.cartOff]}>
+        accessibilityState={{ disabled: !product.inStock }} style={[styles.cartBtn, inCart && styles.cartOn, !product.inStock && styles.cartOff]}>
 
         <Ionicons name={inCart ? "checkmark" : "cart-outline"} size={16} color={inCart ? "#fff" : product.inStock ? theme.colors.brand.primary : theme.colors.text.muted} />
 
@@ -157,6 +156,8 @@ const Card = memo(function Card({ product, index }: { product: NativeProduct; in
 export default function FavoritesScreen() {
 
   const { theme } = useTheme();
+
+  const s = useMemo(() => getStyles(theme), [theme]);
 
   const { t } = useTranslation(), router = useRouter(), insets = useSafeAreaInsets();
 
@@ -236,7 +237,7 @@ export default function FavoritesScreen() {
 
 
 
-      {!isHydrated ? <View style={{ padding: 20, gap: 12 }}>{[1, 2, 3, 4].map(k => <Skeleton key={k} />)}</View>
+      {!isHydrated ? <View style={{ padding: 20, gap: 12 }}>{[1, 2, 3, 4].map(k => <Skeleton key={k} styles={s} />)}</View>
 
         : items.length === 0 ? <EmptyState icon="heart-outline" title={t("wishlist.empty")} description={t("wishlist.emptyDescription")} actionLabel={t("wishlist.browse")} onAction={() => router.push("/(customer)/(tabs)/products")} />
 
@@ -246,7 +247,7 @@ export default function FavoritesScreen() {
 
             ListHeaderComponent={<View style={[s.listHdr, { flexDirection: flexRow(RTL) }]}><UIText style={s.listHdrT}>{t("wishlist.savedItems", { count: items.length })}</UIText></View>}
 
-            renderItem={({ item, index }) => <View style={s.wrap}><Card product={item} index={index} /></View>}
+            renderItem={({ item, index }) => <View style={s.wrap}><Card product={item} index={index} styles={s} /></View>}
 
           />}
 
@@ -258,7 +259,9 @@ export default function FavoritesScreen() {
 
 
 
-const s = StyleSheet.create({
+function getStyles(theme: NativeTheme) {
+
+  return StyleSheet.create({
 
   screen: { flex: 1, backgroundColor: theme.colors.canvas.background },
 
@@ -308,4 +311,6 @@ const s = StyleSheet.create({
 
   cartOff: { backgroundColor: theme.colors.canvas.surfaceMuted, borderColor: theme.colors.border.default },
 
-});
+  });
+
+}

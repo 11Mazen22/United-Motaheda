@@ -1,4 +1,3 @@
-import { defaultTheme as theme } from "@pharmacy/ui-native";
 /**
  * BarcodeScannerScreen — pharmacist barcode/QR scanner.
  *
@@ -27,6 +26,8 @@ import React, {
   useCallback,
 
   useEffect,
+
+  useMemo,
 
   useRef,
 
@@ -74,7 +75,7 @@ import Animated, {
 
 
 
-import { Screen, Text as UIText } from "@pharmacy/ui-native";
+import { Screen, Text as UIText, useTheme } from "@pharmacy/ui-native";
 
 import { kit }                    from "@pharmacy/ui-native";
 
@@ -117,6 +118,22 @@ const DEBOUNCE_MS = 1_500;
 function PermissionGate({ onRequest }: { onRequest: () => void }) {
 
   const { t } = useTranslation();
+
+  const { theme } = useTheme();
+
+  const pgStyles = useMemo(() => StyleSheet.create({
+
+    root:       { flex: 1, alignItems: "center", justifyContent: "center", gap: 16, padding: 32 },
+
+    iconWell:   { width: 80, height: 80, borderRadius: 24, backgroundColor: theme.colors.brand.primaryLight, alignItems: "center", justifyContent: "center" },
+
+    btn:        { paddingHorizontal: 32, paddingVertical: 14, borderRadius: 12, backgroundColor: theme.colors.brand.primary, ...theme.shadows[2] },
+
+    btnPressed: { opacity: 0.85, transform: [{ scale: 0.98 }] },
+
+    btnText:    { fontSize: 14, fontFamily: "Cairo_900Black", color: "#fff" },
+
+  }), [theme]);
 
   return (
 
@@ -172,20 +189,6 @@ function PermissionGate({ onRequest }: { onRequest: () => void }) {
 
 
 
-const pgStyles = StyleSheet.create({
-
-  root:       { flex: 1, alignItems: "center", justifyContent: "center", gap: 16, padding: 32 },
-
-  iconWell:   { width: 80, height: 80, borderRadius: 24, backgroundColor: theme.colors.brand.primaryLight, alignItems: "center", justifyContent: "center" },
-
-  btn:        { paddingHorizontal: 32, paddingVertical: 14, borderRadius: 12, backgroundColor: theme.colors.brand.primary, ...theme.shadows[2] },
-
-  btnPressed: { opacity: 0.85, transform: [{ scale: 0.98 }] },
-
-  btnText:    { fontSize: 14, fontFamily: "Cairo_900Black", color: "#fff" },
-
-});
-
 
 
 // ─── Product result card ───────────────────────────────────────────────────────
@@ -232,9 +235,207 @@ function ProductCard({
 
   const { t } = useTranslation();
 
+  const { theme } = useTheme();
+
   const isLow = product.available <= 5;
 
   const adjustedAvailable = Math.max(0, product.available + adjustment);
+
+  const rcStyles = useMemo(() => StyleSheet.create({
+
+    root: {
+
+      position:          "absolute",
+
+      bottom:            0,
+
+      start:              0,
+
+      end:             0,
+
+      backgroundColor:   theme.colors.canvas.surface,
+
+      borderTopStartRadius:  16,
+
+      borderTopEndRadius: 16,
+
+      padding:           kit.inset.card,
+
+      paddingBottom:     28,
+
+      gap:               12,
+
+      ...kit.shadow.overlay,
+
+    },
+
+    close: {
+
+      position: "absolute",
+
+      top: 14,
+
+      [edgeEnd(IS_RTL)]: 14,
+
+      zIndex: 1,
+
+    },
+
+    header: { alignItems: "flex-start", gap: 12 },
+
+    barcodeIcon: {
+
+      width: 42, height: 42, borderRadius: 12,
+
+      backgroundColor: theme.colors.brand.primaryLight,
+
+      alignItems: "center", justifyContent: "center",
+
+      flexShrink: 0,
+
+    },
+
+    price:     { fontSize: 18, fontFamily: "Cairo_900Black", color: theme.colors.brand.primary },
+
+    stockGrid: { gap: 8 },
+
+    stockCell: { flex: 1, alignItems: "center", backgroundColor: theme.colors.canvas.surfaceMuted, borderRadius: 12, paddingVertical: 10 },
+
+    stockVal:  { fontSize: 22, fontFamily: "Cairo_900Black", color: theme.colors.text.primary },
+
+    stockValWarn: { color: theme.colors.status.error },
+
+    stockLabel:{ fontSize: 10, fontFamily: "Cairo_700Bold", color: theme.colors.text.secondary, marginTop: 2 },
+
+    warnRow:   { flexDirection: "row", alignItems: "center", gap: 6, padding: 10, borderRadius: 12, backgroundColor: `${theme.colors.status.error}1A` },
+
+    warnText:  { fontSize: 12, fontFamily: "Cairo_700Bold", color: theme.colors.status.error, flex: 1 },
+
+    catRow:    { alignItems: "center", gap: 6 },
+
+    adjustCard: {
+
+      gap:             12,
+
+      padding:         12,
+
+      borderRadius:    12,
+
+      backgroundColor: theme.colors.canvas.surfaceMuted,
+
+      borderWidth:     1,
+
+      borderColor:     theme.colors.border.default,
+
+    },
+
+    adjustHeader: {
+
+      alignItems: "center",
+
+      gap:        10,
+
+    },
+
+    openInventoryBtn: {
+
+      paddingHorizontal: 12,
+
+      paddingVertical:   8,
+
+      borderRadius:      9999,
+
+      backgroundColor:   theme.colors.brand.primaryLight,
+
+    },
+
+    openInventoryText: {
+
+      fontSize:   11,
+
+      fontFamily: "Cairo_700Bold",
+
+      color:      theme.colors.brand.primary,
+
+    },
+
+    adjustRow: {
+
+      alignItems:     "center",
+
+      justifyContent: "space-between",
+
+      gap:            12,
+
+    },
+
+    adjustBtn: {
+
+      width:           42,
+
+      height:          42,
+
+      borderRadius:    14,
+
+      backgroundColor: theme.colors.canvas.surface,
+
+      borderWidth:     1,
+
+      borderColor:     theme.colors.border.default,
+
+      alignItems:      "center",
+
+      justifyContent:  "center",
+
+    },
+
+    adjustValueWrap: {
+
+      flex:       1,
+
+      alignItems: "center",
+
+      gap:        2,
+
+    },
+
+    adjustValue: {
+
+      fontSize:   22,
+
+      fontFamily: "Cairo_900Black",
+
+      color:      theme.colors.text.primary,
+
+    },
+
+    adjustHint: {
+
+      fontSize:   10,
+
+      fontFamily: "Cairo_400Regular",
+
+      color:      theme.colors.text.muted,
+
+    },
+
+    saveAdjustmentBtn: {
+
+      minHeight: 42,
+
+      borderRadius: 12,
+
+      alignItems: "center",
+
+      justifyContent: "center",
+
+      backgroundColor: theme.colors.brand.primary,
+
+    },
+
+    saveAdjustmentText: { fontSize: 12, fontFamily: "Cairo_700Bold", color: "#fff" },
+
+  }), [theme]);
 
 
 
@@ -470,202 +671,6 @@ function ProductCard({
 
 
 
-const rcStyles = StyleSheet.create({
-
-  root: {
-
-    position:          "absolute",
-
-    bottom:            0,
-
-    start:              0,
-
-    end:             0,
-
-    backgroundColor:   theme.colors.canvas.surface,
-
-    borderTopStartRadius:  16,
-
-    borderTopEndRadius: 16,
-
-    padding:           kit.inset.card,
-
-    paddingBottom:     28,
-
-    gap:               12,
-
-    ...kit.shadow.overlay,
-
-  },
-
-  close: {
-
-    position: "absolute",
-
-    top: 14,
-
-    [edgeEnd(IS_RTL)]: 14,
-
-    zIndex: 1,
-
-  },
-
-  header: { alignItems: "flex-start", gap: 12 },
-
-  barcodeIcon: {
-
-    width: 42, height: 42, borderRadius: 12,
-
-    backgroundColor: theme.colors.brand.primaryLight,
-
-    alignItems: "center", justifyContent: "center",
-
-    flexShrink: 0,
-
-  },
-
-  price:     { fontSize: 18, fontFamily: "Cairo_900Black", color: theme.colors.brand.primary },
-
-  stockGrid: { gap: 8 },
-
-  stockCell: { flex: 1, alignItems: "center", backgroundColor: theme.colors.canvas.surfaceMuted, borderRadius: 12, paddingVertical: 10 },
-
-  stockVal:  { fontSize: 22, fontFamily: "Cairo_900Black", color: theme.colors.text.primary },
-
-  stockValWarn: { color: theme.colors.status.error },
-
-  stockLabel:{ fontSize: 10, fontFamily: "Cairo_700Bold", color: theme.colors.text.secondary, marginTop: 2 },
-
-  warnRow:   { flexDirection: "row", alignItems: "center", gap: 6, padding: 10, borderRadius: 12, backgroundColor: `${theme.colors.status.error}1A` },
-
-  warnText:  { fontSize: 12, fontFamily: "Cairo_700Bold", color: theme.colors.status.error, flex: 1 },
-
-  catRow:    { alignItems: "center", gap: 6 },
-
-  adjustCard: {
-
-    gap:             12,
-
-    padding:         12,
-
-    borderRadius:    12,
-
-    backgroundColor: theme.colors.canvas.surfaceMuted,
-
-    borderWidth:     1,
-
-    borderColor:     theme.colors.border.default,
-
-  },
-
-  adjustHeader: {
-
-    alignItems: "center",
-
-    gap:        10,
-
-  },
-
-  openInventoryBtn: {
-
-    paddingHorizontal: 12,
-
-    paddingVertical:   8,
-
-    borderRadius:      9999,
-
-    backgroundColor:   theme.colors.brand.primaryLight,
-
-  },
-
-  openInventoryText: {
-
-    fontSize:   11,
-
-    fontFamily: "Cairo_700Bold",
-
-    color:      theme.colors.brand.primary,
-
-  },
-
-  adjustRow: {
-
-    alignItems:     "center",
-
-    justifyContent: "space-between",
-
-    gap:            12,
-
-  },
-
-  adjustBtn: {
-
-    width:           42,
-
-    height:          42,
-
-    borderRadius:    14,
-
-    backgroundColor: theme.colors.canvas.surface,
-
-    borderWidth:     1,
-
-    borderColor:     theme.colors.border.default,
-
-    alignItems:      "center",
-
-    justifyContent:  "center",
-
-  },
-
-  adjustValueWrap: {
-
-    flex:       1,
-
-    alignItems: "center",
-
-    gap:        2,
-
-  },
-
-  adjustValue: {
-
-    fontSize:   22,
-
-    fontFamily: "Cairo_900Black",
-
-    color:      theme.colors.text.primary,
-
-  },
-
-  adjustHint: {
-
-    fontSize:   10,
-
-    fontFamily: "Cairo_400Regular",
-
-    color:      theme.colors.text.muted,
-
-  },
-
-  saveAdjustmentBtn: {
-
-    minHeight: 42,
-
-    borderRadius: 12,
-
-    alignItems: "center",
-
-    justifyContent: "center",
-
-    backgroundColor: theme.colors.brand.primary,
-
-  },
-
-  saveAdjustmentText: { fontSize: 12, fontFamily: "Cairo_700Bold", color: "#fff" },
-
-});
-
 
 
 // ─── Main screen ──────────────────────────────────────────────────────────────
@@ -678,11 +683,273 @@ export function BarcodeScannerScreen(): React.ReactElement {
 
   const { t }    = useTranslation();
 
+  const { theme } = useTheme();
+
   const router   = useRouter();
 
   const params   = useLocalSearchParams<{ barcode?: string; mode?: ScanMode }>();
 
   const [permission, requestPermission] = useCameraPermissions();
+
+  const styles = useMemo(() => StyleSheet.create({
+
+    centered: { flex: 1, alignItems: "center", justifyContent: "center" },
+
+    backBtn: {
+
+      position: "absolute",
+
+      top: 56,
+
+      [edgeStart(IS_RTL)]: 16,
+
+    },
+
+    modeBar: {
+
+      position:          "absolute",
+
+      top:               56,
+
+      alignSelf:         "center",
+
+      flexDirection:     "row",
+
+      backgroundColor:   "rgba(0,0,0,0.55)",
+
+      borderRadius:      9999,
+
+      padding:           3,
+
+      gap:               3,
+
+    },
+
+    modeBtn: {
+
+      paddingHorizontal: 18,
+
+      paddingVertical:   8,
+
+      borderRadius:      9999,
+
+    },
+
+    modeBtnActive: { backgroundColor: theme.colors.brand.primary },
+
+    modeBtnText: { fontSize: 12, fontFamily: "Cairo_700Bold", color: "rgba(255,255,255,0.7)" },
+
+    modeBtnTextActive: { color: "#fff" },
+
+    scanWindow: {
+
+      position:      "absolute",
+
+      top:           "50%",
+
+      start:          "50%",
+
+      width:         WINDOW_SIZE,
+
+      height:        WINDOW_SIZE,
+
+      marginTop:     -(WINDOW_SIZE / 2) - 30,
+
+      marginStart:    -(WINDOW_SIZE / 2),
+
+    },
+
+    corner: {
+
+      position:  "absolute",
+
+      width:     28,
+
+      height:    28,
+
+      borderColor: theme.colors.brand.primary,
+
+      borderWidth: 3,
+
+    },
+
+    cornerTL: { top: 0, start: 0,  borderEndWidth: 0, borderBottomWidth: 0, borderTopStartRadius:     8 },
+
+    cornerTR: { top: 0, end: 0, borderStartWidth:  0, borderBottomWidth: 0, borderTopEndRadius:    8 },
+
+    cornerBL: { bottom: 0, start: 0,  borderEndWidth: 0, borderTopWidth: 0, borderBottomStartRadius:  8 },
+
+    cornerBR: { bottom: 0, end: 0, borderStartWidth:  0, borderTopWidth: 0, borderBottomEndRadius: 8 },
+
+    scanLine: {
+
+      position:        "absolute",
+
+      start:            8,
+
+      end:           8,
+
+      top:             "50%",
+
+      height:          2,
+
+      backgroundColor: theme.colors.brand.primary,
+
+      opacity:         0.8,
+
+    },
+
+    instructionRow: {
+
+      position:   "absolute",
+
+      bottom:     180,
+
+      start:       0,
+
+      end:      0,
+
+      alignItems: "center",
+
+    },
+
+    instruction: {
+
+      fontSize:          13,
+
+      fontFamily:        "Cairo_700Bold",
+
+      color:             "rgba(255,255,255,0.85)",
+
+      backgroundColor:   "rgba(0,0,0,0.4)",
+
+      paddingHorizontal: 16,
+
+      paddingVertical:   8,
+
+      borderRadius:      9999,
+
+    },
+
+    controls: {
+
+      position:          "absolute",
+
+      bottom:            48,
+
+      start:              24,
+
+      end:             24,
+
+      justifyContent:    "space-between",
+
+      alignItems:        "center",
+
+    },
+
+    iconCircle: {
+
+      width:           46,
+
+      height:          46,
+
+      borderRadius:    23,
+
+      backgroundColor: "rgba(0,0,0,0.5)",
+
+      alignItems:      "center",
+
+      justifyContent:  "center",
+
+      borderWidth:     1,
+
+      borderColor:     "rgba(255,255,255,0.2)",
+
+    },
+
+    iconCircleActive: {
+
+      backgroundColor: "rgba(255,255,255,0.18)",
+
+      borderColor:     theme.colors.brand.primary,
+
+    },
+
+    scanningPill: {
+
+      flexDirection:     "row",
+
+      alignItems:        "center",
+
+      gap:               8,
+
+      backgroundColor:   "rgba(0,0,0,0.55)",
+
+      paddingHorizontal: 16,
+
+      paddingVertical:   10,
+
+      borderRadius:      9999,
+
+    },
+
+    scanningText: { fontSize: 12, fontFamily: "Cairo_700Bold", color: "#fff" },
+
+    errorBanner: {
+
+      position:          "absolute",
+
+      bottom:            120,
+
+      start:              24,
+
+      end:             24,
+
+      flexDirection:     "row",
+
+      alignItems:        "center",
+
+      gap:               8,
+
+      backgroundColor:   `${theme.colors.status.error}1A`,
+
+      borderRadius:      12,
+
+      borderWidth:       1,
+
+      borderColor:       theme.colors.status.error,
+
+      paddingHorizontal: 14,
+
+      paddingVertical:   12,
+
+    },
+
+    errorText: { flex: 1, fontSize: 12, fontFamily: "Cairo_700Bold", color: theme.colors.status.error },
+
+    retryPill: {
+
+      paddingHorizontal: 10,
+
+      paddingVertical:   6,
+
+      borderRadius:      9999,
+
+      backgroundColor:   "rgba(255,255,255,0.55)",
+
+    },
+
+    retryPillText: {
+
+      fontSize:   10,
+
+      fontFamily: "Cairo_700Bold",
+
+      color:      theme.colors.status.error,
+
+    },
+
+  }), [theme]);
 
 
 
@@ -1227,275 +1494,3 @@ export function BarcodeScannerScreen(): React.ReactElement {
 const WINDOW_SIZE = 240;
 
 
-
-const styles = StyleSheet.create({
-
-  centered: { flex: 1, alignItems: "center", justifyContent: "center" },
-
-
-
-  backBtn: {
-
-    position: "absolute",
-
-    top: 56,
-
-    [edgeStart(IS_RTL)]: 16,
-
-  },
-
-
-
-  modeBar: {
-
-    position:          "absolute",
-
-    top:               56,
-
-    alignSelf:         "center",
-
-    flexDirection:     "row",
-
-    backgroundColor:   "rgba(0,0,0,0.55)",
-
-    borderRadius:      9999,
-
-    padding:           3,
-
-    gap:               3,
-
-  },
-
-  modeBtn: {
-
-    paddingHorizontal: 18,
-
-    paddingVertical:   8,
-
-    borderRadius:      9999,
-
-  },
-
-  modeBtnActive: { backgroundColor: theme.colors.brand.primary },
-
-  modeBtnText: { fontSize: 12, fontFamily: "Cairo_700Bold", color: "rgba(255,255,255,0.7)" },
-
-  modeBtnTextActive: { color: "#fff" },
-
-
-
-  scanWindow: {
-
-    position:      "absolute",
-
-    top:           "50%",
-
-    start:          "50%",
-
-    width:         WINDOW_SIZE,
-
-    height:        WINDOW_SIZE,
-
-    marginTop:     -(WINDOW_SIZE / 2) - 30,
-
-    marginStart:    -(WINDOW_SIZE / 2),
-
-  },
-
-  corner: {
-
-    position:  "absolute",
-
-    width:     28,
-
-    height:    28,
-
-    borderColor: theme.colors.brand.primary,
-
-    borderWidth: 3,
-
-  },
-
-  cornerTL: { top: 0, start: 0,  borderEndWidth: 0, borderBottomWidth: 0, borderTopStartRadius:     8 },
-
-  cornerTR: { top: 0, end: 0, borderStartWidth:  0, borderBottomWidth: 0, borderTopEndRadius:    8 },
-
-  cornerBL: { bottom: 0, start: 0,  borderEndWidth: 0, borderTopWidth: 0, borderBottomStartRadius:  8 },
-
-  cornerBR: { bottom: 0, end: 0, borderStartWidth:  0, borderTopWidth: 0, borderBottomEndRadius: 8 },
-
-  scanLine: {
-
-    position:        "absolute",
-
-    start:            8,
-
-    end:           8,
-
-    top:             "50%",
-
-    height:          2,
-
-    backgroundColor: theme.colors.brand.primary,
-
-    opacity:         0.8,
-
-  },
-
-
-
-  instructionRow: {
-
-    position:   "absolute",
-
-    bottom:     180,
-
-    start:       0,
-
-    end:      0,
-
-    alignItems: "center",
-
-  },
-
-  instruction: {
-
-    fontSize:          13,
-
-    fontFamily:        "Cairo_700Bold",
-
-    color:             "rgba(255,255,255,0.85)",
-
-    backgroundColor:   "rgba(0,0,0,0.4)",
-
-    paddingHorizontal: 16,
-
-    paddingVertical:   8,
-
-    borderRadius:      9999,
-
-  },
-
-
-
-  controls: {
-
-    position:          "absolute",
-
-    bottom:            48,
-
-    start:              24,
-
-    end:             24,
-
-    justifyContent:    "space-between",
-
-    alignItems:        "center",
-
-  },
-
-  iconCircle: {
-
-    width:           46,
-
-    height:          46,
-
-    borderRadius:    23,
-
-    backgroundColor: "rgba(0,0,0,0.5)",
-
-    alignItems:      "center",
-
-    justifyContent:  "center",
-
-    borderWidth:     1,
-
-    borderColor:     "rgba(255,255,255,0.2)",
-
-  },
-
-  iconCircleActive: {
-
-    backgroundColor: "rgba(255,255,255,0.18)",
-
-    borderColor:     theme.colors.brand.primary,
-
-  },
-
-  scanningPill: {
-
-    flexDirection:     "row",
-
-    alignItems:        "center",
-
-    gap:               8,
-
-    backgroundColor:   "rgba(0,0,0,0.55)",
-
-    paddingHorizontal: 16,
-
-    paddingVertical:   10,
-
-    borderRadius:      9999,
-
-  },
-
-  scanningText: { fontSize: 12, fontFamily: "Cairo_700Bold", color: "#fff" },
-
-
-
-  errorBanner: {
-
-    position:          "absolute",
-
-    bottom:            120,
-
-    start:              24,
-
-    end:             24,
-
-    flexDirection:     "row",
-
-    alignItems:        "center",
-
-    gap:               8,
-
-    backgroundColor:   `${theme.colors.status.error}1A`,
-
-    borderRadius:      12,
-
-    borderWidth:       1,
-
-    borderColor:       theme.colors.status.error,
-
-    paddingHorizontal: 14,
-
-    paddingVertical:   12,
-
-  },
-
-  errorText: { flex: 1, fontSize: 12, fontFamily: "Cairo_700Bold", color: theme.colors.status.error },
-
-  retryPill: {
-
-    paddingHorizontal: 10,
-
-    paddingVertical:   6,
-
-    borderRadius:      9999,
-
-    backgroundColor:   "rgba(255,255,255,0.55)",
-
-  },
-
-  retryPillText: {
-
-    fontSize:   10,
-
-    fontFamily: "Cairo_700Bold",
-
-    color:      theme.colors.status.error,
-
-  },
-
-});

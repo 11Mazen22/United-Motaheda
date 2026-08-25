@@ -10,10 +10,9 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import * as ExpoLocation from "expo-location";
 import { useTranslation } from "react-i18next";
-import { Screen, Text as UIText } from "@pharmacy/ui-native";
+import { Screen, Text as UIText, useTheme } from "@pharmacy/ui-native";
 import { Button, kit } from "@pharmacy/ui-native";
 import MetricCard from "@/components/MetricCard";
-import { defaultTheme as theme } from "@pharmacy/ui-native";
 import { Badge } from "@/components/ui/Badge";
 import {
   DetailSection,
@@ -38,6 +37,7 @@ const TEXT_START = textAlignStart(IS_RTL);
 
 export function DeliveryExecutionScreen(): React.ReactElement {
   const { t } = useTranslation();
+  const { theme } = useTheme();
   const router = useRouter();
   const { orderId } = useLocalSearchParams<{ orderId: string }>();
   const { user } = useAuth();
@@ -45,6 +45,39 @@ export function DeliveryExecutionScreen(): React.ReactElement {
   const orderQuery = useDriverOrderDetail(orderId);
   const assignmentQuery = useMyAssignmentForOrder(orderId, user?.id);
   const mutations = useDriverMutations(user?.id);
+
+  const s = useMemo(() => StyleSheet.create({
+    content: { paddingBottom: 40 },
+    centered: { alignItems: "center", paddingTop: 60, paddingHorizontal: 24 },
+    actions: {
+      marginHorizontal: kit.inset.screen,
+      marginTop: 12,
+      gap: 12,
+    },
+    commandCard: {
+      flexDirection: flexRow(IS_RTL), alignItems: "center", gap: 14,
+      marginHorizontal: kit.inset.screen, marginTop: 8, marginBottom: 16,
+      padding: 16, borderRadius: 16, backgroundColor: theme.colors.canvas.surface,
+      borderWidth: 1, borderColor: theme.colors.border.default, ...theme.shadows[1],
+    },
+    liveStatusCard: {
+      flexDirection: flexRow(IS_RTL),
+      alignItems: "center",
+      gap: 8,
+      marginHorizontal: kit.inset.screen,
+      marginBottom: 16,
+      paddingVertical: 12,
+      paddingHorizontal: 14,
+      borderRadius: 12,
+      backgroundColor: theme.colors.brand.primaryLight,
+      borderWidth: 1,
+      borderColor: theme.colors.border.default,
+    },
+    quickActions: { flexDirection: flexRow(IS_RTL), gap: 8 },
+    quickAction: { width: 44, height: 44, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: theme.colors.brand.primaryLight },
+    quickActionDisabled: { opacity: 0.4 },
+    metricsRow: { flexDirection: flexRow(IS_RTL), gap: 8, paddingHorizontal: kit.inset.screen, marginTop: 8 },
+  }), [theme]);
 
   const order = orderQuery.data;
   const assignment = assignmentQuery.data;
@@ -363,36 +396,3 @@ export function DeliveryExecutionScreen(): React.ReactElement {
     </Screen>
   );
 }
-
-const s = StyleSheet.create({
-  content: { paddingBottom: 40 },
-  centered: { alignItems: "center", paddingTop: 60, paddingHorizontal: 24 },
-  actions: {
-    marginHorizontal: kit.inset.screen,
-    marginTop: 12,
-    gap: 12,
-  },
-  commandCard: {
-    flexDirection: flexRow(IS_RTL), alignItems: "center", gap: 14,
-    marginHorizontal: kit.inset.screen, marginTop: 8, marginBottom: 16,
-    padding: 16, borderRadius: 16, backgroundColor: theme.colors.canvas.surface,
-    borderWidth: 1, borderColor: theme.colors.border.default, ...theme.shadows[1],
-  },
-  liveStatusCard: {
-    flexDirection: flexRow(IS_RTL),
-    alignItems: "center",
-    gap: 8,
-    marginHorizontal: kit.inset.screen,
-    marginBottom: 16,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    borderRadius: 12,
-    backgroundColor: theme.colors.brand.primaryLight,
-    borderWidth: 1,
-    borderColor: theme.colors.border.default,
-  },
-  quickActions: { flexDirection: flexRow(IS_RTL), gap: 8 },
-  quickAction: { width: 44, height: 44, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: theme.colors.brand.primaryLight },
-  quickActionDisabled: { opacity: 0.4 },
-  metricsRow: { flexDirection: flexRow(IS_RTL), gap: 8, paddingHorizontal: kit.inset.screen, marginTop: 8 },
-});

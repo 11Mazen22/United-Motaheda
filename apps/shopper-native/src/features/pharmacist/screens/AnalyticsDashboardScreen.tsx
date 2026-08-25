@@ -1,4 +1,3 @@
-import { defaultTheme as theme } from "@pharmacy/ui-native";
 /**
  * AnalyticsDashboardScreen — live KPI dashboard for the pharmacist.
  *
@@ -15,7 +14,7 @@ import { defaultTheme as theme } from "@pharmacy/ui-native";
 
 
 
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 
 import {
 
@@ -43,7 +42,7 @@ import Animated, { FadeInDown } from "react-native-reanimated";
 
 
 
-import { Screen, Text as UIText } from "@pharmacy/ui-native";
+import { Screen, Text as UIText, useTheme } from "@pharmacy/ui-native";
 
 import { kit }                    from "@pharmacy/ui-native";
 
@@ -77,9 +76,9 @@ function MetricRow({
 
   icon,
 
-  iconColor = theme.colors.brand.primary,
+  iconColor,
 
-  iconBg = theme.colors.brand.primaryLight,
+  iconBg,
 
   caption,
 
@@ -99,13 +98,29 @@ function MetricRow({
 
 }) {
 
+  const { theme } = useTheme();
+
+  const resolvedIconColor = iconColor ?? theme.colors.brand.primary;
+
+  const resolvedIconBg = iconBg ?? theme.colors.brand.primaryLight;
+
+  const mrStyles = useMemo(() => StyleSheet.create({
+
+    root:    { alignItems: "center", gap: 12, paddingVertical: 8 },
+
+    iconWell:{ width: 34, height: 34, borderRadius: 10, alignItems: "center", justifyContent: "center", flexShrink: 0 },
+
+    value:   { fontSize: 16, fontFamily: "Cairo_900Black", color: theme.colors.text.primary },
+
+  }), [theme]);
+
 
 
   return (
 
     <View style={[mrStyles.root, { flexDirection: flexRow(IS_RTL) }]}>
 
-      <View style={[mrStyles.iconWell, { backgroundColor: iconBg }]}>        <Ionicons name={icon} size={16} color={iconColor} />
+      <View style={[mrStyles.iconWell, { backgroundColor: resolvedIconBg }]}>        <Ionicons name={icon} size={16} color={resolvedIconColor} />
 
       </View>
 
@@ -139,18 +154,6 @@ function MetricRow({
 
 
 
-const mrStyles = StyleSheet.create({
-
-  root:    { alignItems: "center", gap: 12, paddingVertical: 8 },
-
-  iconWell:{ width: 34, height: 34, borderRadius: 10, alignItems: "center", justifyContent: "center", flexShrink: 0 },
-
-  value:   { fontSize: 16, fontFamily: "Cairo_900Black", color: theme.colors.text.primary },
-
-});
-
-
-
 // ─── Section card ─────────────────────────────────────────────────────────────
 
 
@@ -170,6 +173,62 @@ function Section({
   delay?:   number;
 
 }) {
+
+  const { theme } = useTheme();
+
+  const scStyles = useMemo(() => StyleSheet.create({
+
+    root: {
+
+      backgroundColor: theme.colors.canvas.surface,
+
+      borderRadius:    16,
+
+      borderWidth:     1,
+
+      borderColor:     theme.colors.border.default,
+
+      ...theme.shadows[1],
+
+    },
+
+    header: {
+
+      alignItems:        "center",
+
+      gap:               10,
+
+      paddingHorizontal: kit.inset.card,
+
+      paddingTop:        14,
+
+      paddingBottom:     10,
+
+      borderBottomWidth: StyleSheet.hairlineWidth,
+
+      borderBottomColor: theme.colors.border.default,
+
+    },
+
+    iconWell: {
+
+      width: 28, height: 28, borderRadius: 9,
+
+      backgroundColor: theme.colors.brand.primaryLight,
+
+      alignItems: "center", justifyContent: "center",
+
+    },
+
+    body: {
+
+      paddingHorizontal: kit.inset.card,
+
+      paddingBottom:     kit.inset.card,
+
+    },
+
+  }), [theme]);
 
 
 
@@ -197,62 +256,6 @@ function Section({
 
 
 
-const scStyles = StyleSheet.create({
-
-  root: {
-
-    backgroundColor: theme.colors.canvas.surface,
-
-    borderRadius:    16,
-
-    borderWidth:     1,
-
-    borderColor:     theme.colors.border.default,
-
-    ...theme.shadows[1],
-
-  },
-
-  header: {
-
-    alignItems:        "center",
-
-    gap:               10,
-
-    paddingHorizontal: kit.inset.card,
-
-    paddingTop:        14,
-
-    paddingBottom:     10,
-
-    borderBottomWidth: StyleSheet.hairlineWidth,
-
-    borderBottomColor: theme.colors.border.default,
-
-  },
-
-  iconWell: {
-
-    width: 28, height: 28, borderRadius: 9,
-
-    backgroundColor: theme.colors.brand.primaryLight,
-
-    alignItems: "center", justifyContent: "center",
-
-  },
-
-  body: {
-
-    paddingHorizontal: kit.inset.card,
-
-    paddingBottom:     kit.inset.card,
-
-  },
-
-});
-
-
-
 // ─── Simple bar chart ─────────────────────────────────────────────────────────
 
 
@@ -270,6 +273,24 @@ function MiniBarChart({
   label: string;
 
 }) {
+
+  const { theme } = useTheme();
+
+  const bcStyles = useMemo(() => StyleSheet.create({
+
+    root:     { marginTop: 10 },
+
+    bars:     { alignItems: "flex-end", gap: 4, height: 60 },
+
+    barCol:   { flex: 1, alignItems: "center", gap: 3 },
+
+    barTrack: { flex: 1, width: "80%", backgroundColor: theme.colors.canvas.surfaceMuted, borderRadius: 4, overflow: "hidden", justifyContent: "flex-end" },
+
+    barFill:  { backgroundColor: theme.colors.brand.primary, borderRadius: 4 },
+
+    barLabel: { fontSize: 8, fontFamily: "Cairo_700Bold", color: theme.colors.text.muted },
+
+  }), [theme]);
 
 
 
@@ -321,22 +342,6 @@ function MiniBarChart({
 
 
 
-const bcStyles = StyleSheet.create({
-
-  root:     { marginTop: 10 },
-
-  bars:     { alignItems: "flex-end", gap: 4, height: 60 },
-
-  barCol:   { flex: 1, alignItems: "center", gap: 3 },
-
-  barTrack: { flex: 1, width: "80%", backgroundColor: theme.colors.canvas.surfaceMuted, borderRadius: 4, overflow: "hidden", justifyContent: "flex-end" },
-
-  barFill:  { backgroundColor: theme.colors.brand.primary, borderRadius: 4 },
-
-  barLabel: { fontSize: 8, fontFamily: "Cairo_700Bold", color: theme.colors.text.muted },
-
-});
-
 
 
 // ─── BigKpi card ─────────────────────────────────────────────────────────────
@@ -356,6 +361,28 @@ function BigKpi({
   iconColor: string; iconBg: string;
 
 }) {
+
+  const { theme } = useTheme();
+
+  const bkStyles = useMemo(() => StyleSheet.create({
+
+    card: {
+
+      flex: 1, backgroundColor: theme.colors.canvas.surface, borderRadius: 16,
+
+      padding: 16, gap: 8, borderWidth: 1, borderColor: theme.colors.border.default, ...theme.shadows[1],
+
+    },
+
+    iconWell: { width: 44, height: 44, borderRadius: 14, alignItems: "center", justifyContent: "center" },
+
+    value: { fontSize: 28, lineHeight: 34, fontFamily: "Cairo_900Black", color: theme.colors.text.primary, includeFontPadding: false },
+
+    label: { fontSize: 12, fontFamily: "Cairo_700Bold", color: theme.colors.text.secondary, textAlign: TEXT_START, includeFontPadding: false },
+
+  }), [theme]);
+
+
 
   return (
 
@@ -377,24 +404,6 @@ function BigKpi({
 
 
 
-const bkStyles = StyleSheet.create({
-
-  card: {
-
-    flex: 1, backgroundColor: theme.colors.canvas.surface, borderRadius: 16,
-
-    padding: 16, gap: 8, borderWidth: 1, borderColor: theme.colors.border.default, ...theme.shadows[1],
-
-  },
-
-  iconWell: { width: 44, height: 44, borderRadius: 14, alignItems: "center", justifyContent: "center" },
-
-  value: { fontSize: 28, lineHeight: 34, fontFamily: "Cairo_900Black", color: theme.colors.text.primary, includeFontPadding: false },
-
-  label: { fontSize: 12, fontFamily: "Cairo_700Bold", color: theme.colors.text.secondary, textAlign: TEXT_START, includeFontPadding: false },
-
-});
-
 
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
@@ -407,9 +416,75 @@ export function AnalyticsDashboardScreen(): React.ReactElement {
 
   const { t }       = useTranslation();
 
+  const { theme }   = useTheme();
+
   const queryClient = useQueryClient();
 
   const [refreshing, setRefreshing] = useState(false);
+
+  const styles = useMemo(() => StyleSheet.create({
+
+    centered:       { flex: 1, alignItems: "center", justifyContent: "center" },
+
+    headerGradient: { overflow: "hidden" },
+
+    headerInner: {
+
+      paddingHorizontal: kit.inset.screen,
+
+      paddingVertical:   18,
+
+      gap:               4,
+
+    },
+
+    headerTitle: {
+
+      fontSize:           20,
+
+      lineHeight:         26,
+
+      fontFamily:         "Cairo_900Black",
+
+      color:              "#FFFFFF",
+
+      letterSpacing:      -0.3,
+
+      textAlign:          TEXT_START,
+
+      includeFontPadding: false,
+
+    },
+
+    headerSub: {
+
+      fontSize:           12,
+
+      lineHeight:         16,
+
+      fontFamily:         "Cairo_400Regular",
+
+      color:              "rgba(255,255,255,0.75)",
+
+      textAlign:          TEXT_START,
+
+      includeFontPadding: false,
+
+    },
+
+    scroll:      { paddingHorizontal: kit.inset.screen, paddingBottom: 60, gap: 14, paddingTop: 8 },
+
+    kpiRow:      { flexDirection: flexRow(IS_RTL), gap: 10, marginHorizontal: 0 },
+
+    funnelRow:   { alignItems: "center", gap: 10, paddingVertical: 8 },
+
+    funnelDot:   { width: 10, height: 10, borderRadius: 5, flexShrink: 0 },
+
+    funnelCount: { fontSize: 16, fontFamily: "Cairo_900Black" },
+
+    divider:     { height: StyleSheet.hairlineWidth, backgroundColor: theme.colors.border.default, marginVertical: 2 },
+
+  }), [theme]);
 
 
 
@@ -770,68 +845,4 @@ export function AnalyticsDashboardScreen(): React.ReactElement {
 }
 
 
-
-const styles = StyleSheet.create({
-
-  centered:       { flex: 1, alignItems: "center", justifyContent: "center" },
-
-  headerGradient: { overflow: "hidden" },
-
-  headerInner: {
-
-    paddingHorizontal: kit.inset.screen,
-
-    paddingVertical:   18,
-
-    gap:               4,
-
-  },
-
-  headerTitle: {
-
-    fontSize:           20,
-
-    lineHeight:         26,
-
-    fontFamily:         "Cairo_900Black",
-
-    color:              "#FFFFFF",
-
-    letterSpacing:      -0.3,
-
-    textAlign:          TEXT_START,
-
-    includeFontPadding: false,
-
-  },
-
-  headerSub: {
-
-    fontSize:           12,
-
-    lineHeight:         16,
-
-    fontFamily:         "Cairo_400Regular",
-
-    color:              "rgba(255,255,255,0.75)",
-
-    textAlign:          TEXT_START,
-
-    includeFontPadding: false,
-
-  },
-
-  scroll:      { paddingHorizontal: kit.inset.screen, paddingBottom: 60, gap: 14, paddingTop: 8 },
-
-  kpiRow:      { flexDirection: flexRow(IS_RTL), gap: 10, marginHorizontal: 0 },
-
-  funnelRow:   { alignItems: "center", gap: 10, paddingVertical: 8 },
-
-  funnelDot:   { width: 10, height: 10, borderRadius: 5, flexShrink: 0 },
-
-  funnelCount: { fontSize: 16, fontFamily: "Cairo_900Black" },
-
-  divider:     { height: StyleSheet.hairlineWidth, backgroundColor: theme.colors.border.default, marginVertical: 2 },
-
-});
 

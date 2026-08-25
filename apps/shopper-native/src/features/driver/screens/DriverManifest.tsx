@@ -3,17 +3,16 @@
  * assignment offers up top (needs a response), then today's active manifest
  * (accepted orders still being prepared/delivered).
  */
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { FlatList, Pressable, RefreshControl, StyleSheet, View } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
 import { LinearGradient } from "expo-linear-gradient";
-import { Screen, Text as UIText, SkeletonCard, EmptyState } from "@pharmacy/ui-native";
+import { Screen, Text as UIText, SkeletonCard, EmptyState, useTheme } from "@pharmacy/ui-native";
 import { kit } from "@pharmacy/ui-native";
 import { theme as legacyTheme, gradients } from "@pharmacy/design-tokens";
-import { defaultTheme as theme } from "@pharmacy/ui-native";
 import { useAuth } from "@/features/auth";
 import { useUnreadCount } from "@/features/notifications";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
@@ -32,11 +31,41 @@ const TEXT_START = textAlignStart(IS_RTL);
 
 export function DriverManifest(): React.ReactElement {
   const { t } = useTranslation();
+  const { theme } = useTheme();
   const router = useRouter();
   const { user, signOut } = useAuth();
   const unreadCount = useUnreadCount(user?.id);
   const queryClient = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
+
+  const s = useMemo(() => StyleSheet.create({
+    logoutBtn: {
+      width: 40, height: 40, borderRadius: 20,
+      alignItems: "center", justifyContent: "center",
+      backgroundColor: theme.colors.canvas.surface,
+      borderWidth: 1, borderColor: theme.colors.border.default,
+    },
+    headerActions: { flexDirection: "row", alignItems: "center", gap: 8 },
+    headerAction: { position: "relative", width: 40, height: 40, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: theme.colors.canvas.surfaceMuted },
+    notificationDot: { position: "absolute", top: 8, end: 8, width: 7, height: 7, borderRadius: 4, backgroundColor: theme.colors.status.error, borderWidth: 1, borderColor: theme.colors.canvas.background },
+    listContent: {
+      paddingHorizontal: kit.inset.screen,
+      paddingBottom: 40,
+    },
+    metricLabel: { fontSize: 9, color: "rgba(255,255,255,0.68)", textAlign: "center", marginTop: 2 },
+    heroWrap: { marginBottom: 8 },
+    heroGradient: { paddingHorizontal: kit.inset.screen, paddingTop: 14, paddingBottom: 18, borderRadius: 16, marginHorizontal: kit.inset.screen, overflow: 'hidden', ...theme.shadows[1] },
+    heroTopRow: { flexDirection: flexRow(IS_RTL), alignItems: 'center', gap: 8 },
+    heroTitle: { fontSize: 20, fontFamily: legacyTheme.fonts.black, color: '#fff', marginTop: 6 },
+    kpiRow: { flexDirection: flexRow(IS_RTL), gap: 8, marginTop: 12 },
+    quickActionsRow: { flexDirection: flexRow(IS_RTL), gap: 10, paddingHorizontal: kit.inset.screen, marginTop: 12 },
+    quickTile: { flex: 1, backgroundColor: theme.colors.canvas.surface, paddingVertical: 10, borderRadius: 12, alignItems: 'center', justifyContent: 'center', ...theme.shadows[1] },
+    offerCount: { position: 'absolute', top: -6, end: -6, minWidth: 22, height: 22, borderRadius: 11, backgroundColor: theme.colors.status.error, alignItems: 'center', justifyContent: 'center' },
+    offerCountText: { color: '#fff', fontSize: 11, fontFamily: legacyTheme.fonts.black },
+    mapPreviewWrap: { marginTop: 12, marginHorizontal: kit.inset.screen, borderRadius: 16, overflow: 'hidden', height: 120, ...theme.shadows[1] },
+    sectionHeaderRow: { flexDirection: flexRow(IS_RTL), alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: kit.inset.screen, marginTop: 16, marginBottom: 8 },
+    smallRefresh: { padding: 8 },
+  }), [theme]);
 
   const manifestQuery = useDriverManifest(user?.id);
   const offersQuery = useDriverOffers(user?.id);
@@ -155,32 +184,3 @@ export function DriverManifest(): React.ReactElement {
     </Screen>
   );
 }
-
-const s = StyleSheet.create({
-  logoutBtn: {
-    width: 40, height: 40, borderRadius: 20,
-    alignItems: "center", justifyContent: "center",
-    backgroundColor: theme.colors.canvas.surface,
-    borderWidth: 1, borderColor: theme.colors.border.default,
-  },
-  headerActions: { flexDirection: "row", alignItems: "center", gap: 8 },
-  headerAction: { position: "relative", width: 40, height: 40, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: theme.colors.canvas.surfaceMuted },
-  notificationDot: { position: "absolute", top: 8, end: 8, width: 7, height: 7, borderRadius: 4, backgroundColor: theme.colors.status.error, borderWidth: 1, borderColor: theme.colors.canvas.background },
-  listContent: {
-    paddingHorizontal: kit.inset.screen,
-    paddingBottom: 40,
-  },
-  metricLabel: { fontSize: 9, color: "rgba(255,255,255,0.68)", textAlign: "center", marginTop: 2 },
-  heroWrap: { marginBottom: 8 },
-  heroGradient: { paddingHorizontal: kit.inset.screen, paddingTop: 14, paddingBottom: 18, borderRadius: 16, marginHorizontal: kit.inset.screen, overflow: 'hidden', ...theme.shadows[1] },
-  heroTopRow: { flexDirection: flexRow(IS_RTL), alignItems: 'center', gap: 8 },
-  heroTitle: { fontSize: 20, fontFamily: legacyTheme.fonts.black, color: '#fff', marginTop: 6 },
-  kpiRow: { flexDirection: flexRow(IS_RTL), gap: 8, marginTop: 12 },
-  quickActionsRow: { flexDirection: flexRow(IS_RTL), gap: 10, paddingHorizontal: kit.inset.screen, marginTop: 12 },
-  quickTile: { flex: 1, backgroundColor: theme.colors.canvas.surface, paddingVertical: 10, borderRadius: 12, alignItems: 'center', justifyContent: 'center', ...theme.shadows[1] },
-  offerCount: { position: 'absolute', top: -6, end: -6, minWidth: 22, height: 22, borderRadius: 11, backgroundColor: theme.colors.status.error, alignItems: 'center', justifyContent: 'center' },
-  offerCountText: { color: '#fff', fontSize: 11, fontFamily: legacyTheme.fonts.black },
-  mapPreviewWrap: { marginTop: 12, marginHorizontal: kit.inset.screen, borderRadius: 16, overflow: 'hidden', height: 120, ...theme.shadows[1] },
-  sectionHeaderRow: { flexDirection: flexRow(IS_RTL), alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: kit.inset.screen, marginTop: 16, marginBottom: 8 },
-  smallRefresh: { padding: 8 },
-});

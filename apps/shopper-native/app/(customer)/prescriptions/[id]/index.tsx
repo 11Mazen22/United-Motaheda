@@ -1,5 +1,4 @@
-import { defaultTheme as theme } from "@pharmacy/ui-native";
-import { useTheme } from "@pharmacy/ui-native";
+import { useTheme, type NativeTheme } from "@pharmacy/ui-native";
 
 /**
 
@@ -111,23 +110,23 @@ const TEXT_START = textAlignStart(IS_RTL);
 
 
 
-function rxStatusColor(status: RxStatus): string {
+function rxStatusColor(status: RxStatus, colors: NativeTheme["colors"]): string {
   switch (status) {
-    case 'ready': return theme.colors.status.success;
-    case 'active': return theme.colors.brand.primary;
-    case 'expiring': return theme.colors.status.warning;
-    case 'expired': return theme.colors.text.muted;
-    default: return theme.colors.text.secondary;
+    case 'ready': return colors.status.success;
+    case 'active': return colors.brand.primary;
+    case 'expiring': return colors.status.warning;
+    case 'expired': return colors.text.muted;
+    default: return colors.text.secondary;
   }
 }
 
-function rxStatusTint(status: RxStatus): string {
+function rxStatusTint(status: RxStatus, colors: NativeTheme["colors"]): string {
   switch (status) {
-    case 'ready': return `${theme.colors.status.success}1A`;
-    case 'active': return theme.colors.brand.primaryLight;
-    case 'expiring': return `${theme.colors.status.warning}1A`;
-    case 'expired': return theme.colors.brand.primaryLight;
-    default: return theme.colors.canvas.surfaceMuted;
+    case 'ready': return `${colors.status.success}1A`;
+    case 'active': return colors.brand.primaryLight;
+    case 'expiring': return `${colors.status.warning}1A`;
+    case 'expired': return colors.brand.primaryLight;
+    default: return colors.canvas.surfaceMuted;
   }
 }
 
@@ -208,7 +207,7 @@ export default function Page(): React.ReactElement {
   const { id } = useLocalSearchParams<{ id: string }>();
 
   const { theme } = useTheme();
-  const s = React.useMemo(() => get_s(), []);
+  const s = React.useMemo(() => get_s(theme), [theme]);
 const { t, i18n } = useTranslation();
 
   const router      = useRouter();
@@ -401,8 +400,8 @@ const { t, i18n } = useTranslation();
 
 
 
-  const color     = rxStatusColor(rx.status);
-  const tint      = rxStatusTint(rx.status);
+  const color     = rxStatusColor(rx.status, theme.colors);
+  const tint      = rxStatusTint(rx.status, theme.colors);
   const isExpired = rx.status === "expired";
 
 
@@ -1005,7 +1004,7 @@ function Header({
 
   
   const { theme } = useTheme();
-  const s = React.useMemo(() => get_s(), []);
+  const s = React.useMemo(() => get_s(theme), [theme]);
 const { t } = useTranslation();
 
   const showActions = !!(onEdit && onDelete && onSave && onCancel);
@@ -1312,7 +1311,7 @@ function RefillTimeline({
 }: { refill: RefillRequest; label: (status: RefillStatus) => string }) {
 
   const { theme } = useTheme();
-  const tl = React.useMemo(() => get_tl(), []);
+  const tl = React.useMemo(() => get_tl(theme), [theme]);
 
   const currentIdx = REFILL_STEPS.findIndex((st) => st.key === refill.status);
 
@@ -1432,7 +1431,7 @@ function Fact({
   
   const { theme } = useTheme();
 
-  const f = React.useMemo(() => get_f(), []);
+  const f = React.useMemo(() => get_f(theme), [theme]);
 
 
 
@@ -1476,7 +1475,7 @@ function RefillHistoryRow({
 
   
   const { theme } = useTheme();
-  const h = React.useMemo(() => get_h(), []);
+  const h = React.useMemo(() => get_h(theme), [theme]);
 
 
 
@@ -1563,7 +1562,7 @@ function RefillHistoryRow({
 
 
 
-function get_s() { return StyleSheet.create({
+function get_s(theme: NativeTheme) { return StyleSheet.create({
 
   screen: { flex: 1, backgroundColor: theme.colors.canvas.background },
 
@@ -2511,7 +2510,7 @@ function get_lc(_c: unknown) { return StyleSheet.create({
 
 
 
-function get_tl() { return StyleSheet.create({
+function get_tl(theme: NativeTheme) { return StyleSheet.create({
 
   row: {
 
@@ -2595,7 +2594,7 @@ function get_tl() { return StyleSheet.create({
 
 
 
-function get_f() { return StyleSheet.create({
+function get_f(theme: NativeTheme) { return StyleSheet.create({
 
   cell: {
 
@@ -2677,7 +2676,7 @@ function get_f() { return StyleSheet.create({
 
 
 
-function get_h() { return StyleSheet.create({
+function get_h(theme: NativeTheme) { return StyleSheet.create({
 
   row: {
 

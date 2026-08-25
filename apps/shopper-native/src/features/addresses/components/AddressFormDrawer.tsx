@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Modal, Platform, Pressable, ScrollView, StyleSheet, View, TextInput, KeyboardAvoidingView } from "react-native";
 import { Text as UIText, Button } from "@pharmacy/ui-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -10,10 +10,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AddressMapPlaceholder } from "./AddressMapPlaceholder";
 import { ADDRESS_LABELS } from "../types";
 import type { AddressFormData, AddressLabel } from "../types";
-import { useTheme } from "@pharmacy/ui-native";
+import { useTheme, type NativeTheme } from "@pharmacy/ui-native";
 
 import { theme as legacyTheme } from "@pharmacy/design-tokens";
-import { defaultTheme as theme } from "@pharmacy/ui-native";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
 
 interface AddressFormDrawerProps {
@@ -33,6 +32,7 @@ export function AddressFormDrawer({
 }: AddressFormDrawerProps) {
   const { t } = useTranslation();
   const { theme } = useTheme();
+  const styles = useMemo(() => getStyles(theme), [theme]);
   const insets = useSafeAreaInsets();
   const IS_RTL = isRtl();
 
@@ -215,7 +215,8 @@ export function AddressFormDrawer({
   );
 }
 
-const styles = StyleSheet.create({
+function getStyles(theme: NativeTheme) {
+  return StyleSheet.create({
   overlay: { flex: 1, justifyContent: "flex-end" },
   sheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: "90%", ...theme.shadows[3] },
   handle: { width: 40, height: 4, borderRadius: 2, backgroundColor: theme.colors.border.strong, alignSelf: "center", marginBottom: 12 },
@@ -240,4 +241,5 @@ const styles = StyleSheet.create({
   labelChip: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, height: 44, borderRadius: 22, gap: 8, borderWidth: 1 },
   labelChipText: { fontFamily: legacyTheme.fonts.bold, fontSize: 14 },
   footer: { paddingHorizontal: 20, paddingTop: 16, borderTopWidth: StyleSheet.hairlineWidth },
-});
+  });
+}

@@ -1,9 +1,8 @@
-import { defaultTheme as theme } from "@pharmacy/ui-native";
 /**
  * PharmacistProfileScreen — pharmacist identity, settings, and sign-out.
  */
 
-import React from "react";
+import React, { useMemo } from "react";
 
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 
@@ -57,6 +56,36 @@ interface MenuRowProps {
 function MenuRow({ icon, label, onPress, danger = false }: MenuRowProps) {
 
   const { theme } = useTheme();
+
+  const styles = useMemo(() => StyleSheet.create({
+
+    menuRow: {
+
+      alignItems:        "center",
+
+      gap:               12,
+
+      paddingHorizontal: kit.inset.card,
+
+      paddingVertical:   14,
+
+    },
+
+    menuIcon: {
+
+      width:           34,
+
+      height:          34,
+
+      borderRadius:    11,
+
+      alignItems:      "center",
+
+      justifyContent:  "center",
+
+    },
+
+  }), [theme]);
 
   return (
 
@@ -119,6 +148,152 @@ export function PharmacistProfileScreen(): React.ReactElement {
   const { language, setLanguage } = useAppLanguage();
 
   const statsQ             = usePharmacistDashboard();
+
+  const styles = useMemo(() => StyleSheet.create({
+
+    scroll:        { paddingBottom: 60 },
+
+    avatarSection: { alignItems: "center", gap: 8, paddingVertical: 28 },
+
+    avatar: {
+
+      width:           80,
+
+      height:          80,
+
+      borderRadius:    40,
+
+      alignItems:      "center",
+
+      justifyContent:  "center",
+
+      ...theme.shadows[2],
+
+    },
+
+    avatarLetter: {
+
+      fontSize:   34,
+
+      fontFamily: "Cairo_900Black",
+
+      color:      "#fff",
+
+    },
+
+    roleBadge: {
+
+      flexDirection:     flexRow(IS_RTL),
+
+      alignItems:        "center",
+
+      gap:               5,
+
+      paddingHorizontal: 12,
+
+      paddingVertical:   5,
+
+      borderRadius:      9999,
+
+      marginTop:         4,
+
+    },
+
+    card: {
+
+      marginHorizontal: kit.inset.screen,
+
+      borderRadius:     16,
+
+      borderWidth:      1,
+
+      overflow:         "hidden",
+
+      ...theme.shadows[1],
+
+    },
+
+    statsCard: {
+
+      marginHorizontal: kit.inset.screen,
+
+      marginBottom:     12,
+
+      borderRadius:     16,
+
+      borderWidth:      1,
+
+      overflow:         "hidden",
+
+      ...theme.shadows[1],
+
+    },
+
+    statRow: {
+
+      alignItems:        "center",
+
+      gap:               12,
+
+      paddingHorizontal: kit.inset.card,
+
+      paddingVertical:   14,
+
+    },
+
+    statRowBorder: {
+
+      borderBottomWidth: StyleSheet.hairlineWidth,
+
+      borderBottomColor: theme.colors.border.default,
+
+    },
+
+    statValue: {
+
+      fontSize:   16,
+
+      fontFamily: "Cairo_900Black",
+
+      color:      theme.colors.text.primary,
+
+    },
+
+    menuRow: {
+
+      alignItems:        "center",
+
+      gap:               12,
+
+      paddingHorizontal: kit.inset.card,
+
+      paddingVertical:   14,
+
+    },
+
+    menuIcon: {
+
+      width:           34,
+
+      height:          34,
+
+      borderRadius:    11,
+
+      alignItems:      "center",
+
+      justifyContent:  "center",
+
+    },
+
+    divider: {
+
+      height:           StyleSheet.hairlineWidth,
+
+      marginHorizontal: kit.inset.card,
+
+    },
+
+  }), [theme]);
 
 
 
@@ -317,149 +492,3 @@ export function PharmacistProfileScreen(): React.ReactElement {
 }
 
 
-
-const styles = StyleSheet.create({
-
-  scroll:        { paddingBottom: 60 },
-
-  avatarSection: { alignItems: "center", gap: 8, paddingVertical: 28 },
-
-  avatar: {
-
-    width:           80,
-
-    height:          80,
-
-    borderRadius:    40,
-
-    alignItems:      "center",
-
-    justifyContent:  "center",
-
-    ...theme.shadows[2],
-
-  },
-
-  avatarLetter: {
-
-    fontSize:   34,
-
-    fontFamily: "Cairo_900Black",
-
-    color:      "#fff",
-
-  },
-
-  roleBadge: {
-
-    flexDirection:     flexRow(IS_RTL),
-
-    alignItems:        "center",
-
-    gap:               5,
-
-    paddingHorizontal: 12,
-
-    paddingVertical:   5,
-
-    borderRadius:      9999,
-
-    marginTop:         4,
-
-  },
-
-  card: {
-
-    marginHorizontal: kit.inset.screen,
-
-    borderRadius:     16,
-
-    borderWidth:      1,
-
-    overflow:         "hidden",
-
-    ...theme.shadows[1],
-
-  },
-
-  statsCard: {
-
-    marginHorizontal: kit.inset.screen,
-
-    marginBottom:     12,
-
-    borderRadius:     16,
-
-    borderWidth:      1,
-
-    overflow:         "hidden",
-
-    ...theme.shadows[1],
-
-  },
-
-  statRow: {
-
-    alignItems:        "center",
-
-    gap:               12,
-
-    paddingHorizontal: kit.inset.card,
-
-    paddingVertical:   14,
-
-  },
-
-  statRowBorder: {
-
-    borderBottomWidth: StyleSheet.hairlineWidth,
-
-    borderBottomColor: theme.colors.border.default,
-
-  },
-
-  statValue: {
-
-    fontSize:   16,
-
-    fontFamily: "Cairo_900Black",
-
-    color:      theme.colors.text.primary,
-
-  },
-
-  menuRow: {
-
-    alignItems:        "center",
-
-    gap:               12,
-
-    paddingHorizontal: kit.inset.card,
-
-    paddingVertical:   14,
-
-  },
-
-  menuIcon: {
-
-    width:           34,
-
-    height:          34,
-
-    borderRadius:    11,
-
-    alignItems:      "center",
-
-    justifyContent:  "center",
-
-  },
-
-  divider: {
-
-    height:           StyleSheet.hairlineWidth,
-
-    marginHorizontal: kit.inset.card,
-
-  },
-
-});

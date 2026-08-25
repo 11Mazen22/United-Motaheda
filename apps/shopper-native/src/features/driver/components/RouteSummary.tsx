@@ -1,8 +1,7 @@
-import { defaultTheme as theme } from "@pharmacy/ui-native";
 import React, { useMemo } from "react";
 import { View, StyleSheet } from "react-native";
 import { useTranslation } from "react-i18next";
-import { Text as UIText } from "@pharmacy/ui-native";
+import { Text as UIText, useTheme } from "@pharmacy/ui-native";
 import { kit } from "@pharmacy/ui-native";
 import { flexRow, isRtl } from "@/utils/layout";
 
@@ -24,6 +23,11 @@ function haversineKm(a: { lat: number; lng: number }, b: { lat: number; lng: num
 
 export default function RouteSummary({ driverCoords, destCoords }: { driverCoords?: { lat: number; lng: number } | null; destCoords?: { lat: number; lng: number } | null }) {
   const { t } = useTranslation();
+  const { theme } = useTheme();
+  const s = useMemo(() => StyleSheet.create({
+    wrap: { flexDirection: flexRow(IS_RTL), justifyContent: "space-between", marginHorizontal: kit.inset.screen, marginBottom: 12, padding: 12, borderRadius: 12, backgroundColor: theme.colors.canvas.surface, borderWidth: 1, borderColor: theme.colors.border.default, ...theme.shadows[1] },
+    col: { alignItems: "center", flex: 1 },
+  }), [theme]);
   const data = useMemo(() => {
     if (!destCoords) return null;
     let km: number | null = null;
@@ -48,8 +52,3 @@ export default function RouteSummary({ driverCoords, destCoords }: { driverCoord
     </View>
   );
 }
-
-const s = StyleSheet.create({
-  wrap: { flexDirection: flexRow(IS_RTL), justifyContent: "space-between", marginHorizontal: kit.inset.screen, marginBottom: 12, padding: 12, borderRadius: 12, backgroundColor: theme.colors.canvas.surface, borderWidth: 1, borderColor: theme.colors.border.default, ...theme.shadows[1] },
-  col: { alignItems: "center", flex: 1 },
-});

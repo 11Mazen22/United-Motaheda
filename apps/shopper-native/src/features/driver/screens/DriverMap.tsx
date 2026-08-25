@@ -1,10 +1,9 @@
-import { defaultTheme as theme } from "@pharmacy/ui-native";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Linking, StyleSheet, View, Pressable } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import * as ExpoLocation from "expo-location";
-import { Screen, Button } from "@pharmacy/ui-native";
+import { Screen, Button, useTheme } from "@pharmacy/ui-native";
 import { kit } from "@pharmacy/ui-native";
 import MapView, { Marker } from "react-native-maps";
 import RouteSummary from "../components/RouteSummary";
@@ -59,11 +58,24 @@ function useOwnPosition(enabled: boolean) {
 
 export default function DriverMap({ compact }: { compact?: boolean } = {}): React.ReactElement {
   const { t } = useTranslation();
+  const { theme } = useTheme();
   const { orderId } = useLocalSearchParams<{ orderId: string }>();
   const orderQ = useDriverOrderDetail(orderId);
   const order = orderQ.data;
   const router = useRouter();
   const driverCoords = useOwnPosition(!compact);
+
+  const s = useMemo(() => StyleSheet.create({
+    container: { paddingHorizontal: kit.inset.screen, paddingTop: 12 },
+    mapBox: { borderRadius: 12, overflow: 'hidden', backgroundColor: theme.colors.canvas.surface, borderWidth: 1, borderColor: theme.colors.border.default, height: 320, justifyContent: 'center', alignItems: 'center', ...theme.shadows[1] },
+    mapOverlayRow: { position: 'absolute', bottom: 12, start: 12, end: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    navigateBtn: { paddingHorizontal: 12 },
+    routeWrap: { marginTop: 12 },
+    mapPreviewCompact: { borderRadius: 12, overflow: 'hidden', height: 120, justifyContent: 'center' },
+    compactOverlay: { position: 'absolute', start: 12, bottom: 12, backgroundColor: theme.colors.brand.primary, padding: 8, borderRadius: 10 },
+    pin: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#fff' },
+    driverPin: { width: 24, height: 24, borderRadius: 12, ...theme.shadows[1] },
+  }), [theme]);
 
   const dest = order && typeof order.customerLat === 'number' && typeof order.customerLng === 'number' ? { lat: order.customerLat, lng: order.customerLng } : undefined;
   const region = dest ? { latitude: dest.lat, longitude: dest.lng } : DEFAULT_REGION;
@@ -146,15 +158,3 @@ export default function DriverMap({ compact }: { compact?: boolean } = {}): Reac
     </Screen>
   );
 }
-
-const s = StyleSheet.create({
-  container: { paddingHorizontal: kit.inset.screen, paddingTop: 12 },
-  mapBox: { borderRadius: 12, overflow: 'hidden', backgroundColor: theme.colors.canvas.surface, borderWidth: 1, borderColor: theme.colors.border.default, height: 320, justifyContent: 'center', alignItems: 'center', ...theme.shadows[1] },
-  mapOverlayRow: { position: 'absolute', bottom: 12, start: 12, end: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  navigateBtn: { paddingHorizontal: 12 },
-  routeWrap: { marginTop: 12 },
-  mapPreviewCompact: { borderRadius: 12, overflow: 'hidden', height: 120, justifyContent: 'center' },
-  compactOverlay: { position: 'absolute', start: 12, bottom: 12, backgroundColor: theme.colors.brand.primary, padding: 8, borderRadius: 10 },
-  pin: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#fff' },
-  driverPin: { width: 24, height: 24, borderRadius: 12, ...theme.shadows[1] },
-});

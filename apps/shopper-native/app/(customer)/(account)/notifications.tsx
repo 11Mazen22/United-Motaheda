@@ -29,10 +29,9 @@ import { EmptyState } from "@/components/ui/EmptyState";
 
 import { Skeleton } from "@/components/ui/Skeleton";
 
-import { useTheme } from "@pharmacy/ui-native";
+import { useTheme, type NativeTheme } from "@pharmacy/ui-native";
 
 import { theme as legacyTheme } from "@pharmacy/design-tokens";
-import { defaultTheme as theme } from "@pharmacy/ui-native";
 
 import { flexRow, isRtl, textAlignStart, BACK_CHEVRON } from "@/utils/layout";
 
@@ -42,7 +41,7 @@ const RTL = isRtl(), TA = textAlignStart(RTL);
 
 type IconName = React.ComponentProps<typeof Ionicons>["name"];
 
-const TYPE_CFG = (): Record<NotifType, { icon: IconName; color: string; bg: string; labelKey: string }> => ({
+const getTypeConfig = (theme: NativeTheme): Record<NotifType, { icon: IconName; color: string; bg: string; labelKey: string }> => ({
 
   order: { icon: "bag-handle", color: theme.colors.brand.primary, bg: theme.colors.brand.primaryLight, labelKey: "notifications.typeOrder" },
 
@@ -122,7 +121,7 @@ function groupByDate(items: AppNotification[], t: (k: string, opts?: Record<stri
 
 
 
-function SkeletonView({ bottom }: { bottom: number }) {
+function SkeletonView({ bottom, styles: n }: { bottom: number; styles: ReturnType<typeof getStyles> }) {
 
   return <ScrollView contentContainerStyle={{ paddingBottom: bottom + 40, paddingTop: 14 }} showsVerticalScrollIndicator={false}>
 
@@ -146,7 +145,7 @@ function SkeletonView({ bottom }: { bottom: number }) {
 
 
 
-function DeleteAction({ progress, onPress }: { progress: { value: number }; onPress: () => void }) {
+function DeleteAction({ progress, onPress, styles: n }: { progress: { value: number }; onPress: () => void; styles: ReturnType<typeof getStyles> }) {
 
   const { t } = useTranslation();
 
@@ -168,15 +167,15 @@ function DeleteAction({ progress, onPress }: { progress: { value: number }; onPr
 
 
 
-const NotifRow = React.memo(function NotifRow({ item, onPress, onDelete }: { item: AppNotification; onPress: () => void; onDelete: () => void }) {
+const NotifRow = React.memo(function NotifRow({ item, onPress, onDelete, theme, styles: n, typeCfg }: { item: AppNotification; onPress: () => void; onDelete: () => void; theme: NativeTheme; styles: ReturnType<typeof getStyles>; typeCfg: ReturnType<typeof getTypeConfig> }) {
 
   const { t } = useTranslation();
 
-  const cfg = TYPE_CFG()[item.type] ?? TYPE_CFG().system;
+  const cfg = typeCfg[item.type] ?? typeCfg.system;
 
   const handleDelete = useCallback(() => { if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {}); onDelete(); }, [onDelete]);
 
-  const renderAction = useCallback((p: { value: number }) => <DeleteAction progress={p} onPress={handleDelete} />, [handleDelete]);
+  const renderAction = useCallback((p: { value: number }) => <DeleteAction progress={p} onPress={handleDelete} styles={n} />, [handleDelete, n]);
 
 
 
@@ -225,6 +224,10 @@ const NotifRow = React.memo(function NotifRow({ item, onPress, onDelete }: { ite
 export default function NotificationsScreen() {
 
   const { theme } = useTheme();
+
+  const n = useMemo(() => getStyles(theme), [theme]);
+
+  const typeCfg = useMemo(() => getTypeConfig(theme), [theme]);
 
   const router = useRouter(), insets = useSafeAreaInsets(), { t } = useTranslation();
 
@@ -306,11 +309,11 @@ export default function NotificationsScreen() {
 
 
 
-    {loading && notifications.length === 0 ? <SkeletonView bottom={insets.bottom} />
+    {loading && notifications.length === 0 ? <SkeletonView bottom={insets.bottom} styles={n} />
 
       : isError && notifications.length === 0 ? <View style={{ paddingTop: 60 }}><EmptyState icon="wifi-outline" title={t("errors.network").split(".")[0]} description={t("errors.network")} actionLabel={t("common.retry")} onAction={() => refetch()} /></View>
 
-      : <SectionList sections={sections} keyExtractor={i => i.id} renderItem={({ item, index }) => <Animated.View entering={FadeInDown.delay(Math.min(index, 8) * 30).duration(200)}><NotifRow item={item} onPress={() => onPress(item)} onDelete={() => dismiss(item.id)} /></Animated.View>}
+      : <SectionList sections={sections} keyExtractor={i => i.id} renderItem={({ item, index }) => <Animated.View entering={FadeInDown.delay(Math.min(index, 8) * 30).duration(200)}><NotifRow item={item} onPress={() => onPress(item)} onDelete={() => dismiss(item.id)} theme={theme} styles={n} typeCfg={typeCfg} /></Animated.View>}
 
         renderSectionHeader={({ section }) => <View style={n.secHdr}><UIText style={[n.secHdrT, { textAlign: TA }]}>{section.title}</UIText></View>}
 
@@ -334,7 +337,9 @@ export default function NotificationsScreen() {
 
 
 
-const n = StyleSheet.create({
+function getStyles(theme: NativeTheme) {
+
+  return StyleSheet.create({
 
   screen: { flex: 1, backgroundColor: theme.colors.canvas.background },
 
@@ -410,4 +415,6 @@ const n = StyleSheet.create({
 
   typeTxt: { fontSize: 9, fontFamily: legacyTheme.fonts.bold, includeFontPadding: false },
 
-});
+  });
+
+}

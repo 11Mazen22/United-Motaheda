@@ -10,9 +10,8 @@ import { useTranslation } from "react-i18next";
 
 import { useOrderTracking } from "../hooks/useOrderTracking";
 import { Text as UIText } from "@pharmacy/ui-native";
-import { useTheme } from "@pharmacy/ui-native";
+import { useTheme, type NativeTheme } from "@pharmacy/ui-native";
 import { theme as legacyTheme } from "@pharmacy/design-tokens";
-import { defaultTheme as theme } from "@pharmacy/ui-native";
 import { gradients } from "@pharmacy/design-tokens";
 import { flexRow, isRtl, textAlignStart, BACK_CHEVRON } from "@/utils/layout";
 
@@ -45,6 +44,7 @@ function timeAgo(iso: string, t: (k: string, opts?: Record<string, unknown>) => 
 
 function TimelineStep({ step, isCompleted, isCurrent, isLast }: { step: { status: string; icon: IoniconsName; labelKey: string }; isCompleted: boolean; isCurrent: boolean; isLast: boolean }) {
   const { theme } = useTheme();
+  const styles = useMemo(() => getStyles(theme), [theme]);
   const { t } = useTranslation();
 
   const pulse = useSharedValue(1);
@@ -101,6 +101,7 @@ function glowStyle(color: string) {
 
 function TrackSkeleton({ topInset }: { topInset: number }) {
   const { theme } = useTheme();
+  const styles = useMemo(() => getStyles(theme), [theme]);
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.canvas.background }}>
       <View style={[styles.headerGradient, { paddingTop: topInset, height: topInset + 56 }]} />
@@ -118,6 +119,7 @@ function TrackSkeleton({ topInset }: { topInset: number }) {
 
 function TrackErrorState({ onRetry, onBack }: { onRetry: () => void; onBack: () => void }) {
   const { theme } = useTheme();
+  const styles = useMemo(() => getStyles(theme), [theme]);
   const { t } = useTranslation();
   return (
     <View style={[styles.errorRoot, { backgroundColor: theme.colors.canvas.background }]}>
@@ -145,6 +147,7 @@ function TrackErrorState({ onRetry, onBack }: { onRetry: () => void; onBack: () 
 
 export default function TrackOrderScreen() {
   const { theme } = useTheme();
+  const styles = useMemo(() => getStyles(theme), [theme]);
   const { t } = useTranslation();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -306,7 +309,8 @@ export default function TrackOrderScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function getStyles(theme: NativeTheme) {
+  return StyleSheet.create({
   headerGradient: {
     zIndex: 10,
   },
@@ -533,4 +537,5 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#fff",
   },
-});
+  });
+}

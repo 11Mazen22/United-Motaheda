@@ -1,10 +1,8 @@
-import { defaultTheme as theme } from "@pharmacy/ui-native";
-import React from "react";
+import React, { useMemo } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import { Text as UIText, kit } from "@pharmacy/ui-native";
-import { useTheme } from "@pharmacy/ui-native";
+import { Text as UIText, kit, useTheme } from "@pharmacy/ui-native";
 import { FORWARD_CHEVRON, flexRow, isRtl } from "@/utils/layout";
 import { formatPrice } from "@/utils/format";
 import { OrderStatusChip } from "./OrderStatusChip";
@@ -29,8 +27,50 @@ export function OrderQueueCard({ order, onPress }: Props) {
   const { t } = useTranslation();
   const { theme } = useTheme();
   const isUrgent = (order.ageMs ?? 0) > 30 * 60_000;
-  
+
   const borderStartColor = isUrgent ? theme.colors.status.warning : theme.colors.brand.primary;
+
+  const styles = useMemo(() => StyleSheet.create({
+    card: {
+      borderRadius: 8,
+      paddingVertical: 14,
+      paddingHorizontal: 12,
+      borderWidth: 1,
+      alignItems: "center",
+      gap: 12,
+      ...theme.shadows[1],
+    },
+    cardPressed: {
+      opacity: 0.85,
+    },
+    row: {
+      flexDirection: flexRow(IS_RTL),
+      alignItems: "center",
+      gap: 6,
+    },
+    colMain: {
+      flex: 1,
+      alignItems: "flex-start",
+    },
+    colCenter: {
+      alignItems: "flex-end",
+    },
+    colRight: {
+      alignItems: "flex-end",
+      minWidth: 60,
+    },
+    dot: {
+      width: 3,
+      height: 3,
+      borderRadius: 1.5,
+      marginHorizontal: 4,
+    },
+    total: {
+      fontSize: 14,
+      fontFamily: kit.font.bold,
+      color: theme.colors.text.primary,
+    },
+  }), [theme]);
 
   return (
     <Pressable
@@ -71,45 +111,3 @@ export function OrderQueueCard({ order, onPress }: Props) {
     </Pressable>
   );
 }
-
-const styles = StyleSheet.create({
-  card: {
-    borderRadius: 8,
-    paddingVertical: 14,
-    paddingHorizontal: 12,
-    borderWidth: 1,
-    alignItems: "center",
-    gap: 12,
-    ...theme.shadows[1],
-  },
-  cardPressed: {
-    opacity: 0.85,
-  },
-  row: {
-    flexDirection: flexRow(IS_RTL),
-    alignItems: "center",
-    gap: 6,
-  },
-  colMain: {
-    flex: 1,
-    alignItems: "flex-start",
-  },
-  colCenter: {
-    alignItems: "flex-end",
-  },
-  colRight: {
-    alignItems: "flex-end",
-    minWidth: 60,
-  },
-  dot: {
-    width: 3,
-    height: 3,
-    borderRadius: 1.5,
-    marginHorizontal: 4,
-  },
-  total: {
-    fontSize: 14,
-    fontFamily: kit.font.bold,
-    color: theme.colors.text.primary,
-  },
-});

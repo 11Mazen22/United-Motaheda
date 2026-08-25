@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useTheme } from "@pharmacy/ui-native";
 
-import { FlatList, Platform, Pressable, RefreshControl, StyleSheet, View } from "react-native";
+import { FlatList, Platform, Pressable, RefreshControl, StyleSheet, View, type ViewStyle } from "react-native";
 
 import { showConfirmSheet, showErrorSheet } from "@/shared/store/appSheetStore";
 
@@ -10,7 +10,6 @@ import { Ionicons } from "@expo/vector-icons";
 
 
 import { theme as legacyTheme } from "@pharmacy/design-tokens";
-import { defaultTheme as theme } from "@pharmacy/ui-native";
 
 import { useRouter } from "expo-router";
 
@@ -38,7 +37,7 @@ const RTL = isRtl(), TA = textAlignStart(RTL);
 
 
 
-function Shimmer() {
+function Shimmer({ style }: { style: ViewStyle }) {
 
   const op = useSharedValue(0.5);
 
@@ -46,7 +45,7 @@ function Shimmer() {
 
   const aStyle = useAnimatedStyle(() => ({ opacity: op.value }));
 
-  return <Animated.View style={[styles.shimmer, aStyle]} />;
+  return <Animated.View style={[style, aStyle]} />;
 
 }
 
@@ -75,6 +74,72 @@ const Row = React.memo(function Row({ item, index, onEdit, onDelete, onSetDefaul
 export default function AddressesScreen() {
 
   const { theme } = useTheme();
+
+  const styles = useMemo(() => StyleSheet.create({
+
+    screen: { flex: 1, backgroundColor: theme.colors.canvas.background },
+
+    header: { paddingHorizontal: 20, paddingBottom: 16, backgroundColor: theme.colors.canvas.surface, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border.default, ...theme.shadows[1] },
+
+    hRow: { flexDirection: flexRow(RTL), alignItems: "center", gap: 12, minHeight: 38 },
+
+    backT: { borderRadius: 20, flexShrink: 0 },
+
+    back: { width: 40, height: 40, borderRadius: 20, backgroundColor: theme.colors.canvas.surface, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: theme.colors.border.default, ...theme.shadows[1] },
+
+    backP: { backgroundColor: theme.colors.canvas.surfaceMuted, transform: [{ scale: 0.94 }] },
+
+    tile: { width: 52, height: 52, borderRadius: 16, backgroundColor: theme.colors.brand.primaryLight, borderWidth: 1, borderColor: theme.colors.border.default, alignItems: "center", justifyContent: "center", flexShrink: 0 },
+
+    hTitle: { fontFamily: legacyTheme.fonts.black, fontSize: 18, letterSpacing: -0.4, color: theme.colors.text.primary, includeFontPadding: false, textAlign: TA },
+
+    hSub: { fontFamily: legacyTheme.fonts.semibold, fontSize: 11, color: theme.colors.text.muted, includeFontPadding: false, textAlign: TA, marginTop: 1 },
+
+    addT: { borderRadius: 13, flexShrink: 0 },
+
+    add: { width: 42, height: 42, borderRadius: 13, backgroundColor: theme.colors.brand.primaryLight, borderWidth: 1, borderColor: theme.colors.border.default, alignItems: "center", justifyContent: "center", ...theme.shadows[1] },
+
+    addP: { transform: [{ scale: 0.93 }] },
+
+    loadWrap: { flex: 1, padding: 20, gap: 12 },
+
+    shimmer: { height: 180, borderRadius: 20, backgroundColor: theme.colors.canvas.surfaceMuted },
+
+    emptyW: { flex: 1, justifyContent: "center", paddingHorizontal: 20 },
+
+    list: { padding: 20, paddingBottom: 40 },
+
+  }), [theme]);
+
+  const s = useMemo(() => StyleSheet.create({
+
+    chips: { gap: 8, paddingHorizontal: 20, paddingVertical: 10, backgroundColor: theme.colors.canvas.surface, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border.default },
+
+    chip: { alignItems: "center", gap: 5, backgroundColor: theme.colors.brand.primaryLight, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, borderWidth: 1, borderColor: theme.colors.border.default },
+
+    chipOk: { backgroundColor: `${theme.colors.status.success}1A`, borderColor: theme.colors.status.success + "30" },
+
+    chipT: { fontSize: 10, fontFamily: legacyTheme.fonts.bold, color: theme.colors.brand.primary, includeFontPadding: false },
+
+    secLbl: { alignItems: "center", gap: 12, marginBottom: 14 },
+
+    secBadge: { width: 34, height: 34, borderRadius: 11, backgroundColor: theme.colors.brand.primaryLight, borderWidth: 1, borderColor: theme.colors.border.default, alignItems: "center", justifyContent: "center", flexShrink: 0 },
+
+    secEye: { fontSize: 10, fontFamily: legacyTheme.fonts.bold, color: theme.colors.brand.primary, letterSpacing: 0.4, textAlign: TA, includeFontPadding: false },
+
+    addCardT: { borderRadius: 18, marginTop: 14 },
+
+    addCard: { alignItems: "center", gap: 14, padding: 16, borderRadius: 18, backgroundColor: theme.colors.canvas.surface, borderWidth: 1.5, borderColor: theme.colors.border.default, borderStyle: "dashed", ...theme.shadows[1] },
+
+    addCardP: { backgroundColor: theme.colors.brand.primaryLight, borderColor: "rgba(14,126,116,0.30)" },
+
+    addIcon: { width: 48, height: 48, borderRadius: 14, backgroundColor: theme.colors.brand.primaryLight, borderWidth: 1, borderColor: theme.colors.border.default, alignItems: "center", justifyContent: "center", flexShrink: 0 },
+
+    addLbl: { fontSize: 13, fontFamily: legacyTheme.fonts.bold, color: theme.colors.text.primary, includeFontPadding: false },
+
+    addSub: { fontSize: 11, fontFamily: legacyTheme.fonts.regular, color: theme.colors.text.muted, marginTop: 2, includeFontPadding: false },
+
+  }), [theme]);
 
   const router = useRouter(), insets = useSafeAreaInsets(), { t } = useTranslation();
 
@@ -266,7 +331,7 @@ export default function AddressesScreen() {
 
 
 
-      {isSkeleton ? <View style={styles.loadWrap}>{[1, 2, 3].map(i => <Shimmer key={i} />)}</View>
+      {isSkeleton ? <View style={styles.loadWrap}>{[1, 2, 3].map(i => <Shimmer key={i} style={styles.shimmer} />)}</View>
 
         : isError ? <View style={styles.emptyW}><EmptyState icon="wifi-outline" title={t("errors.network").split(".")[0]} description={t("errors.network")} actionLabel={t("common.retry")} onAction={() => user?.id && fetch(user.id)} /></View>
 
@@ -325,73 +390,3 @@ export default function AddressesScreen() {
   );
 
 }
-
-
-
-const styles = StyleSheet.create({
-
-  screen: { flex: 1, backgroundColor: theme.colors.canvas.background },
-
-  header: { paddingHorizontal: 20, paddingBottom: 16, backgroundColor: theme.colors.canvas.surface, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border.default, ...theme.shadows[1] },
-
-  hRow: { flexDirection: flexRow(RTL), alignItems: "center", gap: 12, minHeight: 38 },
-
-  backT: { borderRadius: 20, flexShrink: 0 },
-
-  back: { width: 40, height: 40, borderRadius: 20, backgroundColor: theme.colors.canvas.surface, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: theme.colors.border.default, ...theme.shadows[1] },
-
-  backP: { backgroundColor: theme.colors.canvas.surfaceMuted, transform: [{ scale: 0.94 }] },
-
-  tile: { width: 52, height: 52, borderRadius: 16, backgroundColor: theme.colors.brand.primaryLight, borderWidth: 1, borderColor: theme.colors.border.default, alignItems: "center", justifyContent: "center", flexShrink: 0 },
-
-  hTitle: { fontFamily: legacyTheme.fonts.black, fontSize: 18, letterSpacing: -0.4, color: theme.colors.text.primary, includeFontPadding: false, textAlign: TA },
-
-  hSub: { fontFamily: legacyTheme.fonts.semibold, fontSize: 11, color: theme.colors.text.muted, includeFontPadding: false, textAlign: TA, marginTop: 1 },
-
-  addT: { borderRadius: 13, flexShrink: 0 },
-
-  add: { width: 42, height: 42, borderRadius: 13, backgroundColor: theme.colors.brand.primaryLight, borderWidth: 1, borderColor: theme.colors.border.default, alignItems: "center", justifyContent: "center", ...theme.shadows[1] },
-
-  addP: { transform: [{ scale: 0.93 }] },
-
-  loadWrap: { flex: 1, padding: 20, gap: 12 },
-
-  shimmer: { height: 180, borderRadius: 20, backgroundColor: theme.colors.canvas.surfaceMuted },
-
-  emptyW: { flex: 1, justifyContent: "center", paddingHorizontal: 20 },
-
-  list: { padding: 20, paddingBottom: 40 },
-
-});
-
-
-
-const s = StyleSheet.create({
-
-  chips: { gap: 8, paddingHorizontal: 20, paddingVertical: 10, backgroundColor: theme.colors.canvas.surface, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border.default },
-
-  chip: { alignItems: "center", gap: 5, backgroundColor: theme.colors.brand.primaryLight, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, borderWidth: 1, borderColor: theme.colors.border.default },
-
-  chipOk: { backgroundColor: `${theme.colors.status.success}1A`, borderColor: theme.colors.status.success + "30" },
-
-  chipT: { fontSize: 10, fontFamily: legacyTheme.fonts.bold, color: theme.colors.brand.primary, includeFontPadding: false },
-
-  secLbl: { alignItems: "center", gap: 12, marginBottom: 14 },
-
-  secBadge: { width: 34, height: 34, borderRadius: 11, backgroundColor: theme.colors.brand.primaryLight, borderWidth: 1, borderColor: theme.colors.border.default, alignItems: "center", justifyContent: "center", flexShrink: 0 },
-
-  secEye: { fontSize: 10, fontFamily: legacyTheme.fonts.bold, color: theme.colors.brand.primary, letterSpacing: 0.4, textAlign: TA, includeFontPadding: false },
-
-  addCardT: { borderRadius: 18, marginTop: 14 },
-
-  addCard: { alignItems: "center", gap: 14, padding: 16, borderRadius: 18, backgroundColor: theme.colors.canvas.surface, borderWidth: 1.5, borderColor: theme.colors.border.default, borderStyle: "dashed", ...theme.shadows[1] },
-
-  addCardP: { backgroundColor: theme.colors.brand.primaryLight, borderColor: "rgba(14,126,116,0.30)" },
-
-  addIcon: { width: 48, height: 48, borderRadius: 14, backgroundColor: theme.colors.brand.primaryLight, borderWidth: 1, borderColor: theme.colors.border.default, alignItems: "center", justifyContent: "center", flexShrink: 0 },
-
-  addLbl: { fontSize: 13, fontFamily: legacyTheme.fonts.bold, color: theme.colors.text.primary, includeFontPadding: false },
-
-  addSub: { fontSize: 11, fontFamily: legacyTheme.fonts.regular, color: theme.colors.text.muted, marginTop: 2, includeFontPadding: false },
-
-});

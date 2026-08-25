@@ -1,15 +1,14 @@
-import { defaultTheme as theme } from "@pharmacy/ui-native";
 /**
  * IssueReportScreen — reason-chip picker + note, submits to delivery_issues.
  * Shows the driver's own prior reports for this order so they don't silently
  * submit a duplicate.
  */
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import { Screen, Text as UIText } from "@pharmacy/ui-native";
+import { Screen, Text as UIText, useTheme } from "@pharmacy/ui-native";
 import { Button, kit } from "@pharmacy/ui-native";
 import { useAuth } from "@/features/auth";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
@@ -35,6 +34,7 @@ const REASONS: { code: IssueReasonCode; icon: React.ComponentProps<typeof Ionico
 
 export function IssueReportScreen(): React.ReactElement {
   const { t } = useTranslation();
+  const { theme } = useTheme();
   const router = useRouter();
   const { orderId } = useLocalSearchParams<{ orderId: string }>();
   const { user } = useAuth();
@@ -43,6 +43,40 @@ export function IssueReportScreen(): React.ReactElement {
 
   const priorIssuesQuery = useMyIssuesForOrder(orderId, user?.id);
   const mutations = useDriverMutations(user?.id);
+
+  const s = useMemo(() => StyleSheet.create({
+    content: { paddingBottom: 0 },
+    priorNotice: {
+      flexDirection: flexRow(IS_RTL),
+      alignItems: "center",
+      gap: 8,
+      backgroundColor: `${theme.colors.status.warning}1A`,
+      marginHorizontal: kit.inset.screen,
+      marginBottom: 14,
+      padding: 12,
+      borderRadius: 12,
+    },
+    noteInput: {
+      marginHorizontal: kit.inset.screen,
+      marginTop: 8,
+      borderWidth: 1,
+      borderColor: theme.colors.border.default,
+      borderRadius: 12,
+      padding: 12,
+      minHeight: 90,
+      textAlignVertical: "top",
+      fontSize: 14,
+      color: theme.colors.text.primary,
+      textAlign: TEXT_START,
+    },
+    submitWrap: {
+      marginHorizontal: kit.inset.screen,
+      marginTop: 20,
+    },
+    reasonGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    reasonGridCell: { width: '48%', marginBottom: 8 },
+    priorItem: { marginTop: 8, padding: 10, backgroundColor: theme.colors.canvas.surface, borderRadius: 12, borderWidth: 1, borderColor: theme.colors.border.default },
+  }), [theme]);
 
   const handleSubmit = async () => {
     if (!orderId || !selected) return;
@@ -142,6 +176,33 @@ function ReasonRow({
   label: string;
   onPress: () => void;
 }) {
+  const { theme } = useTheme();
+  const s = useMemo(() => StyleSheet.create({
+    reasonRow: {
+      flexDirection: flexRow(IS_RTL),
+      alignItems: "center",
+      gap: 10,
+      backgroundColor: theme.colors.canvas.surface,
+      borderRadius: 12,
+      paddingVertical: 12,
+      paddingHorizontal: 14,
+      borderWidth: 1,
+      borderColor: theme.colors.border.default,
+    },
+    reasonRowActive: {
+      borderColor: theme.colors.brand.primary,
+      backgroundColor: theme.colors.brand.primaryLight,
+    },
+    reasonRowIcon: {
+      width: 30, height: 30, borderRadius: 15,
+      alignItems: "center", justifyContent: "center",
+      backgroundColor: theme.colors.canvas.surfaceMuted,
+    },
+    reasonRowIconActive: {
+      backgroundColor: theme.colors.brand.primary,
+    },
+  }), [theme]);
+
   return (
     <Pressable onPress={onPress} style={[s.reasonRow, active && s.reasonRowActive]}>
       <View style={[s.reasonRowIcon, active && s.reasonRowIconActive]}>
@@ -158,60 +219,3 @@ function ReasonRow({
     </Pressable>
   );
 }
-
-const s = StyleSheet.create({
-  content: { paddingBottom: 0 },
-  priorNotice: {
-    flexDirection: flexRow(IS_RTL),
-    alignItems: "center",
-    gap: 8,
-    backgroundColor: `${theme.colors.status.warning}1A`,
-    marginHorizontal: kit.inset.screen,
-    marginBottom: 14,
-    padding: 12,
-    borderRadius: 12,
-  },
-  reasonRow: {
-    flexDirection: flexRow(IS_RTL),
-    alignItems: "center",
-    gap: 10,
-    backgroundColor: theme.colors.canvas.surface,
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    borderWidth: 1,
-    borderColor: theme.colors.border.default,
-  },
-  reasonRowActive: {
-    borderColor: theme.colors.brand.primary,
-    backgroundColor: theme.colors.brand.primaryLight,
-  },
-  reasonRowIcon: {
-    width: 30, height: 30, borderRadius: 15,
-    alignItems: "center", justifyContent: "center",
-    backgroundColor: theme.colors.canvas.surfaceMuted,
-  },
-  reasonRowIconActive: {
-    backgroundColor: theme.colors.brand.primary,
-  },
-  noteInput: {
-    marginHorizontal: kit.inset.screen,
-    marginTop: 8,
-    borderWidth: 1,
-    borderColor: theme.colors.border.default,
-    borderRadius: 12,
-    padding: 12,
-    minHeight: 90,
-    textAlignVertical: "top",
-    fontSize: 14,
-    color: theme.colors.text.primary,
-    textAlign: TEXT_START,
-  },
-  submitWrap: {
-    marginHorizontal: kit.inset.screen,
-    marginTop: 20,
-  },
-  reasonGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  reasonGridCell: { width: '48%', marginBottom: 8 },
-  priorItem: { marginTop: 8, padding: 10, backgroundColor: theme.colors.canvas.surface, borderRadius: 12, borderWidth: 1, borderColor: theme.colors.border.default },
-});

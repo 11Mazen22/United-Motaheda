@@ -1,6 +1,6 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { Platform, Pressable, StyleSheet, View } from "react-native";
-import { Text as UIText } from "@pharmacy/ui-native";
+import { Text as UIText, useTheme, type NativeTheme } from "@pharmacy/ui-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import Animated, { FadeIn, useAnimatedStyle, useSharedValue, withRepeat, withTiming, useReducedMotion } from "react-native-reanimated";
@@ -9,7 +9,6 @@ import { AddressMapPlaceholder } from "./AddressMapPlaceholder";
 import { ADDRESS_LABELS } from "../types";
 import type { Address } from "../types";
 import { theme as legacyTheme } from "@pharmacy/design-tokens";
-import { defaultTheme as theme } from "@pharmacy/ui-native";
 
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
 
@@ -24,6 +23,8 @@ interface Props {
 
 export function AddressCard({ address, onEdit, onDelete, onSetDefault }: Props) {
   const { t } = useTranslation();
+  const { theme } = useTheme();
+  const styles = useMemo(() => getStyles(theme), [theme]);
   const reducedMotion = useReducedMotion();
   const IS_RTL = isRtl();
 
@@ -125,7 +126,8 @@ export function AddressCard({ address, onEdit, onDelete, onSetDefault }: Props) 
   );
 }
 
-const styles = StyleSheet.create({
+function getStyles(theme: NativeTheme) {
+  return StyleSheet.create({
   card: {
     backgroundColor: theme.colors.canvas.surface,
     borderRadius: 20,
@@ -254,4 +256,5 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: theme.colors.brand.primary,
   },
-});
+  });
+}
