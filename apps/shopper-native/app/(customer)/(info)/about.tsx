@@ -1,8 +1,9 @@
-import React from "react";
+import React, { useMemo } from "react";
 
 import { Linking, Platform, Pressable, ScrollView, StyleSheet, View } from "react-native";
 
-import { Text as UIText } from "@pharmacy/ui-native";
+import { Text as UIText, useTheme } from "@pharmacy/ui-native";
+import type { NativeTheme } from "@pharmacy/ui-native";
 
 import { Ionicons } from "@expo/vector-icons";
 
@@ -18,7 +19,6 @@ import Animated, { FadeIn, FadeInDown, FadeInUp } from "react-native-reanimated"
 import { useTranslation } from "react-i18next";
 
 import { theme as legacyTheme } from "@pharmacy/design-tokens";
-import { defaultTheme as theme } from "@pharmacy/ui-native";
 
 import { AppLogo } from "@/shared/components/AppLogo";
 
@@ -36,13 +36,13 @@ const STATS = [{ vk: "about.stat1Value", lk: "about.stat1Label" }, { vk: "about.
 
 
 
-function ContactRow({ icon, label, value, color, onPress }: { icon: React.ComponentProps<typeof Ionicons>["name"]; label: string; value: string; color: string; onPress: () => void }) {
+function ContactRow({ icon, label, value, color, onPress, theme, styles: a }: { icon: React.ComponentProps<typeof Ionicons>["name"]; label: string; value: string; color: string; onPress: () => void; theme: NativeTheme; styles: ReturnType<typeof getStyles> }) {
 
   const press = () => { if (Platform.OS !== "web") Haptics.selectionAsync().catch(() => {}); onPress(); };
 
   return <Pressable onPress={press} accessibilityRole="button" accessibilityLabel={`${label}: ${value}`} style={a.touch}>
 
-    {({ pressed }) => <View style={[a.row, { flexDirection: flexRow(RTL) }, pressed && a.rowP]}> 
+    {({ pressed }) => <View style={[a.row, { flexDirection: flexRow(RTL) }, pressed && a.rowP]}>
 
       <View style={{ flexDirection: flexRow(RTL), alignItems: "center", gap: 12, flex: 1 }}>
 
@@ -68,7 +68,7 @@ function ContactRow({ icon, label, value, color, onPress }: { icon: React.Compon
 
 
 
-function InfoRow({ label, value }: { label: string; value: string }) {
+function InfoRow({ label, value, styles: a }: { label: string; value: string; styles: ReturnType<typeof getStyles> }) {
 
   return <View style={[a.infoRow, { flexDirection: flexRow(RTL) }]}>
 
@@ -87,6 +87,10 @@ export default function AboutScreen() {
   const router = useRouter(), insets = useSafeAreaInsets(), { t } = useTranslation();
 
   const { language } = useAppLanguage();
+
+  const { theme } = useTheme();
+
+  const a = useMemo(() => getStyles(theme), [theme]);
 
 
 
@@ -194,15 +198,15 @@ export default function AboutScreen() {
 
           <View style={a.card}>
 
-            <ContactRow icon="logo-whatsapp" label={t("about.whatsappLabel")} value="+20 111 234 3212" color="#25D366" onPress={() => Linking.openURL("https://wa.me/201112343212?text=مرحباً").catch(() => {})} />
+            <ContactRow icon="logo-whatsapp" label={t("about.whatsappLabel")} value="+20 111 234 3212" color="#25D366" onPress={() => Linking.openURL("https://wa.me/201112343212?text=مرحباً").catch(() => {})} theme={theme} styles={a} />
 
             <View style={a.divider} />
 
-            <ContactRow icon="call-outline" label={t("about.phoneLabel")} value="+20 111 234 3212" color={theme.colors.brand.primary} onPress={() => Linking.openURL("tel:+201112343212").catch(() => {})} />
+            <ContactRow icon="call-outline" label={t("about.phoneLabel")} value="+20 111 234 3212" color={theme.colors.brand.primary} onPress={() => Linking.openURL("tel:+201112343212").catch(() => {})} theme={theme} styles={a} />
 
             <View style={a.divider} />
 
-            <ContactRow icon="mail-outline" label={t("about.emailLabel")} value="united.pharmacy.eg@gmail.com" color={theme.colors.brand.primary} onPress={() => Linking.openURL("mailto:united.pharmacy.eg@gmail.com").catch(() => {})} />
+            <ContactRow icon="mail-outline" label={t("about.emailLabel")} value="united.pharmacy.eg@gmail.com" color={theme.colors.brand.primary} onPress={() => Linking.openURL("mailto:united.pharmacy.eg@gmail.com").catch(() => {})} theme={theme} styles={a} />
 
           </View>
 
@@ -222,13 +226,13 @@ export default function AboutScreen() {
 
           <View style={a.card}>
 
-            <InfoRow label={t("about.versionLabel")} value={APP_VERSION} /><View style={a.divider} />
+            <InfoRow label={t("about.versionLabel")} value={APP_VERSION} styles={a} /><View style={a.divider} />
 
-            <InfoRow label={t("about.buildLabel")} value={APP_BUILD} /><View style={a.divider} />
+            <InfoRow label={t("about.buildLabel")} value={APP_BUILD} styles={a} /><View style={a.divider} />
 
-            <InfoRow label={t("about.osLabel")} value={Platform.OS === "ios" ? "iOS" : Platform.OS === "android" ? "Android" : "Web"} /><View style={a.divider} />
+            <InfoRow label={t("about.osLabel")} value={Platform.OS === "ios" ? "iOS" : Platform.OS === "android" ? "Android" : "Web"} styles={a} /><View style={a.divider} />
 
-            <InfoRow label={t("language.label")} value={language === "en" ? t("language.en") : t("language.ar")} />
+            <InfoRow label={t("language.label")} value={language === "en" ? t("language.en") : t("language.ar")} styles={a} />
 
           </View>
 
@@ -248,7 +252,9 @@ export default function AboutScreen() {
 
 
 
-const a = StyleSheet.create({
+function getStyles(theme: NativeTheme) {
+
+  return StyleSheet.create({
 
   screen: { flex: 1, backgroundColor: theme.colors.canvas.background },
 
@@ -330,4 +336,6 @@ const a = StyleSheet.create({
 
   copyright: { fontFamily: legacyTheme.fonts.regular, fontSize: 11, color: theme.colors.text.muted, textAlign: "center", paddingTop: 28, paddingBottom: 8, includeFontPadding: false },
 
-});
+  });
+
+}

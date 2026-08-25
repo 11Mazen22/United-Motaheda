@@ -1,4 +1,3 @@
-import { defaultTheme as theme } from "@pharmacy/ui-native";
 /**
  * InventoryIntelligenceScreen — pharmacist inventory intelligence dashboard.
  *
@@ -18,7 +17,7 @@ import { defaultTheme as theme } from "@pharmacy/ui-native";
 
 
 
-import React, { useState, useCallback, useDeferredValue } from "react";
+import React, { useState, useCallback, useDeferredValue, useMemo } from "react";
 
 import {
 
@@ -122,6 +121,8 @@ function ProductCard({
 
   colors,
 
+  styles,
+
 }: {
 
   product: PharmacistProduct;
@@ -131,6 +132,8 @@ function ProductCard({
   onScan:  (barcode: string) => void;
 
   colors: NativeTheme["colors"];
+
+  styles: ReturnType<typeof createStyles>;
 
 }) {
 
@@ -305,6 +308,8 @@ function ProductCard({
 export function InventoryIntelligenceScreen(): React.ReactElement {
 
   const { theme } = useTheme();
+
+  const styles      = useMemo(() => createStyles(theme), [theme]);
 
   const { t }       = useTranslation();
 
@@ -584,7 +589,7 @@ export function InventoryIntelligenceScreen(): React.ReactElement {
 
         renderItem={({ item, index }) => (
 
-          <ProductCard product={item} index={index} onScan={handleScan} colors={theme.colors} />
+          <ProductCard product={item} index={index} onScan={handleScan} colors={theme.colors} styles={styles} />
 
         )}
 
@@ -638,7 +643,9 @@ export function InventoryIntelligenceScreen(): React.ReactElement {
 
 
 
-const styles = StyleSheet.create({
+function createStyles(theme: NativeTheme) {
+
+  return StyleSheet.create({
 
   scannerBtn: {
 
@@ -804,4 +811,6 @@ const styles = StyleSheet.create({
 
   },
 
-});
+  });
+
+}

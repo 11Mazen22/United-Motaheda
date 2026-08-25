@@ -1,8 +1,9 @@
-import React from "react";
+import React, { useMemo } from "react";
 
 import { Alert, Linking, Pressable, ScrollView, StyleSheet, View } from "react-native";
 
-import { Text as UIText } from "@pharmacy/ui-native";
+import { Text as UIText, useTheme } from "@pharmacy/ui-native";
+import type { NativeTheme } from "@pharmacy/ui-native";
 
 import { Ionicons } from "@expo/vector-icons";
 
@@ -15,7 +16,6 @@ import Animated, { FadeInDown } from "react-native-reanimated";
 import { useTranslation } from "react-i18next";
 
 import { theme as legacyTheme } from "@pharmacy/design-tokens";
-import { defaultTheme as theme } from "@pharmacy/ui-native";
 
 
 import { flexRow, isRtl, textAlignStart, BACK_CHEVRON } from "@/utils/layout";
@@ -42,7 +42,7 @@ function openWhatsApp(t: (key: string) => string) {
 
 
 
-function Section({ title, children, delay = 0 }: { title: string; children: React.ReactNode; delay?: number }) {
+function Section({ title, children, delay = 0, theme, styles }: { title: string; children: React.ReactNode; delay?: number; theme: NativeTheme; styles: ReturnType<typeof getStyles> }) {
 
   return (
 
@@ -68,6 +68,8 @@ function Section({ title, children, delay = 0 }: { title: string; children: Reac
 
 export default function TermsScreen() {
 
+  const { theme } = useTheme();
+  const styles = useMemo(() => getStyles(theme), [theme]);
   const { t } = useTranslation(), router = useRouter(), insets = useSafeAreaInsets();
 
 
@@ -114,13 +116,13 @@ export default function TermsScreen() {
 
 
 
-        <Section title="١. قبول الشروط" delay={80}>{`باستخدامك لتطبيق الصيدلية المتحدة أو خدماتها، تؤكد موافقتك الكاملة على هذه الشروط والأحكام. إذا كنت لا توافق على أي جزء منها، فيرجى عدم استخدام التطبيق.
+        <Section title="١. قبول الشروط" delay={80} theme={theme} styles={styles}>{`باستخدامك لتطبيق الصيدلية المتحدة أو خدماتها، تؤكد موافقتك الكاملة على هذه الشروط والأحكام. إذا كنت لا توافق على أي جزء منها، فيرجى عدم استخدام التطبيق.
 
 تسري هذه الشروط على جميع المستخدمين بما فيهم الزوار وأصحاب الحسابات، وتُقرأ جنباً إلى جنب مع سياسة الخصوصية.`}</Section>
 
 
 
-        <Section title="٢. التسجيل والحساب" delay={120}>{`• يجب أن يكون عمرك ١٨ عاماً أو أكثر للتسجيل
+        <Section title="٢. التسجيل والحساب" delay={120} theme={theme} styles={styles}>{`• يجب أن يكون عمرك ١٨ عاماً أو أكثر للتسجيل
 • أنت مسؤول عن الحفاظ على سرية بيانات حسابك
 • يجب إخطارنا فوراً عند الاشتباه في اختراق حسابك
 • لا يحق لك إنشاء أكثر من حساب واحد
@@ -128,7 +130,7 @@ export default function TermsScreen() {
 
 
 
-        <Section title="٣. الطلبات والمنتجات" delay={160}>{`• جميع الأسعار المعروضة بالجنيه المصري وتشمل ضريبة القيمة المضافة
+        <Section title="٣. الطلبات والمنتجات" delay={160} theme={theme} styles={styles}>{`• جميع الأسعار المعروضة بالجنيه المصري وتشمل ضريبة القيمة المضافة
 • تتوقف الأسعار على حالة المخزون وقد تتغير دون إشعار مسبق
 • تأكيد الطلب مشروط بتوفر المنتج وصحة بيانات التوصيل
 • لا تتوفر في التطبيق أدوية تستلزم وصفة طبية إلا من خلال القنوات الرسمية
@@ -136,7 +138,7 @@ export default function TermsScreen() {
 
 
 
-        <Section title="٤. التوصيل والشحن" delay={200}>{`• رسوم التوصيل ٢٥ جنيهاً مصرياً لجميع الطلبات
+        <Section title="٤. التوصيل والشحن" delay={200} theme={theme} styles={styles}>{`• رسوم التوصيل ٢٥ جنيهاً مصرياً لجميع الطلبات
 • مواعيد التوصيل تقديرية وقد تتأثر بالظروف الخارجة عن إرادتنا
 • يتحمل العميل مسؤولية صحة عنوان التوصيل المُدخَل
 • عند غياب العميل وقت التوصيل، يُعاد التواصل معه لترتيب موعد بديل
@@ -144,7 +146,7 @@ export default function TermsScreen() {
 
 
 
-        <Section title="٥. الإرجاع والاسترداد" delay={240}>{`• يحق لك إرجاع المنتجات غير المفتوحة خلال ٧ أيام من الاستلام
+        <Section title="٥. الإرجاع والاسترداد" delay={240} theme={theme} styles={styles}>{`• يحق لك إرجاع المنتجات غير المفتوحة خلال ٧ أيام من الاستلام
 • لا يُقبل إرجاع الأدوية والمستحضرات الصيدلانية المفتوحة لأسباب صحية وسلامة
 • يُستثنى من الإرجاع المنتجات المبرّدة والعروض الخاصة ما لم تكن معيبة
 • يتم رد المبلغ خلال ٥-٧ أيام عمل بنفس وسيلة الدفع الأصلية
@@ -152,11 +154,11 @@ export default function TermsScreen() {
 
 
 
-        <Section title="٦. الملكية الفكرية" delay={280}>{`جميع محتويات التطبيق من شعارات وصور ونصوص وتصاميم هي ملكية حصرية للصيدلية المتحدة محمية بموجب قوانين حقوق النشر والملكية الفكرية. يُحظر نسخ أي محتوى أو إعادة توزيعه أو استخدامه تجارياً دون إذن كتابي مسبق.`}</Section>
+        <Section title="٦. الملكية الفكرية" delay={280} theme={theme} styles={styles}>{`جميع محتويات التطبيق من شعارات وصور ونصوص وتصاميم هي ملكية حصرية للصيدلية المتحدة محمية بموجب قوانين حقوق النشر والملكية الفكرية. يُحظر نسخ أي محتوى أو إعادة توزيعه أو استخدامه تجارياً دون إذن كتابي مسبق.`}</Section>
 
 
 
-        <Section title="٧. حدود المسؤولية" delay={320}>{`لن تكون الصيدلية المتحدة مسؤولة عن:
+        <Section title="٧. حدود المسؤولية" delay={320} theme={theme} styles={styles}>{`لن تكون الصيدلية المتحدة مسؤولة عن:
 • أي أضرار غير مباشرة أو تبعية ناجمة عن استخدام التطبيق
 • توقف الخدمة بسبب ظروف قاهرة أو صيانة مجدولة
 • أخطاء المستخدم في إدخال بيانات الطلب أو العنوان
@@ -164,11 +166,11 @@ export default function TermsScreen() {
 
 
 
-        <Section title="٨. تعديل الشروط" delay={360}>{`نحتفظ بحق تعديل هذه الشروط في أي وقت. سنُعلمك بأي تغييرات جوهرية عبر إشعار داخل التطبيق قبل نفاذها. استمرار استخدامك للتطبيق بعد التعديل يُعدّ قبولاً منك للشروط المحدّثة.`}</Section>
+        <Section title="٨. تعديل الشروط" delay={360} theme={theme} styles={styles}>{`نحتفظ بحق تعديل هذه الشروط في أي وقت. سنُعلمك بأي تغييرات جوهرية عبر إشعار داخل التطبيق قبل نفاذها. استمرار استخدامك للتطبيق بعد التعديل يُعدّ قبولاً منك للشروط المحدّثة.`}</Section>
 
 
 
-        <Section title="٩. القانون المنطبق" delay={400}>{`تخضع هذه الشروط وتُفسَّر وفقاً لأحكام القانون المصري. أي نزاع ينشأ عن هذه الشروط يُحال للمحاكم المختصة في جمهورية مصر العربية.`}</Section>
+        <Section title="٩. القانون المنطبق" delay={400} theme={theme} styles={styles}>{`تخضع هذه الشروط وتُفسَّر وفقاً لأحكام القانون المصري. أي نزاع ينشأ عن هذه الشروط يُحال للمحاكم المختصة في جمهورية مصر العربية.`}</Section>
 
 
 
@@ -210,7 +212,8 @@ export default function TermsScreen() {
 
 
 
-const styles = StyleSheet.create({
+function getStyles(theme: NativeTheme) {
+return StyleSheet.create({
 
   screen: { flex: 1, backgroundColor: theme.colors.canvas.background },
 
@@ -263,3 +266,4 @@ const styles = StyleSheet.create({
   waBtnTxt: { fontSize: 13, fontFamily: legacyTheme.fonts.bold, color: "#fff" },
 
 });
+}

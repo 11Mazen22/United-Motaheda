@@ -1,4 +1,3 @@
-import { defaultTheme as theme } from "@pharmacy/ui-native";
 /**
 
  * /(auth)/verify-phone — full-screen phone-OTP step after email confirmation.
@@ -11,7 +10,7 @@ import { defaultTheme as theme } from "@pharmacy/ui-native";
 
 
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 
@@ -25,7 +24,7 @@ import { useTranslation } from "react-i18next";
 
 import { PhoneVerifyModal, sendPhoneOtp } from "@/features/auth";
 
-import { Text } from "@pharmacy/ui-native";
+import { Text, useTheme } from "@pharmacy/ui-native";
 
 
 
@@ -38,6 +37,120 @@ const IS_RTL = isRtl();
 
 
 export default function VerifyPhoneScreen() {
+
+  const { theme } = useTheme();
+
+  const s = useMemo(() => StyleSheet.create({
+
+  screen: { flex: 1, backgroundColor: theme.colors.canvas.background },
+
+
+
+  centerStack: {
+
+    flex:              1,
+
+    alignItems:        "center",
+
+    justifyContent:    "center",
+
+    paddingHorizontal: 32,
+
+  },
+
+
+
+  // Layered ring icon
+
+  outerRing: {
+
+    width:           100,
+
+    height:          100,
+
+    borderRadius:    50,
+
+    backgroundColor: theme.colors.brand.primaryLight,
+
+    borderWidth:     1,
+
+    borderColor:     theme.colors.border.default,
+
+    alignItems:      "center",
+
+    justifyContent:  "center",
+
+    marginBottom:    28,
+
+  },
+
+  innerTile: {
+
+    width:           68,
+
+    height:          68,
+
+    borderRadius:    22,
+
+    backgroundColor: theme.colors.canvas.surface,
+
+    borderWidth:     1,
+
+    borderColor:     theme.colors.border.default,
+
+    alignItems:      "center",
+
+    justifyContent:  "center",
+
+    ...theme.shadows[2],
+
+  },
+
+  innerTileError: {
+
+    backgroundColor: "rgba(229,62,62,0.06)",
+
+    borderColor:     "rgba(229,62,62,0.20)",
+
+  },
+
+
+
+  textStack: {
+
+    alignItems: "center",
+
+    gap:        8,
+
+    maxWidth:   340,
+
+  },
+
+  title:    { letterSpacing: -0.4 },
+
+  subtitle: { lineHeight: 22 },
+
+
+
+  trustFootnote: {
+
+    position:       "absolute",
+
+    bottom:         56,
+
+    start: 0,
+
+    end: 0,
+
+    alignItems:     "center",
+
+    justifyContent: "center",
+
+    gap:            6,
+
+  },
+
+  }), [theme]);
 
   const { t } = useTranslation();
 
@@ -207,118 +320,3 @@ export default function VerifyPhoneScreen() {
   );
 
 }
-
-
-
-const s = StyleSheet.create({
-
-  screen: { flex: 1, backgroundColor: theme.colors.canvas.background },
-
-
-
-  centerStack: {
-
-    flex:              1,
-
-    alignItems:        "center",
-
-    justifyContent:    "center",
-
-    paddingHorizontal: 32,
-
-  },
-
-
-
-  // Layered ring icon
-
-  outerRing: {
-
-    width:           100,
-
-    height:          100,
-
-    borderRadius:    50,
-
-    backgroundColor: theme.colors.brand.primaryLight,
-
-    borderWidth:     1,
-
-    borderColor:     theme.colors.border.default,
-
-    alignItems:      "center",
-
-    justifyContent:  "center",
-
-    marginBottom:    28,
-
-  },
-
-  innerTile: {
-
-    width:           68,
-
-    height:          68,
-
-    borderRadius:    22,
-
-    backgroundColor: theme.colors.canvas.surface,
-
-    borderWidth:     1,
-
-    borderColor:     theme.colors.border.default,
-
-    alignItems:      "center",
-
-    justifyContent:  "center",
-
-    ...theme.shadows[2],
-
-  },
-
-  innerTileError: {
-
-    backgroundColor: "rgba(229,62,62,0.06)",
-
-    borderColor:     "rgba(229,62,62,0.20)",
-
-  },
-
-
-
-  textStack: {
-
-    alignItems: "center",
-
-    gap:        8,
-
-    maxWidth:   340,
-
-  },
-
-  title:    { letterSpacing: -0.4 },
-
-  subtitle: { lineHeight: 22 },
-
-
-
-  trustFootnote: {
-
-    position:       "absolute",
-
-    bottom:         56,
-
-    start: 0,
-
-    end: 0,
-
-    alignItems:     "center",
-
-    justifyContent: "center",
-
-    gap:            6,
-
-  },
-
-});
-

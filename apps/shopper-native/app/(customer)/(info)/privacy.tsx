@@ -1,8 +1,9 @@
-import React from "react";
+import React, { useMemo } from "react";
 
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 
-import { Text as UIText } from "@pharmacy/ui-native";
+import { Text as UIText, useTheme } from "@pharmacy/ui-native";
+import type { NativeTheme } from "@pharmacy/ui-native";
 
 import { Ionicons } from "@expo/vector-icons";
 
@@ -15,7 +16,6 @@ import Animated, { FadeInDown } from "react-native-reanimated";
 import { useTranslation } from "react-i18next";
 
 import { theme as legacyTheme } from "@pharmacy/design-tokens";
-import { defaultTheme as theme } from "@pharmacy/ui-native";
 
 
 import { flexRow, isRtl, textAlignStart, BACK_CHEVRON } from "@/utils/layout";
@@ -26,7 +26,7 @@ const RTL = isRtl(), TA = textAlignStart(RTL);
 
 
 
-function Section({ title, children, delay = 0 }: { title: string; children: React.ReactNode; delay?: number }) {
+function Section({ title, children, delay = 0, theme, styles }: { title: string; children: React.ReactNode; delay?: number; theme: NativeTheme; styles: ReturnType<typeof getStyles> }) {
 
   return (
 
@@ -53,6 +53,10 @@ function Section({ title, children, delay = 0 }: { title: string; children: Reac
 export default function PrivacyScreen() {
 
   const { t } = useTranslation(), router = useRouter(), insets = useSafeAreaInsets();
+
+  const { theme } = useTheme();
+
+  const styles = useMemo(() => getStyles(theme), [theme]);
 
 
 
@@ -98,7 +102,7 @@ export default function PrivacyScreen() {
 
 
 
-        <Section title="١. المعلومات التي نجمعها" delay={80}>{`نجمع المعلومات التي تقدمها مباشرةً عند إنشاء حسابك أو تقديم طلب، وتشمل:
+        <Section title="١. المعلومات التي نجمعها" delay={80} theme={theme} styles={styles}>{`نجمع المعلومات التي تقدمها مباشرةً عند إنشاء حسابك أو تقديم طلب، وتشمل:
 • الاسم الكامل وعنوان البريد الإلكتروني
 • رقم الهاتف وعنوان التوصيل
 • سجل الطلبات والمنتجات المفضلة
@@ -107,7 +111,7 @@ export default function PrivacyScreen() {
 
 
 
-        <Section title="٢. كيف نستخدم بياناتك" delay={120}>{`نستخدم معلوماتك للأغراض التالية:
+        <Section title="٢. كيف نستخدم بياناتك" delay={120} theme={theme} styles={styles}>{`نستخدم معلوماتك للأغراض التالية:
 • تنفيذ طلباتك وتتبع الشحنات والتواصل معك بشأنها
 • تخصيص عروض المنتجات وتوصياتها وفق اهتماماتك
 • إرسال إشعارات هامة تتعلق بطلباتك وحسابك
@@ -118,7 +122,7 @@ export default function PrivacyScreen() {
 
 
 
-        <Section title="٣. مشاركة البيانات مع الأطراف الثالثة" delay={160}>{`لا نبيع معلوماتك الشخصية لأطراف ثالثة. قد نشارك بياناتك بشكل محدود في الحالات الآتية:
+        <Section title="٣. مشاركة البيانات مع الأطراف الثالثة" delay={160} theme={theme} styles={styles}>{`لا نبيع معلوماتك الشخصية لأطراف ثالثة. قد نشارك بياناتك بشكل محدود في الحالات الآتية:
 • شركات الشحن والتوصيل لتنفيذ طلباتك
 • مزودو خدمة الدفع الإلكتروني لمعالجة المعاملات المالية بأمان
 • الجهات الحكومية والتنظيمية عند الاقتضاء القانوني
@@ -127,7 +131,7 @@ export default function PrivacyScreen() {
 
 
 
-        <Section title="٤. أمان البيانات" delay={200}>{`نطبّق معايير أمان متقدمة لحماية بياناتك، تشمل:
+        <Section title="٤. أمان البيانات" delay={200} theme={theme} styles={styles}>{`نطبّق معايير أمان متقدمة لحماية بياناتك، تشمل:
 • تشفير SSL/TLS لجميع البيانات المنقولة
 • تشفير كلمات المرور باستخدام خوارزميات bcrypt
 • مراجعات أمنية دورية لقاعدة البيانات والبنية التحتية
@@ -137,7 +141,7 @@ export default function PrivacyScreen() {
 
 
 
-        <Section title="٥. ملفات التعريف (Cookies)" delay={240}>{`يستخدم التطبيق تقنيات تخزين محلية مشابهة للـ Cookies لحفظ:
+        <Section title="٥. ملفات التعريف (Cookies)" delay={240} theme={theme} styles={styles}>{`يستخدم التطبيق تقنيات تخزين محلية مشابهة للـ Cookies لحفظ:
 • بيانات جلسة تسجيل الدخول
 • محتويات سلة التسوق
 • التفضيلات الشخصية مثل اللغة والمنطقة
@@ -146,7 +150,7 @@ export default function PrivacyScreen() {
 
 
 
-        <Section title="٦. حقوقك" delay={280}>{`يحق لك في أي وقت:
+        <Section title="٦. حقوقك" delay={280} theme={theme} styles={styles}>{`يحق لك في أي وقت:
 • الاطلاع على بياناتك الشخصية المحفوظة لدينا
 • تصحيح أي معلومات غير دقيقة
 • طلب حذف حسابك وجميع بياناتك
@@ -157,11 +161,11 @@ export default function PrivacyScreen() {
 
 
 
-        <Section title="٧. الاحتفاظ بالبيانات" delay={320}>{`نحتفظ ببياناتك طالما كان حسابك نشطاً أو لفترة ضرورية لتقديم خدماتنا. عند حذف حسابك، تُحذف بياناتك الشخصية خلال ٣٠ يوماً، باستثناء ما يُلزمنا القانون بالاحتفاظ به لأغراض ضريبية أو تنظيمية.`}</Section>
+        <Section title="٧. الاحتفاظ بالبيانات" delay={320} theme={theme} styles={styles}>{`نحتفظ ببياناتك طالما كان حسابك نشطاً أو لفترة ضرورية لتقديم خدماتنا. عند حذف حسابك، تُحذف بياناتك الشخصية خلال ٣٠ يوماً، باستثناء ما يُلزمنا القانون بالاحتفاظ به لأغراض ضريبية أو تنظيمية.`}</Section>
 
 
 
-        <Section title="٨. تعديلات السياسة" delay={360}>{`نحتفظ بحق تعديل هذه السياسة في أي وقت. سنُعلمك بأي تغييرات جوهرية عبر إشعار داخل التطبيق أو البريد الإلكتروني قبل نفاذ التعديل بـ ٧ أيام على الأقل. استمرار استخدامك للتطبيق بعد التعديل يُعدّ قبولاً منك للسياسة المحدّثة.`}</Section>
+        <Section title="٨. تعديلات السياسة" delay={360} theme={theme} styles={styles}>{`نحتفظ بحق تعديل هذه السياسة في أي وقت. سنُعلمك بأي تغييرات جوهرية عبر إشعار داخل التطبيق أو البريد الإلكتروني قبل نفاذ التعديل بـ ٧ أيام على الأقل. استمرار استخدامك للتطبيق بعد التعديل يُعدّ قبولاً منك للسياسة المحدّثة.`}</Section>
 
 
 
@@ -177,7 +181,9 @@ export default function PrivacyScreen() {
 
 
 
-const styles = StyleSheet.create({
+function getStyles(theme: NativeTheme) {
+
+  return StyleSheet.create({
 
   screen: { flex: 1, backgroundColor: theme.colors.canvas.background },
 
@@ -209,4 +215,6 @@ const styles = StyleSheet.create({
 
   foot: { fontSize: 11, color: theme.colors.text.muted, textAlign: "center", paddingTop: 16 },
 
-});
+  });
+
+}

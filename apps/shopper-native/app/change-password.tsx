@@ -18,9 +18,9 @@ import { LinearGradient } from "expo-linear-gradient";
 import { updatePassword, getAuthError } from "@/features/auth";
 import { Button, Text as UIText } from "@pharmacy/ui-native";
 import { useTheme } from "@pharmacy/ui-native";
+import type { NativeTheme } from "@pharmacy/ui-native";
 
 import { theme as legacyTheme } from "@pharmacy/design-tokens";
-import { defaultTheme as theme } from "@pharmacy/ui-native";
 import { isRtl, textAlignStart, BACK_CHEVRON } from "@/utils/layout";
 import { TextInput } from "react-native-gesture-handler";
 
@@ -37,6 +37,7 @@ interface PasswordRowProps {
 
 function PasswordRow({ label, value, onChangeText, placeholder, isLast = false }: PasswordRowProps) {
   const { theme } = useTheme();
+  const styles = useMemo(() => getStyles(theme), [theme]);
   return (
     <View style={[styles.row, { borderBottomColor: isLast ? "transparent" : theme.colors.border.default }]}>
       <UIText style={[styles.rowLabel, { color: theme.colors.text.secondary, textAlign: TEXT_START, marginBottom: 8 }]}>{label}</UIText>
@@ -55,6 +56,7 @@ function PasswordRow({ label, value, onChangeText, placeholder, isLast = false }
 
 export default function ChangePasswordScreen() {
   const { theme } = useTheme();
+  const styles = useMemo(() => getStyles(theme), [theme]);
   const { t } = useTranslation();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -228,7 +230,8 @@ export default function ChangePasswordScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function getStyles(theme: NativeTheme) {
+  return StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -355,4 +358,5 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
     ...theme.shadows[1],
   },
-});
+  });
+}

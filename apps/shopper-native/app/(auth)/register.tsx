@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -26,9 +26,9 @@ import { signUp, getAuthError } from "@/features/auth";
 import { LangSwitcher } from "@/features/auth/components/LangSwitcher";
 import { Button, Text as UIText } from "@pharmacy/ui-native";
 import { useTheme } from "@pharmacy/ui-native";
+import type { NativeTheme } from "@pharmacy/ui-native";
 
 import { theme as legacyTheme } from "@pharmacy/design-tokens";
-import { defaultTheme as theme } from "@pharmacy/ui-native";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
 import { TextInput } from "react-native";
 
@@ -49,6 +49,7 @@ interface FloatingInputProps {
 
 function FloatingInput({ label, icon, secure, value, onChangeText, autoCapitalize = "none", keyboardType = "default" }: FloatingInputProps) {
   const { theme } = useTheme();
+  const styles = useMemo(() => getStyles(theme), [theme]);
   const [focused, setFocused] = useState(false);
   const focusAnim = useSharedValue(0);
 
@@ -90,6 +91,7 @@ function FloatingInput({ label, icon, secure, value, onChangeText, autoCapitaliz
 
 export default function RegisterScreen() {
   const { theme } = useTheme();
+  const styles = useMemo(() => getStyles(theme), [theme]);
   const { t } = useTranslation();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -200,7 +202,8 @@ export default function RegisterScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function getStyles(theme: NativeTheme) {
+  return StyleSheet.create({
   root: { flex: 1 },
   topBar: { paddingHorizontal: 16, paddingBottom: 8, justifyContent: "space-between", alignItems: "center", zIndex: 10 },
   closeBtn: { padding: 8 },
@@ -221,4 +224,5 @@ const styles = StyleSheet.create({
   footerRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", marginTop: 16, gap: 6 },
   footerText: { fontFamily: legacyTheme.fonts.medium, fontSize: 14 },
   footerLink: { fontFamily: legacyTheme.fonts.bold, fontSize: 14, color: theme.colors.brand.primary },
-});
+  });
+}
