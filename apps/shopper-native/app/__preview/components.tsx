@@ -44,11 +44,7 @@ import {
 
 } from "@/shared/components";
 
-import { Text, useTheme } from "@pharmacy/ui-native";
-
-import { Button } from "@pharmacy/ui-native";
-
-import { EmptyState } from "@/components/ui/EmptyState";
+import { Text, useTheme, Button, EmptyState } from "@pharmacy/ui-native";
 
 
 
@@ -390,11 +386,9 @@ export default function ComponentPreview(): React.ReactElement | null {
 
                 title="لا توجد وصفات حالياً"
 
-                description="أضف وصفتك الأولى — يمكنك مسحها بالكاميرا، أو نقلها من صيدلية أخرى"
+                subtitle="أضف وصفتك الأولى — يمكنك مسحها بالكاميرا، أو نقلها من صيدلية أخرى"
 
-                actionLabel="إضافة وصفة"
-
-                onAction={() => {}}
+                action={{ label: "إضافة وصفة", onPress: () => {} }}
 
               />
 

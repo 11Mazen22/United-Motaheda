@@ -46,9 +46,7 @@ import { track } from "@/lib/analytics";
 
 import { captureError } from "@/lib/crashReporter";
 
-import { Input } from "@/components/ui/Input";
-
-import { Button } from "@pharmacy/ui-native";
+import { Button, Input } from "@pharmacy/ui-native";
 
 import { Text as UIText } from "@pharmacy/ui-native";
 

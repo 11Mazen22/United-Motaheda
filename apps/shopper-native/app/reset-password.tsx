@@ -14,8 +14,7 @@ import { useTranslation } from "react-i18next";
 import Animated, { FadeInDown, FadeIn } from "react-native-reanimated";
 
 import { requestPasswordReset, getAuthError } from "@/features/auth";
-import { Input } from "@/components/ui/Input";
-import { Button, kit, Text as UIText } from "@pharmacy/ui-native";
+import { Button, kit, Text as UIText, Input } from "@pharmacy/ui-native";
 import { useTheme } from "@pharmacy/ui-native";
 
 import { theme } from "@pharmacy/design-tokens";

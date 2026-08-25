@@ -10,10 +10,9 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import * as ExpoLocation from "expo-location";
 import { useTranslation } from "react-i18next";
-import { Screen, Text as UIText, useTheme } from "@pharmacy/ui-native";
+import { Screen, Text as UIText, useTheme, Badge } from "@pharmacy/ui-native";
 import { Button, kit } from "@pharmacy/ui-native";
 import MetricCard from "@/components/MetricCard";
-import { Badge } from "@/components/ui/Badge";
 import {
   DetailSection,
   InfoRow,
@@ -33,6 +32,11 @@ import ProgressTracker from "../components/ProgressTracker";
 import RouteSummary from "../components/RouteSummary";
 
 const IS_RTL = isRtl();
+
+// Local StatusVariant "brand" has no direct shared-Badge equivalent — map it.
+function badgeVariant(v: "success" | "warning" | "brand" | "error" | "neutral"): "success" | "warning" | "primary" | "error" | "neutral" {
+  return v === "brand" ? "primary" : v;
+}
 const TEXT_START = textAlignStart(IS_RTL);
 
 export function DeliveryExecutionScreen(): React.ReactElement {
@@ -232,7 +236,7 @@ export function DeliveryExecutionScreen(): React.ReactElement {
       <DriverScreenHeader
         title={`#${(orderId ?? "").slice(-8).toUpperCase()}`}
         subtitle={statusMeta ? t(statusMeta.labelKey) : undefined}
-        trailing={statusMeta ? <Badge variant={statusMeta.variant} size="sm">{t(statusMeta.labelKey)}</Badge> : undefined}
+        trailing={statusMeta ? <Badge variant={badgeVariant(statusMeta.variant)} label={t(statusMeta.labelKey)} /> : undefined}
       />
 
       {loading ? (

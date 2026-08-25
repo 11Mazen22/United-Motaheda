@@ -105,16 +105,16 @@ function toNativeTheme(base: SemanticTheme, isRTL: boolean, isDark: boolean): Na
 }
 
 /**
- * Resolved light-mode NativeTheme, usable as a static import for module-scope
- * constants that can't call useTheme() (e.g. a lookup table built once at
- * import time). Components should always prefer useTheme() — this exists
- * only so those constants have a correct, valid theme shape to read instead
- * of an undefined reference. If a component-scope `const { theme } = useTheme()`
- * exists in the same file, it correctly shadows this import within that
- * function's scope, so importing this never blocks a screen from being fully
- * theme-reactive where it actually renders.
+ * Fallback NativeTheme for the context's default value, used only when a
+ * component reads useTheme() outside a <ThemeProvider>. Not exported — every
+ * screen/component in the app must go through useTheme() to stay reactive to
+ * theme changes. It used to be an exported "static theme" escape hatch that
+ * ~103 files imported instead of calling the hook, which was the root cause
+ * of dark mode rendering as a broken half-light/half-dark UI (frozen to
+ * light mode at module-import time). See the no-restricted-imports ESLint
+ * rule, which prevents that import path from being reintroduced.
  */
-export const defaultTheme = toNativeTheme(lightTheme, false, false);
+const defaultTheme = toNativeTheme(lightTheme, false, false);
 const ThemeContext = createContext<ThemeContextValue>({
   theme: defaultTheme,
   mode: "light",

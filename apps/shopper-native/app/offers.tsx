@@ -14,13 +14,12 @@ import * as Haptics from "expo-haptics";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useTranslation } from "react-i18next";
-import { Text as UIText, useTheme, type NativeTheme } from "@pharmacy/ui-native";
+import { Text as UIText, useTheme, EmptyState, type NativeTheme } from "@pharmacy/ui-native";
 import { theme as legacyTheme } from "@pharmacy/design-tokens";
 
 import { flexRow, isRtl, textAlignStart, BACK_CHEVRON } from "@/utils/layout";
 import { useScreenLayout } from "@/utils/responsive";
 import { ProductCardSkeleton } from "@/components/ui/Skeleton";
-import { EmptyState } from "@/components/ui/EmptyState";
 import {
   ProductGrid,
   useInfiniteProducts,
@@ -228,15 +227,14 @@ export default function OffersScreen() {
         <EmptyState
           icon="wifi-outline"
           title={t("offers.loadError")}
-          description={t("offers.loadErrorDesc")}
-          actionLabel={t("category.tryAgain")}
-          onAction={refetch}
+          subtitle={t("offers.loadErrorDesc")}
+          action={{ label: t("category.tryAgain"), onPress: refetch }}
         />
       ) : products.length === 0 ? (
         <EmptyState
           icon="flash-outline"
           title={t("offers.empty")}
-          description={t("offers.emptyDescription")}
+          subtitle={t("offers.emptyDescription")}
         />
       ) : (
         <ProductGrid

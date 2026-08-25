@@ -27,11 +27,9 @@ import { useCartStore } from "@/stores/cart";
 
 import type { NativeProduct } from "@/services/productsApi";
 
-import { EmptyState } from "@/components/ui/EmptyState";
-
 import { Text as UIText } from "@pharmacy/ui-native";
 
-import { useTheme, type NativeTheme } from "@pharmacy/ui-native";
+import { useTheme, type NativeTheme, EmptyState } from "@pharmacy/ui-native";
 
 import { theme as legacyTheme } from "@pharmacy/design-tokens";
 
@@ -239,7 +237,7 @@ export default function FavoritesScreen() {
 
       {!isHydrated ? <View style={{ padding: 20, gap: 12 }}>{[1, 2, 3, 4].map(k => <Skeleton key={k} styles={s} />)}</View>
 
-        : items.length === 0 ? <EmptyState icon="heart-outline" title={t("wishlist.empty")} description={t("wishlist.emptyDescription")} actionLabel={t("wishlist.browse")} onAction={() => router.push("/(customer)/(tabs)/products")} />
+        : items.length === 0 ? <EmptyState icon="heart-outline" title={t("wishlist.empty")} subtitle={t("wishlist.emptyDescription")} action={{ label: t("wishlist.browse"), onPress: () => router.push("/(customer)/(tabs)/products") }} />
 
         : <FlashList<NativeProduct> data={items} keyExtractor={p => p.id} getItemType={() => "favorite-card"}
 

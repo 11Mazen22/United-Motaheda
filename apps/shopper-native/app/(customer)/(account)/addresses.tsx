@@ -25,9 +25,7 @@ import { useAuth } from "@/features/auth";
 
 import { useAddressStore, AddressCard, AddressFormDrawer, type Address, type AddressFormData } from "@/features/addresses";
 
-import { EmptyState } from "@/components/ui/EmptyState";
-
-import { Text as UIText } from "@pharmacy/ui-native";
+import { Text as UIText, EmptyState } from "@pharmacy/ui-native";
 
 import { flexRow, isRtl, textAlignStart, BACK_CHEVRON, FORWARD_CHEVRON } from "@/utils/layout";
 
@@ -333,9 +331,9 @@ export default function AddressesScreen() {
 
       {isSkeleton ? <View style={styles.loadWrap}>{[1, 2, 3].map(i => <Shimmer key={i} style={styles.shimmer} />)}</View>
 
-        : isError ? <View style={styles.emptyW}><EmptyState icon="wifi-outline" title={t("errors.network").split(".")[0]} description={t("errors.network")} actionLabel={t("common.retry")} onAction={() => user?.id && fetch(user.id)} /></View>
+        : isError ? <View style={styles.emptyW}><EmptyState icon="wifi-outline" title={t("errors.network").split(".")[0]} subtitle={t("errors.network")} action={{ label: t("common.retry"), onPress: () => user?.id && fetch(user.id) }} /></View>
 
-        : isEmpty ? <View style={styles.emptyW}><EmptyState icon="location-outline" title={t("addresses.emptyTitle")} description={t("addresses.emptyDesc")} actionLabel={t("addresses.emptyAction")} onAction={handleAdd} /></View>
+        : isEmpty ? <View style={styles.emptyW}><EmptyState icon="location-outline" title={t("addresses.emptyTitle")} subtitle={t("addresses.emptyDesc")} action={{ label: t("addresses.emptyAction"), onPress: handleAdd }} /></View>
 
         : <FlatList data={addresses} keyExtractor={i => i.id} renderItem={renderItem} contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}
 

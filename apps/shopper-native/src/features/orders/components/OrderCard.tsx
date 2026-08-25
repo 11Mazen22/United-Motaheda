@@ -25,14 +25,18 @@ import * as Haptics from "expo-haptics";
 import { useTranslation } from "react-i18next";
 import { flexRow, isRtl, textAlignStart, valueTextAlign, FORWARD_CHEVRON } from "@/utils/layout";
 import { useAppLanguage } from "@/i18n/LanguageProvider";
-import { Badge } from "@/components/ui/Badge";
-import { Text as UIText, useTheme, type NativeTheme } from "@pharmacy/ui-native";
+import { Text as UIText, Badge, useTheme, type NativeTheme } from "@pharmacy/ui-native";
 import { theme as legacyTheme } from "@pharmacy/design-tokens";
 
 import { formatPrice } from "@/utils/format";
 import type { Order, OrderStatus } from "@/stores/orders";
 import { getOrdersStyles } from "./orders.styles";
 import { ReorderButton } from "./ReorderButton";
+
+// Local StatusVariant "brand" has no direct shared-Badge equivalent — map it.
+function badgeVariant(v: "success" | "warning" | "brand" | "error" | "neutral"): "success" | "warning" | "primary" | "error" | "neutral" {
+  return v === "brand" ? "primary" : v;
+}
 
 // ─── Status metadata (unchanged — used by Badge and dot colors) ───────────────
 
@@ -248,9 +252,7 @@ export const OrderCard = memo(function OrderCard({
           </View>
 
           {/* Right side — status badge (RTL: appears on LEFT) */}
-          <Badge variant={meta.variant} size="sm">
-            {t(meta.labelKey)}
-          </Badge>
+          <Badge variant={badgeVariant(meta.variant)} label={t(meta.labelKey)} />
         </View>
 
         {/* ── TRACKING TIMELINE ─────────────────────────── */}

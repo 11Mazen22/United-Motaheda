@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo, useState } from "react";
 import { FlatList, Linking, Platform, Pressable, StyleSheet, TextInput, View } from "react-native";
-import { Text as UIText, useTheme, type NativeTheme } from "@pharmacy/ui-native";
+import { Text as UIText, useTheme, EmptyState, type NativeTheme } from "@pharmacy/ui-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -8,7 +8,6 @@ import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
 import { useTranslation } from "react-i18next";
 import { FAQAccordion, FAQCategoryRail, FAQ_DATA, getFaqCategories, type FAQCategory, type FAQItem } from "@/features/faq";
-import { EmptyState } from "@/components/ui/EmptyState";
 import { theme as legacyTheme } from "@pharmacy/design-tokens";
 import { flexRow, isRtl, textAlignStart, BACK_CHEVRON, FORWARD_CHEVRON } from "@/utils/layout";
 
@@ -80,7 +79,7 @@ export default function FAQScreen() {
         ListHeaderComponent={filtered.length > 0 ? <Animated.View entering={FadeIn.duration(200)} style={s.results}>
           <UIText style={[s.resultsT, { textAlign: TA }]}>{t("faq.resultCount", { count: filtered.length })}{query ? ` ${t("faq.forQuery", { q: query })}` : ""}</UIText>
         </Animated.View> : null}
-        ListEmptyComponent={<View style={{ paddingTop: 40 }}><EmptyState icon="help-circle-outline" title={t("faq.noResults")} description={query ? t("faq.noResultsInQuery") : t("faq.noResultsInCat")} /></View>}
+        ListEmptyComponent={<View style={{ paddingTop: 40 }}><EmptyState icon="help-circle-outline" title={t("faq.noResults")} subtitle={query ? t("faq.noResultsInQuery") : t("faq.noResultsInCat")} /></View>}
       />
 
       <Animated.View entering={FadeInDown.duration(300)} onLayout={e => setBarH(e.nativeEvent.layout.height)}

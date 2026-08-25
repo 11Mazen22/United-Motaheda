@@ -22,7 +22,7 @@ import {
 
 } from "react-native";
 
-import { Text as UIText, useTheme } from "@pharmacy/ui-native";
+import { Text as UIText, useTheme, Input } from "@pharmacy/ui-native";
 
 import { showSuccessSheet, showErrorSheet } from "@/shared/store/appSheetStore";
 
@@ -35,8 +35,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
-
-import { Input } from "@/components/ui/Input";
 
 import { theme as legacyTheme } from "@pharmacy/design-tokens";
 

@@ -18,7 +18,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
-import { Text as UIText, useTheme, type NativeTheme } from "@pharmacy/ui-native";
+import { Text as UIText, useTheme, EmptyState, type NativeTheme } from "@pharmacy/ui-native";
 import { theme as legacyTheme } from "@pharmacy/design-tokens";
 
 import { flexRow, isRtl, textAlignStart, BACK_CHEVRON } from "@/utils/layout";
@@ -30,7 +30,6 @@ import { UnauthenticatedState } from "../components/UnauthenticatedState";
 import { EmptyOrdersState }     from "../components/EmptyOrdersState";
 import { OrderCard, SkeletonCard } from "../components/OrderCard";
 import { getOrdersStyles } from "../components/orders.styles";
-import { EmptyState } from "@/components/ui/EmptyState";
 
 // ─── OrdersHeader — light editorial header with embedded stats (kit) ──────────
 

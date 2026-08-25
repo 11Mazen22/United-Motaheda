@@ -17,8 +17,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { theme as legacyTheme } from "@pharmacy/design-tokens";
 
-import { Card, Text, Button, useTheme, type NativeTheme } from "@pharmacy/ui-native";
-import { Badge } from "@/components/ui/Badge";
+import { Card, Text, Button, Badge, useTheme, type NativeTheme } from "@pharmacy/ui-native";
 import { flexRow, isRtl } from "@/utils/layout";
 
 export type InteractionSeverity = "mild" | "moderate" | "severe";
@@ -147,7 +146,7 @@ export function InteractionBanner({
             {t("interaction.checkMeds")}
           </Text>
         </View>
-        <Badge variant={cfg.badge} size="md">{t(cfg.labelKey)}</Badge>
+        <Badge variant={cfg.badge} label={t(cfg.labelKey)} />
       </View>
 
       <View style={{ padding: theme.spacing[2] }}>

@@ -25,11 +25,7 @@ import { useAuth } from "@/features/auth";
 
 import { useNotifications, type AppNotification, type NotifType } from "@/features/notifications";
 
-import { EmptyState } from "@/components/ui/EmptyState";
-
-import { Skeleton } from "@/components/ui/Skeleton";
-
-import { useTheme, type NativeTheme } from "@pharmacy/ui-native";
+import { useTheme, type NativeTheme, EmptyState, Skeleton } from "@pharmacy/ui-native";
 
 import { theme as legacyTheme } from "@pharmacy/design-tokens";
 
@@ -127,13 +123,13 @@ function SkeletonView({ bottom, styles: n }: { bottom: number; styles: ReturnTyp
 
     {Array.from({ length: 8 }).map((_, i) => <View key={i} style={n.card}>
 
-      <Skeleton width={46} height={46} radius={14} />
+      <Skeleton width={46} height={46} borderRadius={14} />
 
       <View style={{ flex: 1, gap: 10 }}>
 
-        <View style={{ flexDirection: flexRow(RTL), alignItems: "center", gap: 10 }}><Skeleton width="62%" height={12} radius={6} /><Skeleton width={64} height={10} radius={5} /></View>
+        <View style={{ flexDirection: flexRow(RTL), alignItems: "center", gap: 10 }}><Skeleton width="62%" height={12} borderRadius={6} /><Skeleton width={64} height={10} borderRadius={5} /></View>
 
-        <Skeleton width="92%" height={11} radius={6} /><Skeleton width="78%" height={11} radius={6} /><Skeleton width={90} height={18} radius={9} />
+        <Skeleton width="92%" height={11} borderRadius={6} /><Skeleton width="78%" height={11} borderRadius={6} /><Skeleton width={90} height={18} borderRadius={9} />
 
       </View>
 
@@ -311,7 +307,7 @@ export default function NotificationsScreen() {
 
     {loading && notifications.length === 0 ? <SkeletonView bottom={insets.bottom} styles={n} />
 
-      : isError && notifications.length === 0 ? <View style={{ paddingTop: 60 }}><EmptyState icon="wifi-outline" title={t("errors.network").split(".")[0]} description={t("errors.network")} actionLabel={t("common.retry")} onAction={() => refetch()} /></View>
+      : isError && notifications.length === 0 ? <View style={{ paddingTop: 60 }}><EmptyState icon="wifi-outline" title={t("errors.network").split(".")[0]} subtitle={t("errors.network")} action={{ label: t("common.retry"), onPress: () => refetch() }} /></View>
 
       : <SectionList sections={sections} keyExtractor={i => i.id} renderItem={({ item, index }) => <Animated.View entering={FadeInDown.delay(Math.min(index, 8) * 30).duration(200)}><NotifRow item={item} onPress={() => onPress(item)} onDelete={() => dismiss(item.id)} theme={theme} styles={n} typeCfg={typeCfg} /></Animated.View>}
 
@@ -327,7 +323,7 @@ export default function NotificationsScreen() {
 
         ListFooterComponent={isFetchingNextPage ? <View style={{ paddingVertical: 16 }}><ActivityIndicator color={theme.colors.brand.primary} /></View> : null}
 
-        ListEmptyComponent={<View style={{ paddingTop: 60 }}><EmptyState icon="notifications-off-outline" title={t("notifications.empty")} description={filter !== "all" ? t("notifications.emptyFiltered") : undefined} actionLabel={filter !== "all" ? t("notifications.filterAll") : undefined} onAction={filter !== "all" ? () => setFilter("all") : undefined} /></View>}
+        ListEmptyComponent={<View style={{ paddingTop: 60 }}><EmptyState icon="notifications-off-outline" title={t("notifications.empty")} subtitle={filter !== "all" ? t("notifications.emptyFiltered") : undefined} action={filter !== "all" ? { label: t("notifications.filterAll"), onPress: () => setFilter("all") } : undefined} /></View>}
 
       />}
 
