@@ -343,7 +343,7 @@ function getQuickActions(theme: NativeTheme) {
 
     grad:     [PROFILE.loyaltyViolet, PROFILE.loyaltyPurple] as const,
 
-    route:    "/offers",
+    route:    "/(customer)/(shop)/deals",
 
   },
 
