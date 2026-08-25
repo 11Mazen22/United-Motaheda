@@ -307,7 +307,7 @@ function ProductCard({
 
     stockLabel:{ fontSize: 10, fontFamily: "Cairo_700Bold", color: theme.colors.text.secondary, marginTop: 2 },
 
-    warnRow:   { flexDirection: "row", alignItems: "center", gap: 6, padding: 10, borderRadius: 12, backgroundColor: `${theme.colors.status.error}1A` },
+    warnRow:   { flexDirection: flexRow(IS_RTL), alignItems: "center", gap: 6, padding: 10, borderRadius: 12, backgroundColor: `${theme.colors.status.error}1A` },
 
     warnText:  { fontSize: 12, fontFamily: "Cairo_700Bold", color: theme.colors.status.error, flex: 1 },
 
@@ -575,7 +575,7 @@ function ProductCard({
 
               <UIText variant="body-sm" weight="bold" style={{ textAlign: TEXT_START }}>
 
-                {t("pharmacist.inventoryAdjustTitle", "Quick stock reBox")}
+                {t("pharmacist.inventoryAdjustTitle", "Quick stock review")}
 
               </UIText>
 
@@ -713,7 +713,7 @@ export function BarcodeScannerScreen(): React.ReactElement {
 
       alignSelf:         "center",
 
-      flexDirection:     "row",
+      flexDirection:     flexRow(IS_RTL),
 
       backgroundColor:   "rgba(0,0,0,0.55)",
 
@@ -877,7 +877,7 @@ export function BarcodeScannerScreen(): React.ReactElement {
 
     scanningPill: {
 
-      flexDirection:     "row",
+      flexDirection:     flexRow(IS_RTL),
 
       alignItems:        "center",
 
@@ -905,7 +905,7 @@ export function BarcodeScannerScreen(): React.ReactElement {
 
       end:             24,
 
-      flexDirection:     "row",
+      flexDirection:     flexRow(IS_RTL),
 
       alignItems:        "center",
 

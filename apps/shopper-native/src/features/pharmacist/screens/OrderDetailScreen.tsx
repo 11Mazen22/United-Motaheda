@@ -31,7 +31,7 @@ import { Screen, Text as UIText, kit } from "@pharmacy/ui-native";
 import { useTheme } from "@pharmacy/ui-native";
 
 
-import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
+import { flexRow, isRtl, textAlignStart, valueTextAlign } from "@/utils/layout";
 
 import { formatPrice }            from "@/utils/format";
 
@@ -145,7 +145,6 @@ export function PharmacistOrderDetailScreen(): React.ReactElement {
 
     async (target: string) => {
 
-      if (!id) return;
       if (!id || !target) return;
       try {
 
@@ -355,7 +354,7 @@ export function PharmacistOrderDetailScreen(): React.ReactElement {
 
                 <UIText variant="body-sm" style={{ width: 40, textAlign: "center" }}>{item.quantity}</UIText>
 
-                <UIText variant="body-sm" weight="bold" style={{ width: 70, textAlign: "right" }}>
+                <UIText variant="body-sm" weight="bold" style={{ width: 70, textAlign: valueTextAlign }}>
 
                   {formatPrice(item.lineTotal)}
 

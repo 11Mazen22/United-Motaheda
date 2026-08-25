@@ -262,7 +262,7 @@ export default function ProfileScreen() {
 
             <MenuRow icon="location-outline" color={theme.colors.status.success} label={t("profile.menuAddresses")} subtitle={t("profile.menuAddressesSubtitle")} onPress={go("/(customer)/(account)/addresses")} styles={styles} />
 
-            <MenuRow icon="card-outline" color="#7C3AED" label={t("profile.menuPayment")} subtitle={t("profile.menuPaymentSubtitle")} onPress={go("/(customer)/(account)/payment")} last styles={styles} />
+            <MenuRow icon="card-outline" color={theme.colors.tertiary.base} label={t("profile.menuPayment")} subtitle={t("profile.menuPaymentSubtitle")} onPress={go("/(customer)/(account)/payment")} last styles={styles} />
 
           </View>
 
@@ -358,7 +358,7 @@ export default function ProfileScreen() {
 
                   </View>
 
-                  <Ionicons name={FORWARD_CHEVRON} size={16} color="rgba(179,38,30,0.55)" />
+                  <Ionicons name={FORWARD_CHEVRON} size={16} color={`${theme.colors.status.error}8C`} />
 
                 </View>
 
@@ -432,7 +432,7 @@ function getStyles(theme: NativeTheme) {
 
   mrPill: { minWidth: 26, height: 24, borderRadius: 12, alignItems: "center", justifyContent: "center", paddingHorizontal: 8, backgroundColor: theme.colors.brand.primaryLight, borderWidth: 1, borderColor: "rgba(14,126,116,0.18)" },
 
-  mrPillD: { backgroundColor: `${theme.colors.status.error}1A`, borderColor: "rgba(179,38,30,0.3)" },
+  mrPillD: { backgroundColor: `${theme.colors.status.error}1A`, borderColor: `${theme.colors.status.error}4D` },
 
   mrPillT: { fontSize: 10, lineHeight: 14, letterSpacing: 0.2, includeFontPadding: false },
 
@@ -450,17 +450,17 @@ function getStyles(theme: NativeTheme) {
 
   dCard: { borderRadius: 12, overflow: "hidden" },
 
-  dInner: { flexDirection: flexRow(RTL), alignItems: "center", justifyContent: "space-between", gap: 12, backgroundColor: `${theme.colors.status.error}1A`, borderRadius: 12, paddingVertical: 14, paddingHorizontal: 16, borderWidth: 1.5, borderColor: "rgba(179,38,30,0.32)", ...theme.shadows[1] },
+  dInner: { flexDirection: flexRow(RTL), alignItems: "center", justifyContent: "space-between", gap: 12, backgroundColor: `${theme.colors.status.error}1A`, borderRadius: 12, paddingVertical: 14, paddingHorizontal: 16, borderWidth: 1.5, borderColor: `${theme.colors.status.error}52`, ...theme.shadows[1] },
 
   dPress: { opacity: 0.88, transform: [{ scale: 0.99 }] },
 
   dLead: { flex: 1, flexDirection: flexRow(RTL), alignItems: "center", gap: 14, flexShrink: 1 },
 
-  dIcon: { width: 44, height: 44, borderRadius: 14, backgroundColor: "rgba(179,38,30,0.13)", borderWidth: 1, borderColor: "rgba(179,38,30,0.28)", alignItems: "center", justifyContent: "center", flexShrink: 0 },
+  dIcon: { width: 44, height: 44, borderRadius: 14, backgroundColor: `${theme.colors.status.error}21`, borderWidth: 1, borderColor: `${theme.colors.status.error}47`, alignItems: "center", justifyContent: "center", flexShrink: 0 },
 
   dLbl: { fontFamily: legacyTheme.fonts.extrabold, fontSize: 14, lineHeight: 20, letterSpacing: -0.1, color: theme.colors.status.error, textAlign: TA, includeFontPadding: false },
 
-  dSub: { fontFamily: legacyTheme.fonts.regular, fontSize: 11.5, lineHeight: 16, color: "rgba(179,38,30,0.65)", textAlign: TA, includeFontPadding: false },
+  dSub: { fontFamily: legacyTheme.fonts.regular, fontSize: 11.5, lineHeight: 16, color: `${theme.colors.status.error}A6`, textAlign: TA, includeFontPadding: false },
 
   foot: { alignItems: "center", marginTop: 20, paddingBottom: 16, gap: 6 },
 

@@ -14,7 +14,7 @@ import { useTranslation } from "react-i18next";
 import Animated, { FadeInDown, FadeIn } from "react-native-reanimated";
 
 import { requestPasswordReset, getAuthError } from "@/features/auth";
-import { Button, kit, Text as UIText, Input } from "@pharmacy/ui-native";
+import { Button, Text as UIText, Input } from "@pharmacy/ui-native";
 import { useTheme } from "@pharmacy/ui-native";
 
 import { theme } from "@pharmacy/design-tokens";
@@ -94,8 +94,8 @@ export default function ResetPasswordScreen() {
 
           {success && (
             <Animated.View entering={FadeIn.duration(200)} style={[styles.errorBox, { backgroundColor: `${theme.colors.status.success}1A`, borderColor: theme.colors.status.success }]}>
-              <Ionicons name="checkmark-circle-outline" size={20} color={kit.color.successDeep} />
-              <UIText style={[styles.errorText, { color: kit.color.successDeep, textAlign: TEXT_START }]}>
+              <Ionicons name="checkmark-circle-outline" size={20} color={theme.colors.status.success} />
+              <UIText style={[styles.errorText, { color: theme.colors.status.success, textAlign: TEXT_START }]}>
                 {t("auth.resetSuccess", { defaultValue: "Check your email for the reset link!" })}
               </UIText>
             </Animated.View>

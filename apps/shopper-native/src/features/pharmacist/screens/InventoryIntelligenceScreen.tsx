@@ -12,7 +12,7 @@
  *   - On-hand / Reserved / Available
  *   - Category
  *   - Price
- *   - Urgency colour band (red = 0, amber = 1-3, yellow = 4-5)
+ *   - Urgency colour band (red = out of stock, amber = 1-5 on hand, green = 6+)
  */
 
 
@@ -99,9 +99,9 @@ function urgencyColor(available: number, colors: NativeTheme["colors"]): string 
 
   if (available === 0) return colors.status.error;
 
-  if (available <= 3)  return colors.status.warning;
+  if (available <= 5)  return colors.status.warning;
 
-  return colors.status.warning;
+  return colors.status.success;
 
 }
 

@@ -203,7 +203,7 @@ export default function CartScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1 },
+  header: { flexDirection: flexRow(IS_RTL), justifyContent: "space-between", alignItems: "center", paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1 },
 
   deliveryProgressCard: { borderRadius: 16, padding: 16, marginBottom: 16, borderWidth: 1 },
   progressHeader: { alignItems: "center", marginBottom: 12 },
@@ -223,6 +223,6 @@ const styles = StyleSheet.create({
   qtyControl: { alignItems: "center", borderRadius: 20, paddingHorizontal: 4, paddingVertical: 4 },
   qtyBtn: { width: 32, height: 32, borderRadius: 16, alignItems: "center", justifyContent: "center" },
 
-  checkoutDock: { position: "absolute", bottom: 0, left: 0, right: 0, borderTopWidth: 1, flexDirection: "row", paddingHorizontal: 20, paddingTop: 16, alignItems: "center", gap: 20 },
+  checkoutDock: { position: "absolute", bottom: 0, left: 0, right: 0, borderTopWidth: 1, flexDirection: flexRow(IS_RTL), paddingHorizontal: 20, paddingTop: 16, alignItems: "center", gap: 20 },
   dockSummary: { flex: 1 },
 });

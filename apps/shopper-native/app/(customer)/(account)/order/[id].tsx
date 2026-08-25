@@ -37,7 +37,7 @@ import { useOrderDetail } from "@/features/orders/hooks/useOrders";
 import { Text as UIText, Badge, useTheme } from "@pharmacy/ui-native";
 import { ReorderButton } from "@/features/orders/components/ReorderButton";
 import { formatPrice } from "@/utils/format";
-import { FORWARD_CHEVRON, textAlignStart, isRtl } from "@/utils/layout";
+import { FORWARD_CHEVRON, textAlignStart, isRtl, flexRow } from "@/utils/layout";
 import { useScreenLayout } from "@/utils/responsive";
 import { useAppLanguage } from "@/i18n/LanguageProvider";
 
@@ -391,7 +391,7 @@ export default function OrderDetailScreen(): React.ReactElement {
 
 const trackBtnStyles = StyleSheet.create({
   btn: {
-    flexDirection: "row",
+    flexDirection: flexRow(isRtl()),
     alignItems: "center",
     gap: 10,
     borderRadius: 12,

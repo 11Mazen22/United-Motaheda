@@ -674,7 +674,7 @@ export function AnalyticsDashboardScreen(): React.ReactElement {
 
               value={stats?.deliveredToday ?? 0}
 
-              label={t("pharmacist.statDeliveredToday", "تم التوصيل اليوم")}
+              label={t("pharmacist.analyticsDeliveredToday", "تم التوصيل اليوم")}
 
               icon="checkmark-circle-outline"
 
@@ -688,7 +688,7 @@ export function AnalyticsDashboardScreen(): React.ReactElement {
 
               value={stats?.cancelledToday ?? 0}
 
-              label={t("pharmacist.statCancelledToday", "ملغاة اليوم")}
+              label={t("pharmacist.analyticsCancelledToday", "ملغاة اليوم")}
 
               icon="close-circle-outline"
 
