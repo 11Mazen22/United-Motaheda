@@ -73,7 +73,7 @@ export function IssueReportScreen(): React.ReactElement {
       marginHorizontal: kit.inset.screen,
       marginTop: 20,
     },
-    reasonGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    reasonGrid: { flexDirection: flexRow(IS_RTL), flexWrap: 'wrap', gap: 8 },
     reasonGridCell: { width: '48%', marginBottom: 8 },
     priorItem: { marginTop: 8, padding: 10, backgroundColor: theme.colors.canvas.surface, borderRadius: 12, borderWidth: 1, borderColor: theme.colors.border.default },
   }), [theme]);

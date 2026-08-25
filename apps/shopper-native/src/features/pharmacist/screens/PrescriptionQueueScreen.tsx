@@ -1,8 +1,8 @@
 /**
- * PrescriptionQueueScreen — pharmacist reBox queue for pending prescriptions.
+ * PrescriptionQueueScreen — pharmacist review queue for pending prescriptions.
  *
  * Shows a filterable list of prescriptions (pending / approved / rejected).
- * Tapping a row opens PrescriptionDetailScreen for reBox.
+ * Tapping a row opens PrescriptionDetailScreen for review.
  */
 
 import React, { useMemo, useState } from "react";

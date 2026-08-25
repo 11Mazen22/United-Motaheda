@@ -4,7 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import * as ExpoLocation from "expo-location";
 import { Text as UIText, Card, Button, useTheme } from "@pharmacy/ui-native";
 import { kit } from "@pharmacy/ui-native";
-import { flexRow, isRtl } from "@/utils/layout";
+import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
 import { formatPrice } from "@/utils/format";
 import { useAuth } from "@/features/auth";
 import { useMyAssignmentForOrder, type ManifestOrder } from "../hooks/useDriverManifest";
@@ -81,14 +81,14 @@ export function OrderCardNew({ order, onPress }: { order: ManifestOrder & { eta?
     card: { padding: 14, borderRadius: 14, marginHorizontal: kit.inset.screen },
     row: { alignItems: 'center', gap: 12 },
     leftIcon: { width: 46, height: 46, borderRadius: 12, backgroundColor: theme.colors.canvas.surface, alignItems: 'center', justifyContent: 'center' },
-    titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-    chipsRow: { flexDirection: 'row', gap: 8, alignItems: 'center' },
-    chip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 9999, backgroundColor: theme.colors.canvas.surfaceMuted },
+    titleRow: { flexDirection: flexRow(IS_RTL), justifyContent: 'space-between', alignItems: 'center' },
+    chipsRow: { flexDirection: flexRow(IS_RTL), gap: 8, alignItems: 'center' },
+    chip: { flexDirection: flexRow(IS_RTL), alignItems: 'center', gap: 6, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 9999, backgroundColor: theme.colors.canvas.surfaceMuted },
     routeRow: { alignItems: 'center', gap: 8, marginTop: 10 },
-    routePill: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 8, paddingHorizontal: 10, backgroundColor: theme.colors.canvas.surfaceMuted, borderRadius: 16 },
-    routeLabel: { flex: 1, textAlign: 'left' },
+    routePill: { flex: 1, flexDirection: flexRow(IS_RTL), alignItems: 'center', gap: 6, paddingVertical: 8, paddingHorizontal: 10, backgroundColor: theme.colors.canvas.surfaceMuted, borderRadius: 16 },
+    routeLabel: { flex: 1, textAlign: textAlignStart(IS_RTL) },
     routeArrow: { width: 20, alignItems: 'center' },
-    metaRow: { flexDirection: 'row', gap: 10, paddingTop: 10, alignItems: 'center', flexWrap: 'wrap' },
+    metaRow: { flexDirection: flexRow(IS_RTL), gap: 10, paddingTop: 10, alignItems: 'center', flexWrap: 'wrap' },
     actionsCol: { marginStart: 12, justifyContent: 'center', gap: 8, minWidth: 100 },
   }), [theme]);
 

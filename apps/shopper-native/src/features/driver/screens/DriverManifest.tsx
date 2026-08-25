@@ -40,13 +40,13 @@ export function DriverManifest(): React.ReactElement {
 
   const s = useMemo(() => StyleSheet.create({
     logoutBtn: {
-      width: 40, height: 40, borderRadius: 20,
+      width: 52, height: 52, borderRadius: 26,
       alignItems: "center", justifyContent: "center",
       backgroundColor: theme.colors.canvas.surface,
       borderWidth: 1, borderColor: theme.colors.border.default,
     },
-    headerActions: { flexDirection: "row", alignItems: "center", gap: 8 },
-    headerAction: { position: "relative", width: 40, height: 40, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: theme.colors.canvas.surfaceMuted },
+    headerActions: { flexDirection: flexRow(IS_RTL), alignItems: "center", gap: 8 },
+    headerAction: { position: "relative", width: 52, height: 52, borderRadius: 18, alignItems: "center", justifyContent: "center", backgroundColor: theme.colors.canvas.surfaceMuted },
     notificationDot: { position: "absolute", top: 8, end: 8, width: 7, height: 7, borderRadius: 4, backgroundColor: theme.colors.status.error, borderWidth: 1, borderColor: theme.colors.canvas.background },
     listContent: {
       paddingHorizontal: kit.inset.screen,

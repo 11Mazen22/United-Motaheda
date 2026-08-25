@@ -78,7 +78,7 @@ export function DeliveryExecutionScreen(): React.ReactElement {
       borderColor: theme.colors.border.default,
     },
     quickActions: { flexDirection: flexRow(IS_RTL), gap: 8 },
-    quickAction: { width: 44, height: 44, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: theme.colors.brand.primaryLight },
+    quickAction: { width: 52, height: 52, borderRadius: 16, alignItems: "center", justifyContent: "center", backgroundColor: theme.colors.brand.primaryLight },
     quickActionDisabled: { opacity: 0.4 },
     metricsRow: { flexDirection: flexRow(IS_RTL), gap: 8, paddingHorizontal: kit.inset.screen, marginTop: 8 },
   }), [theme]);
