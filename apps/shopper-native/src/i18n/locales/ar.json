@@ -55,7 +55,14 @@
         "gotIt": "فهمت، شكراً",
         "optional": "اختياري",
         "sale": "تخفيض",
-        "new": "جديد"
+        "new": "جديد",
+        "continue": "متابعة",
+        "delete": "حذف",
+        "requiredField": "{{field}} مطلوب",
+        "retake": "إعادة الالتقاط",
+        "startShopping": "ابدأ التسوق",
+        "submit": "إرسال",
+        "update": "تحديث"
     },
     "cart": {
         "eyebrow": "عربة التسوق",
@@ -90,7 +97,14 @@
         "drawerTitle": "سلة المشتريات",
         "discount": "الخصم",
         "viewCart": "عرض السلة",
-        "checkoutNow": "إتمام الطلب"
+        "checkoutNow": "إتمام الطلب",
+        "checkout": "إتمام الطلب",
+        "emptySubtitle": "يبدو أنك لم تضف أي شيء بعد. اكتشف منتجاتنا الصيدلانية المميزة.",
+        "freeDeliveryUnlocked": "تم تفعيل التوصيل المجاني!",
+        "itemUnavailable": "المنتج لم يعد متاحاً",
+        "onlyStockLeft": "باقي {{count}} فقط",
+        "priceChanged": "تم تحديث السعر",
+        "resolveConflicts": "حل المشكلات"
     },
     "search": {
         "eyebrow": "اكتشف المنتجات",
@@ -152,7 +166,8 @@
         "concernTermAllergy": "حساسية",
         "concernTermSkin": "بشرة",
         "concernTermVitamin": "فيتامين",
-        "concernTermBaby": "طفل"
+        "concernTermBaby": "طفل",
+        "clear": "مسح"
     },
     "category": {
         "browse": "تصفح القسم",
@@ -241,7 +256,8 @@
         "trust3Sub": "مباشرة من الموزع الرسمي المعتمد",
         "notFound": "المنتج غير موجود",
         "notFoundBody": "ربما تم حذفه، أو تحقق من اتصالك بالإنترنت وحاول مرة أخرى.",
-        "notFoundRetry": "إعادة المحاولة"
+        "notFoundRetry": "إعادة المحاولة",
+        "inCart": "في السلة"
     },
     "home": {
         "heroTag1": "كود UNITED10",
@@ -348,7 +364,9 @@
         "heroExclusiveOffersSub": "خصومات تصل إلى ٥٠٪",
         "flashBannerEyebrow": "عروض حصرية",
         "flashBannerHeadline": "خصومات تصل إلى",
-        "flashShopNow": "تسوق الآن"
+        "flashShopNow": "تسوق الآن",
+        "deliverTo": "التوصيل إلى",
+        "selectLocation": "اختر موقعك"
     },
     "products": {
         "title": "الأقسام",
@@ -439,7 +457,9 @@
         "featureAlerts": "تنبيهات فورية لحالة التوصيل",
         "featureReorder": "إعادة الطلب بنقرة واحدة",
         "privacyNote": "بياناتك محمية ومشفّرة تماماً",
-        "emptyHeadline": "طلبك الأول في انتظارك!"
+        "emptyHeadline": "طلبك الأول في انتظارك!",
+        "reordering": "جارٍ الإضافة إلى السلة...",
+        "statusUnknown": "حالة غير معروفة"
     },
     "profile": {
         "title": "حسابي",
@@ -497,7 +517,22 @@
         "menuEditProfile": "تعديل الملف الشخصي",
         "menuEditProfileSubtitle": "الاسم ورقم الهاتف",
         "menuSecurity": "الأمان",
-        "menuSecuritySubtitle": "تغيير كلمة المرور"
+        "menuSecuritySubtitle": "تغيير كلمة المرور",
+        "sectionAccount": "الحساب",
+        "sectionDelivery": "التوصيل",
+        "sectionOrders": "الطلبات",
+        "sectionPreferences": "التفضيلات",
+        "sectionLegal": "قانوني",
+        "name": "الاسم",
+        "namePlaceholder": "أدخل اسمك الكامل",
+        "editPhoto": "تعديل الصورة",
+        "personalInfo": "المعلومات الشخصية",
+        "emailUneditable": "لا يمكن تغيير بريدك الإلكتروني لأنه يُستخدم لتسجيل الدخول.",
+        "dangerZone": "منطقة الخطر",
+        "deleteAccount": "حذف الحساب",
+        "deleteWarning": "حذف حسابك وجميع البيانات المرتبطة به نهائياً.",
+        "changePasswordInstruction": "أنشئ كلمة مرور جديدة وقوية لحسابك للحفاظ على الأمان.",
+        "notificationsInstruction": "تحكم في كيفية ووقت إشعارك بشأن طلباتك والتذكيرات الصحية والعروض الحصرية."
     },
     "theme": {
         "system": "تلقائي",
@@ -642,7 +677,47 @@
         "authGateTitle": "سجّل دخولك لإتمام طلبك",
         "authGateBody": "أنشئ حساباً أو سجّل دخولك لإتمام طلبك وتتبع توصيلك.",
         "authGateSignIn": "تسجيل الدخول",
-        "authGateDismiss": "ليس الآن"
+        "authGateDismiss": "ليس الآن",
+        "locationDetails": "تفاصيل الموقع",
+        "yourAddress": "عنوان التوصيل الخاص بك",
+        "gpsVerified": "تم تأكيد إحداثيات GPS",
+        "gpsMissing": "منطقة تقريبية (بدون GPS)",
+        "processingBranch": "الفرع والمنطقة المخصصة",
+        "zoneEligible": "داخل نطاق التوصيل",
+        "zoneIneligible": "خارج نطاق التوصيل",
+        "distanceAway": "على بعد {{distance}} كم",
+        "delivery": "تفاصيل التوصيل",
+        "noAddresses": "ليس لديك عناوين محفوظة.",
+        "addNewAddress": "إضافة عنوان جديد",
+        "addAddress": "إضافة عنوان آخر",
+        "inZone": "داخل نطاق التوصيل",
+        "assignedBranch": "يتم التجهيز من:",
+        "viewDetails": "تفاصيل الموقع",
+        "deliveryUnavailable": "التوصيل غير متاح",
+        "deliveryMethod": "طريقة التوصيل",
+        "standardDelivery": "توصيل عادي",
+        "etaFormat": "{{min}}–{{max}} دقيقة",
+        "deliveryTime": "خلال 60 دقيقة",
+        "free": "مجاني",
+        "payment": "طريقة الدفع",
+        "cod": "الدفع عند الاستلام",
+        "card": "بطاقة ائتمان / خصم",
+        "payAtDoor": "ادفع عند استلام طلبك",
+        "paySecurely": "ادفع بأمان عبر Stripe",
+        "reviewOrder": "مراجعة الطلب",
+        "review": "المراجعة والتأكيد",
+        "subtotal": "المجموع الفرعي",
+        "deliveryFee": "رسوم التوصيل",
+        "discount": "الخصم",
+        "total": "الإجمالي النهائي",
+        "placeOrder": "تقديم الطلب",
+        "orderPlaced": "تم تأكيد الطلب",
+        "orderPlacedDesc": "تم استلام طلبك وجارٍ تحضيره بواسطة فريق الصيادلة لدينا.",
+        "orderNumber": "رقم الطلب #",
+        "totalPaid": "المبلغ الإجمالي",
+        "deliveryTo": "التوصيل إلى",
+        "trackOrder": "تتبع الطلب",
+        "continueShopping": "متابعة التسوق"
     },
     "payment": {
         "vodafone": "فودافون كاش",
@@ -688,19 +763,37 @@
         "receiptSignInRequired": "يجب تسجيل الدخول لرفع إيصال التحويل.",
         "receiptReadFailed": "تعذّر قراءة صورة الإيصال.",
         "receiptUploadFailed": "تعذّر رفع إيصال التحويل.",
-        "receiptUrlFailed": "تعذّر الحصول على رابط الإيصال."
+        "receiptUrlFailed": "تعذّر الحصول على رابط الإيصال.",
+        "cod": "الدفع عند الاستلام",
+        "transferTo": "التحويل إلى",
+        "receiptHint": "ارفع لقطة شاشة للتحويل",
+        "senderNumber": "رقم المُرسِل",
+        "processing": "جارٍ معالجة الدفع…",
+        "success": "تم الدفع بنجاح",
+        "failed": "فشل الدفع"
     },
     "branches": {
         "title": "فروعنا",
         "phone": "الهاتف",
         "hours": "ساعات العمل",
         "address": "العنوان",
-        "directions": "احصل على الاتجاهات"
+        "directions": "احصل على الاتجاهات",
+        "eyebrow": "المواقع",
+        "selectBranch": "اختر الفرع",
+        "selectedBranch": "الفرع المختار",
+        "distance": "على بعد {{dist}} كم",
+        "hoursLabel": "ساعات العمل"
     },
     "language": {
         "label": "اللغة",
         "ar": "العربية",
-        "en": "English"
+        "en": "English",
+        "title": "اللغة",
+        "arabic": "العربية",
+        "english": "English",
+        "selectLanguage": "اختر اللغة",
+        "currentLanguage": "اللغة الحالية",
+        "change": "تغيير"
     },
     "about": {
         "branches": "فروعنا",
@@ -812,7 +905,28 @@
         "progressStep1": "بيانات",
         "progressStep2": "أمان",
         "progressStep3": "تواصل",
-        "progressStep4": "تأكيد"
+        "progressStep4": "تأكيد",
+        "welcomeBack": "مرحباً بعودتك",
+        "emailLabel": "البريد الإلكتروني أو رقم الهاتف",
+        "passwordLabel": "كلمة المرور",
+        "nameLabel": "الاسم الكامل",
+        "loginBtn": "تسجيل الدخول",
+        "haveAccount": "لديك حساب بالفعل؟",
+        "biometricHint": "بصمة الوجه مفعّلة لهذا الجهاز",
+        "termsAgreement": "بإنشائك حساباً، فإنك توافق على شروط الخدمة وسياسة الخصوصية الخاصة بنا.",
+        "errorEmptyFields": "يرجى ملء جميع الحقول المطلوبة.",
+        "newPasswordLabel": "كلمة المرور الجديدة",
+        "confirmPasswordLabel": "تأكيد كلمة المرور",
+        "passwordRules": "بيانات الدخول الجديدة",
+        "errorPasswordMismatch": "كلمتا المرور غير متطابقتين.",
+        "errorPasswordTooShort": "كلمة المرور يجب أن تكون 6 أحرف على الأقل.",
+        "ruleLength": "6 أحرف على الأقل",
+        "ruleNumber": "يحتوي على رقم",
+        "strengthMedium": "متوسطة",
+        "resetTitle": "إعادة تعيين كلمة المرور",
+        "resetInstruction": "أدخل بريدك الإلكتروني المسجل لتصلك رسالة إعادة تعيين كلمة المرور.",
+        "resetAction": "إرسال رابط إعادة التعيين",
+        "resetSuccess": "تحقق من بريدك الإلكتروني لرابط إعادة التعيين!"
     },
     "onboarding": {
         "slide1Eyebrow": "صيدلية المتحدة",
@@ -837,7 +951,8 @@
         "skip": "تخطّي",
         "skipLabel": "تخطّي الإعداد التمهيدي",
         "next": "التالي",
-        "start": "ابدأ الآن"
+        "start": "ابدأ الآن",
+        "getStarted": "ابدأ الآن"
     },
     "errors": {
         "network": "خطأ في الاتصال. يرجى المحاولة مجدداً.",
@@ -845,7 +960,11 @@
         "notFound": "غير موجود",
         "unauthorized": "يرجى تسجيل الدخول للمتابعة",
         "unexpected": "حدث خطأ غير متوقع",
-        "unexpectedBody": "نعتذر — حدث خطأ في تحميل هذه الصفحة. يمكنك إعادة المحاولة أو العودة للصفحة الرئيسية."
+        "unexpectedBody": "نعتذر — حدث خطأ في تحميل هذه الصفحة. يمكنك إعادة المحاولة أو العودة للصفحة الرئيسية.",
+        "generic": "حدث خطأ ما",
+        "unknown": "حدث خطأ غير معروف.",
+        "networkTitle": "لا يوجد اتصال بالإنترنت",
+        "networkBody": "تحقق من اتصالك وحاول مرة أخرى."
     },
     "splash": {
         "offline": "وضع غير متصل",
@@ -862,7 +981,16 @@
         "cost": "{{cost}} ج.م",
         "cairoOnly": "القاهرة فقط",
         "estimated": "وصول خلال {{time}}",
-        "minUnit": "دقيقة"
+        "minUnit": "دقيقة",
+        "confirmAddress": "تأكيد العنوان",
+        "fitBranches": "عرض كل الفروع",
+        "mapLabel": "خريطة اختيار عنوان التوصيل",
+        "markerLabel": "موقع التوصيل المختار",
+        "myLocation": "موقعي الحالي",
+        "title": "معلومات التوصيل",
+        "freeThreshold": "توصيل مجاني فوق {{amount}} ج.م",
+        "estimatedTime": "{{min}}–{{max}} دقيقة",
+        "trackLabel": "تتبّع"
     },
     "wishlist": {
         "title": "قائمة الأمنيات",
@@ -878,7 +1006,8 @@
         "notAvailable": "{{name}} غير متوفر",
         "inCart": "{{name}} موجود في السلة",
         "addToCartLabel": "إضافة {{name}} إلى السلة",
-        "itemCount": "{{count}} منتج"
+        "itemCount": "{{count}} منتج",
+        "savedItems": "{{count}} عنصر محفوظ"
     },
     "notifications": {
         "title": "الإشعارات",
@@ -936,7 +1065,19 @@
         "catNewArrivalsLabel": "وصل حديثاً",
         "catNewArrivalsDesc": "منتجات جديدة في المخزون",
         "catAccountLabel": "تحديثات الحساب",
-        "catAccountDesc": "تغييرات الملف الشخصي والإعدادات"
+        "catAccountDesc": "تغييرات الملف الشخصي والإعدادات",
+        "timeDayAgo": "منذ يوم",
+        "allowAll": "السماح بالإشعارات",
+        "orders": "الطلبات والتوصيلات",
+        "orderStatus": "حالة الطلب",
+        "orderStatusDesc": "احصل على تحديثات فورية حول توصيلك.",
+        "stockAlerts": "توفر المخزون",
+        "stockAlertsDesc": "يصلك إشعار عند توفر منتجاتك المفضلة.",
+        "marketing": "العروض والتسويق",
+        "promotions": "عروض حصرية",
+        "promotionsDesc": "خصومات وعروض فلاش ومناسبات خاصة.",
+        "newsletter": "نشرة الصيدلية الإخبارية",
+        "newsletterDesc": "نصائح صحية ومنتجات مختارة بعناية."
     },
     "addresses": {
         "title": "عناويني",
@@ -956,7 +1097,24 @@
         "count": "{{count}} عنوان",
         "emptyTitle": "لا توجد عناوين محفوظة",
         "emptyDesc": "أضف عنوان التوصيل الأول الخاص بك لتسهيل عملية الطلب",
-        "emptyAction": "إضافة عنوان"
+        "emptyAction": "إضافة عنوان",
+        "addTitle": "عنوان جديد",
+        "editTitle": "تعديل العنوان",
+        "city": "المدينة",
+        "district": "الحي",
+        "street": "اسم الشارع",
+        "details": "تفاصيل العنوان",
+        "deliveryOptions": "نوع العنوان",
+        "detectLocation": "استخدام الموقع الحالي",
+        "detecting": "جارٍ تحديد الموقع...",
+        "zoneDetected": "تم تأكيد المنطقة السريعة",
+        "zoneFast": "منطقة توصيل سريع",
+        "zoneStandard": "منطقة عادية",
+        "setAsDefault": "تعيين كافتراضي",
+        "duplicateTitle": "العنوان موجود مسبقاً",
+        "duplicateBody": "هذا العنوان محفوظ بالفعل في قائمة عناوينك. هل تريد استخدام العنوان الموجود؟",
+        "duplicateUseExisting": "استخدام العنوان الموجود",
+        "duplicateEditNew": "تعديل العنوان"
     },
     "faq": {
         "title": "مركز المساعدة",
@@ -969,7 +1127,8 @@
         "noResultsInCat": "لا توجد أسئلة في هذا القسم",
         "notFound": "لم تجد إجابتك؟",
         "contactUs": "تواصل معنا",
-        "clearSearch": "مسح البحث"
+        "clearSearch": "مسح البحث",
+        "eyebrow": "المساعدة والدعم"
     },
     "terms": {
         "title": "الشروط والأحكام",
@@ -983,13 +1142,15 @@
         "whatsappUnavailableBody": "تواصل معنا على البريد الإلكتروني:\nunited.pharmacy.eg@gmail.com",
         "whatsappErrorTitle": "خطأ",
         "whatsappErrorBody": "تعذّر فتح واتساب. يرجى المحاولة لاحقاً.",
-        "ok": "حسناً"
+        "ok": "حسناً",
+        "eyebrow": "قانوني"
     },
     "privacy": {
         "title": "سياسة الخصوصية",
         "lastUpdated": "آخر تحديث: يناير ٢٠٢٥",
         "introBanner": "خصوصيتك أمانة عندنا. تصف هذه الوثيقة كيف تجمع الصيدلية المتحدة بياناتك وتستخدمها وتحميها.",
-        "footer": "الصيدلية المتحدة • مصر • united.pharmacy.eg@gmail.com"
+        "footer": "الصيدلية المتحدة • مصر • united.pharmacy.eg@gmail.com",
+        "eyebrow": "قانوني"
     },
     "resetPassword": {
         "titleDefault": "إعادة تعيين كلمة المرور",
@@ -1045,7 +1206,16 @@
         "sendingSubtitle": "سيصلك خلال ثوانٍ على رقم هاتفك للتحقق من حسابك",
         "errorTitle": "تعذّر التحقق",
         "errorDefault": "تعذّر إرسال رمز التحقق. يمكنك المتابعة وإكمال التحقق لاحقاً.",
-        "trustNote": "التحقق مشفّر ومحمي"
+        "trustNote": "التحقق مشفّر ومحمي",
+        "title": "تحقق من رقم هاتفك",
+        "subtitle": "أرسلنا رمزاً مكوّناً من 6 أرقام إلى {{phone}}",
+        "codeLabel": "رمز التحقق",
+        "verifyBtn": "تحقق",
+        "resend": "إعادة إرسال الرمز",
+        "resendIn": "إعادة الإرسال خلال {{s}} ثانية",
+        "success": "تم التحقق من رقم الهاتف بنجاح",
+        "error": "رمز غير صحيح. حاول مرة أخرى.",
+        "skip": "تخطّي الآن"
     },
     "authCallback": {
         "invalidLink": "رابط التأكيد غير صالح. حاول التسجيل مرة أخرى.",
@@ -1055,7 +1225,10 @@
         "confirming": "جارٍ تأكيد بريدك الإلكتروني",
         "confirmingBody": "ثوانٍ معدودة ثم نعود بك إلى التطبيق",
         "trustNote": "جلسة آمنة ومشفّرة",
-        "timeout": "العملية تستغرق وقتاً أطول من المعتاد. تحقق من اتصالك وحاول تسجيل الدخول مرة أخرى."
+        "timeout": "العملية تستغرق وقتاً أطول من المعتاد. تحقق من اتصالك وحاول تسجيل الدخول مرة أخرى.",
+        "verifying": "جارٍ التحقق من جلستك…",
+        "error": "فشل التحقق",
+        "errorDesc": "قد تكون صلاحية الرابط قد انتهت. حاول تسجيل الدخول مرة أخرى."
     },
     "prescriptions": {
         "scanTitle": "مسح ملصق الوصفة",
@@ -1254,7 +1427,33 @@
         "transferSavedTitle": "تم طلب النقل",
         "transferSavedBody": "سيتواصل فريقنا مع صيدليتك السابقة لإتمام النقل.",
         "transferSaveErrorTitle": "تعذر الإرسال",
-        "transferSaveErrorBody": "حدث خطأ ما. تحقق من اتصالك وحاول مرة أخرى."
+        "transferSaveErrorBody": "حدث خطأ ما. تحقق من اتصالك وحاول مرة أخرى.",
+        "galleryCta": "اختر من المعرض",
+        "galleryPermissionDenied": "يلزم الوصول إلى معرض الصور لاختيار صورة.",
+        "previewTitle": "مراجعة المستند",
+        "previewNotice": "سيتم إرسال هذا المستند بأمان إلى الصيدلية للمراجعة.",
+        "uploading": "جارٍ الرفع بأمان...",
+        "uploadError": "تعذّر رفع مستند الوصفة. حاول مرة أخرى.",
+        "uploadSuccessTitle": "تم إرسال الوصفة",
+        "uploadSuccessBody": "تم إرسال وصفتك بأمان لمراجعة الصيدلي.",
+        "uploadedDocumentName": "وصفة مرفوعة",
+        "title": "الوصفات الطبية",
+        "eyebrow": "وصفاتي الطبية",
+        "addNew": "إضافة وصفة",
+        "scan": "مسح الوصفة",
+        "manual": "إدخال يدوي",
+        "transfer": "نقل",
+        "empty": "لا توجد وصفات",
+        "emptyDesc": "أضف وصفاتك الطبية لإعادة الطلب بسرعة",
+        "uploadTitle": "رفع الوصفة",
+        "uploadBtn": "رفع",
+        "refill": "طلب تجديد",
+        "viewDetails": "عرض التفاصيل",
+        "status": {
+            "active": "سارية",
+            "expired": "منتهية",
+            "pending": "قيد المراجعة"
+        }
     },
     "sheet": {
         "badge": {
@@ -1284,6 +1483,11 @@
         "watchFor": "ما يجب الانتباه له",
         "askPharmacist": "اسأل الصيدلي · مجاناً",
         "cancel": "إلغاء",
+        "confirm": "تأكيد",
+        "delete": "حذف",
+        "remove": "إزالة",
+        "yes": "نعم",
+        "no": "لا",
         "addAnyway": "إضافة بأي حال",
         "drugCurrent": "حالي",
         "drugNew": "جديد",
@@ -1302,13 +1506,28 @@
         "refillLabel": "إعادة الصرف",
         "nextRefill": "التجديد القادم",
         "reviewPending": "قيد المراجعة",
-        "reviewRejected": "مرفوضة"
+        "reviewRejected": "مرفوضة",
+        "title": "الوصفات الطبية",
+        "scan": "مسح الوصفة",
+        "upload": "رفع",
+        "manual": "إدخال يدوي",
+        "transfer": "نقل الوصفة"
     },
     "reminder": {
         "snooze": "تأجيل",
         "markTaken": "تم التناول",
         "accessTaken": "{{name}} — تم التناول",
-        "accessNotTaken": "{{name}} — لم يُتناول بعد"
+        "accessNotTaken": "{{name}} — لم يُتناول بعد",
+        "title": "التذكيرات",
+        "addReminder": "إضافة تذكير",
+        "noReminders": "لا توجد تذكيرات",
+        "noRemindersDesc": "اضبط تذكيرات الأدوية حتى لا تفوّت أي جرعة",
+        "medicineLabel": "الدواء",
+        "timeLabel": "الوقت",
+        "frequencyLabel": "التكرار",
+        "daily": "يومياً",
+        "weekly": "أسبوعياً",
+        "deleteConfirm": "حذف التذكير؟"
     },
     "addressForm": {
         "addTitle": "إضافة عنوان جديد",
@@ -1417,7 +1636,12 @@
         "phoneHint": "رقم مصري يبدأ بـ 01",
         "phoneA11y": "رقم الهاتف الجديد",
         "send": "إرسال الرمز",
-        "backToVerify": "العودة إلى التحقق"
+        "backToVerify": "العودة إلى التحقق",
+        "codeLabel": "رمز التحقق",
+        "error": "رمز غير صحيح. حاول مرة أخرى.",
+        "skip": "تخطّي الآن",
+        "success": "تم التحقق من رقم الهاتف بنجاح",
+        "verifyBtn": "تحقق"
     },
     "order": {
         "trackTitle": "تتبع الطلب",
@@ -1440,6 +1664,9 @@
         "inProgress": "قيد التنفيذ...",
         "trackErrorTitle": "تعذر تحميل التتبع",
         "trackErrorBody": "تحقق من اتصالك وحاول مرة أخرى."
+    },
+    "tracking": {
+        "trackDriverBtn": "تتبع السائق"
     },
     "driver": {
         "eyebrow": "السائق",
@@ -1527,7 +1754,35 @@
         "profileNotifications": "الإشعارات",
         "profileLanguage": "اللغة",
         "profileSecurity": "الأمان",
-        "profileHelp": "المساعدة والأسئلة الشائعة"
+        "profileHelp": "المساعدة والأسئلة الشائعة",
+        "view": "عرض",
+        "pickedUpTitle": "تم تأكيد الاستلام",
+        "pickedUpBody": "تم تحديد الطلب الآن كخارج للتوصيل.",
+        "arrivedTitle": "تم تأكيد الوصول",
+        "arrivedBody": "تم إخطار العميل بوصولك.",
+        "arrivedCustomer": "تحديد كوصل",
+        "completeDelivery": "إتمام التوصيل",
+        "confirmDeclineTitle": "رفض هذا العرض؟",
+        "confirmDeclineBody": "سيتم إعادة هذا الطلب إلى فريق العمليات لإعادة التعيين.",
+        "estimatedFee": "الأجر المقدّر",
+        "quickResponseHint": "استجب بسرعة — العروض تنتهي صلاحيتها",
+        "estimatedEarnings": "الأرباح المقدّرة",
+        "itemsCount": "العناصر",
+        "yourPreviousReports": "بلاغاتك السابقة",
+        "arrivedAtPharmacy": "وصلت إلى الصيدلية",
+        "arrivedAtPharmacyTitle": "تم تأكيد الوصول للصيدلية",
+        "arrivedAtPharmacyBody": "يمكنك الآن تأكيد الاستلام.",
+        "arrivedAtCustomer": "وصلت إلى العميل",
+        "arrivedAtCustomerTitle": "تم تأكيد الوصول للعميل",
+        "arrivedAtCustomerBody": "يمكنك الآن إتمام التوصيل.",
+        "locationPermissionRequired": "يلزم الوصول لموقعك لتأكيد الوصول.",
+        "tooFarTitle": "أنت بعيد جداً",
+        "tooFarBody": "اقترب من موقع العميل وحاول مرة أخرى.",
+        "liveLocationReady": "يتم تحديث موقعك المباشر للتتبع.",
+        "liveLocationDenied": "يلزم الوصول للموقع لتتبع دقيق.",
+        "liveLocationError": "فشل تحديث الموقع المباشر. سنعيد المحاولة تلقائياً.",
+        "liveLocationSyncing": "جارٍ تجهيز الملاحة وتحديثات الموقع المباشر.",
+        "offerSubtitle": "عرض توصيل جديد — اضغط لعرض التفاصيل أو الرد بسرعة"
     },
     "driverApplication": {
         "title": "كن سائقًا",
@@ -1557,21 +1812,7 @@
         "statusSuspendedTitle": "الحساب موقوف",
         "statusSuspendedBody": "تم إيقاف حساب السائق مؤقتًا. تواصل مع الدعم لمزيد من التفاصيل.",
         "statusRejectedTitle": "لم تتم الموافقة على الطلب",
-        "statusRejectedBody": "لم يستوفِ طلبك متطلباتنا هذه المرة.",
-        "view": "عرض",
-        "pickedUpTitle": "تم تأكيد الاستلام",
-        "pickedUpBody": "تم تحديد الطلب الآن كخارج للتوصيل.",
-        "arrivedTitle": "تم تأكيد الوصول",
-        "arrivedBody": "تم إخطار العميل بوصولك.",
-        "arrivedCustomer": "تحديد كوصل",
-        "completeDelivery": "إتمام التوصيل",
-        "confirmDeclineTitle": "رفض هذا العرض؟",
-        "confirmDeclineBody": "سيتم إعادة هذا الطلب إلى فريق العمليات لإعادة التعيين.",
-        "estimatedFee": "الأجر المقدّر",
-        "quickResponseHint": "استجب بسرعة — العروض تنتهي صلاحيتها",
-        "estimatedEarnings": "الأرباح المقدّرة",
-        "itemsCount": "العناصر",
-        "yourPreviousReports": "بلاغاتك السابقة"
+        "statusRejectedBody": "لم يستوفِ طلبك متطلباتنا هذه المرة."
     },
     "pharmacist": {
         "eyebrow":                "لوحة الصيدلاني",
@@ -1736,6 +1977,16 @@
         "analyticsHourlyLabel":   "عدد الطلبات من 8ص حتى 10م",
         "analyticsLastUpdated":   "آخر تحديث: الآن",
 
-        "qaAnalytics":            "تحليلات"
+        "qaAnalytics":            "تحليلات",
+
+        "scanModeInventory":      "جرد",
+        "scannerInstructInventory": "امسح الباركود لمراجعة المخزون بسرعة",
+        "scannerOpenInventory":   "فتح المخزون",
+        "inventoryAdjustTitle":   "مراجعة سريعة للمخزون",
+        "inventoryAdjustedAvailable": "الكمية المتاحة بعد التعديل",
+        "inventoryAdjustHint":    "يُعدّل الكمية المتاحة",
+        "saveInventoryAdjustment": "حفظ التعديل",
+        "noDocument":             "لا يوجد مستند متاح",
+        "rxDocumentError":        "تعذّر تحميل المستند"
     }
 }

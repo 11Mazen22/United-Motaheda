@@ -54,7 +54,25 @@
         "savedTitle": "Saved Addresses",
         "emptyTitle": "No Saved Addresses",
         "emptyDesc": "Add your first delivery address to speed up ordering",
-        "emptyAction": "Add Address"
+        "emptyAction": "Add Address",
+        "addTitle": "New Address",
+        "editTitle": "Edit Address",
+        "city": "City",
+        "district": "District",
+        "street": "Street Name",
+        "details": "ADDRESS DETAILS",
+        "deliveryOptions": "LABEL",
+        "detectLocation": "Use Current Location",
+        "detecting": "Pinpointing location...",
+        "zoneDetected": "Express Zone Confirmed",
+        "zoneFast": "Express Delivery Zone",
+        "zoneStandard": "Standard Zone",
+        "setAsDefault": "Set as Default",
+        "count": "{{count}} addresses",
+        "duplicateTitle": "Address Already Exists",
+        "duplicateBody": "This address is already saved in your address list. Would you like to use the existing address?",
+        "duplicateUseExisting": "Use Existing Address",
+        "duplicateEditNew": "Edit Address"
     },
     "addressForm": {
         "addTitle": "Add New Address",
@@ -193,7 +211,29 @@
         "progressStep1": "Info",
         "progressStep2": "Security",
         "progressStep3": "Contact",
-        "progressStep4": "Confirm"
+        "progressStep4": "Confirm",
+        "welcomeBack": "Welcome Back",
+        "emailLabel": "Email or Phone",
+        "passwordLabel": "Password",
+        "nameLabel": "Full Name",
+        "loginBtn": "Sign In",
+        "haveAccount": "Already have an account?",
+        "biometricHint": "FaceID enabled for this device",
+        "termsAgreement": "By signing up, you agree to our Terms of Service and Privacy Policy.",
+        "errorEmptyFields": "Please fill in all required fields.",
+        "newPasswordLabel": "New Password",
+        "confirmPasswordLabel": "Confirm Password",
+        "passwordRules": "NEW CREDENTIALS",
+        "errorPasswordMismatch": "Passwords do not match.",
+        "errorPasswordTooShort": "Password must be at least 6 characters.",
+        "ruleLength": "At least 6 characters",
+        "ruleNumber": "Contains a number",
+        "strengthMedium": "Fair",
+        "resetTitle": "Reset Password",
+        "resetInstruction": "Enter your registered email address to receive a password reset link.",
+        "resetAction": "Send Reset Link",
+        "resetSuccess": "Check your email for the reset link!",
+        "eyebrowSignIn": "Sign In"
     },
     "authCallback": {
         "verifying": "Verifying your session…",
@@ -214,7 +254,11 @@
         "selectBranch": "Select Branch",
         "selectedBranch": "Selected Branch",
         "distance": "{{dist}} km away",
-        "hoursLabel": "Working Hours"
+        "hoursLabel": "Working Hours",
+        "phone": "Phone",
+        "hours": "Working Hours",
+        "address": "Address",
+        "directions": "Get Directions"
     },
     "cart": {
         "eyebrow": "Shopping Cart",
@@ -249,7 +293,14 @@
         "drawerTitle": "Shopping Cart",
         "discount": "Discount",
         "viewCart": "View Cart",
-        "checkoutNow": "Checkout"
+        "checkoutNow": "Checkout",
+        "checkout": "Checkout",
+        "emptySubtitle": "Looks like you haven't added anything yet. Discover our premium pharmacy products.",
+        "freeDeliveryUnlocked": "Free Delivery Unlocked!",
+        "itemUnavailable": "Item no longer available",
+        "onlyStockLeft": "Only {{count}} left",
+        "priceChanged": "Price updated",
+        "resolveConflicts": "Resolve Issues"
     },
     "category": {
         "browse": "Browse Category",
@@ -266,7 +317,8 @@
         "noProducts": "No Products Found",
         "noInStockProducts": "No in-stock products in this category right now",
         "noProductsInCat": "No products in this category right now",
-        "showAll": "Show All"
+        "showAll": "Show All",
+        "sortRelevance": "Best Match"
     },
     "offers": {
         "eyebrow": "LIMITED TIME",
@@ -385,7 +437,47 @@
         "authGateTitle": "Sign in to complete your order",
         "authGateBody": "Create an account or sign in to place your order and track your delivery.",
         "authGateSignIn": "Sign In",
-        "authGateDismiss": "Not Now"
+        "authGateDismiss": "Not Now",
+        "locationDetails": "Location Details",
+        "yourAddress": "Your Delivery Address",
+        "gpsVerified": "GPS Coordinates Verified",
+        "gpsMissing": "Approximate Area (No GPS)",
+        "processingBranch": "Assigned Branch & Zone",
+        "zoneEligible": "Inside Delivery Zone",
+        "zoneIneligible": "Outside Delivery Zone",
+        "distanceAway": "{{distance}} km away",
+        "delivery": "Delivery Details",
+        "noAddresses": "You have no saved addresses.",
+        "addNewAddress": "Add New Address",
+        "addAddress": "Add another address",
+        "inZone": "IN DELIVERY ZONE",
+        "assignedBranch": "Processing from:",
+        "viewDetails": "Location Details",
+        "deliveryUnavailable": "Delivery Unavailable",
+        "deliveryMethod": "Delivery Method",
+        "standardDelivery": "Standard Delivery",
+        "etaFormat": "{{min}}–{{max}} minutes",
+        "deliveryTime": "Within 60 minutes",
+        "free": "Free",
+        "payment": "Payment Method",
+        "cod": "Cash on Delivery",
+        "card": "Credit / Debit Card",
+        "payAtDoor": "Pay when you receive your order",
+        "paySecurely": "Pay securely via Stripe",
+        "reviewOrder": "Review Order",
+        "review": "Review & Confirm",
+        "subtotal": "Subtotal",
+        "deliveryFee": "Delivery Fee",
+        "discount": "Discount",
+        "total": "Final Total",
+        "placeOrder": "Place Order",
+        "orderPlaced": "Order Confirmed",
+        "orderPlacedDesc": "Your order has been received and is being prepared by our pharmacists.",
+        "orderNumber": "Order #",
+        "totalPaid": "Total Amount",
+        "deliveryTo": "Delivery To",
+        "trackOrder": "Track Order",
+        "continueShopping": "Continue Shopping"
     },
     "common": {
         "currency": "EGP",
@@ -425,7 +517,14 @@
         "gotIt": "Got It",
         "optional": "Optional",
         "sale": "Sale",
-        "new": "New"
+        "new": "New",
+        "continue": "Continue",
+        "delete": "Delete",
+        "requiredField": "{{field}} is required",
+        "retake": "Retake",
+        "startShopping": "Start Shopping",
+        "submit": "Submit",
+        "update": "Update"
     },
     "delivery": {
         "title": "Delivery Info",
@@ -433,14 +532,27 @@
         "estimatedTime": "{{min}}–{{max}} minutes",
         "cairoOnly": "Cairo deliveries only",
         "trackLabel": "Track",
-        "minUnit": "min"
+        "minUnit": "min",
+        "confirmAddress": "Confirm Address",
+        "fitBranches": "Show All Branches",
+        "mapLabel": "Delivery address selection map",
+        "markerLabel": "Selected delivery location",
+        "myLocation": "My Current Location",
+        "cost": "{{cost}} EGP",
+        "estimated": "Arrives in {{time}}",
+        "freeAbove": "Free above {{threshold}} EGP"
     },
     "errors": {
         "unexpected": "Something went wrong",
         "unexpectedBody": "Sorry — an error occurred while loading this page. Tap retry to try again or restart the app.",
         "networkTitle": "No Internet Connection",
         "networkBody": "Check your connection and try again.",
-        "network": "Connection error. Please try again."
+        "network": "Connection error. Please try again.",
+        "generic": "Something went wrong",
+        "unknown": "An unknown error occurred.",
+        "notFound": "Not Found",
+        "server": "Server error. Please try again later.",
+        "unauthorized": "Please sign in to continue"
     },
     "faq": {
         "title": "FAQ",
@@ -580,7 +692,9 @@
         "heroExclusiveOffersSub": "Discounts up to 50%",
         "flashBannerEyebrow": "Exclusive offers",
         "flashBannerHeadline": "Discounts up to",
-        "flashShopNow": "Shop now"
+        "flashShopNow": "Shop now",
+        "deliverTo": "Delivering to",
+        "selectLocation": "Select your location"
     },
     "interaction": {
         "confirm": "Confirm",
@@ -595,7 +709,12 @@
         "askPharmacist": "Ask Pharmacist · Free",
         "addAnyway": "Add Anyway",
         "drugCurrent": "Current",
-        "drugNew": "New"
+        "drugNew": "New",
+        "severity": {
+            "mild": "Mild",
+            "moderate": "Moderate",
+            "severe": "Severe"
+        }
     },
     "language": {
         "title": "Language",
@@ -670,7 +789,19 @@
         "catNewArrivalsLabel": "New Arrivals",
         "catNewArrivalsDesc": "New products in stock",
         "catAccountLabel": "Account Updates",
-        "catAccountDesc": "Profile and settings changes"
+        "catAccountDesc": "Profile and settings changes",
+        "timeDayAgo": "1 day ago",
+        "allowAll": "Allow Notifications",
+        "orders": "ORDERS & DELIVERIES",
+        "orderStatus": "Order Status",
+        "orderStatusDesc": "Get real-time updates on your delivery.",
+        "stockAlerts": "Back in Stock",
+        "stockAlertsDesc": "Be notified when your favorites are available.",
+        "marketing": "OFFERS & MARKETING",
+        "promotions": "Exclusive Promotions",
+        "promotionsDesc": "Discounts, flash sales, and special events.",
+        "newsletter": "Pharmacy Newsletter",
+        "newsletterDesc": "Health tips and curated product drops."
     },
     "onboarding": {
         "slide1Eyebrow": "United Pharmacy",
@@ -757,14 +888,17 @@
         "paymentStatusPending": "Pending",
         "building": "Building {{n}}",
         "floor": "Floor {{n}}",
-        "apt": "Apt {{n}}"
+        "apt": "Apt {{n}}",
+        "reordering": "Adding to cart...",
+        "statusUnknown": "Unknown Status"
     },
     "orderStatus": {
         "pending": "Pending",
         "processing": "Processing",
         "shipped": "Shipped",
         "delivered": "Delivered",
-        "cancelled": "Cancelled"
+        "cancelled": "Cancelled",
+        "pendingPayment": "Awaiting Payment Confirmation"
     },
     "payment": {
         "title": "Payment",
@@ -816,7 +950,8 @@
         "receiptSignInRequired": "You must sign in to upload the transfer receipt.",
         "receiptReadFailed": "Could not read the receipt image.",
         "receiptUploadFailed": "Could not upload the transfer receipt.",
-        "receiptUrlFailed": "Could not get a link for the receipt."
+        "receiptUrlFailed": "Could not get a link for the receipt.",
+        "trustSecure": "Secure"
     },
     "phoneVerify": {
         "title": "Verify Phone",
@@ -873,6 +1008,9 @@
         "inProgress": "In Progress...",
         "trackErrorTitle": "Couldn't load tracking",
         "trackErrorBody": "Check your connection and try again."
+    },
+    "tracking": {
+        "trackDriverBtn": "Track Driver"
     },
     "prescriptions": {
         "title": "Prescriptions",
@@ -1088,7 +1226,16 @@
         "transferSavedTitle": "Transfer requested",
         "transferSavedBody": "Our team will contact your previous pharmacy to complete the transfer.",
         "transferSaveErrorTitle": "Couldn't submit",
-        "transferSaveErrorBody": "Something went wrong. Check your connection and try again."
+        "transferSaveErrorBody": "Something went wrong. Check your connection and try again.",
+        "galleryCta": "Choose from Gallery",
+        "galleryPermissionDenied": "Gallery access is needed to choose a photo.",
+        "previewTitle": "Review Document",
+        "previewNotice": "This document will be sent securely to the pharmacy for review.",
+        "uploading": "Uploading securely...",
+        "uploadError": "Failed to upload the prescription document. Please try again.",
+        "uploadSuccessTitle": "Prescription Submitted",
+        "uploadSuccessBody": "Your prescription has been securely submitted for pharmacist review.",
+        "uploadedDocumentName": "Uploaded Prescription"
     },
     "privacy": {
         "title": "Privacy Policy",
@@ -1157,7 +1304,8 @@
         "trust3Sub": "Directly from the official authorised distributor",
         "notFound": "Product not found",
         "notFoundBody": "It may have been removed, or check your connection and try again.",
-        "notFoundRetry": "Try Again"
+        "notFoundRetry": "Try Again",
+        "inCart": "In Cart"
     },
     "products": {
         "title": "Categories",
@@ -1245,7 +1393,22 @@
         "menuEditProfile": "Edit Profile",
         "menuEditProfileSubtitle": "Name and phone number",
         "menuSecurity": "Security",
-        "menuSecuritySubtitle": "Change password"
+        "menuSecuritySubtitle": "Change password",
+        "sectionAccount": "Account",
+        "sectionDelivery": "Delivery",
+        "sectionOrders": "Orders",
+        "sectionPreferences": "Preferences",
+        "sectionLegal": "Legal",
+        "name": "Name",
+        "namePlaceholder": "Enter your full name",
+        "editPhoto": "Edit Photo",
+        "personalInfo": "PERSONAL INFORMATION",
+        "emailUneditable": "Your email address cannot be changed as it is used for login.",
+        "dangerZone": "DANGER ZONE",
+        "deleteAccount": "Delete Account",
+        "deleteWarning": "Permanently delete your account and all associated data.",
+        "changePasswordInstruction": "Create a new strong password for your account to maintain security.",
+        "notificationsInstruction": "Control how and when you want to be notified about your orders, health reminders, and exclusive offers."
     },
     "theme": {
         "system": "System",
@@ -1294,7 +1457,9 @@
         "weekly": "Weekly",
         "deleteConfirm": "Delete Reminder?",
         "snooze": "Snooze",
-        "markTaken": "Mark as Taken"
+        "markTaken": "Mark as Taken",
+        "accessTaken": "{{name}} — taken",
+        "accessNotTaken": "{{name}} — not yet taken"
     },
     "resetPassword": {
         "titleDefault": "Reset Password",
@@ -1402,7 +1567,8 @@
         "concernTermAllergy": "allergy",
         "concernTermSkin": "skin",
         "concernTermVitamin": "vitamin",
-        "concernTermBaby": "baby"
+        "concernTermBaby": "baby",
+        "clear": "Clear"
     },
     "sheet": {
         "badge": {
@@ -1478,7 +1644,12 @@
         "resendIn": "Resend in {{s}}s",
         "success": "Phone verified successfully",
         "error": "Invalid code. Please try again.",
-        "skip": "Skip for now"
+        "skip": "Skip for now",
+        "sendingTitle": "Sending verification code",
+        "sendingSubtitle": "It will arrive on your phone within seconds to verify your account.",
+        "errorTitle": "Verification Failed",
+        "errorDefault": "Couldn't send the verification code. You can continue and complete verification later.",
+        "trustNote": "Verification is encrypted and secure"
     },
     "wishlist": {
         "title": "Wishlist",
@@ -1494,7 +1665,8 @@
         "notAvailable": "{{name}} is not available",
         "inCart": "{{name}} is in your cart",
         "addToCartLabel": "Add {{name}} to cart",
-        "itemCount": "{{count}} items"
+        "itemCount": "{{count}} items",
+        "savedItems": "{{count}} Saved Items"
     },
     "driver": {
         "eyebrow": "Driver",
@@ -1582,7 +1754,35 @@
         "profileNotifications": "Notifications",
         "profileLanguage": "Language",
         "profileSecurity": "Security",
-        "profileHelp": "Help & FAQ"
+        "profileHelp": "Help & FAQ",
+        "view": "View",
+        "pickedUpTitle": "Pickup confirmed",
+        "pickedUpBody": "The order is now marked as out for delivery.",
+        "arrivedTitle": "Arrival confirmed",
+        "arrivedBody": "The customer has been notified you've arrived.",
+        "arrivedCustomer": "Mark arrived",
+        "completeDelivery": "Complete delivery",
+        "confirmDeclineTitle": "Decline this offer?",
+        "confirmDeclineBody": "This order will be returned to the operations team for reassignment.",
+        "estimatedFee": "Estimated fee",
+        "quickResponseHint": "Respond quickly — offers expire",
+        "estimatedEarnings": "Estimated earnings",
+        "itemsCount": "Items",
+        "yourPreviousReports": "Your previous reports",
+        "arrivedAtPharmacy": "Arrived at pharmacy",
+        "arrivedAtPharmacyTitle": "Arrived at pharmacy",
+        "arrivedAtPharmacyBody": "You can now confirm pickup.",
+        "arrivedAtCustomer": "Arrived at customer",
+        "arrivedAtCustomerTitle": "Arrived at customer",
+        "arrivedAtCustomerBody": "You can now complete delivery.",
+        "locationPermissionRequired": "Location access is required to confirm arrival.",
+        "tooFarTitle": "You're too far away",
+        "tooFarBody": "Get closer to the customer's location and try again.",
+        "liveLocationReady": "Live driver location is updating for tracking.",
+        "liveLocationDenied": "Location access is required for accurate tracking.",
+        "liveLocationError": "Live location update failed. We will retry automatically.",
+        "liveLocationSyncing": "Preparing navigation and live location updates.",
+        "offerSubtitle": "New delivery offer — tap to view details or respond quickly"
     },
     "driverApplication": {
         "title": "Become a Driver",
@@ -1612,21 +1812,7 @@
         "statusSuspendedTitle": "Account suspended",
         "statusSuspendedBody": "Your driver account has been temporarily suspended. Contact support for details.",
         "statusRejectedTitle": "Application not approved",
-        "statusRejectedBody": "Your application didn't meet our requirements this time.",
-        "view": "View",
-        "pickedUpTitle": "Pickup confirmed",
-        "pickedUpBody": "The order is now marked as out for delivery.",
-        "arrivedTitle": "Arrival confirmed",
-        "arrivedBody": "The customer has been notified you've arrived.",
-        "arrivedCustomer": "Mark arrived",
-        "completeDelivery": "Complete delivery",
-        "confirmDeclineTitle": "Decline this offer?",
-        "confirmDeclineBody": "This order will be returned to the operations team for reassignment.",
-        "estimatedFee": "Estimated fee",
-        "quickResponseHint": "Respond quickly — offers expire",
-        "estimatedEarnings": "Estimated earnings",
-        "itemsCount": "Items",
-        "yourPreviousReports": "Your previous reports"
+        "statusRejectedBody": "Your application didn't meet our requirements this time."
     },
     "pharmacist": {
         "eyebrow":                "Pharmacist Workbench",
@@ -1791,6 +1977,16 @@
         "analyticsHourlyLabel":   "Orders from 8am to 10pm",
         "analyticsLastUpdated":   "Last updated: just now",
 
-        "qaAnalytics":            "Analytics"
+        "qaAnalytics":            "Analytics",
+
+        "scanModeInventory":      "Inventory",
+        "scannerInstructInventory": "Scan the barcode to quickly review stock",
+        "scannerOpenInventory":   "Open inventory",
+        "inventoryAdjustTitle":   "Quick stock review",
+        "inventoryAdjustedAvailable": "Adjusted available",
+        "inventoryAdjustHint":    "Adjusts available stock",
+        "saveInventoryAdjustment": "Save adjustment",
+        "noDocument":             "No document available",
+        "rxDocumentError":        "Failed to load document"
     }
 }
