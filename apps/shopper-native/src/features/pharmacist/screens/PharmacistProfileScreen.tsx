@@ -425,7 +425,7 @@ export function PharmacistProfileScreen(): React.ReactElement {
 
             label={t("pharmacist.profileNotifications")}
 
-            onPress={() => router.push("/(pharmacist)/notifications")}
+            onPress={() => router.push("/(pharmacist)/pharmacist-notifications" as never)}
 
           />
 

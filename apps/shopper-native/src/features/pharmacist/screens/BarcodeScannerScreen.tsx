@@ -49,7 +49,7 @@ import {
 
 } from "react-native";
 
-import { CameraView, useCameraPermissions } from "expo-camera";
+import { CameraView, useCameraPermissions } from "@/shared/camera";
 
 import { Ionicons }         from "@expo/vector-icons";
 
@@ -1465,11 +1465,11 @@ export function BarcodeScannerScreen(): React.ReactElement {
 
               router.push({
 
-                pathname: "/(pharmacist)/inventory",
+                pathname: "/(pharmacist)/(tabs)/inventory",
 
                 params: result.barcode ? { query: result.barcode } : undefined,
 
-              });
+              } as never);
 
             }}
 

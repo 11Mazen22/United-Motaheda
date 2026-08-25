@@ -1447,7 +1447,12 @@
         "profile": "Account",
         "driverHome": "Manifest",
         "driverMap": "Map",
-        "driverOffers": "Offers"
+        "driverOffers": "Offers",
+        "pharmacistWorkbench": "Workbench",
+        "pharmacistQueue": "Queue",
+        "pharmacistInventory": "Inventory",
+        "pharmacistAnalytics": "Analytics",
+        "pharmacistProfile": "Profile"
     },
     "terms": {
         "title": "Terms & Conditions",

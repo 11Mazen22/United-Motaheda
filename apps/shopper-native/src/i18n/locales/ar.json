@@ -10,7 +10,12 @@
         "profile": "حسابي",
         "driverHome": "المهام",
         "driverMap": "الخريطة",
-        "driverOffers": "العروض"
+        "driverOffers": "العروض",
+        "pharmacistWorkbench": "لوحة العمل",
+        "pharmacistQueue": "الطابور",
+        "pharmacistInventory": "المخزون",
+        "pharmacistAnalytics": "التحليلات",
+        "pharmacistProfile": "حسابي"
     },
     "common": {
         "currency": "ج.م",

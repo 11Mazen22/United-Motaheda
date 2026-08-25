@@ -47,6 +47,7 @@ export default function DriverLayout() {
       <Stack.Screen name="delivery/[orderId]" />
       <Stack.Screen name="issue/[orderId]" />
       <Stack.Screen name="profile" />
+      <Stack.Screen name="driver-notifications" options={{ animation: "slide_from_bottom" }} />
     </Stack>
   );
 }

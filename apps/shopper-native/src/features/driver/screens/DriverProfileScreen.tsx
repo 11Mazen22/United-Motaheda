@@ -116,7 +116,7 @@ export function DriverProfileScreen(): React.ReactElement {
           <MenuRow
             icon="notifications-outline"
             label={t("driver.profileNotifications")}
-            onPress={() => router.push("/notifications")}
+            onPress={() => router.push("/driver-notifications" as never)}
           />
           <View style={[styles.divider, { backgroundColor: theme.colors.border.default }]} />
           <MenuRow

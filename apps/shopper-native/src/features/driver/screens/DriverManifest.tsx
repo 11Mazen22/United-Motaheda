@@ -103,7 +103,7 @@ export function DriverManifest(): React.ReactElement {
             </View>
 
             <View style={s.headerActions}>
-              <Pressable onPress={() => router.push("/notifications" as never)} style={s.headerAction} accessibilityRole="button" accessibilityLabel={t("notifications.title")}>
+              <Pressable onPress={() => router.push("/driver-notifications" as never)} style={s.headerAction} accessibilityRole="button" accessibilityLabel={t("notifications.title")}>
                 <Ionicons name="notifications-outline" size={22} color="#fff" />
                 {unreadCount > 0 && <View style={s.notificationDot} />}
               </Pressable>

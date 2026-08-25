@@ -210,7 +210,6 @@ function ThemedApp() {
           <Stack.Screen name="(driver)" options={{ headerShown: false }} />
           <Stack.Screen name="(pharmacist)" options={{ headerShown: false }} />
           <Stack.Screen name="(auth)" options={{ headerShown: false, presentation: "modal", animation: "slide_from_bottom" }} />
-          <Stack.Screen name="reset-password" options={{ headerShown: false }} />
           {__DEV__ && <Stack.Screen name="__preview/components" options={{ headerShown: false, animation: "slide_from_right" }} />}
         </Stack>
 

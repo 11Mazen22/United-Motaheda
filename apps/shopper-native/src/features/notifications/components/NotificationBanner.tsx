@@ -74,6 +74,17 @@ export function NotificationBanner() {
   // array shape, not the strict per-route literal type.
   const segments      = useSegments() as readonly string[];
   const isDriverRoute = segments[0] === "(driver)";
+  const isPharmacistRoute = segments[0] === "(pharmacist)";
+  // Notifications is a persona-scoped screen — customer/pharmacist/driver
+  // each ship their own (Expo Router route groups are invisible in the
+  // resolved URL, so all three can't share the bare "/notifications" leaf
+  // without colliding). Pick the fallback that matches whichever persona
+  // the tap happened in, not a single hardcoded path.
+  const notificationsHref = isDriverRoute
+    ? "/driver-notifications"
+    : isPharmacistRoute
+    ? "/pharmacist-notifications"
+    : "/notifications";
   const banner        = useBannerStore((s) => s.banner);
   const queuedCount   = useBannerStore((s) => s.queue.length);
   const dismissBanner = useBannerStore((s) => s.dismissBanner);
@@ -136,7 +147,7 @@ export function NotificationBanner() {
     // Use the notification's own actionUrl (e.g. "/orders", "/wallet") when
     // present. Fall back to the notifications list — there is no per-notification
     // detail screen, so the old /notifications/${id} pattern was a dead route.
-    const dest = (banner.actionUrl ?? "/notifications") as Parameters<typeof router.push>[0];
+    const dest = (banner.actionUrl ?? notificationsHref) as Parameters<typeof router.push>[0];
     router.push(dest);
   };
 

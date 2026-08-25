@@ -8,14 +8,13 @@
  *   - Stack navigator with the full set of pharmacist routes
  *
  * Routes:
- *   index              — WorkbenchScreen (dashboard + order queue)
- *   order/[id]         — PharmacistOrderDetail
- *   prescriptions      — PrescriptionQueueScreen
- *   prescription/[id]  — PrescriptionDetailScreen
- *   inventory          — InventoryIntelligenceScreen (primary inventory dashboard)
- *   search             — GlobalSearchScreen
- *   notifications      — NotificationCenterScreen (pharmacist-scoped)
- *   profile            — PharmacistProfileScreen
+ *   (tabs)             — tab bar: index (Workbench), prescriptions (queue),
+ *                        inventory, analytics, profile; search is mounted
+ *                        inside (tabs) too but hidden from the bar itself
+ *   order/[id]         — PharmacistOrderDetail (stack-pushed over the tabs)
+ *   prescription/[id]  — PrescriptionDetailScreen (stack-pushed over the tabs)
+ *   scanner            — BarcodeScannerScreen (full-screen, no tab bar)
+ *   notifications      — NotificationCenterScreen (pharmacist-scoped, full-screen)
  */
 
 import React from "react";
@@ -52,17 +51,11 @@ export default function PharmacistLayout() {
 
   return (
     <Stack screenOptions={{ headerShown: false, animation: "slide_from_right" }}>
-      <Stack.Screen name="index"              options={{ animation: "fade" }} />
-      {/* Promote analytics higher in the stack so it's easier to deep-link */}
-      <Stack.Screen name="analytics"          options={{ animation: "fade" }} />
+      <Stack.Screen name="(tabs)"             options={{ animation: "fade" }} />
       <Stack.Screen name="order/[id]"         />
-      <Stack.Screen name="prescriptions"      />
       <Stack.Screen name="prescription/[id]"  />
-      <Stack.Screen name="inventory"          />
       <Stack.Screen name="scanner"            />
-      <Stack.Screen name="search"             />
-      <Stack.Screen name="notifications"      options={{ animation: "slide_from_bottom" }} />
-      <Stack.Screen name="profile"            />
+      <Stack.Screen name="pharmacist-notifications" options={{ animation: "slide_from_bottom" }} />
     </Stack>
   );
 }
