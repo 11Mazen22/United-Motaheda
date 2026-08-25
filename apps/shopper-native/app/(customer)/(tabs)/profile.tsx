@@ -186,7 +186,7 @@ export default function ProfileScreen() {
 
 
 
-  const go = useCallback((p: string) => () => router.push(p), [router]);
+  const go = useCallback((p: string) => () => router.push(p as never), [router]);
 
   const callWhatsApp = useCallback(() => Linking.openURL(waUrl(language)).catch(() => {}), [language]);
 

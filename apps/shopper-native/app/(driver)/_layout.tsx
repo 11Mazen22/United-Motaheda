@@ -37,7 +37,7 @@ export default function DriverLayout() {
   const hasLiveDriverProfile = Boolean(profileQuery.data && LIVE_DRIVER_STATUSES.has(profileQuery.data.status));
 
   if (!user || !isDriverRole || !hasLiveDriverProfile) {
-    return <Redirect href="/(tabs)" />;
+    return <Redirect href={"/(tabs)" as never} />;
   }
 
   return (

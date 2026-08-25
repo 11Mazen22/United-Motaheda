@@ -46,7 +46,7 @@ export default function PharmacistLayout() {
     user?.role === "manager";
 
   if (!user || !hasAccess) {
-    return <Redirect href="/(tabs)" />;
+    return <Redirect href={"/(tabs)" as never} />;
   }
 
   return (

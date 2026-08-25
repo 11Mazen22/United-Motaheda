@@ -6,6 +6,6 @@ import { Redirect } from "expo-router";
 
 export default function MapScreen() {
 
-  return <Redirect href="/(customer)/(tabs)/" />;
+  return <Redirect href="/(customer)/(tabs)" />;
 
 }

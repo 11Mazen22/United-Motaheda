@@ -262,7 +262,7 @@ export default function CheckoutScreen() {
                    label={t("checkout.trackOrder", "Track Order")}
                    onPress={() => {
                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                     router.replace(`/(customer)/(tabs)/orders`);
+                     router.replace(`/(customer)/(tabs)/orders` as never);
                    }}
                    tone="gradient"
                 />

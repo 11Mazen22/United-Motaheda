@@ -412,7 +412,7 @@ export default function OnboardingScreen() {
     if (Platform.OS !== "web")
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
     await AsyncStorage.setItem(ONBOARDING_KEY, "1");
-    router.replace("/(tabs)");
+    router.replace("/(tabs)" as never);
   }, [router]);
 
   const goTo = useCallback(
