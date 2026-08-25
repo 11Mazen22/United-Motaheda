@@ -200,7 +200,6 @@
         "addToCart": "أضف للسلة",
         "added": "أُضيف",
         "addedToCart": "أُضيف إلى السلة",
-        "bestseller": "الأكثر مبيعاً",
         "wishlist": "المفضلة",
         "ratingsCount": "{{count}} تقييم",
         "remove": "إزالة",
@@ -1925,7 +1924,6 @@
         "rxRejectedBody":         "تم رفض الوصفة الطبية.",
         "prescriptionDetail":     "تفاصيل الوصفة",
         "rxNotFound":             "الوصفة غير موجودة",
-        "emptyRxTitle":           "لا توجد وصفات",
 
         "inventoryTitle":         "المخزون",
         "inventorySubtitle":      "الكميات والبحث",
