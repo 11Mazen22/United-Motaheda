@@ -62,7 +62,9 @@ import * as Haptics from "expo-haptics";
 
 import { useTranslation } from "react-i18next";
 
-import { Text as UIText, useTheme } from "@pharmacy/ui-native";
+import { useQuery } from "@tanstack/react-query";
+
+import { Text as UIText, useTheme, SkeletonCard } from "@pharmacy/ui-native";
 
 import { theme } from "@pharmacy/design-tokens";
 
@@ -82,7 +84,7 @@ import { sectionStyles, cntStyles as cs } from "./home.styles";
 
 import { useEndOfDayCountdown } from "../hooks/useEndOfDayCountdown";
 
-import type { NativeProduct } from "@/features/products";
+import { fetchProductsPage, productKeys, type NativeProduct } from "@/features/products";
 
 
 
@@ -374,9 +376,10 @@ const FlashSaleItem = memo(function FlashSaleItem({
 
 
 
-interface FlashSaleSectionProps {
+const FLASH_SALE_LIMIT = 8;
+const STALE_MS = 90_000;
 
-  products:       NativeProduct[];
+interface FlashSaleSectionProps {
 
   onProductPress: (id: string) => void;
 
@@ -387,8 +390,6 @@ interface FlashSaleSectionProps {
 
 
 export const FlashSaleSection = memo(function FlashSaleSection({
-
-  products,
 
   onProductPress,
 
@@ -402,9 +403,41 @@ export const FlashSaleSection = memo(function FlashSaleSection({
 
   const lang        = i18n.language === "en" ? "en" as const : "ar" as const;
 
-  const items       = products.slice(0, 8);
-
   const { pagePad } = useScreenLayout();
+
+  const { data, isLoading } = useQuery<NativeProduct[]>({
+
+    queryKey: productKeys.flashSale(FLASH_SALE_LIMIT),
+
+    queryFn: async () => {
+
+      const page = await fetchProductsPage({ isSale: true, sortBy: "price_asc", pageSize: FLASH_SALE_LIMIT });
+
+      return page.products;
+
+    },
+
+    staleTime: STALE_MS,
+
+  });
+
+  const items = data ?? [];
+
+  if (isLoading) return (
+
+    <View style={sectionStyles.wrap}>
+
+      <HomeSectionHeader eyebrow={t("home.flashEnds")} title={t("home.flashTitle")} icon="flash" accent={theme.colors.status.error} />
+
+      <View style={{ paddingHorizontal: pagePad }}>
+
+        <SkeletonCard lines={2} style={{ height: 180, borderRadius: 20 }} />
+
+      </View>
+
+    </View>
+
+  );
 
 
 

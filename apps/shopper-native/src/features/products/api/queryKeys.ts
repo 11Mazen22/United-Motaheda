@@ -23,6 +23,10 @@ export const productKeys = {
   featured: (limit: number) =>
     [ROOT, "featured", limit] as const,
 
+  /** On-sale products / homepage flash-sale rail. */
+  flashSale: (limit: number) =>
+    [ROOT, "flashSale", limit] as const,
+
   /** Infinite list keyed by the discriminating filters. */
   list: (filters: Pick<ProductFilters, "categoryId" | "search" | "inStock" | "minPrice" | "maxPrice" | "sortBy" | "isSale">) =>
     [

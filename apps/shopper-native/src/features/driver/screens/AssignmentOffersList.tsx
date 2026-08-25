@@ -10,7 +10,6 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { Screen, Text as UIText, Card, EmptyState } from "@pharmacy/ui-native";
-import { formatPrice } from "@/utils/format";
 import { kit } from "@pharmacy/ui-native";
 import { useAuth } from "@/features/auth";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
@@ -82,7 +81,7 @@ export function AssignmentOffersList(): React.ReactElement {
               </UIText>
 
               <View style={s.metaRow}>
-                <View style={s.metaItem}><Ionicons name="pricetag-outline" size={14} color={theme.colors.text.muted} /><UIText variant="caption" color="secondary">{(item as unknown as { fee?: number }).fee ? formatPrice((item as unknown as { fee: number }).fee) : t("driver.estimatedFee")}</UIText></View>
+                <View style={s.metaItem}><Ionicons name="pricetag-outline" size={14} color={theme.colors.text.muted} /><UIText variant="caption" color="secondary">{t("driver.estimatedFee")}</UIText></View>
                 <View style={s.metaItem}><Ionicons name="time-outline" size={14} color={theme.colors.text.muted} /><UIText variant="caption" color="secondary">{t("driver.quickResponseHint")}</UIText></View>
               </View>
             </View>

@@ -114,6 +114,14 @@
     },
     "auth": {
         "login": "Sign In",
+        "callback": {
+            "title": "Confirming your sign-in",
+            "body": "Just a moment while we finish setting things up.",
+            "errorTitle": "We couldn't sign you in",
+            "errorBody": "This link may have expired or already been used. Please try signing in again.",
+            "backToLogin": "Back to sign in",
+            "trustNote": "Your connection is secure"
+        },
         "register": "Create Account",
         "email": "Email",
         "password": "Password",
@@ -393,6 +401,10 @@
         "loading": "Loading…",
         "error": "Something went wrong",
         "retry": "Try Again",
+        "retryShort": "Tap to retry",
+        "view": "View",
+        "accepting": "Accepting…",
+        "declining": "Declining…",
         "maxQty": "Max quantity reached",
         "inStock": "In Stock",
         "outOfStock": "Out of Stock",
@@ -1180,6 +1192,10 @@
     "profile": {
         "title": "My Account",
         "eyebrow": "Account",
+        "theme": "Appearance",
+        "themeLight": "Light",
+        "themeDark": "Dark",
+        "themeSystem": "System",
         "notLoggedIn": "You are not signed in",
         "login": "Sign In",
         "logout": "Sign Out",
@@ -1230,6 +1246,11 @@
         "menuEditProfileSubtitle": "Name and phone number",
         "menuSecurity": "Security",
         "menuSecuritySubtitle": "Change password"
+    },
+    "theme": {
+        "system": "System",
+        "light": "Light",
+        "dark": "Dark"
     },
     "editProfile": {
         "title": "Edit Profile",
@@ -1586,11 +1607,27 @@
         "statusSuspendedTitle": "Account suspended",
         "statusSuspendedBody": "Your driver account has been temporarily suspended. Contact support for details.",
         "statusRejectedTitle": "Application not approved",
-        "statusRejectedBody": "Your application didn't meet our requirements this time."
+        "statusRejectedBody": "Your application didn't meet our requirements this time.",
+        "view": "View",
+        "pickedUpTitle": "Pickup confirmed",
+        "pickedUpBody": "The order is now marked as out for delivery.",
+        "arrivedTitle": "Arrival confirmed",
+        "arrivedBody": "The customer has been notified you've arrived.",
+        "arrivedCustomer": "Mark arrived",
+        "completeDelivery": "Complete delivery",
+        "confirmDeclineTitle": "Decline this offer?",
+        "confirmDeclineBody": "This order will be returned to the operations team for reassignment.",
+        "estimatedFee": "Estimated fee",
+        "quickResponseHint": "Respond quickly — offers expire",
+        "estimatedEarnings": "Estimated earnings",
+        "itemsCount": "Items",
+        "yourPreviousReports": "Your previous reports"
     },
     "pharmacist": {
         "eyebrow":                "Pharmacist Workbench",
         "workbench":              "Workbench",
+        "orderDetails":           "Order Details",
+        "emptyRxSubtitle":        "New prescriptions will appear here as they come in.",
         "liveQueue":              "Live",
         "greeting":               "Hello, {{name}}",
         "signOut":                "Sign Out",

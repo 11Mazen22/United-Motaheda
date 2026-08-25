@@ -61,7 +61,7 @@ import {
 
 import { Ionicons } from "@expo/vector-icons";
 
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -224,10 +224,10 @@ type DarkColors = {
 
 
 
-export default function Page({ id }: { id: string | undefined }): React.ReactElement {
+export default function Page(): React.ReactElement {
 
-  
-  
+  const { id } = useLocalSearchParams<{ id: string }>();
+
   const { theme } = useTheme();
   const s = React.useMemo(() => get_s(), []);
 const { t, i18n } = useTranslation();

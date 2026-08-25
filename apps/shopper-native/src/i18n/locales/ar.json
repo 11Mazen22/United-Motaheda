@@ -26,6 +26,10 @@
         "loading": "جاري التحميل…",
         "error": "حدث خطأ ما",
         "retry": "حاول مجدداً",
+        "retryShort": "اضغط لإعادة المحاولة",
+        "view": "عرض",
+        "accepting": "جارٍ القبول…",
+        "declining": "جارٍ الرفض…",
         "maxQty": "الحد الأقصى",
         "inStock": "متوفر",
         "outOfStock": "نفذ المخزون",
@@ -435,6 +439,10 @@
     "profile": {
         "title": "حسابي",
         "eyebrow": "الحساب",
+        "theme": "المظهر",
+        "themeLight": "فاتح",
+        "themeDark": "داكن",
+        "themeSystem": "تلقائي",
         "notLoggedIn": "لم تسجل الدخول بعد",
         "login": "تسجيل الدخول",
         "logout": "تسجيل الخروج",
@@ -485,6 +493,11 @@
         "menuEditProfileSubtitle": "الاسم ورقم الهاتف",
         "menuSecurity": "الأمان",
         "menuSecuritySubtitle": "تغيير كلمة المرور"
+    },
+    "theme": {
+        "system": "تلقائي",
+        "light": "فاتح",
+        "dark": "داكن"
     },
     "editProfile": {
         "title": "تعديل الملف الشخصي",
@@ -714,6 +727,14 @@
     },
     "auth": {
         "login": "تسجيل الدخول",
+        "callback": {
+            "title": "جارٍ تأكيد تسجيل الدخول",
+            "body": "لحظات ونكمل الإعداد.",
+            "errorTitle": "تعذّر تسجيل الدخول",
+            "errorBody": "قد يكون هذا الرابط منتهي الصلاحية أو تم استخدامه من قبل. يرجى المحاولة مرة أخرى.",
+            "backToLogin": "العودة لتسجيل الدخول",
+            "trustNote": "اتصالك آمن"
+        },
         "register": "إنشاء حساب",
         "email": "البريد الإلكتروني",
         "password": "كلمة المرور",
@@ -1531,11 +1552,27 @@
         "statusSuspendedTitle": "الحساب موقوف",
         "statusSuspendedBody": "تم إيقاف حساب السائق مؤقتًا. تواصل مع الدعم لمزيد من التفاصيل.",
         "statusRejectedTitle": "لم تتم الموافقة على الطلب",
-        "statusRejectedBody": "لم يستوفِ طلبك متطلباتنا هذه المرة."
+        "statusRejectedBody": "لم يستوفِ طلبك متطلباتنا هذه المرة.",
+        "view": "عرض",
+        "pickedUpTitle": "تم تأكيد الاستلام",
+        "pickedUpBody": "تم تحديد الطلب الآن كخارج للتوصيل.",
+        "arrivedTitle": "تم تأكيد الوصول",
+        "arrivedBody": "تم إخطار العميل بوصولك.",
+        "arrivedCustomer": "تحديد كوصل",
+        "completeDelivery": "إتمام التوصيل",
+        "confirmDeclineTitle": "رفض هذا العرض؟",
+        "confirmDeclineBody": "سيتم إعادة هذا الطلب إلى فريق العمليات لإعادة التعيين.",
+        "estimatedFee": "الأجر المقدّر",
+        "quickResponseHint": "استجب بسرعة — العروض تنتهي صلاحيتها",
+        "estimatedEarnings": "الأرباح المقدّرة",
+        "itemsCount": "العناصر",
+        "yourPreviousReports": "بلاغاتك السابقة"
     },
     "pharmacist": {
         "eyebrow":                "لوحة الصيدلاني",
         "workbench":              "لوحة العمل",
+        "orderDetails":           "تفاصيل الطلب",
+        "emptyRxSubtitle":        "ستظهر الروشتات الجديدة هنا فور وصولها.",
         "liveQueue":              "مباشر",
         "greeting":               "مرحباً، {{name}}",
         "signOut":                "تسجيل الخروج",

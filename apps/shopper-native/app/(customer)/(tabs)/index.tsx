@@ -120,7 +120,7 @@ export default function HomeScreen() {
 
         <DailyEdit lang={lang} onProductPress={goProduct} onViewAll={goProducts} />
 
-        <FlashSaleSection products={[]} onProductPress={goProduct} onViewAll={goProducts} />
+        <FlashSaleSection onProductPress={goProduct} onViewAll={goProducts} />
 
         <SavingsStrip />
 
