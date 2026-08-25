@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import * as ExpoLocation from "expo-location";
 import { Screen, Button, useTheme } from "@pharmacy/ui-native";
 import { kit } from "@pharmacy/ui-native";
-import MapView, { Marker } from "react-native-maps";
+import { MapView, Marker } from "@/shared/maps";
 import RouteSummary from "../components/RouteSummary";
 import { useDriverOrderDetail } from "../hooks/useDriverManifest";
 import { DriverScreenHeader } from "../components/DriverScreenHeader";

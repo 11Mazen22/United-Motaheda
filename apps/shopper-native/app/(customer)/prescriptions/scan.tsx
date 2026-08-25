@@ -4,7 +4,7 @@ import React, { useCallback, useRef, useState } from "react";
 
 import { Pressable, StyleSheet, View, Image } from "react-native";
 
-import { CameraView, useCameraPermissions } from "expo-camera";
+import { CameraView, useCameraPermissions } from "@/shared/camera";
 
 import * as ImagePicker from "expo-image-picker";
 

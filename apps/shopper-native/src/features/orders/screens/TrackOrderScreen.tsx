@@ -2,7 +2,7 @@ import React, { useMemo } from "react";
 import { Pressable, ScrollView, StyleSheet, View, Linking } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import MapView, { Marker } from "react-native-maps";
+import { MapView, Marker } from "@/shared/maps";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, { FadeIn, FadeInDown, useSharedValue, withRepeat, withTiming, useAnimatedStyle } from "react-native-reanimated";
