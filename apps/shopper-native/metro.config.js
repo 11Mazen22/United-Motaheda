@@ -38,6 +38,11 @@ if (mjsIdx > -1) {
   config.resolver.sourceExts.push('mjs');
 }
 
+config.resolver.platforms = [
+  ...(config.resolver.platforms ?? []),
+  "web",
+];
+
 // 5. Some deps (e.g. zustand's devtools middleware) publish an ESM "import"
 // export containing `import.meta`, which Metro's web bundle can't execute
 // (it isn't loaded as a module). Their "react-native" export condition

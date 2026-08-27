@@ -1,9 +1,12 @@
+export type LocationSource = "gps" | "manual" | "gps_corrected";
+
 export interface Address {
   id: string;
   user_id: string;
   label: string;
   recipient_name: string;
   phone: string;
+  governorate?: string;
   city: string;
   district: string;
   street: string;
@@ -11,8 +14,11 @@ export interface Address {
   floor?: string;
   apartment?: string;
   landmark?: string;
+  delivery_instructions?: string;
   lat?: number;
   lng?: number;
+  location_source?: LocationSource;
+  location_accuracy_m?: number;
   is_default: boolean;
   created_at: string;
   updated_at: string;

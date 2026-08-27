@@ -202,6 +202,8 @@ export interface Order {
 
     apartment?: string;
 
+    landmark?:  string;
+
     notes?:     string;
 
     formatted?: string;
@@ -211,6 +213,12 @@ export interface Order {
   customerLat?:    number | null;
 
   customerLng?:    number | null;
+
+  branchId?:       string | null;
+
+  zoneId?:         string | null;
+
+  zoneName?:       string | null;
 
   status:          OrderStatus;
 

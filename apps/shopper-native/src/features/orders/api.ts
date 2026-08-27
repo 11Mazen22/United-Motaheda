@@ -18,6 +18,7 @@
 import { supabase } from "@/lib/supabase";
 import { timed } from "@/lib/devTiming";
 import { normalizeOrderStatus, type Order, type OrderItem, type OrderStatus } from "@/stores/orders";
+import { parseOrderAddress, parseOrderZone, ORDER_LOCATION_SELECT, type OrderLocationRow } from "@/lib/orderAddress";
 
 // ─── Raw row shapes ──────────────────────────────────────────────────────────
 
@@ -39,7 +40,7 @@ interface OrderItemRow {
   product_snapshot: Record<string, unknown>;
 }
 
-interface OrderRow {
+interface OrderRow extends OrderLocationRow {
   id:               string;
   user_id:          string | null;
   created_at:       string;
@@ -52,9 +53,6 @@ interface OrderRow {
   note:             string;
   customer_name:    string;
   customer_phone:   string;
-  customer_address: Record<string, unknown> | null;
-  customer_lat:     number | null;
-  customer_lng:     number | null;
   payment_method:   string | null;
   payment_status:   string;
   external_ref:     string | null;
@@ -62,18 +60,6 @@ interface OrderRow {
   transfer_number:  string | null;
   qr_token:         string | null;
   order_items:      OrderItemRow[];
-}
-
-interface CustomerAddress {
-  city?:            string;
-  street?:          string;
-  streetLine?:      string;
-  building?:        string;
-  buildingNumber?:  string;
-  floor?:           string;
-  apartmentNumber?: string;
-  notes?:           string;
-  formatted?:       string;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -98,17 +84,8 @@ function parseItemRows(rows: OrderItemRow[]): OrderItem[] {
 }
 
 function rowToOrder(row: OrderRow): Order {
-  const addr      = (row.customer_address ?? {}) as CustomerAddress;
-  const city      = typeof addr.city === "string" ? addr.city : "";
-  const street    =
-    typeof addr.streetLine    === "string" ? addr.streetLine    :
-    typeof addr.street        === "string" ? addr.street        : "";
-  const building  =
-    typeof addr.buildingNumber === "string" ? addr.buildingNumber :
-    typeof addr.building       === "string" ? addr.building       : undefined;
-  const floor     = typeof addr.floor    === "string" ? addr.floor    : undefined;
-  const apartment = typeof addr.apartmentNumber === "string" ? addr.apartmentNumber : undefined;
-  const formatted = typeof addr.formatted === "string" ? addr.formatted : undefined;
+  const parsed = parseOrderAddress(row);
+  const zone   = parseOrderZone(row);
 
   return {
     id:            row.id,
@@ -122,18 +99,20 @@ function rowToOrder(row: OrderRow): Order {
     address: {
       name:       row.customer_name,
       phone:      row.customer_phone,
-      city,
-      street,
-      building,
-      floor,
-      apartment,
-      formatted,
-      notes:
-        row.note ||
-        (typeof addr.notes === "string" ? addr.notes : undefined),
+      city:       parsed.city,
+      street:     parsed.street,
+      building:   parsed.building,
+      floor:      parsed.floor,
+      apartment:  parsed.apartment,
+      landmark:   parsed.landmark,
+      formatted:  parsed.formatted,
+      notes:      parsed.notes,
     },
-    customerLat:     row.customer_lat ?? null,
-    customerLng:     row.customer_lng ?? null,
+    customerLat:     parsed.lat,
+    customerLng:     parsed.lng,
+    branchId:        zone.branchId,
+    zoneId:          zone.zoneId,
+    zoneName:        zone.zoneName,
     status:          normalizeOrderStatus(row.status) as OrderStatus,
     paymentMethod:   row.payment_method   ?? null,
     paymentStatus:   row.payment_status   ?? "pending",
@@ -159,9 +138,7 @@ const ORDERS_SELECT = [
   "note",
   "customer_name",
   "customer_phone",
-  "customer_address",
-  "customer_lat",
-  "customer_lng",
+  ...ORDER_LOCATION_SELECT,
   "payment_method",
   "payment_status",
   "external_ref",

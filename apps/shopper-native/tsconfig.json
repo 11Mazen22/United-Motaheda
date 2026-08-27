@@ -43,8 +43,6 @@
     "**/__tests__/**",
     "**/*.test.ts",
     "**/*.test.tsx",
-    "home-snapshot",
-    "home-screen-replacement.tsx",
     "supabase/functions/**"
   ]
 }

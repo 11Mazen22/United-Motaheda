@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import { View } from "react-native";
 import { Redirect, Tabs } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -56,8 +56,27 @@ export default function TabLayout() {
     setShowArrival(false);
   }, []);
 
-  if (user?.role === "driver") return <Redirect href={"/(driver)" as never} />;
-  if (user?.role === "pharmacist") return <Redirect href={"/(pharmacist)" as never} />;
+  // Locks the redirect decision the first time this layout mounts. Without
+  // this, the target is recomputed live from `user?.role` on every render —
+  // and on a churning connection `user` can flip role a few times a second
+  // as onAuthStateChange keeps refiring (each event re-runs attachRole,
+  // which falls back to a stale/incorrect role on its own timeout — see
+  // features/auth/context.tsx). Each flip toggled this Redirect, bouncing
+  // between here and (driver)/(pharmacist) in a tight loop and crashing with
+  // "Maximum update depth exceeded" — the exact bug (driver)/_layout.tsx's
+  // own decidedAccessRef already exists to prevent on that side; this ports
+  // the same lock here since a role can't legitimately change mid-session
+  // without a fresh sign-in remounting this whole tree anyway.
+  const redirectRef = useRef<"driver" | "pharmacist" | "none" | null>(null);
+  if (redirectRef.current === null) {
+    redirectRef.current =
+      user?.role === "driver" ? "driver" :
+      user?.role === "pharmacist" ? "pharmacist" :
+      "none";
+  }
+
+  if (redirectRef.current === "driver") return <Redirect href={"/(driver)" as never} />;
+  if (redirectRef.current === "pharmacist") return <Redirect href={"/(pharmacist)" as never} />;
 
   return (
     <View style={{ flex: 1 }}>

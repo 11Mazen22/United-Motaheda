@@ -32,7 +32,7 @@
 
  */
 
-import React, { memo, useCallback } from "react";
+import React, { memo, useCallback, useMemo } from "react";
 
 import { Platform, Pressable, StyleSheet, View } from "react-native";
 
@@ -59,11 +59,12 @@ import * as Haptics from "expo-haptics";
 
 import { Text as UIText } from "@pharmacy/ui-native";
 
-import { defaultTheme as theme } from "@pharmacy/ui-native";
+import { useTheme, type NativeTheme } from "@pharmacy/ui-native";
 
 import { flexRow, isRtl, FORWARD_CHEVRON } from "@/utils/layout";
+import { formatPrice } from "@/utils/format";
 
-import { styles, HERO_GLASS, PROFILE } from "./profile.styles";
+import { getProfileStyles, HERO_GLASS, PROFILE } from "./profile.styles";
 
 
 
@@ -121,7 +122,7 @@ interface ProfileAuthHeroProps {
 
 const StatPill = memo(function StatPill({
 
-  value, label, icon, accent, onPress,
+  value, label, icon, accent, onPress, styles,
 
 }: {
 
@@ -134,6 +135,8 @@ const StatPill = memo(function StatPill({
   accent:  string;
 
   onPress: () => void;
+
+  styles:  ReturnType<typeof getProfileStyles>;
 
 }) {
 
@@ -231,9 +234,9 @@ interface TileProps {
 
 const QuickActionTile = memo(function QuickActionTile({
 
-  icon, labelKey, grad, route, onPress,
+  icon, labelKey, grad, route, onPress, styles,
 
-}: TileProps) {
+}: TileProps & { styles: ReturnType<typeof getProfileStyles> }) {
 
   const { t } = useTranslation();
 
@@ -301,11 +304,13 @@ const QuickActionTile = memo(function QuickActionTile({
 
 
 
-// ─── Module-level quick actions (zero re-allocation per render) ───────────────
+// ─── Quick actions factory (theme-dependent, memoized per render in the component) ──
 
 
 
-const QUICK_ACTIONS = [
+function getQuickActions(theme: NativeTheme) {
+
+  return [
 
   {
 
@@ -339,7 +344,7 @@ const QUICK_ACTIONS = [
 
     grad:     [PROFILE.loyaltyViolet, PROFILE.loyaltyPurple] as const,
 
-    route:    "/offers",
+    route:    "/(customer)/(shop)/deals",
 
   },
 
@@ -355,7 +360,9 @@ const QUICK_ACTIONS = [
 
   },
 
-] as const;
+  ] as const;
+
+}
 
 
 
@@ -379,9 +386,15 @@ export const ProfileAuthHero = memo(function ProfileAuthHero({
 
 }: ProfileAuthHeroProps) {
 
+  const { theme } = useTheme();
+
+  const styles = useMemo(() => getProfileStyles(theme), [theme]);
+
+  const QUICK_ACTIONS = useMemo(() => getQuickActions(theme), [theme]);
+
   const router = useRouter();
 
-  const { t }  = useTranslation();
+  const { t, i18n }  = useTranslation();
 
 
 
@@ -415,7 +428,7 @@ export const ProfileAuthHero = memo(function ProfileAuthHero({
 
     <View>
 
-      <View style={[styles.hero, { backgroundColor: theme.colors.text.primary, paddingTop: insetsTop + 14 }]}>
+      <View style={[styles.hero, { backgroundColor: theme.colors.pharmacy.navy, paddingTop: insetsTop + 14 }]}>
 
 
 
@@ -551,13 +564,13 @@ export const ProfileAuthHero = memo(function ProfileAuthHero({
 
             <View style={styles.heroTextGroup}>
 
-              <UIText variant="sheet-title" color="inverse" numberOfLines={1} style={styles.userNameNew}>
+              <UIText variant="sheet-title" numberOfLines={1} style={[styles.userNameNew, { color: "#FFFFFF" }]}>
 
                 {user.name ?? t("profile.userFallback")}
 
               </UIText>
 
-              <UIText variant="body-sm" color="inverse-muted" numberOfLines={1}>
+              <UIText variant="body-sm" numberOfLines={1} style={{ color: "rgba(255,255,255,0.72)" }}>
 
                 {user.email}
 
@@ -578,6 +591,7 @@ export const ProfileAuthHero = memo(function ProfileAuthHero({
       <View style={styles.statsCard}>
 
         <StatPill
+          styles={styles}
 
           value={orderCount}
 
@@ -594,6 +608,7 @@ export const ProfileAuthHero = memo(function ProfileAuthHero({
         <View style={styles.statDivider} />
 
         <StatPill
+          styles={styles}
 
           value={wishlistCount}
 
@@ -610,6 +625,7 @@ export const ProfileAuthHero = memo(function ProfileAuthHero({
         <View style={styles.statDivider} />
 
         <StatPill
+          styles={styles}
 
           value={cartCount}
 
@@ -681,7 +697,7 @@ export const ProfileAuthHero = memo(function ProfileAuthHero({
 
                     {t("orders.items", { count: lastOrder.items.length })}{"  "}•{"  "}
 
-                    {lastOrder.total.toFixed(0)} {t("common.currency")}
+                    {formatPrice(lastOrder.total, i18n.language === "en" ? "en" : "ar")}
 
                   </UIText>
 
@@ -708,6 +724,7 @@ export const ProfileAuthHero = memo(function ProfileAuthHero({
         {QUICK_ACTIONS.map((a) => (
 
           <QuickActionTile
+            styles={styles}
 
             key={a.route}
 

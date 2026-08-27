@@ -1,6 +1,7 @@
 import React, { useCallback } from "react";
 import { View, StyleSheet, FlatList, Pressable, Platform } from "react-native";
 import { Image } from "expo-image";
+import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -10,6 +11,7 @@ import Animated, { FadeIn, FadeOut, Layout, SlideInDown } from "react-native-rea
 
 import { Text, Button, EmptyState, useTheme, type NativeTheme } from "@pharmacy/ui-native";
 import { isRtl, flexRow, textAlignStart } from "@/utils/layout";
+import { formatPrice } from "@/utils/format";
 
 import { useCartStore, selectPricing, type CartItem } from "@/stores/cart";
 import { useCartStateMachine, type ConflictItem } from "@/features/cart/hooks/useCartStateMachine";
@@ -47,7 +49,15 @@ function PremiumCartItem({ item, conflict, theme }: { item: CartItem; conflict?:
   return (
     <Animated.View layout={Layout.springify()} entering={FadeIn} exiting={FadeOut.duration(200)} style={[styles.itemCard, theme.shadows[1], { backgroundColor: theme.colors.canvas.surface, borderColor: conflict ? theme.colors.status.error : theme.colors.border.default }]}>
       <Pressable onPress={() => router.push(`/(customer)/(shop)/product/${item.productId}`)} style={[styles.itemContent, { flexDirection: flexRow(IS_RTL) }]}>
-        <View style={[styles.itemImageWrap, { backgroundColor: theme.colors.canvas.background }]}>
+        <View style={styles.itemImageWrap}>
+          <LinearGradient
+            colors={theme.isDark
+              ? [theme.colors.canvas.surfaceMuted, theme.colors.canvas.elevated]
+              : [theme.colors.brand.primaryLight, theme.colors.canvas.surface]}
+            start={{ x: 0.15, y: 0 }}
+            end={{ x: 0.85, y: 1 }}
+            style={StyleSheet.absoluteFillObject}
+          />
           {item.product.imageUrl ? (
             <Image source={{ uri: item.product.imageUrl }} style={styles.itemImage} placeholder={DEFAULT_BLURHASH} contentFit="contain" />
           ) : (
@@ -61,10 +71,10 @@ function PremiumCartItem({ item, conflict, theme }: { item: CartItem; conflict?:
           </Text>
 
           <View style={[styles.itemPriceRow, { flexDirection: flexRow(IS_RTL) }]}>
-            <Text variant="h5" style={{ color: theme.colors.text.primary }}>{item.product.price} {t("common.currency")}</Text>
+            <Text variant="h5" style={{ color: theme.colors.text.primary }}>{formatPrice(item.product.price, i18n.language === "en" ? "en" : "ar")}</Text>
             {hasDiscount && (
               <Text variant="caption" style={{ color: theme.colors.text.muted, textDecorationLine: "line-through", marginHorizontal: 8 }}>
-                {item.product.basePrice.toLocaleString("ar-EG")}
+                {formatPrice(item.product.basePrice, i18n.language === "en" ? "en" : "ar")}
               </Text>
             )}
           </View>
@@ -88,15 +98,15 @@ function PremiumCartItem({ item, conflict, theme }: { item: CartItem; conflict?:
              <Text variant="body" weight="bold" style={{ color: theme.colors.status.error }}>{t("common.remove", "Remove")}</Text>
           </Pressable>
         ) : (
-          <View style={[styles.qtyControl, { flexDirection: flexRow(IS_RTL), backgroundColor: theme.colors.canvas.background }]}>
-             <Pressable onPress={handleDecrement} style={[styles.qtyBtn, { backgroundColor: theme.colors.canvas.surfaceMuted }]} hitSlop={10} accessibilityRole="button" accessibilityLabel={item.quantity === 1 ? t("product.remove", "Remove") : t("product.decrease", "Decrease quantity")}>
-                <Ionicons name={item.quantity === 1 ? "trash-outline" : "remove"} size={18} color={item.quantity === 1 ? theme.colors.status.error : theme.colors.text.primary} />
+          <View style={[styles.qtyControl, { flexDirection: flexRow(IS_RTL), backgroundColor: theme.colors.brand.primaryLight, borderColor: theme.colors.brand.primary }]}>
+             <Pressable onPress={handleDecrement} style={styles.qtyBtn} hitSlop={10} accessibilityRole="button" accessibilityLabel={item.quantity === 1 ? t("product.remove", "Remove") : t("product.decrease", "Decrease quantity")}>
+                <Ionicons name={item.quantity === 1 ? "trash-outline" : "remove"} size={16} color={item.quantity === 1 ? theme.colors.status.error : theme.colors.brand.primary} />
              </Pressable>
-             <Text variant="body" weight="bold" style={{ color: theme.colors.text.primary, width: 32, textAlign: "center" }}>
+             <Text variant="body" weight="bold" style={{ color: theme.colors.text.primary, width: 28, textAlign: "center" }}>
                 {item.quantity.toLocaleString("ar-EG")}
              </Text>
-             <Pressable onPress={handleIncrement} style={[styles.qtyBtn, { backgroundColor: theme.colors.canvas.surfaceMuted }]} hitSlop={10} accessibilityRole="button" accessibilityLabel={t("product.increase", "Increase quantity")}>
-                <Ionicons name="add" size={18} color={item.quantity >= item.product.stock ? theme.colors.text.muted : theme.colors.text.primary} />
+             <Pressable onPress={handleIncrement} style={styles.qtyBtn} hitSlop={10} accessibilityRole="button" accessibilityLabel={t("product.increase", "Increase quantity")}>
+                <Ionicons name="add" size={16} color={item.quantity >= item.product.stock ? theme.colors.text.disabled : theme.colors.brand.primary} />
              </Pressable>
           </View>
         )}
@@ -106,7 +116,8 @@ function PremiumCartItem({ item, conflict, theme }: { item: CartItem; conflict?:
 }
 
 export default function CartScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const lang = i18n.language === "en" ? "en" as const : "ar" as const;
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -159,7 +170,7 @@ export default function CartScreen() {
                <Ionicons name="bicycle-outline" size={24} color={theme.colors.brand.primary} />
                <View style={{ flex: 1, paddingHorizontal: 12 }}>
                   <Text variant="body" weight="bold" style={{ color: theme.colors.text.primary, textAlign: TEXT_START }}>
-                     {amountToFreeDelivery > 0 ? t("cart.addForFreeDelivery", { amount: amountToFreeDelivery.toLocaleString("ar-EG"), defaultValue: `Add ${amountToFreeDelivery.toLocaleString("ar-EG")} EGP for FREE delivery` }) : t("cart.freeDeliveryUnlocked", "Free Delivery Unlocked!")}
+                     {amountToFreeDelivery > 0 ? t("cart.addForFreeDelivery", { amount: formatPrice(amountToFreeDelivery, lang), defaultValue: `Add ${formatPrice(amountToFreeDelivery, lang)} for FREE delivery` }) : t("cart.freeDeliveryUnlocked", "Free Delivery Unlocked!")}
                   </Text>
                </View>
             </View>
@@ -177,10 +188,7 @@ export default function CartScreen() {
       <Animated.View entering={SlideInDown.duration(400)} style={[styles.checkoutDock, theme.shadows[3], { backgroundColor: theme.colors.canvas.surface, borderTopColor: theme.colors.border.default, paddingBottom: Platform.OS === "ios" ? 34 : 20 }]}>
         <View style={styles.dockSummary}>
            <Text variant="body" style={{ color: theme.colors.text.secondary }}>{t("cart.total", "Total")}</Text>
-           <View style={{ flexDirection: "row", alignItems: "baseline", gap: 4 }}>
-             <Text variant="h3" style={{ color: theme.colors.text.primary }}>{pricing.total.toLocaleString("ar-EG")}</Text>
-             <Text variant="caption" weight="bold" style={{ color: theme.colors.text.secondary }}>EGP</Text>
-           </View>
+           <Text variant="h3" style={{ color: theme.colors.text.primary }}>{formatPrice(pricing.total, lang)}</Text>
         </View>
         <Button
            label={hasBlockingConflict ? t("cart.resolveConflicts", "Resolve Issues") : t("cart.checkout", "Checkout")}
@@ -203,7 +211,7 @@ export default function CartScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1 },
+  header: { flexDirection: flexRow(IS_RTL), justifyContent: "space-between", alignItems: "center", paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1 },
 
   deliveryProgressCard: { borderRadius: 16, padding: 16, marginBottom: 16, borderWidth: 1 },
   progressHeader: { alignItems: "center", marginBottom: 12 },
@@ -212,7 +220,7 @@ const styles = StyleSheet.create({
 
   itemCard: { borderRadius: 16, borderWidth: 1, marginBottom: 12, overflow: "hidden" },
   itemContent: { padding: 12, alignItems: "center" },
-  itemImageWrap: { width: 80, height: 80, borderRadius: 12, justifyContent: "center", alignItems: "center" },
+  itemImageWrap: { width: 80, height: 80, borderRadius: 12, justifyContent: "center", alignItems: "center", overflow: "hidden" },
   itemImage: { width: "100%", height: "100%" },
   itemDetails: { flex: 1, paddingHorizontal: 12, justifyContent: "center" },
   itemPriceRow: { alignItems: "center", marginTop: 4 },
@@ -220,9 +228,9 @@ const styles = StyleSheet.create({
 
   itemFooter: { borderTopWidth: 1, padding: 8, paddingHorizontal: 12, justifyContent: "space-between", alignItems: "center" },
   removeBtnText: { paddingVertical: 6, paddingHorizontal: 12 },
-  qtyControl: { alignItems: "center", borderRadius: 20, paddingHorizontal: 4, paddingVertical: 4 },
-  qtyBtn: { width: 32, height: 32, borderRadius: 16, alignItems: "center", justifyContent: "center" },
+  qtyControl: { alignItems: "center", borderRadius: 18, paddingHorizontal: 2, height: 36, borderWidth: 1 },
+  qtyBtn: { width: 30, height: 32, alignItems: "center", justifyContent: "center" },
 
-  checkoutDock: { position: "absolute", bottom: 0, left: 0, right: 0, borderTopWidth: 1, flexDirection: "row", paddingHorizontal: 20, paddingTop: 16, alignItems: "center", gap: 20 },
+  checkoutDock: { position: "absolute", bottom: 0, left: 0, right: 0, borderTopWidth: 1, flexDirection: flexRow(IS_RTL), paddingHorizontal: 20, paddingTop: 16, alignItems: "center", gap: 20 },
   dockSummary: { flex: 1 },
 });

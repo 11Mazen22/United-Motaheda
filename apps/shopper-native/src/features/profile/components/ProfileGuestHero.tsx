@@ -44,7 +44,7 @@
 
  */
 
-import React, { memo } from "react";
+import React, { memo, useMemo } from "react";
 
 import { StyleSheet, View } from "react-native";
 
@@ -65,7 +65,7 @@ import { AppLogo } from "@/shared/components/AppLogo";
 import { PressableScale } from "@/shared/motion";
 
 import { theme as legacyTheme } from "@pharmacy/design-tokens";
-import { defaultTheme as theme } from "@pharmacy/ui-native";
+import { useTheme, type NativeTheme } from "@pharmacy/ui-native";
 
 import { HERO_GLASS } from "./profile.styles";
 
@@ -93,13 +93,17 @@ interface ProfileGuestHeroProps {
 
 // What the user unlocks by creating an account.
 
-const BENEFITS: { icon: IoniconsName; labelKey: string; tint: string; bg: string }[] = [
+function getBenefits(theme: NativeTheme): { icon: IoniconsName; labelKey: string; tint: string; bg: string }[] {
+
+  return [
 
   { icon: "bag-check-outline", labelKey: "profile.featureOrders",   tint: theme.colors.status.success,   bg: "rgba(13,184,168,0.16)" },
 
   { icon: "heart-outline",     labelKey: "profile.featureWishlist", tint: theme.colors.status.error,   bg: "rgba(244,63,94,0.16)"  },
 
-];
+  ];
+
+}
 
 
 
@@ -113,6 +117,12 @@ const enter = (delay: number) =>
 
 export const ProfileGuestHero = memo(function ProfileGuestHero({ insetsTop }: ProfileGuestHeroProps) {
 
+  const { theme } = useTheme();
+
+  const s = useMemo(() => getStyles(theme), [theme]);
+
+  const BENEFITS = useMemo(() => getBenefits(theme), [theme]);
+
   const router = useRouter();
 
   const { t }  = useTranslation();
@@ -121,7 +131,7 @@ export const ProfileGuestHero = memo(function ProfileGuestHero({ insetsTop }: Pr
 
   return (
 
-    <View style={[s.hero, { backgroundColor: theme.colors.text.primary, paddingTop: insetsTop + 28 }]}>
+    <View style={[s.hero, { backgroundColor: theme.colors.pharmacy.navy, paddingTop: insetsTop + 28 }]}>
 
 
 
@@ -153,13 +163,13 @@ export const ProfileGuestHero = memo(function ProfileGuestHero({ insetsTop }: Pr
 
       <Animated.View entering={enter(110)} style={s.copy}>
 
-        <UIText variant="sheet-title" color="inverse" align="center" style={s.title}>
+        <UIText variant="sheet-title" align="center" style={[s.title, { color: "#FFFFFF" }]}>
 
           {t("profile.guestTitle")}
 
         </UIText>
 
-        <UIText variant="body-sm" color="inverse-muted" align="center" style={s.desc}>
+        <UIText variant="body-sm" align="center" style={[s.desc, { color: "rgba(255,255,255,0.72)" }]}>
 
           {t("profile.guestDesc")}
 
@@ -275,7 +285,9 @@ export const ProfileGuestHero = memo(function ProfileGuestHero({ insetsTop }: Pr
 
 
 
-const s = StyleSheet.create({
+function getStyles(theme: NativeTheme) {
+
+  return StyleSheet.create({
 
   hero: {
 
@@ -463,7 +475,7 @@ const s = StyleSheet.create({
 
   primaryText: {
 
-    color:              theme.colors.canvas.surface,
+    color:              "#FFFFFF",
 
     fontSize:           15,
 
@@ -595,5 +607,7 @@ const s = StyleSheet.create({
 
   },
 
-});
+  });
+
+}
 

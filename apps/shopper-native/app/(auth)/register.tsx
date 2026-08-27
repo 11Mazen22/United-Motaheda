@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -26,9 +26,9 @@ import { signUp, getAuthError } from "@/features/auth";
 import { LangSwitcher } from "@/features/auth/components/LangSwitcher";
 import { Button, Text as UIText } from "@pharmacy/ui-native";
 import { useTheme } from "@pharmacy/ui-native";
+import type { NativeTheme } from "@pharmacy/ui-native";
 
 import { theme as legacyTheme } from "@pharmacy/design-tokens";
-import { defaultTheme as theme } from "@pharmacy/ui-native";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
 import { TextInput } from "react-native";
 
@@ -49,6 +49,7 @@ interface FloatingInputProps {
 
 function FloatingInput({ label, icon, secure, value, onChangeText, autoCapitalize = "none", keyboardType = "default" }: FloatingInputProps) {
   const { theme } = useTheme();
+  const styles = useMemo(() => getStyles(theme), [theme]);
   const [focused, setFocused] = useState(false);
   const focusAnim = useSharedValue(0);
 
@@ -90,6 +91,7 @@ function FloatingInput({ label, icon, secure, value, onChangeText, autoCapitaliz
 
 export default function RegisterScreen() {
   const { theme } = useTheme();
+  const styles = useMemo(() => getStyles(theme), [theme]);
   const { t } = useTranslation();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -200,14 +202,15 @@ export default function RegisterScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function getStyles(theme: NativeTheme) {
+  return StyleSheet.create({
   root: { flex: 1 },
   topBar: { paddingHorizontal: 16, paddingBottom: 8, justifyContent: "space-between", alignItems: "center", zIndex: 10 },
   closeBtn: { padding: 8 },
   scrollContent: { paddingHorizontal: 20, paddingTop: 40, paddingBottom: 60 },
   heroSection: { marginBottom: 32 },
-  welcomeTitle: { fontFamily: legacyTheme.fonts.extrabold, fontSize: 32, marginBottom: 8, textAlign: "left" },
-  welcomeSub: { fontFamily: legacyTheme.fonts.regular, fontSize: 16, textAlign: "left", lineHeight: 24 },
+  welcomeTitle: { fontFamily: legacyTheme.fonts.extrabold, fontSize: 32, marginBottom: 8, textAlign: TEXT_START },
+  welcomeSub: { fontFamily: legacyTheme.fonts.regular, fontSize: 16, textAlign: TEXT_START, lineHeight: 24 },
   formCard: { borderRadius: 24, padding: 24, marginBottom: 24, ...theme.shadows[1] },
   inputContainer: { height: 64, borderRadius: 16, borderWidth: 1, alignItems: "center", paddingHorizontal: 16 },
   inputWrapper: { flex: 1, height: "100%", justifyContent: "center", position: "relative" },
@@ -216,9 +219,10 @@ const styles = StyleSheet.create({
   registerBtn: { height: 56, borderRadius: 16, marginTop: 32 },
   termsHint: { marginTop: 16, alignItems: "center" },
   termsText: { fontFamily: legacyTheme.fonts.medium, fontSize: 12, textAlign: "center", lineHeight: 18 },
-  errorBox: { flexDirection: "row", alignItems: "center", padding: 12, borderRadius: 12, borderWidth: 1, gap: 8, marginBottom: 16 },
+  errorBox: { flexDirection: flexRow(IS_RTL), alignItems: "center", padding: 12, borderRadius: 12, borderWidth: 1, gap: 8, marginBottom: 16 },
   errorText: { flex: 1, fontFamily: legacyTheme.fonts.bold, fontSize: 13 },
-  footerRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", marginTop: 16, gap: 6 },
+  footerRow: { flexDirection: flexRow(IS_RTL), alignItems: "center", justifyContent: "center", marginTop: 16, gap: 6 },
   footerText: { fontFamily: legacyTheme.fonts.medium, fontSize: 14 },
   footerLink: { fontFamily: legacyTheme.fonts.bold, fontSize: 14, color: theme.colors.brand.primary },
-});
+  });
+}

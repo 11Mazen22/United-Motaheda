@@ -170,7 +170,7 @@ export default function NotificationPreferencesScreen() {
 
 const styles = StyleSheet.create({
   header: {
-    flexDirection: "row",
+    flexDirection: flexRow(IS_RTL),
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,

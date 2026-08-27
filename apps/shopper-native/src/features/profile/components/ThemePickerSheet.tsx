@@ -1,4 +1,4 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useMemo } from "react";
 import { Modal, Platform, Pressable, StyleSheet, View } from "react-native";
 import { Text as UIText } from "@pharmacy/ui-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -7,7 +7,7 @@ import { useTranslation } from "react-i18next";
 import { useTheme, type ThemePreference } from "@pharmacy/ui-native";
 
 import { theme as legacyTheme } from "@pharmacy/design-tokens";
-import { defaultTheme as theme } from "@pharmacy/ui-native";
+import type { NativeTheme } from "@pharmacy/ui-native";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
 import Animated, { FadeIn, FadeOut, SlideInDown, SlideOutDown } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -17,6 +17,7 @@ type IoniconsName = React.ComponentProps<typeof Ionicons>["name"];
 export function ThemePickerSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const { t } = useTranslation();
   const { theme, preference: mode, setPreference: setMode } = useTheme();
+  const styles = useMemo(() => getStyles(theme), [theme]);
   const insets = useSafeAreaInsets();
 
   const IS_RTL = isRtl();
@@ -79,13 +80,15 @@ export function ThemePickerSheet({ visible, onClose }: { visible: boolean; onClo
   );
 }
 
-const styles = StyleSheet.create({
-  overlay: { flex: 1, justifyContent: "flex-end" },
-  sheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24, ...theme.shadows[3] },
-  handle: { width: 40, height: 4, borderRadius: 2, backgroundColor: theme.colors.border.strong, alignSelf: "center", marginTop: 12, marginBottom: 20 },
-  title: { fontFamily: legacyTheme.fonts.bold, fontSize: 18, paddingHorizontal: 24, marginBottom: 16 },
-  container: { paddingHorizontal: 24 },
-  row: { alignItems: "center", paddingVertical: 16, gap: 16 },
-  iconWrap: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
-  label: { flex: 1, fontFamily: legacyTheme.fonts.bold, fontSize: 16 },
-});
+function getStyles(theme: NativeTheme) {
+  return StyleSheet.create({
+    overlay: { flex: 1, justifyContent: "flex-end" },
+    sheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24, ...theme.shadows[3] },
+    handle: { width: 40, height: 4, borderRadius: 2, backgroundColor: theme.colors.border.strong, alignSelf: "center", marginTop: 12, marginBottom: 20 },
+    title: { fontFamily: legacyTheme.fonts.bold, fontSize: 18, paddingHorizontal: 24, marginBottom: 16 },
+    container: { paddingHorizontal: 24 },
+    row: { alignItems: "center", paddingVertical: 16, gap: 16 },
+    iconWrap: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
+    label: { flex: 1, fontFamily: legacyTheme.fonts.bold, fontSize: 16 },
+  });
+}

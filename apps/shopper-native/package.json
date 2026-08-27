@@ -11,7 +11,7 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
-    "lint": "npm run typecheck && npm run typecheck:tests && node scripts/check-no-console.mjs",
+    "lint": "npm run typecheck && npm run typecheck:tests && node scripts/check-no-console.mjs && node scripts/check-i18n-coverage.mjs",
     "test": "jest",
     "test:coverage": "jest --coverage",
     "typecheck:tests": "tsc --noEmit --project tsconfig.test.json"

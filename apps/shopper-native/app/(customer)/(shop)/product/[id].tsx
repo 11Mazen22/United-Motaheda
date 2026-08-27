@@ -1,7 +1,13 @@
 /**
- * Product Detail — hero-tier screen (A3): full-bleed image with glass
- * floating controls, gradient sticky CTA, and a brief "added" confirmation
- * beat on add-to-cart (A14's idle → pressed → adding → added → cart flow).
+ * Product Detail — hero-tier screen: full-bleed image with glass floating
+ * controls, gradient sticky CTA, and a brief "added" confirmation beat on
+ * add-to-cart (idle → pressed → adding → added → cart flow).
+ *
+ * The "Verified & Listed" section below renders copy (sealVerified,
+ * clinProfileTitle, clinAttestation, detailsEyebrow, code/barcode/category/
+ * nameEnLabel) that already existed, fully translated, in both locale files
+ * but was never wired into any screen — a real, legitimate pharmacist-
+ * verification claim this business can back, not invented copy.
  */
 import React, { useMemo, useEffect, useCallback, useState } from "react";
 import { View, StyleSheet, ScrollView, Platform, Pressable } from "react-native";
@@ -9,7 +15,8 @@ import { StatusBar } from "expo-status-bar";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Image } from "expo-image";
 import { BlurView } from "expo-blur";
-import Animated, { FadeIn, SlideInDown, SlideOutDown } from "react-native-reanimated";
+import { LinearGradient } from "expo-linear-gradient";
+import Animated, { FadeIn, FadeInDown, SlideInDown, SlideOutDown, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import * as Haptics from "expo-haptics";
@@ -17,6 +24,7 @@ import { Ionicons } from "@expo/vector-icons";
 
 import { Text, Button, Badge, Skeleton, EmptyState, useTheme } from "@pharmacy/ui-native";
 import { isRtl, flexRow, textAlignStart } from "@/utils/layout";
+import { formatPrice } from "@/utils/format";
 
 import { useProduct } from "@/features/products/hooks/useProduct";
 import { useRelatedProducts } from "@/features/recommendations/hooks/useRelatedProducts";
@@ -30,6 +38,7 @@ const IS_RTL = isRtl();
 const TEXT_START = textAlignStart(IS_RTL);
 const BACK_ICON = IS_RTL ? "chevron-forward" : "chevron-back";
 const DEFAULT_BLURHASH = "L6PZfSi_.AyE_3t7t7R**0o#DgR4";
+const LOW_STOCK_THRESHOLD = 5;
 
 function RelatedProductsSection({ productId }: { productId: string }) {
   const { data, isLoading } = useRelatedProducts(productId);
@@ -59,12 +68,104 @@ function RelatedProductsSection({ productId }: { productId: string }) {
   );
 }
 
+const TRUST_ITEMS = [
+  { key: "trustFastDelivery", icon: "bicycle-outline" as const },
+  { key: "trustOriginal", icon: "ribbon-outline" as const },
+  { key: "trustReturns", icon: "arrow-undo-outline" as const },
+];
+
+function TrustRow() {
+  const { theme } = useTheme();
+  const { t } = useTranslation();
+  return (
+    <View style={[styles.trustRow, { flexDirection: flexRow(IS_RTL) }]}>
+      {TRUST_ITEMS.map((item) => (
+        <View key={item.key} style={[styles.trustItem, { backgroundColor: theme.colors.canvas.surfaceMuted }]}>
+          <Ionicons name={item.icon} size={18} color={theme.colors.brand.primary} />
+          <Text variant="caption" numberOfLines={2} style={{ color: theme.colors.text.secondary, textAlign: "center", marginTop: 6 }}>
+            {t(`product.${item.key}`)}
+          </Text>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+function VerifiedDetailsSection({ product }: { product: NativeProduct }) {
+  const { theme } = useTheme();
+  const { t } = useTranslation();
+  const [expanded, setExpanded] = useState(false);
+  const rotate = useSharedValue(0);
+
+  const toggle = useCallback(() => {
+    if (Platform.OS !== "web") Haptics.selectionAsync().catch(() => {});
+    rotate.value = withTiming(expanded ? 0 : 1, { duration: 220 });
+    setExpanded((e) => !e);
+  }, [expanded, rotate]);
+
+  const chevronStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${rotate.value * 180}deg` }],
+  }));
+
+  const rows: Array<[string, string]> = [
+    [t("product.code"), product.code || "—"],
+    [t("product.barcode"), product.barcode || "—"],
+    [t("product.category"), product.categoryName || "—"],
+    ...(product.nameEn ? ([[t("product.nameEnLabel"), product.nameEn]] as Array<[string, string]>) : []),
+  ];
+
+  return (
+    <View style={[styles.verifiedCard, { backgroundColor: theme.colors.canvas.surface, borderColor: theme.colors.border.default }]}>
+      <View style={[styles.verifiedHeader, { flexDirection: flexRow(IS_RTL) }]}>
+        <View style={[styles.verifiedSealWrap, { backgroundColor: theme.colors.brand.primaryLight }]}>
+          <Ionicons name="shield-checkmark" size={20} color={theme.colors.brand.primary} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <View style={[styles.verifiedTitleRow, { flexDirection: flexRow(IS_RTL) }]}>
+            <Text variant="label" style={{ color: theme.colors.text.primary, textAlign: TEXT_START }}>
+              {t("product.clinProfileTitle")}
+            </Text>
+            <Badge label={t("product.sealVerified")} variant="success" />
+          </View>
+          <Text variant="caption" style={{ color: theme.colors.text.muted, textAlign: TEXT_START, marginTop: 3 }}>
+            {t("product.clinAttestation")}
+          </Text>
+        </View>
+      </View>
+
+      <Pressable onPress={toggle} style={[styles.verifiedToggle, { flexDirection: flexRow(IS_RTL), borderTopColor: theme.colors.border.default }]} accessibilityRole="button">
+        <Text variant="caption" style={{ color: theme.colors.brand.primary, fontWeight: "700" }}>
+          {expanded ? t("product.clinCollapse") : t("product.clinExpandAll")}
+        </Text>
+        <Animated.View style={chevronStyle}>
+          <Ionicons name="chevron-down" size={16} color={theme.colors.brand.primary} />
+        </Animated.View>
+      </Pressable>
+
+      {expanded && (
+        <Animated.View entering={FadeIn.duration(200)} style={styles.verifiedDetails}>
+          <Text variant="eyebrow" style={{ color: theme.colors.text.muted, textAlign: TEXT_START, marginBottom: 8 }}>
+            {t("product.detailsEyebrow")}
+          </Text>
+          {rows.map(([label, value]) => (
+            <View key={label} style={[styles.detailRow, { flexDirection: flexRow(IS_RTL), borderTopColor: theme.colors.border.default }]}>
+              <Text variant="caption" style={{ color: theme.colors.text.muted }}>{label}</Text>
+              <Text variant="caption" style={{ color: theme.colors.text.primary, fontWeight: "700" }}>{value}</Text>
+            </View>
+          ))}
+        </Animated.View>
+      )}
+    </View>
+  );
+}
+
 export default function ProductDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { t, i18n } = useTranslation();
   const { theme, isDark } = useTheme();
+  const lang = i18n.language === "en" ? "en" as const : "ar" as const;
 
   const { data: product, isLoading, isError } = useProduct(id);
   const [justAdded, setJustAdded] = useState(false);
@@ -152,6 +253,12 @@ export default function ProductDetailScreen() {
   const name = (i18n.language === "en" ? (product.nameEn || product.nameAr || product.name) : (product.nameAr || product.nameEn || product.name)) ?? "";
   const categoryName = (i18n.language === "en" ? (product.categoryNameEn || product.categoryName) : product.categoryName) ?? "";
   const hasDiscount = product.hasActivePromotion && product.basePrice > product.price;
+  const isLowStock = product.inStock && product.stock > 0 && product.stock <= LOW_STOCK_THRESHOLD;
+  const topBadge: { label: string; variant: "error" | "primary" | "info" } | null =
+    hasDiscount && product.discountPercent ? { label: `-${product.discountPercent}%`, variant: "error" }
+    : product.isBestseller ? { label: t("product.bestseller", "Bestseller"), variant: "primary" }
+    : product.isNew ? { label: t("product.new"), variant: "info" }
+    : null;
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.canvas.background }]}>
@@ -171,9 +278,9 @@ export default function ProductDetailScreen() {
             />
           </View>
 
-          {product.isBestseller && (
-            <View style={[styles.bestsellerBadge, { start: 16 }]}>
-              <Badge label={t("product.bestseller", "Bestseller")} variant="primary" />
+          {topBadge && (
+            <View style={[styles.topBadge, { start: 16 }]}>
+              <Badge label={topBadge.label} variant={topBadge.variant} />
             </View>
           )}
 
@@ -190,10 +297,16 @@ export default function ProductDetailScreen() {
               <Ionicons name="medkit-outline" size={64} color={theme.colors.text.muted} />
             </View>
           )}
+
+          <LinearGradient
+            colors={["transparent", theme.isDark ? "rgba(11,18,16,0.35)" : "rgba(250,248,244,0.5)"]}
+            style={styles.heroFade}
+            pointerEvents="none"
+          />
         </View>
 
         {/* Identity & pricing */}
-        <View style={[styles.contentBlock, { backgroundColor: theme.colors.canvas.surface, borderBottomColor: theme.colors.border.default }]}>
+        <Animated.View entering={FadeInDown.duration(400)} style={[styles.contentBlock, { backgroundColor: theme.colors.canvas.surface, borderBottomColor: theme.colors.border.default }]}>
           <Text variant="eyebrow" style={{ color: theme.colors.brand.primary, textAlign: TEXT_START, marginBottom: 8 }}>
             {categoryName.toUpperCase()}
           </Text>
@@ -212,16 +325,26 @@ export default function ProductDetailScreen() {
           ) : null}
 
           <View style={[styles.priceRow, { flexDirection: flexRow(IS_RTL) }]}>
-            <Text variant="h2" style={{ color: theme.colors.text.primary }}>{product.price} {t("common.currency")}</Text>
+            <Text variant="h2" style={{ color: theme.colors.text.primary }}>{formatPrice(product.price, lang)}</Text>
             {hasDiscount && (
               <Text variant="body" style={{ color: theme.colors.text.muted, textDecorationLine: "line-through" }}>
-                {product.basePrice.toLocaleString("ar-EG")}
+                {formatPrice(product.basePrice, lang)}
               </Text>
             )}
-            {product.discountPercent != null && product.discountPercent > 0 && (
-              <Badge label={`-${product.discountPercent}%`} variant="error" />
-            )}
           </View>
+
+          {isLowStock && (
+            <View style={[styles.lowStockPill, { flexDirection: flexRow(IS_RTL), backgroundColor: `${theme.colors.status.warning}1A` }]}>
+              <Ionicons name="flame-outline" size={13} color={theme.colors.status.warning} />
+              <Text variant="caption" style={{ color: theme.colors.status.warning, fontWeight: "700" }}>
+                {t("product.stockCount", { count: product.stock })}
+              </Text>
+            </View>
+          )}
+        </Animated.View>
+
+        <View style={styles.contentPad}>
+          <TrustRow />
         </View>
 
         {/* Stock */}
@@ -241,6 +364,10 @@ export default function ProductDetailScreen() {
           </View>
         </View>
 
+        <View style={styles.contentPad}>
+          <VerifiedDetailsSection product={product} />
+        </View>
+
         <RelatedProductsSection productId={product.id} />
       </ScrollView>
 
@@ -255,7 +382,7 @@ export default function ProductDetailScreen() {
           </Animated.View>
         ) : qty === 0 ? (
           <Button
-            label={`${t("product.addToCart")} · ${product.price} ${t("common.currency")}`}
+            label={t("product.addWithPrice", { price: formatPrice(product.price, lang) })}
             onPress={handleAdd}
             size="lg"
             tone="gradient"
@@ -269,7 +396,7 @@ export default function ProductDetailScreen() {
               <Ionicons name={qty === 1 ? "trash-outline" : "remove"} size={24} color={theme.colors.text.primary} />
             </Pressable>
             <View style={styles.qtyBox}>
-              <Text variant="caption" style={{ color: theme.colors.text.muted }}>{t("product.inCart")}</Text>
+              <Text variant="caption" style={{ color: theme.colors.text.muted }}>{t("product.inCartAddMore")}</Text>
               <Text variant="h3" style={{ color: theme.colors.text.primary }}>{qty}</Text>
             </View>
             <Pressable onPress={handleIncrement} style={[styles.stepBtn, { backgroundColor: theme.colors.canvas.surfaceMuted }]} accessibilityRole="button" accessibilityLabel={t("product.increase", "Increase quantity")}>
@@ -291,8 +418,8 @@ function GlassIconButton({ icon, isDark, tint, onPress, accessibilityLabel }: {
 }) {
   const { theme } = useTheme();
   return (
-    <Pressable onPress={onPress} style={styles.glassBtn} accessibilityRole="button" accessibilityLabel={accessibilityLabel}>
-      <BlurView intensity={50} tint={isDark ? "dark" : "light"} style={StyleSheet.absoluteFill} />
+    <Pressable onPress={onPress} style={[styles.glassBtn, Platform.OS === "web" && { backgroundColor: `${theme.colors.canvas.surface}D9` }]} accessibilityRole="button" accessibilityLabel={accessibilityLabel}>
+      {Platform.OS !== "web" && <BlurView intensity={50} tint={isDark ? "dark" : "light"} style={StyleSheet.absoluteFill} />}
       <Ionicons name={icon} size={22} color={tint ?? theme.colors.text.primary} />
     </Pressable>
   );
@@ -304,15 +431,26 @@ const styles = StyleSheet.create({
   navBarAbs: { position: "absolute", top: 16, left: 16, right: 16, zIndex: 10, flexDirection: flexRow(IS_RTL), justifyContent: "space-between" },
   backBtn: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
   glassBtn: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center", overflow: "hidden" },
-  bestsellerBadge: { position: "absolute", top: 64, zIndex: 10 },
+  topBadge: { position: "absolute", top: 64, zIndex: 10 },
   heroWrap: { width: "100%", height: 350, borderBottomLeftRadius: 32, borderBottomRightRadius: 32, overflow: "hidden", marginBottom: 16 },
   heroImg: { width: "100%", height: "100%" },
+  heroFade: { position: "absolute", start: 0, end: 0, bottom: 0, height: 60 },
   center: { alignItems: "center", justifyContent: "center" },
   contentBlock: { padding: 20, borderBottomWidth: 1, borderBottomLeftRadius: 24, borderBottomRightRadius: 24, marginBottom: 16 },
   contentPad: { paddingHorizontal: 20, paddingBottom: 16 },
   ratingRow: { alignItems: "center", gap: 6, marginBottom: 12 },
   priceRow: { alignItems: "center", gap: 12 },
+  lowStockPill: { alignSelf: "flex-start", alignItems: "center", gap: 5, marginTop: 10, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8 },
+  trustRow: { gap: 10 },
+  trustItem: { flex: 1, alignItems: "center", paddingVertical: 12, paddingHorizontal: 6, borderRadius: 14 },
   statusBox: { alignItems: "center", padding: 12, borderRadius: 12, gap: 8 },
+  verifiedCard: { borderRadius: 16, borderWidth: 1, overflow: "hidden" },
+  verifiedHeader: { alignItems: "flex-start", gap: 12, padding: 16 },
+  verifiedSealWrap: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
+  verifiedTitleRow: { alignItems: "center", gap: 8 },
+  verifiedToggle: { alignItems: "center", justifyContent: "center", gap: 6, borderTopWidth: 1, paddingVertical: 12 },
+  verifiedDetails: { paddingHorizontal: 16, paddingBottom: 14 },
+  detailRow: { alignItems: "center", justifyContent: "space-between", borderTopWidth: 1, paddingVertical: 9 },
   relatedSection: { paddingVertical: 24 },
   relatedScroll: { paddingHorizontal: 20, gap: 16 },
   stickyBar: { position: "absolute", bottom: 0, left: 0, right: 0, paddingHorizontal: 20, paddingTop: 16, borderTopWidth: 1 },

@@ -2,6 +2,7 @@ import React, { memo, useCallback, useState } from "react";
 import { Platform, Pressable, StyleSheet, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { CustomerUI, useTheme } from "@pharmacy/ui-native";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
@@ -12,6 +13,7 @@ import { usePremiumCheckout } from "@/features/checkout/hooks/usePremiumCheckout
 import { useDeliveryQuote } from "@/features/delivery/useDeliveryQuote";
 import { AddressFormDrawer } from "@/features/addresses/components/AddressFormDrawer";
 import { useAddressStore, type AddressFormData } from "@/features/addresses/store";
+import { showErrorSheet } from "@/shared/store/appSheetStore";
 
 const IS_RTL = isRtl();
 
@@ -19,6 +21,7 @@ export const DeliveryHeader = memo(function DeliveryHeader() {
   const { t } = useTranslation();
   const { isTablet, pagePad } = useScreenLayout();
   const { theme } = useTheme();
+  const router = useRouter();
 
   const { user: authUser } = useAuth();
   const unreadCount = useUnreadCount(authUser?.id);
@@ -33,13 +36,36 @@ export const DeliveryHeader = memo(function DeliveryHeader() {
   });
 
   const [isAddressDrawerOpen, setIsAddressDrawerOpen] = useState(false);
+  const [isSavingAddress, setIsSavingAddress] = useState(false);
   const addAddress = useAddressStore(s => s.add);
+
+  const openAddressDrawer = useCallback(() => {
+    if (!authUser?.id) {
+      // Was a silent no-op before — a guest could fill out the whole form,
+      // tap Save, and nothing would happen with zero feedback ("save button
+      // doesn't work"). Redirect to sign-in instead of even opening the
+      // drawer, same redirect-back pattern already used by checkout/login.
+      router.push({ pathname: "/(auth)/login", params: { redirect: "/(customer)/(tabs)" } });
+      return;
+    }
+    setIsAddressDrawerOpen(true);
+  }, [authUser?.id, router]);
 
   const handleAddressSubmit = useCallback(async (form: AddressFormData) => {
     if (!authUser?.id) return;
-    await addAddress(authUser.id, form);
-    setIsAddressDrawerOpen(false);
-  }, [authUser?.id, addAddress]);
+    setIsSavingAddress(true);
+    try {
+      await addAddress(authUser.id, form);
+      setIsAddressDrawerOpen(false);
+    } catch (e) {
+      showErrorSheet(
+        t("addresses.saveError"),
+        e instanceof Error ? e.message : t("addresses.saveErrorDesc"),
+      );
+    } finally {
+      setIsSavingAddress(false);
+    }
+  }, [authUser?.id, addAddress, t]);
 
   const pinTone = quote.isDeliverable ? theme.colors.status.success : theme.colors.status.error;
   const pinTint = quote.isDeliverable ? `${theme.colors.status.success}1A` : `${theme.colors.status.error}1A`;
@@ -60,7 +86,7 @@ export const DeliveryHeader = memo(function DeliveryHeader() {
       >
         <Pressable
           style={[s.locationBox, { flexDirection: flexRow(IS_RTL) }]}
-          onPress={() => setIsAddressDrawerOpen(true)}
+          onPress={openAddressDrawer}
           accessibilityRole="button"
           accessibilityLabel={t("home.deliverTo", "Delivering to")}
         >
@@ -86,6 +112,7 @@ export const DeliveryHeader = memo(function DeliveryHeader() {
           <Pressable
             onPress={() => {
               if (Platform.OS !== "web") Haptics.selectionAsync().catch(() => {});
+              router.push("/(customer)/(account)/notifications");
             }}
             accessibilityRole="button"
             accessibilityLabel={t("notifications.title", "Notifications")}
@@ -102,7 +129,7 @@ export const DeliveryHeader = memo(function DeliveryHeader() {
           </Pressable>
         </View>
       </View>
-      <AddressFormDrawer visible={isAddressDrawerOpen} onClose={() => setIsAddressDrawerOpen(false)} onSubmit={handleAddressSubmit} />
+      <AddressFormDrawer visible={isAddressDrawerOpen} onClose={() => setIsAddressDrawerOpen(false)} onSubmit={handleAddressSubmit} loading={isSavingAddress} />
     </>
   );
 });

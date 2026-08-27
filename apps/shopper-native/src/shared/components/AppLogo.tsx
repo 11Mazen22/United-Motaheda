@@ -1,4 +1,3 @@
-import { defaultTheme as theme } from "@pharmacy/ui-native";
 /**
 
  * AppLogo — reusable brand-mark renderer.
@@ -26,6 +25,8 @@ import { StyleSheet, type StyleProp, type ViewStyle } from "react-native";
 import { Image } from "expo-image";
 
 import { Ionicons } from "@expo/vector-icons";
+
+import { useTheme } from "@pharmacy/ui-native";
 
 import Animated, { FadeIn, useReducedMotion } from "react-native-reanimated";
 
@@ -88,6 +89,8 @@ export interface AppLogoProps {
 
 
 export function AppLogo({ size = "md", style }: AppLogoProps): React.ReactElement {
+
+  const { theme } = useTheme();
 
   const px = typeof size === "number" ? size : SIZE[size];
 

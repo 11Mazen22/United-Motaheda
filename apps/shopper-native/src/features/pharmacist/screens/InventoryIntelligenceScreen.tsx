@@ -1,4 +1,3 @@
-import { defaultTheme as theme } from "@pharmacy/ui-native";
 /**
  * InventoryIntelligenceScreen — pharmacist inventory intelligence dashboard.
  *
@@ -13,12 +12,12 @@ import { defaultTheme as theme } from "@pharmacy/ui-native";
  *   - On-hand / Reserved / Available
  *   - Category
  *   - Price
- *   - Urgency colour band (red = 0, amber = 1-3, yellow = 4-5)
+ *   - Urgency colour band (red = out of stock, amber = 1-5 on hand, green = 6+)
  */
 
 
 
-import React, { useState, useCallback, useDeferredValue } from "react";
+import React, { useState, useCallback, useDeferredValue, useMemo } from "react";
 
 import {
 
@@ -98,11 +97,11 @@ type InventoryTab = "lowstock" | "search" | "outofstock";
 
 function urgencyColor(available: number, colors: NativeTheme["colors"]): string {
 
-  if (available === 0) return colors.danger;
+  if (available === 0) return colors.status.error;
 
-  if (available <= 3)  return colors.warn;
+  if (available <= 5)  return colors.status.warning;
 
-  return colors.warn;
+  return colors.status.success;
 
 }
 
@@ -122,6 +121,8 @@ function ProductCard({
 
   colors,
 
+  styles,
+
 }: {
 
   product: PharmacistProduct;
@@ -131,6 +132,8 @@ function ProductCard({
   onScan:  (barcode: string) => void;
 
   colors: NativeTheme["colors"];
+
+  styles: ReturnType<typeof createStyles>;
 
 }) {
 
@@ -172,7 +175,7 @@ function ProductCard({
 
           </View>
 
-          <UIText style={[styles.price, { color: colors.accentDeep }]}>{formatPrice(product.effectivePrice)}</UIText>
+          <UIText style={[styles.price, { color: colors.brand.primaryDark }]}>{formatPrice(product.effectivePrice)}</UIText>
 
         </View>
 
@@ -184,7 +187,7 @@ function ProductCard({
 
           {product.code && (
 
-            <View style={[styles.chip, { flexDirection: flexRow(IS_RTL), backgroundColor: colors.well, borderColor: colors.line }]}>
+            <View style={[styles.chip, { flexDirection: flexRow(IS_RTL), backgroundColor: colors.canvas.surfaceMuted, borderColor: colors.line }]}>
 
               <Ionicons name="barcode-outline" size={10} color={colors.inkSoft} />
 
@@ -196,7 +199,7 @@ function ProductCard({
 
           {product.categoryName && (
 
-            <View style={[styles.chip, { flexDirection: flexRow(IS_RTL), backgroundColor: colors.well, borderColor: colors.line }]}>
+            <View style={[styles.chip, { flexDirection: flexRow(IS_RTL), backgroundColor: colors.canvas.surfaceMuted, borderColor: colors.line }]}>
 
               <Ionicons name="folder-outline" size={10} color={colors.inkSoft} />
 
@@ -208,11 +211,12 @@ function ProductCard({
 
           {isOut && (
 
-            <View style={[styles.chip, styles.chipDanger, { flexDirection: flexRow(IS_RTL), backgroundColor: colors.dangerTint, borderColor: colors.danger }]}>
+            <View style={[styles.chip, styles.chipDanger, { flexDirection: flexRow(IS_RTL), backgroundColor: colors.statusSoft.error.bg, borderColor: colors.status.error }]}>
 
-              <Ionicons name="close-circle" size={10} color={colors.danger} />
+              <Ionicons name="close-circle" size={10} color={colors.status.error} />
 
-              <UIText style={[styles.chipText, { color: colors.danger }]}>                {t("pharmacist.stockExhausted", "نفد المخزون")}
+              <UIText style={[styles.chipText, { color: colors.status.error }]}>
+              {t("pharmacist.stockExhausted", "نفد المخزون")}
 
               </UIText>
 
@@ -238,7 +242,7 @@ function ProductCard({
 
           ].map(({ label, value, warn }) => (
 
-            <View key={label} style={[styles.stockCell, { backgroundColor: colors.well }]}>
+            <View key={label} style={[styles.stockCell, { backgroundColor: colors.canvas.surfaceMuted }]}>
 
               <UIText
 
@@ -272,7 +276,7 @@ function ProductCard({
 
               onPress={() => onScan(product.barcode!)}
 
-              style={({ pressed }) => [styles.scanBtn, pressed && { opacity: 0.75 }, { backgroundColor: colors.accentTint, borderColor: colors.line }]}
+              style={({ pressed }) => [styles.scanBtn, pressed && { opacity: 0.75 }, { backgroundColor: colors.brand.primaryLight, borderColor: colors.line }]}
 
               accessibilityRole="button"
 
@@ -280,7 +284,7 @@ function ProductCard({
 
             >
 
-              <Ionicons name="barcode-outline" size={14} color={colors.accentDeep} />
+              <Ionicons name="barcode-outline" size={14} color={colors.brand.primaryDark} />
 
             </Pressable>
 
@@ -305,6 +309,8 @@ function ProductCard({
 export function InventoryIntelligenceScreen(): React.ReactElement {
 
   const { theme } = useTheme();
+
+  const styles      = useMemo(() => createStyles(theme), [theme]);
 
   const { t }       = useTranslation();
 
@@ -540,7 +546,8 @@ export function InventoryIntelligenceScreen(): React.ReactElement {
 
             >
 
-              <UIText style={[styles.tabText, active && styles.tabTextActive, { color: active ? theme.colors.text.inverse : theme.colors.text.secondary }]}>                {labels[tabKey]}
+              <UIText style={[styles.tabText, active && styles.tabTextActive, { color: active ? theme.colors.text.inverse : theme.colors.text.secondary }]}>
+              {labels[tabKey]}
 
               </UIText>
 
@@ -584,7 +591,7 @@ export function InventoryIntelligenceScreen(): React.ReactElement {
 
         renderItem={({ item, index }) => (
 
-          <ProductCard product={item} index={index} onScan={handleScan} colors={theme.colors} />
+          <ProductCard product={item} index={index} onScan={handleScan} colors={theme.colors} styles={styles} />
 
         )}
 
@@ -604,7 +611,7 @@ export function InventoryIntelligenceScreen(): React.ReactElement {
 
             <EmptyState
 
-              icon="wifi-outline"
+              illustrationName="offline"
 
               title={t("errors.network").split(".")[0]}
 
@@ -638,7 +645,9 @@ export function InventoryIntelligenceScreen(): React.ReactElement {
 
 
 
-const styles = StyleSheet.create({
+function createStyles(theme: NativeTheme) {
+
+  return StyleSheet.create({
 
   scannerBtn: {
 
@@ -804,4 +813,6 @@ const styles = StyleSheet.create({
 
   },
 
-});
+  });
+
+}

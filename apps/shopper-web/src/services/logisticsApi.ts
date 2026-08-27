@@ -367,17 +367,21 @@ export async function assignDriver(orderId: string, driverId: string | null, sta
     // elapsed-time badge. reassignDriver() does the equivalent insert for
     // every LATER reassignment — this covers the first one, which used to
     // create no ledger row at all.
-    const { error: assignmentError } = await supabase.from("delivery_assignments").insert({
-      order_id: orderId,
-      driver_id: driverId,
-      assigned_by: staffId ?? null,
-      assignment_kind: "assigned",
-      response_status: "offered",
-    });
+    const { data: assignmentRow, error: assignmentError } = await supabase
+      .from("delivery_assignments")
+      .insert({
+        order_id: orderId,
+        driver_id: driverId,
+        assigned_by: staffId ?? null,
+        assignment_kind: "assigned",
+        response_status: "offered",
+      })
+      .select("id")
+      .single();
     if (assignmentError) {
       console.error("[logisticsApi] assignDriver: delivery_assignments insert failed:", assignmentError.message);
     }
-    notifyDriverAssigned(orderId, driverId);
+    notifyDriverAssigned(orderId, driverId, (assignmentRow as { id: string } | null)?.id);
   }
 
   // Fetch line items and the driver list so the caller can build a
@@ -796,13 +800,17 @@ export async function reassignDriver(
     .eq("order_id", orderId)
     .in("response_status", ["offered", "accepted"]);
 
-  const { error: insertError } = await supabase.from("delivery_assignments").insert({
-    order_id: orderId,
-    driver_id: newDriverId,
-    assigned_by: staffId,
-    assignment_kind: "reassigned",
-    response_status: "offered",
-  });
+  const { data: assignmentRow, error: insertError } = await supabase
+    .from("delivery_assignments")
+    .insert({
+      order_id: orderId,
+      driver_id: newDriverId,
+      assigned_by: staffId,
+      assignment_kind: "reassigned",
+      response_status: "offered",
+    })
+    .select("id")
+    .single();
   if (insertError) {
     throw new Error(insertError.message);
   }
@@ -827,7 +835,7 @@ export async function reassignDriver(
     throw new Error("Driver did not persist; the database returned the previous value.");
   }
 
-  notifyDriverAssigned(orderId, newDriverId);
+  notifyDriverAssigned(orderId, newDriverId, (assignmentRow as { id: string } | null)?.id);
   if (previousDriverId && previousDriverId !== newDriverId) {
     notifyDriverUnassigned(orderId, previousDriverId);
   }

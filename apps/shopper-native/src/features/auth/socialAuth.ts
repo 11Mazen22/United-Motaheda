@@ -84,13 +84,19 @@ export async function signInWithProvider(
 
   provider: SocialAuthProvider,
 
+  /** Where to land after a successful sign-in, e.g. "/(customer)/checkout".
+   *  Threaded through the OAuth round-trip as a query param so auth-callback
+   *  can route the user back to what they were doing instead of always
+   *  dropping them on Home. */
+  destination?: string,
+
 ): Promise<"success" | "cancelled" | "error"> {
 
   // Build the redirect URL that Supabase will send the user back to.
 
   // On dev it resolves to exp://... ; in production to shopper://auth-callback
 
-  const redirectTo = Linking.createURL("/auth-callback");
+  const redirectTo = Linking.createURL("/auth-callback", destination ? { queryParams: { redirect: destination } } : undefined);
 
 
 
@@ -157,10 +163,11 @@ export async function signInWithProvider(
     const parsed = Linking.parse(result.url);
 
     const code = typeof parsed.queryParams?.code === "string" ? parsed.queryParams.code : undefined;
+    const redirectParam = typeof parsed.queryParams?.redirect === "string" ? parsed.queryParams.redirect : undefined;
 
     if (code) {
 
-      router.replace({ pathname: "/auth-callback", params: { code } });
+      router.replace({ pathname: "/auth-callback", params: redirectParam ? { code, redirect: redirectParam } : { code } });
 
     }
 

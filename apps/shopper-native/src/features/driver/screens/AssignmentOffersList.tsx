@@ -1,37 +1,87 @@
-import { defaultTheme as theme } from "@pharmacy/ui-native";
 /**
  * AssignmentOffersList — all pending assignment offers awaiting this
  * driver's response. Usually just one, but staff can offer more than one
  * order at a time, so this list exists rather than assuming a single offer.
+ *
+ * Confirmed bug fixed here: the decline "confirmation" used to fire the
+ * decline mutation immediately on the first tap, then render a
+ * ConfirmationSheet that only appeared AFTER the request was already in
+ * flight/done. Fixed to reveal a reason field first, only submit when the
+ * driver explicitly confirms.
+ *
+ * Also fixed: this screen used to show literally nothing about the
+ * delivery itself — no destination area, no branch, no real fee — just a
+ * static "Estimated fee" label with no value next to it. listMyOpenAssignmentOffers
+ * now joins through the order's own zone/branch/total (see api.ts's
+ * AssignmentOffer type), so a driver can actually make an informed
+ * accept/decline decision instead of guessing from an order id alone.
  */
-import React from "react";
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, View } from "react-native";
+import React, { useCallback, useMemo, useState } from "react";
+import { FlatList, Linking, Pressable, RefreshControl, StyleSheet, View } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import { Screen, Text as UIText, Card, EmptyState } from "@pharmacy/ui-native";
-import { formatPrice } from "@/utils/format";
+import { useQueryClient } from "@tanstack/react-query";
+import { Screen, Text as UIText, Card, Button, Input, Badge, SkeletonCard, EmptyState, useTheme } from "@pharmacy/ui-native";
 import { kit } from "@pharmacy/ui-native";
 import { useAuth } from "@/features/auth";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
-import { useDriverOffers } from "../hooks/useDriverManifest";
+import { formatPrice } from "@/utils/format";
+import { findBranchById } from "@/features/delivery/branches/data";
+import { useAppLanguage } from "@/i18n/LanguageProvider";
+import { useDriverOffers, driverQueryKeys } from "../hooks/useDriverManifest";
 import { useDriverMutations } from "../hooks/useDriverMutations";
 import { showErrorSheet, showSuccessSheet } from "@/shared/store/appSheetStore";
 import { DriverScreenHeader } from "../components/DriverScreenHeader";
-import ConfirmationSheet from "@/components/ConfirmationSheet";
 
 const IS_RTL = isRtl();
 const TEXT_START = textAlignStart(IS_RTL);
+const OFFER_URGENT_AFTER_MIN = 10;
+
+function minutesSince(iso: string): number {
+  return Math.max(0, Math.floor((Date.now() - Date.parse(iso)) / 60_000));
+}
 
 export function AssignmentOffersList(): React.ReactElement {
   const { t } = useTranslation();
+  const { theme } = useTheme();
+  const { language } = useAppLanguage();
   const router = useRouter();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const offersQuery = useDriverOffers(user?.id);
   const offers = offersQuery.data ?? [];
   const mutations = useDriverMutations(user?.id);
-  const [pendingAccept, setPendingAccept] = React.useState<string | null>(null);
-  const [pendingDecline, setPendingDecline] = React.useState<string | null>(null);
+  const [pendingAccept, setPendingAccept] = useState<string | null>(null);
+  const [decliningId, setDecliningId] = useState<string | null>(null);
+  const [reason, setReason] = useState("");
+  const [refreshing, setRefreshing] = useState(false);
+
+  const s = useMemo(() => StyleSheet.create({
+    listContent: { paddingHorizontal: kit.inset.screen, paddingBottom: 40 },
+    card: { gap: 12 },
+    urgentCard: { borderColor: theme.colors.status.warning, borderWidth: 1.5 },
+    headerRow: { flexDirection: flexRow(IS_RTL), alignItems: "center", gap: 12 },
+    offerIcon: { width: 42, height: 42, borderRadius: 14, backgroundColor: `${theme.colors.status.warning}1A`, alignItems: "center", justifyContent: "center" },
+    infoGrid: { gap: 8 },
+    infoRow: { flexDirection: flexRow(IS_RTL), alignItems: "center", gap: 8 },
+    infoLabel: { flex: 1 },
+    actionsRow: { flexDirection: flexRow(IS_RTL), gap: 10 },
+    actionBtn: { flex: 1 },
+    quickBtn: { width: 48, height: 48, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: theme.colors.canvas.surfaceMuted },
+    declineInput: { minHeight: 70, textAlignVertical: "top" },
+    declineActions: { flexDirection: flexRow(IS_RTL), justifyContent: "flex-end", gap: 10 },
+  }), [theme]);
+
+  const onRefresh = useCallback(async () => {
+    if (!user?.id) return;
+    setRefreshing(true);
+    try {
+      await queryClient.invalidateQueries({ queryKey: driverQueryKeys.offers(user.id) });
+    } finally {
+      setRefreshing(false);
+    }
+  }, [queryClient, user?.id]);
 
   const handleAccept = async (assignmentId: string) => {
     setPendingAccept(assignmentId);
@@ -45,15 +95,20 @@ export function AssignmentOffersList(): React.ReactElement {
     }
   };
 
-  const handleDecline = async (assignmentId: string, orderId: string) => {
-    setPendingDecline(assignmentId);
+  const startDecline = (assignmentId: string) => {
+    setDecliningId(assignmentId);
+    setReason("");
+  };
+
+  const confirmDecline = async (assignmentId: string, orderId: string) => {
     try {
-      await mutations.decline.mutateAsync({ assignmentId, orderId, reason: "Declined from list" });
+      await mutations.decline.mutateAsync({ assignmentId, orderId, reason });
       showSuccessSheet(t("driver.declinedTitle"), t("driver.declinedBody"));
     } catch (e) {
       showErrorSheet(t("driver.actionFailedTitle"), e instanceof Error ? e.message : String(e));
     } finally {
-      setPendingDecline(null);
+      setDecliningId(null);
+      setReason("");
     }
   };
 
@@ -65,103 +120,96 @@ export function AssignmentOffersList(): React.ReactElement {
         data={offers}
         keyExtractor={(o) => o.id}
         contentContainerStyle={s.listContent}
-        renderItem={({ item }) => (
-          <Card style={s.card} elevation="sm">
-            <View style={s.offerLeft}>
-              <View style={s.offerIcon}><Ionicons name="flash-outline" size={20} color={theme.colors.status.warning} /></View>
-            </View>
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.colors.brand.primary} />}
+        renderItem={({ item }) => {
+          const isDeclining = decliningId === item.id;
+          const waitedMin = minutesSince(item.offeredAt);
+          const isUrgent = waitedMin >= OFFER_URGENT_AFTER_MIN;
+          const branch = item.branchId ? findBranchById(item.branchId) : null;
+          const branchName = branch ? (language === "ar" ? branch.nameAr : branch.nameEn) : null;
+          const branchPhone = branch?.phones?.[0] ?? null;
 
-            <View style={s.offerBody}>
-              <View style={s.cardTitleRow}>
-                <UIText variant="card-title" style={{ textAlign: TEXT_START }}>#{item.orderId?.slice(-8).toUpperCase()}</UIText>
-                <View style={s.newPill}><Ionicons name="time-outline" size={12} color={theme.colors.status.warning} /></View>
+          return (
+            <Card style={[s.card, isUrgent && s.urgentCard]} padding="lg" elevation="sm">
+              <View style={s.headerRow}>
+                <View style={s.offerIcon}><Ionicons name="flash-outline" size={20} color={theme.colors.status.warning} /></View>
+                <View style={{ flex: 1 }}>
+                  <UIText variant="card-title" style={{ textAlign: TEXT_START }}>#{item.orderId?.slice(-8).toUpperCase()}</UIText>
+                  <UIText variant="caption" color={isUrgent ? "warn" : "secondary"} style={{ textAlign: TEXT_START, marginTop: 2 }}>
+                    {waitedMin < 1 ? t("driver.elapsedJustNow") : t("driver.elapsedMinutes", { count: waitedMin })}
+                    {isUrgent ? ` · ${t("driver.offerExpiresWarning")}` : ""}
+                  </UIText>
+                </View>
+                <Badge variant="primary" label={formatPrice(item.total)} />
               </View>
 
-              <UIText variant="body-sm" color="secondary" style={{ marginTop: 6, textAlign: TEXT_START }}>
-                {t("driver.offerSubtitle", "New delivery offer — tap to view details or respond quickly")}
-              </UIText>
-
-              <View style={s.metaRow}>
-                <View style={s.metaItem}><Ionicons name="pricetag-outline" size={14} color={theme.colors.text.muted} /><UIText variant="caption" color="secondary">{(item as unknown as { fee?: number }).fee ? formatPrice((item as unknown as { fee: number }).fee) : t("driver.estimatedFee")}</UIText></View>
-                <View style={s.metaItem}><Ionicons name="time-outline" size={14} color={theme.colors.text.muted} /><UIText variant="caption" color="secondary">{t("driver.quickResponseHint")}</UIText></View>
+              <View style={s.infoGrid}>
+                {branchName ? (
+                  <View style={s.infoRow}>
+                    <Ionicons name="storefront-outline" size={14} color={theme.colors.text.muted} />
+                    <UIText variant="body-sm" color="secondary" style={s.infoLabel}>{branchName}</UIText>
+                  </View>
+                ) : null}
+                {item.destinationArea ? (
+                  <View style={s.infoRow}>
+                    <Ionicons name="location-outline" size={14} color={theme.colors.text.muted} />
+                    <UIText variant="body-sm" color="secondary" style={s.infoLabel}>{item.destinationArea}</UIText>
+                  </View>
+                ) : null}
+                {item.zoneName ? (
+                  <View style={s.infoRow}>
+                    <Ionicons name="map-outline" size={14} color={theme.colors.text.muted} />
+                    <UIText variant="body-sm" color="secondary" style={s.infoLabel}>{item.zoneName}</UIText>
+                  </View>
+                ) : null}
               </View>
-            </View>
 
-            <View style={s.offerActionsCol}>
-              <Pressable onPress={() => void handleAccept(item.id)} style={[s.acceptBtn, pendingAccept === item.id && s.btnBusy]} disabled={Boolean(pendingAccept === item.id)}>
-                <UIText color="#fff">{pendingAccept === item.id ? t("common.accepting") : t("driver.accept")}</UIText>
-              </Pressable>
-              <Pressable onPress={() => void handleDecline(item.id, item.orderId)} style={[s.declineBtn, pendingDecline === item.id && s.btnBusy]} disabled={Boolean(pendingDecline === item.id)}>
-                <UIText color="danger">{pendingDecline === item.id ? t("common.declining") : t("driver.decline")}</UIText>
-              </Pressable>
-              <Pressable onPress={() => router.push(`/(driver)/offer/${item.id}` as never)} style={s.viewBtn}>
-                <UIText variant="caption">{t("common.view")}</UIText>
-              </Pressable>
-            </View>
-          </Card>
-        )}
+              {!isDeclining ? (
+                <View style={s.actionsRow}>
+                  <Button style={s.actionBtn} label={t("driver.accept")} onPress={() => void handleAccept(item.id)} loading={pendingAccept === item.id} />
+                  <Button style={s.actionBtn} label={t("driver.decline")} variant="outline" onPress={() => startDecline(item.id)} disabled={pendingAccept === item.id} />
+                  {branchPhone ? (
+                    <Pressable onPress={() => void Linking.openURL(`tel:${branchPhone}`)} style={s.quickBtn} accessibilityRole="button" accessibilityLabel={t("driver.callPharmacy")}>
+                      <Ionicons name="call-outline" size={18} color={theme.colors.text.secondary} />
+                    </Pressable>
+                  ) : null}
+                </View>
+              ) : (
+                <View style={{ gap: 10 }}>
+                  <UIText variant="label" style={{ textAlign: TEXT_START }}>{t("driver.declineReasonTitle")}</UIText>
+                  <Input
+                    value={reason}
+                    onChangeText={setReason}
+                    placeholder={t("driver.declineReasonPlaceholder")}
+                    multiline
+                    numberOfLines={3}
+                    style={s.declineInput}
+                  />
+                  <View style={s.declineActions}>
+                    <Button label={t("common.cancel")} variant="ghost" onPress={() => setDecliningId(null)} />
+                    <Button
+                      label={t("driver.confirmDecline")}
+                      variant="danger"
+                      onPress={() => void confirmDecline(item.id, item.orderId)}
+                      loading={mutations.decline.isPending}
+                    />
+                  </View>
+                </View>
+              )}
+
+              <Button label={t("common.view")} variant="ghost" size="sm" onPress={() => router.push(`/(driver)/offer/${item.id}` as never)} />
+            </Card>
+          );
+        }}
         ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
         ListEmptyComponent={offersQuery.isLoading ? (
-          <View style={s.emptyState}><ActivityIndicator color={theme.colors.brand.primary} /></View>
+          <View>{[1, 2].map((i) => <SkeletonCard key={i} lines={4} style={{ marginBottom: 10 }} />)}</View>
         ) : offersQuery.isError ? (
-          <EmptyState icon="cloud-offline-outline" title={t("errors.network")} subtitle={t("common.retryShort")} />
+          <EmptyState illustrationName="offline" title={t("errors.network")} subtitle={t("common.retryShort")} action={{ label: t("common.retry"), onPress: () => void onRefresh() }} />
         ) : (
           <EmptyState icon="checkmark-circle-outline" title={t("driver.noOffersTitle")} />
         )}
       />
-
-      {/* Decline confirmation sheet rendered inline for accessibility */}
-      {pendingDecline ? (
-        <ConfirmationSheet
-          title={t("driver.confirmDeclineTitle")}
-          body={t("driver.confirmDeclineBody")}
-          confirmLabel={t("driver.decline")}
-          cancelLabel={t("common.cancel")}
-          onConfirm={() => {
-            // find the offer to decline and call original handler
-            const offer = offers.find((o) => o.id === pendingDecline);
-            if (offer) void handleDecline(offer.id, offer.orderId);
-          }}
-          onCancel={() => setPendingDecline(null)}
-        />
-      ) : null}
     </Screen>
   );
 }
-
-const s = StyleSheet.create({
-  listContent: {
-    paddingHorizontal: kit.inset.screen,
-    paddingBottom: 40,
-  },
-  card: {
-    flexDirection: flexRow(IS_RTL),
-    alignItems: "center",
-    gap: 12,
-    backgroundColor: theme.colors.canvas.surface,
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: `${theme.colors.status.warning}1A`,
-    ...theme.shadows[1],
-  },
-  offerActions: { flexDirection: flexRow(IS_RTL), alignItems: 'center', gap: 8 },
-  acceptBtn: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12, backgroundColor: theme.colors.brand.primaryLight },
-  declineBtn: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12, backgroundColor: theme.colors.canvas.surface },
-  viewBtn: { paddingHorizontal: 10, paddingVertical: 8, borderRadius: 12, backgroundColor: 'transparent' },
-  offerIcon: { width: 42, height: 42, borderRadius: 14, backgroundColor: `${theme.colors.status.warning}1A`, alignItems: "center", justifyContent: "center" },
-  cardTitleRow: { flexDirection: flexRow(IS_RTL), alignItems: "center", justifyContent: "space-between", gap: 8 },
-  newPill: { width: 24, height: 24, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: `${theme.colors.status.warning}1A` },
-  emptyState: {
-    alignItems: "center",
-    paddingVertical: 60,
-    paddingHorizontal: 24,
-  },
-  retryBtn: { marginTop: 14, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 9999, backgroundColor: theme.colors.brand.primaryLight },
-  offerLeft: { width: 58, alignItems: 'center', justifyContent: 'center' },
-  offerBody: { flex: 1 },
-  metaRow: { flexDirection: flexRow(IS_RTL), gap: 10, marginTop: 8, alignItems: 'center' },
-  metaItem: { flexDirection: flexRow(IS_RTL), gap: 6, alignItems: 'center' },
-  offerActionsCol: { flexDirection: 'column', gap: 8, marginStart: 8, alignItems: 'flex-end' },
-  btnBusy: { opacity: 0.7 },
-});

@@ -1,5 +1,4 @@
-import { defaultTheme as theme } from "@pharmacy/ui-native";
-import { useTheme } from "@pharmacy/ui-native";
+import { useTheme, type NativeTheme } from "@pharmacy/ui-native";
 /**
  * Refill flow — quick request for an existing prescription.
  * Confirm quantity + delivery method, then submit via useRequestRefill.
@@ -65,7 +64,7 @@ interface DeliveryOption {
 
 export default function RefillPage(): React.ReactElement {
   const { theme } = useTheme();
-  const s = React.useMemo(() => get_s(), []);
+  const s = React.useMemo(() => get_s(theme), [theme]);
   const { t, i18n } = useTranslation();
 
   const { id }      = useLocalSearchParams<{ id: string }>();
@@ -225,7 +224,8 @@ interface DeliveryOptionCardProps {
 }
 
 function DeliveryOptionCard({ option, selected, onSelect }: DeliveryOptionCardProps): React.ReactElement {
-  const s = React.useMemo(() => get_s(), []);
+  const { theme } = useTheme();
+  const s = React.useMemo(() => get_s(theme), [theme]);
   return (
     <Pressable
       onPress={onSelect}
@@ -253,7 +253,7 @@ function DeliveryOptionCard({ option, selected, onSelect }: DeliveryOptionCardPr
 
 function Header({ insets, onBack }: { insets: { top: number }; onBack: () => void }) {
   const { theme } = useTheme();
-  const s = React.useMemo(() => get_s(), []);
+  const s = React.useMemo(() => get_s(theme), [theme]);
   const { t } = useTranslation();
   return (
     <View style={[s.header, { paddingTop: insets.top + 12 }]}>
@@ -284,7 +284,7 @@ function Header({ insets, onBack }: { insets: { top: number }; onBack: () => voi
 
 
 
-function get_s() { return StyleSheet.create({
+function get_s(theme: NativeTheme) { return StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.colors.canvas.background },
   header: {
     paddingHorizontal: 20, paddingBottom: 20, gap: 18,

@@ -64,7 +64,10 @@ export const DailyEdit = memo(function DailyEdit({
 
   const { width, isTablet, pagePad } = useScreenLayout();
 
-  const products = (data ?? []).filter((p) => p.imageUrl);
+  // ProductCard already renders a graceful placeholder for missing images —
+  // requiring imageUrl here just meant this whole section silently vanished
+  // whenever the catalog's featured picks didn't happen to have photos.
+  const products = data ?? [];
 
   if (isLoading) return (
     <View style={sectionStyles.wrap}>

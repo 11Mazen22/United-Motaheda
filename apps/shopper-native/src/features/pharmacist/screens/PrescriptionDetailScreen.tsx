@@ -120,6 +120,10 @@ export function PrescriptionDetailScreen(): React.ReactElement {
 
   const [rejectionReason, setRejectionReason] = useState("");
   const [showRejectForm, setShowRejectForm] = useState(false);
+  const [adminNotesInput, setAdminNotesInput] = useState("");
+  const [rejectionTouched, setRejectionTouched] = useState(false);
+
+  const rejectionReasonInvalid = rejectionTouched && rejectionReason.trim().length === 0;
 
   const rx = rxQuery.data;
   const isPending = rx?.reviewStatus === "pending_review";
@@ -129,7 +133,10 @@ export function PrescriptionDetailScreen(): React.ReactElement {
     if (!id) return;
     try {
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-      await mutations.reviewRx.mutateAsync({ id, input: { reviewStatus: "approved" } });
+      await mutations.reviewRx.mutateAsync({
+        id,
+        input: { reviewStatus: "approved", adminNotes: adminNotesInput.trim() || undefined },
+      });
       showSuccessSheet(t("pharmacist.rxApprovedTitle"), t("pharmacist.rxApprovedBody"));
     } catch (e) {
       showErrorSheet(t("pharmacist.actionFailedTitle"), e instanceof Error ? e.message : "");
@@ -138,12 +145,20 @@ export function PrescriptionDetailScreen(): React.ReactElement {
 
   const handleReject = async () => {
     if (!id) return;
+    // The review_prescription RPC hard-requires a non-empty rejection reason
+    // (raises rejection_reason_required) — catch it here with a friendly
+    // inline message instead of letting a raw Postgres error surface.
+    if (rejectionReason.trim().length === 0) {
+      setRejectionTouched(true);
+      return;
+    }
     try {
       await mutations.reviewRx.mutateAsync({
         id,
         input: {
           reviewStatus: "rejected",
-          rejectionReason: rejectionReason || undefined,
+          rejectionReason: rejectionReason.trim(),
+          adminNotes: adminNotesInput.trim() || undefined,
         },
       });
       showSuccessSheet(t("pharmacist.rxRejectedTitle"), t("pharmacist.rxRejectedBody"));
@@ -181,7 +196,7 @@ export function PrescriptionDetailScreen(): React.ReactElement {
 
       <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
         {/* Document Viewer — pinch/pan/double-tap to inspect handwriting closely */}
-        <View style={[s.imageBoxer, { backgroundColor: theme.colors.text.primary }]}>
+        <View style={[s.imageBoxer, { backgroundColor: theme.colors.pharmacy.navy }]}>
           {imageQuery.isLoading ? (
             <ActivityIndicator size="large" color={theme.colors.brand.primary} />
           ) : imageQuery.error ? (
@@ -193,7 +208,7 @@ export function PrescriptionDetailScreen(): React.ReactElement {
           )}
           {imageQuery.data && (
             <View style={s.zoomHint} pointerEvents="none">
-              <UIText variant="caption" color="inverse-muted">{t("pharmacist.pinchToZoom")}</UIText>
+              <UIText variant="caption" style={{ color: "rgba(255,255,255,0.72)" }}>{t("pharmacist.pinchToZoom")}</UIText>
             </View>
           )}
         </View>
@@ -233,6 +248,13 @@ export function PrescriptionDetailScreen(): React.ReactElement {
           {/* Actions */}
           {isPending && (
             <View style={s.actions}>
+              <Input
+                value={adminNotesInput}
+                onChangeText={setAdminNotesInput}
+                placeholder={t("pharmacist.adminNotesPlaceholder", "Add a note for this review (optional)")}
+                multiline
+                style={s.textInput}
+              />
               {!showRejectForm ? (
                 <>
                   <Button
@@ -252,11 +274,16 @@ export function PrescriptionDetailScreen(): React.ReactElement {
                 <>
                   <Input
                     value={rejectionReason}
-                    onChangeText={setRejectionReason}
+                    onChangeText={(v) => { setRejectionReason(v); if (rejectionTouched) setRejectionTouched(false); }}
                     placeholder={t("pharmacist.rejectionReasonPlaceholder", "Reason for rejection")}
                     multiline
                     style={s.textInput}
                   />
+                  {rejectionReasonInvalid ? (
+                    <UIText variant="caption" color="danger">
+                      {t("pharmacist.rejectionReasonRequired", "A rejection reason is required.")}
+                    </UIText>
+                  ) : null}
                   <Button
                     label={t("pharmacist.confirmReject", "Confirm Reject")}
                     full
@@ -268,7 +295,7 @@ export function PrescriptionDetailScreen(): React.ReactElement {
                     label={t("common.cancel", "Cancel")}
                     variant="ghost"
                     full
-                    onPress={() => setShowRejectForm(false)}
+                    onPress={() => { setShowRejectForm(false); setRejectionTouched(false); }}
                   />
                 </>
               )}

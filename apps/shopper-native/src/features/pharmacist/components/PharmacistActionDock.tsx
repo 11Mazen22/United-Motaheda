@@ -32,9 +32,9 @@ export function PharmacistActionDock({
 
 }) {
 
-  if (!actions || actions.length === 0) return null;
-
   const insets = useSafeAreaInsets();
+
+  if (!actions || actions.length === 0) return null;
 
   return (
 

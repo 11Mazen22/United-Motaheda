@@ -15,8 +15,7 @@
 import { StyleSheet } from "react-native";
 
 import { theme as legacyTheme } from "@pharmacy/design-tokens";
-import { defaultTheme as theme } from "@pharmacy/ui-native";
-import { kit } from "@pharmacy/ui-native";
+import { kit, type NativeTheme } from "@pharmacy/ui-native";
 
 import { flexRow, isRtl } from "@/utils/layout";
 
@@ -90,7 +89,9 @@ export const PROFILE = {
 
 
 
-export const styles = StyleSheet.create({
+export function getProfileStyles(theme: NativeTheme) {
+
+  return StyleSheet.create({
 
   screen: { flex: 1, backgroundColor: theme.colors.canvas.background },
 
@@ -938,5 +939,7 @@ export const styles = StyleSheet.create({
 
   },
 
-});
+  });
+
+}
 

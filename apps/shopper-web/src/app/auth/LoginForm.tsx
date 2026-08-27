@@ -129,6 +129,16 @@ export default function LoginForm({
         icon={LockKeyhole}
         isArabic={isArabic}
         label={isArabic ? "كلمة المرور" : "Password"}
+        labelEnd={
+          <Link
+            to="/forgot-password"
+            tabIndex={-1}
+            className="text-xs font-bold transition-colors hover:underline"
+            style={{ color: TEAL }}
+          >
+            {isArabic ? "نسيت كلمة المرور؟" : "Forgot password?"}
+          </Link>
+        }
         end={
           <button
             type="button"
@@ -195,6 +205,7 @@ function AuthField({
   icon: Icon,
   isArabic,
   label,
+  labelEnd,
 }: {
   children: ReactNode;
   className?: string;
@@ -203,10 +214,14 @@ function AuthField({
   icon: typeof Mail;
   isArabic: boolean;
   label: string;
+  labelEnd?: ReactNode;
 }) {
   return (
     <label className={cn("grid gap-1.5", className)}>
-      <span className="text-sm font-bold text-slate-700">{label}</span>
+      <span className="flex items-center justify-between">
+        <span className="text-sm font-bold text-slate-700">{label}</span>
+        {labelEnd}
+      </span>
       <div className="relative">
         <Icon
           className={cn(

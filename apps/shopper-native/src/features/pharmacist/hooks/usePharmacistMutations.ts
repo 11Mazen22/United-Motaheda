@@ -9,11 +9,12 @@
  */
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { transitionOrder }              from "../api/orders";
+import { transitionOrder, resolveDeliveryIssue, addOrderNote } from "../api/orders";
 import { reviewPrescription }           from "../api/prescriptions";
+import { reviewRefillRequest, advanceRefillRequest } from "../api/refills";
 import { notifyCustomerOrderUpdate, notifyCustomerPrescriptionReview } from "../customerNotify";
 import { pharmacistQueryKeys }          from "./queryKeys";
-import type { PharmacistTransitionTarget, ReviewPrescriptionInput } from "../api/types";
+import type { PharmacistTransitionTarget, ReviewPrescriptionInput, RefillRequestStatus } from "../api/types";
 
 export function usePharmacistMutations() {
   const queryClient = useQueryClient();
@@ -59,8 +60,48 @@ export function usePharmacistMutations() {
     },
   });
 
+  // ── Delivery issues + order notes ────────────────────────────────────────────
+
+  const resolveIssue = useMutation({
+    mutationFn: (args: { issueId: string; orderId: string; resolutionNote: string }) =>
+      resolveDeliveryIssue(args.issueId, args.resolutionNote),
+    onSuccess: (_data, args) => {
+      void queryClient.invalidateQueries({ queryKey: [...pharmacistQueryKeys.order(args.orderId), "delivery-issue"] });
+      void queryClient.invalidateQueries({ queryKey: [...pharmacistQueryKeys.order(args.orderId), "timeline"] });
+    },
+  });
+
+  const addNote = useMutation({
+    mutationFn: (args: { orderId: string; body: string }) => addOrderNote(args.orderId, args.body),
+    onSuccess: (_data, args) => {
+      void queryClient.invalidateQueries({ queryKey: [...pharmacistQueryKeys.order(args.orderId), "timeline"] });
+    },
+  });
+
+  // ── Refill requests ──────────────────────────────────────────────────────────
+
+  const invalidateRefills = () => {
+    void queryClient.invalidateQueries({ queryKey: ["pharmacist", "refills"] });
+  };
+
+  const reviewRefill = useMutation({
+    mutationFn: (args: { id: string; decision: "approved" | "rejected"; adminNotes?: string; rejectionReason?: string }) =>
+      reviewRefillRequest(args),
+    onSuccess: invalidateRefills,
+  });
+
+  const advanceRefill = useMutation({
+    mutationFn: (args: { id: string; nextStatus: RefillRequestStatus }) =>
+      advanceRefillRequest(args.id, args.nextStatus),
+    onSuccess: invalidateRefills,
+  });
+
   return {
-    advance:  { mutateAsync: advance.mutateAsync,  isPending: advance.isPending,  error: advance.error  },
-    reviewRx: { mutateAsync: reviewRx.mutateAsync, isPending: reviewRx.isPending, error: reviewRx.error },
+    advance:      { mutateAsync: advance.mutateAsync,      isPending: advance.isPending,      error: advance.error      },
+    reviewRx:     { mutateAsync: reviewRx.mutateAsync,     isPending: reviewRx.isPending,     error: reviewRx.error     },
+    reviewRefill: { mutateAsync: reviewRefill.mutateAsync, isPending: reviewRefill.isPending, error: reviewRefill.error },
+    advanceRefill:{ mutateAsync: advanceRefill.mutateAsync,isPending: advanceRefill.isPending,error: advanceRefill.error},
+    resolveIssue: { mutateAsync: resolveIssue.mutateAsync, isPending: resolveIssue.isPending, error: resolveIssue.error },
+    addNote:      { mutateAsync: addNote.mutateAsync,      isPending: addNote.isPending,      error: addNote.error      },
   };
 }

@@ -217,7 +217,7 @@ export function notifyPaymentStatusChange(
 /** Best-effort: notify the assigned driver they have a new delivery.
  * Drivers are profiles (auth users) with role='driver', so driverId IS a
  * notifications.user_id — same table, same realtime channel as customers. */
-export function notifyDriverAssigned(orderId: string, driverId: string): void {
+export function notifyDriverAssigned(orderId: string, driverId: string, assignmentId?: string): void {
   void (async () => {
     try {
       await insertNotification({
@@ -229,8 +229,13 @@ export function notifyDriverAssigned(orderId: string, driverId: string): void {
         // this route-group path the same way Redirect href="/(tabs)" does
         // elsewhere in that app. The legacy web driver tool at /driver has
         // no notification bell of its own, so nothing there consumes this.
-        actionUrl: "/(driver)",
-        data: { kind: "driver_assignment", orderId },
+        // Deep-links straight to the specific offer (accept/decline) when
+        // the caller has the new assignment's id; falls back to the offers
+        // list (not the bare dashboard) so tapping still lands somewhere
+        // actionable rather than requiring the driver to notice and tap
+        // into the Offers tab themselves.
+        actionUrl: assignmentId ? `/(driver)/offer/${assignmentId}` : "/(driver)/offers",
+        data: { kind: "driver_assignment", orderId, assignmentId },
         idempotencyKey: `order:${orderId}:driver:${driverId}:assigned`,
       });
     } catch (err) {

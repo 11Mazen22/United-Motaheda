@@ -1,18 +1,19 @@
-import { defaultTheme as theme } from "@pharmacy/ui-native";
 /**
- * PrescriptionQueueScreen — pharmacist reBox queue for pending prescriptions.
+ * PrescriptionQueueScreen — pharmacist review queue for pending prescriptions.
  *
  * Shows a filterable list of prescriptions (pending / approved / rejected).
- * Tapping a row opens PrescriptionDetailScreen for reBox.
+ * Tapping a row opens PrescriptionDetailScreen for review.
  */
 
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 
 import {
 
   ActivityIndicator,
 
   FlatList,
+
+  Pressable,
 
   RefreshControl,
 
@@ -74,6 +75,44 @@ function RxCard({ rx, onPress }: { rx: PharmacistPrescription; onPress: () => vo
   const { t } = useTranslation();
 
   const { theme } = useTheme();
+
+  const s = useMemo(() => StyleSheet.create({
+
+    card: {
+
+      borderRadius:    16,
+
+      padding:         16,
+
+      borderWidth:     1,
+
+      borderColor:     theme.colors.border.default,
+
+    },
+
+    cardHeader: {
+
+      alignItems:     "center",
+
+      justifyContent: "space-between",
+
+      gap:            8,
+
+    },
+
+    statusDot: {
+
+      paddingHorizontal: 10,
+
+      paddingVertical:   4,
+
+      borderRadius:      9999,
+
+      borderWidth:       1,
+
+    },
+
+  }), [theme]);
 
 
 
@@ -171,6 +210,56 @@ export function PrescriptionQueueScreen(): React.ReactElement {
 
   const [filter, setFilter] = useState<PrescriptionReviewStatus | "all">("pending_review");
 
+  const s = useMemo(() => StyleSheet.create({
+
+    filterRow: {
+
+      gap:               8,
+
+      paddingHorizontal: kit.inset.screen,
+
+      paddingVertical:   12,
+
+      flexWrap:          "wrap",
+
+    },
+
+    filterChip: {
+
+      borderColor:     theme.colors.border.default,
+
+      backgroundColor: theme.colors.canvas.surface,
+
+    },
+
+    filterChipActive: {
+
+      backgroundColor: theme.colors.brand.primaryLight,
+
+      borderColor:     theme.colors.brand.primary,
+
+    },
+
+    listContent: {
+
+      paddingHorizontal: kit.inset.screen,
+
+      paddingBottom:     48,
+
+    },
+
+    empty: {
+
+      alignItems:    "center",
+
+      paddingTop:    60,
+
+      paddingBottom: 40,
+
+    },
+
+  }), [theme]);
+
 
 
   const rxQuery = useAllPrescriptions(
@@ -202,6 +291,17 @@ export function PrescriptionQueueScreen(): React.ReactElement {
         title={t("pharmacist.prescriptionsTitle")}
 
         subtitle={t("pharmacist.prescriptionsSubtitle", { count: items.length })}
+
+        trailing={
+          <Pressable
+            onPress={() => router.push("/(pharmacist)/refills" as never)}
+            accessibilityRole="button"
+            accessibilityLabel={t("pharmacist.refillsTitle", "Refills")}
+            style={{ padding: 6 }}
+          >
+            <Ionicons name="repeat-outline" size={20} color={theme.colors.text.secondary} />
+          </Pressable>
+        }
 
       />
 
@@ -283,6 +383,20 @@ export function PrescriptionQueueScreen(): React.ReactElement {
 
             </View>
 
+          ) : rxQuery.isError ? (
+
+            <PUIEmptyState
+
+              illustration={<Ionicons name="cloud-offline-outline" size={32} color={theme.colors.text.muted} />}
+
+              title={t("errors.generic", "Something went wrong")}
+
+              subtitle={t("pharmacist.rxLoadErrorSubtitle", "Couldn't load prescriptions. Check your connection.")}
+
+              action={{ label: t("pharmacist.retry", "Try Again"), onPress: () => void rxQuery.refetch() }}
+
+            />
+
           ) : (
 
             <PUIEmptyState
@@ -308,87 +422,3 @@ export function PrescriptionQueueScreen(): React.ReactElement {
 }
 
 
-
-const s = StyleSheet.create({
-
-  filterRow: {
-
-    gap:               8,
-
-    paddingHorizontal: kit.inset.screen,
-
-    paddingVertical:   12,
-
-    flexWrap:          "wrap",
-
-  },
-
-  filterChip: {
-
-    borderColor:     theme.colors.border.default,
-
-    backgroundColor: theme.colors.canvas.surface,
-
-  },
-
-  filterChipActive: {
-
-    backgroundColor: theme.colors.brand.primaryLight,
-
-    borderColor:     theme.colors.brand.primary,
-
-  },
-
-  listContent: {
-
-    paddingHorizontal: kit.inset.screen,
-
-    paddingBottom:     48,
-
-  },
-
-  card: {
-
-    borderRadius:    16,
-
-    padding:         16,
-
-    borderWidth:     1,
-
-    borderColor:     theme.colors.border.default,
-
-  },
-
-  cardHeader: {
-
-    alignItems:     "center",
-
-    justifyContent: "space-between",
-
-    gap:            8,
-
-  },
-
-  statusDot: {
-
-    paddingHorizontal: 10,
-
-    paddingVertical:   4,
-
-    borderRadius:      9999,
-
-    borderWidth:       1,
-
-  },
-
-  empty: {
-
-    alignItems:    "center",
-
-    paddingTop:    60,
-
-    paddingBottom: 40,
-
-  },
-
-});

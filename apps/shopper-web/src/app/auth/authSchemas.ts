@@ -15,6 +15,15 @@ export type RegisterFormValues = {
   confirmPassword: string;
 };
 
+export type ForgotPasswordFormValues = {
+  email: string;
+};
+
+export type ResetPasswordFormValues = {
+  password: string;
+  confirmPassword: string;
+};
+
 export function createLoginSchema(lang: "ar" | "en") {
   return z.object({
     email: z
@@ -26,6 +35,28 @@ export function createLoginSchema(lang: "ar" | "en") {
       .string()
       .min(1, lang === "ar" ? "أدخل كلمة المرور." : "Enter your password."),
   });
+}
+
+function passwordRulesSchema(lang: "ar" | "en") {
+  return z
+    .string()
+    .min(8, lang === "ar" ? "يجب أن تكون كلمة المرور 8 أحرف على الأقل." : "Password must be at least 8 characters.")
+    .refine(
+      (value) => /[a-z]/.test(value),
+      lang === "ar" ? "أضف حرفًا صغيرًا واحدًا على الأقل." : "Include at least one lowercase letter.",
+    )
+    .refine(
+      (value) => /[A-Z]/.test(value),
+      lang === "ar" ? "أضف حرفًا كبيرًا واحدًا على الأقل." : "Include at least one uppercase letter.",
+    )
+    .refine(
+      (value) => /\d/.test(value),
+      lang === "ar" ? "أضف رقمًا واحدًا على الأقل." : "Include at least one number.",
+    )
+    .refine(
+      (value) => /[^A-Za-z0-9]/.test(value),
+      lang === "ar" ? "أضف رمزًا خاصًا واحدًا على الأقل." : "Include at least one special character.",
+    );
 }
 
 export function createRegisterSchema(lang: "ar" | "en") {
@@ -49,25 +80,31 @@ export function createRegisterSchema(lang: "ar" | "en") {
             ? "أدخل رقم هاتف مصري صحيحًا مثل 01012345678 أو +201012345678."
             : "Enter a valid Egyptian mobile number such as 01012345678 or +201012345678.",
         ),
-      password: z
+      password: passwordRulesSchema(lang),
+      confirmPassword: z
         .string()
-        .min(8, lang === "ar" ? "يجب أن تكون كلمة المرور 8 أحرف على الأقل." : "Password must be at least 8 characters.")
-        .refine(
-          (value) => /[a-z]/.test(value),
-          lang === "ar" ? "أضف حرفًا صغيرًا واحدًا على الأقل." : "Include at least one lowercase letter.",
-        )
-        .refine(
-          (value) => /[A-Z]/.test(value),
-          lang === "ar" ? "أضف حرفًا كبيرًا واحدًا على الأقل." : "Include at least one uppercase letter.",
-        )
-        .refine(
-          (value) => /\d/.test(value),
-          lang === "ar" ? "أضف رقمًا واحدًا على الأقل." : "Include at least one number.",
-        )
-        .refine(
-          (value) => /[^A-Za-z0-9]/.test(value),
-          lang === "ar" ? "أضف رمزًا خاصًا واحدًا على الأقل." : "Include at least one special character.",
-        ),
+        .min(1, lang === "ar" ? "أكد كلمة المرور." : "Confirm your password."),
+    })
+    .refine((value) => value.password === value.confirmPassword, {
+      message: lang === "ar" ? "تأكيد كلمة المرور غير مطابق." : "Password confirmation does not match.",
+      path: ["confirmPassword"],
+    });
+}
+
+export function createForgotPasswordSchema(lang: "ar" | "en") {
+  return z.object({
+    email: z
+      .string()
+      .trim()
+      .min(1, lang === "ar" ? "أدخل البريد الإلكتروني." : "Enter your email address.")
+      .email(lang === "ar" ? "أدخل بريدًا إلكترونيًا صحيحًا." : "Enter a valid email address."),
+  });
+}
+
+export function createResetPasswordSchema(lang: "ar" | "en") {
+  return z
+    .object({
+      password: passwordRulesSchema(lang),
       confirmPassword: z
         .string()
         .min(1, lang === "ar" ? "أكد كلمة المرور." : "Confirm your password."),

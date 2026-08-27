@@ -22,7 +22,7 @@
 
 
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 
 import {
 
@@ -58,15 +58,13 @@ import { useTranslation } from "react-i18next";
 import { geocodeAddress } from "@/lib/geocoding";
 
 import { theme as legacyTheme } from "@pharmacy/design-tokens";
-import { defaultTheme as theme } from "@pharmacy/ui-native";
-
-import { kit } from "@pharmacy/ui-native";
+import { useTheme, type NativeTheme } from "@pharmacy/ui-native";
 
 import { flexRow, isRtl } from "@/utils/layout";
 
 
 
-const GEOAPIFY_KEY = "c6beba954a794cb49263d1679e4bc8bf";
+const GEOAPIFY_KEY = process.env.EXPO_PUBLIC_GEOAPIFY_KEY ?? "c6beba954a794cb49263d1679e4bc8bf";
 
 
 
@@ -172,6 +170,10 @@ function MapPlaceholder({ height }: { height: number }) {
 
   const { t } = useTranslation();
 
+  const { theme } = useTheme();
+
+  const styles = useMemo(() => getStyles(theme), [theme]);
+
   const opacity = useSharedValue(0.4);
 
   useEffect(() => {
@@ -268,6 +270,10 @@ export function AddressMapPlaceholder({
 
   const { t }  = useTranslation();
 
+  const { theme } = useTheme();
+
+  const styles = useMemo(() => getStyles(theme), [theme]);
+
   const height = heightProp ?? (compact ? 120 : 200);
 
 
@@ -283,6 +289,21 @@ export function AddressMapPlaceholder({
   const [imgError, setImgError] = useState(false);
 
   const [geoFailed, setGeoFailed] = useState(false);
+
+  // useState's initializer above only runs once, at mount — it doesn't
+  // re-run when the parent later passes different lat/lng props. That left
+  // the map stuck on the placeholder after "Use current location" or a
+  // search-suggestion pick resolved coordinates post-mount (this component
+  // had already mounted earlier with lat=lng=undefined for a new address).
+  useEffect(() => {
+
+    if (lat != null && lng != null) {
+      setCoords({ lat, lng });
+      setImgError(false);
+      setGeoFailed(false);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lat, lng]);
 
   // Auto-geocode from hint when no coords are supplied
 
@@ -474,7 +495,9 @@ export function AddressMapPlaceholder({
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
-const styles = StyleSheet.create({
+function getStyles(theme: NativeTheme) {
+
+  return StyleSheet.create({
 
   container: {
 
@@ -484,7 +507,7 @@ const styles = StyleSheet.create({
 
     position: "relative",
 
-    backgroundColor: kit.color.slate[100],
+    backgroundColor: theme.colors.neutrals[100],
 
   },
 
@@ -496,7 +519,7 @@ const styles = StyleSheet.create({
 
     borderRadius:   12,
 
-    backgroundColor: kit.color.slate[50],
+    backgroundColor: theme.colors.neutrals[100],
 
     alignItems:     "center",
 
@@ -506,7 +529,7 @@ const styles = StyleSheet.create({
 
     borderWidth:    1,
 
-    borderColor:    kit.color.border.default,
+    borderColor:    theme.colors.border.default,
 
   },
 
@@ -516,7 +539,7 @@ const styles = StyleSheet.create({
 
     fontFamily: legacyTheme.fonts.semibold,
 
-    color:      kit.color.text.tertiary,
+    color:      theme.colors.text.muted,
 
   },
 
@@ -536,7 +559,7 @@ const styles = StyleSheet.create({
 
     borderWidth:    1,
 
-    borderColor:    kit.color.border.default,
+    borderColor:    theme.colors.border.default,
 
   },
 
@@ -664,7 +687,7 @@ const styles = StyleSheet.create({
 
     borderWidth:     1,
 
-    borderColor:     kit.color.border.default,
+    borderColor:     theme.colors.border.default,
 
   },
 
@@ -674,7 +697,7 @@ const styles = StyleSheet.create({
 
     fontFamily: legacyTheme.fonts.semibold,
 
-    color:      kit.color.text.secondary,
+    color:      theme.colors.text.secondary,
 
   },
 
@@ -706,7 +729,7 @@ const styles = StyleSheet.create({
 
     borderWidth:       1,
 
-    borderColor:       kit.color.border.default,
+    borderColor:       theme.colors.border.default,
 
   },
 
@@ -716,7 +739,7 @@ const styles = StyleSheet.create({
 
     fontFamily: legacyTheme.fonts.semibold,
 
-    color:      kit.color.slate[500],
+    color:      theme.colors.neutrals[500],
 
   },
 
@@ -766,7 +789,7 @@ const styles = StyleSheet.create({
 
     borderWidth:       1,
 
-    borderColor:       kit.color.border.brandSoft,
+    borderColor:       `${theme.colors.brand.primary}33`,
 
   },
 
@@ -824,5 +847,7 @@ const styles = StyleSheet.create({
 
   },
 
-});
+  });
+
+}
 

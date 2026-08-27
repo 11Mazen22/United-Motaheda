@@ -12,7 +12,7 @@
 
 
 
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 
 import {
 
@@ -46,18 +46,17 @@ import { track } from "@/lib/analytics";
 
 import { captureError } from "@/lib/crashReporter";
 
-import { Input } from "@/components/ui/Input";
-
-import { Button } from "@pharmacy/ui-native";
+import { Button, Input } from "@pharmacy/ui-native";
 
 import { Text as UIText } from "@pharmacy/ui-native";
 
 import { kit } from "@pharmacy/ui-native";
 
+import { useTheme } from "@pharmacy/ui-native";
+
 
 
 import { theme as legacyTheme } from "@pharmacy/design-tokens";
-import { defaultTheme as theme } from "@pharmacy/ui-native";
 
 import { flexRow, isRtl, textAlignStart, BACK_CHEVRON } from "@/utils/layout";
 
@@ -76,6 +75,276 @@ export default function ForgotPasswordScreen() {
   const router = useRouter();
 
   const insets = useSafeAreaInsets();
+
+  const { theme } = useTheme();
+
+  const s = useMemo(() => StyleSheet.create({
+
+  root:    { flex: 1, backgroundColor: theme.colors.canvas.background },
+
+  content: { flexGrow: 1, paddingHorizontal: 20 },
+
+
+
+  topBar: { justifyContent: "flex-start" },
+
+  closeBtn: {
+
+    width:           40,
+
+    height:          40,
+
+    borderRadius:    20,
+
+    alignItems:      "center",
+
+    justifyContent:  "center",
+
+    backgroundColor: theme.colors.canvas.surface,
+
+    borderWidth:     1,
+
+    borderColor:     theme.colors.border.default,
+
+    ...theme.shadows[1],
+
+  },
+
+
+
+  brandWrap: { alignItems: "center", gap: 16, marginTop: 16, marginBottom: 24 },
+
+  ringOuter: {
+
+    width:           100,
+
+    height:          100,
+
+    borderRadius:    50,
+
+    backgroundColor: theme.colors.brand.primaryLight,
+
+    borderWidth:     1,
+
+    borderColor:     theme.colors.border.default,
+
+    alignItems:      "center",
+
+    justifyContent:  "center",
+
+  },
+
+  ringInner: {
+
+    width:           68,
+
+    height:          68,
+
+    borderRadius:    22,
+
+    backgroundColor: theme.colors.canvas.surface,
+
+    borderWidth:     1,
+
+    borderColor:     theme.colors.border.default,
+
+    alignItems:      "center",
+
+    justifyContent:  "center",
+
+    ...theme.shadows[2],
+
+  },
+
+  title: {
+
+    fontFamily:         legacyTheme.fonts.black,
+
+    fontSize:           kit.type.title.fontSize,
+
+    lineHeight:         kit.type.title.lineHeight,
+
+    color:              theme.colors.text.primary,
+
+    textAlign:          "center",
+
+    includeFontPadding: false,
+
+  },
+
+  subtitle: {
+
+    fontFamily:         legacyTheme.fonts.regular,
+
+    fontSize:           kit.type.body.fontSize,
+
+    lineHeight:         kit.type.body.lineHeight,
+
+    color:              theme.colors.text.secondary,
+
+    textAlign:          "center",
+
+    includeFontPadding: false,
+
+    maxWidth:           320,
+
+  },
+
+
+
+  form: { gap: 12 },
+
+  errorBox: {
+
+    alignItems:      "center",
+
+    gap:             8,
+
+    padding:         12,
+
+    backgroundColor: `${theme.colors.status.error}1A`,
+
+    borderRadius:    10,
+
+    borderWidth:     1,
+
+    borderColor:     `${theme.colors.status.error}25`,
+
+  },
+
+  errorIcon: {
+
+    width:           28,
+
+    height:          28,
+
+    borderRadius:    9,
+
+    backgroundColor: `${theme.colors.status.error}10`,
+
+    alignItems:      "center",
+
+    justifyContent:  "center",
+
+    flexShrink:      0,
+
+  },
+
+  errorText: {
+
+    flex:               1,
+
+    fontFamily:         legacyTheme.fonts.bold,
+
+    fontSize:           12,
+
+    lineHeight:         17,
+
+    color:              theme.colors.status.error,
+
+    includeFontPadding: false,
+
+  },
+
+  hint: {
+
+    fontFamily:         legacyTheme.fonts.regular,
+
+    fontSize:           13,
+
+    lineHeight:         21,
+
+    color:              theme.colors.text.secondary,
+
+    includeFontPadding: false,
+
+  },
+
+
+
+  successContent: { alignItems: "center", gap: 12, paddingTop: 4 },
+
+  successBody: {
+
+    fontFamily:         legacyTheme.fonts.regular,
+
+    fontSize:           14,
+
+    lineHeight:         24,
+
+    color:              theme.colors.text.secondary,
+
+    maxWidth:           300,
+
+    includeFontPadding: false,
+
+  },
+
+  successEmail: { fontFamily: legacyTheme.fonts.bold, color: theme.colors.text.primary },
+
+  tipBox: {
+
+    alignItems:      "flex-start",
+
+    gap:             8,
+
+    backgroundColor: theme.colors.brand.primaryLight,
+
+    borderRadius:    10,
+
+    padding:         12,
+
+    borderWidth:     1,
+
+    borderColor:     theme.colors.border.default,
+
+  },
+
+  tipText: {
+
+    flex:               1,
+
+    fontFamily:         legacyTheme.fonts.regular,
+
+    fontSize:           12,
+
+    lineHeight:         17,
+
+    color:              theme.colors.brand.primary,
+
+    includeFontPadding: false,
+
+  },
+
+
+
+  footer: { alignItems: "center", justifyContent: "center", gap: 6, marginTop: 8 },
+
+  footerText: {
+
+    fontFamily:         legacyTheme.fonts.regular,
+
+    fontSize:           13,
+
+    color:              theme.colors.text.secondary,
+
+    includeFontPadding: false,
+
+  },
+
+  footerLink: {
+
+    fontFamily:         legacyTheme.fonts.black,
+
+    fontSize:           13,
+
+    color:              theme.colors.brand.primary,
+
+    includeFontPadding: false,
+
+  },
+
+  }), [theme]);
 
 
 
@@ -356,274 +625,3 @@ export default function ForgotPasswordScreen() {
   );
 
 }
-
-
-
-const s = StyleSheet.create({
-
-  root:    { flex: 1, backgroundColor: theme.colors.canvas.background },
-
-  content: { flexGrow: 1, paddingHorizontal: 20 },
-
-
-
-  topBar: { justifyContent: "flex-start" },
-
-  closeBtn: {
-
-    width:           40,
-
-    height:          40,
-
-    borderRadius:    20,
-
-    alignItems:      "center",
-
-    justifyContent:  "center",
-
-    backgroundColor: theme.colors.canvas.surface,
-
-    borderWidth:     1,
-
-    borderColor:     theme.colors.border.default,
-
-    ...theme.shadows[1],
-
-  },
-
-
-
-  brandWrap: { alignItems: "center", gap: 16, marginTop: 16, marginBottom: 24 },
-
-  ringOuter: {
-
-    width:           100,
-
-    height:          100,
-
-    borderRadius:    50,
-
-    backgroundColor: theme.colors.brand.primaryLight,
-
-    borderWidth:     1,
-
-    borderColor:     theme.colors.border.default,
-
-    alignItems:      "center",
-
-    justifyContent:  "center",
-
-  },
-
-  ringInner: {
-
-    width:           68,
-
-    height:          68,
-
-    borderRadius:    22,
-
-    backgroundColor: theme.colors.canvas.surface,
-
-    borderWidth:     1,
-
-    borderColor:     theme.colors.border.default,
-
-    alignItems:      "center",
-
-    justifyContent:  "center",
-
-    ...theme.shadows[2],
-
-  },
-
-  title: {
-
-    fontFamily:         legacyTheme.fonts.black,
-
-    fontSize:           kit.type.title.fontSize,
-
-    lineHeight:         kit.type.title.lineHeight,
-
-    color:              theme.colors.text.primary,
-
-    textAlign:          "center",
-
-    includeFontPadding: false,
-
-  },
-
-  subtitle: {
-
-    fontFamily:         legacyTheme.fonts.regular,
-
-    fontSize:           kit.type.body.fontSize,
-
-    lineHeight:         kit.type.body.lineHeight,
-
-    color:              theme.colors.text.secondary,
-
-    textAlign:          "center",
-
-    includeFontPadding: false,
-
-    maxWidth:           320,
-
-  },
-
-
-
-  form: { gap: 12 },
-
-  errorBox: {
-
-    alignItems:      "center",
-
-    gap:             8,
-
-    padding:         12,
-
-    backgroundColor: `${theme.colors.status.error}1A`,
-
-    borderRadius:    10,
-
-    borderWidth:     1,
-
-    borderColor:     `${theme.colors.status.error}25`,
-
-  },
-
-  errorIcon: {
-
-    width:           28,
-
-    height:          28,
-
-    borderRadius:    9,
-
-    backgroundColor: `${theme.colors.status.error}10`,
-
-    alignItems:      "center",
-
-    justifyContent:  "center",
-
-    flexShrink:      0,
-
-  },
-
-  errorText: {
-
-    flex:               1,
-
-    fontFamily:         legacyTheme.fonts.bold,
-
-    fontSize:           12,
-
-    lineHeight:         17,
-
-    color:              theme.colors.status.error,
-
-    includeFontPadding: false,
-
-  },
-
-  hint: {
-
-    fontFamily:         legacyTheme.fonts.regular,
-
-    fontSize:           13,
-
-    lineHeight:         21,
-
-    color:              theme.colors.text.secondary,
-
-    includeFontPadding: false,
-
-  },
-
-
-
-  successContent: { alignItems: "center", gap: 12, paddingTop: 4 },
-
-  successBody: {
-
-    fontFamily:         legacyTheme.fonts.regular,
-
-    fontSize:           14,
-
-    lineHeight:         24,
-
-    color:              theme.colors.text.secondary,
-
-    maxWidth:           300,
-
-    includeFontPadding: false,
-
-  },
-
-  successEmail: { fontFamily: legacyTheme.fonts.bold, color: theme.colors.text.primary },
-
-  tipBox: {
-
-    alignItems:      "flex-start",
-
-    gap:             8,
-
-    backgroundColor: theme.colors.brand.primaryLight,
-
-    borderRadius:    10,
-
-    padding:         12,
-
-    borderWidth:     1,
-
-    borderColor:     theme.colors.border.default,
-
-  },
-
-  tipText: {
-
-    flex:               1,
-
-    fontFamily:         legacyTheme.fonts.regular,
-
-    fontSize:           12,
-
-    lineHeight:         17,
-
-    color:              theme.colors.brand.primary,
-
-    includeFontPadding: false,
-
-  },
-
-
-
-  footer: { alignItems: "center", justifyContent: "center", gap: 6, marginTop: 8 },
-
-  footerText: {
-
-    fontFamily:         legacyTheme.fonts.regular,
-
-    fontSize:           13,
-
-    color:              theme.colors.text.secondary,
-
-    includeFontPadding: false,
-
-  },
-
-  footerLink: {
-
-    fontFamily:         legacyTheme.fonts.black,
-
-    fontSize:           13,
-
-    color:              theme.colors.brand.primary,
-
-    includeFontPadding: false,
-
-  },
-
-});
-

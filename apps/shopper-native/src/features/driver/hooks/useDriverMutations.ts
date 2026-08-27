@@ -14,9 +14,12 @@ import {
   completeDelivery,
   markArrival,
   reportIssue,
+  uploadIssuePhoto,
+  setDriverAvailability,
   type IssueReasonCode,
 } from "../api";
 import { driverQueryKeys, invalidateDriverLists } from "./useDriverManifest";
+import { driverProfileQueryKeys } from "./useDriverProfile";
 
 export function useDriverMutations(driverId: string | undefined) {
   const queryClient = useQueryClient();
@@ -36,7 +39,7 @@ export function useDriverMutations(driverId: string | undefined) {
 
   const decline = useMutation({
     mutationFn: (args: { assignmentId: string; orderId: string; reason: string }) =>
-      declineAssignment(args.assignmentId, requireDriverId(), args.orderId, args.reason),
+      declineAssignment(args.assignmentId, args.reason),
     onSuccess: (_data, args) => {
       invalidateAll();
       void queryClient.invalidateQueries({ queryKey: driverQueryKeys.offer(args.assignmentId) });
@@ -49,6 +52,12 @@ export function useDriverMutations(driverId: string | undefined) {
     onSuccess: (_data, args) => {
       invalidateAll();
       void queryClient.invalidateQueries({ queryKey: driverQueryKeys.order(args.orderId) });
+      // Confirmed bug: this used to be omitted, so the "arrived at
+      // pharmacy" -> "confirm pickup" -> "arrived at customer" action
+      // gates on DeliveryExecutionScreen kept reading a stale
+      // assignment.pickedUpAt for up to assignmentForOrder's 15s
+      // staleTime after every pickup confirmation.
+      void queryClient.invalidateQueries({ queryKey: driverQueryKeys.assignmentForOrder(args.orderId) });
     },
   });
 
@@ -58,6 +67,7 @@ export function useDriverMutations(driverId: string | undefined) {
     onSuccess: (_data, args) => {
       invalidateAll();
       void queryClient.invalidateQueries({ queryKey: driverQueryKeys.order(args.orderId) });
+      void queryClient.invalidateQueries({ queryKey: driverQueryKeys.assignmentForOrder(args.orderId) });
     },
   });
 
@@ -66,15 +76,30 @@ export function useDriverMutations(driverId: string | undefined) {
       markArrival(args.assignmentId, args.orderId, args.stage, args.coords),
     onSuccess: (_data, args) => {
       invalidateAll();
-      if (args.stage === "customer") {
-        void queryClient.invalidateQueries({ queryKey: driverQueryKeys.assignmentForOrder(args.orderId) });
-      }
+      // Confirmed bug: this used to only fire for stage === "customer",
+      // silently skipping "pharmacy" — so canConfirmPickup kept reading a
+      // stale assignment.arrivedAtPharmacy right after "Arrived at
+      // pharmacy" until staleTime lapsed. Both stages change this same
+      // cached row, so both must invalidate it.
+      void queryClient.invalidateQueries({ queryKey: driverQueryKeys.assignmentForOrder(args.orderId) });
+      void queryClient.invalidateQueries({ queryKey: driverQueryKeys.order(args.orderId) });
+    },
+  });
+
+  const setAvailability = useMutation({
+    mutationFn: (args: { isOnline: boolean; coords?: { lat: number; lng: number } }) =>
+      setDriverAvailability(args.isOnline, args.coords),
+    onSuccess: () => {
+      if (driverId) void queryClient.invalidateQueries({ queryKey: driverProfileQueryKeys.mine(driverId) });
     },
   });
 
   const report = useMutation({
-    mutationFn: (args: { orderId: string; reasonCode: IssueReasonCode; note?: string }) =>
-      reportIssue(args.orderId, requireDriverId(), args.reasonCode, args.note),
+    mutationFn: async (args: { orderId: string; reasonCode: IssueReasonCode; note?: string; photoUri?: string }) => {
+      const driverIdValue = requireDriverId();
+      const photoUrl = args.photoUri ? await uploadIssuePhoto(driverIdValue, args.orderId, args.photoUri) : undefined;
+      return reportIssue(args.orderId, driverIdValue, args.reasonCode, args.note, photoUrl);
+    },
     onSuccess: (_data, args) => {
       void queryClient.invalidateQueries({ queryKey: driverQueryKeys.issues(args.orderId) });
     },
@@ -87,5 +112,6 @@ export function useDriverMutations(driverId: string | undefined) {
     deliver: { mutateAsync: deliver.mutateAsync,  isPending: deliver.isPending },
     arrival: { mutateAsync: arrival.mutateAsync, isPending: arrival.isPending },
     report:  { mutateAsync: report.mutateAsync,  isPending: report.isPending },
+    setAvailability: { mutateAsync: setAvailability.mutateAsync, isPending: setAvailability.isPending },
   };
 }

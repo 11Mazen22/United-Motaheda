@@ -18,7 +18,7 @@
  *   - on cancel → onCancel()
  */
 
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Keyboard,
   KeyboardAvoidingView,
@@ -33,10 +33,8 @@ import { Ionicons } from "@expo/vector-icons";
 import Animated, { FadeIn, SlideInDown, SlideOutDown } from "react-native-reanimated";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
-import { Text } from "@pharmacy/ui-native";
-import { Button, kit } from "@pharmacy/ui-native";
+import { Text, Button, useTheme, type NativeTheme } from "@pharmacy/ui-native";
 import { theme as legacyTheme } from "@pharmacy/design-tokens";
-import { defaultTheme as theme } from "@pharmacy/ui-native";
 import {
   OTP_RESEND_COOLDOWN_SECONDS,
   OTP_TTL_SECONDS,
@@ -93,6 +91,8 @@ export function PhoneVerifyModal({
   onVerified,
   onCancel,
 }: PhoneVerifyModalProps): React.ReactElement {
+  const { theme } = useTheme();
+  const styles = useMemo(() => getStyles(theme), [theme]);
   const { t } = useTranslation();
   // Live phone — starts as initialPhone, mutates when user changes number.
   const [phone, setPhone]           = useState(initialPhone);
@@ -257,6 +257,8 @@ export function PhoneVerifyModal({
 
             {mode === "code" ? (
               <CodeStep
+                theme={theme}
+                styles={styles}
                 phone={phone}
                 code={code}
                 onChangeCode={(v) => { setError(null); setCode(v); }}
@@ -277,6 +279,8 @@ export function PhoneVerifyModal({
               />
             ) : (
               <EditStep
+                theme={theme}
+                styles={styles}
                 value={editPhoneInput}
                 onChange={setEditPhoneInput}
                 inputRef={editInputRef}
@@ -297,6 +301,8 @@ export function PhoneVerifyModal({
 // ─── Code step ──────────────────────────────────────────────────────────────
 
 interface CodeStepProps {
+  theme:              NativeTheme;
+  styles:             ReturnType<typeof getStyles>;
   phone:              string;
   code:               string;
   onChangeCode:       (v: string) => void;
@@ -319,6 +325,7 @@ interface CodeStepProps {
 function CodeStep(props: CodeStepProps): React.ReactElement {
   const { t } = useTranslation();
   const {
+    theme, styles,
     phone, code, onChangeCode, onPressBoxes, inputRef, onChangeNumber,
     onResend, onVerify, onCancel, error, expired,
     secondsLeftExpiry, secondsLeftResend,
@@ -330,7 +337,7 @@ function CodeStep(props: CodeStepProps): React.ReactElement {
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.iconTile}>
-          <Ionicons name="phone-portrait-outline" size={22} color={kit.color.brand.base} />
+          <Ionicons name="phone-portrait-outline" size={22} color={theme.colors.brand.primary} />
         </View>
         <Text variant="sheet-title" align="center">{t("phoneVerify.title")}</Text>
         <Text variant="caption" color="secondary" align="center" style={{ marginTop: 2 }}>
@@ -342,7 +349,7 @@ function CodeStep(props: CodeStepProps): React.ReactElement {
           accessibilityRole="button"
           accessibilityLabel={t("phoneVerify.changeNumberA11y")}
           style={{ marginTop: theme.spacing[1] }}>
-          <Text variant="caption" weight="bold" style={{ color: kit.color.brand.base }}>
+          <Text variant="caption" weight="bold" style={{ color: theme.colors.brand.primary }}>
             {t("phoneVerify.changeNumber")}
           </Text>
         </Pressable>
@@ -390,10 +397,10 @@ function CodeStep(props: CodeStepProps): React.ReactElement {
       {/* Error */}
       {error && (
         <View style={styles.errorRow}>
-          <Ionicons name="alert-circle" size={16} color={kit.color.error.base} />
+          <Ionicons name="alert-circle" size={16} color={theme.colors.status.error} />
           <Text
             variant="caption"
-            style={{ flex: 1, color: kit.color.error.text, textAlign: textAlignStart(isRtl()) }}>
+            style={{ flex: 1, color: theme.colors.statusSoft.error.text, textAlign: textAlignStart(isRtl()) }}>
             {error}
           </Text>
         </View>
@@ -417,7 +424,7 @@ function CodeStep(props: CodeStepProps): React.ReactElement {
             variant="caption"
             weight="bold"
             style={{
-              color: canResend ? kit.color.brand.base : kit.color.text.disabled,
+              color: canResend ? theme.colors.brand.primary : theme.colors.text.disabled,
             }}>
             {resending
               ? t("phoneVerify.sending")
@@ -447,6 +454,8 @@ function CodeStep(props: CodeStepProps): React.ReactElement {
 // ─── Edit step (change phone number) ────────────────────────────────────────
 
 interface EditStepProps {
+  theme:      NativeTheme;
+  styles:     ReturnType<typeof getStyles>;
   value:      string;
   onChange:   (v: string) => void;
   inputRef:   React.RefObject<TextInput | null>;
@@ -460,6 +469,7 @@ interface EditStepProps {
 }
 
 function EditStep({
+  theme, styles,
   value, onChange, inputRef, onSend, onBack, sending, error, canGoBack,
 }: EditStepProps): React.ReactElement {
   const { t } = useTranslation();
@@ -467,7 +477,7 @@ function EditStep({
     <>
       <View style={styles.header}>
         <View style={styles.iconTile}>
-          <Ionicons name="create-outline" size={22} color={kit.color.brand.base} />
+          <Ionicons name="create-outline" size={22} color={theme.colors.brand.primary} />
         </View>
         <Text variant="sheet-title" align="center">{t("phoneVerify.editTitle")}</Text>
         <Text variant="caption" color="secondary" align="center" style={{ marginTop: 2 }}>
@@ -484,13 +494,13 @@ function EditStep({
             onChangeText={onChange}
             keyboardType="phone-pad"
             placeholder="01XXXXXXXXX"
-            placeholderTextColor={kit.color.text.tertiary}
+            placeholderTextColor={theme.colors.text.muted}
             textAlign={textAlignStart(isRtl()) as "left" | "right"}
             maxLength={14}
             style={styles.phoneInput}
             accessibilityLabel={t("phoneVerify.phoneA11y")}
           />
-          <Ionicons name="call-outline" size={18} color={kit.color.text.tertiary} />
+          <Ionicons name="call-outline" size={18} color={theme.colors.text.muted} />
         </View>
         <Text variant="eyebrow" color="tertiary" align="right">
           {t("phoneVerify.phoneHint")}
@@ -499,8 +509,8 @@ function EditStep({
 
       {error && (
         <View style={styles.errorRow}>
-          <Ionicons name="alert-circle" size={16} color={kit.color.error.base} />
-          <Text variant="caption" align="right" style={{ flex: 1, color: kit.color.error.text }}>
+          <Ionicons name="alert-circle" size={16} color={theme.colors.status.error} />
+          <Text variant="caption" align="right" style={{ flex: 1, color: theme.colors.statusSoft.error.text }}>
             {error}
           </Text>
         </View>
@@ -516,128 +526,130 @@ function EditStep({
 
 // ─── Styles ────────────────────────────────────────────────────────────────
 
-const styles = StyleSheet.create({
-  scrim: {
-    flex:            1,
-    backgroundColor: kit.color.overlay,
-    justifyContent:  "flex-end",
-  },
-  kbContainer: {
-    width: "100%",
-  },
-  sheet: {
-    backgroundColor: theme.colors.canvas.surface,
-    borderTopStartRadius:  legacyTheme.layout.bottomSheetRadius,
-    borderTopEndRadius: legacyTheme.layout.bottomSheetRadius,
-    paddingHorizontal: legacyTheme.layout.pagePaddingH,
-    paddingTop:        theme.spacing[1],
-    paddingBottom:     14,
-    gap:               theme.spacing[2],
-    ...theme.shadows[4],
-  },
-  handle: {
-    width:           44,
-    height:          4,
-    borderRadius:    2,
-    backgroundColor: kit.color.border.strong,
-    alignSelf:       "center",
-    marginBottom:    6,
-    opacity:         0.5,
-  },
-  header: {
-    alignItems: "center",
-    gap:        2,
-  },
-  iconTile: {
-    width:           56,
-    height:          56,
-    borderRadius:    theme.radii["2xl"],
-    backgroundColor: kit.color.brand.lighter,
-    alignItems:      "center",
-    justifyContent:  "center",
-    marginBottom:    theme.spacing[1],
-    borderWidth:     1,
-    borderColor:     kit.color.brand.light,
-  },
-  hiddenInput: {
-    position: "absolute",
-    width: 1, height: 1,
-    opacity: 0,
-  },
-  // OTP digit row — LTR-locked: the code is a value, not language content.
-  // Reading "1 2 3 4 5 6" left-to-right is the universal OTP convention; an
-  // RTL flow would put digit-1 on the right and surprise the user.
-  // NOTE: a hardcoded `flexDirection: "row"` is NOT enough — under forceRTL
-  // (Arabic) a literal "row" already flows right-to-left (see
-  // utils/layout.ts). `flexRow(false)` is this codebase's idiom for
-  // "force LTR regardless of language".
-  boxesRow: {
-    flexDirection:  flexRow(false),
-    justifyContent: "center",
-    gap:            theme.spacing[1],
-    marginTop:      theme.spacing[1],
-  },
-  box: {
-    width:           44,
-    height:          56,
-    borderRadius:    legacyTheme.radius.md,
-    backgroundColor: theme.colors.canvas.surface,
-    borderWidth:     1,
-    borderColor:     kit.color.border.default,
-    alignItems:      "center",
-    justifyContent:  "center",
-  },
-  boxFilled: {
-    borderColor:     kit.color.brand.base,
-    backgroundColor: kit.color.brand.lighter,
-  },
-  // Active cell — brand glow + thicker border for clear focus signal.
-  boxCursor: {
-    borderColor:     kit.color.brand.base,
-    borderWidth:     1.5,
-    ...kit.shadow.brandGlow,
-  },
-  boxError: {
-    borderColor:     kit.color.error.base,
-    backgroundColor: kit.color.error.bg,
-  },
-  errorRow: {
-    flexDirection: flexRow(isRtl()),
-    alignItems:    "center",
-    gap:           theme.spacing[1],
-    paddingHorizontal: theme.spacing[1],
-  },
-  timerRow: {
-    flexDirection:  flexRow(isRtl()),
-    alignItems:     "center",
-    justifyContent: "space-between",
-    paddingHorizontal: theme.spacing[1],
-    marginTop:      theme.spacing[1],
-  },
-  // Edit step
-  phoneFieldWrap: {
-    gap: 2,
-  },
-  phoneInputBox: {
-    flexDirection:     flexRow(isRtl()),
-    alignItems:        "center",
-    gap:               theme.spacing[1],
-    paddingHorizontal: theme.spacing[2],
-    height:            legacyTheme.layout.inputHeight,
-    borderRadius:      legacyTheme.radius.lg,
-    backgroundColor:   kit.color.muted,
-    borderWidth:       1,
-    borderColor:       kit.color.border.default,
-  },
-  phoneInputBoxError: {
-    borderColor:     kit.color.error.base,
-    backgroundColor: kit.color.error.bg,
-  },
-  phoneInput: {
-    flex:           1,
-    fontSize:       theme.typography.sizes[16],
-    fontFamily:     legacyTheme.fonts.regular,
-    color:          theme.colors.text.primary,
-    paddingVertical: 0,
-  },
-});
+function getStyles(theme: NativeTheme) {
+  return StyleSheet.create({
+    scrim: {
+      flex:            1,
+      backgroundColor: theme.colors.canvas.overlay,
+      justifyContent:  "flex-end",
+    },
+    kbContainer: {
+      width: "100%",
+    },
+    sheet: {
+      backgroundColor: theme.colors.canvas.surface,
+      borderTopStartRadius:  legacyTheme.layout.bottomSheetRadius,
+      borderTopEndRadius: legacyTheme.layout.bottomSheetRadius,
+      paddingHorizontal: legacyTheme.layout.pagePaddingH,
+      paddingTop:        theme.spacing[1],
+      paddingBottom:     14,
+      gap:               theme.spacing[2],
+      ...theme.shadows[4],
+    },
+    handle: {
+      width:           44,
+      height:          4,
+      borderRadius:    2,
+      backgroundColor: theme.colors.border.strong,
+      alignSelf:       "center",
+      marginBottom:    6,
+      opacity:         0.5,
+    },
+    header: {
+      alignItems: "center",
+      gap:        2,
+    },
+    iconTile: {
+      width:           56,
+      height:          56,
+      borderRadius:    theme.radii["2xl"],
+      backgroundColor: theme.colors.brand.primaryLight,
+      alignItems:      "center",
+      justifyContent:  "center",
+      marginBottom:    theme.spacing[1],
+      borderWidth:     1,
+      borderColor:     theme.colors.brand.primary + "33",
+    },
+    hiddenInput: {
+      position: "absolute",
+      width: 1, height: 1,
+      opacity: 0,
+    },
+    // OTP digit row — LTR-locked: the code is a value, not language content.
+    // Reading "1 2 3 4 5 6" left-to-right is the universal OTP convention; an
+    // RTL flow would put digit-1 on the right and surprise the user.
+    // NOTE: a hardcoded `flexDirection: "row"` is NOT enough — under forceRTL
+    // (Arabic) a literal "row" already flows right-to-left (see
+    // utils/layout.ts). `flexRow(false)` is this codebase's idiom for
+    // "force LTR regardless of language".
+    boxesRow: {
+      flexDirection:  flexRow(false),
+      justifyContent: "center",
+      gap:            theme.spacing[1],
+      marginTop:      theme.spacing[1],
+    },
+    box: {
+      width:           44,
+      height:          56,
+      borderRadius:    legacyTheme.radius.md,
+      backgroundColor: theme.colors.canvas.surface,
+      borderWidth:     1,
+      borderColor:     theme.colors.border.default,
+      alignItems:      "center",
+      justifyContent:  "center",
+    },
+    boxFilled: {
+      borderColor:     theme.colors.brand.primary,
+      backgroundColor: theme.colors.brand.primaryLight,
+    },
+    // Active cell — brand glow + thicker border for clear focus signal.
+    boxCursor: {
+      borderColor:     theme.colors.brand.primary,
+      borderWidth:     1.5,
+      ...theme.brandGlow,
+    },
+    boxError: {
+      borderColor:     theme.colors.status.error,
+      backgroundColor: theme.colors.statusSoft.error.bg,
+    },
+    errorRow: {
+      flexDirection: flexRow(isRtl()),
+      alignItems:    "center",
+      gap:           theme.spacing[1],
+      paddingHorizontal: theme.spacing[1],
+    },
+    timerRow: {
+      flexDirection:  flexRow(isRtl()),
+      alignItems:     "center",
+      justifyContent: "space-between",
+      paddingHorizontal: theme.spacing[1],
+      marginTop:      theme.spacing[1],
+    },
+    // Edit step
+    phoneFieldWrap: {
+      gap: 2,
+    },
+    phoneInputBox: {
+      flexDirection:     flexRow(isRtl()),
+      alignItems:        "center",
+      gap:               theme.spacing[1],
+      paddingHorizontal: theme.spacing[2],
+      height:            legacyTheme.layout.inputHeight,
+      borderRadius:      legacyTheme.radius.lg,
+      backgroundColor:   theme.colors.canvas.surfaceMuted,
+      borderWidth:       1,
+      borderColor:       theme.colors.border.default,
+    },
+    phoneInputBoxError: {
+      borderColor:     theme.colors.status.error,
+      backgroundColor: theme.colors.statusSoft.error.bg,
+    },
+    phoneInput: {
+      flex:           1,
+      fontSize:       theme.typography.sizes[16],
+      fontFamily:     legacyTheme.fonts.regular,
+      color:          theme.colors.text.primary,
+      paddingVertical: 0,
+    },
+  });
+}

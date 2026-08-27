@@ -1,11 +1,10 @@
-import { defaultTheme as theme } from "@pharmacy/ui-native";
-import { useTheme } from "@pharmacy/ui-native";
+import { useTheme, type NativeTheme } from "@pharmacy/ui-native";
 
 import React, { useCallback, useRef, useState } from "react";
 
 import { Pressable, StyleSheet, View, Image } from "react-native";
 
-import { CameraView, useCameraPermissions } from "expo-camera";
+import { CameraView, useCameraPermissions } from "@/shared/camera";
 
 import * as ImagePicker from "expo-image-picker";
 
@@ -42,7 +41,7 @@ type ScreenPhase = "camera" | "preview" | "uploading";
 
 export default function ScanScreen(): React.ReactElement {
   const { theme } = useTheme();
-  const s = React.useMemo(() => get_s(), []);
+  const s = React.useMemo(() => get_s(theme), [theme]);
   const router   = useRouter();
   const insets   = useSafeAreaInsets();
   const { t }    = useTranslation();
@@ -269,7 +268,7 @@ function ScanHeader({
   insets, onBack, title,
 }: { insets: { top: number }; onBack: () => void; title: string }): React.ReactElement {
   const { theme } = useTheme();
-  const s = React.useMemo(() => get_s(), []);
+  const s = React.useMemo(() => get_s(theme), [theme]);
   const { t } = useTranslation();
   return (
     <View style={[s.header, { paddingTop: insets.top + 12 }]}>
@@ -297,7 +296,7 @@ function ScanHeader({
 
 
 
-function get_s() { return StyleSheet.create({
+function get_s(theme: NativeTheme) { return StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.colors.canvas.background },
   header: {
     paddingHorizontal: 20, paddingBottom: 16,

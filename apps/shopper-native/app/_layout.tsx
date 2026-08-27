@@ -4,7 +4,7 @@ import "../global.css";
 
 import React, { useEffect } from "react";
 
-import { Platform } from "react-native";
+import { Platform, useColorScheme } from "react-native";
 
 import { Stack } from "expo-router";
 
@@ -179,12 +179,13 @@ function CartReservationNotifier() {
 function ThemedApp() {
 
   const { isRtl } = useAppLanguage();
+  const systemColorScheme = useColorScheme();
 
 
 
   return (
 
-    <ThemeProvider isRTL={isRtl}>
+    <ThemeProvider isRTL={isRtl} systemColorScheme={systemColorScheme === "dark" ? "dark" : "light"}>
 
       <AuthProvider>
 
@@ -209,7 +210,6 @@ function ThemedApp() {
           <Stack.Screen name="(driver)" options={{ headerShown: false }} />
           <Stack.Screen name="(pharmacist)" options={{ headerShown: false }} />
           <Stack.Screen name="(auth)" options={{ headerShown: false, presentation: "modal", animation: "slide_from_bottom" }} />
-          <Stack.Screen name="reset-password" options={{ headerShown: false }} />
           {__DEV__ && <Stack.Screen name="__preview/components" options={{ headerShown: false, animation: "slide_from_right" }} />}
         </Stack>
 

@@ -27,7 +27,6 @@ import { Stack, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { theme as legacyTheme } from "@pharmacy/design-tokens";
-import { defaultTheme as theme } from "@pharmacy/ui-native";
 
 import {
 
@@ -45,11 +44,7 @@ import {
 
 } from "@/shared/components";
 
-import { Text, kit } from "@pharmacy/ui-native";
-
-import { Button } from "@pharmacy/ui-native";
-
-import { EmptyState } from "@/components/ui/EmptyState";
+import { Text, useTheme, Button, EmptyState } from "@pharmacy/ui-native";
 
 
 
@@ -121,6 +116,8 @@ const REMINDER_TAKEN: Reminder = {
 
 function Section({ title, children }: { title: string; children: React.ReactNode }): React.ReactElement {
 
+  const { theme } = useTheme();
+
   return (
 
     <View style={{ gap: theme.spacing[1], marginBottom: theme.spacing[3] }}>
@@ -138,6 +135,8 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 
 export default function ComponentPreview(): React.ReactElement | null {
+
+  const { theme } = useTheme();
 
   const router = useRouter();
 
@@ -171,7 +170,7 @@ export default function ComponentPreview(): React.ReactElement | null {
 
       <Stack.Screen options={{ headerShown: false }} />
 
-      <SafeAreaView edges={["bottom"]} style={{ flex: 1, backgroundColor: kit.color.bg }}>
+      <SafeAreaView edges={["bottom"]} style={{ flex: 1, backgroundColor: theme.colors.canvas.background }}>
 
         <AppHeader title="معاينة المكونات" showBack showCart={false} />
 
@@ -223,11 +222,11 @@ export default function ComponentPreview(): React.ReactElement | null {
 
           <Section title="ReminderRow">
 
-            <View style={{ backgroundColor: theme.colors.canvas.surface, borderRadius: legacyTheme.layout.cardRadius, borderWidth: 1, borderColor: kit.color.border.default }}>
+            <View style={{ backgroundColor: theme.colors.canvas.surface, borderRadius: legacyTheme.layout.cardRadius, borderWidth: 1, borderColor: theme.colors.border.default }}>
 
               {reminders.map((r, i) => (
 
-                <View key={r.id} style={{ borderTopWidth: i === 0 ? 0 : 1, borderTopColor: kit.color.border.default }}>
+                <View key={r.id} style={{ borderTopWidth: i === 0 ? 0 : 1, borderTopColor: theme.colors.border.default }}>
 
                   <ReminderRow
 
@@ -379,7 +378,7 @@ export default function ComponentPreview(): React.ReactElement | null {
 
           <Section title="PrescriptionsList · empty state (static)">
 
-            <View style={{ height: 320, backgroundColor: theme.colors.canvas.surface, borderRadius: legacyTheme.layout.cardRadius, borderWidth: 1, borderColor: kit.color.border.default, overflow: "hidden" }}>
+            <View style={{ height: 320, backgroundColor: theme.colors.canvas.surface, borderRadius: legacyTheme.layout.cardRadius, borderWidth: 1, borderColor: theme.colors.border.default, overflow: "hidden" }}>
 
               <EmptyState
 
@@ -387,11 +386,9 @@ export default function ComponentPreview(): React.ReactElement | null {
 
                 title="لا توجد وصفات حالياً"
 
-                description="أضف وصفتك الأولى — يمكنك مسحها بالكاميرا، أو نقلها من صيدلية أخرى"
+                subtitle="أضف وصفتك الأولى — يمكنك مسحها بالكاميرا، أو نقلها من صيدلية أخرى"
 
-                actionLabel="إضافة وصفة"
-
-                onAction={() => {}}
+                action={{ label: "إضافة وصفة", onPress: () => {} }}
 
               />
 

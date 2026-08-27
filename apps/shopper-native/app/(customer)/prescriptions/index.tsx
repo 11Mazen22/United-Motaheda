@@ -1,5 +1,4 @@
-import { defaultTheme as theme } from "@pharmacy/ui-native";
-import { useTheme } from "@pharmacy/ui-native";
+import { useTheme, type NativeTheme } from "@pharmacy/ui-native";
 
 import React, { useCallback, useMemo, useState } from "react";
 
@@ -89,7 +88,9 @@ interface StatCellProps {
 
 function StatCell({ icon, tint, tintBg, value, label, divider }: StatCellProps): React.ReactElement {
 
-  const s = React.useMemo(() => get_s(), []);
+  const { theme } = useTheme();
+
+  const s = React.useMemo(() => get_s(theme), [theme]);
 
   return (
 
@@ -133,7 +134,9 @@ interface CenteredStateProps {
 
 function CenteredState({ icon, tint, tintBg, title, body, ctaLabel, ctaIcon, onCta }: CenteredStateProps): React.ReactElement {
 
-  const s = React.useMemo(() => get_s(), []);
+  const { theme } = useTheme();
+
+  const s = React.useMemo(() => get_s(theme), [theme]);
 
   return (
 
@@ -163,7 +166,7 @@ export default function Page(): React.ReactElement {
 
   const { theme } = useTheme();
 
-  const s = React.useMemo(() => get_s(), []);
+  const s = React.useMemo(() => get_s(theme), [theme]);
 
   const { t }         = useTranslation();
 
@@ -711,7 +714,7 @@ export default function Page(): React.ReactElement {
 
 
 
-function get_s() { return StyleSheet.create({
+function get_s(theme: NativeTheme) { return StyleSheet.create({
 
   screen: { flex: 1, backgroundColor: theme.colors.canvas.background },
 

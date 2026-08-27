@@ -62,6 +62,10 @@ export type CheckoutAddressSnapshot = {
   buildingNumber?: string;
   floor?: string;
   apartmentNumber?: string;
+  landmark?: string;
+  deliveryInstructions?: string;
+  locationSource?: "gps" | "manual" | "gps_corrected";
+  locationAccuracyM?: number;
   lat?: number;
   lng?: number;
 };
@@ -94,6 +98,9 @@ export type CheckoutSubmitCommand = {
     total: number;
   };
   cartLines: CheckoutLineInput[];
+  /** Approved prescription ids covering any requires_prescription cart
+   *  lines — omitted entirely when the cart has no such items. */
+  prescriptionIds?: string[];
 };
 
 export type CreateOrderResult = {

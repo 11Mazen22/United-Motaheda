@@ -120,9 +120,13 @@ export function AnimatedTabBar({ state, navigation, items, barHeight, style }: A
   };
 
   return (
-    <View style={[navStyles.outer, theme.shadows[2], { paddingBottom: Math.max(insets.bottom, isTablet ? 8 : 6) }, style]}>
-      <BlurView intensity={60} tint={isDark ? "dark" : "light"} style={StyleSheet.absoluteFill} />
-      <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: isDark ? legacyColors.glassDark : legacyColors.glass }]} />
+    <View style={[navStyles.outer, theme.shadows[2], Platform.OS === "web" && { backgroundColor: theme.colors.canvas.surface }, { paddingBottom: Math.max(insets.bottom, isTablet ? 8 : 6) }, style]}>
+      {Platform.OS !== "web" && (
+        <>
+          <BlurView intensity={60} tint={isDark ? "dark" : "light"} style={StyleSheet.absoluteFill} />
+          <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: isDark ? legacyColors.glassDark : legacyColors.glass }]} />
+        </>
+      )}
       <View pointerEvents="none" style={[navStyles.topHairline, { backgroundColor: theme.colors.border.default }]} />
       <View style={[navStyles.inner, { height: barH, paddingHorizontal: isTablet ? 24 : 8 }]}>
         {orderedRoutes.map((route) => {
@@ -157,16 +161,45 @@ export interface ScreenHeaderAction {
 export interface ScreenHeaderProps {
   title: string;
   subtitle?: string;
+  /** Omit to hide the back button entirely. The canonical header never
+   *  navigates on its own (this package has no expo-router dependency) —
+   *  callers (or a persona wrapper) always supply the handler. */
   onBack?: () => void;
+  /** A single structured icon+badge action on the trailing edge. */
   rightAction?: ScreenHeaderAction;
+  /** A free-form trailing slot for cases rightAction's single-icon shape
+   *  can't express. Takes precedence over rightAction if both are given. */
+  trailing?: React.ReactNode;
+  /** "center" (default) for hero/functional screens; "start" for dense
+   *  operational screens (pharmacist/driver) where the title reads better
+   *  aligned with body content below it. */
+  align?: "center" | "start";
+  /** "flat" (default) is an icon-only touch target on a plain/bordered
+   *  surface. "floating" is an elevated circular chip — driver's treatment,
+   *  giving operational screens a touch more physical presence. */
+  backStyle?: "flat" | "floating";
   transparent?: boolean;
   style?: StyleProp<ViewStyle>;
 }
 
-/** Shared in-content header — both apps set headerShown:false globally and build headers per-screen. RTL-correct back chevron via useTheme().isRTL. */
-export function ScreenHeader({ title, subtitle, onBack, rightAction, transparent, style }: ScreenHeaderProps): React.ReactElement {
+/** Shared in-content header — all three personas set headerShown:false
+ *  globally and build headers per-screen from this one implementation.
+ *  RTL-correct back chevron via useTheme().isRTL. */
+export function ScreenHeader({
+  title,
+  subtitle,
+  onBack,
+  rightAction,
+  trailing,
+  align = "center",
+  backStyle = "flat",
+  transparent,
+  style,
+}: ScreenHeaderProps): React.ReactElement {
   const { theme, isRTL } = useTheme();
   const backIcon: IoniconsName = isRTL ? "chevron-forward" : "chevron-back";
+  const isStart = align === "start";
+  const isFloating = backStyle === "floating";
 
   return (
     <View
@@ -179,17 +212,36 @@ export function ScreenHeader({ title, subtitle, onBack, rightAction, transparent
     >
       <View style={[navStyles.headerSide, { alignItems: isRTL ? "flex-end" : "flex-start" }]}>
         {onBack ? (
-          <Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={onBack} hitSlop={8} style={navStyles.headerIconButton}>
-            <Ionicons name={backIcon} size={24} color={theme.colors.text.primary} />
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Back"
+            onPress={onBack}
+            hitSlop={8}
+            style={[
+              navStyles.headerIconButton,
+              isFloating && {
+                width: 42,
+                height: 42,
+                borderRadius: 21,
+                alignItems: "center",
+                justifyContent: "center",
+                backgroundColor: theme.colors.canvas.surface,
+                borderWidth: 1,
+                borderColor: theme.colors.border.default,
+                ...theme.shadows[1],
+              },
+            ]}
+          >
+            <Ionicons name={backIcon} size={isFloating ? 18 : 24} color={theme.colors.text.primary} />
           </Pressable>
         ) : null}
       </View>
-      <View style={navStyles.headerCenter}>
-        <Text variant="h4" align="center" numberOfLines={1}>{title}</Text>
-        {subtitle ? <Text variant="caption" color="secondary" align="center" numberOfLines={1}>{subtitle}</Text> : null}
+      <View style={[navStyles.headerCenter, isStart && navStyles.headerCenterStart]}>
+        <Text variant="h4" align={isStart ? (isRTL ? "right" : "left") : "center"} numberOfLines={1}>{title}</Text>
+        {subtitle ? <Text variant="caption" color="secondary" align={isStart ? (isRTL ? "right" : "left") : "center"} numberOfLines={1}>{subtitle}</Text> : null}
       </View>
       <View style={[navStyles.headerSide, { alignItems: isRTL ? "flex-start" : "flex-end" }]}>
-        {rightAction ? (
+        {trailing ? trailing : rightAction ? (
           <Pressable accessibilityRole="button" accessibilityLabel={rightAction.accessibilityLabel ?? "Action"} onPress={rightAction.onPress} hitSlop={8} style={navStyles.headerIconButton}>
             <Ionicons name={rightAction.icon} size={24} color={theme.colors.text.primary} />
             {rightAction.badge != null && rightAction.badge > 0 ? (
@@ -217,5 +269,6 @@ const navStyles = StyleSheet.create({
   headerContainer: { height: 56, alignItems: "center", justifyContent: "space-between", paddingHorizontal: 8 },
   headerSide: { width: 48, justifyContent: "center" },
   headerCenter: { flex: 1, justifyContent: "center", paddingHorizontal: 8 },
+  headerCenterStart: { alignItems: "flex-start" },
   headerIconButton: { padding: 8 },
 });

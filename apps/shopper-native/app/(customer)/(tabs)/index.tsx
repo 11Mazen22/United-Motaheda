@@ -11,6 +11,7 @@ import { DeliveryHeader } from "@/features/home/components/DeliveryHeader";
 import { Hero } from "@/features/home/components/Hero";
 import { TodayCare } from "@/features/home/components/TodayCare";
 import { CategoryStrip } from "@/features/home/components/CategoryStrip";
+import { QuickReorder } from "@/features/home/components/QuickReorder";
 import { DailyEdit } from "@/features/home/components/DailyEdit";
 import { FlashSaleSection } from "@/features/home/components/FlashSaleSection";
 import { SavingsStrip } from "@/features/home/components/SavingsStrip";
@@ -110,21 +111,33 @@ export default function HomeScreen() {
 
         <TodayCare />
 
-        <CategoryStrip
-          categories={categories}
-          isLoading={catsLoading}
-          lang={lang}
-          onCategoryPress={goCategory}
-          onViewAll={goProducts}
-        />
+        <QuickReorder />
 
-        <DailyEdit lang={lang} onProductPress={goProduct} onViewAll={goProducts} />
+        {/* Alternating tinted bands give the scroll real structure instead
+            of one flat wall of sections — the same technique premium
+            commerce/editorial sites use to make a long page feel composed.
+            Must be canvas.surfaceMuted, not canvas.surface: surface is plain
+            white, identical to the cards these sections already render, so
+            a surface-tinted band would be visually a no-op. */}
+        <View style={{ backgroundColor: theme.colors.canvas.surfaceMuted, paddingBottom: 8 }}>
+          <CategoryStrip
+            categories={categories}
+            isLoading={catsLoading}
+            lang={lang}
+            onCategoryPress={goCategory}
+            onViewAll={goProducts}
+          />
 
-        <FlashSaleSection products={[]} onProductPress={goProduct} onViewAll={goProducts} />
+          <DailyEdit lang={lang} onProductPress={goProduct} onViewAll={goProducts} />
+        </View>
 
-        <SavingsStrip />
+        <FlashSaleSection onProductPress={goProduct} onViewAll={goProducts} />
 
-        <RecentlyViewedCarousel lang={lang} onProductPress={goProduct} />
+        <View style={{ backgroundColor: theme.colors.canvas.surfaceMuted, paddingBottom: 8 }}>
+          <SavingsStrip />
+
+          <RecentlyViewedCarousel lang={lang} onProductPress={goProduct} />
+        </View>
       </ScrollView>
     </View>
   );

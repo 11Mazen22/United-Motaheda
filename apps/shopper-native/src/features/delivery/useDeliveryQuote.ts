@@ -1,110 +1,147 @@
 /**
- * Delivery quote hook — branch-aware.
+ * Delivery quote hook — now backed by the Supabase-native zone engine.
  *
- * Routing logic:
- *  1. If `branchId` is explicitly selected, use it.
- *  2. Else if `customerCoords` are provided, snap to nearest branch.
- *  3. Else fall back to the primary branch.
+ * Reconstruction pass (2026-08-26): this used to compute a flat delivery fee
+ * client-side (free above a threshold, otherwise a hardcoded constant) and
+ * "deliverable" was a Cairo bounding-box + fixed-radius circle check — never
+ * touching the real, seeded, polygon-based Branch/DeliveryZone tables. It now
+ * calls resolve_delivery_zone() (see supabase/migrations/
+ * 20260826956000_delivery_zone_resolution_rpc.sql), the same RPC the
+ * create-order Edge Function uses to compute the authoritative fee — so the
+ * price shown at checkout and the price actually charged can never drift
+ * apart. The rich Branch object (name, phone, hours) for display purposes
+ * still comes from useBranches(); resolve_delivery_zone only returns the
+ * branch id, which is looked up against that same static/queried list — the
+ * two use the same id namespace (confirmed live: "gardenia" exists in both).
  *
- * Pricing logic (unchanged from v1):
- *  - Free delivery above FREE_DELIVERY_THRESHOLD.
- *  - Otherwise STANDARD_DELIVERY_FEE.
- *  - Phase 4.x will swap in per-distance / per-zone fees here.
- *
- * Deliverability:
- *  - At least one delivery-enabled branch must exist.
- *  - If coords supplied, point must fall inside Cairo bounding box AND
- *    within DEFAULT_BRANCH_RADIUS_KM of the resolved branch.
- *
- * SAFETY: this hook reads `useBranches()` which is reactive. The
- * DeliveryQuote contract is stable — see types.ts for the surface.
+ * Contract (DeliveryQuote) is unchanged — existing consumers (checkout.tsx)
+ * don't need to change.
  */
 
 import { useMemo } from "react";
-import {
-  DELIVERY_ETA,
-  FREE_DELIVERY_THRESHOLD,
-  STANDARD_DELIVERY_FEE,
-} from "./constants";
-import {
-  DEFAULT_BRANCH_RADIUS_KM,
-  distanceKm,
-  findNearestBranch,
-  hasValidCoordinates,
-  isWithinCairo,
-} from "./geofencing";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/lib/supabase";
+import { FREE_DELIVERY_THRESHOLD, DELIVERY_ETA } from "./constants";
+import { hasValidCoordinates } from "./geofencing";
 import { useBranches } from "./branches/useBranches";
 import { findBranchById, getPrimaryBranch } from "./branches/data";
 import type { DeliveryQuote, DeliveryQuoteInput } from "./types";
 
+interface ZoneRpcRow {
+  branch_id: string;
+  branch_name_ar: string;
+  branch_name_en: string;
+  zone_id: string;
+  zone_name: string;
+  base_fee: number;
+  effective_fee: number;
+  surge_applied: boolean;
+  free_above_subtotal: number | null;
+  distance_km: number;
+}
+
+async function fetchZone(lat: number, lng: number, subtotal: number): Promise<ZoneRpcRow | null> {
+  const { data, error } = await supabase
+    .rpc("resolve_delivery_zone", { p_lat: lat, p_lng: lng, p_subtotal: subtotal })
+    .maybeSingle();
+  if (error) throw error;
+  return (data as ZoneRpcRow | null) ?? null;
+}
+
 export function useDeliveryQuote(input: DeliveryQuoteInput): DeliveryQuote {
   const { data: branches = [], isLoading: branchesLoading } = useBranches();
 
+  const subtotal = Math.max(0, Number.isFinite(input.subtotal) ? input.subtotal : 0);
+  const hasCoords = !!input.customerCoords && hasValidCoordinates(input.customerCoords.lat, input.customerCoords.lng);
+  const lat = hasCoords ? input.customerCoords!.lat : null;
+  const lng = hasCoords ? input.customerCoords!.lng : null;
+
+  const zoneQuery = useQuery({
+    queryKey: ["delivery-zone", lat, lng, subtotal],
+    queryFn: () => fetchZone(lat!, lng!, subtotal),
+    enabled: hasCoords,
+    staleTime: 60_000,
+  });
+
   return useMemo<DeliveryQuote>(() => {
-    // Guard NaN/Infinity from external subtotal sources (e.g. store hydration race)
-    const subtotal = Math.max(0, Number.isFinite(input.subtotal) ? input.subtotal : 0);
     const isFree = subtotal >= FREE_DELIVERY_THRESHOLD;
 
-    // ── Resolve branch ─────────────────────────────────────────────────────
-    let resolvedBranch =
-      findBranchById(input.branchId) ??
-      (input.customerCoords && hasValidCoordinates(input.customerCoords.lat, input.customerCoords.lng)
-        ? findNearestBranch(input.customerCoords, branches)?.branch ?? null
-        : null);
-
-    if (!resolvedBranch) {
-      resolvedBranch = branches.find((b) => b.isPrimary && b.deliveryEnabled)
-        ?? branches.find((b) => b.deliveryEnabled)
-        ?? (branches.length > 0 ? branches[0] : getPrimaryBranch());
+    // No coordinates yet — nothing to quote. Matches create-order's own
+    // "location_required" rejection: a text-only address is no longer
+    // enough to place an order, so it shouldn't look deliverable here either.
+    if (!hasCoords) {
+      const fallbackBranch = input.branchId ? findBranchById(input.branchId) : null;
+      return {
+        cost: 0,
+        eta: { min: DELIVERY_ETA.min, max: DELIVERY_ETA.max },
+        isDeliverable: false,
+        isFree: false,
+        amountToFreeDelivery: Math.max(0, FREE_DELIVERY_THRESHOLD - subtotal),
+        isLoading: branchesLoading,
+        branch: fallbackBranch ?? getPrimaryBranch(),
+        distanceKm: null,
+        outOfServiceMessage: null,
+      };
     }
 
-    // ── Distance + deliverability ──────────────────────────────────────────
-    let distance: number | null = null;
-    let outOfServiceMessage: string | null = null;
-    let isDeliverable = !!resolvedBranch?.deliveryEnabled;
-
-    if (input.customerCoords && hasValidCoordinates(input.customerCoords.lat, input.customerCoords.lng)) {
-      if (!isWithinCairo(input.customerCoords)) {
-        isDeliverable = false;
-        outOfServiceMessage = "نخدم القاهرة فقط حالياً";
-      } else if (resolvedBranch) {
-        const rawDist = distanceKm(input.customerCoords, { lat: resolvedBranch.lat, lng: resolvedBranch.lng });
-        distance = Number.isFinite(rawDist) ? rawDist : null;
-        if (distance !== null && distance > DEFAULT_BRANCH_RADIUS_KM) {
-          isDeliverable = false;
-          outOfServiceMessage = `العنوان خارج نطاق التوصيل (${distance.toFixed(1)} كم من أقرب فرع)`;
-        }
-      }
-    } else if (input.address?.city) {
-      // Legacy text-only address: only fail if user typed a non-Cairo city
-      const c = input.address.city.trim().toLowerCase();
-      const cairoVariants = ["cairo", "القاهرة", "القاهره"];
-      if (c && !cairoVariants.some((v) => c.includes(v))) {
-        isDeliverable = false;
-        outOfServiceMessage = "نخدم القاهرة فقط حالياً";
-      }
+    if (zoneQuery.isLoading || branchesLoading) {
+      return {
+        cost: 0,
+        eta: { min: DELIVERY_ETA.min, max: DELIVERY_ETA.max },
+        isDeliverable: false,
+        isFree: false,
+        amountToFreeDelivery: Math.max(0, FREE_DELIVERY_THRESHOLD - subtotal),
+        isLoading: true,
+        branch: null,
+        distanceKm: null,
+        outOfServiceMessage: null,
+      };
     }
 
-    // ── Fee + ETA ──────────────────────────────────────────────────────────
-    const cost = !isDeliverable ? 0 : isFree ? 0 : STANDARD_DELIVERY_FEE;
+    if (zoneQuery.isError) {
+      return {
+        cost: 0,
+        eta: { min: DELIVERY_ETA.min, max: DELIVERY_ETA.max },
+        isDeliverable: false,
+        isFree: false,
+        amountToFreeDelivery: Math.max(0, FREE_DELIVERY_THRESHOLD - subtotal),
+        isLoading: false,
+        branch: null,
+        distanceKm: null,
+        outOfServiceMessage: "تعذر التحقق من نطاق التوصيل. تحقق من اتصالك وحاول مرة أخرى.",
+      };
+    }
+
+    const zone = zoneQuery.data;
+    if (!zone) {
+      return {
+        cost: 0,
+        eta: { min: DELIVERY_ETA.min, max: DELIVERY_ETA.max },
+        isDeliverable: false,
+        isFree: false,
+        amountToFreeDelivery: Math.max(0, FREE_DELIVERY_THRESHOLD - subtotal),
+        isLoading: false,
+        branch: null,
+        distanceKm: null,
+        outOfServiceMessage: "عذراً، هذا العنوان خارج نطاق التوصيل الحالي.",
+      };
+    }
+
+    const resolvedBranch = findBranchById(zone.branch_id);
 
     return {
-      cost,
+      cost: zone.effective_fee,
       eta: { min: DELIVERY_ETA.min, max: DELIVERY_ETA.max },
-      isDeliverable,
-      isFree: isDeliverable && isFree,
-      amountToFreeDelivery: isFree ? 0 : Math.max(0, FREE_DELIVERY_THRESHOLD - subtotal),
-      isLoading: branchesLoading,
+      isDeliverable: true,
+      isFree: isFree || zone.effective_fee === 0,
+      amountToFreeDelivery:
+        zone.free_above_subtotal != null
+          ? Math.max(0, zone.free_above_subtotal - subtotal)
+          : Math.max(0, FREE_DELIVERY_THRESHOLD - subtotal),
+      isLoading: false,
       branch: resolvedBranch,
-      distanceKm: distance,
-      outOfServiceMessage,
+      distanceKm: zone.distance_km,
+      outOfServiceMessage: null,
     };
-  }, [
-    input.subtotal,
-    input.branchId,
-    input.customerCoords,
-    input.address,
-    branches,
-    branchesLoading,
-  ] as never[]);
+  }, [subtotal, hasCoords, input.branchId, branches, branchesLoading, zoneQuery.isLoading, zoneQuery.isError, zoneQuery.data]);
 }

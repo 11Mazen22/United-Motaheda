@@ -1,9 +1,8 @@
-import { defaultTheme as theme } from "@pharmacy/ui-native";
 /**
  * PharmacistProfileScreen — pharmacist identity, settings, and sign-out.
  */
 
-import React from "react";
+import React, { useMemo } from "react";
 
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 
@@ -22,9 +21,15 @@ import { kit }                    from "@pharmacy/ui-native";
 
 
 
+import { useQuery }               from "@tanstack/react-query";
+
 import { useAuth }                from "@/features/auth";
 
 import { useAppLanguage }         from "@/i18n/LanguageProvider";
+
+import { supabase }               from "@/lib/supabase";
+
+import { findBranchById }         from "@/features/delivery/branches/data";
 
 import { FORWARD_CHEVRON, flexRow, isRtl, textAlignStart } from "@/utils/layout";
 
@@ -57,6 +62,36 @@ interface MenuRowProps {
 function MenuRow({ icon, label, onPress, danger = false }: MenuRowProps) {
 
   const { theme } = useTheme();
+
+  const styles = useMemo(() => StyleSheet.create({
+
+    menuRow: {
+
+      alignItems:        "center",
+
+      gap:               12,
+
+      paddingHorizontal: kit.inset.card,
+
+      paddingVertical:   14,
+
+    },
+
+    menuIcon: {
+
+      width:           34,
+
+      height:          34,
+
+      borderRadius:    11,
+
+      alignItems:      "center",
+
+      justifyContent:  "center",
+
+    },
+
+  }), [theme]);
 
   return (
 
@@ -120,6 +155,172 @@ export function PharmacistProfileScreen(): React.ReactElement {
 
   const statsQ             = usePharmacistDashboard();
 
+  // profiles.branch_id was added so a pharmacist's order queue can be scoped
+  // to their own branch (see supabase/migrations/20260827090000_pharmacist_backend_fixes.sql).
+  // No admin UI assigns it yet, so this reads whatever's there — null until
+  // an admin calls set_pharmacist_branch(), which is the honest state to show.
+  const branchQ = useQuery({
+    queryKey: ["pharmacist", "profile", "branch", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("branch_id")
+        .eq("id", user!.id)
+        .maybeSingle();
+      if (error) throw error;
+      return (data as { branch_id: string | null } | null)?.branch_id ?? null;
+    },
+    enabled: Boolean(user?.id),
+    staleTime: 60_000,
+  });
+  const branchName = branchQ.data ? findBranchById(branchQ.data)?.nameAr ?? branchQ.data : null;
+
+  const styles = useMemo(() => StyleSheet.create({
+
+    scroll:        { paddingBottom: 60 },
+
+    avatarSection: { alignItems: "center", gap: 8, paddingVertical: 28 },
+
+    avatar: {
+
+      width:           80,
+
+      height:          80,
+
+      borderRadius:    40,
+
+      alignItems:      "center",
+
+      justifyContent:  "center",
+
+      ...theme.shadows[2],
+
+    },
+
+    avatarLetter: {
+
+      fontSize:   34,
+
+      fontFamily: "Cairo_900Black",
+
+      color:      "#fff",
+
+    },
+
+    roleBadge: {
+
+      flexDirection:     flexRow(IS_RTL),
+
+      alignItems:        "center",
+
+      gap:               5,
+
+      paddingHorizontal: 12,
+
+      paddingVertical:   5,
+
+      borderRadius:      9999,
+
+      marginTop:         4,
+
+    },
+
+    card: {
+
+      marginHorizontal: kit.inset.screen,
+
+      borderRadius:     16,
+
+      borderWidth:      1,
+
+      overflow:         "hidden",
+
+      ...theme.shadows[1],
+
+    },
+
+    statsCard: {
+
+      marginHorizontal: kit.inset.screen,
+
+      marginBottom:     12,
+
+      borderRadius:     16,
+
+      borderWidth:      1,
+
+      overflow:         "hidden",
+
+      ...theme.shadows[1],
+
+    },
+
+    statRow: {
+
+      alignItems:        "center",
+
+      gap:               12,
+
+      paddingHorizontal: kit.inset.card,
+
+      paddingVertical:   14,
+
+    },
+
+    statRowBorder: {
+
+      borderBottomWidth: StyleSheet.hairlineWidth,
+
+      borderBottomColor: theme.colors.border.default,
+
+    },
+
+    statValue: {
+
+      fontSize:   16,
+
+      fontFamily: "Cairo_900Black",
+
+      color:      theme.colors.text.primary,
+
+    },
+
+    menuRow: {
+
+      alignItems:        "center",
+
+      gap:               12,
+
+      paddingHorizontal: kit.inset.card,
+
+      paddingVertical:   14,
+
+    },
+
+    menuIcon: {
+
+      width:           34,
+
+      height:          34,
+
+      borderRadius:    11,
+
+      alignItems:      "center",
+
+      justifyContent:  "center",
+
+    },
+
+    divider: {
+
+      height:           StyleSheet.hairlineWidth,
+
+      marginHorizontal: kit.inset.card,
+
+    },
+
+  }), [theme]);
+
 
 
   const nextLanguage = language === "ar" ? "en" : "ar";
@@ -171,6 +372,18 @@ export function PharmacistProfileScreen(): React.ReactElement {
             <UIText variant="eyebrow" style={{ color: theme.colors.brand.primary }}>
 
               {t("pharmacist.roleLabel")}
+
+            </UIText>
+
+          </View>
+
+          <View style={[styles.roleBadge, { backgroundColor: theme.colors.canvas.surfaceMuted, borderColor: theme.colors.border.default }]}>
+
+            <Ionicons name="business-outline" size={12} color={theme.colors.text.secondary} />
+
+            <UIText variant="eyebrow" color="secondary">
+
+              {branchName ?? t("pharmacist.branchUnassigned", "All branches")}
 
             </UIText>
 
@@ -244,13 +457,14 @@ export function PharmacistProfileScreen(): React.ReactElement {
 
         {/* Menu */}
 
-        <View style={[styles.card, { backgroundColor: theme.colors.canvas.surface, borderColor: theme.colors.border.default }]}>          <MenuRow
+        <View style={[styles.card, { backgroundColor: theme.colors.canvas.surface, borderColor: theme.colors.border.default }]}>
+        <MenuRow
 
             icon="notifications-outline"
 
             label={t("pharmacist.profileNotifications")}
 
-            onPress={() => router.push("/(pharmacist)/notifications")}
+            onPress={() => router.push("/(pharmacist)/pharmacist-notifications" as never)}
 
           />
 
@@ -294,7 +508,8 @@ export function PharmacistProfileScreen(): React.ReactElement {
 
 
 
-        <View style={[styles.card, { backgroundColor: theme.colors.canvas.surface, borderColor: theme.colors.border.default, marginTop: 12 }]}>          <MenuRow
+        <View style={[styles.card, { backgroundColor: theme.colors.canvas.surface, borderColor: theme.colors.border.default, marginTop: 12 }]}>
+        <MenuRow
 
             icon="log-out-outline"
 
@@ -317,149 +532,3 @@ export function PharmacistProfileScreen(): React.ReactElement {
 }
 
 
-
-const styles = StyleSheet.create({
-
-  scroll:        { paddingBottom: 60 },
-
-  avatarSection: { alignItems: "center", gap: 8, paddingVertical: 28 },
-
-  avatar: {
-
-    width:           80,
-
-    height:          80,
-
-    borderRadius:    40,
-
-    alignItems:      "center",
-
-    justifyContent:  "center",
-
-    ...theme.shadows[2],
-
-  },
-
-  avatarLetter: {
-
-    fontSize:   34,
-
-    fontFamily: "Cairo_900Black",
-
-    color:      "#fff",
-
-  },
-
-  roleBadge: {
-
-    flexDirection:     flexRow(IS_RTL),
-
-    alignItems:        "center",
-
-    gap:               5,
-
-    paddingHorizontal: 12,
-
-    paddingVertical:   5,
-
-    borderRadius:      9999,
-
-    marginTop:         4,
-
-  },
-
-  card: {
-
-    marginHorizontal: kit.inset.screen,
-
-    borderRadius:     16,
-
-    borderWidth:      1,
-
-    overflow:         "hidden",
-
-    ...theme.shadows[1],
-
-  },
-
-  statsCard: {
-
-    marginHorizontal: kit.inset.screen,
-
-    marginBottom:     12,
-
-    borderRadius:     16,
-
-    borderWidth:      1,
-
-    overflow:         "hidden",
-
-    ...theme.shadows[1],
-
-  },
-
-  statRow: {
-
-    alignItems:        "center",
-
-    gap:               12,
-
-    paddingHorizontal: kit.inset.card,
-
-    paddingVertical:   14,
-
-  },
-
-  statRowBorder: {
-
-    borderBottomWidth: StyleSheet.hairlineWidth,
-
-    borderBottomColor: theme.colors.border.default,
-
-  },
-
-  statValue: {
-
-    fontSize:   16,
-
-    fontFamily: "Cairo_900Black",
-
-    color:      theme.colors.text.primary,
-
-  },
-
-  menuRow: {
-
-    alignItems:        "center",
-
-    gap:               12,
-
-    paddingHorizontal: kit.inset.card,
-
-    paddingVertical:   14,
-
-  },
-
-  menuIcon: {
-
-    width:           34,
-
-    height:          34,
-
-    borderRadius:    11,
-
-    alignItems:      "center",
-
-    justifyContent:  "center",
-
-  },
-
-  divider: {
-
-    height:           StyleSheet.hairlineWidth,
-
-    marginHorizontal: kit.inset.card,
-
-  },
-
-});

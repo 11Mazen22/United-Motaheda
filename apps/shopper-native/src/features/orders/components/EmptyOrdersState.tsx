@@ -1,5 +1,5 @@
-import { defaultTheme as theme } from "@pharmacy/ui-native";
-import React, { useEffect } from "react";
+import { useTheme } from "@pharmacy/ui-native";
+import React, { useEffect, useMemo } from "react";
 
 import { Platform, Pressable, ScrollView, View } from "react-native";
 
@@ -37,25 +37,17 @@ import { AppHeader } from "@/shared/components";
 
 import { Button } from "@pharmacy/ui-native";
 
-import { emptyS } from "./orders.styles";
-
-
-
-// Category chips — kit semantic tints
-
-const CAT_CHIPS = [
-
-  { icon: "leaf-outline"     as const, labelKey: "home.qaVitamins", color: theme.colors.status.success,    bg: `${theme.colors.status.success}1A` },
-
-  { icon: "sparkles-outline" as const, labelKey: "home.qaMomBaby",  color: theme.colors.status.warning,       bg: `${theme.colors.status.warning}1A`    },
-
-  { icon: "medkit-outline"   as const, labelKey: "home.qaRx",       color: theme.colors.brand.primary, bg: theme.colors.brand.primaryLight  },
-
-] as const;
-
-
+import { getOrdersStyles } from "./orders.styles";
 
 export function EmptyOrdersState({ showBack }: { showBack: boolean }): React.ReactElement {
+  const { theme } = useTheme();
+  const { emptyS } = useMemo(() => getOrdersStyles(theme), [theme]);
+  // Category chips — kit semantic tints
+  const CAT_CHIPS = useMemo(() => [
+    { icon: "leaf-outline"     as const, labelKey: "home.qaVitamins", color: theme.colors.status.success, bg: theme.colors.statusSoft.success.bg },
+    { icon: "sparkles-outline" as const, labelKey: "home.qaMomBaby",  color: theme.colors.status.warning, bg: theme.colors.statusSoft.warning.bg },
+    { icon: "medkit-outline"   as const, labelKey: "home.qaRx",       color: theme.colors.brand.primary,  bg: theme.colors.brand.primaryLight },
+  ] as const, [theme]);
 
   const router  = useRouter();
 

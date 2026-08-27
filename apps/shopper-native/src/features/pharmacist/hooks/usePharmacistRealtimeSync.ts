@@ -11,7 +11,6 @@
 
 import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase";
 import {
   subscribeToPharmacistOrders,
   subscribeToPharmacistPrescriptions,
@@ -29,6 +28,7 @@ export function usePharmacistRealtimeSync(userId: string | undefined): void {
       void queryClient.invalidateQueries({ queryKey: pharmacistQueryKeys.orderQueue() });
       void queryClient.invalidateQueries({ queryKey: ["pharmacist", "orders"] });
       void queryClient.invalidateQueries({ queryKey: pharmacistQueryKeys.dashboard() });
+      void queryClient.invalidateQueries({ queryKey: pharmacistQueryKeys.recentlyCompleted() });
     };
 
     const invalidateRx = () => {
@@ -41,14 +41,14 @@ export function usePharmacistRealtimeSync(userId: string | undefined): void {
       void queryClient.invalidateQueries({ queryKey: ["pharmacist", "products"] });
     };
 
-    const ordersChannel = subscribeToPharmacistOrders(invalidateOrders);
-    const rxChannel     = subscribeToPharmacistPrescriptions(invalidateRx);
-    const inventoryChannel = subscribeToPharmacistInventory(invalidateInventory);
+    const ordersSub = subscribeToPharmacistOrders(invalidateOrders);
+    const rxSub     = subscribeToPharmacistPrescriptions(invalidateRx);
+    const inventorySub = subscribeToPharmacistInventory(invalidateInventory);
 
     return () => {
-      supabase.removeChannel(ordersChannel);
-      supabase.removeChannel(rxChannel);
-      supabase.removeChannel(inventoryChannel);
+      ordersSub.unsubscribe();
+      rxSub.unsubscribe();
+      inventorySub.unsubscribe();
     };
   }, [userId, queryClient]);
 }
