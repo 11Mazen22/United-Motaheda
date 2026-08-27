@@ -26,7 +26,7 @@
  */
 
 import React, { memo, useEffect, useMemo } from "react";
-import { Dimensions, StyleSheet } from "react-native";
+import { StyleSheet, useWindowDimensions } from "react-native";
 import Animated, {
   cancelAnimation,
   Easing,
@@ -43,13 +43,6 @@ import { AppLogo } from "@/shared/components/AppLogo";
 import { useTheme, type NativeTheme } from "@pharmacy/ui-native";
 import { onSplashExited } from "@/shared/splashBridge";
 
-const { width: W, height: H } = Dimensions.get("window");
-const CENTER_X = W / 2;
-const CENTER_Y = H / 2;
-// Diameter needed for a circle centred on screen-middle to fully cover every
-// corner — the screen's diagonal, plus a small margin for safety.
-const IRIS_MAX = Math.hypot(W, H) * 1.15;
-
 const LOGO_PX = 84;
 const LOGO_HALF = LOGO_PX / 2;
 
@@ -65,11 +58,15 @@ const GlowRing = memo(function GlowRing({
   color,
   opacity,
   scale,
+  centerX,
+  centerY,
 }: {
   size: number;
   color: string;
   opacity: ReturnType<typeof useSharedValue<number>>;
   scale: ReturnType<typeof useSharedValue<number>>;
+  centerX: number;
+  centerY: number;
 }) {
   const anim = useAnimatedStyle(() => ({
     opacity: opacity.value,
@@ -82,8 +79,8 @@ const GlowRing = memo(function GlowRing({
         anim,
         {
           position: "absolute",
-          top: CENTER_Y - size / 2,
-          start: CENTER_X - size / 2,
+          top: centerY - size / 2,
+          start: centerX - size / 2,
           width: size,
           height: size,
           borderRadius: size / 2,
@@ -96,7 +93,21 @@ const GlowRing = memo(function GlowRing({
 
 export function ArrivalOverlay({ onComplete }: ArrivalOverlayProps) {
   const { theme } = useTheme();
-  const s = useMemo(() => getStyles(theme), [theme]);
+  // Read the *live* window size on every render — this overlay renders on
+  // the web build inside a browser tab, where the viewport at the moment
+  // this module first evaluates (previously captured once via
+  // Dimensions.get("window") at module scope) is not reliably the actual
+  // current viewport. A stale/wrong center here doesn't just look off by a
+  // few pixels — the whole iris + glow + logo composition renders centred
+  // on the wrong point, so only whatever corner happens to overlap the real
+  // viewport is visible.
+  const { width: W, height: H } = useWindowDimensions();
+  const CENTER_X = W / 2;
+  const CENTER_Y = H / 2;
+  // Diameter needed for a circle centred on screen-middle to fully cover every
+  // corner — the screen's diagonal, plus a small margin for safety.
+  const IRIS_MAX = Math.hypot(W, H) * 1.15;
+  const s = useMemo(() => getStyles(theme, CENTER_X, CENTER_Y), [theme, CENTER_X, CENTER_Y]);
   const reduced = useReducedMotion() ?? false;
 
   const glowOpacity = useSharedValue(0);
@@ -195,9 +206,9 @@ export function ArrivalOverlay({ onComplete }: ArrivalOverlayProps) {
           underneath. Everything the user sees (glow + logo) lives inside it
           so it all recedes together instead of the overlay just fading flat. */}
       <Animated.View style={[s.iris, irisAnim]}>
-        <GlowRing size={340} color={`${theme.colors.brand.primary}1F`} opacity={glowOpacity} scale={glowScale} />
-        <GlowRing size={230} color={`${theme.colors.brand.primary}26`} opacity={glowOpacity} scale={glowScale} />
-        <GlowRing size={140} color={theme.colors.brand.primaryLight} opacity={glowOpacity} scale={glowScale} />
+        <GlowRing size={340} color={`${theme.colors.brand.primary}1F`} opacity={glowOpacity} scale={glowScale} centerX={CENTER_X} centerY={CENTER_Y} />
+        <GlowRing size={230} color={`${theme.colors.brand.primary}26`} opacity={glowOpacity} scale={glowScale} centerX={CENTER_X} centerY={CENTER_Y} />
+        <GlowRing size={140} color={theme.colors.brand.primaryLight} opacity={glowOpacity} scale={glowScale} centerX={CENTER_X} centerY={CENTER_Y} />
 
         <Animated.View style={[s.logoTile, logoWrapAnim, theme.shadows[4]]}>
           <AppLogo size={LOGO_PX} />
@@ -210,7 +221,7 @@ export function ArrivalOverlay({ onComplete }: ArrivalOverlayProps) {
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
-function getStyles(theme: NativeTheme) {
+function getStyles(theme: NativeTheme, centerX: number, centerY: number) {
   return StyleSheet.create({
     root: {
       backgroundColor: theme.colors.canvas.background,
@@ -225,8 +236,8 @@ function getStyles(theme: NativeTheme) {
     },
     logoTile: {
       position: "absolute",
-      top: CENTER_Y - LOGO_HALF,
-      start: CENTER_X - LOGO_HALF,
+      top: centerY - LOGO_HALF,
+      start: centerX - LOGO_HALF,
       width: LOGO_PX,
       height: LOGO_PX,
       borderRadius: Math.round(LOGO_PX * 0.24),
