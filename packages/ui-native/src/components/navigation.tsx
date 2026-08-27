@@ -110,8 +110,18 @@ export function AnimatedTabBar({ state, navigation, items, barHeight, style }: A
   }, [navigation]);
 
   const byName = new Map(items.map((item) => [item.name, item]));
-  const visibleRoutes = state.routes.filter((route) => byName.has(route.name));
-  const orderedRoutes = isRTL ? [...visibleRoutes].reverse() : visibleRoutes;
+  // Declared order is rendered as-is — the tab row's own flexDirection:"row"
+  // already gets mirrored right-to-left automatically wherever the platform
+  // has RTL wired up correctly (I18nManager.forceRTL on native; the DOM's
+  // dir="rtl" on web, set once in src/i18n/index.ts). Manually reversing this
+  // array used to compensate for that mirroring being missing on web, which
+  // made this component correct on web but WRONG on native (forceRTL mirrors
+  // the already-reversed array a second time there) -- and once the web-side
+  // dir="rtl" gap was fixed, this reversal started double-flipping on web
+  // too. Declared order + automatic mirroring is what every other row in
+  // this app relies on (see utils/layout.ts's flexRow()); this just needed
+  // to stop being the one exception.
+  const orderedRoutes = state.routes.filter((route) => byName.has(route.name));
 
   const tone: TabTone = {
     active: theme.colors.brand.primary,
