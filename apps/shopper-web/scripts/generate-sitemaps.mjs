@@ -310,15 +310,31 @@ async function getLatestFileTimestamp(relativePaths) {
   return timestamps.sort().at(-1) || buildTimestamp;
 }
 
+const SUPABASE_REQUEST_TIMEOUT_MS = 15_000;
+
 async function requestSupabase(url, options = {}) {
-  const response = await fetch(url, {
-    ...options,
-    headers: {
-      apikey: supabaseAnonKey,
-      Authorization: `Bearer ${supabaseAnonKey}`,
-      ...options.headers,
-    },
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), SUPABASE_REQUEST_TIMEOUT_MS);
+
+  let response;
+  try {
+    response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+      headers: {
+        apikey: supabaseAnonKey,
+        Authorization: `Bearer ${supabaseAnonKey}`,
+        ...options.headers,
+      },
+    });
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new Error(`Supabase request timed out after ${SUPABASE_REQUEST_TIMEOUT_MS}ms: ${url}`);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
 
   if (!response.ok) {
     const body = await response.text();
