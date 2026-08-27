@@ -18,7 +18,7 @@
  */
 
 import React, { useRef } from "react";
-import { View } from "react-native";
+import { ActivityIndicator, View } from "react-native";
 import { Redirect, Stack } from "expo-router";
 import { useAuth } from "@/features/auth";
 import { usePharmacistRealtimeSync } from "@/features/pharmacist";
@@ -51,7 +51,11 @@ export default function PharmacistLayout() {
   }
 
   if (decidedAccessRef.current === null) {
-    return <View style={{ flex: 1, backgroundColor: "#FFFFFF" }} />;
+    return (
+      <View style={{ flex: 1, backgroundColor: "#FFFFFF", alignItems: "center", justifyContent: "center" }}>
+        <ActivityIndicator size="large" color="#0E7E74" />
+      </View>
+    );
   }
 
   if (decidedAccessRef.current === false) {

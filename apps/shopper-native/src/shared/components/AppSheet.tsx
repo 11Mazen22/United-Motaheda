@@ -12,7 +12,7 @@ import {
   View,
   Pressable,
   StyleSheet,
-  Dimensions,
+  useWindowDimensions,
   Platform,
 } from "react-native";
 import { useTranslation } from "react-i18next";
@@ -35,7 +35,6 @@ import {
 } from "@/shared/store/appSheetStore";
 import { Text as UIText, useTheme, type NativeTheme } from "@pharmacy/ui-native";
 
-const { height: SCREEN_H } = Dimensions.get("window");
 const DISMISS_THRESHOLD     = 90;
 const DISMISS_VELOCITY      = 700;
 
@@ -158,6 +157,7 @@ export function AppSheet() {
   const TYPE_CFG            = useMemo(() => getTypeCfg(theme), [theme]);
   const { t }               = useTranslation();
   const insets              = useSafeAreaInsets();
+  const { height: SCREEN_H } = useWindowDimensions();
   const { visible, config, hide } = useAppSheetStore();
 
   const translateY  = useSharedValue(SCREEN_H);

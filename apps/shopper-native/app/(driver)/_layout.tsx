@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from "react";
-import { View } from "react-native";
+import { ActivityIndicator, View } from "react-native";
 import { Redirect, Stack } from "expo-router";
 import { useAuth } from "@/features/auth";
 import { useDriverRealtimeSync, useMyDriverProfile } from "@/features/driver";
@@ -59,7 +59,19 @@ export default function DriverLayout() {
     decidedAccessRef.current = Boolean(user) && isDriverRole && hasLiveDriverProfile;
   }
   if (decidedAccessRef.current === null) {
-    return <View style={{ flex: 1, backgroundColor: "#FFFFFF" }} />;
+    // This can legitimately sit here for a while: the retry-forever effect
+    // above deliberately never gives up on a driver's profile fetch rather
+    // than risk bouncing a real driver to the customer tabs over a
+    // connectivity blip. Unlike index.tsx's own blank hand-off view (which
+    // is always brief and hidden behind SplashOverlay's own fixed-length
+    // animation), this state has no such time limit and no overlay masking
+    // it once the splash has already exited — a bare white view here reads
+    // as a frozen/crashed app rather than "still checking your account".
+    return (
+      <View style={{ flex: 1, backgroundColor: "#FFFFFF", alignItems: "center", justifyContent: "center" }}>
+        <ActivityIndicator size="large" color="#0E7E74" />
+      </View>
+    );
   }
 
   if (decidedAccessRef.current === false) {
