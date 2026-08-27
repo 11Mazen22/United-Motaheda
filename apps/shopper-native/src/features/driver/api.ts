@@ -745,11 +745,16 @@ export async function getMyDriverProfile(userId: string): Promise<DriverProfileR
   // for as long as the OS/browser's own TCP timeout takes (can be a minute
   // or more), which means the whole driver app just looks permanently
   // stuck with no visible error. Same bounded-request fix as lib/geocoding.ts.
+  // 20s (not the original 10s): confirmed live that a real approved driver
+  // account was hitting this timeout on a normal connection -- this is a
+  // simple indexed single-row lookup (userId is @unique), so the slowness is
+  // connection/pooler latency, not the query itself; 10s was cutting off
+  // requests that would have succeeded a few seconds later.
   const { data, error } = await supabase
     .from("DriverProfile")
     .select(DRIVER_PROFILE_COLUMNS)
     .eq("userId", userId)
-    .abortSignal(AbortSignal.timeout(10_000))
+    .abortSignal(AbortSignal.timeout(20_000))
     .maybeSingle();
 
   if (error) throw error;

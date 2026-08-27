@@ -4,7 +4,10 @@ import { Redirect, Stack } from "expo-router";
 import { useAuth } from "@/features/auth";
 import { useDriverRealtimeSync, useMyDriverProfile } from "@/features/driver";
 
-const STUCK_TIMEOUT_MS = 12_000;
+// Longer than the DriverProfile query's own 20s abort timeout (see
+// getMyDriverProfile) so a legitimately slow-but-succeeding request gets to
+// finish before this surfaces an error over it.
+const STUCK_TIMEOUT_MS = 24_000;
 
 const LIVE_DRIVER_STATUSES = new Set(["APPROVED", "ACTIVE"]);
 
