@@ -242,11 +242,7 @@ export default function ProfileScreen() {
 
             <MenuRow icon="language-outline" color="#2563EB" label={t("language.label")} subtitle={language === "ar" ? t("language.en") : t("language.ar")} onPress={toggleLanguage} styles={styles} />
 
-            <MenuRow icon="notifications-outline" color={theme.colors.status.warning} label={t("profile.notifications")} subtitle={t("profile.notificationsSubtitle")} onPress={go("/(customer)/(account)/notifications")} last={!(user && (!user.role || user.role === "customer"))} styles={styles} />
-
-            {user && (!user.role || user.role === "customer") && (
-              <MenuRow icon="bicycle-outline" color={theme.colors.brand.primary} label={t("profile.menuBecomeDriver")} subtitle={t("profile.menuBecomeDriverSubtitle")} onPress={go("/driver-application")} last styles={styles} />
-            )}
+            <MenuRow icon="notifications-outline" color={theme.colors.status.warning} label={t("profile.notifications")} subtitle={t("profile.notificationsSubtitle")} onPress={go("/(customer)/(account)/notifications")} last styles={styles} />
 
           </View>
 

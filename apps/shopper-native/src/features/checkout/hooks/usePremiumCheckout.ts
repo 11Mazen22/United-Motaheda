@@ -11,8 +11,12 @@ import {
   buildCheckoutNote,
   createIdempotencyKey,
   CheckoutRequestError,
+  isManualWalletPayment,
+  patchOrderManualPayment,
   type CheckoutPaymentMethod
 } from "@/features/checkout";
+import { paymentLabel } from "../constants";
+import { pickPaymentReceiptImage, uploadPaymentReceipt, ReceiptUploadError } from "@/features/payment";
 import { useNetInfo } from "@react-native-community/netinfo";
 
 export type CheckoutStatus =
@@ -43,6 +47,10 @@ export function usePremiumCheckout() {
   const [rxRequiredProductIds, setRxRequiredProductIds] = useState<Set<string>>(new Set());
   const [selectedPrescriptionIds, setSelectedPrescriptionIds] = useState<string[]>([]);
   const allPrescriptions = usePrescriptions();
+  const [transferNumber, setTransferNumber] = useState("");
+  const [receiptUri, setReceiptUri] = useState<string | null>(null);
+  const [manualPaymentError, setManualPaymentError] = useState<string | null>(null);
+  const [uploadingReceipt, setUploadingReceipt] = useState(false);
 
   // Idempotency key must be preserved across retries
   const idempotencyKeyRef = useRef<string | null>(null);
@@ -132,9 +140,41 @@ export function usePremiumCheckout() {
   const canSubmit = status === "READY" && selectedAddress && isAddressValid && paymentMethod && items.length > 0
     && (!needsPrescription || hasPrescriptionSelected);
 
+  const handlePickReceipt = useCallback(async () => {
+    const picked = await pickPaymentReceiptImage();
+    if (picked.ok) {
+      setReceiptUri(picked.localUri);
+      setManualPaymentError(null);
+    }
+  }, []);
+
   const submit = useCallback(async () => {
      if (!canSubmit) return;
      if (!user) return;
+
+     const manual = isManualWalletPayment(paymentMethod);
+     let paymentProofUrl: string | undefined;
+
+     if (manual) {
+       if (!transferNumber.trim()) {
+         setManualPaymentError("رقم التحويل مطلوب.");
+         return;
+       }
+       if (!receiptUri) {
+         setManualPaymentError("يرجى إرفاق صورة إيصال التحويل.");
+         return;
+       }
+       setUploadingReceipt(true);
+       try {
+         paymentProofUrl = await uploadPaymentReceipt(user.id, receiptUri);
+       } catch (err) {
+         setManualPaymentError(err instanceof ReceiptUploadError ? err.message : "تعذّر رفع صورة الإيصال.");
+         setUploadingReceipt(false);
+         return;
+       }
+       setUploadingReceipt(false);
+       setManualPaymentError(null);
+     }
 
      setStatus("SUBMITTING");
      setErrorMsg(null);
@@ -167,7 +207,7 @@ export function usePremiumCheckout() {
 
        const noteStr = buildCheckoutNote({
          note,
-         paymentLabel: paymentMethod === "cod" ? "Cash on Delivery" : "Online Payment",
+         paymentLabel: paymentLabel(paymentMethod),
          paymentMethod,
          requestPosMachine: false,
          lang: "en",
@@ -184,8 +224,10 @@ export function usePremiumCheckout() {
          address: addressSnapshot,
          payment: {
            method: paymentMethod,
-           label: paymentMethod === "cod" ? "Cash on Delivery" : "Online Payment",
+           label: paymentLabel(paymentMethod),
            requestPosMachine: false,
+           transferNumber: manual ? transferNumber.trim() : undefined,
+           paymentProofUrl: manual ? paymentProofUrl : undefined,
          },
          promoCode: promoCode || undefined,
          note: noteStr,
@@ -200,7 +242,18 @@ export function usePremiumCheckout() {
        };
 
        const result = await createCheckoutOrder(command);
-       
+
+       if (manual && paymentProofUrl && (paymentMethod === "vodafone" || paymentMethod === "instapay")) {
+         const needsPatch = result.status !== "payment_pending" || result.paymentStatus !== "pending_verification";
+         if (needsPatch) {
+           await patchOrderManualPayment(
+             result.orderId,
+             { transferNumber: transferNumber.trim(), paymentProofUrl },
+             paymentMethod,
+           );
+         }
+       }
+
        setPlacedOrderId(result.orderId);
        clearCart(); // Safely wipe cart ONLY on success
        setStatus("SUCCESS");
@@ -208,7 +261,7 @@ export function usePremiumCheckout() {
         setStatus("FAILED");
         setErrorMsg(e instanceof CheckoutRequestError ? e.message : "Failed to place order. Please try again.");
       }
-  }, [canSubmit, user, selectedAddress, paymentMethod, items, pricing, note, promoCode, clearCart, needsPrescription, selectedPrescriptionIds]);
+  }, [canSubmit, user, selectedAddress, paymentMethod, items, pricing, note, promoCode, clearCart, needsPrescription, selectedPrescriptionIds, transferNumber, receiptUri]);
 
   return {
     status,
@@ -219,6 +272,12 @@ export function usePremiumCheckout() {
     isAddressValid,
     paymentMethod,
     setPaymentMethod,
+    transferNumber,
+    setTransferNumber,
+    receiptUri,
+    handlePickReceipt,
+    manualPaymentError,
+    uploadingReceipt,
     note,
     setNote,
     promoCode,

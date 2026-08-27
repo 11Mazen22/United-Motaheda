@@ -3,7 +3,7 @@
  * spectacle. Calm, trustworthy step progression; the only moment of real
  * visual emphasis is the final "Place Order" commit action.
  */
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { View, StyleSheet, ScrollView, Pressable, Platform, KeyboardAvoidingView } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -18,6 +18,9 @@ import { formatPrice } from "@/utils/format";
 import { useAuth } from "@/features/auth";
 
 import { usePremiumCheckout } from "@/features/checkout/hooks/usePremiumCheckout";
+import { isManualWalletPayment } from "@/features/checkout";
+import { getPaymentMethodConfigs } from "@/features/checkout/constants";
+import { ManualPaymentPanel } from "@/features/payment";
 import { useCartStore } from "@/stores/cart";
 import { AuthGateModal } from "@/features/checkout/components/AuthGateModal";
 import { AddressFormDrawer } from "@/features/addresses/components/AddressFormDrawer";
@@ -221,6 +224,12 @@ export default function CheckoutScreen() {
     setSelectedAddressId,
     paymentMethod,
     setPaymentMethod,
+    transferNumber,
+    setTransferNumber,
+    receiptUri,
+    handlePickReceipt,
+    manualPaymentError,
+    uploadingReceipt,
     submit,
     pricing,
     errorMsg,
@@ -234,6 +243,7 @@ export default function CheckoutScreen() {
 
   const setShippingFee = useCartStore(s => s.setShippingFee);
   const addAddress = useAddressStore(s => s.add);
+  const paymentMethodConfigs = useMemo(() => getPaymentMethodConfigs(theme), [theme]);
 
   const [activeStep, setActiveStep] = useState<1 | 2 | 3 | 4>(1);
   const [isAddressDrawerOpen, setIsAddressDrawerOpen] = useState(false);
@@ -483,31 +493,44 @@ export default function CheckoutScreen() {
              isActive={activeStep === 3}
              isCompleted={activeStep > 3}
              onEdit={() => setActiveStep(3)}
-             summary={paymentMethod === "cod" ? t("checkout.cod", "Cash on Delivery") : t("checkout.card", "Credit / Debit Card")}
+             summary={t(paymentMethodConfigs.find((m) => m.id === paymentMethod)?.titleKey ?? "checkout.methodCodTitle")}
            >
-             <Pressable onPress={() => { Haptics.selectionAsync(); setPaymentMethod("cod"); }} style={[styles.methodCard, { borderColor: paymentMethod === "cod" ? theme.colors.brand.primary : theme.colors.border.default, backgroundColor: paymentMethod === "cod" ? theme.colors.brand.primaryLight : theme.colors.canvas.surface, flexDirection: flexRow(IS_RTL) }]}>
-                <View style={[styles.methodIconWell, { backgroundColor: paymentMethod === "cod" ? theme.colors.canvas.surface : theme.colors.canvas.surfaceMuted }]}>
-                  <Ionicons name="cash-outline" size={22} color={paymentMethod === "cod" ? theme.colors.brand.primary : theme.colors.text.secondary} />
+             {paymentMethodConfigs.map((config) => (
+               <Pressable
+                 key={config.id}
+                 onPress={() => { Haptics.selectionAsync(); setPaymentMethod(config.id); }}
+                 style={[styles.methodCard, { borderColor: paymentMethod === config.id ? config.color : theme.colors.border.default, backgroundColor: paymentMethod === config.id ? config.bg : theme.colors.canvas.surface, flexDirection: flexRow(IS_RTL) }]}
+               >
+                <View style={[styles.methodIconWell, { backgroundColor: paymentMethod === config.id ? theme.colors.canvas.surface : theme.colors.canvas.surfaceMuted }]}>
+                  <Ionicons name={config.icon} size={22} color={paymentMethod === config.id ? config.color : theme.colors.text.secondary} />
                 </View>
                 <View style={{ flex: 1, paddingHorizontal: 16 }}>
-                   <Text variant="body" weight="bold" style={{ color: paymentMethod === "cod" ? theme.colors.brand.primary : theme.colors.text.primary, textAlign: TEXT_START }}>{t("checkout.cod", "Cash on Delivery")}</Text>
-                   <Text variant="caption" style={{ color: paymentMethod === "cod" ? theme.colors.brand.primary : theme.colors.text.secondary, textAlign: TEXT_START }}>{t("checkout.payAtDoor", "Pay when you receive your order")}</Text>
+                   <Text variant="body" weight="bold" style={{ color: paymentMethod === config.id ? config.color : theme.colors.text.primary, textAlign: TEXT_START }}>{t(config.titleKey)}</Text>
+                   <Text variant="caption" style={{ color: paymentMethod === config.id ? config.color : theme.colors.text.secondary, textAlign: TEXT_START }}>{t(config.descKey)}</Text>
                 </View>
-                {paymentMethod === "cod" && <Ionicons name="checkmark-circle" size={24} color={theme.colors.brand.primary} />}
-             </Pressable>
+                {paymentMethod === config.id && <Ionicons name="checkmark-circle" size={24} color={config.color} />}
+               </Pressable>
+             ))}
 
-              <Pressable onPress={() => { Haptics.selectionAsync(); setPaymentMethod("online"); }} style={[styles.methodCard, { borderColor: paymentMethod === "online" ? theme.colors.brand.primary : theme.colors.border.default, backgroundColor: paymentMethod === "online" ? theme.colors.brand.primaryLight : theme.colors.canvas.surface, flexDirection: flexRow(IS_RTL) }]}>
-                 <View style={[styles.methodIconWell, { backgroundColor: paymentMethod === "online" ? theme.colors.canvas.surface : theme.colors.canvas.surfaceMuted }]}>
-                   <Ionicons name="card-outline" size={22} color={paymentMethod === "online" ? theme.colors.brand.primary : theme.colors.text.secondary} />
-                 </View>
-                 <View style={{ flex: 1, paddingHorizontal: 16 }}>
-                    <Text variant="body" weight="bold" style={{ color: paymentMethod === "online" ? theme.colors.brand.primary : theme.colors.text.primary, textAlign: TEXT_START }}>{t("checkout.card", "Credit / Debit Card")}</Text>
-                    <Text variant="caption" style={{ color: paymentMethod === "online" ? theme.colors.brand.primary : theme.colors.text.secondary, textAlign: TEXT_START }}>{t("checkout.paySecurely", "Pay securely via Stripe")}</Text>
-                 </View>
-                 {paymentMethod === "online" && <Ionicons name="checkmark-circle" size={24} color={theme.colors.brand.primary} />}
-              </Pressable>
+             {isManualWalletPayment(paymentMethod) && (
+               <View style={{ marginTop: 4, marginBottom: 8 }}>
+                 <ManualPaymentPanel
+                   transferNumber={transferNumber}
+                   onTransferNumberChange={setTransferNumber}
+                   receiptUri={receiptUri}
+                   onPickReceipt={handlePickReceipt}
+                   uploading={uploadingReceipt}
+                   error={manualPaymentError}
+                 />
+               </View>
+             )}
 
-             <Button label={t("checkout.reviewOrder", "Review Order")} onPress={() => setActiveStep(4)} style={{ marginTop: 16 }} />
+             <Button
+               label={t("checkout.reviewOrder", "Review Order")}
+               onPress={() => setActiveStep(4)}
+               disabled={isManualWalletPayment(paymentMethod) && (!transferNumber.trim() || !receiptUri)}
+               style={{ marginTop: 16 }}
+             />
            </StepAccordion>
 
            <StepAccordion
