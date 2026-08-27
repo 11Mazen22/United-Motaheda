@@ -639,6 +639,8 @@
         "timeLeft": "Time Left",
         "flashEnds": "Ends at midnight",
         "flashTitle": "Today's Deals",
+        "flashEmptyTitle": "New deals are on the way",
+        "flashEmptySubtitle": "We're lining up today's best prices — check back shortly.",
         "dailyEditEyebrow": "Today's Edit",
         "dailyEditTitle": "Hand-picked for you",
         "dailyEditHeroLead": "Pharmacist's choice",

@@ -291,6 +291,8 @@
         "timeLeft": "الوقت المتبقي",
         "flashEnds": "ينتهي في آخر اليوم",
         "flashTitle": "عروض اليوم",
+        "flashEmptyTitle": "عروض جديدة قريباً",
+        "flashEmptySubtitle": "نجهّز أفضل أسعار اليوم الآن — تابعنا قريباً.",
         "dailyEditEyebrow": "اختيار اليوم",
         "dailyEditTitle": "مختارة بعناية",
         "dailyEditHeroLead": "اختيار الصيدلي",

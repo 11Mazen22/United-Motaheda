@@ -470,7 +470,45 @@ export const FlashSaleSection = memo(function FlashSaleSection({
 
 
 
-  if (items.length === 0) return null;
+  if (items.length === 0) return (
+
+    <View style={sectionStyles.wrap}>
+
+      <HomeSectionHeader eyebrow={t("home.flashEnds")} title={t("home.flashTitle")} icon="flash" accent={theme.colors.status.error} />
+
+      <View style={{ paddingHorizontal: pagePad }}>
+
+        <View style={[s.emptyCard, { backgroundColor: theme.colors.canvas.surface, borderColor: theme.colors.border.default }]}>
+
+          <View style={[s.emptyIconRing, { backgroundColor: `${theme.colors.status.error}14` }]}>
+
+            <Ionicons name="flash-outline" size={22} color={theme.colors.status.error} />
+
+          </View>
+
+          <View style={{ flex: 1, gap: 2 }}>
+
+            <UIText weight="bold" style={[s.emptyTitle, { color: theme.colors.text.primary, textAlign: TEXT_START }]}>
+
+              {t("home.flashEmptyTitle")}
+
+            </UIText>
+
+            <UIText style={[s.emptySubtitle, { color: theme.colors.text.secondary, textAlign: TEXT_START }]}>
+
+              {t("home.flashEmptySubtitle")}
+
+            </UIText>
+
+          </View>
+
+        </View>
+
+      </View>
+
+    </View>
+
+  );
 
 
 
@@ -803,6 +841,58 @@ const s = StyleSheet.create({
     width:     166,
 
     marginEnd: 12,
+
+  },
+
+
+
+  // Empty state (no active on-sale products)
+
+  emptyCard: {
+
+    flexDirection:     flexRow(IS_RTL),
+
+    alignItems:        "center",
+
+    gap:               12,
+
+    padding:           16,
+
+    borderRadius:      20,
+
+    borderWidth:       1,
+
+  },
+
+  emptyIconRing: {
+
+    width:           44,
+
+    height:          44,
+
+    borderRadius:    22,
+
+    alignItems:      "center",
+
+    justifyContent:  "center",
+
+    flexShrink:      0,
+
+  },
+
+  emptyTitle: {
+
+    fontSize:   14,
+
+    lineHeight: 19,
+
+  },
+
+  emptySubtitle: {
+
+    fontSize:   12,
+
+    lineHeight: 17,
 
   },
 
