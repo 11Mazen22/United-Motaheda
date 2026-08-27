@@ -95,7 +95,7 @@ function TabBarIcon({ item, focused, tone }: { item: TabBarItemConfig; focused: 
  * Used by every persona/app's tab navigation via `tabBar={(props) => ...}`.
  */
 export function AnimatedTabBar({ state, navigation, items, barHeight, style }: AnimatedTabBarProps): React.ReactElement {
-  const { theme, isRTL, isDark } = useTheme();
+  const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const isTablet = width >= 600;
@@ -215,7 +215,7 @@ export function ScreenHeader({
     <View
       style={[
         navStyles.headerContainer,
-        { flexDirection: isRTL ? "row-reverse" : "row" },
+        { flexDirection: "row" },
         !transparent && { backgroundColor: theme.colors.canvas.surface, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border.default },
         style,
       ]}

@@ -56,11 +56,11 @@ export function Toast(props: ToastProps): React.ReactElement {
   useEffect(() => { if (!props.item) { imperativeEnqueue = enqueue; return () => { if (imperativeEnqueue === enqueue) imperativeEnqueue = undefined; }; } }, [enqueue, props.item]);
   const item = props.item ?? standalone;
   useEffect(() => { if (!props.item && standalone) { const timer = setTimeout(() => setStandalone(undefined), standalone.duration); return () => clearTimeout(timer); } }, [props.item, standalone]);
-  const insets = useSafeAreaInsets(); const { theme, isRTL } = useTheme();
+  const insets = useSafeAreaInsets(); const { theme } = useTheme();
   if (!item) return <></>;
   const color = item.type === "success" ? theme.colors.status.success : item.type === "error" ? theme.colors.status.error : item.type === "warning" ? theme.colors.status.warning : theme.colors.status.info;
   const dismiss = props.onDismiss ?? (() => setStandalone(undefined));
-  return <Animated.View entering={item.position === "top" ? SlideInUp : SlideInDown} exiting={item.position === "top" ? SlideOutUp : SlideOutDown} accessibilityRole="alert" accessibilityLiveRegion="assertive" style={[styles.toast, theme.shadows[4], item.position === "top" ? { top: insets.top + 8 } : { bottom: insets.bottom + 8 }, { backgroundColor: theme.colors.canvas.surfaceElevated, borderStartColor: color, flexDirection: isRTL ? "row-reverse" : "row" }]}><Pressable onPress={dismiss} style={styles.toastInner}><Text>{item.message}</Text></Pressable></Animated.View>;
+  return <Animated.View entering={item.position === "top" ? SlideInUp : SlideInDown} exiting={item.position === "top" ? SlideOutUp : SlideOutDown} accessibilityRole="alert" accessibilityLiveRegion="assertive" style={[styles.toast, theme.shadows[4], item.position === "top" ? { top: insets.top + 8 } : { bottom: insets.bottom + 8 }, { backgroundColor: theme.colors.canvas.surfaceElevated, borderStartColor: color, flexDirection: "row" }]}><Pressable onPress={dismiss} style={styles.toastInner}><Text>{item.message}</Text></Pressable></Animated.View>;
 }
 
 export interface ModalProps { visible: boolean; onDismiss: () => void; children: React.ReactNode; position?: "center" | "bottom"; dismissOnBackdrop?: boolean; style?: StyleProp<ViewStyle>; accessibilityLabel?: string; }

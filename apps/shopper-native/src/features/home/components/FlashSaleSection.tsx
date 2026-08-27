@@ -474,7 +474,10 @@ export const FlashSaleSection = memo(function FlashSaleSection({
 
     <View style={sectionStyles.wrap}>
 
-      <HomeSectionHeader eyebrow={t("home.flashEnds")} title={t("home.flashTitle")} icon="flash" accent={theme.colors.status.error} />
+      {/* No countdown eyebrow here — "ends today" doesn't make sense when
+          there's nothing active yet. */}
+
+      <HomeSectionHeader title={t("home.flashTitle")} icon="flash" accent={theme.colors.status.error} />
 
       <View style={{ paddingHorizontal: pagePad }}>
 
