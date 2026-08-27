@@ -1,8 +1,10 @@
-import React, { useEffect, useRef } from "react";
-import { ActivityIndicator, View } from "react-native";
+import React, { useEffect, useRef, useState } from "react";
+import { ActivityIndicator, Pressable, Text, View } from "react-native";
 import { Redirect, Stack } from "expo-router";
 import { useAuth } from "@/features/auth";
 import { useDriverRealtimeSync, useMyDriverProfile } from "@/features/driver";
+
+const STUCK_TIMEOUT_MS = 12_000;
 
 const LIVE_DRIVER_STATUSES = new Set(["APPROVED", "ACTIVE"]);
 
@@ -38,6 +40,8 @@ export default function DriverLayout() {
   // A role can't legitimately change mid-session without a fresh sign-in
   // remounting this whole tree anyway, so deciding once is safe, not stale.
   const decidedAccessRef = useRef<boolean | null>(null);
+  const [stuck, setStuck] = useState(false);
+  const [attempt, setAttempt] = useState(0);
 
   // A network hiccup (or the profile query's own bounded timeout — see
   // getMyDriverProfile) settles into isError, not isLoading, once retries
@@ -58,15 +62,40 @@ export default function DriverLayout() {
   if (decidedAccessRef.current === null && !stillDeciding) {
     decidedAccessRef.current = Boolean(user) && isDriverRole && hasLiveDriverProfile;
   }
+
+  // The retry-forever effect above deliberately never gives up on a driver's
+  // profile fetch rather than risk bouncing a real driver to the customer
+  // tabs over a connectivity blip -- but "retry forever" with a bare spinner
+  // and zero feedback is indistinguishable from a frozen/crashed app once it
+  // runs past a few seconds. Surface the actual failure after a bounded
+  // wait instead of hiding it forever behind silent retries.
+  useEffect(() => {
+    if (decidedAccessRef.current !== null) { setStuck(false); return; }
+    const id = setTimeout(() => setStuck(true), STUCK_TIMEOUT_MS);
+    return () => clearTimeout(id);
+  }, [attempt]);
+
   if (decidedAccessRef.current === null) {
-    // This can legitimately sit here for a while: the retry-forever effect
-    // above deliberately never gives up on a driver's profile fetch rather
-    // than risk bouncing a real driver to the customer tabs over a
-    // connectivity blip. Unlike index.tsx's own blank hand-off view (which
-    // is always brief and hidden behind SplashOverlay's own fixed-length
-    // animation), this state has no such time limit and no overlay masking
-    // it once the splash has already exited — a bare white view here reads
-    // as a frozen/crashed app rather than "still checking your account".
+    if (stuck) {
+      return (
+        <View style={{ flex: 1, backgroundColor: "#FFFFFF", alignItems: "center", justifyContent: "center", padding: 28, gap: 12 }}>
+          <Text style={{ fontSize: 17, fontWeight: "700", color: "#0F1724", textAlign: "center" }}>
+            {"تعذّر تحميل حسابك كسائق\nCouldn't load your driver account"}
+          </Text>
+          {profileQuery.error?.message ? (
+            <View style={{ alignSelf: "stretch", padding: 12, borderRadius: 12, backgroundColor: "#F8FAFC", borderWidth: 1, borderColor: "#E2E8F0" }}>
+              <Text selectable style={{ fontSize: 11, color: "#334155" }}>{profileQuery.error.message}</Text>
+            </View>
+          ) : null}
+          <Pressable
+            onPress={() => { setStuck(false); setAttempt((n) => n + 1); void profileQuery.refetch(); }}
+            style={{ backgroundColor: "#0891B2", paddingHorizontal: 22, paddingVertical: 13, borderRadius: 14, marginTop: 8 }}
+          >
+            <Text style={{ fontSize: 13, fontWeight: "700", color: "#fff" }}>{"↺  إعادة المحاولة / Retry"}</Text>
+          </Pressable>
+        </View>
+      );
+    }
     return (
       <View style={{ flex: 1, backgroundColor: "#FFFFFF", alignItems: "center", justifyContent: "center" }}>
         <ActivityIndicator size="large" color="#0E7E74" />
