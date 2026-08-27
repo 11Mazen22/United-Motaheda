@@ -55,7 +55,8 @@ export function usePremiumCheckout() {
   const clearCart = useCartStore(s => s.clearCart);
   
   const { user } = useAuth();
-  const addressStore = useAddressStore();
+  const addresses = useAddressStore(s => s.addresses);
+  const fetchAddresses = useAddressStore(s => s.fetch);
   const { isConnected } = useNetInfo();
 
   // 1. Initial Data Fetch & Revalidation
@@ -70,12 +71,9 @@ export function usePremiumCheckout() {
         setStatus("OFFLINE");
         return;
       }
-      if (items.length === 0 && status !== "SUCCESS") {
-         // Should not be in checkout without items, unless we just succeeded
-      }
 
       // Fetch fresh addresses
-      await addressStore.fetch(user.id);
+      await fetchAddresses(user.id);
       if (!active) return;
 
       // Revalidate cart items (Pricing & Inventory Checks)
@@ -113,9 +111,8 @@ export function usePremiumCheckout() {
     
     init();
     return () => { active = false; };
-  }, [user, isConnected, items.length, items, addressStore, selectedAddressId, status]);
-  
-  const addresses = addressStore.addresses;
+  }, [user, isConnected, items.length, items, fetchAddresses, selectedAddressId]);
+
   const selectedAddress = addresses.find(a => a.id === selectedAddressId) || null;
 
   // 2. Delivery Zone Validation (using exact web logic parity)
