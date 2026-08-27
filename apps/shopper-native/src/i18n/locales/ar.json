@@ -636,6 +636,8 @@
         "methodInstapayDesc": "تحويل عبر إنستاباي",
         "methodVodafoneTitle": "فودافون كاش",
         "methodVodafoneDesc": "تحويل عبر فودافون كاش",
+        "methodOnlineTitle": "الدفع الإلكتروني",
+        "methodOnlineDesc": "الدفع الإلكتروني",
         "methodRecommended": "موصى به",
         "methodComingSoon": "قريباً",
         "paymentLink": "رابط دفع إلكتروني",

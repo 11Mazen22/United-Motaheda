@@ -401,6 +401,8 @@
         "methodInstapayDesc": "Transfer via InstaPay",
         "methodVodafoneTitle": "Vodafone Cash",
         "methodVodafoneDesc": "Transfer via Vodafone Cash",
+        "methodOnlineTitle": "Online Payment",
+        "methodOnlineDesc": "Online Payment",
         "methodRecommended": "Recommended",
         "methodComingSoon": "Coming Soon",
         "paymentLink": "Online payment link",
