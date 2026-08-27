@@ -1927,7 +1927,9 @@
         "filterAll":              "الكل",
         "clearFilters":           "مسح",
         "noMatchingOrders":       "لا توجد طلبات مطابقة",
+        "noMatchingResults":      "لا توجد نتائج مطابقة",
         "tryDifferentSearch":     "جرّب بحثًا مختلفًا أو امسح عوامل التصفية.",
+        "rxSearchPlaceholder":    "ابحث بالاسم أو رقم الوصفة أو العميل…",
 
         "sectionNeedsAttention":  "يحتاج إلى انتباه",
         "sectionInProgress":      "قيد التحضير",

@@ -8,11 +8,13 @@ import {
 } from "react";
 import {
   ArrowPathIcon,
+  BuildingStorefrontIcon,
   CheckBadgeIcon,
   ChevronDownIcon,
   EllipsisVerticalIcon,
   LockClosedIcon,
   LockOpenIcon,
+  MapPinIcon,
   PlusIcon,
   ShieldCheckIcon,
   ShieldExclamationIcon,
@@ -52,10 +54,12 @@ import {
   fetchLastSignInBatch,
   fetchUsers,
   lockAccount,
+  setPharmacistBranch,
   unlockAccount,
   type AdminUser,
   type LastSignInInfo,
 } from "../../services/adminUsersApi";
+import { useBranches } from "../hooks/useBranches";
 import { toast } from "sonner";
 import {
   ROLE_VALUES,
@@ -197,6 +201,24 @@ function RoleBadge({ role, lang }: { role: string; lang: Language }) {
   );
 }
 
+function BranchBadge({ label, lang }: { label: string | null; lang: Language }) {
+  const isArabic = lang === "ar";
+  if (!label) {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-md border border-dashed border-slate-200 px-2 py-0.5 text-[11px] font-semibold text-slate-400">
+        <MapPinIcon className="h-3 w-3" />
+        {isArabic ? "كل الفروع" : "All branches"}
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1 rounded-md border border-sky-200 bg-sky-50 px-2 py-0.5 text-[11px] font-bold text-sky-700">
+      <BuildingStorefrontIcon className="h-3 w-3" />
+      {label}
+    </span>
+  );
+}
+
 function StatusBadge({ status, lang }: { status: string; lang: Language }) {
   const dot =
     status === "Suspended" ? "bg-rose-500" : status === "Inactive" ? "bg-amber-400" : "bg-emerald-500";
@@ -208,6 +230,148 @@ function StatusBadge({ status, lang }: { status: string; lang: Language }) {
   );
 }
 
+// ─── Branch assignment dialog ──────────────────────────────────────────────────
+// Only real UI on top of set_pharmacist_branch() (20260827090000) — until now
+// it could only be called by hand through the Supabase SQL editor, so branch
+// scoping sat dormant. "All branches" (branchId = null) is a first-class,
+// explicit option here, not just an absence — it's the deliberate default
+// every pharmacist starts in.
+
+function AssignBranchDialog({
+  member,
+  isArabic,
+  onClose,
+  onSaved,
+}: {
+  member: AdminUser | null;
+  isArabic: boolean;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const { data: branches = [], isLoading: branchesLoading } = useBranches();
+  const [selected, setSelected] = useState<string>("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    setSelected(member?.branchId ?? "");
+    setError("");
+  }, [member]);
+
+  if (!member) return null;
+
+  const currentLabel = member.branchId
+    ? branches.find((b) => b.id === member.branchId)
+    : null;
+
+  const handleSave = async () => {
+    setSaving(true);
+    setError("");
+    try {
+      await setPharmacistBranch(member.id, selected || null);
+      toast.success(
+        isArabic
+          ? `تم تحديث فرع ${member.fullName || "الصيدلي"} بنجاح`
+          : `${member.fullName || "Pharmacist"}'s branch has been updated`,
+      );
+      onSaved();
+      onClose();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Failed to update branch.";
+      setError(msg);
+      toast.error(msg);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open={Boolean(member)} onOpenChange={(open) => !saving && !open && onClose()}>
+      <DialogContent className="max-w-md overflow-hidden rounded-2xl border-0 bg-white p-0 shadow-[0_32px_80px_-24px_rgba(15,23,42,0.45)]">
+        <DialogHeader className="relative overflow-hidden bg-gradient-to-br from-slate-950 via-sky-900 to-sky-700 px-6 py-6 text-start">
+          <div
+            className="pointer-events-none absolute inset-0 opacity-25"
+            style={{ backgroundImage: "radial-gradient(circle at 1px 1px, rgba(255,255,255,.35) 1px, transparent 0)", backgroundSize: "22px 22px" }}
+          />
+          <div className="relative flex items-center gap-4">
+            <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-white/20 bg-white/10 text-white shadow-lg backdrop-blur-md">
+              <BuildingStorefrontIcon className="h-6 w-6" />
+            </span>
+            <div className="min-w-0">
+              <DialogTitle className="text-lg font-black tracking-tight text-white">
+                {isArabic ? "تعيين الفرع" : "Assign branch"}
+              </DialogTitle>
+              <DialogDescription className="mt-1 truncate text-sm text-sky-50/80">
+                {member.fullName || member.email}
+              </DialogDescription>
+            </div>
+          </div>
+        </DialogHeader>
+
+        <div className="space-y-4 px-6 py-5">
+          <p className="text-sm leading-6 text-slate-500">
+            {isArabic
+              ? "يحدد هذا الفرع طابور الطلبات الذي يراه هذا الصيدلي. اختر \"كل الفروع\" لإبقائه على قائمة الطلبات المشتركة الحالية."
+              : "This determines which branch's order queue this pharmacist sees. Choose \"All branches\" to keep them on the current shared queue."}
+          </p>
+
+          <div className="grid gap-1.5">
+            <label htmlFor="assign-branch-select" className="text-sm font-semibold text-slate-700">
+              {isArabic ? "الفرع" : "Branch"}
+            </label>
+            <div className="relative">
+              <select
+                id="assign-branch-select"
+                value={selected}
+                onChange={(e) => setSelected(e.target.value)}
+                disabled={branchesLoading}
+                className="h-11 w-full appearance-none rounded-2xl border border-slate-200 bg-white px-4 pe-11 text-sm font-semibold text-slate-700 outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-500/10 disabled:opacity-60"
+              >
+                <option value="">{isArabic ? "كل الفروع (غير محدد)" : "All branches (unassigned)"}</option>
+                {branches.map((b) => (
+                  <option key={b.id} value={b.id}>{isArabic ? b.nameAr : b.nameEn}</option>
+                ))}
+              </select>
+              <ChevronDownIcon className="pointer-events-none absolute end-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            </div>
+            {currentLabel && (
+              <p className="text-xs text-slate-400">
+                {isArabic ? `الفرع الحالي: ${currentLabel.nameAr}` : `Current branch: ${currentLabel.nameEn}`}
+              </p>
+            )}
+          </div>
+
+          {error && (
+            <div role="alert" className="flex items-start gap-2.5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+              <XCircleIcon className="mt-0.5 h-5 w-5 shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
+        </div>
+
+        <DialogFooter className="flex-row items-center justify-end gap-3 border-t border-slate-200 bg-white px-6 py-4">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={saving}
+            className="inline-flex h-10 min-w-24 items-center justify-center rounded-2xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {isArabic ? "إلغاء" : "Cancel"}
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleSave()}
+            disabled={saving}
+            className="inline-flex h-10 min-w-32 items-center justify-center gap-2 rounded-2xl bg-sky-700 px-5 text-sm font-black text-white shadow-sm shadow-sky-200 transition hover:bg-sky-800 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {saving ? <ArrowPathIcon className="h-4 w-4 animate-spin" /> : <BuildingStorefrontIcon className="h-4 w-4" />}
+            {saving ? (isArabic ? "جارٍ الحفظ…" : "Saving…") : (isArabic ? "حفظ" : "Save")}
+          </button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
@@ -239,6 +403,16 @@ export default function StaffManager() {
   const [form, setForm] = useState<StaffFormState>(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
+  const [branchDialogMember, setBranchDialogMember] = useState<AdminUser | null>(null);
+  const { data: branches = [] } = useBranches();
+  const branchLabelFor = useCallback(
+    (branchId: string | null) => {
+      if (!branchId) return null;
+      const branch = branches.find((b) => b.id === branchId);
+      return branch ? (isArabic ? branch.nameAr : branch.nameEn) : branchId;
+    },
+    [branches, isArabic],
+  );
 
   // ── Load staff (server-paginated, reuses adminUsersApi.fetchUsers) ─────────
   const loadStaff = useCallback(async () => {
@@ -377,6 +551,9 @@ export default function StaffManager() {
         role: detailMember.role,
         status: detailMember.status,
         createdAt: detailMember.createdAt,
+        branchLabel: detailMember.role === "pharmacist"
+          ? (branchLabelFor(detailMember.branchId) ?? (isArabic ? "كل الفروع" : "All branches"))
+          : undefined,
       }
     : null;
 
@@ -538,6 +715,7 @@ export default function StaffManager() {
                       </div>
                       <div className="mt-3 flex flex-wrap items-center gap-2">
                         <RoleBadge role={member.role} lang={lang} />
+                        {member.role === "pharmacist" && <BranchBadge label={branchLabelFor(member.branchId)} lang={lang} />}
                         <span className="text-[11px] text-slate-400">
                           {isArabic ? "آخر نشاط: " : "Last active: "}{fmtRelativeDate(lastSignIn.get(member.id)?.lastSignInAt, lang)}
                         </span>
@@ -603,7 +781,12 @@ export default function StaffManager() {
                               </div>
                             </button>
                           </TableCell>
-                          <TableCell className="px-4 py-3"><RoleBadge role={member.role} lang={lang} /></TableCell>
+                          <TableCell className="px-4 py-3">
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <RoleBadge role={member.role} lang={lang} />
+                              {member.role === "pharmacist" && <BranchBadge label={branchLabelFor(member.branchId)} lang={lang} />}
+                            </div>
+                          </TableCell>
                           <TableCell className="px-4 py-3 text-sm text-slate-600" dir="ltr">{member.phone}</TableCell>
                           <TableCell className="px-4 py-3"><StatusBadge status={member.status} lang={lang} /></TableCell>
                           <TableCell className="px-4 py-3 text-xs text-slate-500">{fmtRelativeDate(lastSignIn.get(member.id)?.lastSignInAt, lang)}</TableCell>
@@ -621,6 +804,14 @@ export default function StaffManager() {
                                     {isArabic ? `تعيين كـ${r.ar}` : `Set as ${r.en}`}
                                   </DropdownMenuItem>
                                 ))}
+                                {member.role === "pharmacist" && (
+                                  <>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem className="gap-2" onClick={() => setBranchDialogMember(member)}>
+                                      <BuildingStorefrontIcon className="h-4 w-4" />{isArabic ? "تعيين الفرع" : "Assign branch"}
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
                                 <DropdownMenuSeparator />
                                 {member.status !== "Suspended" ? (
                                   <DropdownMenuItem className="gap-2 text-rose-600 focus:text-rose-700" onClick={() => setPendingAction({ kind: "status", member, nextStatus: "Suspended" })}>
@@ -663,6 +854,26 @@ export default function StaffManager() {
         lang={lang}
         roleLabel={detailMember ? getRoleLabel(detailMember.role, lang) : ""}
         statusBadge={detailMember ? <StatusBadge status={detailMember.status} lang={lang} /> : null}
+        actions={
+          detailMember?.role === "pharmacist" ? (
+            <button
+              type="button"
+              onClick={() => setBranchDialogMember(detailMember)}
+              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-sky-200 bg-sky-50 px-3 text-sm font-bold text-sky-700 transition hover:bg-sky-100"
+            >
+              <BuildingStorefrontIcon className="h-4 w-4" />
+              {isArabic ? "تعيين الفرع" : "Assign branch"}
+            </button>
+          ) : undefined
+        }
+      />
+
+      {/* Branch assignment dialog */}
+      <AssignBranchDialog
+        member={branchDialogMember}
+        isArabic={isArabic}
+        onClose={() => setBranchDialogMember(null)}
+        onSaved={refreshAll}
       />
 
       {/* Confirm dialog for role / status / lock changes */}

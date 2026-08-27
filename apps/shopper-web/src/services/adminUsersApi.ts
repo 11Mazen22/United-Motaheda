@@ -10,6 +10,10 @@ export interface AdminUser {
   status: 'Active' | 'Inactive' | 'Suspended';
   createdAt: string;
   suspensionInfo?: ActiveSuspensionInfo;
+  /** Which branch a pharmacist is staffed at (see
+   * supabase/migrations/20260827090000_pharmacist_backend_fixes.sql).
+   * Meaningless for other roles; null means unassigned (sees every branch). */
+  branchId: string | null;
 }
 
 export interface ActiveSuspensionInfo {
@@ -79,6 +83,7 @@ type ProfileRow = {
   role: string;
   status: string;
   created_at: string;
+  branch_id: string | null;
 };
 
 type SuspensionRow = {
@@ -99,6 +104,7 @@ function rowToAdminUser(row: ProfileRow): AdminUser {
     role: row.role as AdminUser['role'],
     status: row.status as AdminUser['status'],
     createdAt: row.created_at,
+    branchId: row.branch_id,
   };
 }
 
@@ -155,7 +161,7 @@ export async function fetchUsers(options: FetchUsersOptions = {}): Promise<Fetch
   const offset = (page - 1) * perPage;
 
   const { data, error: dataError } = await applyProfileFilters(
-    supabase.from('profiles').select('id, email, full_name, phone, role, status, created_at'),
+    supabase.from('profiles').select('id, email, full_name, phone, role, status, created_at, branch_id'),
     options,
   )
     .order(sortBy, { ascending: sortDir === 'asc' })
@@ -367,6 +373,19 @@ export async function changeUserStatus(
   if (!data || (data as { status?: string }).status !== nextStatus) {
     throw new Error('Status update did not persist.');
   }
+}
+
+/** Assigns (or clears, with branchId = null) which branch a pharmacist is
+ * staffed at — set_pharmacist_branch() (20260827090000) is role-gated to
+ * admin/manager and only accepts a target profile that is actually a
+ * pharmacist, so this can't silently no-op against the wrong row. */
+export async function setPharmacistBranch(pharmacistId: string, branchId: string | null): Promise<void> {
+  const supabase = getSupabaseClient();
+  const { error } = await supabase.rpc('set_pharmacist_branch', {
+    p_pharmacist_id: pharmacistId,
+    p_branch_id: branchId,
+  });
+  if (error) throw new Error(`[adminUsersApi.setPharmacistBranch] ${error.message}`);
 }
 
 // ─── Lock / unlock / reset sessions — thin wrappers over the

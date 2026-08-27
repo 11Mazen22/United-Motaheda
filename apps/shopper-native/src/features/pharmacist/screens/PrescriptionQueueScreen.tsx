@@ -33,7 +33,7 @@ import { useQueryClient }  from "@tanstack/react-query";
 
 
 
-import { Screen, Text as UIText, Card, Chip, EmptyState as PUIEmptyState } from "@pharmacy/ui-native";
+import { Screen, Text as UIText, Card, Chip, Input, EmptyState as PUIEmptyState } from "@pharmacy/ui-native";
 import { useTheme } from "@pharmacy/ui-native";
 
 import { kit } from "@pharmacy/ui-native";
@@ -209,8 +209,17 @@ export function PrescriptionQueueScreen(): React.ReactElement {
   const queryClient = useQueryClient();
 
   const [filter, setFilter] = useState<PrescriptionReviewStatus | "all">("pending_review");
+  const [query, setQuery] = useState("");
 
   const s = useMemo(() => StyleSheet.create({
+
+    searchBar: {
+
+      paddingHorizontal: kit.inset.screen,
+
+      paddingTop:        4,
+
+    },
 
     filterRow: {
 
@@ -270,7 +279,16 @@ export function PrescriptionQueueScreen(): React.ReactElement {
 
 
 
-  const items = rxQuery.data ?? [];
+  const allItems = rxQuery.data ?? [];
+  const items = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return allItems;
+    return allItems.filter((rx) =>
+      rx.name.toLowerCase().includes(q) ||
+      (rx.rxNumber ?? "").toLowerCase().includes(q) ||
+      rx.customerName.toLowerCase().includes(q),
+    );
+  }, [allItems, query]);
 
 
 
@@ -305,7 +323,15 @@ export function PrescriptionQueueScreen(): React.ReactElement {
 
       />
 
-
+      <View style={s.searchBar}>
+        <Input
+          value={query}
+          onChangeText={setQuery}
+          placeholder={t("pharmacist.rxSearchPlaceholder", "Search by name, Rx number, or customer…")}
+          prefixIcon={<Ionicons name="search-outline" size={16} color={theme.colors.text.muted} />}
+          returnKeyType="search"
+        />
+      </View>
 
       {/* Filter tabs */}
 
@@ -394,6 +420,18 @@ export function PrescriptionQueueScreen(): React.ReactElement {
               subtitle={t("pharmacist.rxLoadErrorSubtitle", "Couldn't load prescriptions. Check your connection.")}
 
               action={{ label: t("pharmacist.retry", "Try Again"), onPress: () => void rxQuery.refetch() }}
+
+            />
+
+          ) : query.trim().length > 0 ? (
+
+            <PUIEmptyState
+
+              illustration={<Ionicons name="search-outline" size={32} color={theme.colors.text.muted} />}
+
+              title={t("pharmacist.noMatchingResults", "No matching results")}
+
+              subtitle={t("pharmacist.tryDifferentSearch", "Try a different search or clear filters.")}
 
             />
 
