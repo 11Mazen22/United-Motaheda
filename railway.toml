@@ -1,7 +1,0 @@
-# Railway configuration for @pharmacy/api service
-[build]
-buildCommand = "npm run railway:build:api"
-
-[deploy]
-numReplicas = 1
-startCommand = "npm run railway:start:api"
