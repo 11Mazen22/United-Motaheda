@@ -74,9 +74,9 @@ node -e "console.log('@pharmacy/ui-native:', require.resolve('@pharmacy/ui-nativ
 node -e "console.log('@pharmacy/design-tokens:', require.resolve('@pharmacy/design-tokens'))"
 
 cat > metro.config.js <<EOF
-const { getDefaultConfig } = require('expo/metro-config');
-const config = getDefaultConfig(__dirname);
-module.exports = config;
+import { getDefaultConfig } from 'expo/metro-config.js';
+const config = getDefaultConfig(process.cwd());
+export default config;
 EOF
 
 echo "==> [shopper-native] Exporting Expo web bundle…"
