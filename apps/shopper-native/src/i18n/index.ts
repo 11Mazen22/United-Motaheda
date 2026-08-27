@@ -6,6 +6,7 @@ import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 import { DevSettings, I18nManager, Platform } from "react-native";
 import * as Updates from "expo-updates";
+import RNRestart from "react-native-restart";
 import { appKV } from "@/lib/mmkv";
 import ar from "./locales/ar.json";
 import en from "./locales/en.json";
@@ -86,18 +87,33 @@ export function initI18n(): void {
   // Side-effect init runs at import; kept for explicit boot calls.
 }
 
+// A driver approved for the first time (or any account with a fresh install)
+// needs I18nManager.forceRTL()'s change to actually take visual effect on
+// Android, which only happens after a real process restart -- forceRTL()
+// only flips the flag for the NEXT launch, it never re-lays-out the current
+// one. Updates.reloadAsync() was the only mechanism here, but it silently
+// no-ops whenever Updates.isEnabled is false (any build not wired to an EAS
+// Update channel exactly right) or throws for any other reason -- caught and
+// swallowed by the try/catch below, leaving a production APK with no restart
+// at all and the app stuck rendering in the wrong direction until the user
+// manually force-closes and reopens it. react-native-restart's native
+// restart doesn't depend on expo-updates being configured at all, so it's
+// the guaranteed fallback whenever the Updates path doesn't come through.
 async function reloadApp(): Promise<void> {
+  if (Platform.OS === "web") return;
   try {
     if (!__DEV__ && Updates.isEnabled) {
       await Updates.reloadAsync();
       return;
     }
   } catch {
-    // fall through
+    // fall through to the guaranteed native restart below
   }
-  if (__DEV__ && Platform.OS !== "web") {
+  if (__DEV__) {
     DevSettings.reload();
+    return;
   }
+  RNRestart.restart();
 }
 
 export function getStoredLanguage(): AppLanguage {
