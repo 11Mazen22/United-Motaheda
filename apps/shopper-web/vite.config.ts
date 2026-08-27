@@ -20,7 +20,19 @@ function sitemapBuildPlugin() {
       const { generateSitemapFiles } = (await import(helperPath)) as {
         generateSitemapFiles: (outputDir?: string) => Promise<unknown>;
       };
-      await generateSitemapFiles(outDir);
+      try {
+        await generateSitemapFiles(outDir);
+      } catch (error) {
+        // Sitemap generation fetches live product data from Supabase and is
+        // best-effort SEO metadata, not part of the deployable app — the
+        // bundle above is already fully written to outDir by this point. A
+        // transient network failure here (e.g. a Cloudflare 5xx from
+        // Supabase) must not fail the whole production build.
+        console.warn(
+          "[sitemap-build-plugin] Skipping sitemaps: generation failed —",
+          error instanceof Error ? error.message : error,
+        );
+      }
     },
   };
 }
