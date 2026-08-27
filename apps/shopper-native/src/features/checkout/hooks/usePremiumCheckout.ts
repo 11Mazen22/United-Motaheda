@@ -2,7 +2,9 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useCartStore, selectPricing } from "@/stores/cart";
 import { useAddressStore } from "@/features/addresses";
 import { useAuth } from "@/features/auth";
+import { usePrescriptions } from "@/features/prescriptions/hooks/usePrescriptions";
 import { fetchProductById } from "@/features/products/api/productsApi";
+import { fetchPrescriptionRequiredProductIds } from "../prescriptionGate";
 import { useDeliveryQuote } from "@/features/delivery/useDeliveryQuote";
 import {
   createCheckoutOrder,
@@ -38,6 +40,9 @@ export function usePremiumCheckout() {
   const [note, setNote] = useState<string>("");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [placedOrderId, setPlacedOrderId] = useState<string | null>(null);
+  const [rxRequiredProductIds, setRxRequiredProductIds] = useState<Set<string>>(new Set());
+  const [selectedPrescriptionIds, setSelectedPrescriptionIds] = useState<string[]>([]);
+  const allPrescriptions = usePrescriptions();
 
   // Idempotency key must be preserved across retries
   const idempotencyKeyRef = useRef<string | null>(null);
@@ -89,11 +94,14 @@ export function usePremiumCheckout() {
           }
         }
       } catch {
-         // Silently allow checkout if backend product fetch fails temporarily, 
-         // but ideally we should flag it. We'll proceed so we don't hard-block 
+         // Silently allow checkout if backend product fetch fails temporarily,
+         // but ideally we should flag it. We'll proceed so we don't hard-block
          // legitimate orders on transient errors.
       }
-      
+
+      const rxIds = await fetchPrescriptionRequiredProductIds(items.map((i) => i.productId));
+      if (active) setRxRequiredProductIds(rxIds);
+
       const addresses = useAddressStore.getState().addresses;
       const defaultAddr = addresses.find(a => a.is_default) || addresses[0];
       if (defaultAddr && !selectedAddressId) {
@@ -119,7 +127,13 @@ export function usePremiumCheckout() {
   
   const isAddressValid = quote.isDeliverable;
 
-  const canSubmit = status === "READY" && selectedAddress && isAddressValid && paymentMethod && items.length > 0;
+  const rxRequiredItems = items.filter((i) => rxRequiredProductIds.has(i.productId));
+  const needsPrescription = rxRequiredItems.length > 0;
+  const approvedPrescriptions = allPrescriptions.filter((p) => p.reviewStatus === "approved");
+  const hasPrescriptionSelected = selectedPrescriptionIds.length > 0;
+
+  const canSubmit = status === "READY" && selectedAddress && isAddressValid && paymentMethod && items.length > 0
+    && (!needsPrescription || hasPrescriptionSelected);
 
   const submit = useCallback(async () => {
      if (!canSubmit) return;
@@ -146,6 +160,10 @@ export function usePremiumCheckout() {
          buildingNumber: selectedAddress.building || undefined,
          floor: selectedAddress.floor || undefined,
          apartmentNumber: selectedAddress.apartment || undefined,
+         landmark: selectedAddress.landmark || undefined,
+         deliveryInstructions: selectedAddress.delivery_instructions || undefined,
+         locationSource: selectedAddress.location_source,
+         locationAccuracyM: selectedAddress.location_accuracy_m,
          lat: selectedAddress.lat,
          lng: selectedAddress.lng,
        };
@@ -181,6 +199,7 @@ export function usePremiumCheckout() {
            unitPrice: i.product.price,
            name: i.product.nameEn || i.product.nameAr || i.product.name || "Product",
          })),
+         prescriptionIds: needsPrescription ? selectedPrescriptionIds : undefined,
        };
 
        const result = await createCheckoutOrder(command);
@@ -192,7 +211,7 @@ export function usePremiumCheckout() {
         setStatus("FAILED");
         setErrorMsg(e instanceof CheckoutRequestError ? e.message : "Failed to place order. Please try again.");
       }
-  }, [canSubmit, user, selectedAddress, paymentMethod, items, pricing, note, promoCode, clearCart]);
+  }, [canSubmit, user, selectedAddress, paymentMethod, items, pricing, note, promoCode, clearCart, needsPrescription, selectedPrescriptionIds]);
 
   return {
     status,
@@ -212,5 +231,10 @@ export function usePremiumCheckout() {
     pricing,
     errorMsg,
     placedOrderId,
+    needsPrescription,
+    rxRequiredItems,
+    approvedPrescriptions,
+    selectedPrescriptionIds,
+    setSelectedPrescriptionIds,
   };
 }

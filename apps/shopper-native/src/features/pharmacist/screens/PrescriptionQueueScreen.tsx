@@ -13,6 +13,8 @@ import {
 
   FlatList,
 
+  Pressable,
+
   RefreshControl,
 
   StyleSheet,
@@ -290,6 +292,17 @@ export function PrescriptionQueueScreen(): React.ReactElement {
 
         subtitle={t("pharmacist.prescriptionsSubtitle", { count: items.length })}
 
+        trailing={
+          <Pressable
+            onPress={() => router.push("/(pharmacist)/refills" as never)}
+            accessibilityRole="button"
+            accessibilityLabel={t("pharmacist.refillsTitle", "Refills")}
+            style={{ padding: 6 }}
+          >
+            <Ionicons name="repeat-outline" size={20} color={theme.colors.text.secondary} />
+          </Pressable>
+        }
+
       />
 
 
@@ -369,6 +382,20 @@ export function PrescriptionQueueScreen(): React.ReactElement {
               <ActivityIndicator size="large" color={theme.colors.brand.primary} />
 
             </View>
+
+          ) : rxQuery.isError ? (
+
+            <PUIEmptyState
+
+              illustration={<Ionicons name="cloud-offline-outline" size={32} color={theme.colors.text.muted} />}
+
+              title={t("errors.generic", "Something went wrong")}
+
+              subtitle={t("pharmacist.rxLoadErrorSubtitle", "Couldn't load prescriptions. Check your connection.")}
+
+              action={{ label: t("pharmacist.retry", "Try Again"), onPress: () => void rxQuery.refetch() }}
+
+            />
 
           ) : (
 

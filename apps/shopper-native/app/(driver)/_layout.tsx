@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import { View } from "react-native";
 import { Redirect, Stack } from "expo-router";
 import { useAuth } from "@/features/auth";
@@ -29,14 +29,40 @@ export default function DriverLayout() {
   // useNotificationSync is mounted once at the app root — one realtime
   // channel pair for the lifetime of the driver session, not per-screen.
   useDriverRealtimeSync(isDriverRole ? user.id : undefined);
+  // Locks the access decision the first time it's resolved. Without this,
+  // isDriverRole is recomputed live from `user` on every render, and on a
+  // churning connection `user` genuinely flips role between "driver" and
+  // "customer" a few times a second as onAuthStateChange keeps refiring —
+  // each flip toggled shouldBounce, which mounted/bounced/remounted this
+  // layout in a tight loop and crashed with "Maximum update depth exceeded".
+  // A role can't legitimately change mid-session without a fresh sign-in
+  // remounting this whole tree anyway, so deciding once is safe, not stale.
+  const decidedAccessRef = useRef<boolean | null>(null);
 
-  if (loading || (isDriverRole && profileQuery.isLoading)) {
+  // A network hiccup (or the profile query's own bounded timeout — see
+  // getMyDriverProfile) settles into isError, not isLoading, once retries
+  // are exhausted. That's "we don't know", not "not a live driver" — bouncing
+  // a real driver to the customer tabs on a connectivity blip (which is
+  // exactly the class of failure this whole app has been fighting on this
+  // connection) silently shows them the wrong app. Keep retrying quietly
+  // instead of ever treating an error as a confirmed bad status.
+  useEffect(() => {
+    if (!isDriverRole || !profileQuery.isError) return;
+    const id = setTimeout(() => void profileQuery.refetch(), 5000);
+    return () => clearTimeout(id);
+  }, [isDriverRole, profileQuery.isError, profileQuery.refetch]);
+
+  const stillDeciding = loading || (isDriverRole && (profileQuery.isLoading || profileQuery.isError));
+  const hasLiveDriverProfile = Boolean(profileQuery.data && LIVE_DRIVER_STATUSES.has(profileQuery.data.status));
+
+  if (decidedAccessRef.current === null && !stillDeciding) {
+    decidedAccessRef.current = Boolean(user) && isDriverRole && hasLiveDriverProfile;
+  }
+  if (decidedAccessRef.current === null) {
     return <View style={{ flex: 1, backgroundColor: "#FFFFFF" }} />;
   }
 
-  const hasLiveDriverProfile = Boolean(profileQuery.data && LIVE_DRIVER_STATUSES.has(profileQuery.data.status));
-
-  if (!user || !isDriverRole || !hasLiveDriverProfile) {
+  if (decidedAccessRef.current === false) {
     return <Redirect href={"/(tabs)" as never} />;
   }
 

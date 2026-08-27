@@ -126,6 +126,31 @@ const AuthContext = createContext<AuthContextValue>({
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser]       = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
+  // The role attachRole fell back to the last time its profile query
+  // actually succeeded, this session. Used so a *timeout* (not a real
+  // profile change) never overwrites a driver/pharmacist's role with the
+  // generic "customer" default — on a flaky connection a role query can
+  // time out on some auth events and succeed on others, and defaulting to
+  // "customer" every time it does made (driver)/_layout.tsx's own
+  // legitimate per-render role check bounce the user in and out of the
+  // driver section as the two kept disagreeing about the current role.
+  const lastKnownRoleRef = useRef<AuthUser["role"] | null>(null);
+  const lastKnownRoleUserIdRef = useRef<string | null>(null);
+
+  // Supabase fires onAuthStateChange for its own INITIAL_SESSION event *in
+  // addition to* the explicit getSession() call above, and again for every
+  // TOKEN_REFRESHED/reconnect — on a flaky connection those can arrive
+  // several times in a row for what is, to the app, the exact same signed-in
+  // user. setUser(next) with a freshly-constructed object on every one of
+  // those still changes the context value's reference, so every screen
+  // reading useAuth() re-renders each time — and enough of those in a tight
+  // burst is what was tripping the browser's own rapid-navigation throttle
+  // (any navigator resyncing its URL on each re-render adds up fast).
+  // Comparing by value first keeps the state (and therefore every consumer)
+  // stable across redundant events.
+  const setUserIfChanged = (next: AuthUser | null) => {
+    setUser((prev) => (prev?.id === next?.id && prev?.role === next?.role ? prev : next));
+  };
 
   useEffect(() => {
     /**
@@ -177,29 +202,63 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // spinning forever and left checkout working against a half-settled session.
     const attachRole = async (u: AuthUser | null): Promise<AuthUser | null> => {
       if (!u) return null;
+
+      // Same user we already resolved a role for this session — skip the
+      // network round-trip entirely. onAuthStateChange fires again for
+      // every TOKEN_REFRESHED/reconnect, not just real sign-ins, and on a
+      // flaky connection those can arrive several times a minute; re-running
+      // a 5s-bounded query on every single one is what was stacking up into
+      // the multi-second (sometimes 20s+) blank-screen delays reported for
+      // driver accounts. The role can't have silently changed mid-session
+      // without a fresh sign-in producing a new auth event with it already
+      // reflected server-side, so this is safe, not just fast.
+      if (lastKnownRoleUserIdRef.current === u.id && lastKnownRoleRef.current) {
+        return { ...u, role: lastKnownRoleRef.current };
+      }
+
       try {
-        const timeout = new Promise<null>((resolve) =>
+        const timeout = new Promise<"timeout">((resolve) =>
           setTimeout(() => {
-            if (__DEV__) console.warn("[auth] attachRole timed out — defaulting to customer, will retry on next auth event.");
-            resolve(null);
+            if (__DEV__) console.warn("[auth] attachRole timed out — reusing last known role, will retry on next auth event.");
+            resolve("timeout");
           }, 5000),
         );
         const query = supabase.from("profiles").select("role").eq("id", u.id).maybeSingle();
         const result = await Promise.race([query, timeout]);
+        if (result === "timeout") {
+          return { ...u, role: lastKnownRoleRef.current ?? "customer" };
+        }
         const role = normalizeRole(result?.data?.role as string | undefined);
+        lastKnownRoleRef.current = role;
+        lastKnownRoleUserIdRef.current = u.id;
         return { ...u, role };
       } catch {
-        return { ...u, role: "customer" };
+        return { ...u, role: lastKnownRoleRef.current ?? "customer" };
       }
     };
 
-    supabase.auth.getSession()
+    // getSession() reads from local storage but falls back to a network
+    // refresh call when the cached token is near/past expiry — on a flaky
+    // connection that call can hang with no internal timeout of its own,
+    // which (since setLoading(false) below never runs) leaves index.tsx's
+    // `if (authLoading) return <blank view>` gate stuck forever and the
+    // whole app permanently blank. Same bounded-race pattern as attachRole
+    // above, for the same reason: an unbounded await here doesn't just
+    // delay auth, it deadlocks the entire app shell.
+    const sessionTimeout = new Promise<{ data: { session: null } }>((resolve) =>
+      setTimeout(() => {
+        if (__DEV__) console.warn("[auth] getSession timed out — proceeding as signed-out.");
+        resolve({ data: { session: null } });
+      }, 8000),
+    );
+
+    Promise.race([supabase.auth.getSession(), sessionTimeout])
       .then(async ({ data }) => {
         const u = data.session?.user;
         const base = applyAuthUser(u);
         await reconcile(base?.id ?? null);
         const next = await attachRole(base);
-        setUser(next);
+        setUserIfChanged(next);
         if (next) { identify(next.id); setCrashUser(next.id); }
         else      { resetAnalytics(); setCrashUser(null); }
         track("app_opened", { authed: next !== null });
@@ -217,7 +276,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const base = applyAuthUser(u);
         await reconcile(base?.id ?? null);
         const next = await attachRole(base);
-        setUser(next);
+        setUserIfChanged(next);
         if (next) { identify(next.id); setCrashUser(next.id); }
         else      { resetAnalytics(); setCrashUser(null); }
       } catch (e) {
@@ -333,6 +392,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // the previous account).
     await wipeUserData();
     setUser(null);
+    // Without this, a role resolved for THIS account survives in the ref
+    // (refs aren't reset by unmounting AuthProvider — it never unmounts) and
+    // becomes the *fallback* role attachRole hands the next signed-in user on
+    // this device if their own profile query happens to time out — silently
+    // handing e.g. a driver's stale role to a customer who signs in next on
+    // the same device/tab.
+    lastKnownRoleRef.current = null;
+    lastKnownRoleUserIdRef.current = null;
     track("logout");
     resetAnalytics();
     setCrashUser(null);

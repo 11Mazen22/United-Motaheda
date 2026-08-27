@@ -4,14 +4,15 @@
  * lifetime of the session" shape. Any change to my assignments or my
  * assigned orders invalidates the manifest/offers query cache, so the task
  * list and offer screens update live instead of waiting for a manual pull-
- * to-refresh.
+ * to-refresh — and now also invalidates that specific order's own detail/
+ * assignment queries, so a driver sitting on DeliveryExecutionScreen for
+ * order X sees it update live too, not just the list screens.
  */
 
 import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase";
 import { subscribeToMyAssignments, subscribeToMyOrders } from "../realtime";
-import { invalidateDriverLists } from "./useDriverManifest";
+import { driverQueryKeys, invalidateDriverLists } from "./useDriverManifest";
 
 export function useDriverRealtimeSync(driverId: string | undefined): void {
   const queryClient = useQueryClient();
@@ -19,13 +20,19 @@ export function useDriverRealtimeSync(driverId: string | undefined): void {
   useEffect(() => {
     if (!driverId) return;
 
-    const onChange = () => invalidateDriverLists(queryClient, driverId);
-    const assignmentsChannel = subscribeToMyAssignments(driverId, onChange);
-    const ordersChannel = subscribeToMyOrders(driverId, onChange);
+    const onChange = (orderId: string | undefined) => {
+      invalidateDriverLists(queryClient, driverId);
+      if (orderId) {
+        void queryClient.invalidateQueries({ queryKey: driverQueryKeys.order(orderId) });
+        void queryClient.invalidateQueries({ queryKey: driverQueryKeys.assignmentForOrder(orderId) });
+      }
+    };
+    const assignmentsSub = subscribeToMyAssignments(driverId, onChange);
+    const ordersSub = subscribeToMyOrders(driverId, onChange);
 
     return () => {
-      supabase.removeChannel(assignmentsChannel);
-      supabase.removeChannel(ordersChannel);
+      assignmentsSub.unsubscribe();
+      ordersSub.unsubscribe();
     };
   }, [driverId, queryClient]);
 }

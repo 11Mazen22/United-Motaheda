@@ -55,9 +55,18 @@ export default function PharmacistNotificationsScreen() {
   const {
     items: notifications,
     isLoading,
+    isError,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
+    refetch,
     markRead,
     markAllRead,
   } = useNotifications(user?.id);
+
+  const onEndReached = useCallback(() => {
+    if (hasNextPage && !isFetchingNextPage) fetchNextPage();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   const handlePress = useCallback(
     (n: AppNotification) => {
@@ -102,6 +111,16 @@ export default function PharmacistNotificationsScreen() {
         <View style={s.centered}>
           <ActivityIndicator size="large" color={theme.colors.brand.primary} />
         </View>
+      ) : isError && notifications.length === 0 ? (
+        <View style={s.centered}>
+          <Ionicons name="cloud-offline-outline" size={44} color={theme.colors.text.muted} />
+          <UIText variant="card-title" style={{ marginTop: 12, textAlign: "center" }}>
+            {t("errors.generic", "Something went wrong")}
+          </UIText>
+          <Pressable onPress={() => void refetch()} style={[s.markAllBtn, { marginTop: 12 }]}>
+            <UIText variant="caption" color="brand">{t("pharmacist.retry", "Try Again")}</UIText>
+          </Pressable>
+        </View>
       ) : notifications.length === 0 ? (
         <View style={s.centered}>
           <Ionicons name="notifications-off-outline" size={44} color={theme.colors.text.muted} />
@@ -115,6 +134,13 @@ export default function PharmacistNotificationsScreen() {
           keyExtractor={(n) => n.id}
           contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
           showsVerticalScrollIndicator={false}
+          onEndReached={onEndReached}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={isFetchingNextPage ? (
+            <View style={{ paddingVertical: 16 }}>
+              <ActivityIndicator color={theme.colors.brand.primary} />
+            </View>
+          ) : null}
           renderSectionHeader={({ section }) => (
             <View style={s.sectionHeader}>
               <UIText variant="caption" color="secondary">{section.title}</UIText>

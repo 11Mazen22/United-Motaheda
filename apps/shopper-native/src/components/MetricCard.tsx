@@ -17,7 +17,7 @@ export default function MetricCard({ label, value, icon, compact, inverse, accen
       <View style={s.inner}>
         <View style={[s.icon, compact && s.iconCompact]}>{icon}</View>
         <View style={{ flex: 1 }}>
-          <UIText variant="caption" color={inverse ? undefined : "secondary"}>{label}</UIText>
+          <UIText variant="caption" style={inverse ? { color: "rgba(255,255,255,0.72)" } : undefined} color={inverse ? undefined : "secondary"}>{label}</UIText>
           <UIText variant="card-title" style={valueStyle}>{value}</UIText>
         </View>
       </View>
@@ -29,7 +29,7 @@ function getStyles(theme: NativeTheme) {
   return StyleSheet.create({
     wrap: { padding: 12, borderRadius: 12, backgroundColor: theme.colors.canvas.surface },
     compact: { padding: 8 },
-    inverse: { backgroundColor: theme.colors.text.primary },
+    inverse: { backgroundColor: theme.colors.pharmacy.navy },
     inner: { flexDirection: flexRow(IS_RTL), alignItems: "center", gap: 12 },
     icon: { width: 44, height: 44, borderRadius: 10, backgroundColor: theme.colors.canvas.surfaceMuted, alignItems: "center", justifyContent: "center" },
     iconCompact: { width: 32, height: 32, borderRadius: 8 },

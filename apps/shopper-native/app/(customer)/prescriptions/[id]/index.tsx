@@ -73,6 +73,7 @@ import { Button } from "@pharmacy/ui-native";
 import { Text } from "@pharmacy/ui-native";
 
 import { flexRow, isRtl, textAlignStart, BACK_CHEVRON } from "@/utils/layout";
+import { formatPrice } from "@/utils/format";
 
 import { useAuth } from "@/features/auth";
 
@@ -874,7 +875,7 @@ const { t, i18n } = useTranslation();
 
                   dateLabel={formatDate(r.placedAt, i18n.language)}
 
-                  egp={t("common.currency")}
+                  lang={i18n.language === "en" ? "en" : "ar"}
 
                 />
 
@@ -1469,9 +1470,9 @@ const tone = accent ?? theme.colors.text.muted;
 
 function RefillHistoryRow({
 
-  refill, label, dateLabel, egp,
+  refill, label, dateLabel, lang,
 
-}: { refill: RefillRequest; label: string; dateLabel: string; egp: string }) {
+}: { refill: RefillRequest; label: string; dateLabel: string; lang: "ar" | "en" }) {
 
   
   const { theme } = useTheme();
@@ -1540,7 +1541,7 @@ function RefillHistoryRow({
 
         <Text weight="black" style={h.total} numberOfLines={1}>
 
-          {refill.total} {egp}
+          {formatPrice(refill.total, lang)}
 
         </Text>
 

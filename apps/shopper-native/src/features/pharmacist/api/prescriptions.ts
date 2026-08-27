@@ -45,6 +45,7 @@ interface RawPrescriptionRow {
     phone:     string | null;
   } | null;
   image_path:        string | null;
+  order_prescriptions: Array<{ order_id: string }> | null;
 }
 
 function mapRow(row: RawPrescriptionRow): PharmacistPrescription {
@@ -67,13 +68,15 @@ function mapRow(row: RawPrescriptionRow): PharmacistPrescription {
     customerName:     row.profiles?.full_name ?? "—",
     customerPhone:    row.profiles?.phone ?? null,
     imagePath:        row.image_path ?? null,
+    orderIds:         (row.order_prescriptions ?? []).map((link) => link.order_id),
   };
 }
 
 const RX_SELECT =
   "id, user_id, name, dose, doctor, rx_number, refills, review_status, " +
   "submission_source, admin_notes, rejection_reason, reviewed_by, reviewed_at, " +
-  "added_at, updated_at, image_path, profiles(full_name, phone)";
+  "added_at, updated_at, image_path, profiles(full_name, phone), " +
+  "order_prescriptions(order_id)";
 
 // ─── Public API ────────────────────────────────────────────────────────────────
 
@@ -156,6 +159,35 @@ export async function countPendingPrescriptions(): Promise<number> {
 
   if (error) throw error;
   return count ?? 0;
+}
+
+/**
+ * True per-status counts across ALL prescriptions, not just the newest 50.
+ * listAllPrescriptions() is paginated for the queue UI (limit=50 by default),
+ * which made the analytics dashboard's pending/approved/rejected totals
+ * silently drop older rows once volume passed 50 — three cheap HEAD count
+ * queries instead of transferring rows just to .length them.
+ */
+export async function getPrescriptionStatusCounts(): Promise<{
+  pending: number;
+  approved: number;
+  rejected: number;
+}> {
+  const [pending, approved, rejected] = await Promise.all([
+    supabase.from("prescriptions").select("id", { count: "exact", head: true }).eq("review_status", "pending_review"),
+    supabase.from("prescriptions").select("id", { count: "exact", head: true }).eq("review_status", "approved"),
+    supabase.from("prescriptions").select("id", { count: "exact", head: true }).eq("review_status", "rejected"),
+  ]);
+
+  if (pending.error) throw pending.error;
+  if (approved.error) throw approved.error;
+  if (rejected.error) throw rejected.error;
+
+  return {
+    pending: pending.count ?? 0,
+    approved: approved.count ?? 0,
+    rejected: rejected.count ?? 0,
+  };
 }
 
 /**

@@ -1,5 +1,6 @@
 import React from "react";
 import { EmptyIllustration } from "./EmptyIllustration";
+import { OfflineIllustration } from "./OfflineIllustration";
 
 /**
  * Registry of bundled illustrations. Deliberately starts small — new entries
@@ -8,6 +9,7 @@ import { EmptyIllustration } from "./EmptyIllustration";
  */
 const registry = {
   empty: EmptyIllustration,
+  offline: OfflineIllustration,
 } as const;
 
 export type IllustrationName = keyof typeof registry;
@@ -23,4 +25,4 @@ export function Illustration({ name, size }: IllustrationProps): React.ReactElem
   return <Component size={size} />;
 }
 
-export { EmptyIllustration };
+export { EmptyIllustration, OfflineIllustration };

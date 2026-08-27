@@ -120,9 +120,13 @@ export function AnimatedTabBar({ state, navigation, items, barHeight, style }: A
   };
 
   return (
-    <View style={[navStyles.outer, theme.shadows[2], { paddingBottom: Math.max(insets.bottom, isTablet ? 8 : 6) }, style]}>
-      <BlurView intensity={60} tint={isDark ? "dark" : "light"} style={StyleSheet.absoluteFill} />
-      <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: isDark ? legacyColors.glassDark : legacyColors.glass }]} />
+    <View style={[navStyles.outer, theme.shadows[2], Platform.OS === "web" && { backgroundColor: theme.colors.canvas.surface }, { paddingBottom: Math.max(insets.bottom, isTablet ? 8 : 6) }, style]}>
+      {Platform.OS !== "web" && (
+        <>
+          <BlurView intensity={60} tint={isDark ? "dark" : "light"} style={StyleSheet.absoluteFill} />
+          <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: isDark ? legacyColors.glassDark : legacyColors.glass }]} />
+        </>
+      )}
       <View pointerEvents="none" style={[navStyles.topHairline, { backgroundColor: theme.colors.border.default }]} />
       <View style={[navStyles.inner, { height: barH, paddingHorizontal: isTablet ? 24 : 8 }]}>
         {orderedRoutes.map((route) => {

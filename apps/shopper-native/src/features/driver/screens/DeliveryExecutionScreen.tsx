@@ -1,129 +1,159 @@
 /**
- * DeliveryExecutionScreen — the driver's working view of one assigned order:
- * confirm pickup, mark delivered, or report a problem. Reuses the customer
- * order-detail screen's shared helpers (DetailSection/InfoRow/ORDER_STATUS_META)
- * instead of re-building address/item layout from scratch.
+ * DeliveryExecutionScreen — the driver's working view of one assigned order.
+ * Rebuilt around a single principle: at any moment there is exactly one
+ * correct next action, derived from features/driver/lib/deliveryStage.ts
+ * (the same state-machine helper OrderCardNew uses), and that action is the
+ * one dominant, unmissable control on screen — not one of several
+ * conditionally-rendered buttons stacked together.
+ *
+ * Sectioned per the reconstruction's "Order Details" structure: a status
+ * banner + the one next action, a stage tracker, Pickup (pharmacy) and
+ * Destination (customer) location cards (DeliveryLocationCard — shared with
+ * nothing else showing a wall of empty fields), Order contents, and a real
+ * Timeline built from the assignment's own milestone timestamps (no
+ * invented data).
  */
-import React, { useEffect, useMemo, useState } from "react";
-import { Linking, Pressable, StyleSheet, View } from "react-native";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { RefreshControl, StyleSheet, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import * as ExpoLocation from "expo-location";
+import * as Haptics from "expo-haptics";
 import { useTranslation } from "react-i18next";
-import { Screen, Text as UIText, useTheme, Badge } from "@pharmacy/ui-native";
+import { useQueryClient } from "@tanstack/react-query";
+import { Screen, Text as UIText, useTheme, Badge, Card } from "@pharmacy/ui-native";
 import { Button, kit } from "@pharmacy/ui-native";
-import MetricCard from "@/components/MetricCard";
 import {
   DetailSection,
   InfoRow,
   ORDER_STATUS_META,
 } from "@/features/orders/components/OrderDetailHelpers";
 import { useAuth } from "@/features/auth";
+import { useAppLanguage } from "@/i18n/LanguageProvider";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
 import { formatPrice } from "@/utils/format";
 import { showErrorSheet, showSuccessSheet } from "@/shared/store/appSheetStore";
-import { useDriverOrderDetail, useMyAssignmentForOrder } from "../hooks/useDriverManifest";
+import { useDriverOrderDetail, useMyAssignmentForOrder, driverQueryKeys } from "../hooks/useDriverManifest";
 import { useDriverMutations } from "../hooks/useDriverMutations";
 import { pushDriverLocation, TooFarFromDestinationError } from "../api";
-import { GpsKalmanFilter } from "../lib/GpsKalmanFilter";
+import { findBranchById } from "@/features/delivery/branches/data";
+import { useDriverLivePosition } from "../hooks/useDriverLivePosition";
+import { getDeliveryStage, getStageAction, getStageStatusLabel } from "../lib/deliveryStage";
 import { DriverScreenHeader } from "../components/DriverScreenHeader";
 import ActionDock from "../components/ActionDock";
 import ProgressTracker from "../components/ProgressTracker";
 import RouteSummary from "../components/RouteSummary";
+import DeliveryLocationCard from "../components/DeliveryLocationCard";
+import HoldToConfirmButton from "../components/HoldToConfirmButton";
 
 const IS_RTL = isRtl();
+const TEXT_START = textAlignStart(IS_RTL);
 
-// Local StatusVariant "brand" has no direct shared-Badge equivalent — map it.
 function badgeVariant(v: "success" | "warning" | "brand" | "error" | "neutral"): "success" | "warning" | "primary" | "error" | "neutral" {
   return v === "brand" ? "primary" : v;
 }
-const TEXT_START = textAlignStart(IS_RTL);
 
 export function DeliveryExecutionScreen(): React.ReactElement {
   const { t } = useTranslation();
   const { theme } = useTheme();
   const router = useRouter();
+  const { language } = useAppLanguage();
   const { orderId } = useLocalSearchParams<{ orderId: string }>();
   const { user } = useAuth();
 
   const orderQuery = useDriverOrderDetail(orderId);
   const assignmentQuery = useMyAssignmentForOrder(orderId, user?.id);
   const mutations = useDriverMutations(user?.id);
+  const queryClient = useQueryClient();
+  const [refreshing, setRefreshing] = useState(false);
 
   const s = useMemo(() => StyleSheet.create({
-    content: { paddingBottom: 40 },
-    centered: { alignItems: "center", paddingTop: 60, paddingHorizontal: 24 },
-    actions: {
+    content: { paddingBottom: 140, gap: 14 },
+    centered: { alignItems: "center", paddingTop: 60, paddingHorizontal: 24, gap: 10 },
+    section: { marginHorizontal: kit.inset.screen },
+    heroBanner: {
       marginHorizontal: kit.inset.screen,
-      marginTop: 12,
-      gap: 12,
-    },
-    commandCard: {
-      flexDirection: flexRow(IS_RTL), alignItems: "center", gap: 14,
-      marginHorizontal: kit.inset.screen, marginTop: 8, marginBottom: 16,
-      padding: 16, borderRadius: 16, backgroundColor: theme.colors.canvas.surface,
-      borderWidth: 1, borderColor: theme.colors.border.default, ...theme.shadows[1],
-    },
-    liveStatusCard: {
-      flexDirection: flexRow(IS_RTL),
-      alignItems: "center",
-      gap: 8,
-      marginHorizontal: kit.inset.screen,
-      marginBottom: 16,
-      paddingVertical: 12,
-      paddingHorizontal: 14,
-      borderRadius: 12,
+      flexDirection: flexRow(IS_RTL), alignItems: "center", gap: 12,
+      padding: 16, borderRadius: 18,
       backgroundColor: theme.colors.brand.primaryLight,
-      borderWidth: 1,
-      borderColor: theme.colors.border.default,
+      borderWidth: 1, borderColor: theme.colors.brand.primary,
     },
-    quickActions: { flexDirection: flexRow(IS_RTL), gap: 8 },
-    quickAction: { width: 52, height: 52, borderRadius: 16, alignItems: "center", justifyContent: "center", backgroundColor: theme.colors.brand.primaryLight },
-    quickActionDisabled: { opacity: 0.4 },
-    metricsRow: { flexDirection: flexRow(IS_RTL), gap: 8, paddingHorizontal: kit.inset.screen, marginTop: 8 },
+    heroIcon: { width: 44, height: 44, borderRadius: 16, alignItems: "center", justifyContent: "center", backgroundColor: theme.colors.canvas.surface },
+    doneBanner: {
+      marginHorizontal: kit.inset.screen,
+      flexDirection: flexRow(IS_RTL), alignItems: "center", gap: 12,
+      padding: 16, borderRadius: 18,
+      backgroundColor: `${theme.colors.status.success}12`,
+      borderWidth: 1, borderColor: `${theme.colors.status.success}40`,
+    },
+    metricsRow: { flexDirection: flexRow(IS_RTL), gap: 10 },
+    metricChip: { flex: 1, flexDirection: flexRow(IS_RTL), alignItems: "center", gap: 6, padding: 10, borderRadius: 12, backgroundColor: theme.colors.canvas.surfaceMuted },
+    timelineRow: { flexDirection: flexRow(IS_RTL), alignItems: "center", gap: 10, paddingVertical: 6 },
+    timelineDot: { width: 10, height: 10, borderRadius: 5 },
+    dockActions: { gap: 10 },
+    codBanner: {
+      flexDirection: flexRow(IS_RTL), alignItems: "flex-start", gap: 10,
+      padding: 14, borderRadius: 14,
+      backgroundColor: `${theme.colors.status.warning}12`,
+      borderWidth: 1, borderColor: `${theme.colors.status.warning}40`,
+    },
   }), [theme]);
 
   const order = orderQuery.data;
   const assignment = assignmentQuery.data;
   const statusMeta = order ? (ORDER_STATUS_META[order.status] ?? ORDER_STATUS_META.pending) : null;
-  const [locationSyncState, setLocationSyncState] = useState<"idle" | "syncing" | "ready" | "denied" | "error">("idle");
+  const stage = order ? getDeliveryStage(order.status, assignment) : "unknown";
+  const stageAction = getStageAction(stage);
+  const stageLabel = getStageStatusLabel(stage);
+  const [locationSyncState, setLocationSyncState] = React.useState<"idle" | "syncing" | "ready" | "denied" | "error">("idle");
+  const isCod = order?.paymentMethod === "cod";
 
-  const handlePickup = async () => {
-    if (!orderId || !assignment) return;
+  const onRefresh = useCallback(async () => {
+    if (!orderId) return;
+    setRefreshing(true);
     try {
-      await mutations.pickup.mutateAsync({ orderId, assignmentId: assignment.id });
-      showSuccessSheet(t("driver.pickupConfirmedTitle"), t("driver.pickupConfirmedBody"));
-    } catch (e) {
-      showErrorSheet(t("driver.actionFailedTitle"), e instanceof Error ? e.message : t("driver.actionFailedBody"));
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: driverQueryKeys.order(orderId) }),
+        queryClient.invalidateQueries({ queryKey: driverQueryKeys.assignmentForOrder(orderId) }),
+      ]);
+    } finally {
+      setRefreshing(false);
     }
-  };
+  }, [orderId, queryClient]);
 
-  const handleArrival = async (stage: "pharmacy" | "customer") => {
+  const handleArrivalOrPickup = async () => {
     if (!orderId || !assignment) return;
     try {
-      const permission = await ExpoLocation.requestForegroundPermissionsAsync();
-      if (permission.status !== "granted") {
-        showErrorSheet(t("driver.actionFailedTitle"), t("driver.locationPermissionRequired", "Location access is required to confirm arrival."));
-        return;
+      if (stageAction.kind === "arrive_pharmacy" || stageAction.kind === "arrive_customer") {
+        const permission = await ExpoLocation.requestForegroundPermissionsAsync();
+        if (permission.status !== "granted") {
+          showErrorSheet(t("driver.actionFailedTitle"), t("driver.locationPermissionRequired"));
+          return;
+        }
+        const position = await ExpoLocation.getCurrentPositionAsync({ accuracy: ExpoLocation.Accuracy.Balanced });
+        const coords = { lat: position.coords.latitude, lng: position.coords.longitude };
+        const arrivalStage = stageAction.kind === "arrive_pharmacy" ? "pharmacy" : "customer";
+        await mutations.arrival.mutateAsync({ orderId, assignmentId: assignment.id, stage: arrivalStage, coords });
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        showSuccessSheet(
+          arrivalStage === "pharmacy" ? t("driver.arrivedAtPharmacyTitle") : t("driver.arrivedAtCustomerTitle"),
+          arrivalStage === "pharmacy" ? t("driver.arrivedAtPharmacyBody") : t("driver.arrivedAtCustomerBody"),
+        );
+      } else if (stageAction.kind === "confirm_pickup") {
+        await mutations.pickup.mutateAsync({ orderId, assignmentId: assignment.id });
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        showSuccessSheet(t("driver.pickupConfirmedTitle"), t("driver.pickupConfirmedBody"));
       }
-      const position = await ExpoLocation.getCurrentPositionAsync({ accuracy: ExpoLocation.Accuracy.Balanced });
-      const coords = { lat: position.coords.latitude, lng: position.coords.longitude };
-
-      await mutations.arrival.mutateAsync({ orderId, assignmentId: assignment.id, stage, coords });
-      showSuccessSheet(
-        stage === "pharmacy" ? t("driver.arrivedAtPharmacyTitle", "Arrived at pharmacy") : t("driver.arrivedAtCustomerTitle", "Arrived at customer"),
-        stage === "pharmacy" ? t("driver.arrivedAtPharmacyBody", "You can now confirm pickup.") : t("driver.arrivedAtCustomerBody", "You can now complete delivery."),
-      );
     } catch (e) {
       if (e instanceof TooFarFromDestinationError) {
-        showErrorSheet(t("driver.tooFarTitle", "You're too far away"), t("driver.tooFarBody", "Get closer to the customer's location and try again."));
+        showErrorSheet(t("driver.tooFarTitle"), t("driver.tooFarBody"));
         return;
       }
       showErrorSheet(t("driver.actionFailedTitle"), e instanceof Error ? e.message : t("driver.actionFailedBody"));
     }
   };
 
-  const handleDeliver = async () => {
+  const handleCompleteDelivery = async () => {
     if (!orderId || !assignment) return;
     try {
       await mutations.deliver.mutateAsync({ orderId, assignmentId: assignment.id });
@@ -133,106 +163,101 @@ export function DeliveryExecutionScreen(): React.ReactElement {
     }
   };
 
+  const actionPending = mutations.arrival.isPending || mutations.pickup.isPending || mutations.deliver.isPending;
   const loading = orderQuery.isLoading || assignmentQuery.isLoading;
-  const canArrivePharmacy = order?.status === "ready" && assignment?.responseStatus === "accepted" && !assignment.arrivedAtPharmacy;
-  const canConfirmPickup = order?.status === "ready" && assignment?.responseStatus === "accepted" && Boolean(assignment.arrivedAtPharmacy) && !assignment.pickedUpAt;
-  const canArriveCustomer = order?.status === "out_for_delivery" && Boolean(assignment?.pickedUpAt) && !assignment?.arrivedAtCustomer;
-  const canMarkDelivered = order?.status === "out_for_delivery" && Boolean(assignment?.arrivedAtCustomer);
-  const address = order?.address.formatted || [order?.address.street, order?.address.city].filter(Boolean).join(", ");
+
   const destinationCoords = useMemo(() => {
     if (
-      typeof order?.customerLat === "number"
-      && Number.isFinite(order.customerLat)
-      && typeof order?.customerLng === "number"
-      && Number.isFinite(order.customerLng)
+      typeof order?.customerLat === "number" && Number.isFinite(order.customerLat)
+      && typeof order?.customerLng === "number" && Number.isFinite(order.customerLng)
     ) {
       return { lat: order.customerLat, lng: order.customerLng };
     }
     return null;
   }, [order?.customerLat, order?.customerLng]);
+
+  const branch = order?.branchId ? findBranchById(order.branchId) : null;
+  const branchName = branch ? (language === "ar" ? branch.nameAr : branch.nameEn) : null;
+  const branchAddress = branch ? (language === "ar" ? branch.addressAr : branch.addressEn) : null;
+  const branchCoords = branch ? { lat: branch.lat, lng: branch.lng } : null;
+  const branchPhone = branch?.phones?.[0] ?? null;
+  const activeDestCoords = stage === "to_pharmacy" || stage === "at_pharmacy" ? branchCoords : destinationCoords;
+
   const shouldBroadcastLocation =
-    Boolean(user?.id)
-    && Boolean(orderId)
-    && Boolean(assignment?.id)
-    && order?.status === "out_for_delivery";
+    Boolean(user?.id) && Boolean(orderId) && Boolean(assignment?.id) && order?.status === "out_for_delivery";
+
+  // Single shared GPS subscription (useDriverLivePosition) now backs both
+  // this screen's live distance/ETA readout below AND the periodic server
+  // push — previously each ran its own independent watcher/one-shot
+  // permission+GPS request, a duplicated-subscription pattern flagged in
+  // the driver-system audit. The push interval reads the latest smoothed
+  // fix via fixRef rather than requesting a fresh position every 20s.
+  const { fix: liveFix, permissionDenied, fixRef } = useDriverLivePosition(shouldBroadcastLocation);
 
   useEffect(() => {
+    if (permissionDenied) setLocationSyncState("denied");
+  }, [permissionDenied]);
+
+  const pushLatestFixRef = useRef<() => Promise<void>>(async () => undefined);
+  pushLatestFixRef.current = async () => {
     if (!shouldBroadcastLocation || !user?.id || !orderId) return;
-
-    let cancelled = false;
-    let intervalId: ReturnType<typeof setInterval> | null = null;
-    // One filter instance for the whole broadcast loop, not per-call — it
-    // needs successive readings over time to smooth anything; a fresh
-    // instance every 20s would just pass the raw value through unchanged.
-    const filter = new GpsKalmanFilter();
-
-    const syncCurrentLocation = async () => {
-      try {
-        setLocationSyncState((current) => (current === "ready" ? current : "syncing"));
-        const permission = await ExpoLocation.requestForegroundPermissionsAsync();
-        if (permission.status !== "granted") {
-          if (!cancelled) setLocationSyncState("denied");
-          return;
-        }
-
-        const position = await ExpoLocation.getCurrentPositionAsync({
-          accuracy: ExpoLocation.Accuracy.Balanced,
-        });
-        const smoothed = filter.update(
-          position.coords.latitude,
-          position.coords.longitude,
-          position.coords.accuracy,
-          position.timestamp,
-        );
-
-        await pushDriverLocation({
-          driver_id: user.id,
-          order_id: orderId,
-          lat: smoothed.latitude,
-          lng: smoothed.longitude,
-          accuracy_meters: position.coords.accuracy ?? undefined,
-          heading: typeof position.coords.heading === "number" ? position.coords.heading : undefined,
-          speed_kmh:
-            typeof position.coords.speed === "number"
-              ? Math.max(position.coords.speed, 0) * 3.6
-              : undefined,
-          captured_at: new Date(position.timestamp).toISOString(),
-        });
-
-        if (!cancelled) setLocationSyncState("ready");
-      } catch {
-        if (!cancelled) setLocationSyncState("error");
-      }
-    };
-
-    syncCurrentLocation();
-    intervalId = setInterval(syncCurrentLocation, 20_000);
-
-    return () => {
-      cancelled = true;
-      if (intervalId) clearInterval(intervalId);
-    };
-  }, [orderId, shouldBroadcastLocation, user?.id]);
-
-  const openNavigation = () => {
-    if (destinationCoords) {
-      void Linking.openURL(
-        `https://www.google.com/maps/dir/?api=1&destination=${destinationCoords.lat},${destinationCoords.lng}&travelmode=driving`,
-      );
-      return;
+    const fix = fixRef.current;
+    if (!fix) return;
+    try {
+      setLocationSyncState((current) => (current === "ready" ? current : "syncing"));
+      await pushDriverLocation({
+        driver_id: user.id,
+        order_id: orderId,
+        lat: fix.lat,
+        lng: fix.lng,
+        accuracy_meters: fix.accuracy,
+        heading: fix.heading,
+        speed_kmh: fix.speedKmh,
+        captured_at: fix.capturedAt,
+      });
+      setLocationSyncState("ready");
+    } catch {
+      setLocationSyncState("error");
     }
-
-    if (!address) return;
-    void Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(address)}&travelmode=driving`);
   };
 
-  const callCustomer = () => {
-    const phone = order?.address.phone?.replace(/\s/g, "");
-    if (phone) void Linking.openURL(`tel:${phone}`);
-  };
+  // Pushes once, the moment the FIRST GPS fix actually arrives, rather than
+  // waiting out the full 20s cadence below (which would otherwise leave a
+  // multi-second gap with nothing pushed right after this screen opens).
+  // Deliberately not re-run on every liveFix update — watchPositionAsync
+  // can fire every few seconds while driving, and re-pushing on each one
+  // would defeat the whole point of throttling writes to a 20s cadence.
+  const firstFixPushedRef = useRef(false);
+  useEffect(() => {
+    if (liveFix && !firstFixPushedRef.current) {
+      firstFixPushedRef.current = true;
+      void pushLatestFixRef.current();
+    }
+  }, [liveFix]);
+
+  useEffect(() => {
+    if (!shouldBroadcastLocation) return;
+    const intervalId = setInterval(() => void pushLatestFixRef.current(), 20_000);
+    return () => clearInterval(intervalId);
+  }, [shouldBroadcastLocation]);
+
+  const timelineSteps = useMemo(() => {
+    if (!assignment) return [];
+    return [
+      { key: "offered", labelKey: "driver.timelineOffered", at: assignment.offeredAt },
+      { key: "accepted", labelKey: "driver.timelineAccepted", at: assignment.respondedAt },
+      { key: "arrivedPharmacy", labelKey: "driver.timelineArrivedPharmacy", at: assignment.arrivedAtPharmacy },
+      { key: "pickedUp", labelKey: "driver.timelinePickedUp", at: assignment.pickedUpAt },
+      { key: "arrivedCustomer", labelKey: "driver.timelineArrivedCustomer", at: assignment.arrivedAtCustomer },
+      { key: "delivered", labelKey: "driver.timelineDelivered", at: assignment.deliveredAt },
+    ];
+  }, [assignment]);
 
   return (
-    <Screen edgeTop scroll background={theme.colors.canvas.background} contentStyle={s.content}>
+    <Screen
+      edgeTop scroll background={theme.colors.canvas.background} contentStyle={s.content}
+      scrollProps={{ refreshControl: <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.colors.brand.primary} /> }}
+    >
       <DriverScreenHeader
         title={`#${(orderId ?? "").slice(-8).toUpperCase()}`}
         subtitle={statusMeta ? t(statusMeta.labelKey) : undefined}
@@ -244,148 +269,141 @@ export function DeliveryExecutionScreen(): React.ReactElement {
       ) : !order ? (
         <View style={s.centered}>
           <Ionicons name="alert-circle-outline" size={36} color={theme.colors.text.muted} />
-          <UIText variant="card-title" style={{ marginTop: 10, textAlign: "center" }}>
-            {t("driver.orderNotFound")}
-          </UIText>
+          <UIText variant="card-title" style={{ textAlign: "center" }}>{t("driver.orderNotFound")}</UIText>
         </View>
       ) : (
         <>
-          {/* Compact KPI row for quick glance */}
-          <View style={s.metricsRow}>
-            <MetricCard label={t("driver.estimatedEarnings")} value={formatPrice(order?.total ?? 0)} compact />
-            <MetricCard label={t("driver.itemsCount") as string} value={String(order?.items.length ?? 0)} compact />
-          </View>
-          <View style={s.commandCard}>
-            <View style={{ flex: 1 }}>
-              <UIText variant="caption" color="brand" style={{ textAlign: TEXT_START }}>{t("driver.activeDelivery")}</UIText>
-              <UIText variant="card-title" style={{ textAlign: TEXT_START, marginTop: 4 }}>{order.address.name || "—"}</UIText>
-              <UIText variant="body-sm" color="secondary" numberOfLines={2} style={{ textAlign: TEXT_START, marginTop: 2 }}>{address || "—"}</UIText>
-              {destinationCoords ? (
-                <UIText variant="caption" color="secondary" style={{ textAlign: TEXT_START, marginTop: 6 }}>
-                  {destinationCoords.lat.toFixed(5)}, {destinationCoords.lng.toFixed(5)}
-                </UIText>
-              ) : null}
+          {stage === "delivered" ? (
+            <View style={s.doneBanner}>
+              <View style={s.heroIcon}><Ionicons name="checkmark-done-circle" size={24} color={theme.colors.status.success} /></View>
+              <View style={{ flex: 1 }}>
+                <UIText variant="card-title" style={{ textAlign: TEXT_START }}>{t("driver.deliveredTitle")}</UIText>
+                <UIText variant="body-sm" color="secondary" style={{ textAlign: TEXT_START, marginTop: 2 }}>{t("driver.deliveredBody")}</UIText>
+              </View>
             </View>
-            <View style={s.quickActions}>
-              <Pressable onPress={callCustomer} disabled={!order.address.phone} style={[s.quickAction, !order.address.phone && s.quickActionDisabled]} accessibilityRole="button" accessibilityLabel={t("driver.phone")}>
-                <Ionicons name="call-outline" size={19} color={theme.colors.brand.primary} />
-              </Pressable>
-              <Pressable onPress={openNavigation} disabled={!address} style={[s.quickAction, !address && s.quickActionDisabled]} accessibilityRole="button" accessibilityLabel={t("driver.address")}>
-                <Ionicons name="navigate-outline" size={19} color={theme.colors.brand.primary} />
-              </Pressable>
+          ) : (
+            <View style={s.heroBanner}>
+              <View style={s.heroIcon}><Ionicons name={stageAction.icon} size={22} color={theme.colors.brand.primary} /></View>
+              <View style={{ flex: 1 }}>
+                <UIText variant="caption" color="brand" style={{ textAlign: TEXT_START }}>{t(stageLabel.key, stageLabel.fallback)}</UIText>
+                <UIText variant="card-title" style={{ textAlign: TEXT_START, marginTop: 2 }}>{t(stageAction.labelKey, stageAction.fallback)}</UIText>
+              </View>
             </View>
-          </View>
-
-          <View style={s.liveStatusCard}>
-            <Ionicons
-              name={
-                locationSyncState === "ready"
-                  ? "radio-outline"
-                  : locationSyncState === "denied"
-                    ? "location-outline"
-                    : locationSyncState === "error"
-                      ? "alert-circle-outline"
-                      : "navigate-outline"
-              }
-              size={16}
-              color={
-                locationSyncState === "ready"
-                  ? theme.colors.status.success
-                  : locationSyncState === "error"
-                    ? theme.colors.status.warning
-                    : theme.colors.brand.primary
-              }
-            />
-            <UIText variant="body-sm" style={{ flex: 1, textAlign: TEXT_START }}>
-              {locationSyncState === "ready"
-                ? t("driver.liveLocationReady", "Live driver location is updating for tracking.")
-                : locationSyncState === "denied"
-                  ? t("driver.liveLocationDenied", "Location access is required for accurate tracking.")
-                  : locationSyncState === "error"
-                    ? t("driver.liveLocationError", "Live location update failed. We will retry automatically.")
-                    : t("driver.liveLocationSyncing", "Preparing navigation and live location updates.")}
-            </UIText>
-          </View>
-
-          <RouteSummary
-            driverCoords={undefined}
-            destCoords={destinationCoords ?? undefined}
-          />
+          )}
 
           <ProgressTracker
             steps={[
-              { id: "accepted", label: t("driver.statusPreparing"), done: true },
-              { id: "picked", label: t("driver.statusPickedUp"), done: order.status === "out_for_delivery" || order.status === "delivered" },
-              { id: "delivered", label: t("driver.deliveredTitle"), done: order.status === "delivered" },
+              { id: "pharmacy", label: t("driver.stageAtPharmacy", "At pharmacy"), done: ["at_pharmacy", "to_customer", "at_customer", "delivered"].includes(stage) },
+              { id: "pickedUp", label: t("driver.statusPickedUp"), done: ["to_customer", "at_customer", "delivered"].includes(stage) },
+              { id: "customer", label: t("driver.stageAtCustomer", "At customer"), done: ["at_customer", "delivered"].includes(stage) },
+              { id: "delivered", label: t("driver.deliveredTitle"), done: stage === "delivered" },
             ]}
           />
 
-          <DetailSection title={t("driver.customerSection")} icon="person-outline" delay={0}>
-            <InfoRow label={t("driver.name")} value={order.address.name || "—"} />
-            <InfoRow label={t("driver.phone")} value={order.address.phone || "—"} />
-            <InfoRow
-              label={t("driver.address")}
-              value={order.address.formatted || [order.address.street, order.address.city].filter(Boolean).join(", ") || "—"}
+          {isCod && stage !== "delivered" && (
+            <View style={s.section}>
+              <View style={s.codBanner}>
+                <Ionicons name="cash-outline" size={18} color={theme.colors.status.warning} />
+                <View style={{ flex: 1 }}>
+                  <UIText variant="label" style={{ textAlign: TEXT_START, color: theme.colors.status.warning }}>{t("driver.codReminderTitle")}</UIText>
+                  <UIText variant="caption" color="secondary" style={{ textAlign: TEXT_START, marginTop: 2 }}>
+                    {t("driver.codReminderBody", { amount: formatPrice(order.total) })}
+                  </UIText>
+                </View>
+              </View>
+            </View>
+          )}
+
+          <View style={s.section}>
+            <DeliveryLocationCard
+              kind="pharmacy"
+              title={t("driver.pickupSection", "Pickup")}
+              name={branchName}
+              formattedAddress={branchAddress}
+              zoneName={null}
+              phone={branchPhone}
+              coords={branchCoords}
             />
-            {order.address.notes ? <InfoRow label={t("driver.notes")} value={order.address.notes} /> : null}
-          </DetailSection>
+          </View>
+
+          <View style={s.section}>
+            <DeliveryLocationCard
+              kind="customer"
+              title={t("driver.destinationSection", "Destination")}
+              name={order.address.name}
+              formattedAddress={order.address.formatted || [order.address.street, order.address.city].filter(Boolean).join(", ")}
+              building={order.address.building}
+              floor={order.address.floor}
+              apartment={order.address.apartment}
+              landmark={order.address.landmark}
+              instructions={order.address.notes}
+              zoneName={order.zoneName}
+              phone={order.address.phone}
+              coords={destinationCoords}
+            />
+          </View>
+
+          {activeDestCoords && stage !== "delivered" && stage !== "unknown" && (
+            <RouteSummary
+              driverCoords={liveFix ? { lat: liveFix.lat, lng: liveFix.lng } : undefined}
+              destCoords={activeDestCoords}
+            />
+          )}
+
+          <View style={s.section}>
+            <Card padding="md">
+              <View style={s.metricsRow}>
+                <View style={s.metricChip}>
+                  <Ionicons name={locationSyncState === "ready" ? "radio-outline" : locationSyncState === "error" ? "alert-circle-outline" : "navigate-outline"} size={14} color={locationSyncState === "ready" ? theme.colors.status.success : theme.colors.brand.primary} />
+                  <UIText variant="caption" color="secondary" style={{ flex: 1 }}>
+                    {locationSyncState === "ready" ? t("driver.liveLocationReady") : locationSyncState === "denied" ? t("driver.liveLocationDenied") : locationSyncState === "error" ? t("driver.liveLocationError") : shouldBroadcastLocation ? t("driver.liveLocationSyncing") : t("driver.liveLocationInactive", "Location updates start once you're out for delivery.")}
+                  </UIText>
+                </View>
+              </View>
+            </Card>
+          </View>
 
           <DetailSection title={t("driver.itemsSection")} icon="cube-outline" delay={60}>
             {order.items.map((item) => (
-              <InfoRow
-                key={item.productId}
-                label={`${item.name} × ${item.quantity}`}
-                value={formatPrice(item.price * item.quantity)}
-              />
+              <InfoRow key={item.productId} label={`${item.name} × ${item.quantity}`} value={formatPrice(item.price * item.quantity)} />
             ))}
             <InfoRow label={t("driver.total")} value={formatPrice(order.total)} valueColor={theme.colors.brand.primary} />
           </DetailSection>
 
-          {/* Actions are now docked for reachability */}
+          {timelineSteps.length > 0 && (
+            <DetailSection title={t("driver.timelineSection", "Timeline")} icon="time-outline" delay={80}>
+              {timelineSteps.map((step) => (
+                <View key={step.key} style={s.timelineRow}>
+                  <View style={[s.timelineDot, { backgroundColor: step.at ? theme.colors.status.success : theme.colors.border.default }]} />
+                  <UIText variant="body-sm" color={step.at ? "primary" : "muted"} style={{ flex: 1, textAlign: TEXT_START }}>
+                    {t(step.labelKey)}
+                  </UIText>
+                  {step.at ? <UIText variant="caption" color="secondary">{new Date(step.at).toLocaleTimeString(language === "ar" ? "ar-EG" : "en-US", { hour: "2-digit", minute: "2-digit" })}</UIText> : null}
+                </View>
+              ))}
+            </DetailSection>
+          )}
+
           <ActionDock>
-            <View style={s.actions}>
-              {canArrivePharmacy && (
-                <Button
-                  label={t("driver.arrivedAtPharmacy", "Arrived at pharmacy")}
-                  icon="location"
-                  onPress={() => void handleArrival("pharmacy")}
-                  loading={mutations.arrival.isPending}
-                  full
-                  size="lg"
-                />
-              )}
-              {canConfirmPickup && (
-                <Button
-                  label={t("driver.confirmPickup")}
-                  icon="cube-outline"
-                  onPress={() => void handlePickup()}
-                  loading={mutations.pickup.isPending}
-                  full
-                  size="lg"
-                />
-              )}
-              {canArriveCustomer && (
-                <Button
-                  label={t("driver.arrivedAtCustomer", "Arrived at customer")}
-                  icon="location"
-                  onPress={() => void handleArrival("customer")}
-                  loading={mutations.arrival.isPending}
-                  full
-                  size="lg"
-                />
-              )}
-              {canMarkDelivered && (
-                <Button
-                  label={t("driver.markDelivered")}
-                  icon="checkmark-circle"
-                  onPress={() => void handleDeliver()}
+            <View style={s.dockActions}>
+              {stage === "at_customer" ? (
+                <HoldToConfirmButton
+                  label={t(stageAction.labelKey, stageAction.fallback)}
+                  hint={t("driver.holdToConfirm")}
+                  icon={stageAction.icon}
+                  onConfirm={() => void handleCompleteDelivery()}
                   loading={mutations.deliver.isPending}
+                />
+              ) : stage !== "delivered" && stage !== "unknown" ? (
+                <Button
+                  label={t(stageAction.labelKey, stageAction.fallback)}
+                  icon={stageAction.icon}
+                  onPress={() => void handleArrivalOrPickup()}
+                  loading={actionPending}
                   full
                   size="lg"
                 />
-              )}
-            </View>
-            <View style={{ marginTop: 8 }}>
+              ) : null}
               <Button
                 label={t("driver.reportIssue")}
                 icon="warning-outline"

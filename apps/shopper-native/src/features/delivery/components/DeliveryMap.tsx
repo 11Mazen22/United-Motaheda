@@ -269,7 +269,7 @@ function getBranchMarkerStyles(theme: NativeTheme) {
       justifyContent:    "center",
     },
     badge24h: {
-      backgroundColor: theme.colors.text.primary,
+      backgroundColor: theme.colors.pharmacy.navy,
     },
     badgePickup: {
       backgroundColor: theme.colors.brand.primaryLight,
@@ -291,7 +291,7 @@ function getBranchMarkerStyles(theme: NativeTheme) {
       bottom:            -14,
       start: "50%",
       transform:         [{ translateX: -16 }],
-      backgroundColor:   theme.colors.text.primary,
+      backgroundColor:   theme.colors.pharmacy.navy,
       paddingHorizontal: 5,
       paddingVertical:   2,
       borderRadius:      6,
@@ -724,7 +724,7 @@ function getStyles(theme: NativeTheme) {
       start: 12,
       end: 12,
       bottom:            12,
-      backgroundColor:   theme.colors.text.primary,
+      backgroundColor:   theme.colors.pharmacy.navy,
       borderRadius:      16,
       paddingHorizontal: 16,
       paddingVertical:   14,

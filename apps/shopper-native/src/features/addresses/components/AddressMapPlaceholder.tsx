@@ -64,7 +64,7 @@ import { flexRow, isRtl } from "@/utils/layout";
 
 
 
-const GEOAPIFY_KEY = "c6beba954a794cb49263d1679e4bc8bf";
+const GEOAPIFY_KEY = process.env.EXPO_PUBLIC_GEOAPIFY_KEY ?? "c6beba954a794cb49263d1679e4bc8bf";
 
 
 
@@ -289,6 +289,21 @@ export function AddressMapPlaceholder({
   const [imgError, setImgError] = useState(false);
 
   const [geoFailed, setGeoFailed] = useState(false);
+
+  // useState's initializer above only runs once, at mount — it doesn't
+  // re-run when the parent later passes different lat/lng props. That left
+  // the map stuck on the placeholder after "Use current location" or a
+  // search-suggestion pick resolved coordinates post-mount (this component
+  // had already mounted earlier with lat=lng=undefined for a new address).
+  useEffect(() => {
+
+    if (lat != null && lng != null) {
+      setCoords({ lat, lng });
+      setImgError(false);
+      setGeoFailed(false);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lat, lng]);
 
   // Auto-geocode from hint when no coords are supplied
 

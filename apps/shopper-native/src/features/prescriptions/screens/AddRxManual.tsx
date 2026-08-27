@@ -26,6 +26,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -377,7 +378,7 @@ export function AddRxManual(): React.ReactElement {
           maxLength={MAX_DIGITS}
           style={s.hiddenInput}
           accessibilityElementsHidden
-          importantForAccessibility="no-hide-descendants"
+          {...(Platform.OS === "android" ? { importantForAccessibility: "no-hide-descendants" as const } : null)}
         />
 
         {screenState === "duplicate" && (

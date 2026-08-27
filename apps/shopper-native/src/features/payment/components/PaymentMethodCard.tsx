@@ -25,7 +25,7 @@ export function PaymentMethodCard({ method, selected, onSelect }: Props) {
   const styles = useMemo(() => getStyles(theme), [theme]);
   const TYPE_COLORS: Record<string, { accent: string; bg: string }> = useMemo(() => ({
     cod:           { accent: theme.colors.status.success, bg: `${theme.colors.status.success}1A` },
-    instapay:      { accent: "#7c3aed",         bg: "#f5f3ff"             },
+    instapay:      { accent: theme.colors.tertiary.base,  bg: theme.colors.tertiary.bg            },
     vodafone_cash: { accent: theme.colors.status.error,  bg: `${theme.colors.status.error}1A`  },
   }), [theme]);
   const { t } = useTranslation();
@@ -77,7 +77,7 @@ export function PaymentMethodCard({ method, selected, onSelect }: Props) {
               </View>
 
               {/* Icon tile */}
-              <View style={[styles.iconWrap, { backgroundColor: selected ? "#fff" : colors.bg }]}>
+              <View style={[styles.iconWrap, { backgroundColor: selected ? theme.colors.canvas.surface : colors.bg }]}>
                 <Ionicons name={method.icon as IoniconsName} size={22} color={colors.accent} />
               </View>
 

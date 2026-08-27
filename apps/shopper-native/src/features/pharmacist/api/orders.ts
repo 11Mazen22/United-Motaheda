@@ -3,8 +3,10 @@
  *
  * Security model:
  *   All reads are gated by RLS policies that grant pharmacist/admin/manager
- *   SELECT on orders (see database/20260709_driver_orders_select_access.sql
- *   and the transition_order RPC which already includes 'pharmacist').
+ *   SELECT on orders (see supabase/migrations/20260827090000_pharmacist_backend_fixes.sql
+ *   for the pharmacist grant specifically — branch-scoped once a pharmacist
+ *   has a branch assigned, unscoped otherwise) and the transition_order RPC,
+ *   which restricts a pharmacist to the pre-dispatch transitions only.
  *   All writes go through transition_order() — a SECURITY DEFINER RPC that
  *   validates both the role and the legal state-machine transition server-side.
  *   The pharmacist client never bypasses this.
@@ -22,8 +24,12 @@ import type {
   PharmacistOrderItem,
   PharmacistOrderStatus,
   PharmacistTransitionTarget,
+  PharmacistDeliveryAssignment,
+  OrderTimelineEvent,
+  PharmacistDeliveryIssue,
 } from "./types";
 import { PHARMACIST_ACTIVE_STATUSES } from "./types";
+import { parseOrderAddress, parseOrderZone, ORDER_LOCATION_SELECT, type OrderLocationRow } from "@/lib/orderAddress";
 
 // ─── Raw DB row shapes ─────────────────────────────────────────────────────────
 
@@ -36,13 +42,12 @@ interface RawOrderItemRow {
   product_snapshot: Record<string, unknown>;
 }
 
-interface RawOrderRow {
+interface RawOrderRow extends OrderLocationRow {
   id:                string;
   user_id:           string | null;
   status:            string;
   customer_name:     string;
   customer_phone:    string;
-  customer_address:  Record<string, unknown> | null;
   subtotal:          number | string;
   shipping_fee:      number | string;
   total:             number | string;
@@ -56,6 +61,10 @@ interface RawOrderRow {
   updated_at:        string;
   last_status_at:    string;
   order_items:       RawOrderItemRow[];
+  order_prescriptions: Array<{
+    prescription_id: string;
+    prescriptions: { review_status: string } | null;
+  }> | null;
 }
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
@@ -82,13 +91,9 @@ function mapItem(row: RawOrderItemRow): PharmacistOrderItem {
 }
 
 function mapOrder(row: RawOrderRow): PharmacistOrder {
-  const addr = (row.customer_address ?? {}) as {
-    formatted?: string; street?: string; streetLine?: string; city?: string;
-  };
-  const address =
-    addr.formatted ??
-    [addr.streetLine ?? addr.street, addr.city].filter(Boolean).join(", ") ??
-    "";
+  const parsed = parseOrderAddress(row);
+  const zone   = parseOrderZone(row);
+  const address = parsed.formatted || [parsed.street, parsed.city].filter(Boolean).join(", ");
 
   return {
     id:              row.id,
@@ -96,6 +101,15 @@ function mapOrder(row: RawOrderRow): PharmacistOrder {
     customerName:    row.customer_name,
     customerPhone:   row.customer_phone,
     customerAddress: address,
+    building:        parsed.building,
+    floor:           parsed.floor,
+    apartment:       parsed.apartment,
+    landmark:        parsed.landmark,
+    lat:             parsed.lat,
+    lng:             parsed.lng,
+    branchId:        zone.branchId,
+    zoneId:          zone.zoneId,
+    zoneName:        zone.zoneName,
     subtotal:        num(row.subtotal),
     total:           num(row.total),
     discountTotal:   num(row.discount_total),
@@ -110,15 +124,23 @@ function mapOrder(row: RawOrderRow): PharmacistOrder {
     updatedAt:       row.updated_at,
     lastStatusAt:    row.last_status_at,
     ageMs:           Date.now() - Date.parse(row.created_at),
+    linkedPrescriptions: (row.order_prescriptions ?? [])
+      .filter((link) => link.prescriptions != null)
+      .map((link) => ({
+        id: link.prescription_id,
+        reviewStatus: link.prescriptions!.review_status as PharmacistOrder["linkedPrescriptions"][number]["reviewStatus"],
+      })),
   };
 }
 
 const ORDERS_SELECT = [
   "id", "user_id", "status", "customer_name", "customer_phone",
-  "customer_address", "subtotal", "shipping_fee", "total", "discount_total",
+  ...ORDER_LOCATION_SELECT,
+  "subtotal", "shipping_fee", "total", "discount_total",
   "note", "payment_method", "payment_status", "payment_proof_url",
   "transfer_number", "created_at", "updated_at", "last_status_at",
   "order_items(id,product_id,quantity,unit_price,line_total,product_snapshot)",
+  "order_prescriptions(prescription_id,prescriptions(review_status))",
 ].join(",");
 
 // ─── Public API ────────────────────────────────────────────────────────────────
@@ -171,6 +193,160 @@ export async function transitionOrder(
     p_next_status: nextStatus,
   });
   if (error) throw error;
+}
+
+/**
+ * Fetch the most recent delivery handoff record for an order — powers the
+ * order detail screen's "Driver" section. Returns null before a driver has
+ * ever been offered the order.
+ */
+export async function getOrderDeliveryAssignment(orderId: string): Promise<PharmacistDeliveryAssignment | null> {
+  const { data, error } = await supabase
+    .from("delivery_assignments")
+    .select("id, response_status, offered_at, responded_at, arrived_at_pharmacy, picked_up_at, arrived_at_customer, delivered_at")
+    .eq("order_id", orderId)
+    .order("offered_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data) return null;
+  const row = data as {
+    id: string; response_status: string; offered_at: string; responded_at: string | null;
+    arrived_at_pharmacy: string | null; picked_up_at: string | null;
+    arrived_at_customer: string | null; delivered_at: string | null;
+  };
+  return {
+    id: row.id,
+    responseStatus: row.response_status as PharmacistDeliveryAssignment["responseStatus"],
+    offeredAt: row.offered_at,
+    respondedAt: row.responded_at,
+    arrivedAtPharmacyAt: row.arrived_at_pharmacy,
+    pickedUpAt: row.picked_up_at,
+    arrivedAtCustomerAt: row.arrived_at_customer,
+    deliveredAt: row.delivered_at,
+  };
+}
+
+/**
+ * The most recent unresolved delivery problem a driver reported against this
+ * order (customer unreachable, wrong address, item damaged, etc.) — null
+ * once resolved or if none was ever reported. Powers the order detail
+ * screen's issue banner; resolving goes through resolve_delivery_issue()
+ * (20260827120000), never a raw client UPDATE.
+ */
+export async function getActiveDeliveryIssue(orderId: string): Promise<PharmacistDeliveryIssue | null> {
+  const { data, error } = await supabase
+    .from("delivery_issues")
+    .select("id, reason_code, note, status, created_at, resolved_at, resolution_note")
+    .eq("order_id", orderId)
+    .neq("status", "resolved")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data) return null;
+  const row = data as {
+    id: string; reason_code: string; note: string | null; status: string;
+    created_at: string; resolved_at: string | null; resolution_note: string | null;
+  };
+  return {
+    id: row.id,
+    reasonCode: row.reason_code as PharmacistDeliveryIssue["reasonCode"],
+    note: row.note,
+    status: row.status as PharmacistDeliveryIssue["status"],
+    createdAt: row.created_at,
+    resolvedAt: row.resolved_at,
+    resolutionNote: row.resolution_note,
+  };
+}
+
+export async function resolveDeliveryIssue(issueId: string, resolutionNote: string): Promise<void> {
+  const { error } = await supabase.rpc("resolve_delivery_issue", {
+    p_issue_id: issueId,
+    p_resolution_note: resolutionNote,
+  });
+  if (error) throw error;
+}
+
+/**
+ * Appends a staff note to an order's internal log (order_notes, staff-only
+ * visibility). A plain insert is safe here — unlike a status transition,
+ * there's no server-side rule to validate, just an append-only record —
+ * but RLS still enforces staff-only + author-must-be-self.
+ */
+export async function addOrderNote(orderId: string, body: string): Promise<void> {
+  const { data: auth } = await supabase.auth.getUser();
+  const authorId = auth.user?.id;
+  if (!authorId) throw new Error("not_authenticated");
+  const { error } = await supabase.from("order_notes").insert({
+    order_id: orderId,
+    author_id: authorId,
+    body: body.trim(),
+  });
+  if (error) throw error;
+}
+
+/**
+ * Full chronological order history — creation, assignment lifecycle, issues,
+ * staff notes. Already built and pharmacist-accessible server-side
+ * (admin_order_timeline, 20260715090000) but never called from this app.
+ */
+export async function getOrderTimeline(orderId: string): Promise<OrderTimelineEvent[]> {
+  const { data, error } = await supabase.rpc("admin_order_timeline", { p_order_id: orderId });
+  if (error) throw error;
+  return ((data ?? []) as Array<{ event_at: string | null; event_type: string; actor_id: string | null; detail: Record<string, unknown> }>)
+    .filter((r) => r.event_at != null)
+    .map((r) => ({
+      eventAt: r.event_at as string,
+      eventType: r.event_type as OrderTimelineEvent["eventType"],
+      actorId: r.actor_id,
+      detail: r.detail ?? {},
+    }));
+}
+
+/**
+ * Fetch the most recently completed (delivered/cancelled) orders — feeds the
+ * workbench's "Recently Completed" section, the one part of a pharmacist's
+ * job that the old metric-cards-plus-tabs layout never showed at all.
+ */
+export async function getRecentlyCompletedOrders(limit = 8): Promise<PharmacistOrder[]> {
+  const { data, error } = await supabase
+    .from("orders")
+    .select(ORDERS_SELECT)
+    .in("status", ["delivered", "cancelled"])
+    .order("last_status_at", { ascending: false })
+    .limit(limit);
+
+  if (error) throw error;
+  return ((data ?? []) as unknown as RawOrderRow[]).map(mapOrder);
+}
+
+/**
+ * Fetch every order placed on a given calendar date, regardless of status —
+ * for revenue and hourly-volume analytics. usePharmacistOrderQueue() is
+ * scoped to PHARMACIST_ACTIVE_STATUSES (pre-dispatch only), so an order
+ * vanished from "today's revenue"/the hourly chart the instant it reached
+ * driver_assigned, even though it was placed and prepared entirely within
+ * the pharmacist's shift.
+ */
+export async function getTodayOrdersForAnalytics(dateISO: string): Promise<Array<{ total: number; createdAt: string }>> {
+  const dayStart = `${dateISO}T00:00:00.000Z`;
+  const dayEnd   = `${dateISO}T23:59:59.999Z`;
+
+  const { data, error } = await supabase
+    .from("orders")
+    .select("total, created_at")
+    .gte("created_at", dayStart)
+    .lte("created_at", dayEnd)
+    .neq("status", "cancelled");
+
+  if (error) throw error;
+  return ((data ?? []) as Array<{ total: number | string; created_at: string }>).map((r) => ({
+    total: num(r.total),
+    createdAt: r.created_at,
+  }));
 }
 
 /**

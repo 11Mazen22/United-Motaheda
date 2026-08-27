@@ -595,6 +595,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       phone,
     }: RegisterPayload): Promise<RegisterResult> => {
       const supabase = getSupabaseClient();
+      // Confirmed live bug: this call never set emailRedirectTo, so the
+      // confirmation email's link was entirely dictated by the Supabase
+      // project's dashboard-configured default Site URL (which points at
+      // localhost:3000 — the NestJS API's port, not any web app that could
+      // ever handle a confirmation link) instead of wherever this app is
+      // actually running. Matches the same redirectTo pattern already used
+      // for Google OAuth just above in this file.
+      const emailRedirectTo = `${window.location.origin}/auth/callback`;
       const { data, error } = await supabase.auth.signUp({
         email: email.trim().toLowerCase(),
         password,
@@ -603,6 +611,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             full_name: fullName,
             phone: phone ?? "",
           },
+          emailRedirectTo,
         },
       });
 

@@ -8,7 +8,7 @@ import {
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { Link, useRouter } from "expo-router";
+import { Link, useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import Animated, {
@@ -24,6 +24,7 @@ import Animated, {
 import * as Haptics from "expo-haptics";
 
 import { signIn, getAuthError } from "@/features/auth";
+import { supabase } from "@/lib/supabase";
 import { signInWithProvider } from "@/features/auth/socialAuth";
 import { LangSwitcher } from "@/features/auth/components/LangSwitcher";
 import { SocialButtons } from "@/features/auth/components/SocialButtons";
@@ -107,6 +108,8 @@ export default function LoginScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const reducedMotion = useReducedMotion();
+  const { redirect } = useLocalSearchParams<{ redirect?: string }>();
+  const destination = redirect ? decodeURIComponent(redirect) : "/(customer)/(tabs)";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -135,9 +138,45 @@ export default function LoginScreen() {
     setError("");
     setLoading(true);
     try {
-      await signIn(email, password);
+      const signedInUser = await signIn(email, password);
       if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      router.replace("/(customer)/(tabs)");
+      // Confirmed bug: this used to always route to /(customer)/(tabs)
+      // unless an explicit `redirect` param was passed — and nothing in the
+      // app ever passes one pointing at /(driver). A driver re-authenticating
+      // through this screen (session expiry, manual sign-out/in — anything
+      // other than a cold app launch) landed in the full customer shopping
+      // app with no indication anything was wrong. app/index.tsx's own
+      // cold-launch redirect already does this same role check; this makes
+      // the login screen agree with it instead of only handling one path.
+      // Bounded and best-effort: an explicit redirect always wins, and any
+      // failure here just falls back to the previous default rather than
+      // blocking sign-in on it.
+      if (!redirect) {
+        try {
+          const { data } = await supabase
+            .from("profiles")
+            .select("role")
+            .eq("id", signedInUser.id)
+            .abortSignal(AbortSignal.timeout(4_000))
+            .maybeSingle();
+          const role = (data as { role?: string } | null)?.role;
+          if (role === "driver") {
+            router.replace("/(driver)" as never);
+            return;
+          }
+          // Same bug, same fix, just never ported to this branch: a
+          // pharmacist re-authenticating through this screen fell straight
+          // through to the customer shopping app with no indication
+          // anything was wrong.
+          if (role === "pharmacist" || role === "admin" || role === "manager") {
+            router.replace("/(pharmacist)" as never);
+            return;
+          }
+        } catch {
+          // Fall through to the default destination below.
+        }
+      }
+      router.replace(destination as never);
     } catch (err: unknown) {
       setError(getAuthError(err));
       if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);

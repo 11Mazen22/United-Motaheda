@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from "react";
-import { RefreshControl, StyleSheet, View } from "react-native";
+import { Pressable, RefreshControl, StyleSheet, View } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
@@ -9,8 +9,6 @@ import Animated, { FadeInDown } from "react-native-reanimated";
 import {
   Screen,
   Text,
-  Card,
-  Chip,
   Avatar,
   EmptyState,
   ErrorState,
@@ -22,11 +20,17 @@ import {
 import { useAuth } from "@/features/auth";
 import { isRtl, flexRow } from "@/utils/layout";
 
-import { usePharmacistOrderQueue, usePharmacistDashboard, useAllPrescriptions } from "../hooks/usePharmacistQueries";
+import {
+  usePharmacistOrderQueue,
+  useAllPrescriptions,
+  useRecentlyCompletedOrders,
+} from "../hooks/usePharmacistQueries";
 import { pharmacistQueryKeys } from "../hooks/queryKeys";
 import { OrderQueueCard } from "../components/OrderQueueCard";
+import { bucketOrders } from "../domain/orderBuckets";
 
 const IS_RTL = isRtl();
+const RX_URGENT_MS = 30 * 60_000;
 
 function timeAgo(iso: string, t: (k: string, opts?: Record<string, unknown>) => string): string {
   const diffMin = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 60_000));
@@ -37,6 +41,69 @@ function timeAgo(iso: string, t: (k: string, opts?: Record<string, unknown>) => 
   return t("pharmacist.submittedAt", { time: `${Math.floor(hrs / 24)}d` });
 }
 
+function ageMs(iso: string): number {
+  return Math.max(0, Date.now() - new Date(iso).getTime());
+}
+
+// Section header: title + live count badge. The workbench's job is triage —
+// "what needs attention, what's next, what's done" — so every section states
+// its own count instead of the reader having to count rows themselves.
+function SectionHeader({ icon, title, count, tone }: {
+  icon: React.ComponentProps<typeof Ionicons>["name"];
+  title: string;
+  count: number;
+  tone: "danger" | "brand" | "muted";
+}) {
+  const { theme } = useTheme();
+  const color = tone === "danger" ? theme.colors.status.error : tone === "brand" ? theme.colors.brand.primary : theme.colors.text.muted;
+  return (
+    <View style={[styles.sectionHeader, { flexDirection: flexRow(IS_RTL) }]}>
+      <Ionicons name={icon} size={16} color={color} />
+      <Text variant="card-title" style={{ flex: 1 }}>{title}</Text>
+      <View style={[styles.countPill, { backgroundColor: `${color}17` }]}>
+        <Text variant="eyebrow" style={{ color }}>{count}</Text>
+      </View>
+    </View>
+  );
+}
+
+function RxQueueCard({ rx, onPress, t }: {
+  rx: { id: string; customerName?: string; name?: string; createdAt: string };
+  onPress: () => void;
+  t: (k: string, opts?: Record<string, unknown>) => string;
+}) {
+  const { theme } = useTheme();
+  const isUrgent = ageMs(rx.createdAt) > RX_URGENT_MS;
+  const borderStartColor = isUrgent ? theme.colors.status.warning : theme.colors.tertiary.base;
+  return (
+    <Animated.View entering={FadeInDown.duration(220)}>
+      <Pressable
+        onPress={onPress}
+        accessibilityRole="button"
+        style={({ pressed }) => [
+          styles.rxCard,
+          { borderStartColor, borderStartWidth: 4, borderColor: theme.colors.border.default },
+          { backgroundColor: pressed ? theme.colors.canvas.surfaceMuted : theme.colors.canvas.surface },
+        ]}
+      >
+        <View style={[styles.rxRow, { flexDirection: flexRow(IS_RTL) }]}>
+          <View style={[styles.rxIcon, { backgroundColor: theme.colors.tertiary.bg }]}>
+            <Ionicons name="document-text" size={22} color={theme.colors.tertiary.base} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text variant="card-title" color="primary" numberOfLines={1}>{rx.customerName || rx.name}</Text>
+            <View style={[styles.rxMetaRow, { flexDirection: flexRow(IS_RTL) }]}>
+              {isUrgent && <Ionicons name="warning" size={12} color={theme.colors.status.warning} />}
+              <Text variant="caption" color={isUrgent ? "warn" : "secondary"}>{timeAgo(rx.createdAt, t)}</Text>
+            </View>
+          </View>
+          <Ionicons name={IS_RTL ? "chevron-back" : "chevron-forward"} size={18} color={theme.colors.text.muted} />
+        </View>
+      </Pressable>
+    </Animated.View>
+  );
+}
+
 export function WorkbenchScreen(): React.ReactElement {
   const { t } = useTranslation();
   const { theme } = useTheme();
@@ -44,30 +111,42 @@ export function WorkbenchScreen(): React.ReactElement {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
-  const [activeTab, setActiveTab] = useState<"orders" | "prescriptions">("orders");
 
   const queueQ = usePharmacistOrderQueue();
-  const statsQ = usePharmacistDashboard();
   const rxQ = useAllPrescriptions("pending_review");
+  const recentQ = useRecentlyCompletedOrders();
 
-  const stats = statsQ.data;
   const orders = queueQ.data ?? [];
   const pendingRx = rxQ.data ?? [];
-  const isLive = queueQ.isFetching || statsQ.isFetching || rxQ.isFetching;
+  const recentlyCompleted = recentQ.data ?? [];
+  const isLive = queueQ.isFetching || rxQ.isFetching;
 
-  const activeQuery = activeTab === "orders" ? queueQ : rxQ;
+  // Server order is already oldest-first (last_status_at ascending) — the
+  // most urgent, longest-waiting order in each bucket surfaces first without
+  // re-sorting client-side. Bucketing itself is shared with
+  // OrdersWorkspaceScreen (domain/orderBuckets.ts) so the two screens never
+  // disagree about what counts as "needs attention."
+  const { attention: attentionOrders, inProgress: inProgressOrders, ready: readyOrders } = useMemo(() => bucketOrders(orders), [orders]);
+
+  const allCaughtUp = attentionOrders.length === 0 && inProgressOrders.length === 0 && readyOrders.length === 0 && pendingRx.length === 0;
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await Promise.all([
       qc.invalidateQueries({ queryKey: pharmacistQueryKeys.orderQueue() }),
       qc.invalidateQueries({ queryKey: pharmacistQueryKeys.dashboard() }),
+      qc.invalidateQueries({ queryKey: pharmacistQueryKeys.recentlyCompleted() }),
       qc.invalidateQueries({ queryKey: ["pharmacist", "prescriptions"] }),
     ]);
     setRefreshing(false);
   }, [qc]);
 
   const initials = useMemo(() => (user?.name?.trim()?.[0] ?? "P").toUpperCase(), [user?.name]);
+  const goOrder = useCallback((id: string) => router.push(`/(pharmacist)/order/${id}`), [router]);
+  const goRx = useCallback((id: string) => router.push(`/(pharmacist)/prescription/${id}`), [router]);
+
+  const isLoading = queueQ.isLoading || rxQ.isLoading;
+  const isError = queueQ.isError || rxQ.isError;
 
   return (
     <Screen edgeTop background={theme.colors.canvas.background} scroll={false}>
@@ -85,89 +164,101 @@ export function WorkbenchScreen(): React.ReactElement {
           </View>
           <Avatar initials={initials} size="md" status={isLive ? "online" : undefined} />
         </View>
-
-        {/* Metric cards */}
-        <View style={[styles.metricsRow, { flexDirection: flexRow(IS_RTL) }]}>
-          <Card padding="md" style={styles.metricCard}>
-            <Text variant="metric" color="brand">{stats?.activeOrders ?? 0}</Text>
-            <Text variant="caption" color="secondary">{t("pharmacist.statActiveOrders")}</Text>
-          </Card>
-          <Card padding="md" style={styles.metricCard}>
-            <Text variant="metric" color="warn">{stats?.preparing ?? 0}</Text>
-            <Text variant="caption" color="secondary">{t("pharmacist.statPreparing")}</Text>
-          </Card>
-          <Card padding="md" style={styles.metricCard}>
-            <Text variant="metric" color="danger">{pendingRx.length}</Text>
-            <Text variant="caption" color="secondary">{t("pharmacist.statPendingRx")}</Text>
-          </Card>
-        </View>
       </View>
 
-      {/* Segmented control */}
-      <View style={[styles.segmentContainer, { flexDirection: flexRow(IS_RTL), backgroundColor: theme.colors.canvas.surfaceMuted }]}>
-        <Chip
-          label={t("pharmacist.orderQueueTitle")}
-          selected={activeTab === "orders"}
-          selectable
-          onPress={() => setActiveTab("orders")}
-          style={styles.segmentBtn}
-        />
-        <Chip
-          label={t("pharmacist.rxQueueTitle")}
-          selected={activeTab === "prescriptions"}
-          selectable
-          onPress={() => setActiveTab("prescriptions")}
-          style={styles.segmentBtn}
-        />
-      </View>
-
-      {/* Data feed */}
-      {activeQuery.isLoading ? (
+      {/* Sectioned feed */}
+      {isLoading ? (
         <View style={styles.feedContent}>
           <SkeletonCard />
           <SkeletonCard />
           <SkeletonCard />
         </View>
-      ) : activeQuery.isError ? (
+      ) : isError ? (
         <ErrorState
           message={t("common.error")}
-          retry={() => { void activeQuery.refetch(); }}
+          retry={() => { void queueQ.refetch(); void rxQ.refetch(); }}
         />
+      ) : allCaughtUp ? (
+        <View style={styles.feedContent}>
+          <EmptyState
+            icon="checkmark-circle-outline"
+            title={t("pharmacist.allCaughtUpTitle", "All caught up")}
+            subtitle={t("pharmacist.allCaughtUpBody", "Nothing needs your attention right now.")}
+          />
+        </View>
       ) : (
         <Animated.ScrollView
           style={styles.feed}
           contentContainerStyle={styles.feedContent}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.colors.brand.primary} />}
         >
-          {activeTab === "orders" ? (
-            orders.length === 0 ? (
-              <EmptyState title={t("pharmacist.emptyQueueTitle")} subtitle={t("pharmacist.emptyQueueBody")} />
-            ) : (
-              orders.map((o, i) => (
-                <Animated.View key={o.id} entering={FadeInDown.delay(i * 40).duration(260)} style={styles.cardSpacing}>
-                  <OrderQueueCard order={o} onPress={() => router.push(`/(pharmacist)/order/${o.id}`)} />
+          {(pendingRx.length > 0 || attentionOrders.length > 0) && (
+            <View style={styles.section}>
+              <SectionHeader
+                icon="alert-circle"
+                title={t("pharmacist.sectionNeedsAttention", "Needs Attention")}
+                count={pendingRx.length + attentionOrders.length}
+                tone="danger"
+              />
+              {pendingRx.map((rx, i) => (
+                <Animated.View key={`rx-${rx.id}`} entering={FadeInDown.delay(i * 40).duration(260)} style={styles.cardSpacing}>
+                  <RxQueueCard rx={rx} onPress={() => goRx(rx.id)} t={t} />
                 </Animated.View>
-              ))
-            )
-          ) : pendingRx.length === 0 ? (
-            <EmptyState title={t("pharmacist.emptyRxTitle")} subtitle={t("pharmacist.emptyRxBody")} />
-          ) : (
-            pendingRx.map((rx, i) => (
-              <Animated.View key={rx.id} entering={FadeInDown.delay(i * 40).duration(260)} style={styles.cardSpacing}>
-                <Card onPress={() => router.push(`/(pharmacist)/prescription/${rx.id}`)} padding="md">
-                  <View style={[styles.rxRow, { flexDirection: flexRow(IS_RTL) }]}>
-                    <View style={[styles.rxIcon, { backgroundColor: theme.colors.brand.primaryLight }]}>
-                      <Ionicons name="document-text" size={22} color={theme.colors.brand.primary} />
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text variant="card-title" color="primary" numberOfLines={1}>{rx.customerName || rx.name}</Text>
-                      <Text variant="caption" color="secondary">{timeAgo(rx.createdAt, t)}</Text>
-                    </View>
-                    <Ionicons name={IS_RTL ? "chevron-back" : "chevron-forward"} size={18} color={theme.colors.text.muted} />
-                  </View>
-                </Card>
-              </Animated.View>
-            ))
+              ))}
+              {attentionOrders.map((o, i) => (
+                <Animated.View key={o.id} entering={FadeInDown.delay((pendingRx.length + i) * 40).duration(260)} style={styles.cardSpacing}>
+                  <OrderQueueCard order={o} onPress={() => goOrder(o.id)} />
+                </Animated.View>
+              ))}
+            </View>
+          )}
+
+          {inProgressOrders.length > 0 && (
+            <View style={styles.section}>
+              <SectionHeader
+                icon="construct"
+                title={t("pharmacist.sectionInProgress", "In Progress")}
+                count={inProgressOrders.length}
+                tone="brand"
+              />
+              {inProgressOrders.map((o, i) => (
+                <Animated.View key={o.id} entering={FadeInDown.delay(i * 40).duration(260)} style={styles.cardSpacing}>
+                  <OrderQueueCard order={o} onPress={() => goOrder(o.id)} />
+                </Animated.View>
+              ))}
+            </View>
+          )}
+
+          {readyOrders.length > 0 && (
+            <View style={styles.section}>
+              <SectionHeader
+                icon="cube"
+                title={t("pharmacist.sectionReady", "Ready for Pickup")}
+                count={readyOrders.length}
+                tone="brand"
+              />
+              {readyOrders.map((o, i) => (
+                <Animated.View key={o.id} entering={FadeInDown.delay(i * 40).duration(260)} style={styles.cardSpacing}>
+                  <OrderQueueCard order={o} onPress={() => goOrder(o.id)} />
+                </Animated.View>
+              ))}
+            </View>
+          )}
+
+          {recentlyCompleted.length > 0 && (
+            <View style={styles.section}>
+              <SectionHeader
+                icon="checkmark-done"
+                title={t("pharmacist.sectionRecentlyCompleted", "Recently Completed")}
+                count={recentlyCompleted.length}
+                tone="muted"
+              />
+              {recentlyCompleted.map((o, i) => (
+                <Animated.View key={o.id} entering={FadeInDown.delay(i * 40).duration(260)} style={[styles.cardSpacing, styles.recentCard]}>
+                  <OrderQueueCard order={o} onPress={() => goOrder(o.id)} />
+                </Animated.View>
+              ))}
+            </View>
           )}
         </Animated.ScrollView>
       )}
@@ -195,34 +286,49 @@ const styles = StyleSheet.create({
   eyebrowSpacing: {
     letterSpacing: 1,
   },
-  metricsRow: {
-    gap: 10,
+  section: {
+    marginBottom: 20,
   },
-  metricCard: {
-    flex: 1,
-  },
-  segmentContainer: {
-    margin: 16,
-    borderRadius: 12,
-    padding: 4,
+  sectionHeader: {
+    alignItems: "center",
     gap: 8,
+    marginBottom: 10,
   },
-  segmentBtn: {
-    flex: 1,
+  countPill: {
+    minWidth: 24,
+    alignItems: "center",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 9999,
+  },
+  recentCard: {
+    opacity: 0.72,
   },
   feed: {
     flex: 1,
   },
   feedContent: {
     paddingHorizontal: 16,
+    paddingTop: 16,
     paddingBottom: 100,
   },
   cardSpacing: {
     marginBottom: 12,
   },
+  rxCard: {
+    overflow: "hidden",
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 14,
+  },
   rxRow: {
     alignItems: "center",
     gap: 12,
+  },
+  rxMetaRow: {
+    alignItems: "center",
+    gap: 4,
+    marginTop: 2,
   },
   rxIcon: {
     width: 44,

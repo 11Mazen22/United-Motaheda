@@ -114,7 +114,7 @@ export const AuthGateModal = React.memo(function AuthGateModal({
               onPress={onSignIn}
               style={({ pressed }) => [s.signInBtn, pressed && { opacity: 0.88 }]}>
               <View style={s.signInInner}>
-                <Ionicons name="log-in-outline" size={18} color={theme.colors.text.inverse} />
+                <Ionicons name="log-in-outline" size={18} color="#FFFFFF" />
                 <UIText style={s.signInText}>{t("checkout.authGateSignIn")}</UIText>
               </View>
             </Pressable>
@@ -219,12 +219,12 @@ function getStyles(theme: NativeTheme) {
       gap:             10,
       paddingVertical: 16,
       borderRadius:    10,
-      backgroundColor: theme.colors.text.primary,
+      backgroundColor: theme.colors.brand.primary,
     },
     signInText: {
       fontFamily:    legacyTheme.fonts.black,
       fontSize:      15,
-      color:         theme.colors.text.inverse,
+      color:         "#FFFFFF",
       letterSpacing: -0.3,
     },
     dismissBtn: { alignItems: "center", paddingVertical: 10 },

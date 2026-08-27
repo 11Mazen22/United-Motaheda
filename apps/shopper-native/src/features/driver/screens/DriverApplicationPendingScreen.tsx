@@ -3,7 +3,7 @@
  * Status->icon/title/body mapping and 30s poll are a direct port of
  * courier-mobile's app/(auth)/pending.tsx.
  */
-import React from "react";
+import React, { useEffect } from "react";
 import { View, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -14,6 +14,8 @@ import { useAuth } from "@/features/auth";
 import { DriverScreenHeader } from "../components/DriverScreenHeader";
 import { useMyDriverProfilePolling } from "../hooks/useDriverProfile";
 import type { DriverApplicationStatus } from "../api";
+
+const LIVE_DRIVER_STATUSES = new Set<DriverApplicationStatus>(["APPROVED", "ACTIVE"]);
 
 const STATUS_CONFIG: Record<DriverApplicationStatus, { icon: React.ComponentProps<typeof Ionicons>["name"]; titleKey: string; bodyKey: string; color: "warning" | "success" | "error" | "muted" }> = {
   PENDING_APPROVAL: { icon: "time-outline", titleKey: "driverApplication.statusPendingTitle", bodyKey: "driverApplication.statusPendingBody", color: "warning" },
@@ -31,6 +33,16 @@ export function DriverApplicationPendingScreen(): React.ReactElement {
   const { user } = useAuth();
   const profileQuery = useMyDriverProfilePolling(user?.id, true);
   const profile = profileQuery.data;
+
+  // Confirmed gap: this screen used to poll status every 30s but never
+  // acted on the result reaching APPROVED/ACTIVE — a driver sitting here
+  // when approved had to force-quit and relaunch the app (re-triggering
+  // app/index.tsx's cold-launch role redirect) to actually reach (driver).
+  useEffect(() => {
+    if (profile?.status && LIVE_DRIVER_STATUSES.has(profile.status)) {
+      router.replace("/(driver)" as never);
+    }
+  }, [profile?.status, router]);
 
   const status = profile?.status ?? "PENDING_APPROVAL";
   const config = STATUS_CONFIG[status];

@@ -225,7 +225,7 @@ export default function OffersScreen() {
         />
       ) : isError ? (
         <EmptyState
-          icon="wifi-outline"
+          illustrationName="offline"
           title={t("offers.loadError")}
           subtitle={t("offers.loadErrorDesc")}
           action={{ label: t("category.tryAgain"), onPress: refetch }}

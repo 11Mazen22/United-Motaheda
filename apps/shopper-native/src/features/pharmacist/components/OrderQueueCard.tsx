@@ -2,10 +2,13 @@ import React, { useMemo } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import { Text as UIText, kit, useTheme } from "@pharmacy/ui-native";
+import { Text as UIText, useTheme } from "@pharmacy/ui-native";
 import { FORWARD_CHEVRON, flexRow, isRtl } from "@/utils/layout";
 import { formatPrice } from "@/utils/format";
+import { findBranchById } from "@/features/delivery/branches/data";
 import { OrderStatusChip } from "./OrderStatusChip";
+import { getOrderAttentionReason } from "../domain/orderAttention";
+import { getPrimaryAction, primaryActionLabelKey } from "../domain/orderActions";
 import type { PharmacistOrder } from "../api/types";
 
 const IS_RTL = isRtl();
@@ -23,21 +26,33 @@ function formatAge(ms: number): string {
   return `${Math.floor(hrs / 24)}d`;
 }
 
+/**
+ * Order queue card — identity, operational state, delivery context, and one
+ * contextual next action, in that order of visual weight. Rebuilt (not just
+ * restyled) so a pharmacist can read what an order needs without decoding
+ * status text: an attention reason gets its own colored strip + label, a
+ * linked prescription gets its own row, and the trailing button always
+ * names the ONE most relevant next step instead of a bare chevron.
+ */
 export function OrderQueueCard({ order, onPress }: Props) {
   const { t } = useTranslation();
   const { theme } = useTheme();
   const isUrgent = (order.ageMs ?? 0) > 30 * 60_000;
+  const attention = getOrderAttentionReason(order);
+  const branchName = order.branchId ? findBranchById(order.branchId)?.nameAr ?? null : null;
+  const primaryAction = getPrimaryAction(order);
 
-  const borderStartColor = isUrgent ? theme.colors.status.warning : theme.colors.brand.primary;
+  const accentColor = attention === "prescription_rejected" ? theme.colors.status.error
+    : attention ? theme.colors.status.warning
+    : isUrgent ? theme.colors.status.warning
+    : theme.colors.brand.primary;
 
   const styles = useMemo(() => StyleSheet.create({
     card: {
-      borderRadius: 8,
-      paddingVertical: 14,
-      paddingHorizontal: 12,
+      borderRadius: 14,
+      padding: 14,
       borderWidth: 1,
-      alignItems: "center",
-      gap: 12,
+      gap: 10,
       ...theme.shadows[1],
     },
     cardPressed: {
@@ -48,27 +63,43 @@ export function OrderQueueCard({ order, onPress }: Props) {
       alignItems: "center",
       gap: 6,
     },
-    colMain: {
-      flex: 1,
-      alignItems: "flex-start",
+    identityRow: {
+      flexDirection: flexRow(IS_RTL),
+      alignItems: "center",
+      justifyContent: "space-between",
     },
-    colCenter: {
-      alignItems: "flex-end",
-    },
-    colRight: {
-      alignItems: "flex-end",
-      minWidth: 60,
+    metaRow: {
+      flexDirection: flexRow(IS_RTL),
+      alignItems: "center",
+      gap: 6,
+      flexWrap: "wrap",
     },
     dot: {
       width: 3,
       height: 3,
       borderRadius: 1.5,
-      marginHorizontal: 4,
     },
-    total: {
-      fontSize: 14,
-      fontFamily: kit.font.bold,
-      color: theme.colors.text.primary,
+    attentionStrip: {
+      flexDirection: flexRow(IS_RTL),
+      alignItems: "center",
+      gap: 6,
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      borderRadius: 8,
+    },
+    footerRow: {
+      flexDirection: flexRow(IS_RTL),
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginTop: 2,
+    },
+    actionPill: {
+      flexDirection: flexRow(IS_RTL),
+      alignItems: "center",
+      gap: 4,
+      paddingHorizontal: 12,
+      paddingVertical: 7,
+      borderRadius: 9999,
     },
   }), [theme]);
 
@@ -78,35 +109,59 @@ export function OrderQueueCard({ order, onPress }: Props) {
       style={({ pressed }) => [
         styles.card,
         pressed && styles.cardPressed,
-        { borderStartColor, borderStartWidth: 4, flexDirection: flexRow(IS_RTL), backgroundColor: pressed ? theme.colors.canvas.surfaceMuted : theme.colors.canvas.surface, borderColor: theme.colors.border.default }
+        { borderStartColor: accentColor, borderStartWidth: 4, backgroundColor: pressed ? theme.colors.canvas.surfaceMuted : theme.colors.canvas.surface, borderColor: theme.colors.border.default },
       ]}
       accessibilityRole="button"
       accessibilityLabel={`Order ${order.id.slice(-8)} for ${order.customerName}`}
     >
-      <View style={styles.colMain}>
-        <View style={styles.row}>
-          <UIText variant="body" weight="bold">#{order.id.slice(-8).toUpperCase()}</UIText>
-          <UIText variant="body-sm" color="secondary" numberOfLines={1} style={{ flexShrink: 1 }}>
-            {order.customerName || "—"}
-          </UIText>
-        </View>
-        <View style={[styles.row, { marginTop: 6 }]}>
-          <UIText variant="caption" color="muted">{order.items.length} {t("pharmacist.items", "منتجات")}</UIText>
-          <View style={[styles.dot, { backgroundColor: theme.colors.text.muted }]} />
+      {/* Identity */}
+      <View style={styles.identityRow}>
+        <View style={{ flex: 1 }}>
           <View style={styles.row}>
-            {isUrgent && <Ionicons name="warning" size={12} color={theme.colors.status.warning} style={{ marginEnd: 2 }} />}
-            <UIText variant="caption" color={isUrgent ? "warn" : "secondary"}>{formatAge(order.ageMs ?? 0)}</UIText>
+            <UIText variant="body" weight="bold">#{order.id.slice(-8).toUpperCase()}</UIText>
+            <UIText variant="body-sm" color="secondary" numberOfLines={1} style={{ flexShrink: 1 }}>
+              {order.customerName || "—"}
+            </UIText>
+          </View>
+          <View style={[styles.metaRow, { marginTop: 4 }]}>
+            {isUrgent && <Ionicons name="warning" size={12} color={theme.colors.status.warning} />}
+            <UIText variant="caption" color={isUrgent ? "warn" : "muted"}>{formatAge(order.ageMs ?? 0)}</UIText>
+            <View style={[styles.dot, { backgroundColor: theme.colors.text.muted }]} />
+            <UIText variant="caption" color="muted">{order.items.length} {t("pharmacist.items", "منتجات")}</UIText>
+            {branchName ? (
+              <>
+                <View style={[styles.dot, { backgroundColor: theme.colors.text.muted }]} />
+                <UIText variant="caption" color="muted" numberOfLines={1}>{branchName}</UIText>
+              </>
+            ) : null}
           </View>
         </View>
-      </View>
-
-      <View style={styles.colCenter}>
         <OrderStatusChip status={order.status} size="sm" />
       </View>
 
-      <View style={styles.colRight}>
-        <UIText style={styles.total}>{formatPrice(order.total)}</UIText>
-        <Ionicons name={FORWARD_CHEVRON} size={16} color={theme.colors.text.muted} style={{ marginTop: 2 }} />
+      {/* Operational state — attention strip takes priority over everything else */}
+      {attention && (
+        <View style={[styles.attentionStrip, { backgroundColor: attention === "prescription_rejected" ? `${theme.colors.status.error}14` : `${theme.colors.status.warning}14` }]}>
+          <Ionicons
+            name={attention === "prescription_rejected" ? "close-circle" : "document-text"}
+            size={13}
+            color={attention === "prescription_rejected" ? theme.colors.status.error : theme.colors.status.warning}
+          />
+          <UIText variant="caption" weight="bold" style={{ color: attention === "prescription_rejected" ? theme.colors.status.error : theme.colors.status.warning }}>
+            {t(attention === "prescription_rejected" ? "pharmacist.attentionPrescriptionRejected" : "pharmacist.attentionPrescriptionPending")}
+          </UIText>
+        </View>
+      )}
+
+      {/* Footer: price + contextual next action */}
+      <View style={styles.footerRow}>
+        <UIText variant="body" weight="bold">{formatPrice(order.total)}</UIText>
+        <View style={[styles.actionPill, { backgroundColor: `${accentColor}17` }]}>
+          <UIText variant="caption" weight="bold" style={{ color: accentColor }}>
+            {t(primaryActionLabelKey(primaryAction))}
+          </UIText>
+          <Ionicons name={FORWARD_CHEVRON} size={12} color={accentColor} />
+        </View>
       </View>
     </Pressable>
   );

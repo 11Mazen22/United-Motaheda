@@ -10,10 +10,11 @@ import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import Animated, { FadeIn, FadeOut, SlideInDown, Layout } from "react-native-reanimated";
+import Animated, { FadeIn, FadeInDown, FadeOut, SlideInDown, Layout } from "react-native-reanimated";
 
 import { Text, Button, BottomSheet, useTheme } from "@pharmacy/ui-native";
 import { isRtl, flexRow, textAlignStart } from "@/utils/layout";
+import { formatPrice } from "@/utils/format";
 import { useAuth } from "@/features/auth";
 
 import { usePremiumCheckout } from "@/features/checkout/hooks/usePremiumCheckout";
@@ -76,6 +77,45 @@ function StepAccordion({
         </Animated.View>
       )}
     </Animated.View>
+  );
+}
+
+const PROGRESS_STEPS = [1, 2, 3, 4] as const;
+
+function ProgressRail({ activeStep }: { activeStep: 1 | 2 | 3 | 4 }) {
+  const { theme } = useTheme();
+  return (
+    <View style={[styles.railWrap, { flexDirection: flexRow(IS_RTL), backgroundColor: theme.colors.canvas.surface, borderBottomColor: theme.colors.border.default }]}>
+      {PROGRESS_STEPS.map((step, i) => {
+        const isDone = step < activeStep;
+        const isCurrent = step === activeStep;
+        const fillColor = isDone || isCurrent ? theme.colors.brand.primary : theme.colors.border.default;
+        return (
+          <React.Fragment key={step}>
+            <Animated.View
+              layout={Layout.springify().damping(20)}
+              style={[
+                styles.railNode,
+                {
+                  backgroundColor: isDone ? theme.colors.brand.primary : theme.colors.canvas.surface,
+                  borderColor: fillColor,
+                  ...(isCurrent ? theme.shadows[1] : null),
+                },
+              ]}
+            >
+              {isDone ? (
+                <Ionicons name="checkmark" size={11} color={theme.colors.text.inverse} />
+              ) : (
+                <View style={[styles.railDot, { backgroundColor: isCurrent ? theme.colors.brand.primary : theme.colors.text.disabled }]} />
+              )}
+            </Animated.View>
+            {i < PROGRESS_STEPS.length - 1 && (
+              <View style={[styles.railLine, { backgroundColor: step < activeStep ? theme.colors.brand.primary : theme.colors.border.default }]} />
+            )}
+          </React.Fragment>
+        );
+      })}
+    </View>
   );
 }
 
@@ -172,10 +212,10 @@ export default function CheckoutScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { user } = useAuth();
+  const lang = i18n.language === "en" ? "en" as const : "ar" as const;
 
   const {
     status,
-    setStatus,
     addresses,
     selectedAddress,
     setSelectedAddressId,
@@ -185,6 +225,11 @@ export default function CheckoutScreen() {
     pricing,
     errorMsg,
     placedOrderId,
+    needsPrescription,
+    rxRequiredItems,
+    approvedPrescriptions,
+    selectedPrescriptionIds,
+    setSelectedPrescriptionIds,
   } = usePremiumCheckout();
 
   const setShippingFee = useCartStore(s => s.setShippingFee);
@@ -221,7 +266,11 @@ export default function CheckoutScreen() {
   if (status === "AUTH_REQUIRED") {
     return (
        <View style={[styles.container, { backgroundColor: theme.colors.canvas.background }]}>
-           <AuthGateModal visible={true} onSignIn={() => setStatus("LOADING")} onDismiss={() => router.back()} />
+           <AuthGateModal
+              visible={true}
+              onSignIn={() => router.replace({ pathname: "/(auth)/login", params: { redirect: "/(customer)/checkout" } })}
+              onDismiss={() => (router.canGoBack() ? router.back() : router.replace("/(customer)/(tabs)" as never))}
+           />
        </View>
     );
   }
@@ -229,25 +278,31 @@ export default function CheckoutScreen() {
   if (status === "SUCCESS") {
     return (
        <View style={[styles.container, { backgroundColor: theme.colors.canvas.background, paddingTop: insets.top }]}>
-          <Animated.View entering={FadeIn.delay(300)} style={styles.successContent}>
-             <View style={[styles.successIconCircle, { backgroundColor: `${theme.colors.status.success}1A` }]}>
-                <Ionicons name="checkmark-circle" size={80} color={theme.colors.status.success} />
+          <Animated.View entering={FadeIn.duration(400)} style={styles.successContent}>
+             <View style={styles.successGlowWrap}>
+                <View style={[styles.successGlow, { backgroundColor: `${theme.colors.status.success}22` }]} />
+                <Animated.View entering={FadeIn.delay(150).duration(500)} style={[styles.successIconCircle, { backgroundColor: `${theme.colors.status.success}1A` }]}>
+                   <Ionicons name="checkmark-circle" size={80} color={theme.colors.status.success} />
+                </Animated.View>
              </View>
-             <Text variant="h2" style={{ color: theme.colors.text.primary, marginTop: 24, textAlign: "center" }}>
-                {t("checkout.orderPlaced", "Order Confirmed")}
-             </Text>
-             <Text variant="body" style={{ color: theme.colors.text.secondary, marginTop: 8, textAlign: "center", paddingHorizontal: 20 }}>
-                {t("checkout.orderPlacedDesc", "Your order has been received and is being prepared by our pharmacists.")}
-             </Text>
 
-             <View style={[styles.successDetailsCard, { backgroundColor: theme.colors.canvas.surface, borderColor: theme.colors.border.default }]}>
+             <Animated.View entering={FadeInDown.delay(280).duration(400)}>
+                <Text variant="h2" style={{ color: theme.colors.text.primary, marginTop: 24, textAlign: "center" }}>
+                   {t("checkout.orderPlaced", "Order Confirmed")}
+                </Text>
+                <Text variant="body" style={{ color: theme.colors.text.secondary, marginTop: 8, textAlign: "center", paddingHorizontal: 20 }}>
+                   {t("checkout.orderPlacedDesc", "Your order has been received and is being prepared by our pharmacists.")}
+                </Text>
+             </Animated.View>
+
+             <Animated.View entering={FadeInDown.delay(400).duration(400)} style={[styles.successDetailsCard, { backgroundColor: theme.colors.canvas.surface, borderColor: theme.colors.border.default }]}>
                 <View style={[styles.summaryRow, { flexDirection: flexRow(IS_RTL) }]}>
                    <Text variant="body" style={{ color: theme.colors.text.secondary }}>{t("checkout.orderNumber", "Order #")}</Text>
                    <Text variant="body" weight="bold" style={{ color: theme.colors.text.primary }}>{placedOrderId}</Text>
                 </View>
                 <View style={[styles.summaryRow, { flexDirection: flexRow(IS_RTL) }]}>
                    <Text variant="body" style={{ color: theme.colors.text.secondary }}>{t("checkout.totalPaid", "Total Amount")}</Text>
-                   <Text variant="body" weight="bold" style={{ color: theme.colors.brand.primary }}>{pricing.total.toLocaleString("ar-EG")} EGP</Text>
+                   <Text variant="body" weight="bold" style={{ color: theme.colors.brand.primary }}>{formatPrice(pricing.total, lang)}</Text>
                 </View>
                 <View style={[styles.summaryRow, { flexDirection: flexRow(IS_RTL), borderBottomWidth: 0 }]}>
                    <Text variant="body" style={{ color: theme.colors.text.secondary }}>{t("checkout.deliveryTo", "Delivery To")}</Text>
@@ -255,9 +310,9 @@ export default function CheckoutScreen() {
                       {selectedAddress?.street}
                    </Text>
                 </View>
-             </View>
+             </Animated.View>
 
-             <View style={{ width: "100%", gap: 12, marginTop: 40 }}>
+             <Animated.View entering={FadeInDown.delay(520).duration(400)} style={{ width: "100%", gap: 12, marginTop: 40 }}>
                 <Button
                    label={t("checkout.trackOrder", "Track Order")}
                    onPress={() => {
@@ -271,7 +326,7 @@ export default function CheckoutScreen() {
                    variant="secondary"
                    onPress={() => router.replace(`/(customer)/(tabs)/products`)}
                 />
-             </View>
+             </Animated.View>
           </Animated.View>
        </View>
     );
@@ -283,7 +338,7 @@ export default function CheckoutScreen() {
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <View style={[styles.container, { backgroundColor: theme.colors.canvas.background, paddingTop: insets.top }]}>
 
-        <View style={[styles.header, { backgroundColor: theme.colors.canvas.surface, borderBottomColor: theme.colors.border.default }]}>
+        <View style={[styles.header, { flexDirection: flexRow(IS_RTL), backgroundColor: theme.colors.canvas.surface, borderBottomColor: theme.colors.border.default }]}>
            <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={12} accessibilityRole="button" accessibilityLabel={t("common.back")}>
               <Ionicons name={IS_RTL ? "chevron-forward" : "chevron-back"} size={28} color={theme.colors.text.primary} />
            </Pressable>
@@ -292,6 +347,8 @@ export default function CheckoutScreen() {
            </Text>
            <View style={{ width: 28 }} />
         </View>
+
+        <ProgressRail activeStep={activeStep} />
 
         <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 140 }} showsVerticalScrollIndicator={false}>
 
@@ -401,7 +458,9 @@ export default function CheckoutScreen() {
              summary={t("checkout.standardDelivery", "Standard Delivery")}
            >
              <View style={[styles.methodCard, { borderColor: theme.colors.brand.primary, backgroundColor: theme.colors.brand.primaryLight, flexDirection: flexRow(IS_RTL) }]}>
-                <Ionicons name="bicycle" size={28} color={theme.colors.brand.primary} />
+                <View style={[styles.methodIconWell, { backgroundColor: theme.colors.canvas.surface }]}>
+                  <Ionicons name="bicycle" size={22} color={theme.colors.brand.primary} />
+                </View>
                 <View style={{ flex: 1, paddingHorizontal: 16 }}>
                    <Text variant="body" weight="bold" style={{ color: theme.colors.brand.primary, textAlign: TEXT_START }}>{t("checkout.standardDelivery", "Standard Delivery")}</Text>
                    <Text variant="caption" style={{ color: theme.colors.brand.primary, textAlign: TEXT_START }}>
@@ -410,7 +469,7 @@ export default function CheckoutScreen() {
                 </View>
                 <View style={{ alignItems: "flex-end" }}>
                    <Text variant="body" weight="bold" style={{ color: theme.colors.brand.primary }}>
-                      {quote.cost === 0 ? t("checkout.free", "Free") : `+${quote.cost} EGP`}
+                      {quote.cost === 0 ? t("checkout.free", "Free") : `+${formatPrice(quote.cost, lang)}`}
                    </Text>
                    <Ionicons name="checkmark-circle" size={24} color={theme.colors.brand.primary} style={{ marginTop: 4 }} />
                 </View>
@@ -427,7 +486,9 @@ export default function CheckoutScreen() {
              summary={paymentMethod === "cod" ? t("checkout.cod", "Cash on Delivery") : t("checkout.card", "Credit / Debit Card")}
            >
              <Pressable onPress={() => { Haptics.selectionAsync(); setPaymentMethod("cod"); }} style={[styles.methodCard, { borderColor: paymentMethod === "cod" ? theme.colors.brand.primary : theme.colors.border.default, backgroundColor: paymentMethod === "cod" ? theme.colors.brand.primaryLight : theme.colors.canvas.surface, flexDirection: flexRow(IS_RTL) }]}>
-                <Ionicons name="cash-outline" size={28} color={paymentMethod === "cod" ? theme.colors.brand.primary : theme.colors.text.secondary} />
+                <View style={[styles.methodIconWell, { backgroundColor: paymentMethod === "cod" ? theme.colors.canvas.surface : theme.colors.canvas.surfaceMuted }]}>
+                  <Ionicons name="cash-outline" size={22} color={paymentMethod === "cod" ? theme.colors.brand.primary : theme.colors.text.secondary} />
+                </View>
                 <View style={{ flex: 1, paddingHorizontal: 16 }}>
                    <Text variant="body" weight="bold" style={{ color: paymentMethod === "cod" ? theme.colors.brand.primary : theme.colors.text.primary, textAlign: TEXT_START }}>{t("checkout.cod", "Cash on Delivery")}</Text>
                    <Text variant="caption" style={{ color: paymentMethod === "cod" ? theme.colors.brand.primary : theme.colors.text.secondary, textAlign: TEXT_START }}>{t("checkout.payAtDoor", "Pay when you receive your order")}</Text>
@@ -436,7 +497,9 @@ export default function CheckoutScreen() {
              </Pressable>
 
               <Pressable onPress={() => { Haptics.selectionAsync(); setPaymentMethod("online"); }} style={[styles.methodCard, { borderColor: paymentMethod === "online" ? theme.colors.brand.primary : theme.colors.border.default, backgroundColor: paymentMethod === "online" ? theme.colors.brand.primaryLight : theme.colors.canvas.surface, flexDirection: flexRow(IS_RTL) }]}>
-                 <Ionicons name="card-outline" size={28} color={paymentMethod === "online" ? theme.colors.brand.primary : theme.colors.text.secondary} />
+                 <View style={[styles.methodIconWell, { backgroundColor: paymentMethod === "online" ? theme.colors.canvas.surface : theme.colors.canvas.surfaceMuted }]}>
+                   <Ionicons name="card-outline" size={22} color={paymentMethod === "online" ? theme.colors.brand.primary : theme.colors.text.secondary} />
+                 </View>
                  <View style={{ flex: 1, paddingHorizontal: 16 }}>
                     <Text variant="body" weight="bold" style={{ color: paymentMethod === "online" ? theme.colors.brand.primary : theme.colors.text.primary, textAlign: TEXT_START }}>{t("checkout.card", "Credit / Debit Card")}</Text>
                     <Text variant="caption" style={{ color: paymentMethod === "online" ? theme.colors.brand.primary : theme.colors.text.secondary, textAlign: TEXT_START }}>{t("checkout.paySecurely", "Pay securely via Stripe")}</Text>
@@ -454,24 +517,76 @@ export default function CheckoutScreen() {
              isCompleted={false}
              onEdit={() => {}}
            >
+             {needsPrescription && (
+               <View style={[styles.rxCard, { backgroundColor: theme.colors.status.warning + "14", borderColor: theme.colors.status.warning }]}>
+                 <View style={{ flexDirection: flexRow(IS_RTL), alignItems: "center", gap: 8 }}>
+                   <Ionicons name="document-text-outline" size={18} color={theme.colors.status.warning} />
+                   <Text variant="body" weight="bold" style={{ color: theme.colors.text.primary, flex: 1, textAlign: TEXT_START }}>
+                     {t("checkout.prescriptionRequired", "This order needs a prescription")}
+                   </Text>
+                 </View>
+                 <Text variant="caption" style={{ color: theme.colors.text.secondary, marginTop: 4, textAlign: TEXT_START }}>
+                   {rxRequiredItems.map((i) => i.product.nameAr || i.product.nameEn || i.product.name).join("، ")}
+                 </Text>
+
+                 {approvedPrescriptions.length > 0 ? (
+                   <>
+                     <Text variant="caption" weight="bold" style={{ color: theme.colors.text.secondary, marginTop: 12, textAlign: TEXT_START }}>
+                       {t("checkout.selectPrescription", "Select an approved prescription")}
+                     </Text>
+                     <View style={{ flexDirection: flexRow(IS_RTL), flexWrap: "wrap", gap: 8, marginTop: 8 }}>
+                       {approvedPrescriptions.map((rx) => {
+                         const picked = selectedPrescriptionIds.includes(rx.id);
+                         return (
+                           <Pressable
+                             key={rx.id}
+                             onPress={() => {
+                               Haptics.selectionAsync();
+                               setSelectedPrescriptionIds(picked
+                                 ? selectedPrescriptionIds.filter((id) => id !== rx.id)
+                                 : [...selectedPrescriptionIds, rx.id]);
+                             }}
+                             style={[styles.rxChip, { borderColor: picked ? theme.colors.brand.primary : theme.colors.border.default, backgroundColor: picked ? theme.colors.brand.primaryLight : theme.colors.canvas.surface }]}
+                           >
+                             {picked && <Ionicons name="checkmark-circle" size={14} color={theme.colors.brand.primary} />}
+                             <Text variant="caption" weight="bold" style={{ color: picked ? theme.colors.brand.primary : theme.colors.text.primary }}>{rx.name}</Text>
+                           </Pressable>
+                         );
+                       })}
+                     </View>
+                   </>
+                 ) : (
+                   <Pressable
+                     onPress={() => router.push("/(customer)/prescriptions/scan" as never)}
+                     style={[styles.rxUploadBtn, { borderColor: theme.colors.brand.primary, flexDirection: flexRow(IS_RTL) }]}
+                   >
+                     <Ionicons name="camera-outline" size={16} color={theme.colors.brand.primary} />
+                     <Text variant="body-sm" weight="bold" style={{ color: theme.colors.brand.primary }}>
+                       {t("checkout.uploadPrescription", "Upload a prescription")}
+                     </Text>
+                   </Pressable>
+                 )}
+               </View>
+             )}
+
              <View style={[styles.summaryCard, { backgroundColor: theme.colors.canvas.background, borderColor: theme.colors.border.default }]}>
                 <View style={[styles.summaryRow, { flexDirection: flexRow(IS_RTL) }]}>
                    <Text variant="body" style={{ color: theme.colors.text.secondary }}>{t("checkout.subtotal", "Subtotal")}</Text>
-                   <Text variant="body" weight="bold" style={{ color: theme.colors.text.primary }}>{pricing.subtotal.toLocaleString("ar-EG")} EGP</Text>
+                   <Text variant="body" weight="bold" style={{ color: theme.colors.text.primary }}>{formatPrice(pricing.subtotal, lang)}</Text>
                 </View>
                 <View style={[styles.summaryRow, { flexDirection: flexRow(IS_RTL) }]}>
                    <Text variant="body" style={{ color: theme.colors.text.secondary }}>{t("checkout.deliveryFee", "Delivery Fee")}</Text>
-                    <Text variant="body" weight="bold" style={{ color: pricing.shipping === 0 ? theme.colors.status.success : theme.colors.text.primary }}>{pricing.shipping === 0 ? t("checkout.free", "Free") : `${pricing.shipping.toLocaleString("ar-EG")} EGP`}</Text>
+                    <Text variant="body" weight="bold" style={{ color: pricing.shipping === 0 ? theme.colors.status.success : theme.colors.text.primary }}>{pricing.shipping === 0 ? t("checkout.free", "Free") : formatPrice(pricing.shipping, lang)}</Text>
                 </View>
                 {pricing.discount > 0 && (
                   <View style={[styles.summaryRow, { flexDirection: flexRow(IS_RTL) }]}>
                      <Text variant="body" style={{ color: theme.colors.status.success }}>{t("checkout.discount", "Discount")}</Text>
-                     <Text variant="body" weight="bold" style={{ color: theme.colors.status.success }}>-{pricing.discount.toLocaleString("ar-EG")} EGP</Text>
+                     <Text variant="body" weight="bold" style={{ color: theme.colors.status.success }}>-{formatPrice(pricing.discount, lang)}</Text>
                   </View>
                 )}
                 <View style={[styles.summaryRow, styles.summaryTotal, { borderTopColor: theme.colors.border.default, flexDirection: flexRow(IS_RTL) }]}>
                    <Text variant="h4" style={{ color: theme.colors.text.primary }}>{t("checkout.total", "Final Total")}</Text>
-                   <Text variant="h3" style={{ color: theme.colors.brand.primary }}>{pricing.total.toLocaleString("ar-EG")} EGP</Text>
+                   <Text variant="h3" style={{ color: theme.colors.brand.primary }}>{formatPrice(pricing.total, lang)}</Text>
                 </View>
              </View>
            </StepAccordion>
@@ -481,7 +596,7 @@ export default function CheckoutScreen() {
         {activeStep === 4 && (
           <Animated.View entering={SlideInDown.duration(300)} style={[styles.footerDock, theme.shadows[3], { backgroundColor: theme.colors.canvas.surface, borderTopColor: theme.colors.border.default }]}>
              {errorMsg && (
-                <View style={[styles.errorDock, { backgroundColor: `${theme.colors.status.error}1A` }]}>
+                <View style={[styles.errorDock, { flexDirection: flexRow(IS_RTL), backgroundColor: `${theme.colors.status.error}1A` }]}>
                    <Ionicons name="warning" size={16} color={theme.colors.status.error} />
                    <Text variant="caption" weight="bold" style={{ color: theme.colors.status.error, marginStart: 6 }}>{errorMsg}</Text>
                 </View>
@@ -493,7 +608,7 @@ export default function CheckoutScreen() {
                   submit();
                 }}
                 loading={isBlocked}
-                disabled={!quote.isDeliverable}
+                disabled={!quote.isDeliverable || (needsPrescription && selectedPrescriptionIds.length === 0)}
                 size="lg"
                 tone="gradient"
                 fullWidth
@@ -518,8 +633,13 @@ export default function CheckoutScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1 },
+  header: { justifyContent: "space-between", alignItems: "center", paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1 },
   backBtn: { padding: 4 },
+
+  railWrap: { alignItems: "center", justifyContent: "center", paddingVertical: 14, paddingHorizontal: 32, borderBottomWidth: 1 },
+  railNode: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, alignItems: "center", justifyContent: "center" },
+  railDot: { width: 6, height: 6, borderRadius: 3 },
+  railLine: { flex: 1, height: 2, marginHorizontal: 4, borderRadius: 1 },
 
   accordionCard: { borderRadius: 16, borderWidth: 1, marginBottom: 12, overflow: "hidden" },
   accordionHeader: { padding: 16, alignItems: "center", justifyContent: "space-between" },
@@ -540,15 +660,21 @@ const styles = StyleSheet.create({
   warningBox: { padding: 12, borderRadius: 12, borderWidth: 1, marginTop: 8, alignItems: "center" },
 
   methodCard: { borderRadius: 12, borderWidth: 1, padding: 16, alignItems: "center", marginBottom: 12 },
+  methodIconWell: { width: 44, height: 44, borderRadius: 14, alignItems: "center", justifyContent: "center" },
 
+  rxCard: { borderRadius: 12, borderWidth: 1, padding: 14, marginBottom: 16 },
+  rxChip: { flexDirection: flexRow(IS_RTL), alignItems: "center", gap: 5, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 9999, borderWidth: 1 },
+  rxUploadBtn: { alignItems: "center", justifyContent: "center", gap: 6, marginTop: 10, paddingVertical: 12, borderRadius: 10, borderWidth: 1, borderStyle: "dashed" },
   summaryCard: { borderRadius: 12, borderWidth: 1, padding: 16 },
   summaryRow: { justifyContent: "space-between", alignItems: "center", paddingVertical: 8 },
   summaryTotal: { borderTopWidth: 1, marginTop: 8, paddingTop: 16 },
 
   footerDock: { position: "absolute", bottom: 0, left: 0, right: 0, paddingHorizontal: 20, paddingTop: 16, borderTopWidth: 1 },
-  errorDock: { flexDirection: "row", alignItems: "center", padding: 12, borderRadius: 8, marginBottom: 12 },
+  errorDock: { alignItems: "center", padding: 12, borderRadius: 8, marginBottom: 12 },
 
   successContent: { flex: 1, justifyContent: "center", alignItems: "center", paddingHorizontal: 20 },
+  successGlowWrap: { width: 200, height: 200, alignItems: "center", justifyContent: "center" },
+  successGlow: { position: "absolute", width: 200, height: 200, borderRadius: 100 },
   successIconCircle: { width: 120, height: 120, borderRadius: 60, alignItems: "center", justifyContent: "center" },
   successDetailsCard: { width: "100%", borderRadius: 16, borderWidth: 1, padding: 20, marginTop: 32 },
 

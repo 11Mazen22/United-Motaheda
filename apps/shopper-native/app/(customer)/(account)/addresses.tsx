@@ -223,7 +223,7 @@ export default function AddressesScreen() {
 
   const handleSubmit = useCallback(async (data: AddressFormData) => {
 
-    if (!user?.id) return;
+    if (!user?.id) { showErrorSheet(t("addresses.saveError"), t("addresses.saveErrorDesc")); return; }
 
     setSubmitting(true);
 
@@ -331,7 +331,7 @@ export default function AddressesScreen() {
 
       {isSkeleton ? <View style={styles.loadWrap}>{[1, 2, 3].map(i => <Shimmer key={i} style={styles.shimmer} />)}</View>
 
-        : isError ? <View style={styles.emptyW}><EmptyState icon="wifi-outline" title={t("errors.network").split(".")[0]} subtitle={t("errors.network")} action={{ label: t("common.retry"), onPress: () => user?.id && fetch(user.id) }} /></View>
+        : isError ? <View style={styles.emptyW}><EmptyState illustrationName="offline" title={t("errors.network").split(".")[0]} subtitle={t("errors.network")} action={{ label: t("common.retry"), onPress: () => user?.id && fetch(user.id) }} /></View>
 
         : isEmpty ? <View style={styles.emptyW}><EmptyState icon="location-outline" title={t("addresses.emptyTitle")} subtitle={t("addresses.emptyDesc")} action={{ label: t("addresses.emptyAction"), onPress: handleAdd }} /></View>
 

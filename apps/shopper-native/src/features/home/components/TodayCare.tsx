@@ -17,6 +17,7 @@ import { useRouter } from "expo-router";
 import { Text as UIText, useTheme, type NativeTheme } from "@pharmacy/ui-native";
 import { PressableScale } from "@/shared/motion";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
+import { formatPrice } from "@/utils/format";
 import { useAuth } from "@/features/auth";
 import { useOrders } from "@/features/orders/hooks/useOrders";
 import { mapOrderStatus, type OrderTone } from "@/features/orders/lib/statusMap";
@@ -118,6 +119,7 @@ const OrderNowCard = memo(function OrderNowCard({
   onPress: (id: string) => void;
   theme: NativeTheme;
 }) {
+  const { i18n } = useTranslation();
   const view = mapOrderStatus(order.status, t);
   const c = toneColor(theme, view.tone);
   const handle = useCallback(() => onPress(order.id), [order.id, onPress]);
@@ -138,7 +140,7 @@ const OrderNowCard = memo(function OrderNowCard({
             <UIText style={[styles.pillText, { color: c.fg }]}>{view.label}</UIText>
           </View>
           <UIText variant="caption" numberOfLines={1} style={{ flex: 1, color: theme.colors.text.muted, textAlign: TEXT_START }}>
-            {t("home.todayItems", { count: order.items.length })} · {order.total} {t("common.currency")}
+            {t("home.todayItems", { count: order.items.length })} · {formatPrice(order.total, i18n.language === "en" ? "en" : "ar")}
           </UIText>
         </View>
       </View>

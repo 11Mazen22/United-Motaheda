@@ -1055,7 +1055,21 @@ export function BarcodeScannerScreen(): React.ReactElement {
 
       if (mode === "order") {
 
-        // QR token — navigate to order detail
+        // QR token — navigate to order detail. Order ids are uuids; a bad
+        // scan (wrong QR code entirely, damaged code, camera misread) landed
+        // on a generic "order not found" screen with no indication the scan
+        // itself was the problem, rather than a real, missing order.
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+
+        if (!isUuid) {
+
+          setScanning(false);
+
+          setError(t("pharmacist.scannerInvalidOrderCode", "This doesn't look like an order code. Try scanning again."));
+
+          return;
+
+        }
 
         setScanning(false);
 

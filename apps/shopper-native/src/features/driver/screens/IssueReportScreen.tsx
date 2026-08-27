@@ -4,11 +4,12 @@
  * submit a duplicate.
  */
 import React, { useMemo, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
+import { Image, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
 import { useTranslation } from "react-i18next";
-import { Screen, Text as UIText, useTheme } from "@pharmacy/ui-native";
+import { Screen, Text as UIText, Input, useTheme } from "@pharmacy/ui-native";
 import { Button, kit } from "@pharmacy/ui-native";
 import { useAuth } from "@/features/auth";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
@@ -40,9 +41,20 @@ export function IssueReportScreen(): React.ReactElement {
   const { user } = useAuth();
   const [selected, setSelected] = useState<IssueReasonCode | null>(null);
   const [note, setNote] = useState("");
+  const [photoUri, setPhotoUri] = useState<string | null>(null);
 
   const priorIssuesQuery = useMyIssuesForOrder(orderId, user?.id);
   const mutations = useDriverMutations(user?.id);
+
+  const handlePickPhoto = async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      showErrorSheet(t("driver.actionFailedTitle"), t("driver.photoPermissionRequired", "Photo library access is required to attach a photo."));
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], allowsEditing: true, quality: 0.7 });
+    if (!result.canceled && result.assets?.[0]?.uri) setPhotoUri(result.assets[0].uri);
+  };
 
   const s = useMemo(() => StyleSheet.create({
     content: { paddingBottom: 0 },
@@ -56,18 +68,13 @@ export function IssueReportScreen(): React.ReactElement {
       padding: 12,
       borderRadius: 12,
     },
-    noteInput: {
+    noteInputContainer: {
       marginHorizontal: kit.inset.screen,
       marginTop: 8,
-      borderWidth: 1,
-      borderColor: theme.colors.border.default,
-      borderRadius: 12,
-      padding: 12,
+    },
+    noteInput: {
       minHeight: 90,
       textAlignVertical: "top",
-      fontSize: 14,
-      color: theme.colors.text.primary,
-      textAlign: TEXT_START,
     },
     submitWrap: {
       marginHorizontal: kit.inset.screen,
@@ -76,12 +83,21 @@ export function IssueReportScreen(): React.ReactElement {
     reasonGrid: { flexDirection: flexRow(IS_RTL), flexWrap: 'wrap', gap: 8 },
     reasonGridCell: { width: '48%', marginBottom: 8 },
     priorItem: { marginTop: 8, padding: 10, backgroundColor: theme.colors.canvas.surface, borderRadius: 12, borderWidth: 1, borderColor: theme.colors.border.default },
+    photoPicker: {
+      flexDirection: flexRow(IS_RTL), alignItems: "center", gap: 10,
+      marginHorizontal: kit.inset.screen, marginTop: 10,
+      padding: 12, borderRadius: 12, borderWidth: 1, borderStyle: "dashed", borderColor: theme.colors.border.default,
+    },
+    photoPickerIcon: { width: 36, height: 36, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: theme.colors.canvas.surfaceMuted },
+    photoPreviewWrap: { marginHorizontal: kit.inset.screen, marginTop: 10, borderRadius: 12, overflow: "hidden" },
+    photoPreview: { width: "100%", height: 160, borderRadius: 12 },
+    photoRemoveBtn: { position: "absolute", top: 8, end: 8, width: 28, height: 28, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(0,0,0,0.55)" },
   }), [theme]);
 
   const handleSubmit = async () => {
     if (!orderId || !selected) return;
     try {
-      await mutations.report.mutateAsync({ orderId, reasonCode: selected, note: note.trim() || undefined });
+      await mutations.report.mutateAsync({ orderId, reasonCode: selected, note: note.trim() || undefined, photoUri: photoUri ?? undefined });
       showSuccessSheet(t("driver.issueReportedTitle"), t("driver.issueReportedBody"), () => router.back());
     } catch (e) {
       showErrorSheet(t("driver.actionFailedTitle"), e instanceof Error ? e.message : t("driver.actionFailedBody"));
@@ -129,15 +145,31 @@ export function IssueReportScreen(): React.ReactElement {
         <UIText variant="card-title" style={{ paddingHorizontal: kit.inset.screen, marginTop: 20, textAlign: TEXT_START }}>
           {t("driver.additionalNotes")}
         </UIText>
-        <TextInput
+        <Input
           value={note}
           onChangeText={setNote}
           placeholder={t("driver.additionalNotesPlaceholder")}
-          placeholderTextColor={theme.colors.text.muted}
           multiline
           numberOfLines={4}
+          containerStyle={s.noteInputContainer}
           style={s.noteInput}
         />
+
+        {photoUri ? (
+          <View style={s.photoPreviewWrap}>
+            <Image source={{ uri: photoUri }} style={s.photoPreview} resizeMode="cover" />
+            <Pressable onPress={() => setPhotoUri(null)} style={s.photoRemoveBtn} accessibilityRole="button" accessibilityLabel={t("common.remove", "Remove")}>
+              <Ionicons name="close" size={16} color="#fff" />
+            </Pressable>
+          </View>
+        ) : (
+          <Pressable onPress={() => void handlePickPhoto()} style={s.photoPicker} accessibilityRole="button">
+            <View style={s.photoPickerIcon}><Ionicons name="camera-outline" size={18} color={theme.colors.text.secondary} /></View>
+            <UIText variant="body-sm" color="secondary" style={{ textAlign: TEXT_START, flex: 1 }}>
+              {t("driver.attachPhoto", "Attach a photo (optional)")}
+            </UIText>
+          </Pressable>
+        )}
 
         <View style={s.submitWrap}>
           <Button
@@ -157,7 +189,10 @@ export function IssueReportScreen(): React.ReactElement {
             <UIText variant="caption" color="secondary">{t("driver.yourPreviousReports")}</UIText>
             {(priorIssuesQuery.data ?? []).map((p) => (
               <View key={p.id} style={s.priorItem}>
-                <UIText variant="body-sm">{t(REASONS.find((r) => r.code === p.reasonCode)?.labelKey ?? "driver.reasonOther")}</UIText>
+                <View style={{ flexDirection: flexRow(IS_RTL), alignItems: "center", gap: 6 }}>
+                  <UIText variant="body-sm" style={{ flex: 1 }}>{t(REASONS.find((r) => r.code === p.reasonCode)?.labelKey ?? "driver.reasonOther")}</UIText>
+                  {p.photoUrl ? <Ionicons name="camera-outline" size={14} color={theme.colors.text.muted} /> : null}
+                </View>
                 {p.note ? <UIText variant="caption" color="secondary">{p.note}</UIText> : null}
               </View>
             ))}

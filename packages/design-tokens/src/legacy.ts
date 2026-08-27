@@ -483,8 +483,8 @@ const gradients = {
   heroMid:       ['#053348', '#0A4A65'] as string[],
   heroLight:     ['#0A4A65', '#0D6080', '#0891B2'] as string[],
   // Brand — single-hue teal, aligned to the unified accent (no cyan intrusion)
-  brandPrimary:  ['#0E7E74', '#0A5F58'] as string[],
-  brandStrong:   ['#0A5F58', '#0E7E74'] as string[],
+  brandPrimary:  ['#0DA99C', '#086F63'] as string[],
+  brandStrong:   ['#086F63', '#0DA99C'] as string[],
   brandSoft:     ['#E6FAF8', '#CFFAFE'] as string[],
   // Category palette (10 pairs)
   categories: [

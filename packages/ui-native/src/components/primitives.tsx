@@ -122,9 +122,9 @@ export function Button({ label, title, onPress, variant = "primary", size = "md"
   const start = iconLeft ?? leftIcon ?? (!iconEnd ? namedIcon : null);
   const end = iconRight ?? rightIcon ?? (iconEnd ? namedIcon : null);
   const glowColor = variant === "danger" ? theme.colors.status.error : theme.colors.brand.primary;
-  return <PressableScale {...props} haptic disabled={disabled || loading} onPress={() => onPress()} accessibilityLabel={accessibilityLabel ?? caption} accessibilityState={{ disabled: !!disabled || loading, busy: loading }} style={[styles.button, styles[`button_${size}`], useGradient || useGlass ? { borderColor: useGlass ? legacyColors.glassBorder : "transparent", overflow: "hidden" } : { backgroundColor: palette[0], borderColor: palette[2] }, { flexDirection: isRTL ? "row-reverse" : "row" }, glow && glowShadow(glowColor), (fullWidth || full) && styles.full, style]}>
+  return <PressableScale {...props} haptic disabled={disabled || loading} onPress={() => onPress()} accessibilityLabel={accessibilityLabel ?? caption} accessibilityState={{ disabled: !!disabled || loading, busy: loading }} style={[styles.button, styles[`button_${size}`], useGradient || useGlass ? { borderColor: useGlass ? legacyColors.glassBorder : "transparent", overflow: "hidden" } : { backgroundColor: palette[0], borderColor: palette[2] }, useGlass && Platform.OS === "web" && { backgroundColor: `${theme.colors.canvas.surface}D9` }, { flexDirection: isRTL ? "row-reverse" : "row" }, glow && glowShadow(glowColor), (fullWidth || full) && styles.full, style]}>
     {useGradient ? <LinearGradient colors={gradientColors as unknown as [string, string]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} /> : null}
-    {useGlass ? <BlurView intensity={40} tint={isDark ? "dark" : "light"} style={StyleSheet.absoluteFill} /> : null}
+    {useGlass && Platform.OS !== "web" ? <BlurView intensity={40} tint={isDark ? "dark" : "light"} style={StyleSheet.absoluteFill} /> : null}
     {useGlass ? <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: isDark ? legacyColors.glassDark : legacyColors.glass }]} /> : null}
     {loading ? <ActivityIndicator color={contentColor} /> : <>{start}<Text variant="label" align="center" style={[{ color: contentColor }, textStyle]}>{caption}</Text>{end}</>}
   </PressableScale>;
@@ -142,9 +142,9 @@ export function Card({ children, variant = "default", padding = 16, elevation, r
   const resolvedPadding = typeof padding === "number" ? padding : cardPadding[padding];
   const elevationIndex = elevation === "lg" || variant === "raised" ? 3 : elevation === "md" || variant === "elevated" || variant === "interactive" ? 2 : elevation === "none" || variant === "flat" || variant === "outlined" ? 0 : 1;
   const isGlass = surface === "glass";
-  const cardStyle: StyleProp<ViewStyle> = [styles.card, theme.shadows[elevationIndex], { borderRadius: radius, backgroundColor: isGlass ? "transparent" : (background ?? (variant === "filled" ? theme.colors.canvas.surfaceMuted : theme.colors.canvas.surface)), borderColor: isGlass ? legacyColors.glassBorder : theme.colors.border.default, borderWidth: isGlass ? StyleSheet.hairlineWidth : (variant === "outlined" || variant === "default" || variant === "flat" ? 1 : 0) }, style];
+  const cardStyle: StyleProp<ViewStyle> = [styles.card, theme.shadows[elevationIndex], { borderRadius: radius, backgroundColor: isGlass ? (Platform.OS === "web" ? `${theme.colors.canvas.surface}D9` : "transparent") : (background ?? (variant === "filled" ? theme.colors.canvas.surfaceMuted : theme.colors.canvas.surface)), borderColor: isGlass ? legacyColors.glassBorder : theme.colors.border.default, borderWidth: isGlass ? StyleSheet.hairlineWidth : (variant === "outlined" || variant === "default" || variant === "flat" ? 1 : 0) }, style];
   const content = <>
-    {isGlass ? <BlurView intensity={50} tint={isDark ? "dark" : "light"} style={StyleSheet.absoluteFill} /> : null}
+    {isGlass && Platform.OS !== "web" ? <BlurView intensity={50} tint={isDark ? "dark" : "light"} style={StyleSheet.absoluteFill} /> : null}
     {isGlass ? <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: isDark ? legacyColors.glassDark : legacyColors.glass }]} /> : null}
     <View style={{ padding: resolvedPadding }}>{children}</View>
   </>;

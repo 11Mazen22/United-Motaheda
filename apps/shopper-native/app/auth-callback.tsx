@@ -24,8 +24,9 @@ export default function AuthCallbackScreen(): React.ReactElement {
   const s = useMemo(() => getStyles(theme), [theme]);
   const { t } = useTranslation();
   const router = useRouter();
-  const { code } = useLocalSearchParams<{ code?: string }>();
+  const { code, redirect } = useLocalSearchParams<{ code?: string; redirect?: string }>();
   const codeStr = typeof code === "string" ? code : "";
+  const destination = redirect ? decodeURIComponent(redirect) : "/(customer)/(tabs)";
 
   const [stage, setStage] = useState<Stage>("exchanging");
   const ran = useRef(false);
@@ -51,9 +52,9 @@ export default function AuthCallbackScreen(): React.ReactElement {
         router.replace({ pathname: "/(auth)/verify-phone", params: {} });
         return;
       }
-      router.replace("/(customer)/(tabs)");
+      router.replace(destination as never);
     })();
-  }, [codeStr, router]);
+  }, [codeStr, router, destination]);
 
   const isError = stage === "error";
 

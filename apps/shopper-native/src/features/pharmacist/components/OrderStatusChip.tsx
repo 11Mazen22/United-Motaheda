@@ -59,8 +59,6 @@ export function OrderStatusChip({ status, size = "md" }: Props) {
 
     pending:         () => ({ labelKey: "pharmacist.statusPending",        color: theme.colors.status.warning,       bg: `${theme.colors.status.warning}1A`,    icon: "time-outline"              }),
 
-    confirmed:       () => ({ labelKey: "pharmacist.statusConfirmed",      color: theme.colors.brand.primary, bg: theme.colors.brand.primaryLight,  icon: "checkmark-circle-outline"  }),
-
     verification:    () => ({ labelKey: "pharmacist.statusVerification",   color: theme.colors.brand.primary,     bg: theme.colors.brand.primaryLight,  icon: "shield-checkmark-outline"  }),
 
     payment_pending: () => ({ labelKey: "pharmacist.statusPaymentPending", color: theme.colors.brand.primary, bg: theme.colors.brand.primaryLight,  icon: "card-outline"              }),

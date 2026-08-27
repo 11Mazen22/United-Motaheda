@@ -54,7 +54,7 @@ import { formatPrice }            from "@/utils/format";
 
 
 
-import { usePharmacistDashboard, usePharmacistOrderQueue, useAllPrescriptions } from "../hooks/usePharmacistQueries";
+import { usePharmacistDashboard, usePharmacistOrderQueue, usePrescriptionStatusCounts, useTodayOrdersForAnalytics } from "../hooks/usePharmacistQueries";
 
 import { pharmacistQueryKeys } from "../hooks/queryKeys";
 
@@ -120,7 +120,8 @@ function MetricRow({
 
     <View style={[mrStyles.root, { flexDirection: flexRow(IS_RTL) }]}>
 
-      <View style={[mrStyles.iconWell, { backgroundColor: resolvedIconBg }]}>        <Ionicons name={icon} size={16} color={resolvedIconColor} />
+      <View style={[mrStyles.iconWell, { backgroundColor: resolvedIconBg }]}>
+      <Ionicons name={icon} size={16} color={resolvedIconColor} />
 
       </View>
 
@@ -236,7 +237,8 @@ function Section({
 
     <Animated.View entering={FadeInDown.delay(delay).duration(280)} style={scStyles.root}>
 
-      <View style={[scStyles.header, { flexDirection: flexRow(IS_RTL) }]}>        <View style={scStyles.iconWell}>
+      <View style={[scStyles.header, { flexDirection: flexRow(IS_RTL) }]}>
+      <View style={scStyles.iconWell}>
 
           <Ionicons name={icon} size={14} color={theme.colors.brand.primary} />
 
@@ -306,7 +308,8 @@ function MiniBarChart({
 
       </UIText>
 
-      <View style={[bcStyles.bars, { flexDirection: flexRow(IS_RTL) }]}>        {data.map((v, i) => (
+      <View style={[bcStyles.bars, { flexDirection: flexRow(IS_RTL) }]}>
+        {data.map((v, i) => (
 
           <View key={i} style={bcStyles.barCol}>
 
@@ -388,7 +391,8 @@ function BigKpi({
 
     <View style={bkStyles.card}>
 
-      <View style={[bkStyles.iconWell, { backgroundColor: iconBg }]}>        <Ionicons name={icon} size={20} color={iconColor} />
+      <View style={[bkStyles.iconWell, { backgroundColor: iconBg }]}>
+      <Ionicons name={icon} size={20} color={iconColor} />
 
       </View>
 
@@ -492,7 +496,11 @@ export function AnalyticsDashboardScreen(): React.ReactElement {
 
   const queueQuery     = usePharmacistOrderQueue();
 
-  const rxQuery        = useAllPrescriptions();
+  const rxCountsQuery  = usePrescriptionStatusCounts();
+
+  const todayISO       = useMemo(() => new Date().toISOString().slice(0, 10), []);
+
+  const todayOrdersQuery = useTodayOrdersForAnalytics(todayISO);
 
 
 
@@ -500,19 +508,25 @@ export function AnalyticsDashboardScreen(): React.ReactElement {
 
   const orders = queueQuery.data ?? [];
 
-  const rxList = rxQuery.data ?? [];
+  // Today's revenue and hourly volume must reflect every order placed today,
+  // not just the ones still sitting in the pre-dispatch queue — orders.ts's
+  // getTodayOrdersForAnalytics covers the full day regardless of status, so
+  // an order dispatched to a driver still counts here.
+  const todayOrders = todayOrdersQuery.data ?? [];
 
 
 
-  const queueRevenue = orders.reduce((sum, o) => sum + o.total, 0);
+  const queueRevenue = todayOrders.reduce((sum, o) => sum + o.total, 0);
 
 
 
-  const rxPending  = rxList.filter((rx) => rx.reviewStatus === "pending_review").length;
+  const rxCounts   = rxCountsQuery.data;
 
-  const rxApproved = rxList.filter((rx) => rx.reviewStatus === "approved").length;
+  const rxPending  = rxCounts?.pending ?? 0;
 
-  const rxRejected = rxList.filter((rx) => rx.reviewStatus === "rejected").length;
+  const rxApproved = rxCounts?.approved ?? 0;
+
+  const rxRejected = rxCounts?.rejected ?? 0;
 
 
 
@@ -520,7 +534,7 @@ export function AnalyticsDashboardScreen(): React.ReactElement {
 
     const hour = i + 8;
 
-    return orders.filter((o) => new Date(o.createdAt).getHours() === hour).length;
+    return todayOrders.filter((o) => new Date(o.createdAt).getHours() === hour).length;
 
   });
 
@@ -570,7 +584,7 @@ export function AnalyticsDashboardScreen(): React.ReactElement {
 
 
 
-  const isLoading = dashboardQuery.isLoading || queueQuery.isLoading;
+  const isLoading = dashboardQuery.isLoading || queueQuery.isLoading || rxCountsQuery.isLoading || todayOrdersQuery.isLoading;
 
 
 
@@ -592,7 +606,8 @@ export function AnalyticsDashboardScreen(): React.ReactElement {
 
       >
 
-        <View style={styles.headerInner}>          <UIText style={styles.headerTitle}>
+        <View style={styles.headerInner}>
+        <UIText style={styles.headerTitle}>
 
             {t("pharmacist.analyticsTitle", "لوحة التحليلات")}
 
@@ -640,7 +655,8 @@ export function AnalyticsDashboardScreen(): React.ReactElement {
 
           {/* Headline KPIs — 2×2 */}
 
-          <Animated.View entering={FadeInDown.delay(0).duration(280)} style={styles.kpiRow}>            <BigKpi
+          <Animated.View entering={FadeInDown.delay(0).duration(280)} style={styles.kpiRow}>
+          <BigKpi
 
               value={stats?.activeOrders ?? 0}
 
@@ -670,7 +686,8 @@ export function AnalyticsDashboardScreen(): React.ReactElement {
 
           </Animated.View>
 
-          <Animated.View entering={FadeInDown.delay(40).duration(280)} style={[styles.kpiRow, { marginTop: 10 }]}>            <BigKpi
+          <Animated.View entering={FadeInDown.delay(40).duration(280)} style={[styles.kpiRow, { marginTop: 10 }]}>
+          <BigKpi
 
               value={stats?.deliveredToday ?? 0}
 
@@ -714,11 +731,14 @@ export function AnalyticsDashboardScreen(): React.ReactElement {
 
               delay={80}
 
-            >              {funnelData.map((d, i) => (
+            >
+            {funnelData.map((d, i) => (
 
-                <View key={d.status}>                  {i > 0 && <View style={styles.divider} />}
+                <View key={d.status}>
+                {i > 0 && <View style={styles.divider} />}
 
-                  <View style={[styles.funnelRow, { flexDirection: flexRow(IS_RTL) }]}>                    <View style={[styles.funnelDot, { backgroundColor: d.color }]} />
+                  <View style={[styles.funnelRow, { flexDirection: flexRow(IS_RTL) }]}>
+                  <View style={[styles.funnelDot, { backgroundColor: d.color }]} />
 
                     <UIText variant="body-sm" style={{ flex: 1, textAlign: TEXT_START }}>
 
@@ -750,7 +770,8 @@ export function AnalyticsDashboardScreen(): React.ReactElement {
 
             delay={120}
 
-          >            <MetricRow label={t("pharmacist.rxPending")}  value={rxPending}  icon="time-outline"             iconColor={theme.colors.status.warning}    iconBg={`${theme.colors.status.warning}1A`} />
+          >
+          <MetricRow label={t("pharmacist.rxPending")}  value={rxPending}  icon="time-outline"             iconColor={theme.colors.status.warning}    iconBg={`${theme.colors.status.warning}1A`} />
 
             <View style={styles.divider} />
 
@@ -774,7 +795,8 @@ export function AnalyticsDashboardScreen(): React.ReactElement {
 
             delay={160}
 
-          >            <MetricRow
+          >
+          <MetricRow
 
               label={t("pharmacist.statLowStock")}
 
@@ -806,7 +828,8 @@ export function AnalyticsDashboardScreen(): React.ReactElement {
 
               delay={200}
 
-            >              <MiniBarChart
+            >
+            <MiniBarChart
 
                 data={hourlyData}
 

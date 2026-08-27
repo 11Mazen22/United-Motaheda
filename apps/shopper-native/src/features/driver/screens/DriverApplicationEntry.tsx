@@ -6,7 +6,7 @@
  */
 import React from "react";
 import { View } from "react-native";
-import { Screen } from "@pharmacy/ui-native";
+import { Screen, LoadingOverlay } from "@pharmacy/ui-native";
 import { useAuth } from "@/features/auth";
 import { useMyDriverProfile } from "../hooks/useDriverProfile";
 import { DriverApplicationScreen } from "./DriverApplicationScreen";
@@ -17,7 +17,7 @@ export function DriverApplicationEntry(): React.ReactElement {
   const profileQuery = useMyDriverProfile(user?.id);
 
   if (profileQuery.isLoading) {
-    return <Screen edgeTop><View style={{ flex: 1 }} /></Screen>;
+    return <Screen edgeTop><View style={{ flex: 1 }}><LoadingOverlay /></View></Screen>;
   }
 
   return profileQuery.data ? <DriverApplicationPendingScreen /> : <DriverApplicationScreen />;

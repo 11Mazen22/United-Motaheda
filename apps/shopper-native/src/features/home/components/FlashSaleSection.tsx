@@ -423,24 +423,11 @@ export const FlashSaleSection = memo(function FlashSaleSection({
 
   const items = data ?? [];
 
-  if (isLoading) return (
-
-    <View style={sectionStyles.wrap}>
-
-      <HomeSectionHeader eyebrow={t("home.flashEnds")} title={t("home.flashTitle")} icon="flash" accent={theme.colors.status.error} />
-
-      <View style={{ paddingHorizontal: pagePad }}>
-
-        <SkeletonCard lines={2} style={{ height: 180, borderRadius: 20 }} />
-
-      </View>
-
-    </View>
-
-  );
-
-
-
+  // Both useCallback calls MUST run on every render, including the
+  // isLoading skeleton branch below — putting them after that early return
+  // meant this component called 4 hooks while loading and 6 once loaded,
+  // which is exactly React's "Rendered more hooks than during the previous
+  // render" crash the moment a real query resolved.
   const renderFlashItem = useCallback(
 
     ({ item }: { item: NativeProduct }) => (
@@ -462,6 +449,24 @@ export const FlashSaleSection = memo(function FlashSaleSection({
     onViewAll?.();
 
   }, [onViewAll]);
+
+
+
+  if (isLoading) return (
+
+    <View style={sectionStyles.wrap}>
+
+      <HomeSectionHeader eyebrow={t("home.flashEnds")} title={t("home.flashTitle")} icon="flash" accent={theme.colors.status.error} />
+
+      <View style={{ paddingHorizontal: pagePad }}>
+
+        <SkeletonCard lines={2} style={{ height: 180, borderRadius: 20 }} />
+
+      </View>
+
+    </View>
+
+  );
 
 
 

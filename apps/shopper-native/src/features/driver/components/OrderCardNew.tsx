@@ -1,134 +1,171 @@
+/**
+ * OrderCardNew — one manifest row. Rebuilt to read its action state directly
+ * off ManifestOrder's own assignment fields (assignmentId/pickedUpAt/
+ * arrivedAtPharmacy/arrivedAtCustomer, joined server-side in
+ * listMyManifest) instead of firing a second, per-row useMyAssignmentForOrder
+ * query just to learn the same three timestamps — a confirmed N+1 pattern
+ * from the driver-system audit. Also drops the phantom eta/pharmacyName/
+ * itemCount props that didn't exist on the real ManifestOrder shape and
+ * always rendered as "—" / a hardcoded "Pharmacy" literal in production.
+ *
+ * Quick actions (call/navigate) live directly on the card — a driver
+ * scanning a busy manifest shouldn't have to open the full delivery screen
+ * just to call the customer or start navigation for a stop further down
+ * the list. The left accent bar's color communicates urgency (delivery
+ * stage) at a glance across the whole list without reading any text.
+ */
 import React, { useMemo } from "react";
-import { StyleSheet, View } from "react-native";
+import { Linking, StyleSheet, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as ExpoLocation from "expo-location";
-import { Text as UIText, Card, Button, useTheme } from "@pharmacy/ui-native";
+import { useTranslation } from "react-i18next";
+import { Text as UIText, Card, Button, Badge, IconButton, useTheme, type NativeTheme } from "@pharmacy/ui-native";
 import { kit } from "@pharmacy/ui-native";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
 import { formatPrice } from "@/utils/format";
 import { useAuth } from "@/features/auth";
-import { useMyAssignmentForOrder, type ManifestOrder } from "../hooks/useDriverManifest";
+import type { ManifestOrder } from "../hooks/useDriverManifest";
 import { useDriverMutations } from "../hooks/useDriverMutations";
 import { TooFarFromDestinationError } from "../api";
+import { getDeliveryStage, getStageAction, getStageStatusLabel, type DeliveryStage } from "../lib/deliveryStage";
 import { showErrorSheet, showSuccessSheet } from "@/shared/store/appSheetStore";
-import { useTranslation } from "react-i18next";
 
 const IS_RTL = isRtl();
 
-export function OrderCardNew({ order, onPress }: { order: ManifestOrder & { eta?: string; estimatedTime?: string; pharmacyName?: string; pickupName?: string; storeName?: string; items?: Array<{ name: string; quantity: number }>; itemCount?: number; paymentMethod?: string | null }; onPress: (event?: unknown) => void }) {
+function stageAccentColor(stage: DeliveryStage, theme: NativeTheme): string {
+  if (stage === "at_customer") return theme.colors.status.error;
+  if (stage === "to_customer") return theme.colors.status.warning;
+  if (stage === "at_pharmacy") return theme.colors.status.info;
+  if (stage === "delivered") return theme.colors.status.success;
+  return theme.colors.brand.primary;
+}
+
+function minutesSince(iso: string): number {
+  return Math.max(0, Math.floor((Date.now() - Date.parse(iso)) / 60_000));
+}
+
+export function OrderCardNew({ order, onPress }: { order: ManifestOrder; onPress: (event?: unknown) => void }) {
   const { t } = useTranslation();
   const { theme } = useTheme();
   const { user } = useAuth();
-  const assignmentQuery = useMyAssignmentForOrder(order.id, user?.id);
-  const assignment = assignmentQuery.data;
   const mutations = useDriverMutations(user?.id);
 
-  const eta = useMemo(() => order.eta ?? order.estimatedTime ?? "—", [order]);
-  const pickup = order.pharmacyName ?? order.pickupName ?? order.storeName ?? "Pharmacy";
-  const destination = order.customerName ? `${order.customerName} · ${order.customerAddress ?? "—"}` : (order.customerAddress ?? "—");
-  const itemCount = order.items ? order.items.length : order.itemCount ?? undefined;
+  const stage = getDeliveryStage(order.status, order);
+  const action = getStageAction(stage);
+  const statusLabel = getStageStatusLabel(stage);
+  const accentColor = stageAccentColor(stage, theme);
+  const waitedMin = minutesSince(order.updatedAt);
 
-  const handlePickup = async () => {
-    if (!assignment) return;
+  const handlePrimaryAction = async () => {
     try {
-      await mutations.pickup.mutateAsync({ orderId: order.id, assignmentId: assignment.id });
-      showSuccessSheet(t("driver.pickedUpTitle"), t("driver.pickedUpBody"));
-    } catch (e) {
-      showErrorSheet(t("driver.actionFailedTitle"), e instanceof Error ? e.message : String(e));
-    }
-  };
-
-  const handleArrivedCustomer = async () => {
-    if (!assignment) return;
-    try {
-      const permission = await ExpoLocation.requestForegroundPermissionsAsync();
-      if (permission.status !== "granted") {
-        showErrorSheet(t("driver.actionFailedTitle"), t("driver.locationPermissionRequired", "Location access is required to confirm arrival."));
-        return;
+      if (action.kind === "arrive_pharmacy" || action.kind === "arrive_customer") {
+        const permission = await ExpoLocation.requestForegroundPermissionsAsync();
+        if (permission.status !== "granted") {
+          showErrorSheet(t("driver.actionFailedTitle"), t("driver.locationPermissionRequired"));
+          return;
+        }
+        const position = await ExpoLocation.getCurrentPositionAsync({ accuracy: ExpoLocation.Accuracy.Balanced });
+        const coords = { lat: position.coords.latitude, lng: position.coords.longitude };
+        const arrivalStage = action.kind === "arrive_pharmacy" ? "pharmacy" : "customer";
+        await mutations.arrival.mutateAsync({ assignmentId: order.assignmentId, orderId: order.id, stage: arrivalStage, coords });
+        showSuccessSheet(
+          arrivalStage === "pharmacy" ? t("driver.arrivedAtPharmacyTitle") : t("driver.arrivedTitle"),
+          arrivalStage === "pharmacy" ? t("driver.arrivedAtPharmacyBody") : t("driver.arrivedBody"),
+        );
+      } else if (action.kind === "confirm_pickup") {
+        await mutations.pickup.mutateAsync({ orderId: order.id, assignmentId: order.assignmentId });
+        showSuccessSheet(t("driver.pickedUpTitle"), t("driver.pickedUpBody"));
+      } else if (action.kind === "complete") {
+        await mutations.deliver.mutateAsync({ orderId: order.id, assignmentId: order.assignmentId });
+        showSuccessSheet(t("driver.deliveredTitle"), t("driver.deliveredBody"));
       }
-      const position = await ExpoLocation.getCurrentPositionAsync({ accuracy: ExpoLocation.Accuracy.Balanced });
-      const coords = { lat: position.coords.latitude, lng: position.coords.longitude };
-      await mutations.arrival.mutateAsync({ assignmentId: assignment.id, orderId: order.id, stage: "customer", coords });
-      showSuccessSheet(t("driver.arrivedTitle"), t("driver.arrivedBody"));
     } catch (e) {
       if (e instanceof TooFarFromDestinationError) {
-        showErrorSheet(t("driver.tooFarTitle", "You're too far away"), t("driver.tooFarBody", "Get closer to the customer's location and try again."));
+        showErrorSheet(t("driver.tooFarTitle"), t("driver.tooFarBody"));
         return;
       }
       showErrorSheet(t("driver.actionFailedTitle"), e instanceof Error ? e.message : String(e));
     }
   };
 
-  const handleComplete = async () => {
-    if (!assignment) return;
-    try {
-      await mutations.deliver.mutateAsync({ orderId: order.id, assignmentId: assignment.id });
-      showSuccessSheet(t("driver.deliveredTitle"), t("driver.deliveredBody"));
-    } catch (e) {
-      showErrorSheet(t("driver.actionFailedTitle"), e instanceof Error ? e.message : String(e));
+  const handleCall = () => {
+    const phone = order.customerPhone?.replace(/\s/g, "");
+    if (phone) void Linking.openURL(`tel:${phone}`);
+  };
+
+  const handleNavigate = () => {
+    if (typeof order.lat === "number" && typeof order.lng === "number") {
+      void Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${order.lat},${order.lng}&travelmode=driving`);
+    } else if (order.customerAddress) {
+      void Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(order.customerAddress)}&travelmode=driving`);
     }
   };
 
-  const primaryAction = (() => {
-    // If not yet picked up
-    if (!assignment) return { label: t("driver.view"), action: onPress ?? (() => {}), loading: assignmentQuery.isLoading };
-    if (!assignment.pickedUpAt) return { label: t("driver.confirmPickup"), action: handlePickup, loading: mutations.pickup.isPending };
-    if (!assignment.arrivedAtCustomer) return { label: t("driver.arrivedCustomer"), action: handleArrivedCustomer, loading: mutations.arrival.isPending };
-    return { label: t("driver.completeDelivery"), action: handleComplete, loading: mutations.deliver.isPending };
-  })();
+  const actionPending = mutations.arrival.isPending || mutations.pickup.isPending || mutations.deliver.isPending;
+  const canNavigate = (typeof order.lat === "number" && typeof order.lng === "number") || Boolean(order.customerAddress);
 
   const oc = useMemo(() => StyleSheet.create({
-    card: { padding: 14, borderRadius: 14, marginHorizontal: kit.inset.screen },
-    row: { alignItems: 'center', gap: 12 },
-    leftIcon: { width: 46, height: 46, borderRadius: 12, backgroundColor: theme.colors.canvas.surface, alignItems: 'center', justifyContent: 'center' },
-    titleRow: { flexDirection: flexRow(IS_RTL), justifyContent: 'space-between', alignItems: 'center' },
-    chipsRow: { flexDirection: flexRow(IS_RTL), gap: 8, alignItems: 'center' },
-    chip: { flexDirection: flexRow(IS_RTL), alignItems: 'center', gap: 6, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 9999, backgroundColor: theme.colors.canvas.surfaceMuted },
-    routeRow: { alignItems: 'center', gap: 8, marginTop: 10 },
-    routePill: { flex: 1, flexDirection: flexRow(IS_RTL), alignItems: 'center', gap: 6, paddingVertical: 8, paddingHorizontal: 10, backgroundColor: theme.colors.canvas.surfaceMuted, borderRadius: 16 },
-    routeLabel: { flex: 1, textAlign: textAlignStart(IS_RTL) },
-    routeArrow: { width: 20, alignItems: 'center' },
-    metaRow: { flexDirection: flexRow(IS_RTL), gap: 10, paddingTop: 10, alignItems: 'center', flexWrap: 'wrap' },
-    actionsCol: { marginStart: 12, justifyContent: 'center', gap: 8, minWidth: 100 },
+    cardWrap: { marginHorizontal: kit.inset.screen, borderRadius: 16, overflow: "hidden", flexDirection: flexRow(IS_RTL) },
+    accent: { width: 4 },
+    card: { flex: 1, padding: 14, borderRadius: 0 },
+    titleRow: { flexDirection: flexRow(IS_RTL), justifyContent: "space-between", alignItems: "center" },
+    destRow: { flexDirection: flexRow(IS_RTL), alignItems: "center", gap: 6, marginTop: 8 },
+    destText: { flex: 1, textAlign: textAlignStart(IS_RTL) },
+    metaRow: { flexDirection: flexRow(IS_RTL), gap: 10, marginTop: 8, alignItems: "center" },
+    footerRow: { flexDirection: flexRow(IS_RTL), alignItems: "center", justifyContent: "space-between", marginTop: 12, gap: 8 },
+    quickActions: { flexDirection: flexRow(IS_RTL), gap: 6 },
+    stageDot: { width: 6, height: 6, borderRadius: 3 },
   }), [theme]);
 
   return (
-    <Card onPress={onPress} style={oc.card} elevation="sm">
-      <View style={[oc.row, { flexDirection: flexRow(IS_RTL) }]}> 
-        <View style={oc.leftIcon}><Ionicons name="car-outline" size={20} color={theme.colors.brand.primary} /></View>
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <View style={oc.titleRow}>
-            <UIText variant="card-title">#{String(order.id).slice(-8).toUpperCase()}</UIText>
-            <View style={oc.chipsRow}>
-              <View style={oc.chip}><Ionicons name="time-outline" size={12} color={theme.colors.text.muted} /><UIText variant="caption" color="muted">{eta}</UIText></View>
-              <View style={[oc.chip, { backgroundColor: theme.colors.canvas.surface }]}><Ionicons name="pricetag-outline" size={12} color={theme.colors.text.muted} /><UIText variant="caption" color="muted">{formatPrice(order.total ?? 0)}</UIText></View>
-            </View>
-          </View>
-
-          <View style={[oc.routeRow, { flexDirection: flexRow(IS_RTL) }]}> 
-            <View style={oc.routePill}>
-              <Ionicons name="location-outline" size={12} color={theme.colors.text.muted} />
-              <UIText variant="caption" color="secondary" numberOfLines={1} style={oc.routeLabel}>{pickup}</UIText>
-            </View>
-            <View style={oc.routeArrow}><Ionicons name={flexRow(IS_RTL) === "row" ? "chevron-forward" : "chevron-back"} size={14} color={theme.colors.text.muted} /></View>
-            <View style={oc.routePill}>
-              <Ionicons name="person-outline" size={12} color={theme.colors.text.muted} />
-              <UIText variant="caption" color="secondary" numberOfLines={1} style={oc.routeLabel}>{destination}</UIText>
-            </View>
-          </View>
-
-          <View style={oc.metaRow}>
-            {typeof itemCount !== 'undefined' && <UIText variant="caption" color="secondary">{itemCount} items</UIText>}
-            <UIText variant="caption" color="secondary">{order.paymentMethod ? order.paymentMethod : "—"}</UIText>
-          </View>
+    <View style={oc.cardWrap}>
+      <View style={[oc.accent, { backgroundColor: accentColor }]} />
+      <Card onPress={onPress} style={oc.card} elevation="sm">
+        <View style={oc.titleRow}>
+          <UIText variant="card-title">#{String(order.id).slice(-8).toUpperCase()}</UIText>
+          <Badge variant="neutral" label={formatPrice(order.total ?? 0)} />
         </View>
 
-        <View style={oc.actionsCol}>
-          <Button label={primaryAction.label} onPress={primaryAction.action} loading={primaryAction.loading} />
-          <Button label={t("common.view")} variant="ghost" onPress={onPress} style={{ marginTop: 8 }} />
+        <View style={[oc.titleRow, { marginTop: 4 }]}>
+          <View style={{ flexDirection: flexRow(IS_RTL), gap: 6, alignItems: "center" }}>
+            <View style={[oc.stageDot, { backgroundColor: accentColor }]} />
+            <UIText variant="caption" color="secondary">{t(statusLabel.key, statusLabel.fallback)}</UIText>
+          </View>
+          <UIText variant="caption" color="muted">
+            {waitedMin < 1 ? t("driver.elapsedJustNow") : t("driver.elapsedMinutes", { count: waitedMin })}
+          </UIText>
         </View>
-      </View>
-    </Card>
+
+        <View style={oc.destRow}>
+          <Ionicons name="location-outline" size={14} color={theme.colors.text.muted} />
+          <UIText variant="body-sm" color="secondary" numberOfLines={1} style={oc.destText}>
+            {order.customerName ? `${order.customerName} · ${order.customerAddress || "—"}` : (order.customerAddress || "—")}
+          </UIText>
+        </View>
+
+        <View style={oc.metaRow}>
+          {order.zoneName ? (
+            <View style={{ flexDirection: flexRow(IS_RTL), alignItems: "center", gap: 4 }}>
+              <Ionicons name="map-outline" size={12} color={theme.colors.text.muted} />
+              <UIText variant="caption" color="secondary">{order.zoneName}</UIText>
+            </View>
+          ) : null}
+          <UIText variant="caption" color="secondary">{order.paymentMethod ?? "—"}</UIText>
+        </View>
+
+        <View style={oc.footerRow}>
+          <View style={oc.quickActions}>
+            <IconButton icon="call-outline" size={36} onPress={handleCall} disabled={!order.customerPhone} accessibilityLabel={t("driver.phone")} />
+            <IconButton icon="navigate-outline" size={36} onPress={handleNavigate} disabled={!canNavigate} accessibilityLabel={t("driver.navigate")} />
+          </View>
+          {action.kind !== "none" ? (
+            <Button label={t(action.labelKey, action.fallback)} size="sm" onPress={() => void handlePrimaryAction()} loading={actionPending} />
+          ) : (
+            <Button label={t("common.view")} variant="ghost" size="sm" onPress={onPress} />
+          )}
+        </View>
+      </Card>
+    </View>
   );
 }
 

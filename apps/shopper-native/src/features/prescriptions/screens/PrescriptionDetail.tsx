@@ -34,6 +34,7 @@ import { useTranslation } from "react-i18next";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { Button, Text, useTheme, type NativeTheme } from "@pharmacy/ui-native";
 import { flexRow, isRtl, textAlignStart, BACK_CHEVRON } from "@/utils/layout";
+import { formatPrice } from "@/utils/format";
 import { useAuth } from "@/features/auth";
 import {
   usePrescription,
@@ -443,7 +444,7 @@ export function PrescriptionDetail({ id }: { id: string | undefined }): React.Re
                   refill={r}
                   label={refillStatusLabel(r.status)}
                   dateLabel={formatDate(r.placedAt, i18n.language)}
-                  egp={t("common.currency")}
+                  lang={i18n.language === "en" ? "en" : "ar"}
                 />
               ))}
             </View>
@@ -741,8 +742,8 @@ function Fact({
 }
 
 function RefillHistoryRow({
-  refill, label, dateLabel, egp,
-}: { refill: RefillRequest; label: string; dateLabel: string; egp: string }) {
+  refill, label, dateLabel, lang,
+}: { refill: RefillRequest; label: string; dateLabel: string; lang: "ar" | "en" }) {
   const { theme } = useTheme();
   const h = useMemo(() => getHistoryStyles(theme), [theme]);
   const cancelled = refill.status === "cancelled";
@@ -775,7 +776,7 @@ function RefillHistoryRow({
       </View>
       {refill.total > 0 && (
         <Text weight="black" style={h.total} numberOfLines={1}>
-          {refill.total} {egp}
+          {formatPrice(refill.total, lang)}
         </Text>
       )}
     </View>

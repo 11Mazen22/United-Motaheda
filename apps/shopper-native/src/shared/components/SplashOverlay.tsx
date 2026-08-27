@@ -102,7 +102,11 @@ import { notifySplashExited } from "@/shared/splashBridge";
 
 // ─── Timeline (ms) ─────────────────────────────────────────────────────────────
 
-const MIN_BRAND_MS      = 1_500;
+// Was 1_500 — the forced brand-hold before the video could even start read
+// as a launch delay ("splash doesn't appear immediately"). 900ms still lets
+// the ring/logo entrance mostly settle (logoOpacity 320ms, ringsOpacity
+// completes ~540ms in) before handing off to video.
+const MIN_BRAND_MS      = 900;
 
 const LOAD_TIMEOUT_MS   = 3_000;
 

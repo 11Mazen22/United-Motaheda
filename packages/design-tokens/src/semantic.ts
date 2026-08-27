@@ -98,27 +98,32 @@ export interface SemanticColors {
 }
 
 /**
- * Semantic colors for light surfaces — "soft luxury" palette.
- * Canvas is warm ivory (not cool blue-gray) with near-white cards, so warmth
- * reads in the negative space rather than on content. Text stays neutral —
- * softness must never cost readability.
+ * Semantic colors for light surfaces — United Pharmacy's real identity:
+ * cool blue-tinted canvas + a confident teal-cyan brand color, matching the
+ * live shopper-web app's documented palette ("Primary: #2CBEB5 Brand Teal"),
+ * the brand mark itself, and this app's own original (pre-2026) token system
+ * (teal/navy/cyan families). A prior pass here replaced this with a warm
+ * ivory canvas and reduced the brand teal to a sparing accent — that was a
+ * mistake, not a deliberate identity change; corrected back to blue/teal
+ * while keeping the soft-luxury *mechanics* (restrained shadow, generous
+ * radius, calm motion, layered depth) that don't depend on hue.
  */
 export const lightColors = {
   brand: {
-    primary: "#0E7E74",
-    primaryLight: "#E6F4F2",
-    primaryDark: "#0A5F58",
+    primary: "#0DA99C",
+    primaryLight: "#E1F5F2",
+    primaryDark: "#086F63",
     accent: "#E8A23D",
     accentLight: "#FBEEDA",
   },
   canvas: {
-    screen: "#FAF8F4",
+    screen: "#F5F8FA",
     surface: "#FFFFFF",
     elevated: "#FFFFFF",
-    background: "#FAF8F4",
+    background: "#F5F8FA",
     surfaceElevated: "#FFFFFF",
-    surfaceMuted: "#F5F1EA",
-    overlay: "rgba(28, 22, 14, 0.50)",
+    surfaceMuted: "#EEF2F6",
+    overlay: "rgba(10, 20, 32, 0.50)",
   },
   text: {
     primary: "#0F172A",
@@ -166,7 +171,7 @@ export const lightColors = {
     cancelled: "#DC2626",
   },
   chart: {
-    series1: "#0E7E74",
+    series1: "#0DA99C",
     series2: "#2563EB",
     series3: "#7C3AED",
     series4: "#D97706",
@@ -176,18 +181,18 @@ export const lightColors = {
     navy: "#0A1220",
     navyLight: "#0E2230",
     navyDark: "#030C18",
-    orb: "rgba(14, 126, 116, 0.28)",
+    orb: "rgba(13, 169, 156, 0.28)",
     prescription: "#7C3AED",
-    overTheCounter: "#0E7E74",
+    overTheCounter: "#0DA99C",
     wellness: "#16A34A",
   },
   border: {
-    light: "#F5F1EA",
-    medium: "#D3C6A9",
-    subtle: "#ECE6D9",
-    default: "#E3DBC8",
-    strong: "#D3C6A9",
-    focus: "#0E7E74",
+    light: "#E9EEF3",
+    medium: "#C7D2DD",
+    subtle: "#E4E9EF",
+    default: "#DCE3EA",
+    strong: "#C7D2DD",
+    focus: "#0DA99C",
   },
 } as const satisfies SemanticColors;
 

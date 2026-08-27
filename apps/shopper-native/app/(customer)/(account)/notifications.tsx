@@ -307,7 +307,7 @@ export default function NotificationsScreen() {
 
     {loading && notifications.length === 0 ? <SkeletonView bottom={insets.bottom} styles={n} />
 
-      : isError && notifications.length === 0 ? <View style={{ paddingTop: 60 }}><EmptyState icon="wifi-outline" title={t("errors.network").split(".")[0]} subtitle={t("errors.network")} action={{ label: t("common.retry"), onPress: () => refetch() }} /></View>
+      : isError && notifications.length === 0 ? <View style={{ paddingTop: 60 }}><EmptyState illustrationName="offline" title={t("errors.network").split(".")[0]} subtitle={t("errors.network")} action={{ label: t("common.retry"), onPress: () => refetch() }} /></View>
 
       : <SectionList sections={sections} keyExtractor={i => i.id} renderItem={({ item, index }) => <Animated.View entering={FadeInDown.delay(Math.min(index, 8) * 30).duration(200)}><NotifRow item={item} onPress={() => onPress(item)} onDelete={() => dismiss(item.id)} theme={theme} styles={n} typeCfg={typeCfg} /></Animated.View>}
 
@@ -363,7 +363,7 @@ function getStyles(theme: NativeTheme) {
 
   chip: { paddingHorizontal: 13, paddingVertical: 7, borderRadius: 20, backgroundColor: theme.colors.canvas.surfaceMuted, borderWidth: 1, borderColor: theme.colors.border.default },
 
-  chipA: { backgroundColor: theme.colors.text.primary, borderColor: theme.colors.text.primary },
+  chipA: { backgroundColor: theme.colors.pharmacy.navy, borderColor: theme.colors.pharmacy.navy },
 
   chipT: { fontSize: 10.5, fontFamily: legacyTheme.fonts.bold, color: theme.colors.text.secondary, includeFontPadding: false },
 

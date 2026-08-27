@@ -236,7 +236,7 @@ function getStyles(theme: NativeTheme) {
     alignItems: "center",
   },
   actionBtn: {
-    flexDirection: "row",
+    flexDirection: flexRow(isRtl()),
     alignItems: "center",
     gap: 6,
     paddingVertical: 8,

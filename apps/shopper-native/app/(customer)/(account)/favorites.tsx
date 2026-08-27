@@ -109,7 +109,7 @@ const Card = memo(function Card({ product, index, styles }: { product: NativePro
 
             : <><View style={[StyleSheet.absoluteFill, { backgroundColor: theme.colors.brand.primaryLight }]} /><Ionicons name="medkit-outline" size={28} color={theme.colors.border.strong} /></>}
 
-          {!product.inStock && <View style={styles.oos}><UIText variant="eyebrow" color="inverse">{t("common.outOfStock")}</UIText></View>}
+          {!product.inStock && <View style={styles.oos}><UIText variant="eyebrow" style={{ color: "#FFFFFF" }}>{t("common.outOfStock")}</UIText></View>}
 
         </View>
 

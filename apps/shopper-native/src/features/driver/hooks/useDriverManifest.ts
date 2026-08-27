@@ -15,11 +15,12 @@ import {
   getMyAcceptanceRate,
   type ManifestOrder,
   type DeliveryAssignment,
+  type AssignmentOffer,
   type Order,
   type DeliveryIssue,
 } from "../api";
 
-export type { ManifestOrder, DeliveryAssignment, Order, DeliveryIssue } from "../api";
+export type { ManifestOrder, DeliveryAssignment, AssignmentOffer, Order, DeliveryIssue } from "../api";
 
 export const driverQueryKeys = {
   manifest:           (driverId: string) => ["driver", "manifest", driverId] as const,
@@ -46,7 +47,7 @@ export function useDriverManifest(driverId: string | null | undefined) {
 
 /** New assignment offers awaiting my accept/decline. */
 export function useDriverOffers(driverId: string | null | undefined) {
-  return useQuery<DeliveryAssignment[], Error>({
+  return useQuery<AssignmentOffer[], Error>({
     queryKey:  driverQueryKeys.offers(driverId ?? ""),
     queryFn:   () => listMyOpenAssignmentOffers(driverId!),
     enabled:   Boolean(driverId),

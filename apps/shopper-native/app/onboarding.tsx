@@ -76,7 +76,7 @@ const SLIDES: Slide[] = [
     eyebrowKey:     "onboarding.slide1Eyebrow",
     titleKey:       "onboarding.slide1Title",
     bodyKey:        "onboarding.slide1Body",
-    metricValue:    "52k+",
+    metricValue:    "8k+",
     metricLabelKey: "onboarding.metricProducts",
     features:       ["onboarding.featureGenuine", "onboarding.featureSupport"],
     icon:           "medkit",
@@ -490,9 +490,7 @@ export default function OnboardingScreen() {
         style={[chrome.topRow, { top: insets.top + 10, flexDirection: flexRow(IS_RTL) }]}
       >
         <View style={[chrome.brand, { flexDirection: flexRow(IS_RTL) }]}>
-          <View style={chrome.brandMark}>
-            <AppLogo size="sm" />
-          </View>
+          <AppLogo size="sm" style={chrome.brandMark} />
           <UIText style={chrome.brandName}>{t("common.appName")}</UIText>
         </View>
 

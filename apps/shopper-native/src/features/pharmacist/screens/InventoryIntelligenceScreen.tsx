@@ -215,7 +215,8 @@ function ProductCard({
 
               <Ionicons name="close-circle" size={10} color={colors.status.error} />
 
-              <UIText style={[styles.chipText, { color: colors.status.error }]}>                {t("pharmacist.stockExhausted", "نفد المخزون")}
+              <UIText style={[styles.chipText, { color: colors.status.error }]}>
+              {t("pharmacist.stockExhausted", "نفد المخزون")}
 
               </UIText>
 
@@ -545,7 +546,8 @@ export function InventoryIntelligenceScreen(): React.ReactElement {
 
             >
 
-              <UIText style={[styles.tabText, active && styles.tabTextActive, { color: active ? theme.colors.text.inverse : theme.colors.text.secondary }]}>                {labels[tabKey]}
+              <UIText style={[styles.tabText, active && styles.tabTextActive, { color: active ? theme.colors.text.inverse : theme.colors.text.secondary }]}>
+              {labels[tabKey]}
 
               </UIText>
 
@@ -609,7 +611,7 @@ export function InventoryIntelligenceScreen(): React.ReactElement {
 
             <EmptyState
 
-              icon="wifi-outline"
+              illustrationName="offline"
 
               title={t("errors.network").split(".")[0]}
 

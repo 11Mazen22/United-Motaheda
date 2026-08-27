@@ -227,7 +227,7 @@ export default function TrackOrderScreen() {
                >
                  {destination && (
                    <Marker coordinate={destination} anchor={{ x: 0.5, y: 1 }}>
-                     <View style={[styles.destPin, { backgroundColor: theme.colors.text.primary }]}>
+                     <View style={[styles.destPin, { backgroundColor: theme.colors.pharmacy.navy }]}>
                        <Ionicons name="home" size={14} color="#fff" />
                      </View>
                    </Marker>
@@ -315,7 +315,7 @@ function getStyles(theme: NativeTheme) {
     zIndex: 10,
   },
   header: {
-    flexDirection: "row",
+    flexDirection: flexRow(IS_RTL),
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
@@ -395,7 +395,7 @@ function getStyles(theme: NativeTheme) {
     position: "absolute",
     bottom: 12,
     end: 12,
-    flexDirection: "row",
+    flexDirection: flexRow(IS_RTL),
     alignItems: "center",
     gap: 6,
     paddingVertical: 8,
@@ -525,7 +525,7 @@ function getStyles(theme: NativeTheme) {
     marginBottom: 24,
   },
   errorRetry: {
-    flexDirection: "row",
+    flexDirection: flexRow(IS_RTL),
     alignItems: "center",
     gap: 8,
     paddingVertical: 12,

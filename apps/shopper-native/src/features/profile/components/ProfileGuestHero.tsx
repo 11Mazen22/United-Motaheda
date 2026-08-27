@@ -131,7 +131,7 @@ export const ProfileGuestHero = memo(function ProfileGuestHero({ insetsTop }: Pr
 
   return (
 
-    <View style={[s.hero, { backgroundColor: theme.colors.text.primary, paddingTop: insetsTop + 28 }]}>
+    <View style={[s.hero, { backgroundColor: theme.colors.pharmacy.navy, paddingTop: insetsTop + 28 }]}>
 
 
 
@@ -163,13 +163,13 @@ export const ProfileGuestHero = memo(function ProfileGuestHero({ insetsTop }: Pr
 
       <Animated.View entering={enter(110)} style={s.copy}>
 
-        <UIText variant="sheet-title" color="inverse" align="center" style={s.title}>
+        <UIText variant="sheet-title" align="center" style={[s.title, { color: "#FFFFFF" }]}>
 
           {t("profile.guestTitle")}
 
         </UIText>
 
-        <UIText variant="body-sm" color="inverse-muted" align="center" style={s.desc}>
+        <UIText variant="body-sm" align="center" style={[s.desc, { color: "rgba(255,255,255,0.72)" }]}>
 
           {t("profile.guestDesc")}
 
@@ -475,7 +475,7 @@ function getStyles(theme: NativeTheme) {
 
   primaryText: {
 
-    color:              theme.colors.canvas.surface,
+    color:              "#FFFFFF",
 
     fontSize:           15,
 

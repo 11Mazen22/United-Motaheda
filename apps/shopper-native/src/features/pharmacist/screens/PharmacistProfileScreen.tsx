@@ -21,9 +21,15 @@ import { kit }                    from "@pharmacy/ui-native";
 
 
 
+import { useQuery }               from "@tanstack/react-query";
+
 import { useAuth }                from "@/features/auth";
 
 import { useAppLanguage }         from "@/i18n/LanguageProvider";
+
+import { supabase }               from "@/lib/supabase";
+
+import { findBranchById }         from "@/features/delivery/branches/data";
 
 import { FORWARD_CHEVRON, flexRow, isRtl, textAlignStart } from "@/utils/layout";
 
@@ -148,6 +154,26 @@ export function PharmacistProfileScreen(): React.ReactElement {
   const { language, setLanguage } = useAppLanguage();
 
   const statsQ             = usePharmacistDashboard();
+
+  // profiles.branch_id was added so a pharmacist's order queue can be scoped
+  // to their own branch (see supabase/migrations/20260827090000_pharmacist_backend_fixes.sql).
+  // No admin UI assigns it yet, so this reads whatever's there — null until
+  // an admin calls set_pharmacist_branch(), which is the honest state to show.
+  const branchQ = useQuery({
+    queryKey: ["pharmacist", "profile", "branch", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("branch_id")
+        .eq("id", user!.id)
+        .maybeSingle();
+      if (error) throw error;
+      return (data as { branch_id: string | null } | null)?.branch_id ?? null;
+    },
+    enabled: Boolean(user?.id),
+    staleTime: 60_000,
+  });
+  const branchName = branchQ.data ? findBranchById(branchQ.data)?.nameAr ?? branchQ.data : null;
 
   const styles = useMemo(() => StyleSheet.create({
 
@@ -351,6 +377,18 @@ export function PharmacistProfileScreen(): React.ReactElement {
 
           </View>
 
+          <View style={[styles.roleBadge, { backgroundColor: theme.colors.canvas.surfaceMuted, borderColor: theme.colors.border.default }]}>
+
+            <Ionicons name="business-outline" size={12} color={theme.colors.text.secondary} />
+
+            <UIText variant="eyebrow" color="secondary">
+
+              {branchName ?? t("pharmacist.branchUnassigned", "All branches")}
+
+            </UIText>
+
+          </View>
+
         </View>
 
 
@@ -419,7 +457,8 @@ export function PharmacistProfileScreen(): React.ReactElement {
 
         {/* Menu */}
 
-        <View style={[styles.card, { backgroundColor: theme.colors.canvas.surface, borderColor: theme.colors.border.default }]}>          <MenuRow
+        <View style={[styles.card, { backgroundColor: theme.colors.canvas.surface, borderColor: theme.colors.border.default }]}>
+        <MenuRow
 
             icon="notifications-outline"
 
@@ -469,7 +508,8 @@ export function PharmacistProfileScreen(): React.ReactElement {
 
 
 
-        <View style={[styles.card, { backgroundColor: theme.colors.canvas.surface, borderColor: theme.colors.border.default, marginTop: 12 }]}>          <MenuRow
+        <View style={[styles.card, { backgroundColor: theme.colors.canvas.surface, borderColor: theme.colors.border.default, marginTop: 12 }]}>
+        <MenuRow
 
             icon="log-out-outline"
 

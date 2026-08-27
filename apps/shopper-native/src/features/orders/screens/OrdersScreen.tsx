@@ -178,7 +178,7 @@ function OrdersErrorState({
       <OrdersHeader t={t} insetsTop={insetsTop} orders={[]} showBack={showBack} onBack={onBack} />
       <View style={{ flex: 1, justifyContent: "center" }}>
         <EmptyState
-          icon="wifi-outline"
+          illustrationName="offline"
           title={t("errors.network").split(".")[0]}
           subtitle={t("errors.network")}
           action={{ label: t("common.retry"), onPress: onRetry }}

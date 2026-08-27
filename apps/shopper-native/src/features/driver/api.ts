@@ -24,6 +24,7 @@ import { supabase } from "@/lib/supabase";
 import { fetchOrderById } from "@/features/orders/api";
 import { normalizeOrderStatus, type Order, type OrderItem } from "@/stores/orders";
 import { notifyCustomerOrderUpdate } from "./customerNotify";
+import { parseOrderAddress, parseOrderZone, ORDER_LOCATION_SELECT, type OrderLocationRow } from "@/lib/orderAddress";
 
 export type { Order, OrderItem };
 
@@ -63,6 +64,7 @@ export interface DeliveryIssue {
   driverId:       string;
   reasonCode:     IssueReasonCode;
   note:           string | null;
+  photoUrl:       string | null;
   status:         "open" | "acknowledged" | "resolved";
   resolvedBy:     string | null;
   resolvedAt:     string | null;
@@ -82,15 +84,34 @@ export interface DriverLocationPayload {
 }
 
 /** A manifest entry — an assigned order plus a lightweight summary, enough
- * for the task-list screen without fetching every line item up front. */
+ * for the task-list screen without fetching every line item up front.
+ * Carries the accepted assignment's own id/milestones directly (joined in
+ * listMyManifest) so a list row can decide its own next action without a
+ * second per-row query — see OrderCardNew, which used to fire
+ * useMyAssignmentForOrder per card just to learn these same three
+ * timestamps. */
 export interface ManifestOrder {
   id:              string;
   status:          Order["status"];
   customerName:    string;
   customerPhone:   string;
   customerAddress: string;
+  building?:       string;
+  floor?:          string;
+  apartment?:      string;
+  landmark?:       string;
+  lat:             number | null;
+  lng:             number | null;
+  branchId:        string | null;
+  zoneId:          string | null;
+  zoneName:        string | null;
   total:           number;
+  paymentMethod:   string | null;
   updatedAt:       string;
+  assignmentId:       string;
+  pickedUpAt:         string | null;
+  arrivedAtPharmacy:  string | null;
+  arrivedAtCustomer:  string | null;
 }
 
 // ─── Row shapes ───────────────────────────────────────────────────────────────
@@ -117,6 +138,7 @@ interface RawIssueRow {
   driver_id:       string;
   reason_code:     IssueReasonCode;
   note:            string | null;
+  photo_url:       string | null;
   status:          "open" | "acknowledged" | "resolved";
   resolved_by:     string | null;
   resolved_at:     string | null;
@@ -124,20 +146,27 @@ interface RawIssueRow {
   created_at:      string;
 }
 
-interface RawManifestRow {
+interface RawManifestRow extends OrderLocationRow {
   id:               string;
   status:           string;
   customer_name:    string;
   customer_phone:   string;
-  customer_address: Record<string, unknown> | null;
   total:            number | string;
+  payment_method:   string | null;
   updated_at:       string;
+}
+
+interface ManifestAssignmentInfo {
+  id:               string;
+  pickedUpAt:       string | null;
+  arrivedAtPharmacy: string | null;
+  arrivedAtCustomer: string | null;
 }
 
 const ASSIGNMENT_COLUMNS =
   "id, order_id, driver_id, assigned_by, assignment_kind, response_status, decline_reason, offered_at, responded_at, picked_up_at, delivered_at, arrived_at_pharmacy, arrived_at_customer";
 const ISSUE_COLUMNS =
-  "id, order_id, driver_id, reason_code, note, status, resolved_by, resolved_at, resolution_note, created_at";
+  "id, order_id, driver_id, reason_code, note, photo_url, status, resolved_by, resolved_at, resolution_note, created_at";
 
 function num(v: number | string | null | undefined): number {
   if (v == null) return 0;
@@ -170,6 +199,7 @@ function mapIssueRow(row: RawIssueRow): DeliveryIssue {
     driverId: row.driver_id,
     reasonCode: row.reason_code,
     note: row.note,
+    photoUrl: row.photo_url,
     status: row.status,
     resolvedBy: row.resolved_by,
     resolvedAt: row.resolved_at,
@@ -178,18 +208,33 @@ function mapIssueRow(row: RawIssueRow): DeliveryIssue {
   };
 }
 
-function mapManifestRow(row: RawManifestRow): ManifestOrder {
-  const addr = (row.customer_address ?? {}) as { formatted?: string; street?: string; streetLine?: string; city?: string };
-  const formatted = addr.formatted
-    ?? [addr.streetLine ?? addr.street, addr.city].filter(Boolean).join(", ");
+function mapManifestRow(row: RawManifestRow, assignment: ManifestAssignmentInfo): ManifestOrder {
+  const parsed = parseOrderAddress(row);
+  const zone   = parseOrderZone(row);
+  const formatted = parsed.formatted
+    ?? [parsed.street, parsed.city].filter(Boolean).join(", ");
   return {
     id: row.id,
     status: normalizeOrderStatus(row.status) as Order["status"],
     customerName: row.customer_name,
     customerPhone: row.customer_phone,
     customerAddress: formatted,
+    building: parsed.building,
+    floor: parsed.floor,
+    apartment: parsed.apartment,
+    landmark: parsed.landmark,
+    lat: parsed.lat,
+    lng: parsed.lng,
+    branchId: zone.branchId,
+    zoneId: zone.zoneId,
+    zoneName: zone.zoneName,
     total: num(row.total),
+    paymentMethod: row.payment_method,
     updatedAt: row.updated_at,
+    assignmentId: assignment.id,
+    pickedUpAt: assignment.pickedUpAt,
+    arrivedAtPharmacy: assignment.arrivedAtPharmacy,
+    arrivedAtCustomer: assignment.arrivedAtCustomer,
   };
 }
 
@@ -223,24 +268,38 @@ const ACTIVE_ORDER_STATUSES = [
 export async function listMyManifest(driverId: string): Promise<ManifestOrder[]> {
   const { data: accepted, error: assignmentsError } = await supabase
     .from("delivery_assignments")
-    .select("order_id")
+    .select("id, order_id, picked_up_at, arrived_at_pharmacy, arrived_at_customer")
     .eq("driver_id", driverId)
     .eq("response_status", "accepted");
 
   if (assignmentsError) throw assignmentsError;
-  const orderIds = Array.from(new Set((accepted ?? []).map((a) => (a as { order_id: string }).order_id)));
+  const assignmentByOrderId = new Map<string, ManifestAssignmentInfo>();
+  for (const row of (accepted ?? []) as Array<{ id: string; order_id: string; picked_up_at: string | null; arrived_at_pharmacy: string | null; arrived_at_customer: string | null }>) {
+    assignmentByOrderId.set(row.order_id, {
+      id: row.id,
+      pickedUpAt: row.picked_up_at,
+      arrivedAtPharmacy: row.arrived_at_pharmacy,
+      arrivedAtCustomer: row.arrived_at_customer,
+    });
+  }
+  const orderIds = Array.from(assignmentByOrderId.keys());
   if (orderIds.length === 0) return [];
 
   const { data, error } = await supabase
     .from("orders")
-    .select("id, status, customer_name, customer_phone, customer_address, total, updated_at")
+    .select(`id, status, customer_name, customer_phone, total, payment_method, updated_at, ${ORDER_LOCATION_SELECT.join(",")}`)
     .in("id", orderIds)
     .eq("assigned_driver_id", driverId)
     .in("status", ACTIVE_ORDER_STATUSES)
     .order("updated_at", { ascending: false });
 
   if (error) throw error;
-  return ((data ?? []) as RawManifestRow[]).map(mapManifestRow);
+  return ((data ?? []) as unknown as RawManifestRow[])
+    .map((row) => {
+      const assignment = assignmentByOrderId.get(row.id);
+      // Guaranteed present — orderIds above came from this exact map's keys.
+      return mapManifestRow(row, assignment!);
+    });
 }
 
 /** Order detail for a driver — reuses the shared fetchOrderById, which has
@@ -252,9 +311,31 @@ export async function getOrderForDriver(orderId: string): Promise<Order | null> 
 
 // ─── Assignment offers (accept / decline) ────────────────────────────────────
 
+/** An offer plus enough real order context for the driver to actually
+ * decide whether to accept it — zone, pickup branch, destination area, and
+ * the real order total (used as the fee estimate, same value
+ * resolve_delivery_zone/checkout already priced). Previously
+ * listMyOpenAssignmentOffers returned only the bare assignment row, so the
+ * offers screen had nothing to show but an order-id and a static
+ * "Estimated fee" label with no value next to it — orders.assigned_driver_id
+ * is already set at offer time (assignDriver() sets it before the driver
+ * ever responds), so orders_select_driver RLS already permits this join;
+ * no new grant is required. */
+export interface AssignmentOffer extends DeliveryAssignment {
+  zoneName: string | null;
+  branchId: string | null;
+  destinationArea: string | null;
+  total: number;
+}
+
+interface RawOfferOrderRow extends OrderLocationRow {
+  id: string;
+  total: number | string;
+}
+
 /** Assignments offered to me, awaiting my response — powers the "new
  * delivery offer" banner/screen. */
-export async function listMyOpenAssignmentOffers(driverId: string): Promise<DeliveryAssignment[]> {
+export async function listMyOpenAssignmentOffers(driverId: string): Promise<AssignmentOffer[]> {
   const { data, error } = await supabase
     .from("delivery_assignments")
     .select(ASSIGNMENT_COLUMNS)
@@ -263,7 +344,35 @@ export async function listMyOpenAssignmentOffers(driverId: string): Promise<Deli
     .order("offered_at", { ascending: false });
 
   if (error) throw error;
-  return ((data ?? []) as RawAssignmentRow[]).map(mapAssignmentRow);
+  const assignments = ((data ?? []) as RawAssignmentRow[]).map(mapAssignmentRow);
+  if (assignments.length === 0) return [];
+
+  const orderIds = Array.from(new Set(assignments.map((a) => a.orderId)));
+  const { data: orderRows, error: orderError } = await supabase
+    .from("orders")
+    .select(`id, total, ${ORDER_LOCATION_SELECT.join(",")}`)
+    .in("id", orderIds);
+  if (orderError) throw orderError;
+
+  const previewByOrderId = new Map<string, { zoneName: string | null; branchId: string | null; destinationArea: string | null; total: number }>();
+  for (const row of (orderRows ?? []) as unknown as RawOfferOrderRow[]) {
+    const parsed = parseOrderAddress(row);
+    const zone = parseOrderZone(row);
+    previewByOrderId.set(row.id, {
+      zoneName: zone.zoneName,
+      branchId: zone.branchId,
+      destinationArea: parsed.city || null,
+      total: num(row.total),
+    });
+  }
+
+  return assignments.map((a) => ({
+    ...a,
+    zoneName: previewByOrderId.get(a.orderId)?.zoneName ?? null,
+    branchId: previewByOrderId.get(a.orderId)?.branchId ?? null,
+    destinationArea: previewByOrderId.get(a.orderId)?.destinationArea ?? null,
+    total: previewByOrderId.get(a.orderId)?.total ?? 0,
+  }));
 }
 
 /** Real acceptance rate from response_status counts — replaces the
@@ -352,49 +461,22 @@ export async function acceptAssignment(assignmentId: string, driverId: string): 
   return updated;
 }
 
-/** Decline an offered assignment — also clears orders.assigned_driver_id so
- * the order returns to the unassigned pool for staff to reassign. Two direct
- * writes, best-effort on the second (the assignment row is the source of
- * truth; if the orders clear fails, staff still sees the decline in the
- * assignment ledger and can reassign manually). */
+/** Decline an offered assignment. Goes through driver_decline_assignment —
+ * a single SECURITY DEFINER RPC that both records the decline and clears
+ * orders.assigned_driver_id atomically, rather than two separate client
+ * writes (the second of which had no confirmed RLS grant to ever succeed —
+ * no tracked migration grants the driver role an UPDATE policy on orders). */
 export async function declineAssignment(
   assignmentId: string,
-  driverId: string,
-  orderId: string,
   reason: string,
 ): Promise<DeliveryAssignment> {
-  const { data, error } = await supabase
-    .from("delivery_assignments")
-    .update({
-      response_status: "declined",
-      responded_at: new Date().toISOString(),
-      decline_reason: reason.trim() || null,
-    })
-    .eq("id", assignmentId)
-    .eq("driver_id", driverId)
-    .select(ASSIGNMENT_COLUMNS);
+  const { data, error } = await supabase.rpc("driver_decline_assignment", {
+    p_assignment_id: assignmentId,
+    p_reason: reason.trim() || null,
+  });
 
   if (error) throw error;
-  if (!data || data.length === 0) {
-    throw new Error("Could not decline this assignment — it may have already been reassigned.");
-  }
-  const updated = mapAssignmentRow(data[0] as RawAssignmentRow);
-  if (updated.responseStatus !== "declined") {
-    throw new Error("Decline did not persist; please try again.");
-  }
-
-  try {
-    await supabase
-      .from("orders")
-      .update({ assigned_driver_id: null, updated_at: new Date().toISOString() })
-      .eq("id", orderId)
-      .eq("assigned_driver_id", driverId);
-  } catch {
-    // Best-effort — the decline itself is already recorded; staff will see
-    // this order still shows the old driver and can reassign from there.
-  }
-
-  return updated;
+  return mapAssignmentRow(data as RawAssignmentRow);
 }
 
 // ─── Delivery execution (pickup / in-transit / delivered) ────────────────────
@@ -481,6 +563,7 @@ export async function reportIssue(
   driverId: string,
   reasonCode: IssueReasonCode,
   note?: string,
+  photoUrl?: string,
 ): Promise<DeliveryIssue> {
   // Avoid duplicate open reports during retry/reconnect. This is intentionally
   // checked at the data boundary as well as in the UI, because a driver can
@@ -504,12 +587,35 @@ export async function reportIssue(
       driver_id: driverId,
       reason_code: reasonCode,
       note: note?.trim() || null,
+      photo_url: photoUrl ?? null,
     })
     .select(ISSUE_COLUMNS)
     .single();
 
   if (error) throw error;
   return mapIssueRow(data as RawIssueRow);
+}
+
+/** Uploads one photo to the private delivery-issue-photos bucket
+ * ({driver_id}/{order_id}/{timestamp}.jpg — see
+ * 20260827010000_delivery_issue_photos.sql for the matching RLS) and
+ * returns its storage path (not a public URL — the bucket is private;
+ * staff resolve it through a signed URL when reviewing the report). */
+export async function uploadIssuePhoto(driverId: string, orderId: string, localUri: string): Promise<string> {
+  const mime = localUri.toLowerCase().endsWith(".png") ? "image/png" : "image/jpeg";
+  const ext = mime === "image/png" ? "png" : "jpg";
+  const path = `${driverId}/${orderId}/${Date.now()}.${ext}`;
+
+  const response = await fetch(localUri);
+  if (!response.ok) throw new Error("read_failed");
+  const blob = await response.blob();
+
+  const { error } = await supabase.storage
+    .from("delivery-issue-photos")
+    .upload(path, blob, { contentType: mime, upsert: false });
+  if (error) throw error;
+
+  return path;
 }
 
 /** My own past issue reports for one order — so the delivery screen can show
@@ -568,6 +674,14 @@ export interface DriverProfileRecord {
   status: DriverApplicationStatus;
   rejectionReason: string | null;
   createdAt: string;
+  isOnline: boolean;
+  currentLat: number | null;
+  currentLng: number | null;
+  lastLocationAt: string | null;
+  rating: number;
+  totalDeliveries: number;
+  completionRate: number;
+  totalEarnings: number;
 }
 
 interface RawDriverProfileRow {
@@ -585,23 +699,57 @@ interface RawDriverProfileRow {
   status: DriverApplicationStatus;
   rejectionReason: string | null;
   createdAt: string;
+  isOnline: boolean;
+  currentLat: number | null;
+  currentLng: number | null;
+  lastLocationAt: string | null;
+  rating: number;
+  totalDeliveries: number;
+  completionRate: number;
+  totalEarnings: number | string;
 }
 
 const DRIVER_PROFILE_COLUMNS =
-  'id, userId, vehicleType, vehiclePlate, vehicleModel, vehicleColor, licenseNumber, licensePhotoUrl, idPhotoUrl, vehiclePhotoUrl, insurancePhotoUrl, status, rejectionReason, createdAt';
+  'id, userId, vehicleType, vehiclePlate, vehicleModel, vehicleColor, licenseNumber, licensePhotoUrl, idPhotoUrl, vehiclePhotoUrl, insurancePhotoUrl, status, rejectionReason, createdAt, isOnline, currentLat, currentLng, lastLocationAt, rating, totalDeliveries, completionRate, totalEarnings';
 
 function mapDriverProfileRow(row: RawDriverProfileRow): DriverProfileRecord {
-  return { ...row };
+  return { ...row, totalEarnings: num(row.totalEarnings) };
+}
+
+/** Toggle online/offline (+ optional last-known position) via the
+ * column-safe set_driver_availability RPC — DriverProfile has no general
+ * UPDATE policy on purpose (status/vehicle/document fields must not be
+ * self-editable), so this is the one narrow, safe exception. */
+export async function setDriverAvailability(
+  isOnline: boolean,
+  coords?: { lat: number; lng: number },
+): Promise<Pick<DriverProfileRecord, "isOnline" | "currentLat" | "currentLng" | "lastLocationAt">> {
+  const { data, error } = await supabase.rpc("set_driver_availability", {
+    p_is_online: isOnline,
+    p_lat: coords?.lat ?? null,
+    p_lng: coords?.lng ?? null,
+  });
+  if (error) throw error;
+  const row = (Array.isArray(data) ? data[0] : data) as {
+    isOnline: boolean; currentLat: number | null; currentLng: number | null; lastLocationAt: string | null;
+  };
+  return { isOnline: row.isOnline, currentLat: row.currentLat, currentLng: row.currentLng, lastLocationAt: row.lastLocationAt };
 }
 
 /** The caller's own driver application, if one exists — null before they've
  * ever applied. Powers both the (driver) route gate and the application
  * entry point's "form vs. pending status" decision. */
 export async function getMyDriverProfile(userId: string): Promise<DriverProfileRecord | null> {
+  // (driver)/_layout.tsx blocks its ENTIRE section behind this query's
+  // isLoading — a plain fetch with no timeout can hang on a bad connection
+  // for as long as the OS/browser's own TCP timeout takes (can be a minute
+  // or more), which means the whole driver app just looks permanently
+  // stuck with no visible error. Same bounded-request fix as lib/geocoding.ts.
   const { data, error } = await supabase
     .from("DriverProfile")
     .select(DRIVER_PROFILE_COLUMNS)
     .eq("userId", userId)
+    .abortSignal(AbortSignal.timeout(10_000))
     .maybeSingle();
 
   if (error) throw error;

@@ -37,6 +37,7 @@ const AuthCallback          = lazy(() => import("./pages/AuthCallback"));
 const Checkout             = lazy(() => import("./pages/Checkout"));
 const Contact              = lazy(() => import("./pages/Contact"));
 const Favorites            = lazy(() => import("./pages/Favorites"));
+const ForgotPassword       = lazy(() => import("./pages/ForgotPassword"));
 const Home                 = lazy(() => import("./pages/Home"));
 const Login                = lazy(() => import("./pages/Login"));
 const Offers               = lazy(() => import("./pages/Offers"));
@@ -47,6 +48,7 @@ const Profile              = lazy(() => import("./pages/Profile"));
 const Register             = lazy(() => import("./pages/Register"));
 const Notifications       = lazy(() => import("./pages/Notifications"));
 const Returns              = lazy(() => import("./pages/Returns"));
+const ResetPassword        = lazy(() => import("./pages/ResetPassword"));
 const SpecialOrders        = lazy(() => import("./pages/SpecialOrders"));
 const SupportPage          = lazy(() => import("./pages/SupportPage"));
 
@@ -109,6 +111,8 @@ function AppShell() {
         {/* ── Catalog-independent routes (no product fetch) ── */}
         <Route path="/login"            element={withSuspense(<Login />)} />
         <Route path="/register"         element={withSuspense(<Register />)} />
+        <Route path="/forgot-password"  element={withSuspense(<ForgotPassword />)} />
+        <Route path="/reset-password"   element={withSuspense(<ResetPassword />)} />
         <Route path="/auth/callback"    element={withSuspense(<AuthCallback />)} />
         <Route path="/suspended"        element={withSuspense(<SuspendedPage />)} />
         <Route path="/suspension-info"  element={withSuspense(<SuspensionLearnMore />)} />

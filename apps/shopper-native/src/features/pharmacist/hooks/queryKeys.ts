@@ -17,4 +17,11 @@ export const pharmacistQueryKeys = {
   prescription:       (id: string) => ["pharmacist", "prescriptions", id]  as const,
   products:           (query: string) => ["pharmacist", "products", query] as const,
   lowStock:           ()         => ["pharmacist", "products", "lowstock"] as const,
+  prescriptionCounts: ()         => ["pharmacist", "prescriptions", "counts"] as const,
+  todayOrders:        (dateISO: string) => ["pharmacist", "orders", "today", dateISO] as const,
+  recentlyCompleted:  ()         => ["pharmacist", "orders", "recently-completed"] as const,
+  refills:            (status?: string) =>
+    status
+      ? ["pharmacist", "refills", "list", status] as const
+      : ["pharmacist", "refills", "list"]         as const,
 };

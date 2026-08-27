@@ -7,7 +7,7 @@
  */
 
 import React, { memo, useEffect, useMemo } from "react";
-import { Pressable, StyleSheet, View } from "react-native";
+import { Platform, Pressable, StyleSheet, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
 import { Ionicons } from "@expo/vector-icons";
@@ -62,18 +62,24 @@ export const Hero = memo(function Hero({ onSearch, onScanRx }: HeroProps) {
       <Animated.View pointerEvents="none" style={[styles.glow, glowStyle]} />
 
       <View style={[styles.content, { paddingHorizontal: pagePad }]}>
-        <Animated.View entering={FadeInDown.duration(500).springify()}>
-          <UIText variant="caption" style={{ color: "rgba(255,255,255,0.75)", textAlign: TEXT_START }}>
-            {firstName ? t("home.greeting", { name: firstName }) : t("home.greetingGuest")}
-          </UIText>
-          <UIText variant="h2" style={{ color: "#FFFFFF", textAlign: TEXT_START, marginTop: 4, marginBottom: 20 }}>
+        <Animated.View entering={FadeInDown.duration(500).springify()} style={styles.headline}>
+          <View style={styles.badge}>
+            <View style={styles.badgeDot} />
+            <UIText style={styles.badgeText}>
+              {firstName ? t("home.greeting", { name: firstName }) : t("home.greetingGuest")}
+            </UIText>
+          </View>
+          <UIText variant="h1" style={{ color: "#FFFFFF", textAlign: "center", marginTop: 14 }}>
             {t("home.heroTaglineTitle")}
+          </UIText>
+          <UIText variant="body-sm" style={{ color: "rgba(255,255,255,0.7)", textAlign: "center", marginTop: 8 }}>
+            {t("home.heroTaglineSub")}
           </UIText>
         </Animated.View>
 
-        <Animated.View entering={FadeInDown.duration(500).delay(80).springify()}>
-          <Pressable onPress={onSearch} accessibilityRole="button" accessibilityLabel={t("search.placeholder")} style={styles.searchBox}>
-            <BlurView intensity={40} tint={isDark ? "dark" : "light"} style={StyleSheet.absoluteFill} />
+        <Animated.View entering={FadeInDown.duration(500).delay(80).springify()} style={{ marginTop: 24 }}>
+          <Pressable onPress={onSearch} accessibilityRole="button" accessibilityLabel={t("search.placeholder")} style={[styles.searchBox, Platform.OS === "web" && { backgroundColor: "rgba(255,255,255,0.14)" }]}>
+            {Platform.OS !== "web" && <BlurView intensity={40} tint={isDark ? "dark" : "light"} style={StyleSheet.absoluteFill} />}
             <View style={[styles.searchInner, { flexDirection: flexRow(IS_RTL) }]}>
               <Ionicons name="search" size={20} color="rgba(255,255,255,0.85)" />
               <UIText numberOfLines={1} style={{ flex: 1, marginHorizontal: 12, color: "rgba(255,255,255,0.75)", textAlign: TEXT_START }}>
@@ -119,6 +125,33 @@ const styles = StyleSheet.create({
     paddingTop: 96,
     paddingBottom: 24,
     gap: 14,
+  },
+  headline: {
+    alignItems: "center",
+  },
+  badge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    alignSelf: "center",
+    backgroundColor: "rgba(255,255,255,0.14)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.24)",
+    borderRadius: 9999,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  badgeDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "#2CCBBD",
+  },
+  badgeText: {
+    fontSize: 11,
+    lineHeight: 14,
+    fontWeight: "700",
+    color: "#FFFFFF",
   },
   searchBox: {
     height: 52,

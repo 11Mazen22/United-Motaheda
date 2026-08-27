@@ -62,6 +62,7 @@ import { Text as UIText } from "@pharmacy/ui-native";
 import { useTheme, type NativeTheme } from "@pharmacy/ui-native";
 
 import { flexRow, isRtl, FORWARD_CHEVRON } from "@/utils/layout";
+import { formatPrice } from "@/utils/format";
 
 import { getProfileStyles, HERO_GLASS, PROFILE } from "./profile.styles";
 
@@ -393,7 +394,7 @@ export const ProfileAuthHero = memo(function ProfileAuthHero({
 
   const router = useRouter();
 
-  const { t }  = useTranslation();
+  const { t, i18n }  = useTranslation();
 
 
 
@@ -427,7 +428,7 @@ export const ProfileAuthHero = memo(function ProfileAuthHero({
 
     <View>
 
-      <View style={[styles.hero, { backgroundColor: theme.colors.text.primary, paddingTop: insetsTop + 14 }]}>
+      <View style={[styles.hero, { backgroundColor: theme.colors.pharmacy.navy, paddingTop: insetsTop + 14 }]}>
 
 
 
@@ -563,13 +564,13 @@ export const ProfileAuthHero = memo(function ProfileAuthHero({
 
             <View style={styles.heroTextGroup}>
 
-              <UIText variant="sheet-title" color="inverse" numberOfLines={1} style={styles.userNameNew}>
+              <UIText variant="sheet-title" numberOfLines={1} style={[styles.userNameNew, { color: "#FFFFFF" }]}>
 
                 {user.name ?? t("profile.userFallback")}
 
               </UIText>
 
-              <UIText variant="body-sm" color="inverse-muted" numberOfLines={1}>
+              <UIText variant="body-sm" numberOfLines={1} style={{ color: "rgba(255,255,255,0.72)" }}>
 
                 {user.email}
 
@@ -696,7 +697,7 @@ export const ProfileAuthHero = memo(function ProfileAuthHero({
 
                     {t("orders.items", { count: lastOrder.items.length })}{"  "}•{"  "}
 
-                    {lastOrder.total.toFixed(0)} {t("common.currency")}
+                    {formatPrice(lastOrder.total, i18n.language === "en" ? "en" : "ar")}
 
                   </UIText>
 
