@@ -191,7 +191,16 @@ export function SplashOverlay(): React.ReactElement | null {
 }
 
 const styles = StyleSheet.create({
-  root: { ...StyleSheet.absoluteFillObject, backgroundColor: "#000", zIndex: 999 },
+  // position:"fixed" (not "absolute") is deliberate and web-only: this
+  // overlay is a sibling of the real app under BottomSheetModalProvider,
+  // and something in that provider's own internal layout was giving each
+  // sibling a fractional share of the row's width instead of stacking them
+  // as true overlays -- the splash only ever painted inside whatever slice
+  // it was allocated (visually: pinned to one edge, covering roughly a
+  // quarter of the screen). "fixed" positions against the real browser
+  // viewport directly, immune to whatever any ancestor's flex layout does.
+  // eslint-disable-next-line react-native/no-unsupported-style-property
+  root: { ...StyleSheet.absoluteFillObject, position: "fixed" as "absolute", backgroundColor: "#000", zIndex: 999 },
   scrimTop: { position: "absolute", top: 0, start: 0, end: 0, height: 140, zIndex: 40 },
   hold: { ...StyleSheet.absoluteFillObject, backgroundColor: "#ffffff", zIndex: 30 },
   skipSafe: { position: "absolute", top: 0, start: 0, end: 0, zIndex: 50 },
