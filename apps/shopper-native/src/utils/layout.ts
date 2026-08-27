@@ -19,11 +19,21 @@
  * reload (Updates.reloadAsync / DevSettings.reload) so they refresh correctly.
  */
 
-import { I18nManager, type TextStyle, type ViewStyle } from "react-native";
+import { I18nManager, Platform, type TextStyle, type ViewStyle } from "react-native";
+import { appKV } from "@/lib/mmkv";
+
+// react-native-web's I18nManager is a permanent stub — forceRTL() is a no-op
+// and isRTL is hardcoded `false` in the package itself, so it can NEVER
+// reflect the Arabic UI language on web, no matter what i18n/index.ts calls.
+// Read the same persisted language choice i18n/index.ts uses instead (same
+// storage key, same default-to-Arabic fallback) so this flag actually tracks
+// reality on web. Native keeps using the real I18nManager.isRTL, which
+// genuinely works there.
+const LANG_STORAGE_KEY = "app_lang_v1";
 
 // ─── RTL flag ─────────────────────────────────────────────────────────────────
 // Read once at import time — stable for the entire session.
-const _isRTL = I18nManager.isRTL;
+const _isRTL = Platform.OS === "web" ? appKV.getString(LANG_STORAGE_KEY) !== "en" : I18nManager.isRTL;
 
 /** Returns true when the app is in RTL mode (Arabic). */
 export function isRtl(): boolean {

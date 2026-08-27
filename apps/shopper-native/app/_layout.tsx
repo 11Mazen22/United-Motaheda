@@ -54,6 +54,8 @@ import { ErrorBoundary, PharmacyBootstrap, SplashOverlay } from "@/shared/compon
 
 import { AppSheet } from "@/shared/components/AppSheet";
 
+import { RtlLocaleProvider } from "@/shared/components/RtlLocaleProvider";
+
 import { showErrorSheet } from "@/shared/store/appSheetStore";
 
 import { queryClient } from "@/lib/queryClient";
@@ -257,6 +259,8 @@ export default function RootLayout() {
 
     <ErrorBoundary surface="root">
 
+      <RtlLocaleProvider>
+
       <GestureHandlerRootView style={{ flex: 1 }}>
 
         <BottomSheetModalProvider>
@@ -286,6 +290,8 @@ export default function RootLayout() {
         </BottomSheetModalProvider>
 
       </GestureHandlerRootView>
+
+      </RtlLocaleProvider>
 
     </ErrorBoundary>
 
