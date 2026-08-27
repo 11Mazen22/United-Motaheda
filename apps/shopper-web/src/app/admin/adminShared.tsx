@@ -989,6 +989,8 @@ export interface AdminDetailDrawerSummary {
   role: string;
   status: string;
   createdAt?: string;
+  /** Resolved branch name, pharmacist-only — omit for every other role. */
+  branchLabel?: string;
 }
 
 export function AdminDetailDrawer({
@@ -1099,6 +1101,14 @@ export function AdminDetailDrawer({
               </p>
               <p className="mt-1 text-sm font-bold text-slate-800">{fmtDate(summary.createdAt)}</p>
             </div>
+            {summary.branchLabel && (
+              <div className="col-span-2 rounded-xl border border-slate-100 bg-slate-50/80 p-3">
+                <p className="text-[10px] font-black uppercase tracking-wide text-slate-400">
+                  {isArabic ? "الفرع" : "Branch"}
+                </p>
+                <p className="mt-1 text-sm font-bold text-slate-800">{summary.branchLabel}</p>
+              </div>
+            )}
           </div>
 
           {/* Activity */}

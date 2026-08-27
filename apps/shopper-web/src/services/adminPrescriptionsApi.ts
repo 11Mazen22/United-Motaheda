@@ -333,16 +333,21 @@ async function fetchPrescriptionNamesById(ids: string[]): Promise<Map<string, st
 export async function reviewRefillRequest(id: string, userId: string, payload: ReviewPayload): Promise<void> {
   const supabase = getSupabaseClient();
 
-  const { error } = await supabase
-    .from("refill_requests")
-    .update({
-      status: payload.decision === "approved" ? "preparing" : "cancelled",
-      reviewed_by: payload.adminId,
-      reviewed_at: new Date().toISOString(),
-      admin_notes: payload.adminNotes ?? null,
-      rejection_reason: payload.decision === "rejected" ? (payload.rejectionReason ?? null) : null,
-    })
-    .eq("id", id);
+  // Was a raw client .update() with no server-side validation at all — any
+  // staff session could set any status/columns on any refill_requests row
+  // with nothing checking the decision was even 'approved'/'rejected' or
+  // that a rejection carried a reason. review_refill_request() (2026-08-27)
+  // is the same SECURITY DEFINER RPC the native app's Refills workflow uses
+  // — role-gated, requires a non-empty reason on reject, and refuses to
+  // re-review a request that isn't still 'pending'. This was the one
+  // remaining raw-update mutation path on this page; reviewPrescription()
+  // above already went through review_prescription() the same way.
+  const { error } = await supabase.rpc("review_refill_request", {
+    p_refill_id: id,
+    p_decision: payload.decision,
+    p_admin_notes: payload.adminNotes ?? null,
+    p_rejection_reason: payload.rejectionReason ?? null,
+  });
 
   if (error) throw new Error(`[adminPrescriptionsApi.reviewRefillRequest] ${error.message}`);
 

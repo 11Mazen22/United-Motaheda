@@ -1927,7 +1927,9 @@
         "filterAll":              "All",
         "clearFilters":           "Clear",
         "noMatchingOrders":       "No matching orders",
+        "noMatchingResults":      "No matching results",
         "tryDifferentSearch":     "Try a different search or clear filters.",
+        "rxSearchPlaceholder":    "Search by name, Rx number, or customer…",
 
         "sectionNeedsAttention":  "Needs Attention",
         "sectionInProgress":      "In Progress",
