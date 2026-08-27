@@ -76,6 +76,24 @@ node -e "console.log('@pharmacy/design-tokens:', require.resolve('@pharmacy/desi
 cat > metro.config.js <<EOF
 import { getDefaultConfig } from 'expo/metro-config.js';
 const config = getDefaultConfig(process.cwd());
+
+// Deprioritize .mjs so Metro prefers CommonJS builds that don't contain
+// import.meta — the web bundle loads via a classic <script>, not as a
+// module, so any import.meta reaching it is a runtime crash (blank page).
+const mjsIdx = config.resolver.sourceExts.indexOf('mjs');
+if (mjsIdx > -1) {
+  config.resolver.sourceExts.splice(mjsIdx, 1);
+  config.resolver.sourceExts.push('mjs');
+}
+
+// Some deps (e.g. zustand's devtools middleware) publish an ESM "import"
+// export containing import.meta. Their "react-native" export condition
+// points at the safe CJS build instead, so match it on web too.
+config.resolver.unstable_conditionsByPlatform = {
+  ...config.resolver.unstable_conditionsByPlatform,
+  web: [...(config.resolver.unstable_conditionsByPlatform?.web ?? []), 'react-native'],
+};
+
 export default config;
 EOF
 
