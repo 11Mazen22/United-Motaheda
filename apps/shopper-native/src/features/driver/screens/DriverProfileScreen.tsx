@@ -22,6 +22,7 @@ import { useAppLanguage } from "@/i18n/LanguageProvider";
 import { FORWARD_CHEVRON, flexRow, isRtl, textAlignStart } from "@/utils/layout";
 import { formatPrice } from "@/utils/format";
 import { displayNameFromEmail } from "@/utils/displayName";
+import { useScreenLayout } from "@/utils/responsive";
 import { showConfirmSheet, showErrorSheet } from "@/shared/store/appSheetStore";
 import { DriverScreenHeader } from "../components/DriverScreenHeader";
 import { useDriverManifest, useMyAcceptanceRate } from "../hooks/useDriverManifest";
@@ -112,6 +113,7 @@ export function DriverProfileScreen(): React.ReactElement {
   const router = useRouter();
   const { user, signOut } = useAuth();
   const { language, setLanguage } = useAppLanguage();
+  const { isTablet } = useScreenLayout();
   const manifestQuery = useDriverManifest(user?.id);
   const acceptanceRateQuery = useMyAcceptanceRate(user?.id);
   const profileQuery = useMyDriverProfile(user?.id);
@@ -146,7 +148,10 @@ export function DriverProfileScreen(): React.ReactElement {
   return (
     <Screen edgeTop background={theme.colors.canvas.background}>
       <DriverScreenHeader title={t("driver.profileTitle")} />
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={[styles.scroll, isTablet && { maxWidth: 640, alignSelf: "center", width: "100%" }]}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.avatarSection}>
           <View style={[styles.avatar, { backgroundColor: theme.colors.brand.primary }]}>
             <UIText style={styles.avatarLetter}>{(user?.name ?? user?.email ?? "D").charAt(0).toUpperCase()}</UIText>
@@ -176,12 +181,17 @@ export function DriverProfileScreen(): React.ReactElement {
         <Pressable
           onPress={() => void handleToggleAvailability()}
           disabled={mutations.setAvailability.isPending}
-          style={[styles.availabilityCard, { backgroundColor: theme.colors.canvas.surface, borderColor: theme.colors.border.default, flexDirection: flexRow(IS_RTL) }]}
+          style={[styles.availabilityCard, { backgroundColor: theme.colors.canvas.surface, borderColor: theme.colors.border.default }]}
           accessibilityRole="switch"
           accessibilityState={{ checked: isOnline }}
         >
-          <StatusIndicator active={isOnline} pulse={isOnline} label={isOnline ? t("driver.online") : t("driver.offline")} />
-          <UIText variant="caption" color="secondary" style={{ marginStart: "auto" }}>{t("driver.tapToToggle", "Tap to toggle")}</UIText>
+          <View style={{ flexDirection: flexRow(IS_RTL), alignItems: "center", width: "100%" }}>
+            <StatusIndicator active={isOnline} pulse={isOnline} label={isOnline ? t("driver.online") : t("driver.offline")} />
+            <UIText variant="caption" color="secondary" style={{ marginStart: "auto" }}>{t("driver.tapToToggle", "Tap to toggle")}</UIText>
+          </View>
+          <UIText numberOfLines={2} variant="caption" color="secondary" style={{ textAlign: TEXT_START, marginTop: 6, width: "100%" }}>
+            {isOnline ? t("driver.onlineSubtitle") : t("driver.offlineSubtitle")}
+          </UIText>
         </Pressable>
 
         {profile ? (
