@@ -269,7 +269,7 @@ export function ScreenHeader({
 const navStyles = StyleSheet.create({
   outer: { width: "100%", overflow: "hidden" },
   topHairline: { height: StyleSheet.hairlineWidth, position: "absolute", top: 0, left: 0, right: 0 },
-  inner: { flexDirection: "row", alignItems: "center" },
+  inner: { flexDirection: "row", alignItems: "center", justifyContent: "center" },
   item: { flex: 1, minWidth: 44, maxWidth: 120, height: "100%", alignItems: "center", justifyContent: "center", paddingTop: 2 },
   iconWrap: { alignItems: "center", justifyContent: "center", gap: 3 },
   activeDot: { marginTop: 2, width: 16, height: 3, borderRadius: 2 },

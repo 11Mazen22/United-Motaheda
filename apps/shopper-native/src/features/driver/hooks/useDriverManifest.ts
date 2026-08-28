@@ -113,7 +113,7 @@ export function useMyIssuesForOrder(orderId: string | null | undefined, driverId
 }
 
 export function useMyAcceptanceRate(driverId: string | null | undefined) {
-  return useQuery<number, Error>({
+  return useQuery<number | null, Error>({
     queryKey:  driverQueryKeys.acceptanceRate(driverId ?? ""),
     queryFn:   () => getMyAcceptanceRate(driverId!),
     enabled:   Boolean(driverId),

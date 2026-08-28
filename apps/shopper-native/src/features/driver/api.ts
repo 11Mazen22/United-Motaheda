@@ -379,7 +379,11 @@ export async function listMyOpenAssignmentOffers(driverId: string): Promise<Assi
  * orphaned EarningsSummary.tsx's version, which divided total orders by
  * total offers ever received (structurally different, and wrong once an
  * order is re-offered to another driver after a decline). */
-export async function getMyAcceptanceRate(driverId: string): Promise<number> {
+/** Returns null when the driver has no accepted/declined history yet --
+ * distinct from an actual 100%. A brand-new driver silently showing
+ * "Acceptance 100%" reads as fabricated data; callers should render the
+ * null case as "no data yet" (e.g. "—" or a "new driver" label). */
+export async function getMyAcceptanceRate(driverId: string): Promise<number | null> {
   const { data, error } = await supabase
     .from("delivery_assignments")
     .select("response_status")
@@ -388,7 +392,7 @@ export async function getMyAcceptanceRate(driverId: string): Promise<number> {
 
   if (error) throw error;
   const rows = data ?? [];
-  if (rows.length === 0) return 100;
+  if (rows.length === 0) return null;
   const accepted = rows.filter((r) => (r as { response_status: string }).response_status === "accepted").length;
   return Math.round((accepted / rows.length) * 100);
 }

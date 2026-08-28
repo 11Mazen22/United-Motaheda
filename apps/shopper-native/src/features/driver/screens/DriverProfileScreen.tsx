@@ -21,6 +21,7 @@ import { useAuth } from "@/features/auth";
 import { useAppLanguage } from "@/i18n/LanguageProvider";
 import { FORWARD_CHEVRON, flexRow, isRtl, textAlignStart } from "@/utils/layout";
 import { formatPrice } from "@/utils/format";
+import { displayNameFromEmail } from "@/utils/displayName";
 import { showConfirmSheet, showErrorSheet } from "@/shared/store/appSheetStore";
 import { DriverScreenHeader } from "../components/DriverScreenHeader";
 import { useDriverManifest, useMyAcceptanceRate } from "../hooks/useDriverManifest";
@@ -150,14 +151,20 @@ export function DriverProfileScreen(): React.ReactElement {
           <View style={[styles.avatar, { backgroundColor: theme.colors.brand.primary }]}>
             <UIText style={styles.avatarLetter}>{(user?.name ?? user?.email ?? "D").charAt(0).toUpperCase()}</UIText>
           </View>
-          <UIText variant="screen-title" style={{ textAlign: "center" }}>{user?.name || t("driver.unnamed")}</UIText>
+          <UIText variant="screen-title" style={{ textAlign: "center" }}>{user?.name || displayNameFromEmail(user?.email) || t("driver.unnamed")}</UIText>
           <UIText variant="body-sm" color="secondary" style={{ textAlign: "center" }}>{user?.email || ""}</UIText>
           <View style={{ flexDirection: flexRow(IS_RTL), alignItems: "center", gap: 8, marginTop: 4 }}>
             <View style={[styles.roleBadge, { backgroundColor: theme.colors.brand.primaryLight, borderColor: theme.colors.brand.primary, marginTop: 0 }]}>
               <Ionicons name={VEHICLE_ICONS[profile?.vehicleType ?? "motorcycle"] ?? "bicycle-outline"} size={12} color={theme.colors.brand.primary} />
               <UIText variant="eyebrow" style={{ color: theme.colors.brand.primary }}>{t("driver.roleLabel")}</UIText>
             </View>
-            {profile ? <RatingStars value={profile.rating} /> : null}
+            {profile && profile.totalDeliveries > 0 ? (
+              <RatingStars value={profile.rating} />
+            ) : profile ? (
+              <View style={[styles.newDriverBadge, { backgroundColor: theme.colors.canvas.surfaceMuted, borderColor: theme.colors.border.default }]}>
+                <UIText variant="eyebrow" color="secondary">{t("driver.newDriverBadge", "سائق جديد")}</UIText>
+              </View>
+            ) : null}
           </View>
           {profile?.createdAt ? (
             <UIText variant="caption" color="muted" style={{ marginTop: 2 }}>
@@ -242,6 +249,7 @@ const styles = StyleSheet.create({
   avatar: { width: 80, height: 80, borderRadius: 40, alignItems: "center", justifyContent: "center" },
   avatarLetter: { fontSize: 34, fontFamily: "Cairo_900Black", color: "#fff" },
   roleBadge: { flexDirection: flexRow(IS_RTL), alignItems: "center", gap: 5, paddingHorizontal: 12, paddingVertical: 5, borderRadius: 9999, marginTop: 4 },
+  newDriverBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 9999, borderWidth: 1 },
   availabilityCard: { marginHorizontal: kit.inset.screen, marginBottom: 12, borderRadius: 16, borderWidth: 1, alignItems: "center", padding: 14 },
   card: { marginHorizontal: kit.inset.screen, borderRadius: 16, borderWidth: 1, overflow: "hidden", marginBottom: 12 },
   statsCard: { marginHorizontal: kit.inset.screen, marginBottom: 12, borderRadius: 16, borderWidth: 1, overflow: "hidden" },
