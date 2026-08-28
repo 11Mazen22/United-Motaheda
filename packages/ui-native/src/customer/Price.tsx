@@ -46,10 +46,10 @@ export function PriceRow({ current, original, currency, size, discountLabel, sty
   const { lx } = useLuxuryTheme();
 
   return (
-    <View style={[{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' }, style]}>
-      <Price amount={current} currency={currency} size={size} style={{ marginRight: lx.space[2] }} />
+    <View style={[{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: lx.space[2] }, style]}>
+      <Price amount={current} currency={currency} size={size} />
       {original !== undefined && original > current && (
-        <Price amount={original} currency={currency} size="sm" strikethrough style={{ marginRight: lx.space[2] }} />
+        <Price amount={original} currency={currency} size="sm" strikethrough />
       )}
       {discountLabel && <Badge label={discountLabel} variant="danger" size="sm" />}
     </View>
@@ -68,12 +68,12 @@ export function DeliveryThreshold({ cost, isFree, amountToFree, currency = 'EGP'
   const { lx } = useLuxuryTheme();
 
   return (
-    <View style={[{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' }, style]}>
+    <View style={[{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: lx.space[2] }, style]}>
       <T scale="bodySm" color={isFree ? 'success' : 'primary'}>
         {isFree ? 'Free delivery' : `Delivery: ${cost.toFixed(2)} ${currency}`}
       </T>
       {amountToFree !== undefined && amountToFree > 0 && !isFree && (
-        <T scale="caption" color="brand" style={{ marginLeft: lx.space[2] }}>
+        <T scale="caption" color="brand">
           Add {amountToFree.toFixed(2)} {currency} for free delivery
         </T>
       )}

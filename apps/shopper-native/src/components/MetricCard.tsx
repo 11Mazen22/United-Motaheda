@@ -7,13 +7,13 @@ import { flexRow, isRtl } from "@/utils/layout";
 
 const IS_RTL = isRtl();
 
-export default function MetricCard({ label, value, icon, compact, inverse, accent, style }: { label: string; value: React.ReactNode; icon?: React.ReactNode; compact?: boolean; inverse?: boolean; accent?: string; style?: Record<string, unknown> }) {
+export default function MetricCard({ label, value, icon, compact, inverse, accent, style, onPress }: { label: string; value: React.ReactNode; icon?: React.ReactNode; compact?: boolean; inverse?: boolean; accent?: string; style?: Record<string, unknown>; onPress?: () => void }) {
   const { theme } = useTheme();
   const s = useMemo(() => getStyles(theme), [theme]);
   const wrapStyle: StyleProp<ViewStyle> = [s.wrap, compact && s.compact, inverse && s.inverse, style];
   const valueStyle: StyleProp<TextStyle> = [s.value, accent ? { color: accent } : undefined, inverse && { color: '#fff' }];
   return (
-    <Card style={wrapStyle} elevation="sm">
+    <Card style={wrapStyle} elevation="sm" onPress={onPress}>
       <View style={s.inner}>
         <View style={[s.icon, compact && s.iconCompact]}>{icon}</View>
         <View style={{ flex: 1, minWidth: 0 }}>

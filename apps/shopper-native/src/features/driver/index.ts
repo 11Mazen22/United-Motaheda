@@ -12,6 +12,7 @@ export { AssignmentOfferDetail }  from "./screens/AssignmentOfferDetail";
 export { DeliveryExecutionScreen } from "./screens/DeliveryExecutionScreen";
 export { IssueReportScreen }      from "./screens/IssueReportScreen";
 export { DriverProfileScreen }    from "./screens/DriverProfileScreen";
+export { DriverEarningsScreen }   from "./screens/DriverEarningsScreen";
 export { DriverApplicationEntry } from "./screens/DriverApplicationEntry";
 export { DriverScreenHeader }      from "./components/DriverScreenHeader";
 

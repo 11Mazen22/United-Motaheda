@@ -17,7 +17,7 @@ import Animated, {
 } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
 
-import { signUp, getAuthError } from "@/features/auth";
+import { signUp, getAuthError, normalizeEgyptianPhone } from "@/features/auth";
 
 import { LangSwitcher } from "@/features/auth/components/LangSwitcher";
 import { AuthField } from "@/features/auth/components/AuthField";
@@ -40,20 +40,27 @@ export default function RegisterScreen() {
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   const handleRegister = async () => {
-    if (!name || !email || !password) {
+    if (!name || !email || !phone || !password) {
       setError(t("auth.errorEmptyFields", { defaultValue: "Please fill in all fields." }));
+      if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      return;
+    }
+    const normalizedPhone = normalizeEgyptianPhone(phone);
+    if (!normalizedPhone) {
+      setError(t("auth.errorInvalidPhone", { defaultValue: "Please enter a valid Egyptian phone number." }));
       if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       return;
     }
     setError("");
     setLoading(true);
     try {
-      await signUp(email, password, name);
+      await signUp(email, password, name, normalizedPhone);
       if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       router.replace("/(customer)/(tabs)");
     } catch (err: unknown) {
@@ -100,12 +107,22 @@ export default function RegisterScreen() {
           />
           <View style={{ height: 16 }} />
           <AuthField
-            label={t("auth.emailLabel", { defaultValue: "Email or Phone" })}
+            label={t("auth.emailOnlyLabel", { defaultValue: "Email" })}
             icon="mail-outline"
             value={email}
             onChangeText={(v: string) => { setEmail(v); setError(""); }}
             keyboardType="email-address"
             autoComplete="email"
+            returnKeyType="next"
+          />
+          <View style={{ height: 16 }} />
+          <AuthField
+            label={t("auth.phoneLabel", { defaultValue: "Phone Number" })}
+            icon="call-outline"
+            value={phone}
+            onChangeText={(v: string) => { setPhone(v); setError(""); }}
+            keyboardType="phone-pad"
+            autoComplete="tel"
             returnKeyType="next"
           />
           <View style={{ height: 16 }} />

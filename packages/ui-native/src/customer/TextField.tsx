@@ -50,6 +50,7 @@ export const TextField = forwardRef<TextInput, TextFieldProps>(
           style={{
             flexDirection: 'row',
             alignItems: multiline ? 'flex-start' : 'center',
+            gap: lx.space[2],
             minHeight: lx.size.inputHeight,
             backgroundColor: surface.s2,
             borderWidth: focused ? interaction.focusRingWidth : 1,
@@ -60,7 +61,7 @@ export const TextField = forwardRef<TextInput, TextFieldProps>(
             opacity: disabled ? interaction.disabledOpacity : 1,
           }}
         >
-          {leftIcon && <View style={{ marginRight: lx.space[2] }}>{leftIcon}</View>}
+          {leftIcon && <View>{leftIcon}</View>}
           <TextInput
             ref={ref}
             editable={!disabled}
@@ -86,7 +87,7 @@ export const TextField = forwardRef<TextInput, TextFieldProps>(
             ]}
             {...props}
           />
-          {rightIcon && <View style={{ marginLeft: lx.space[2] }}>{rightIcon}</View>}
+          {rightIcon && <View>{rightIcon}</View>}
         </View>
         {error ? (
           <View style={{ marginTop: lx.space[1] }}>

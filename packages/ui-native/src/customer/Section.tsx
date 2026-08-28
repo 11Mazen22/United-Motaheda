@@ -33,11 +33,12 @@ export function Section({
             flexDirection: 'row',
             justifyContent: 'space-between',
             alignItems: 'flex-end',
+            gap: lx.space[4],
             marginBottom: lx.space[4],
             paddingHorizontal: lx.space.screenH,
           }}
         >
-          <View style={{ flex: 1, marginRight: lx.space[4] }}>
+          <View style={{ flex: 1 }}>
             {title && (
               <T scale="sectionHead" color="primary">
                 {title}

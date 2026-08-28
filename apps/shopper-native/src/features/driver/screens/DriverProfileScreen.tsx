@@ -62,17 +62,26 @@ function MenuRow({ icon, label, onPress, danger = false }: MenuRowProps) {
   );
 }
 
-function StatTile({ icon, label, value }: { icon: React.ComponentProps<typeof Ionicons>["name"]; label: string; value: React.ReactNode }) {
+function StatTile({ icon, label, value, onPress }: { icon: React.ComponentProps<typeof Ionicons>["name"]; label: string; value: React.ReactNode; onPress?: () => void }) {
   const { theme } = useTheme();
-  return (
-    <View style={[styles.statRow, { flexDirection: flexRow(IS_RTL) }]}>
+  const content = (
+    <>
       <View style={[styles.menuIcon, { backgroundColor: theme.colors.brand.primaryLight }]}>
         <Ionicons name={icon} size={16} color={theme.colors.brand.primary} />
       </View>
       <UIText variant="body-sm" style={{ flex: 1, textAlign: TEXT_START }}>{label}</UIText>
       <UIText style={styles.statValue}>{value}</UIText>
-    </View>
+      {onPress ? <Ionicons name={IS_RTL ? "chevron-back" : "chevron-forward"} size={14} color={theme.colors.text.muted} /> : null}
+    </>
   );
+  if (onPress) {
+    return (
+      <Pressable onPress={onPress} accessibilityRole="button" style={({ pressed }) => [styles.statRow, { flexDirection: flexRow(IS_RTL) }, pressed && { opacity: 0.7 }]}>
+        {content}
+      </Pressable>
+    );
+  }
+  return <View style={[styles.statRow, { flexDirection: flexRow(IS_RTL) }]}>{content}</View>;
 }
 
 const VEHICLE_LABELS: Record<string, string> = {
@@ -230,7 +239,7 @@ export function DriverProfileScreen(): React.ReactElement {
           {profile ? (
             <>
               <View style={[styles.divider, { backgroundColor: theme.colors.border.default }]} />
-              <StatTile icon="wallet-outline" label={t("driver.lifetimeEarnings")} value={formatPrice(profile.totalEarnings)} />
+              <StatTile icon="wallet-outline" label={t("driver.lifetimeEarnings")} value={formatPrice(profile.totalEarnings)} onPress={() => router.push("/(driver)/earnings" as never)} />
             </>
           ) : null}
         </View>

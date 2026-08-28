@@ -258,7 +258,7 @@ export function DriverManifest(): React.ReactElement {
         </View>
 
         <View style={s.perfCard}>
-          <View style={s.perfHeroRow}>
+          <Pressable onPress={() => router.push("/(driver)/earnings" as never)} accessibilityRole="button" style={s.perfHeroRow}>
             <View style={s.perfHeroIconWell}>
               <Ionicons name="cash-outline" size={20} color={theme.colors.brand.primary} />
             </View>
@@ -266,7 +266,8 @@ export function DriverManifest(): React.ReactElement {
               <UIText numberOfLines={1} style={s.perfHeroLabel}>{t("driver.todayEarnings")}</UIText>
               <UIText numberOfLines={1} style={s.perfHeroValue}>{formatPrice(todayEarnings)}</UIText>
             </View>
-          </View>
+            <Ionicons name={IS_RTL ? "chevron-back" : "chevron-forward"} size={18} color={theme.colors.text.muted} />
+          </Pressable>
 
           <View style={s.perfDivider} />
 
