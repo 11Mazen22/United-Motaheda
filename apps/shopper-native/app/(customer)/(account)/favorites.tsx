@@ -77,13 +77,17 @@ const Card = memo(function Card({ product, index, styles }: { product: NativePro
 
   const { theme } = useTheme();
 
-  const router = useRouter(), { t } = useTranslation();
+  const router = useRouter(), { t, i18n } = useTranslation();
 
   const addItem = useCartStore(s => s.addItem);
 
   const inCart = useCartStore(s => s.items.some(i => i.productId === product.id));
 
-  const name = product.nameAr ?? product.name;
+  const lang = i18n.language === "en" ? "en" as const : "ar" as const;
+
+  const name = lang === "en" ? (product.nameEn || product.nameAr || product.name) : (product.nameAr || product.nameEn || product.name);
+
+  const categoryName = lang === "en" ? (product.categoryNameEn || product.categoryName) : product.categoryName;
 
 
 
@@ -117,9 +121,9 @@ const Card = memo(function Card({ product, index, styles }: { product: NativePro
 
 
 
-      <View style={{ flex: 1, gap: 4 }}>
+      <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
 
-        <UIText variant="eyebrow" color="tertiary" align={TA} numberOfLines={1}>{product.categoryName}</UIText>
+        <UIText variant="eyebrow" color="tertiary" align={TA} numberOfLines={1}>{categoryName}</UIText>
 
         <Pressable onPress={() => router.push({ pathname: "/product/[id]", params: { id: product.id } })}>
 
@@ -127,7 +131,7 @@ const Card = memo(function Card({ product, index, styles }: { product: NativePro
 
         </Pressable>
 
-        <UIText style={[styles.price, { textAlign: TA }]}> {formatPrice(product.price)} </UIText>
+        <UIText style={[styles.price, { textAlign: TA }]}> {formatPrice(product.price, lang)} </UIText>
 
       </View>
 
@@ -201,7 +205,7 @@ export default function FavoritesScreen() {
 
           <View style={s.tile}><Ionicons name="heart-outline" size={22} color="#E53E3E" /></View>
 
-          <View style={{ flex: 1 }}>
+          <View style={{ flex: 1, minWidth: 0 }}>
 
             <UIText style={[s.hTitle, { textAlign: TA }]}>{t("wishlist.title")}</UIText>
 

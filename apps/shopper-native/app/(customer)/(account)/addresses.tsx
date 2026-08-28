@@ -29,6 +29,8 @@ import { Text as UIText, EmptyState } from "@pharmacy/ui-native";
 
 import { flexRow, isRtl, textAlignStart, BACK_CHEVRON, FORWARD_CHEVRON } from "@/utils/layout";
 
+import { useScreenLayout } from "@/utils/responsive";
+
 
 
 const RTL = isRtl(), TA = textAlignStart(RTL);
@@ -73,11 +75,13 @@ export default function AddressesScreen() {
 
   const { theme } = useTheme();
 
+  const { pagePad } = useScreenLayout();
+
   const styles = useMemo(() => StyleSheet.create({
 
     screen: { flex: 1, backgroundColor: theme.colors.canvas.background },
 
-    header: { paddingHorizontal: 20, paddingBottom: 16, backgroundColor: theme.colors.canvas.surface, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border.default, ...theme.shadows[1] },
+    header: { paddingHorizontal: pagePad, paddingBottom: 16, backgroundColor: theme.colors.canvas.surface, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border.default, ...theme.shadows[1] },
 
     hRow: { flexDirection: flexRow(RTL), alignItems: "center", gap: 12, minHeight: 38 },
 
@@ -105,13 +109,13 @@ export default function AddressesScreen() {
 
     emptyW: { flex: 1, justifyContent: "center", paddingHorizontal: 20 },
 
-    list: { padding: 20, paddingBottom: 40 },
+    list: { padding: pagePad, paddingBottom: 40 },
 
-  }), [theme]);
+  }), [theme, pagePad]);
 
   const s = useMemo(() => StyleSheet.create({
 
-    chips: { gap: 8, paddingHorizontal: 20, paddingVertical: 10, backgroundColor: theme.colors.canvas.surface, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border.default },
+    chips: { gap: 8, paddingHorizontal: pagePad, paddingVertical: 10, backgroundColor: theme.colors.canvas.surface, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border.default },
 
     chip: { alignItems: "center", gap: 5, backgroundColor: theme.colors.brand.primaryLight, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, borderWidth: 1, borderColor: theme.colors.border.default },
 
@@ -137,7 +141,7 @@ export default function AddressesScreen() {
 
     addSub: { fontSize: 11, fontFamily: legacyTheme.fonts.regular, color: theme.colors.text.muted, marginTop: 2, includeFontPadding: false },
 
-  }), [theme]);
+  }), [theme, pagePad]);
 
   const router = useRouter(), insets = useSafeAreaInsets(), { t } = useTranslation();
 
@@ -287,7 +291,7 @@ export default function AddressesScreen() {
 
           <View style={styles.tile}><Ionicons name="location-outline" size={22} color={theme.colors.brand.primary} /></View>
 
-          <View style={{ flex: 1 }}>
+          <View style={{ flex: 1, minWidth: 0 }}>
 
             <UIText style={[styles.hTitle, { textAlign: TA }]}>{t("addresses.title")}</UIText>
 
@@ -345,7 +349,7 @@ export default function AddressesScreen() {
 
               <View style={s.secBadge}><Ionicons name="map-outline" size={14} color={theme.colors.brand.primary} /></View>
 
-              <View style={{ flex: 1 }}>
+              <View style={{ flex: 1, minWidth: 0 }}>
 
                 <UIText style={[s.secEye, { textAlign: TA }]}>{t("addresses.savedCount", { count: addresses.length })}</UIText>
 
@@ -361,7 +365,7 @@ export default function AddressesScreen() {
 
                   <View style={s.addIcon}><Ionicons name="add" size={22} color={theme.colors.brand.primary} /></View>
 
-                  <View style={{ flex: 1 }}>
+                  <View style={{ flex: 1, minWidth: 0 }}>
 
                     <UIText style={[s.addLbl, { textAlign: TA }]}>{t("addresses.addNew")}</UIText>
 
