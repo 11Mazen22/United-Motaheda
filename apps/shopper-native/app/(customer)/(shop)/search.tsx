@@ -22,6 +22,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { Text, EmptyState, ErrorState, useTheme } from "@pharmacy/ui-native";
+import { gradients } from "@pharmacy/design-tokens";
 import { useQuery } from "@tanstack/react-query";
 import { useProductSearch, useInfiniteProducts } from "@/features/products";
 import { ProductGrid } from "@/features/products/components/ProductGrid";
@@ -94,7 +95,7 @@ export default function SearchScreen() {
   const insets = useSafeAreaInsets();
   const { t, i18n } = useTranslation();
   const router = useRouter();
-  const { theme, isDark } = useTheme();
+  const { theme } = useTheme();
   const { user } = useAuth();
   const lang = i18n.language === "en" ? "en" as const : "ar" as const;
 
@@ -232,26 +233,32 @@ export default function SearchScreen() {
   );
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.canvas.background, paddingTop: insets.top }]}>
-      <StatusBar style={isDark ? "light" : "dark"} />
+    <View style={[styles.container, { backgroundColor: theme.colors.canvas.background }]}>
+      <StatusBar style="light" />
 
-      <View style={[styles.header, { backgroundColor: theme.colors.canvas.surface, borderBottomColor: theme.colors.border.default }]}>
+      <LinearGradient
+        colors={gradients.brandPrimary as unknown as [string, string]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={[styles.header, { paddingTop: insets.top + 12 }]}
+      >
         <View style={[styles.headerRow, { flexDirection: flexRow(IS_RTL) }]}>
           <Pressable onPress={() => router.back()} hitSlop={10} accessibilityRole="button" accessibilityLabel={t("common.back")} style={styles.backBtn}>
-            <Ionicons name={BACK_CHEVRON} size={24} color={theme.colors.text.primary} />
+            <Ionicons name={BACK_CHEVRON} size={22} color="#fff" />
           </Pressable>
           <View style={styles.inputBoxOuter}>
-            {/* Soft brand-colored glow that fades in on focus, sitting just
-                outside the bar rather than a hard focus-ring border. */}
-            <Animated.View pointerEvents="none" style={[styles.inputGlow, { backgroundColor: theme.colors.brand.primary }, glowAnimStyle]} />
+            {/* Soft white glow that fades in on focus, sitting just outside
+                the bar rather than a hard focus-ring border. */}
+            <Animated.View pointerEvents="none" style={[styles.inputGlow, { backgroundColor: "#fff" }, glowAnimStyle]} />
             <Animated.View
               style={[
                 styles.inputBox,
-                { flexDirection: flexRow(IS_RTL), backgroundColor: theme.colors.canvas.background, shadowColor: theme.colors.brand.primary },
+                theme.shadows[2],
+                { flexDirection: flexRow(IS_RTL), backgroundColor: theme.colors.canvas.surface },
                 searchBarAnimStyle,
               ]}
             >
-              <Ionicons name="search" size={20} color={theme.colors.text.muted} />
+              <Ionicons name="search" size={20} color={theme.colors.brand.primary} />
               <TextInput
                 value={query}
                 onChangeText={(txt) => { setQuery(txt); if (submitted) setSubmitted(""); }}
@@ -274,7 +281,7 @@ export default function SearchScreen() {
             </Animated.View>
           </View>
         </View>
-      </View>
+      </LinearGradient>
 
       {/* Smart-resolution cue — shown only when the query was actually
           translated/corrected, so it reads as useful feedback ("we understood
@@ -487,9 +494,9 @@ export default function SearchScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { padding: 16, borderBottomWidth: 1 },
+  header: { paddingHorizontal: 16, paddingBottom: 16 },
   headerRow: { alignItems: "center", gap: 10 },
-  backBtn: { width: 32, height: 48, alignItems: "center", justifyContent: "center" },
+  backBtn: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.16)" },
   inputBoxOuter: { flex: 1 },
   inputGlow: { position: "absolute", top: -3, start: -3, end: -3, bottom: -3, borderRadius: 15, opacity: 0.16 },
   inputBox: {
