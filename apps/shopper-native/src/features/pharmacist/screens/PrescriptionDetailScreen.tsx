@@ -16,6 +16,7 @@ import Animated, {
 import { Screen, Text as UIText, Button, Input, kit } from "@pharmacy/ui-native";
 import { useTheme } from "@pharmacy/ui-native";
 import { flexRow, isRtl } from "@/utils/layout";
+import { formatRxDateTime } from "../lib/formatRxDate";
 import { showErrorSheet, showSuccessSheet } from "@/shared/store/appSheetStore";
 
 import { usePrescription, usePrescriptionImage } from "../hooks/usePharmacistQueries";
@@ -111,7 +112,7 @@ function statusMeta(status: string, theme: ReturnType<typeof useTheme>["theme"])
 // ─── Screen ─────────────────────────────────────────────────────────────────
 
 export function PrescriptionDetailScreen(): React.ReactElement {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { theme } = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
 
@@ -219,7 +220,7 @@ export function PrescriptionDetailScreen(): React.ReactElement {
             <View style={{ flex: 1, minWidth: 0, marginEnd: 8 }}>
               <UIText variant="body" numberOfLines={1}>{rx.customerName}</UIText>
               <UIText variant="caption" color="secondary">
-                {new Date(rx.addedAt ?? "").toLocaleString()}
+                {formatRxDateTime(rx.addedAt ?? rx.createdAt, i18n.language === "ar" ? "ar-EG" : "en-US")}
               </UIText>
             </View>
             <View style={[s.statusBadge, { backgroundColor: `${meta.color}1A`, flexShrink: 0 }]}>

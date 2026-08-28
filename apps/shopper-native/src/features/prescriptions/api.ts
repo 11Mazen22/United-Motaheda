@@ -160,9 +160,13 @@ export async function updatePrescription(
  * 1. Create the pending prescription record to get an ID.
  * 2. Upload the image to the secure storage path.
  * 3. Update the record with the image_path.
- * 
- * If the upload fails, the prescription record remains in 'pending_review' but without
- * an image path, allowing for retry/cleanup strategies if needed.
+ *
+ * If the upload fails, the just-created record is deleted rather than left
+ * behind image-less: the pharmacist queue has no way to represent "still
+ * waiting on an image" (every card assumes one exists), so an orphaned
+ * record just sat there confusingly forever, and retrying from the scan
+ * screen created a new one every time on top of it. Deleting lets a retry
+ * produce one clean record instead of accumulating ghosts.
  */
 export async function submitPrescriptionWithImage(
   userId: string,
@@ -176,13 +180,14 @@ export async function submitPrescriptionWithImage(
   try {
     // 2. Upload the image
     const imagePath = await uploadPrescriptionImage(userId, prescription.id, localImageUri);
-    
+
     // 3. Link the image path to the record
     return await updatePrescription(prescription.id, userId, { imagePath });
   } catch (error) {
-    // Note: the record was created but upload failed. 
-    // Return the record as-is (with no image_path) so the UI can represent the failure state
-    // and allow retry if appropriate.
+    await deletePrescription(prescription.id, userId).catch(() => {
+      // Best-effort cleanup — surfacing the original upload error matters
+      // more than a cleanup failure the user can't act on anyway.
+    });
     throw Object.assign(new Error(`Prescription record created, but image upload failed.`), {
       prescriptionId: prescription.id,
       originalError: error,

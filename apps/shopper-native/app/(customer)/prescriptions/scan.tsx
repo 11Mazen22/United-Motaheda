@@ -1,12 +1,16 @@
 import { useTheme, type NativeTheme } from "@pharmacy/ui-native";
 
-import React, { useCallback, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 
-import { Pressable, StyleSheet, View, Image } from "react-native";
+import { Platform, Pressable, StyleSheet, View, Image } from "react-native";
+
+import Animated, { Easing, FadeIn, FadeInDown, useAnimatedStyle, useSharedValue, withRepeat, withSequence, withTiming } from "react-native-reanimated";
 
 import { CameraView, useCameraPermissions } from "@/shared/camera";
 
 import * as ImagePicker from "expo-image-picker";
+
+import * as Haptics from "expo-haptics";
 
 import { Ionicons } from "@expo/vector-icons";
 
@@ -60,19 +64,22 @@ export default function ScanScreen(): React.ReactElement {
 
   const handleCapture = useCallback(async () => {
     if (!cameraRef.current) return;
+    if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
     try {
       const photo = await cameraRef.current.takePictureAsync({ quality: 0.8, skipProcessing: true });
       if (photo?.uri) {
+        if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
         setImageUri(photo.uri);
         setPhase("preview");
         setUploadErr(null);
       }
     } catch {
-      // capture failed silently
+      if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
     }
   }, []);
 
   const handleGallery = useCallback(async () => {
+    if (Platform.OS !== "web") Haptics.selectionAsync().catch(() => {});
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
       showErrorSheet(t("common.error"), t("prescriptions.galleryPermissionDenied", "Gallery access is needed to choose a photo."));
@@ -103,12 +110,14 @@ export default function ScanScreen(): React.ReactElement {
         imageUri,
         "scan",
       );
+      if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
       showSuccessSheet(
         t("prescriptions.uploadSuccessTitle", "Prescription Submitted"),
         t("prescriptions.uploadSuccessBody", "Your prescription has been securely submitted for pharmacist review."),
         () => router.replace(`/prescriptions/${created.id}` as never),
       );
     } catch {
+      if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
       setPhase("preview");
       setUploadErr(t("prescriptions.uploadError", "Failed to upload the prescription document. Please try again."));
     }
@@ -158,7 +167,7 @@ export default function ScanScreen(): React.ReactElement {
       <View style={s.screen}>
         <ScanHeader insets={insets} onBack={handleRetake} title={t("prescriptions.previewTitle", "Review Document")} />
         <View style={s.previewContainer}>
-          <View style={s.imageWrapper}>
+          <Animated.View entering={FadeIn.duration(260)} style={[s.imageWrapper, theme.shadows[2]]}>
             {imageUri && (
               <Image source={{ uri: imageUri }} style={StyleSheet.absoluteFill} resizeMode="contain" />
             )}
@@ -170,19 +179,22 @@ export default function ScanScreen(): React.ReactElement {
                 </Text>
               </View>
             )}
-          </View>
+          </Animated.View>
 
           {uploadErr && (
-            <View style={s.errorBanner}>
+            <Animated.View entering={FadeInDown.duration(240)} style={s.errorBanner}>
               <Ionicons name="alert-circle" size={16} color="#fff" />
               <Text weight="bold" style={s.errorBannerText}>{uploadErr}</Text>
-            </View>
+            </Animated.View>
           )}
 
-          <View style={s.previewActions}>
-            <Text style={s.previewNotice}>
-              {t("prescriptions.previewNotice", "This document will be sent securely to the pharmacy for review.")}
-            </Text>
+          <Animated.View entering={FadeInDown.duration(280).delay(80)} style={s.previewActions}>
+            <View style={[s.previewNoticeRow, { flexDirection: flexRow(IS_RTL) }]}>
+              <Ionicons name="shield-checkmark-outline" size={14} color={theme.colors.brand.primary} />
+              <Text style={s.previewNotice}>
+                {t("prescriptions.previewNotice", "This document will be sent securely to the pharmacy for review.")}
+              </Text>
+            </View>
             <CustomerUI.Button
               label={t("common.submit", "Submit")}
               onPress={handleSubmit}
@@ -199,7 +211,7 @@ export default function ScanScreen(): React.ReactElement {
               disabled={phase === "uploading"}
               fullWidth
             />
-          </View>
+          </Animated.View>
         </View>
       </View>
     );
@@ -210,7 +222,7 @@ export default function ScanScreen(): React.ReactElement {
       <CameraView ref={cameraRef} style={StyleSheet.absoluteFill} facing="back" />
 
       <View style={s.overlay} pointerEvents="none">
-        <View style={s.frame} />
+        <ScanFrame theme={theme} />
         <Text weight="bold" style={s.guideText}>
           {t("prescriptions.scanGuide")}
         </Text>
@@ -252,7 +264,9 @@ export default function ScanScreen(): React.ReactElement {
           style={s.captureTouchable}>
           {({ pressed }) => (
             <View style={[s.captureOuter, pressed && s.captureOuterPressed]}>
-              <View style={s.captureInner} />
+              <View style={[s.captureInner, { backgroundColor: theme.colors.brand.primary }]}>
+                <Ionicons name="camera" size={26} color="#fff" />
+              </View>
             </View>
           )}
         </Pressable>
@@ -265,6 +279,58 @@ export default function ScanScreen(): React.ReactElement {
 }
 
 
+
+// ─── ScanFrame — document-scanner corner brackets + sweeping scan line ────────
+// Replaces the earlier plain rounded rectangle: a real document scanner
+// (banking check-deposit, ID scanners) reads as "actively scanning" through
+// corner brackets and motion, not a static outline — the frame alone gave no
+// feedback that anything was happening while a customer lined up the shot.
+
+function ScanFrame({ theme }: { theme: NativeTheme }): React.ReactElement {
+  const sweep = useSharedValue(0);
+
+  useEffect(() => {
+    sweep.value = withRepeat(
+      withSequence(
+        withTiming(1, { duration: 1800, easing: Easing.inOut(Easing.ease) }),
+        withTiming(0, { duration: 1800, easing: Easing.inOut(Easing.ease) }),
+      ),
+      -1,
+      false,
+    );
+  }, [sweep]);
+
+  const lineStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: sweep.value * FRAME_HEIGHT }],
+    opacity: 0.85,
+  }));
+
+  return (
+    <View style={f.wrap}>
+      <View style={f.corner__topStart} />
+      <View style={f.corner__topEnd} />
+      <View style={f.corner__bottomStart} />
+      <View style={f.corner__bottomEnd} />
+      <View style={f.clip} pointerEvents="none">
+        <Animated.View style={[f.sweepLine, { backgroundColor: theme.colors.brand.primary }, lineStyle]} />
+      </View>
+    </View>
+  );
+}
+
+const FRAME_HEIGHT = 300;
+const CORNER_LEN = 34;
+const CORNER_W = 4;
+
+const f = StyleSheet.create({
+  wrap: { width: "78%", aspectRatio: 0.75, height: FRAME_HEIGHT },
+  clip: { ...StyleSheet.absoluteFillObject, borderRadius: 14, overflow: "hidden" },
+  sweepLine: { position: "absolute", top: 0, start: 0, end: 0, height: 2.5, shadowColor: "#fff", shadowOpacity: 0.9, shadowRadius: 8, shadowOffset: { width: 0, height: 0 } },
+  corner__topStart:    { position: "absolute", top: 0, start: 0, width: CORNER_LEN, height: CORNER_LEN, borderColor: "#fff", borderStartWidth: CORNER_W, borderTopWidth: CORNER_W, borderTopStartRadius: 14 },
+  corner__topEnd:      { position: "absolute", top: 0, end: 0, width: CORNER_LEN, height: CORNER_LEN, borderColor: "#fff", borderEndWidth: CORNER_W, borderTopWidth: CORNER_W, borderTopEndRadius: 14 },
+  corner__bottomStart: { position: "absolute", bottom: 0, start: 0, width: CORNER_LEN, height: CORNER_LEN, borderColor: "#fff", borderStartWidth: CORNER_W, borderBottomWidth: CORNER_W, borderBottomStartRadius: 14 },
+  corner__bottomEnd:   { position: "absolute", bottom: 0, end: 0, width: CORNER_LEN, height: CORNER_LEN, borderColor: "#fff", borderEndWidth: CORNER_W, borderBottomWidth: CORNER_W, borderBottomEndRadius: 14 },
+});
 
 function ScanHeader({
   insets, onBack, title,
@@ -323,10 +389,6 @@ function get_s(theme: NativeTheme) { return StyleSheet.create({
   },
   permissionCta: { width: "100%", maxWidth: 280, marginTop: 12 },
   overlay: { ...StyleSheet.absoluteFillObject, alignItems: "center", justifyContent: "center", gap: 20 },
-  frame: {
-    width: "78%", aspectRatio: 0.75, borderRadius: 12,
-    borderWidth: 2.5, borderColor: "rgba(255,255,255,0.85)",
-  },
   guideText: {
     fontSize: 13, lineHeight: 19, color: "#fff",
     textAlign: "center", paddingHorizontal: 32,
@@ -361,7 +423,7 @@ function get_s(theme: NativeTheme) { return StyleSheet.create({
     alignItems: "center", justifyContent: "center",
   },
   captureOuterPressed: { opacity: 0.8, transform: [{ scale: 0.96 }] },
-  captureInner: { width: 62, height: 62, borderRadius: 31, backgroundColor: "#fff" },
+  captureInner: { width: 62, height: 62, borderRadius: 31, alignItems: "center", justifyContent: "center" },
   captureLabel: {
     fontSize: 12, lineHeight: 17, color: "#fff",
     textShadowColor: "rgba(0,0,0,0.5)", textShadowRadius: 4,
@@ -378,9 +440,13 @@ function get_s(theme: NativeTheme) { return StyleSheet.create({
   },
   uploadingText: { color: "#fff", fontSize: 15 },
   previewActions: { paddingTop: 10 },
+  previewNoticeRow: {
+    alignItems: "center", justifyContent: "center", gap: 6,
+    marginBottom: 16,
+  },
   previewNotice: {
     fontSize: 13, color: theme.colors.text.secondary, textAlign: "center",
-    marginBottom: 16, includeFontPadding: false,
+    includeFontPadding: false, flexShrink: 1,
   },
   errorBanner: {
     flexDirection: flexRow(IS_RTL), alignItems: "center",

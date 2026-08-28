@@ -23,6 +23,7 @@ import { Screen, Text as UIText, Card, Chip, Input, EmptyState as PUIEmptyState,
 import { flexRow, isRtl, textAlignStart, FORWARD_CHEVRON } from "@/utils/layout";
 import { useScreenLayout } from "@/utils/responsive";
 import { useAllPrescriptions } from "../hooks/usePharmacistQueries";
+import { formatRxDate } from "../lib/formatRxDate";
 import type { PrescriptionReviewStatus, PharmacistPrescription, SubmissionSource } from "../api/types";
 
 const IS_RTL = isRtl();
@@ -44,13 +45,6 @@ const SOURCE_META: Record<SubmissionSource, { icon: React.ComponentProps<typeof 
   scan:     { icon: "scan-outline",        labelKey: "pharmacist.scan",           fallback: "Scan" },
   manual:   { icon: "document-text-outline", labelKey: "pharmacist.manual",       fallback: "Manual" },
 };
-
-function formatRxDate(iso: string | undefined, locale: string): string {
-  if (!iso) return "—";
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "—";
-  return d.toLocaleDateString(locale);
-}
 
 function ageMs(iso: string | undefined): number {
   if (!iso) return 0;
