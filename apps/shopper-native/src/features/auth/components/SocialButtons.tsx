@@ -51,7 +51,7 @@ export function SocialButtons({ onSocialPress, loading = false }: Props) {
         accessibilityRole="button"
         accessibilityState={{ disabled: loading, busy: loading }}
         accessibilityLabel={t("auth.continueWithGoogle")}>
-        <View style={[s.iconWell, IS_RTL ? { marginStart: 12 } : { marginEnd: 12 }]}>
+        <View style={s.iconWell}>
           {loading ? (
             <ActivityIndicator size="small" color={GOOGLE_RED} />
           ) : (

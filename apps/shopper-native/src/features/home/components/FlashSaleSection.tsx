@@ -172,6 +172,8 @@ interface OfferBannerCardProps {
 
   pagePad:    number;
 
+  isSale:     boolean;
+
 }
 
 
@@ -183,6 +185,8 @@ const OfferBannerCard = memo(function OfferBannerCard({
   onShopNow,
 
   pagePad,
+
+  isSale,
 
 }: OfferBannerCardProps) {
 
@@ -228,15 +232,15 @@ const OfferBannerCard = memo(function OfferBannerCard({
 
         <View style={s.bannerText}>
 
-          <UIText style={s.bannerEyebrow}>{t("home.flashBannerEyebrow")}</UIText>
+          <UIText style={s.bannerEyebrow}>{isSale ? t("home.flashBannerEyebrow") : t("home.flashNewBannerEyebrow")}</UIText>
 
           <UIText style={s.bannerHeadline} numberOfLines={2}>
 
-            {t("home.flashBannerHeadline")}
+            {isSale ? t("home.flashBannerHeadline") : t("home.flashNewBannerHeadline")}
 
           </UIText>
 
-          <UIText style={s.bannerDiscount}>50%</UIText>
+          <UIText style={s.bannerDiscount}>{isSale ? "50%" : t("home.flashNewBadge")}</UIText>
 
 
 
@@ -405,15 +409,21 @@ export const FlashSaleSection = memo(function FlashSaleSection({
 
   const { pagePad } = useScreenLayout();
 
-  const { data, isLoading } = useQuery<NativeProduct[]>({
+  const { data, isLoading } = useQuery<{ items: NativeProduct[]; isSale: boolean }>({
 
     queryKey: productKeys.flashSale(FLASH_SALE_LIMIT),
 
     queryFn: async () => {
 
-      const page = await fetchProductsPage({ isSale: true, sortBy: "price_asc", pageSize: FLASH_SALE_LIMIT });
+      const salePage = await fetchProductsPage({ isSale: true, sortBy: "price_asc", pageSize: FLASH_SALE_LIMIT });
 
-      return page.products;
+      if (salePage.products.length > 0) return { items: salePage.products, isSale: true };
+
+      // No active sale campaign — never leave this section blank; fall
+      // back to newest arrivals so Home always has a real, browsable
+      // "offers" rail instead of a "coming soon" apology card.
+      const newestPage = await fetchProductsPage({ sortBy: "newest", pageSize: FLASH_SALE_LIMIT });
+      return { items: newestPage.products, isSale: false };
 
     },
 
@@ -421,7 +431,9 @@ export const FlashSaleSection = memo(function FlashSaleSection({
 
   });
 
-  const items = data ?? [];
+  const items = data?.items ?? [];
+
+  const isSale = data?.isSale ?? true;
 
   // Both useCallback calls MUST run on every render, including the
   // isLoading skeleton branch below — putting them after that early return
@@ -519,19 +531,20 @@ export const FlashSaleSection = memo(function FlashSaleSection({
 
     <View style={sectionStyles.wrap}>
 
-      {/* Section header — countdown in right slot */}
+      {/* Section header — countdown in right slot, only when there's an
+          actual sale clock running */}
 
       <HomeSectionHeader
 
-        eyebrow={t("home.flashEnds")}
+        eyebrow={isSale ? t("home.flashEnds") : undefined}
 
-        title={t("home.flashTitle")}
+        title={isSale ? t("home.flashTitle") : t("home.flashNewTitle")}
 
-        icon="flash"
+        icon={isSale ? "flash" : "sparkles"}
 
-        accent={theme.colors.status.error}
+        accent={isSale ? theme.colors.status.error : theme.colors.brand.primary}
 
-        rightSlot={<CountdownDisplay />}
+        rightSlot={isSale ? <CountdownDisplay /> : undefined}
 
         onMore={onViewAll}
 
@@ -548,6 +561,8 @@ export const FlashSaleSection = memo(function FlashSaleSection({
         onShopNow={handleViewAll}
 
         pagePad={pagePad}
+
+        isSale={isSale}
 
       />
 

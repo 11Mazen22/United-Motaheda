@@ -78,7 +78,7 @@ export const DailyEdit = memo(function DailyEdit({
     </View>
   );
 
-  if (products.length < 2) return null;
+  if (products.length < 1) return null;
 
   const [hero, second, third, fourth] = products;
   const compactCount = isTablet && fourth ? 3 : 2;

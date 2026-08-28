@@ -155,6 +155,7 @@ function getStyles(theme: NativeTheme) {
     },
     title: {
       flex:          1,
+      minWidth:      0,
       textAlign:     textAlignStart(isRtl()),
       fontSize:      theme.typography.sizes[24],
       letterSpacing: -0.4,

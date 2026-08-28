@@ -93,6 +93,10 @@ export const TodayCare = memo(function TodayCare(): React.ReactElement | null {
     () => router.push("/(customer)/(tabs)/meds" as Parameters<typeof router.push>[0]),
     [router],
   );
+  const openShop = useCallback(
+    () => router.push("/(customer)/(tabs)/products"),
+    [router],
+  );
 
   // Guest → commerce leads; render nothing.
   if (!user) return null;
@@ -105,7 +109,7 @@ export const TodayCare = memo(function TodayCare(): React.ReactElement | null {
       <View style={s.header}>
         <View>
           <UIText variant="caption" style={{ color: theme.colors.text.muted, textAlign: TEXT_START }}>
-            {firstName ? t("home.todayGreeting", { name: firstName, defaultValue: `مرحباً ${firstName}` }) : t("home.todayTitle")}
+            {firstName ? t("home.todayGreeting", { name: firstName, defaultValue: `مرحباً ${firstName}` }) : t("home.todayGreetingGeneric")}
           </UIText>
           <UIText variant="h4" style={{ color: theme.colors.text.primary, textAlign: TEXT_START, marginTop: 2 }}>{t("home.todayTitle")}</UIText>
         </View>
@@ -131,7 +135,7 @@ export const TodayCare = memo(function TodayCare(): React.ReactElement | null {
 
       {!hasContent && (
         <Animated.View entering={FadeInDown.duration(400).springify()}>
-          <AllGood theme={theme} />
+          <AllGood theme={theme} onShop={openShop} />
         </Animated.View>
       )}
     </View>
@@ -240,19 +244,29 @@ const RxNeedCard = memo(function RxNeedCard({
   );
 });
 
-// ── Calm all-clear state — soft glow instead of a bare icon ──
-const AllGood = memo(function AllGood({ theme }: { theme: NativeTheme }) {
+// ── Calm all-clear state — not a dead end: a soft brand hero that hands
+// off straight into browsing, so "nothing to do today" still leads
+// somewhere instead of reading as an empty, forgettable notice. ──
+const AllGood = memo(function AllGood({ theme, onShop }: { theme: NativeTheme; onShop: () => void }) {
   const { t } = useTranslation();
   return (
-    <View style={[s.card, s.allGoodCard, { backgroundColor: theme.colors.canvas.surface, borderColor: theme.colors.border.default }, theme.shadows[1]]}>
+    <View style={[s.allGoodCard, { backgroundColor: theme.colors.canvas.surface, borderColor: theme.colors.border.default }, theme.shadows[1]]}>
       <View style={[s.allGoodGlow, { backgroundColor: theme.colors.brand.primaryLight }]} />
-      <View style={[s.iconTile, s.allGoodTile, { backgroundColor: theme.colors.brand.primaryLight }]}>
-        <Ionicons name="shield-checkmark" size={24} color={theme.colors.brand.primary} />
+      <View style={[s.allGoodGlow, s.allGoodGlow2, { backgroundColor: theme.colors.brand.accent }]} />
+      <View style={[s.allGoodRow, { flexDirection: flexRow(IS_RTL) }]}>
+        <View style={[s.iconTile, s.allGoodTile, { backgroundColor: theme.colors.brand.primaryLight }]}>
+          <Ionicons name="shield-checkmark" size={26} color={theme.colors.brand.primary} />
+        </View>
+        <View style={s.cardBody}>
+          <UIText variant="card-title" numberOfLines={1} style={{ color: theme.colors.text.primary, textAlign: TEXT_START }}>{t("home.todayAllGood")}</UIText>
+          <UIText variant="caption" numberOfLines={2} style={{ color: theme.colors.text.muted, textAlign: TEXT_START }}>{t("home.todayAllGoodSub")}</UIText>
+        </View>
       </View>
-      <View style={s.cardBody}>
-        <UIText variant="card-title" numberOfLines={1} style={{ color: theme.colors.text.primary, textAlign: TEXT_START }}>{t("home.todayAllGood")}</UIText>
-        <UIText variant="caption" numberOfLines={2} style={{ color: theme.colors.text.muted, textAlign: TEXT_START }}>{t("home.todayAllGoodSub")}</UIText>
-      </View>
+      <PressableScale onPress={onShop} scaleTo={0.98} accessibilityRole="button" style={[s.allGoodCta, { backgroundColor: theme.colors.brand.primary, flexDirection: flexRow(IS_RTL) }]}>
+        <Ionicons name="bag-handle-outline" size={15} color="#fff" />
+        <UIText variant="caption" weight="bold" style={{ color: "#fff" }}>{t("home.todayBrowseShop")}</UIText>
+        <Ionicons name={FWD} size={13} color="#fff" />
+      </PressableScale>
     </View>
   );
 });
@@ -262,9 +276,12 @@ const s = StyleSheet.create({
   header: { flexDirection: flexRow(IS_RTL), alignItems: "flex-end", justifyContent: "space-between", marginBottom: 4 },
   viewAll: { flexDirection: flexRow(IS_RTL), alignItems: "center", gap: 2, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 9999 },
   card: { flexDirection: flexRow(IS_RTL), alignItems: "center", gap: 12, padding: 14, borderRadius: 18, borderWidth: 1 },
-  allGoodCard: { overflow: "hidden" },
+  allGoodCard: { padding: 14, borderRadius: 18, borderWidth: 1, overflow: "hidden", gap: 12 },
+  allGoodRow: { alignItems: "center", gap: 12 },
   allGoodGlow: { position: "absolute", width: 140, height: 140, borderRadius: 70, top: -50, end: -40, opacity: 0.5 },
+  allGoodGlow2: { width: 90, height: 90, borderRadius: 45, top: undefined, bottom: -40, end: undefined, start: -30, opacity: 0.18 },
   allGoodTile: { width: 48, height: 48, borderRadius: 16 },
+  allGoodCta: { alignItems: "center", justifyContent: "center", gap: 5, height: 40, borderRadius: 12 },
   iconTile: { width: 44, height: 44, borderRadius: 14, alignItems: "center", justifyContent: "center" },
   cardBody: { flex: 1, minWidth: 0, gap: 4 },
   metaRow: { flexDirection: flexRow(IS_RTL), alignItems: "center", gap: 8 },

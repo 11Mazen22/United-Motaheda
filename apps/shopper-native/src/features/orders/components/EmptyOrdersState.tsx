@@ -33,7 +33,7 @@ import { useTranslation } from "react-i18next";
 
 import { Text as UIText } from "@pharmacy/ui-native";
 
-import { AppHeader } from "@/shared/components";
+import { OrdersHeader } from "./OrdersHeader";
 
 import { Button } from "@pharmacy/ui-native";
 
@@ -54,6 +54,8 @@ export function EmptyOrdersState({ showBack }: { showBack: boolean }): React.Rea
   const insets  = useSafeAreaInsets();
 
   const { t }   = useTranslation();
+
+  const goBack  = () => router.back();
 
   const reduced = useReducedMotion();
 
@@ -83,7 +85,7 @@ export function EmptyOrdersState({ showBack }: { showBack: boolean }): React.Rea
 
     <View style={{ flex: 1, backgroundColor: theme.colors.canvas.background }}>
 
-      <AppHeader title={t("orders.title")} showBack={showBack} />
+      <OrdersHeader t={t} insetsTop={insets.top} orders={[]} showBack={showBack} onBack={goBack} />
 
       <ScrollView
 
