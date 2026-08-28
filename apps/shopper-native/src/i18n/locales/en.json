@@ -2102,6 +2102,11 @@
 
         "prescriptionsTitle":     "Prescription Queue",
         "prescriptionsSubtitle":  "{{count}} prescriptions",
+        "prescriptionsEyebrow":   "Prescription Review",
+        "rxPendingCount":         "{{count}} awaiting your review",
+        "rxAllHandled":           "All prescriptions are reviewed",
+        "rxUrgent":               "Overdue",
+        "sourceWhatsapp":         "WhatsApp",
         "rxAll":                  "All",
         "rxPending":              "Pending",
         "rxApproved":             "Approved",

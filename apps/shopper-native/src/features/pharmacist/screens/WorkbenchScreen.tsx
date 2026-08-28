@@ -69,14 +69,21 @@ function SectionHeader({ icon, title, count, tone }: {
   );
 }
 
+const RX_SOURCE_ICON: Record<string, React.ComponentProps<typeof Ionicons>["name"]> = {
+  whatsapp: "logo-whatsapp",
+  scan:     "scan-outline",
+  manual:   "document-text",
+};
+
 function RxQueueCard({ rx, onPress, t }: {
-  rx: { id: string; customerName?: string; name?: string; createdAt: string };
+  rx: { id: string; customerName?: string; name?: string; createdAt: string; submissionSource?: string };
   onPress: () => void;
   t: (k: string, opts?: Record<string, unknown>) => string;
 }) {
   const { theme } = useTheme();
   const isUrgent = ageMs(rx.createdAt) > RX_URGENT_MS;
   const borderStartColor = isUrgent ? theme.colors.status.warning : theme.colors.tertiary.base;
+  const sourceIcon = RX_SOURCE_ICON[rx.submissionSource ?? "manual"] ?? "document-text";
   return (
     <Animated.View entering={FadeInDown.duration(220)}>
       <Pressable
@@ -90,10 +97,13 @@ function RxQueueCard({ rx, onPress, t }: {
       >
         <View style={[styles.rxRow, { flexDirection: flexRow(IS_RTL) }]}>
           <View style={[styles.rxIcon, { backgroundColor: theme.colors.tertiary.bg }]}>
-            <Ionicons name="document-text" size={22} color={theme.colors.tertiary.base} />
+            <Ionicons name={sourceIcon} size={20} color={theme.colors.tertiary.base} />
           </View>
-          <View style={{ flex: 1 }}>
-            <Text variant="card-title" color="primary" numberOfLines={1}>{rx.customerName || rx.name}</Text>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text variant="card-title" color="primary" numberOfLines={1}>{rx.name || rx.customerName}</Text>
+            {rx.name && rx.customerName ? (
+              <Text variant="caption" color="secondary" numberOfLines={1}>{rx.customerName}</Text>
+            ) : null}
             <View style={[styles.rxMetaRow, { flexDirection: flexRow(IS_RTL) }]}>
               {isUrgent && <Ionicons name="warning" size={12} color={theme.colors.status.warning} />}
               <Text variant="caption" color={isUrgent ? "warn" : "secondary"}>{timeAgo(rx.createdAt, t)}</Text>

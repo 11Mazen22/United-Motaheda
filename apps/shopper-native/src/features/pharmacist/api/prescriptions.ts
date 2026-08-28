@@ -64,6 +64,7 @@ function mapRow(row: RawPrescriptionRow): PharmacistPrescription {
     reviewedBy:       row.reviewed_by ?? null,
     reviewedAt:       row.reviewed_at ?? null,
     createdAt:        row.added_at,
+    addedAt:          row.added_at,
     updatedAt:        row.updated_at ?? row.added_at,
     customerName:     row.profiles?.full_name ?? "—",
     customerPhone:    row.profiles?.phone ?? null,

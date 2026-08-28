@@ -2102,6 +2102,11 @@
 
         "prescriptionsTitle":     "قائمة الوصفات",
         "prescriptionsSubtitle":  "{{count}} وصفة",
+        "prescriptionsEyebrow":   "مراجعة الوصفات",
+        "rxPendingCount":         "{{count}} بانتظار مراجعتك",
+        "rxAllHandled":           "تمت مراجعة كل الوصفات",
+        "rxUrgent":               "متأخرة",
+        "sourceWhatsapp":         "واتساب",
         "rxAll":                  "الكل",
         "rxPending":              "معلقة",
         "rxApproved":             "موافق عليها",
