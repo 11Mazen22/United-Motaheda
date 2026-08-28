@@ -13,9 +13,9 @@
 -- driver interface. Safe to re-run -- ON CONFLICT (userId) does nothing if
 -- a row already exists.
 insert into public."DriverProfile" (
-  "userId", "vehicleType", status, "approvedAt"
+  "userId", "vehicleType", status, "approvedAt", "createdAt", "updatedAt"
 )
-select p.id, 'motorcycle', 'APPROVED', now()
+select p.id, 'motorcycle', 'APPROVED', now(), now(), now()
 from public.profiles p
 where p.email = 'edrakmaze@gmail.com'
   and p.role = 'driver'
