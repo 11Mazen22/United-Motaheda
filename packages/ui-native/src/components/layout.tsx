@@ -16,6 +16,7 @@ import Animated, { FadeIn } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button, PressableScale, Text } from "./primitives";
 import { useTheme } from "../theme";
+import { useTranslation } from "react-i18next";
 import { Illustration, type IllustrationName } from "../illustrations";
 import { LottieMoment, type LottieSource } from "../lottie";
 
@@ -33,9 +34,12 @@ export function EmptyState({ illustration, illustrationName, lottieSource, icon,
   return <Animated.View entering={FadeIn} accessibilityLabel={title} style={[styles.state, style]}>{art}<Text variant="h3" align="center">{title}</Text>{subtitle ? <Text color="secondary" align="center">{subtitle}</Text> : null}{action ? <Button label={action.label} onPress={action.onPress} /> : null}</Animated.View>;
 }
 
-export interface ErrorStateProps { message: string; retry?: () => void | Promise<void>; details?: string; style?: StyleProp<ViewStyle>; }
-/** Error message with an async retry button and live-region announcement. */
-export function ErrorState({ message, retry, details, style }: ErrorStateProps): React.ReactElement { const [loading, setLoading] = React.useState(false); const handleRetry = async () => { if (!retry) return; setLoading(true); try { await retry(); } finally { setLoading(false); } }; return <View accessibilityRole="alert" accessibilityLiveRegion="assertive" style={[styles.state, style]}><Ionicons name="alert-circle-outline" size={40} color="#DC2626" /><Text variant="h3" align="center">{message}</Text>{details ? <Text color="secondary" align="center">{details}</Text> : null}{retry ? <Button title="Retry" loading={loading} onPress={handleRetry} /> : null}</View>; }
+export interface ErrorStateProps { message: string; retry?: () => void | Promise<void>; retryLabel?: string; details?: string; style?: StyleProp<ViewStyle>; }
+/** Error message with an async retry button and live-region announcement.
+ * retryLabel defaults to the app's translated "Retry" string — this used to
+ * hardcode the English word "Retry" regardless of app language, confirmed
+ * live showing up bare in an otherwise fully-Arabic pharmacist screen. */
+export function ErrorState({ message, retry, retryLabel, details, style }: ErrorStateProps): React.ReactElement { const { t } = useTranslation(); const [loading, setLoading] = React.useState(false); const handleRetry = async () => { if (!retry) return; setLoading(true); try { await retry(); } finally { setLoading(false); } }; return <View accessibilityRole="alert" accessibilityLiveRegion="assertive" style={[styles.state, style]}><Ionicons name="alert-circle-outline" size={40} color="#DC2626" /><Text variant="h3" align="center">{message}</Text>{details ? <Text color="secondary" align="center">{details}</Text> : null}{retry ? <Button title={retryLabel ?? t("common.retry", "Retry")} loading={loading} onPress={handleRetry} /> : null}</View>; }
 
 export interface SectionProps { title?: string; subtitle?: string; actionLabel?: string; onAction?: () => void; children: React.ReactNode; style?: StyleProp<ViewStyle>; }
 export function Section({ title, subtitle, actionLabel, onAction, children, style }: SectionProps): React.ReactElement { return <View style={[{ gap: 12 }, style]}>{title || actionLabel ? <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}><View style={{ flex: 1 }}>{title ? <Text variant="section-head">{title}</Text> : null}{subtitle ? <Text variant="caption" color="secondary">{subtitle}</Text> : null}</View>{actionLabel ? <Button label={actionLabel} variant="ghost" size="sm" onPress={onAction ?? (() => undefined)} /> : null}</View> : null}{children}</View>; }

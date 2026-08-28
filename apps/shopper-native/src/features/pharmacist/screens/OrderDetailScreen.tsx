@@ -19,6 +19,7 @@ import { flexRow, isRtl, textAlignStart, valueTextAlign } from "@/utils/layout";
 import { formatPrice } from "@/utils/format";
 import { showErrorSheet, showSuccessSheet } from "@/shared/store/appSheetStore";
 import { findBranchById } from "@/features/delivery/branches/data";
+import { getPaymentMeta, getPaymentStatusDisplay } from "@/features/orders/components/OrderDetailHelpers";
 
 import { usePharmacistOrder, useOrderDeliveryAssignment, useOrderTimeline, useActiveDeliveryIssue } from "../hooks/usePharmacistQueries";
 import { usePharmacistMutations } from "../hooks/usePharmacistMutations";
@@ -166,7 +167,8 @@ function IssueBanner({ orderId, issue, theme }: {
 }
 
 export function PharmacistOrderDetailScreen(): React.ReactElement {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const dateLocale = i18n.language === "ar" ? "ar-EG" : "en-US";
   const { id } = useLocalSearchParams<{ id: string }>();
   const { theme } = useTheme();
   const router = useRouter();
@@ -296,7 +298,7 @@ export function PharmacistOrderDetailScreen(): React.ReactElement {
                 {isUrgent && <Ionicons name="warning" size={13} color={theme.colors.status.warning} />}
               </View>
               <UIText variant="caption" color="secondary" style={{ marginTop: 4 }}>
-                {new Date(order.createdAt || Date.now()).toLocaleString()}
+                {new Date(order.createdAt || Date.now()).toLocaleString(dateLocale)}
                 {branchName ? `  ·  ${branchName}` : ""}
               </UIText>
             </View>
@@ -454,12 +456,14 @@ export function PharmacistOrderDetailScreen(): React.ReactElement {
         <SectionCard title={t("pharmacist.sectionPayment")} icon="card-outline" theme={theme}>
           <View style={[s.row, { justifyContent: "space-between", marginBottom: 4 }]}>
             <UIText variant="body-sm" color="secondary">{t("pharmacist.paymentMethod")}</UIText>
-            <UIText variant="body-sm" weight="bold">{order.paymentMethod ?? "—"}</UIText>
+            <UIText variant="body-sm" weight="bold">
+              {order.paymentMethod ? t(getPaymentMeta(order.paymentMethod, theme).labelKey) : "—"}
+            </UIText>
           </View>
           <View style={[s.row, { justifyContent: "space-between" }]}>
             <UIText variant="body-sm" color="secondary">{t("pharmacist.paymentStatus")}</UIText>
-            <UIText variant="body-sm" weight="bold" style={{ color: order.paymentStatus === "verified" ? theme.colors.status.success : theme.colors.status.warning }}>
-              {order.paymentStatus}
+            <UIText variant="body-sm" weight="bold" style={{ color: getPaymentStatusDisplay(order.paymentStatus, theme).color }}>
+              {t(getPaymentStatusDisplay(order.paymentStatus, theme).labelKey)}
             </UIText>
           </View>
           {order.transferNumber ? (
@@ -545,7 +549,7 @@ export function PharmacistOrderDetailScreen(): React.ReactElement {
                   {ev.eventType === "note_added" && typeof ev.detail.body === "string" ? (
                     <UIText variant="body-sm" color="secondary" style={{ textAlign: TEXT_START, marginTop: 2 }}>{ev.detail.body}</UIText>
                   ) : null}
-                  <UIText variant="caption" color="muted">{new Date(ev.eventAt).toLocaleString()}</UIText>
+                  <UIText variant="caption" color="muted">{new Date(ev.eventAt).toLocaleString(dateLocale)}</UIText>
                 </View>
               </Animated.View>
             );
