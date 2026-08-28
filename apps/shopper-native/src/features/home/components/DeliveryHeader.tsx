@@ -13,6 +13,7 @@ import { usePremiumCheckout } from "@/features/checkout/hooks/usePremiumCheckout
 import { useDeliveryQuote } from "@/features/delivery/useDeliveryQuote";
 import { AddressFormDrawer } from "@/features/addresses/components/AddressFormDrawer";
 import { useAddressStore, type AddressFormData } from "@/features/addresses/store";
+import { ADDRESS_LABELS } from "@/features/addresses/types";
 import { showErrorSheet } from "@/shared/store/appSheetStore";
 
 const IS_RTL = isRtl();
@@ -67,6 +68,14 @@ export const DeliveryHeader = memo(function DeliveryHeader() {
     }
   }, [authUser?.id, addAddress, t]);
 
+  // selectedAddress.label is the raw internal key ("home"/"work"/"family"/
+  // "other"), not a display string -- rendering it directly showed the
+  // literal English word "home" regardless of app language. Same
+  // key-to-translated-label lookup AddressCard already uses for the same field.
+  const addressLabelConfig = selectedAddress
+    ? ADDRESS_LABELS.find((l) => l.key === selectedAddress.label)
+    : undefined;
+
   const pinTone = quote.isDeliverable ? theme.colors.status.success : theme.colors.status.error;
   const pinTint = quote.isDeliverable ? `${theme.colors.status.success}1A` : `${theme.colors.status.error}1A`;
 
@@ -101,7 +110,7 @@ export const DeliveryHeader = memo(function DeliveryHeader() {
 
              <View style={[s.row, { flexDirection: flexRow(IS_RTL) }]}>
                 <CustomerUI.Typography variant="body" weight="black" color={theme.colors.text.primary} style={{ textAlign: textAlignStart(IS_RTL) }} numberOfLines={1}>
-                  {selectedAddress ? (selectedAddress.label || selectedAddress.street) : t("home.selectLocation", "Select your location")}
+                  {selectedAddress ? (addressLabelConfig ? t(addressLabelConfig.labelKey) : selectedAddress.street) : t("home.selectLocation", "Select your location")}
                 </CustomerUI.Typography>
                 <Ionicons name="chevron-down" size={16} color={theme.colors.text.primary} style={{ marginStart: 4 }} />
              </View>

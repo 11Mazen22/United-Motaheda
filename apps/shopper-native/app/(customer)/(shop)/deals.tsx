@@ -148,7 +148,11 @@ export default function OffersScreen() {
           </Pressable>
         </View>
 
-        {/* Identity block */}
+        {/* Identity block -- title gets the full row to itself so a long
+            headline ("العروض والتخفيضات") never has to compete with the
+            countdown timer for width and wrap mid-word. The countdown gets
+            its own full-width row below instead, which also reads better
+            as a real countdown banner rather than a cramped corner widget. */}
         <View style={[s.identity, { flexDirection: flexRow(IS_RTL) }]}>
           <View style={s.iconWell}>
             <Ionicons name="flash" size={28} color={theme.colors.brand.primary} />
@@ -157,7 +161,7 @@ export default function OffersScreen() {
             <UIText style={[s.eyebrow, { textAlign: TEXT_START }]}>
               {t("offers.eyebrow")}
             </UIText>
-            <UIText style={[s.title, { textAlign: TEXT_START }]}>
+            <UIText style={[s.title, { textAlign: TEXT_START }]} numberOfLines={1} adjustsFontSizeToFit>
               {t("offers.title")}
             </UIText>
             {totalCount > 0 && !isLoading && (
@@ -169,6 +173,10 @@ export default function OffersScreen() {
               </View>
             )}
           </View>
+        </View>
+
+        <View style={[s.countdownRow, { flexDirection: flexRow(IS_RTL) }]}>
+          <UIText style={s.countdownLabel}>{t("offers.endsIn", "Ends in")}</UIText>
           <CountdownRow theme={theme} />
         </View>
 
@@ -297,6 +305,20 @@ function getStyles(theme: NativeTheme) {
     identity: {
       alignItems: "center",
       gap:        12,
+    },
+    countdownRow: {
+      alignItems:        "center",
+      justifyContent:    "space-between",
+      paddingHorizontal: 12,
+      paddingVertical:   8,
+      borderRadius:      12,
+      backgroundColor:   theme.colors.canvas.surfaceMuted,
+    },
+    countdownLabel: {
+      fontFamily:         legacyTheme.fonts.bold,
+      fontSize:           12,
+      color:              theme.colors.text.secondary,
+      includeFontPadding: false,
     },
     iconWell: {
       width:           68,

@@ -341,6 +341,7 @@
     "offers": {
         "eyebrow": "LIMITED TIME",
         "title": "Flash Deals",
+        "endsIn": "Ends in",
         "dealsAvailable": "deals available",
         "loadError": "Couldn't load offers",
         "loadErrorDesc": "Check your connection and try again.",

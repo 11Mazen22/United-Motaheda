@@ -2,7 +2,7 @@ import "./_initWeb";
 
 import "../global.css";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 
 import { Platform, useColorScheme } from "react-native";
 
@@ -231,7 +231,31 @@ function ThemedApp() {
 
 export default function RootLayout() {
 
+  // Font.loadAsync() used to be pure fire-and-forget: nothing in the tree
+  // ever waited for it, so the ONLY thing gating the native splash screen
+  // was a flat 3.5s timer. Any screen whose first render landed before that
+  // timer -- which on a slow device/cold start can be well past when the
+  // splash actually hid -- got Cairo silently substituted with the system
+  // font by React Native (missing font families never error, they just
+  // fall back), and since nothing re-renders a mounted screen just because
+  // fonts finished loading a moment later, it STAYED on the wrong font for
+  // as long as that screen instance stayed mounted -- for a tab screen,
+  // that's the rest of the session. Confirmed live: reported as "fonts not
+  // applied correctly" scattered across unrelated screens, matching exactly
+  // this "whichever happened to render first" pattern rather than any
+  // single broken screen.
+  //
+  // Now the real content doesn't mount at all until fonts have actually
+  // resolved (success or failure -- either way there's a definite answer,
+  // so the app never hangs on a font that fails to load). The 6s timer is
+  // now purely a dead-man's switch for a font load that never settles at
+  // all, not the primary trigger it effectively was before.
+  const [fontsReady, setFontsReady] = useState(false);
+
   useEffect(() => {
+
+    let settled = false;
+    const markReady = () => { if (!settled) { settled = true; setFontsReady(true); } };
 
     Font.loadAsync({
 
@@ -245,13 +269,23 @@ export default function RootLayout() {
 
       Cairo_900Black,
 
-    }).catch(() => {});
+    }).then(markReady).catch(markReady);
 
-    const safety = setTimeout(() => { SplashScreen.hideAsync().catch(() => {}); }, 3_500);
+    const safety = setTimeout(markReady, 6_000);
 
     return () => clearTimeout(safety);
 
   }, []);
+
+  useEffect(() => {
+
+    if (!fontsReady) return;
+
+    SplashScreen.hideAsync().catch(() => {});
+
+  }, [fontsReady]);
+
+  if (!fontsReady) return null;
 
 
 
