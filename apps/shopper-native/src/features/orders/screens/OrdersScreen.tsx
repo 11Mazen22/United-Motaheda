@@ -15,6 +15,7 @@ import {
   View,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import Animated, { FadeInDown } from "react-native-reanimated";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -133,8 +134,10 @@ function OrdersList({
   const { pagePad } = useScreenLayout();
 
   const renderItem = useCallback(
-    ({ item }: { item: Order }) => (
-      <OrderCard order={item} onPress={onOrderPress} />
+    ({ item, index }: { item: Order; index: number }) => (
+      <Animated.View entering={FadeInDown.duration(340).delay(Math.min(index, 6) * 45).springify()}>
+        <OrderCard order={item} onPress={onOrderPress} />
+      </Animated.View>
     ),
     [onOrderPress],
   );

@@ -104,13 +104,13 @@ export function getOrdersStyles(theme: NativeTheme) {
     },
     card: {
       backgroundColor:   theme.colors.canvas.surface,
-      borderRadius:      16,
+      borderRadius:      20,
       paddingHorizontal: 16,
       paddingVertical:   18,
       gap:               14,
       borderWidth:       1,
       borderColor:       theme.colors.border.default,
-      ...theme.shadows[1],
+      ...theme.shadows[2],
     },
     cardFooter: {
       flexDirection:  flexRow(isRtl()),
