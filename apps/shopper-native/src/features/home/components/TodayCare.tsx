@@ -32,7 +32,7 @@ import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
 import { formatPrice } from "@/utils/format";
 import { useAuth } from "@/features/auth";
 import { useOrders } from "@/features/orders/hooks/useOrders";
-import { mapOrderStatus, type OrderTone } from "@/features/orders/lib/statusMap";
+import { mapOrderStatus } from "@/features/orders/lib/statusMap";
 import { usePrescriptions } from "@/features/prescriptions/hooks/usePrescriptions";
 import { useTranslation } from "react-i18next";
 import { useScreenLayout } from "@/utils/responsive";
@@ -53,17 +53,6 @@ const PROGRESS_STAGE: Record<string, number> = {
   ready: 2, shipped: 2, picked_up: 2, driver_assigned: 2, driver_accepted: 2, out_for_delivery: 2,
   delivered: 3,
 };
-
-function toneColor(theme: NativeTheme, tone: OrderTone): { fg: string; bg: string } {
-  switch (tone) {
-    case "success": return { fg: theme.colors.status.success, bg: `${theme.colors.status.success}1A` };
-    case "warning": return { fg: theme.colors.status.warning, bg: `${theme.colors.status.warning}1A` };
-    case "error": return { fg: theme.colors.status.error, bg: `${theme.colors.status.error}1A` };
-    case "info":
-    case "brand": return { fg: theme.colors.brand.primary, bg: theme.colors.brand.primaryLight };
-    default: return { fg: theme.colors.text.secondary, bg: theme.colors.canvas.surfaceMuted };
-  }
-}
 
 // Ranking: ready first (actionable now), then expiring (act soon).
 const RX_RANK: Record<string, number> = { ready: 0, expiring: 1 };

@@ -14,12 +14,13 @@ import {
   StyleSheet,
   View,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { Text as UIText, useTheme, EmptyState, type NativeTheme } from "@pharmacy/ui-native";
-import { theme as legacyTheme } from "@pharmacy/design-tokens";
+import { theme as legacyTheme, gradients } from "@pharmacy/design-tokens";
 
 import { flexRow, isRtl, textAlignStart, BACK_CHEVRON } from "@/utils/layout";
 import { useScreenLayout } from "@/utils/responsive";
@@ -50,7 +51,12 @@ function OrdersHeader({
   const { pagePad } = useScreenLayout();
 
   return (
-    <View style={[h.header, { paddingTop: insetsTop + 14, paddingHorizontal: pagePad }]}>
+    <LinearGradient
+      colors={gradients.brandPrimary as unknown as [string, string]}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={[h.header, { paddingTop: insetsTop + 14, paddingHorizontal: pagePad }]}
+    >
       {/* Top row — back + icon tile + title block */}
       <View style={[h.topRow, { flexDirection: flexRow(isRtl()) }]}>
         {showBack ? (
@@ -61,14 +67,14 @@ function OrdersHeader({
             hitSlop={8}>
             {({ pressed }) => (
               <View style={[h.backBtn, pressed && h.backBtnPressed]}>
-                <Ionicons name={BACK_CHEVRON} size={18} color={theme.colors.text.secondary} />
+                <Ionicons name={BACK_CHEVRON} size={18} color="#fff" />
               </View>
             )}
           </Pressable>
         ) : null}
 
         <View style={h.iconTile}>
-          <Ionicons name="bag-handle-outline" size={22} color={theme.colors.brand.primary} />
+          <Ionicons name="bag-handle-outline" size={22} color="#fff" />
         </View>
 
         <View style={{ flex: 1 }}>
@@ -77,33 +83,34 @@ function OrdersHeader({
         </View>
       </View>
 
-      {/* Inline stat band — 3 columns with tinted icon wells */}
-      <View style={h.statsRow}>
-        <View style={[h.statCell, h.statCellBorder]}>
-          <View style={[h.statIconWell, { backgroundColor: theme.colors.brand.primaryLight }]}>
-            <Ionicons name="bag-handle-outline" size={13} color={theme.colors.brand.primary} />
+      {/* Inline stat band — glass pills on the gradient, matching the same
+          hero-stat treatment now shared with Pharmacist's Workbench header. */}
+      <View style={[h.statsRow, { flexDirection: flexRow(isRtl()) }]}>
+        <View style={h.statCell}>
+          <View style={h.statIconWell}>
+            <Ionicons name="bag-handle-outline" size={13} color="#fff" />
           </View>
           <UIText style={h.statVal}>{total}</UIText>
-          <UIText style={h.statLbl}>{t("orders.countOrders", { count: total })}</UIText>
-        </View>
-
-        <View style={[h.statCell, h.statCellBorder]}>
-          <View style={[h.statIconWell, { backgroundColor: `${theme.colors.status.warning}1A` }]}>
-            <Ionicons name="refresh-outline" size={13} color={theme.colors.status.warning} />
-          </View>
-          <UIText style={h.statVal}>{active}</UIText>
-          <UIText style={h.statLbl}>{t("orders.processing")}</UIText>
+          <UIText style={h.statLbl} numberOfLines={1}>{t("orders.countOrders", { count: total })}</UIText>
         </View>
 
         <View style={h.statCell}>
-          <View style={[h.statIconWell, { backgroundColor: `${theme.colors.status.success}1A` }]}>
-            <Ionicons name="checkmark-circle-outline" size={13} color={theme.colors.status.success} />
+          <View style={h.statIconWell}>
+            <Ionicons name="refresh-outline" size={13} color="#fff" />
+          </View>
+          <UIText style={h.statVal}>{active}</UIText>
+          <UIText style={h.statLbl} numberOfLines={1}>{t("orders.processing")}</UIText>
+        </View>
+
+        <View style={h.statCell}>
+          <View style={h.statIconWell}>
+            <Ionicons name="checkmark-circle-outline" size={13} color="#fff" />
           </View>
           <UIText style={h.statVal}>{delivered}</UIText>
-          <UIText style={h.statLbl}>{t("orders.delivered")}</UIText>
+          <UIText style={h.statLbl} numberOfLines={1}>{t("orders.delivered")}</UIText>
         </View>
       </View>
-    </View>
+    </LinearGradient>
   );
 }
 
@@ -274,14 +281,14 @@ export function OrdersScreen({ showBack = true }: OrdersScreenProps): React.Reac
 
 function getHeaderStyles(theme: NativeTheme) {
   return StyleSheet.create({
-    // paddingHorizontal is set inline via useScreenLayout().pagePad for breakpoint-aware gutter
+    // paddingHorizontal is set inline via useScreenLayout().pagePad for breakpoint-aware gutter.
+    // Gradient hero -- same brand treatment now shared with Home's TodayCare,
+    // Pharmacist's Workbench header, and Driver's manifest hero, instead of
+    // the plain white bar this used to be.
     header: {
-      paddingBottom:     18,
-      gap:               16,
-      backgroundColor:   theme.colors.canvas.surface,
-      borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: theme.colors.border.default,
-      ...theme.shadows[1],
+      paddingBottom: 18,
+      gap:           16,
+      ...theme.shadows[2],
     },
 
     // Top row
@@ -302,11 +309,9 @@ function getHeaderStyles(theme: NativeTheme) {
       width:           40,
       height:          40,
       borderRadius:    20,
-      backgroundColor: theme.colors.canvas.surfaceMuted,
+      backgroundColor: "rgba(255,255,255,0.16)",
       alignItems:      "center",
       justifyContent:  "center",
-      borderWidth:     1,
-      borderColor:     theme.colors.border.default,
       flexShrink:      0,
     },
     backBtnPressed: {
@@ -317,7 +322,7 @@ function getHeaderStyles(theme: NativeTheme) {
       fontFamily:         legacyTheme.fonts.bold,
       fontSize:           10,
       lineHeight:         14,
-      color:              theme.colors.brand.primary,
+      color:              "rgba(255,255,255,0.75)",
       letterSpacing:      0.5,
       textAlign:          textAlignStart(isRtl()),
       includeFontPadding: false,
@@ -326,7 +331,7 @@ function getHeaderStyles(theme: NativeTheme) {
       fontFamily:         legacyTheme.fonts.black,
       fontSize:           28,
       lineHeight:         36,
-      color:              theme.colors.text.primary,
+      color:              "#fff",
       letterSpacing:      -0.6,
       textAlign:          textAlignStart(isRtl()),
       includeFontPadding: false,
@@ -335,55 +340,46 @@ function getHeaderStyles(theme: NativeTheme) {
       width:           52,
       height:          52,
       borderRadius:    16,
-      backgroundColor: theme.colors.brand.primaryLight,
+      backgroundColor: "rgba(255,255,255,0.16)",
       alignItems:      "center",
       justifyContent:  "center",
-      borderWidth:     1,
-      borderColor:     theme.colors.border.default,
       flexShrink:      0,
     },
 
-    // Stat band — white kit card with tinted icon wells
+    // Stat band — glass pills on the gradient
     statsRow: {
-      flexDirection:   flexRow(isRtl()),
-      backgroundColor: theme.colors.canvas.surface,
-      borderRadius:    12,
-      borderWidth:     1,
-      borderColor:     theme.colors.border.default,
-      overflow:        "hidden",
-      ...theme.shadows[1],
+      gap: 10,
     },
     statCell: {
       flex:            1,
       alignItems:      "center",
       justifyContent:  "center",
-      gap:             6,
-      paddingVertical: 16,
-    },
-    statCellBorder: {
-      borderEndWidth: StyleSheet.hairlineWidth,
-      borderEndColor: theme.colors.border.strong,
+      gap:             4,
+      paddingVertical: 14,
+      borderRadius:    14,
+      backgroundColor: "rgba(255,255,255,0.14)",
     },
     statIconWell: {
-      width:          32,
-      height:         32,
-      borderRadius:   10,
-      alignItems:     "center",
-      justifyContent: "center",
+      width:           28,
+      height:          28,
+      borderRadius:    9,
+      alignItems:      "center",
+      justifyContent:  "center",
+      backgroundColor: "rgba(255,255,255,0.18)",
     },
     statVal: {
       fontFamily:         legacyTheme.fonts.black,
       fontSize:           20,
       lineHeight:         26,
-      color:              theme.colors.text.primary,
+      color:              "#fff",
       letterSpacing:      -0.4,
       includeFontPadding: false,
     },
     statLbl: {
-      fontFamily:         legacyTheme.fonts.regular,
+      fontFamily:         legacyTheme.fonts.semibold,
       fontSize:           9,
       lineHeight:         13,
-      color:              theme.colors.text.muted,
+      color:              "rgba(255,255,255,0.8)",
       textAlign:          "center",
       includeFontPadding: false,
     },
