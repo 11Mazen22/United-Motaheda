@@ -116,7 +116,7 @@ export function OrderQueueCard({ order, onPress }: Props) {
     >
       {/* Identity */}
       <View style={styles.identityRow}>
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, minWidth: 0 }}>
           <View style={styles.row}>
             <UIText variant="body" weight="bold">#{order.id.slice(-8).toUpperCase()}</UIText>
             <UIText variant="body-sm" color="secondary" numberOfLines={1} style={{ flexShrink: 1 }}>

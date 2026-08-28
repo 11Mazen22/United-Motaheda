@@ -51,6 +51,8 @@ import {
 
 import { CameraView, useCameraPermissions } from "@/shared/camera";
 
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
 import { Ionicons }         from "@expo/vector-icons";
 
 import { useTranslation }   from "react-i18next";
@@ -467,7 +469,7 @@ function ProductCard({
 
         </View>
 
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, minWidth: 0 }}>
 
           <UIText variant="card-title" numberOfLines={2} style={{ textAlign: TEXT_START }}>
 
@@ -567,9 +569,9 @@ function ProductCard({
 
           <View style={[rcStyles.adjustHeader, { flexDirection: flexRow(IS_RTL) }]}>
 
-            <View style={{ flex: 1 }}>
+            <View style={{ flex: 1, minWidth: 0 }}>
 
-              <UIText variant="body-sm" weight="bold" style={{ textAlign: TEXT_START }}>
+              <UIText variant="body-sm" weight="bold" numberOfLines={1} style={{ textAlign: TEXT_START }}>
 
                 {t("pharmacist.inventoryAdjustTitle", "Quick stock review")}
 
@@ -687,6 +689,15 @@ export function BarcodeScannerScreen(): React.ReactElement {
 
   const [permission, requestPermission] = useCameraPermissions();
 
+  // Real device bug: this is a full-screen camera overlay with hand-rolled
+  // absolute positioning (no Screen/SafeAreaView wrapper), and the header
+  // controls were pinned at a hardcoded top:56 regardless of device. On a
+  // notch/Dynamic Island phone that overlaps the status bar cutout; on a
+  // tall-inset gesture-nav phone the bottom controls sat too close to the
+  // home indicator. Deriving every edge offset from the real safe-area
+  // insets fixes both without changing anything on a standard phone.
+  const insets = useSafeAreaInsets();
+
   const styles = useMemo(() => StyleSheet.create({
 
     centered: { flex: 1, alignItems: "center", justifyContent: "center" },
@@ -695,7 +706,7 @@ export function BarcodeScannerScreen(): React.ReactElement {
 
       position: "absolute",
 
-      top: 56,
+      top: insets.top + 12,
 
       [edgeStart(IS_RTL)]: 16,
 
@@ -705,7 +716,7 @@ export function BarcodeScannerScreen(): React.ReactElement {
 
       position:          "absolute",
 
-      top:               56,
+      top:               insets.top + 12,
 
       alignSelf:         "center",
 
@@ -799,7 +810,7 @@ export function BarcodeScannerScreen(): React.ReactElement {
 
       position:   "absolute",
 
-      bottom:     180,
+      bottom:     180 + insets.bottom,
 
       start:       0,
 
@@ -831,7 +842,7 @@ export function BarcodeScannerScreen(): React.ReactElement {
 
       position:          "absolute",
 
-      bottom:            48,
+      bottom:            48 + insets.bottom,
 
       start:              24,
 
@@ -895,7 +906,7 @@ export function BarcodeScannerScreen(): React.ReactElement {
 
       position:          "absolute",
 
-      bottom:            120,
+      bottom:            120 + insets.bottom,
 
       start:              24,
 
@@ -945,7 +956,7 @@ export function BarcodeScannerScreen(): React.ReactElement {
 
     },
 
-  }), [theme]);
+  }), [theme, insets.top, insets.bottom]);
 
 
 

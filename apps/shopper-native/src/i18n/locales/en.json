@@ -1957,6 +1957,7 @@
         "emptyQueueBody":         "No active orders right now.",
 
         "ordersTitle":            "Orders",
+        "ordersEyebrow":          "Order Workspace",
         "ordersSearchPlaceholder": "Search order, customer, branch…",
         "filterAll":              "All",
         "clearFilters":           "Clear",
@@ -1973,6 +1974,9 @@
         "allCaughtUpBody":        "Nothing needs your attention right now.",
 
         "refillsTitle":           "Refills",
+        "refillsEyebrow":         "Refill Requests",
+        "refillsPendingCount":    "{{count}} awaiting your decision",
+        "refillsAllHandled":      "All refill requests are handled",
         "refillStatusPending":    "Pending",
         "refillStatusPreparing":  "Preparing",
         "refillStatusReady":      "Ready",
@@ -2126,6 +2130,7 @@
         "rxNotFound":             "Prescription not found",
 
         "inventoryTitle":         "Inventory",
+        "inventoryEyebrow":       "Stock Intelligence",
         "inventorySubtitle":      "Stock & search",
         "inventorySearch":        "Search by name, code, or barcode…",
         "available":              "Available",

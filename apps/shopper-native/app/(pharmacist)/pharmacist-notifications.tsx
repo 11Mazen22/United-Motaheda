@@ -19,8 +19,8 @@ import { useRouter }         from "expo-router";
 import { Screen, Text as UIText }  from "@pharmacy/ui-native";
 import { useTheme, type NativeTheme } from "@pharmacy/ui-native";
 
-import { kit }                     from "@pharmacy/ui-native";
-import { isRtl, textAlignStart }   from "@/utils/layout";
+import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
+import { useScreenLayout }         from "@/utils/responsive";
 import { useAuth }                 from "@/features/auth";
 import {
   useNotifications,
@@ -46,7 +46,8 @@ function timeAgo(
 
 export default function PharmacistNotificationsScreen() {
   const { theme } = useTheme();
-  const s = useSStyles(theme);
+  const { pagePad, isTablet } = useScreenLayout();
+  const s = useSStyles(theme, pagePad);
   const { t }   = useTranslation();
   const router  = useRouter();
   const insets  = useSafeAreaInsets();
@@ -132,7 +133,7 @@ export default function PharmacistNotificationsScreen() {
         <SectionList
           sections={sections}
           keyExtractor={(n) => n.id}
-          contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
+          contentContainerStyle={[{ paddingBottom: insets.bottom + 24 }, isTablet && { maxWidth: 720, alignSelf: "center", width: "100%" }]}
           showsVerticalScrollIndicator={false}
           onEndReached={onEndReached}
           onEndReachedThreshold={0.5}
@@ -155,7 +156,7 @@ export default function PharmacistNotificationsScreen() {
               <View style={s.dotCol}>
                 {!n.isRead && <View style={s.unreadDot} />}
               </View>
-              <View style={{ flex: 1 }}>
+              <View style={{ flex: 1, minWidth: 0 }}>
                 <UIText
                   variant="body-sm"
                   weight="bold"
@@ -188,20 +189,24 @@ export default function PharmacistNotificationsScreen() {
   );
 }
 
-const useSStyles = (theme: NativeTheme) => useMemo(() => StyleSheet.create({
+const useSStyles = (theme: NativeTheme, pagePad: number) => useMemo(() => StyleSheet.create({
   centered:    { flex: 1, alignItems: "center", justifyContent: "center" },
   markAllBtn:  { paddingHorizontal: 10, paddingVertical: 6 },
   sectionHeader: {
-    paddingHorizontal: kit.inset.screen,
+    paddingHorizontal: pagePad,
     paddingTop:        14,
     paddingBottom:     6,
     backgroundColor:   theme.colors.canvas.background,
   },
   card: {
-    flexDirection:     "row",
+    // Real RTL bug: this was a hardcoded "row" regardless of language, so
+    // the unread dot always sat on the physical left even when reading
+    // Arabic right-to-left. flexRow() picks the correct physical direction
+    // for the active language the same way every other pharmacist screen does.
+    flexDirection:     flexRow(IS_RTL),
     alignItems:        "flex-start",
     gap:               12,
-    paddingHorizontal: kit.inset.screen,
+    paddingHorizontal: pagePad,
     paddingVertical:   14,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: theme.colors.border.default,
@@ -215,4 +220,4 @@ const useSStyles = (theme: NativeTheme) => useMemo(() => StyleSheet.create({
     borderRadius:    4,
     backgroundColor: theme.colors.brand.primary,
   },
-}), [theme]);
+}), [theme, pagePad]);

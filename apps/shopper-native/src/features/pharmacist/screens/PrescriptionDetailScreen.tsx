@@ -216,13 +216,13 @@ export function PrescriptionDetailScreen(): React.ReactElement {
         <Animated.View entering={FadeIn.duration(240)} style={[s.content, { backgroundColor: theme.colors.canvas.surface }]}>
           {/* Patient info */}
           <View style={[s.row, { flexDirection: flexRow(IS_RTL), justifyContent: "space-between", marginBottom: 12 }]}>
-            <View>
-              <UIText variant="body">{rx.customerName}</UIText>
+            <View style={{ flex: 1, minWidth: 0, marginEnd: 8 }}>
+              <UIText variant="body" numberOfLines={1}>{rx.customerName}</UIText>
               <UIText variant="caption" color="secondary">
                 {new Date(rx.addedAt ?? "").toLocaleString()}
               </UIText>
             </View>
-            <View style={[s.statusBadge, { backgroundColor: `${meta.color}1A` }]}>
+            <View style={[s.statusBadge, { backgroundColor: `${meta.color}1A`, flexShrink: 0 }]}>
               <UIText variant="caption" weight="bold" style={{ color: meta.color }}>
                 {t(meta.labelKey, meta.labelKey)}
               </UIText>

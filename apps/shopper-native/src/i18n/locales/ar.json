@@ -1957,6 +1957,7 @@
         "emptyQueueBody":         "لا توجد طلبات نشطة الآن.",
 
         "ordersTitle":            "الطلبات",
+        "ordersEyebrow":          "مساحة عمل الطلبات",
         "ordersSearchPlaceholder": "ابحث عن طلب أو عميل أو فرع…",
         "filterAll":              "الكل",
         "clearFilters":           "مسح",
@@ -1972,6 +1973,9 @@
         "allCaughtUpTitle":       "لا يوجد ما ينتظرك",
         "allCaughtUpBody":        "لا شيء يحتاج إلى انتباهك الآن.",
 
+        "refillsEyebrow":         "طلبات إعادة الصرف",
+        "refillsPendingCount":    "{{count}} بانتظار قرارك",
+        "refillsAllHandled":      "تم البت في جميع طلبات إعادة الصرف",
         "refillsTitle":           "طلبات التجديد",
         "refillStatusPending":    "قيد الانتظار",
         "refillStatusPreparing":  "قيد التحضير",
@@ -2126,6 +2130,7 @@
         "rxNotFound":             "الوصفة غير موجودة",
 
         "inventoryTitle":         "المخزون",
+        "inventoryEyebrow":       "ذكاء المخزون",
         "inventorySubtitle":      "الكميات والبحث",
         "inventorySearch":        "ابحث بالاسم أو الكود أو الباركود…",
         "available":              "متاح",

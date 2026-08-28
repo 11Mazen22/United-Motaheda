@@ -16,6 +16,7 @@ import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 import { Screen, Text as UIText, Input, Button, kit, useTheme } from "@pharmacy/ui-native";
 
 import { flexRow, isRtl, textAlignStart, valueTextAlign } from "@/utils/layout";
+import { useScreenLayout } from "@/utils/responsive";
 import { formatPrice } from "@/utils/format";
 import { showErrorSheet, showSuccessSheet } from "@/shared/store/appSheetStore";
 import { findBranchById } from "@/features/delivery/branches/data";
@@ -131,7 +132,7 @@ function IssueBanner({ orderId, issue, theme }: {
         accessibilityRole="button"
       >
         <Ionicons name="alert-circle" size={18} color={theme.colors.status.error} style={{ marginTop: 2 }} />
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, minWidth: 0 }}>
           <UIText variant="body-sm" weight="bold" style={{ textAlign: TEXT_START, color: theme.colors.status.error }}>
             {t(ISSUE_REASON_LABEL[issue.reasonCode])}
           </UIText>
@@ -172,6 +173,7 @@ export function PharmacistOrderDetailScreen(): React.ReactElement {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { theme } = useTheme();
   const router = useRouter();
+  const { pagePad, isTablet } = useScreenLayout();
 
   const orderQuery = usePharmacistOrder(id);
   const mutations = usePharmacistMutations();
@@ -288,9 +290,12 @@ export function PharmacistOrderDetailScreen(): React.ReactElement {
     <Screen edgeTop background={theme.colors.canvas.background} edgeBottom>
       <PharmacistScreenHeader title={t("pharmacist.orderDetails")} />
 
-      <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={[s.scroll, isTablet && { maxWidth: 720, alignSelf: "center", width: "100%" }]}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Header: identity + status */}
-        <View style={[s.topCard, { backgroundColor: theme.colors.canvas.surface, borderBottomColor: theme.colors.border.default }]}>
+        <View style={[s.topCard, { paddingHorizontal: pagePad, backgroundColor: theme.colors.canvas.surface, borderBottomColor: theme.colors.border.default }]}>
           <View style={[s.row, { justifyContent: "space-between" }]}>
             <View>
               <View style={[s.row, { gap: 6 }]}>
@@ -334,7 +339,8 @@ export function PharmacistOrderDetailScreen(): React.ReactElement {
               <UIText
                 variant="body-sm"
                 weight="bold"
-                style={{ flex: 1, textAlign: TEXT_START, color: attentionReason === "prescription_rejected" ? theme.colors.status.error : theme.colors.status.warning }}
+                numberOfLines={2}
+                style={{ flex: 1, minWidth: 0, textAlign: TEXT_START, color: attentionReason === "prescription_rejected" ? theme.colors.status.error : theme.colors.status.warning }}
               >
                 {t(attentionReason === "prescription_rejected" ? "pharmacist.attentionPrescriptionRejected" : "pharmacist.attentionPrescriptionPending")}
               </UIText>
@@ -349,11 +355,16 @@ export function PharmacistOrderDetailScreen(): React.ReactElement {
           <IssueBanner orderId={order.id} issue={issueQuery.data} theme={theme} />
         )}
 
-        {/* Customer — identity + contact only */}
+        {/* Customer — identity + contact only. Name sits in its own flexed,
+            truncating column so a long customer name can never push the
+            call pill off-screen or overlap it (previously an unconstrained
+            row with no flex/minWidth on the name text). */}
         <SectionCard title={t("pharmacist.sectionCustomer")} icon="person-outline" theme={theme}>
           <View style={[s.row, { justifyContent: "space-between" }]}>
-            <UIText variant="body" weight="bold">{order.customerName}</UIText>
-            <Pressable onPress={() => Linking.openURL(`tel:${order.customerPhone}`)} style={[s.pillBtn, { backgroundColor: theme.colors.brand.primaryLight }]}>
+            <View style={{ flex: 1, minWidth: 0, marginEnd: 8 }}>
+              <UIText variant="body" weight="bold" numberOfLines={1}>{order.customerName}</UIText>
+            </View>
+            <Pressable onPress={() => Linking.openURL(`tel:${order.customerPhone}`)} style={[s.pillBtn, { backgroundColor: theme.colors.brand.primaryLight, flexShrink: 0 }]}>
               <Ionicons name="call" size={16} color={theme.colors.brand.primary} />
               <UIText variant="body-sm" style={{ color: theme.colors.brand.primary }}>{order.customerPhone}</UIText>
             </Pressable>
@@ -372,7 +383,7 @@ export function PharmacistOrderDetailScreen(): React.ReactElement {
                     <Ionicons name="medkit" size={16} color={theme.colors.text.muted} />
                   </View>
                 )}
-                <View style={{ flex: 1, paddingHorizontal: 8 }}>
+                <View style={{ flex: 1, minWidth: 0, paddingHorizontal: 8 }}>
                   <UIText variant="body-sm" weight="bold" numberOfLines={2} style={{ textAlign: TEXT_START }}>
                     {item.name || item.code || item.productId}
                   </UIText>
@@ -544,7 +555,7 @@ export function PharmacistOrderDetailScreen(): React.ReactElement {
                 <View style={[s.timelineDot, { backgroundColor: theme.colors.canvas.surfaceMuted }]}>
                   <Ionicons name={meta?.icon ?? "ellipse-outline"} size={13} color={theme.colors.text.secondary} />
                 </View>
-                <View style={{ flex: 1 }}>
+                <View style={{ flex: 1, minWidth: 0 }}>
                   <UIText variant="body-sm" style={{ textAlign: TEXT_START }}>{t(meta?.labelKey ?? ev.eventType, ev.eventType)}</UIText>
                   {ev.eventType === "note_added" && typeof ev.detail.body === "string" ? (
                     <UIText variant="body-sm" color="secondary" style={{ textAlign: TEXT_START, marginTop: 2 }}>{ev.detail.body}</UIText>

@@ -4,22 +4,29 @@
  * Progress / Ready / Recently Completed structure (domain/orderBuckets.ts
  * keeps the two screens in agreement), but adds search and a filter that
  * lets a pharmacist narrow to exactly one bucket when the queue is busy.
+ *
+ * Gradient hero header matches WorkbenchScreen's visual language so the two
+ * order-facing screens read as one product, and states its own live counts
+ * so a pharmacist can tell at a glance whether the workspace they just
+ * opened has anything the Workbench snapshot didn't already show them.
  */
 import React, { useCallback, useMemo, useState } from "react";
 import { RefreshControl, StyleSheet, View } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
 import Animated, { FadeInDown } from "react-native-reanimated";
+import { gradients } from "@pharmacy/design-tokens";
 
 import { Screen, Text, Input, Chip, EmptyState, ErrorState, SkeletonCard, useTheme } from "@pharmacy/ui-native";
 
 import { isRtl, flexRow } from "@/utils/layout";
+import { useScreenLayout } from "@/utils/responsive";
 import { findBranchById } from "@/features/delivery/branches/data";
 import { usePharmacistOrderQueue, useRecentlyCompletedOrders } from "../hooks/usePharmacistQueries";
 import { pharmacistQueryKeys } from "../hooks/queryKeys";
-import { PharmacistScreenHeader } from "../components/PharmacistScreenHeader";
 import { OrderQueueCard } from "../components/OrderQueueCard";
 import { bucketOrders } from "../domain/orderBuckets";
 import type { PharmacistOrder } from "../api/types";
@@ -43,11 +50,21 @@ function matchesQuery(order: PharmacistOrder, query: string): boolean {
   return haystack.includes(q);
 }
 
+function HeroStat({ value, label }: { value: number; label: string }) {
+  return (
+    <View style={styles.heroStat}>
+      <Text style={styles.heroStatValue}>{value}</Text>
+      <Text style={styles.heroStatLabel} numberOfLines={1}>{label}</Text>
+    </View>
+  );
+}
+
 export function OrdersWorkspaceScreen(): React.ReactElement {
   const { t } = useTranslation();
   const { theme } = useTheme();
   const router = useRouter();
   const qc = useQueryClient();
+  const { pagePad, isTablet } = useScreenLayout();
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<FilterKey>("all");
   const [refreshing, setRefreshing] = useState(false);
@@ -95,9 +112,39 @@ export function OrdersWorkspaceScreen(): React.ReactElement {
 
   return (
     <Screen edgeTop background={theme.colors.canvas.background} scroll={false}>
-      <PharmacistScreenHeader title={t("pharmacist.ordersTitle", "Orders")} />
+      {/* Gradient hero — same visual language as WorkbenchScreen so Orders
+          reads as the same product's "find a specific order" mode, not a
+          disconnected screen with a plain title bar. */}
+      <LinearGradient
+        colors={gradients.brandPrimary as unknown as [string, string]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={[styles.hero, { paddingHorizontal: pagePad }]}
+      >
+        <View style={[styles.heroTop, { flexDirection: flexRow(IS_RTL) }]}>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text variant="eyebrow" style={styles.heroEyebrow}>
+              {t("pharmacist.ordersEyebrow", "Order Workspace")}
+            </Text>
+            <Text variant="screen-title" style={{ color: "#fff" }}>
+              {t("pharmacist.ordersTitle", "Orders")}
+            </Text>
+          </View>
+          <View style={styles.heroIcon}>
+            <Ionicons name="receipt" size={20} color="#fff" />
+          </View>
+        </View>
 
-      <View style={[styles.searchBar, { paddingHorizontal: 16 }]}>
+        {!isLoading && !isError && (
+          <View style={[styles.heroStatRow, { flexDirection: flexRow(IS_RTL) }]}>
+            <HeroStat value={buckets.attention.length} label={t("pharmacist.sectionNeedsAttention", "Needs Attention")} />
+            <HeroStat value={buckets.inProgress.length} label={t("pharmacist.sectionInProgress", "In Progress")} />
+            <HeroStat value={buckets.ready.length} label={t("pharmacist.sectionReady", "Ready")} />
+          </View>
+        )}
+      </LinearGradient>
+
+      <View style={[styles.searchBar, { paddingHorizontal: pagePad }]}>
         <Input
           value={query}
           onChangeText={setQuery}
@@ -107,7 +154,7 @@ export function OrdersWorkspaceScreen(): React.ReactElement {
         />
       </View>
 
-      <View style={[styles.filterRow, { flexDirection: flexRow(IS_RTL) }]}>
+      <View style={[styles.filterRow, { flexDirection: flexRow(IS_RTL), paddingHorizontal: pagePad }]}>
         {FILTERS.map((f) => (
           <Chip
             key={f.key}
@@ -127,7 +174,7 @@ export function OrdersWorkspaceScreen(): React.ReactElement {
       </View>
 
       {isLoading ? (
-        <View style={styles.content}>
+        <View style={[styles.content, { paddingHorizontal: pagePad }]}>
           <SkeletonCard />
           <SkeletonCard />
           <SkeletonCard />
@@ -135,7 +182,7 @@ export function OrdersWorkspaceScreen(): React.ReactElement {
       ) : isError ? (
         <ErrorState message={t("common.error")} retry={() => { void queueQ.refetch(); }} />
       ) : totalVisible === 0 ? (
-        <View style={styles.content}>
+        <View style={[styles.content, { paddingHorizontal: pagePad }]}>
           <EmptyState
             icon={hasActiveFilter ? "search-outline" : "checkmark-circle-outline"}
             title={hasActiveFilter ? t("pharmacist.noMatchingOrders", "No matching orders") : t("pharmacist.emptyQueueTitle")}
@@ -145,7 +192,11 @@ export function OrdersWorkspaceScreen(): React.ReactElement {
       ) : (
         <Animated.ScrollView
           style={{ flex: 1 }}
-          contentContainerStyle={styles.content}
+          contentContainerStyle={[
+            styles.content,
+            { paddingHorizontal: pagePad },
+            isTablet && { maxWidth: 720, alignSelf: "center", width: "100%" },
+          ]}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.colors.brand.primary} />}
         >
           {(filter === "all" || filter === "attention") && filteredBuckets.attention.length > 0 && (
@@ -177,13 +228,13 @@ function OrderSection({ titleKey, orders, onPress, muted }: {
   return (
     <View style={styles.section}>
       <View style={[styles.sectionHeader, { flexDirection: flexRow(IS_RTL) }]}>
-        <Text variant="card-title">{t(titleKey)}</Text>
+        <Text variant="card-title" style={{ flex: 1, minWidth: 0 }}>{t(titleKey)}</Text>
         <View style={[styles.countPill, { backgroundColor: theme.colors.canvas.surfaceMuted }]}>
           <Text variant="eyebrow" color="secondary">{orders.length}</Text>
         </View>
       </View>
       {orders.map((o, i) => (
-        <Animated.View key={o.id} entering={FadeInDown.delay(i * 30).duration(220)} style={[styles.cardSpacing, muted && styles.mutedCard]}>
+        <Animated.View key={o.id} entering={FadeInDown.delay(Math.min(i, 6) * 30).duration(220)} style={[styles.cardSpacing, muted && styles.mutedCard]}>
           <OrderQueueCard order={o} onPress={() => onPress(o.id)} />
         </Animated.View>
       ))}
@@ -192,15 +243,59 @@ function OrderSection({ titleKey, orders, onPress, muted }: {
 }
 
 const styles = StyleSheet.create({
-  searchBar: { paddingTop: 12, paddingBottom: 8 },
+  hero: {
+    paddingBottom: 16,
+    gap: 14,
+  },
+  heroTop: {
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingTop: 12,
+    gap: 10,
+  },
+  heroEyebrow: {
+    color: "rgba(255,255,255,0.78)",
+    letterSpacing: 1,
+    marginBottom: 2,
+  },
+  heroIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.16)",
+    flexShrink: 0,
+  },
+  heroStatRow: {
+    gap: 10,
+  },
+  heroStat: {
+    flex: 1,
+    alignItems: "center",
+    paddingVertical: 10,
+    borderRadius: 14,
+    backgroundColor: "rgba(255,255,255,0.14)",
+    gap: 2,
+  },
+  heroStatValue: {
+    fontSize: 20,
+    fontWeight: "800",
+    color: "#fff",
+  },
+  heroStatLabel: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: "rgba(255,255,255,0.8)",
+    textAlign: "center",
+  },
+  searchBar: { paddingTop: 14, paddingBottom: 8 },
   filterRow: {
     gap: 8,
-    paddingHorizontal: 16,
     paddingBottom: 12,
     flexWrap: "wrap",
   },
   content: {
-    paddingHorizontal: 16,
     paddingBottom: 100,
   },
   section: {
