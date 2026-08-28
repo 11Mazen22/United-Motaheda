@@ -24,6 +24,7 @@ import { Ionicons } from "@expo/vector-icons";
 
 import { Text, Button, Badge, Skeleton, EmptyState, useTheme } from "@pharmacy/ui-native";
 import { isRtl, flexRow, textAlignStart } from "@/utils/layout";
+import { useScreenLayout } from "@/utils/responsive";
 import { formatPrice } from "@/utils/format";
 
 import { useProduct } from "@/features/products/hooks/useProduct";
@@ -45,23 +46,24 @@ function RelatedProductsSection({ productId }: { productId: string }) {
   const { theme } = useTheme();
   const { t } = useTranslation();
   const router = useRouter();
+  const { pagePad } = useScreenLayout();
 
   if (isLoading) return <Skeleton width="100%" height={200} />;
   if (!data || data.length === 0) return null;
 
   return (
     <View style={styles.relatedSection}>
-      <Text variant="h4" style={{ color: theme.colors.text.primary, textAlign: TEXT_START, paddingHorizontal: 20, marginBottom: 16 }}>
+      <Text variant="h4" style={{ color: theme.colors.text.primary, textAlign: TEXT_START, paddingHorizontal: pagePad, marginBottom: 16 }}>
         {t("product.related")}
       </Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.relatedScroll}>
-        {data.map(p => (
-          <View key={p.id} style={{ width: 160 }}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[styles.relatedScroll, { paddingHorizontal: pagePad }]}>
+        {data.map((p, i) => (
+          <Animated.View key={p.id} entering={FadeInDown.duration(340).delay(Math.min(i, 6) * 45).springify()} style={{ width: 160 }}>
             <ProductCard
               product={p}
               onPress={() => router.push(`/(customer)/(shop)/product/${p.id}`)}
             />
-          </View>
+          </Animated.View>
         ))}
       </ScrollView>
     </View>
@@ -122,10 +124,12 @@ function VerifiedDetailsSection({ product }: { product: NativeProduct }) {
         </View>
         <View style={{ flex: 1 }}>
           <View style={[styles.verifiedTitleRow, { flexDirection: flexRow(IS_RTL) }]}>
-            <Text variant="label" style={{ color: theme.colors.text.primary, textAlign: TEXT_START }}>
+            <Text variant="label" numberOfLines={1} style={{ flexShrink: 1, minWidth: 0, color: theme.colors.text.primary, textAlign: TEXT_START }}>
               {t("product.clinProfileTitle")}
             </Text>
-            <Badge label={t("product.sealVerified")} variant="success" />
+            <View style={{ flexShrink: 0 }}>
+              <Badge label={t("product.sealVerified")} variant="success" />
+            </View>
           </View>
           <Text variant="caption" style={{ color: theme.colors.text.muted, textAlign: TEXT_START, marginTop: 3 }}>
             {t("product.clinAttestation")}
@@ -169,6 +173,7 @@ export default function ProductDetailScreen() {
 
   const { data: product, isLoading, isError } = useProduct(id);
   const [justAdded, setJustAdded] = useState(false);
+  const { pagePad } = useScreenLayout();
 
   const pushRecentlyViewed = useRecentlyViewedStore(s => s.push);
   useEffect(() => {
@@ -306,7 +311,7 @@ export default function ProductDetailScreen() {
         </View>
 
         {/* Identity & pricing */}
-        <Animated.View entering={FadeInDown.duration(400)} style={[styles.contentBlock, { backgroundColor: theme.colors.canvas.surface, borderBottomColor: theme.colors.border.default }]}>
+        <Animated.View entering={FadeInDown.duration(400)} style={[styles.contentBlock, { backgroundColor: theme.colors.canvas.surface, borderBottomColor: theme.colors.border.default, paddingHorizontal: pagePad }]}>
           <Text variant="eyebrow" style={{ color: theme.colors.brand.primary, textAlign: TEXT_START, marginBottom: 8 }}>
             {categoryName.toUpperCase()}
           </Text>
@@ -343,12 +348,12 @@ export default function ProductDetailScreen() {
           )}
         </Animated.View>
 
-        <View style={styles.contentPad}>
+        <View style={[styles.contentPad, { paddingHorizontal: pagePad }]}>
           <TrustRow />
         </View>
 
         {/* Stock */}
-        <View style={styles.contentPad}>
+        <View style={[styles.contentPad, { paddingHorizontal: pagePad }]}>
           <View style={[
             styles.statusBox,
             { flexDirection: flexRow(IS_RTL), backgroundColor: product.inStock ? `${theme.colors.status.success}1A` : `${theme.colors.status.error}1A` },
@@ -364,7 +369,7 @@ export default function ProductDetailScreen() {
           </View>
         </View>
 
-        <View style={styles.contentPad}>
+        <View style={[styles.contentPad, { paddingHorizontal: pagePad }]}>
           <VerifiedDetailsSection product={product} />
         </View>
 
@@ -372,7 +377,7 @@ export default function ProductDetailScreen() {
       </ScrollView>
 
       {/* Sticky purchase bar */}
-      <Animated.View entering={SlideInDown} exiting={SlideOutDown} style={[styles.stickyBar, theme.shadows[3], { backgroundColor: theme.colors.canvas.surface, borderTopColor: theme.colors.border.default, paddingBottom: insets.bottom || 16 }]}>
+      <Animated.View entering={SlideInDown} exiting={SlideOutDown} style={[styles.stickyBar, theme.shadows[3], { backgroundColor: theme.colors.canvas.surface, borderTopColor: theme.colors.border.default, paddingBottom: insets.bottom || 16, paddingHorizontal: pagePad }]}>
         {!product.inStock ? (
           <Button label={t("product.outOfStock")} onPress={() => {}} variant="secondary" size="lg" disabled fullWidth />
         ) : justAdded ? (
