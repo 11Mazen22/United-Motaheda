@@ -8,6 +8,7 @@
 import React, { useMemo, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
 import { useTranslation } from "react-i18next";
+import { Ionicons } from "@expo/vector-icons";
 import { Text as UIText, useTheme, type NativeTheme } from "@pharmacy/ui-native";
 
 import { theme as legacyTheme } from "@pharmacy/design-tokens";
@@ -42,7 +43,7 @@ export function LangSwitcher() {
         <ActivityIndicator size="small" color={theme.colors.brand.primary} />
       ) : (
         <View style={s.inner}>
-          <UIText style={s.flag}>{isAr ? "🇺🇸" : "🇸🇦"}</UIText>
+          <Ionicons name="language-outline" size={16} color={theme.colors.text.secondary} />
           <UIText style={s.label}>{isAr ? "English" : "العربية"}</UIText>
         </View>
       )}
@@ -67,11 +68,6 @@ function getStyles(theme: NativeTheme) {
       flexDirection: "row",
       alignItems:    "center",
       gap:           5,
-    },
-    flag: {
-      fontSize:           14,
-      lineHeight:         18,
-      includeFontPadding: false,
     },
     label: {
       fontFamily:         legacyTheme.fonts.bold,

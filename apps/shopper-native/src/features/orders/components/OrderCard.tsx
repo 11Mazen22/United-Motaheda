@@ -296,11 +296,11 @@ export const OrderCard = memo(function OrderCard({
 
         {/* ── FOOTER: Total price ────────────────────────── */}
         <View style={[oc.footer, { flexDirection: flexRow(isRtl()), alignItems: "center", justifyContent: "space-between" }]}>
-          <View>
+          <View style={{ flexShrink: 1 }}>
             <UIText variant="caption" color="tertiary">{t("orders.total")}</UIText>
-            <UIText style={oc.totalText}>{formatPrice(order.total)}</UIText>
+            <UIText style={oc.totalText} numberOfLines={1}>{formatPrice(order.total)}</UIText>
           </View>
-          <View style={{ zIndex: 10 }}>
+          <View style={{ flexShrink: 0 }}>
             <ReorderButton items={order.items} size="sm" />
           </View>
         </View>

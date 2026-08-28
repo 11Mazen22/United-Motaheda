@@ -12,7 +12,7 @@ export function ReorderButton({ items, size = "lg", style }: { items: OrderItem[
 
   return (
     <Button
-      label={isReordering ? t("orders.reordering", "Adding to cart...") : t("orders.featureReorder", "Reorder")}
+      label={isReordering ? t("orders.reordering", "Adding to cart...") : t("orders.reorder", "Reorder")}
       icon="refresh-outline"
       variant="primary"
       size={size}
