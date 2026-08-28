@@ -18,7 +18,6 @@ import Animated, {
   useSharedValue,
   withRepeat,
   withTiming,
-  interpolateColor,
   useReducedMotion
 } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
@@ -29,77 +28,16 @@ import { signInWithProvider } from "@/features/auth/socialAuth";
 import { LangSwitcher } from "@/features/auth/components/LangSwitcher";
 import { SocialButtons } from "@/features/auth/components/SocialButtons";
 import { AuthDivider } from "@/features/auth/components/AuthDivider";
+import { AuthField } from "@/features/auth/components/AuthField";
 import { AppLogo } from "@/shared/components/AppLogo";
 import { Button, Text as UIText } from "@pharmacy/ui-native";
 import { useTheme } from "@pharmacy/ui-native";
 import type { NativeTheme } from "@pharmacy/ui-native";
 
 import { theme as legacyTheme } from "@pharmacy/design-tokens";
-import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
-import { TextInput } from "react-native";
-
-type IoniconsName = React.ComponentProps<typeof Ionicons>["name"];
+import { flexRow, isRtl } from "@/utils/layout";
 
 const IS_RTL = isRtl();
-const TEXT_START = textAlignStart(IS_RTL);
-
-interface FloatingInputProps {
-  label: string;
-  icon: IoniconsName;
-  secure: boolean;
-  value: string;
-  onChangeText: (text: string) => void;
-  autoCapitalize?: "none" | "sentences" | "words" | "characters";
-  keyboardType?: "default" | "email-address" | "numeric" | "phone-pad" | "ascii-capable" | "numbers-and-punctuation" | "url" | "web-search" | "decimal-pad";
-}
-
-function FloatingInput({ label, icon, secure, value, onChangeText, autoCapitalize = "none", keyboardType = "default" }: FloatingInputProps) {
-  const { theme } = useTheme();
-  const styles = useMemo(() => getStyles(theme), [theme]);
-  const [focused, setFocused] = useState(false);
-  const focusAnim = useSharedValue(0);
-
-  useEffect(() => {
-    focusAnim.value = withTiming(focused || value ? 1 : 0, { duration: 200 });
-  }, [focused, value, focusAnim]);
-
-  const animatedLabelStyle = useAnimatedStyle(() => {
-    return {
-      transform: [
-        { translateY: focusAnim.value * -12 },
-        { scale: 1 - focusAnim.value * 0.15 }
-      ],
-      color: interpolateColor(focusAnim.value, [0, 1], [theme.colors.text.muted, theme.colors.brand.primary])
-    };
-  });
-
-  const animatedBorderStyle = useAnimatedStyle(() => {
-    return {
-      borderColor: interpolateColor(focusAnim.value, [0, 1], [theme.colors.border.default, theme.colors.brand.primary])
-    };
-  });
-
-  return (
-    <Animated.View style={[styles.inputContainer, animatedBorderStyle, { backgroundColor: theme.colors.canvas.surface, flexDirection: flexRow(IS_RTL) }]}>
-      <Ionicons name={icon} size={20} color={focused ? theme.colors.brand.primary : theme.colors.text.muted} style={{ marginHorizontal: 4 }} />
-      <View style={styles.inputWrapper}>
-        <Animated.Text style={[styles.floatingLabel, animatedLabelStyle, { textAlign: TEXT_START }]}>
-          {label}
-        </Animated.Text>
-        <TextInput
-          value={value}
-          onChangeText={onChangeText}
-          onFocus={() => { setFocused(true); if (Platform.OS !== "web") Haptics.selectionAsync(); }}
-          onBlur={() => setFocused(false)}
-          secureTextEntry={secure}
-          autoCapitalize={autoCapitalize}
-          keyboardType={keyboardType}
-          style={[styles.textInput, { color: theme.colors.text.primary, textAlign: IS_RTL ? "right" : "left", paddingTop: focused || value ? 8 : 0 }]}
-        />
-      </View>
-    </Animated.View>
-  );
-}
 
 export default function LoginScreen() {
   const { theme } = useTheme();
@@ -216,21 +154,25 @@ export default function LoginScreen() {
             </Animated.View>
           ) : null}
 
-          <FloatingInput 
+          <AuthField
             label={t("auth.emailLabel", { defaultValue: "Email or Phone" })}
             icon="person-outline"
             value={email}
-            onChangeText={(t: string) => { setEmail(t); setError(""); }}
+            onChangeText={(v: string) => { setEmail(v); setError(""); }}
             keyboardType="email-address"
-            secure={false}
+            autoComplete="email"
+            returnKeyType="next"
           />
           <View style={{ height: 16 }} />
-          <FloatingInput 
+          <AuthField
             label={t("auth.passwordLabel", { defaultValue: "Password" })}
             icon="lock-closed-outline"
             value={password}
-            onChangeText={(t: string) => { setPassword(t); setError(""); }}
+            onChangeText={(v: string) => { setPassword(v); setError(""); }}
             secure
+            autoComplete="password"
+            returnKeyType="done"
+            onSubmitEditing={handleLogin}
           />
 
           <View style={[styles.optionsRow, { flexDirection: flexRow(IS_RTL) }]}>
@@ -289,10 +231,6 @@ function getStyles(theme: NativeTheme) {
   welcomeTitle: { fontFamily: legacyTheme.fonts.extrabold, fontSize: 28, marginBottom: 8, textAlign: "center" },
   welcomeSub: { fontFamily: legacyTheme.fonts.regular, fontSize: 15, textAlign: "center", paddingHorizontal: 20, lineHeight: 22 },
   formCard: { borderRadius: 24, padding: 24, marginBottom: 24, ...theme.shadows[1] },
-  inputContainer: { height: 64, borderRadius: 16, borderWidth: 1, alignItems: "center", paddingHorizontal: 16 },
-  inputWrapper: { flex: 1, height: "100%", justifyContent: "center", position: "relative" },
-  floatingLabel: { position: "absolute", start: 0, fontFamily: legacyTheme.fonts.bold, fontSize: 15 },
-  textInput: { fontFamily: legacyTheme.fonts.bold, fontSize: 16, height: "100%", width: "100%" },
   optionsRow: { justifyContent: "flex-end", marginTop: 12, marginBottom: 24 },
   forgotText: { fontFamily: legacyTheme.fonts.bold, fontSize: 13, color: theme.colors.brand.primary },
   loginBtn: { height: 56, borderRadius: 16 },

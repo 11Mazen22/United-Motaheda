@@ -74,6 +74,7 @@ function getStyles(theme: NativeTheme) {
       flexDirection:     flexRow(IS_RTL),
       alignItems:        "center",
       justifyContent:    "center",
+      gap:               12,
       minHeight:         52,
       paddingHorizontal: 16,
       borderRadius:      12,

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -14,80 +14,22 @@ import { useTranslation } from "react-i18next";
 import Animated, {
   FadeIn,
   FadeInDown,
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
-  interpolateColor,
 } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
 
 import { signUp, getAuthError } from "@/features/auth";
 
 import { LangSwitcher } from "@/features/auth/components/LangSwitcher";
+import { AuthField } from "@/features/auth/components/AuthField";
 import { Button, Text as UIText } from "@pharmacy/ui-native";
 import { useTheme } from "@pharmacy/ui-native";
 import type { NativeTheme } from "@pharmacy/ui-native";
 
 import { theme as legacyTheme } from "@pharmacy/design-tokens";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
-import { TextInput } from "react-native";
 
 const IS_RTL = isRtl();
 const TEXT_START = textAlignStart(IS_RTL);
-
-type IoniconsName = React.ComponentProps<typeof Ionicons>["name"];
-
-interface FloatingInputProps {
-  label: string;
-  icon: IoniconsName;
-  secure: boolean;
-  value: string;
-  onChangeText: (text: string) => void;
-  autoCapitalize?: "none" | "sentences" | "words" | "characters";
-  keyboardType?: "default" | "email-address" | "numeric" | "phone-pad" | "ascii-capable" | "numbers-and-punctuation" | "url" | "web-search" | "decimal-pad";
-}
-
-function FloatingInput({ label, icon, secure, value, onChangeText, autoCapitalize = "none", keyboardType = "default" }: FloatingInputProps) {
-  const { theme } = useTheme();
-  const styles = useMemo(() => getStyles(theme), [theme]);
-  const [focused, setFocused] = useState(false);
-  const focusAnim = useSharedValue(0);
-
-  useEffect(() => {
-    focusAnim.value = withTiming(focused || value ? 1 : 0, { duration: 200 });
-  }, [focused, value, focusAnim]);
-
-  const animatedLabelStyle = useAnimatedStyle(() => ({
-    transform: [
-      { translateY: focusAnim.value * -12 },
-      { scale: 1 - focusAnim.value * 0.15 }
-    ],
-    color: interpolateColor(focusAnim.value, [0, 1], [theme.colors.text.muted, theme.colors.brand.primary])
-  }));
-
-  const animatedBorderStyle = useAnimatedStyle(() => ({
-    borderColor: interpolateColor(focusAnim.value, [0, 1], [theme.colors.border.default, theme.colors.brand.primary])
-  }));
-
-  return (
-    <Animated.View style={[styles.inputContainer, animatedBorderStyle, { backgroundColor: theme.colors.canvas.surface, flexDirection: flexRow(IS_RTL) }]}>
-      <Ionicons name={icon} size={20} color={focused ? theme.colors.brand.primary : theme.colors.text.muted} style={{ marginHorizontal: 4 }} />
-      <View style={styles.inputWrapper}>
-        <Animated.Text style={[styles.floatingLabel, animatedLabelStyle, { textAlign: TEXT_START }]}>{label}</Animated.Text>
-        <TextInput
-          value={value}
-          onChangeText={onChangeText}
-          onFocus={() => { setFocused(true); if (Platform.OS !== "web") Haptics.selectionAsync(); }}
-          onBlur={() => setFocused(false)}
-          secureTextEntry={secure}
-          autoCapitalize={autoCapitalize}
-          keyboardType={keyboardType}
-          style={[styles.textInput, { color: theme.colors.text.primary, textAlign: IS_RTL ? "right" : "left", paddingTop: focused || value ? 8 : 0 }]}
-        />
-      </View>
-    </Animated.View>
-  );
-}
 
 export default function RegisterScreen() {
   const { theme } = useTheme();
@@ -147,30 +89,35 @@ export default function RegisterScreen() {
             </Animated.View>
           ) : null}
 
-          <FloatingInput 
+          <AuthField
             label={t("auth.nameLabel", { defaultValue: "Full Name" })}
             icon="person-outline"
             value={name}
-            onChangeText={(t: string) => { setName(t); setError(""); }}
+            onChangeText={(v: string) => { setName(v); setError(""); }}
             autoCapitalize="words"
-            secure={false}
+            autoComplete="name"
+            returnKeyType="next"
           />
           <View style={{ height: 16 }} />
-          <FloatingInput 
+          <AuthField
             label={t("auth.emailLabel", { defaultValue: "Email or Phone" })}
             icon="mail-outline"
             value={email}
-            onChangeText={(t: string) => { setEmail(t); setError(""); }}
+            onChangeText={(v: string) => { setEmail(v); setError(""); }}
             keyboardType="email-address"
-            secure={false}
+            autoComplete="email"
+            returnKeyType="next"
           />
           <View style={{ height: 16 }} />
-          <FloatingInput 
+          <AuthField
             label={t("auth.passwordLabel", { defaultValue: "Password" })}
             icon="lock-closed-outline"
             value={password}
-            onChangeText={(t: string) => { setPassword(t); setError(""); }}
+            onChangeText={(v: string) => { setPassword(v); setError(""); }}
             secure
+            autoComplete="password-new"
+            returnKeyType="done"
+            onSubmitEditing={handleRegister}
           />
 
           <Button 
@@ -212,10 +159,6 @@ function getStyles(theme: NativeTheme) {
   welcomeTitle: { fontFamily: legacyTheme.fonts.extrabold, fontSize: 32, marginBottom: 8, textAlign: TEXT_START },
   welcomeSub: { fontFamily: legacyTheme.fonts.regular, fontSize: 16, textAlign: TEXT_START, lineHeight: 24 },
   formCard: { borderRadius: 24, padding: 24, marginBottom: 24, ...theme.shadows[1] },
-  inputContainer: { height: 64, borderRadius: 16, borderWidth: 1, alignItems: "center", paddingHorizontal: 16 },
-  inputWrapper: { flex: 1, height: "100%", justifyContent: "center", position: "relative" },
-  floatingLabel: { position: "absolute", start: 0, fontFamily: legacyTheme.fonts.bold, fontSize: 15 },
-  textInput: { fontFamily: legacyTheme.fonts.bold, fontSize: 16, height: "100%", width: "100%" },
   registerBtn: { height: 56, borderRadius: 16, marginTop: 32 },
   termsHint: { marginTop: 16, alignItems: "center" },
   termsText: { fontFamily: legacyTheme.fonts.medium, fontSize: 12, textAlign: "center", lineHeight: 18 },
