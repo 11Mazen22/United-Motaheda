@@ -10,6 +10,7 @@ import * as Haptics from "expo-haptics";
 import Animated, { FadeIn, FadeOut, Layout, SlideInDown } from "react-native-reanimated";
 
 import { Text, Button, EmptyState, useTheme, type NativeTheme } from "@pharmacy/ui-native";
+import { gradients } from "@pharmacy/design-tokens";
 import { isRtl, flexRow, textAlignStart } from "@/utils/layout";
 import { formatPrice } from "@/utils/format";
 
@@ -131,10 +132,15 @@ export default function CartScreen() {
 
   if (isCartEmpty) {
     return (
-      <View style={[styles.container, { backgroundColor: theme.colors.canvas.background, paddingTop: insets.top }]}>
-        <View style={styles.header}>
-           <Text variant="h3" style={{ color: theme.colors.text.primary }}>{t("cart.title", "My Basket")}</Text>
-        </View>
+      <View style={[styles.container, { backgroundColor: theme.colors.canvas.background }]}>
+        <LinearGradient
+          colors={gradients.brandPrimary as unknown as [string, string]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.header, { paddingTop: insets.top + 16 }]}
+        >
+           <Text variant="h3" style={{ color: "#fff" }}>{t("cart.title", "My Basket")}</Text>
+        </LinearGradient>
         <EmptyState
           illustrationName="empty"
           title={t("cart.emptyTitle", "Your basket is empty")}
@@ -151,13 +157,18 @@ export default function CartScreen() {
   const hasBlockingConflict = cartState.conflicts.some(c => c.type === "unavailable" || (c.type === "stock" && c.serverStock === 0));
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.canvas.background, paddingTop: insets.top }]}>
-      <View style={[styles.header, { borderBottomColor: theme.colors.border.default }]}>
-         <Text variant="h3" style={{ color: theme.colors.text.primary }}>{t("cart.title", "My Basket")}</Text>
-         <Pressable onPress={clearCart} accessibilityRole="button" accessibilityLabel={t("common.clear", "Clear")}>
-            <Text variant="body" weight="medium" style={{ color: theme.colors.status.error }}>{t("common.clear", "Clear")}</Text>
+    <View style={[styles.container, { backgroundColor: theme.colors.canvas.background }]}>
+      <LinearGradient
+        colors={gradients.brandPrimary as unknown as [string, string]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={[styles.header, { paddingTop: insets.top + 16 }]}
+      >
+         <Text variant="h3" style={{ color: "#fff" }}>{t("cart.title", "My Basket")} · {items.length}</Text>
+         <Pressable onPress={clearCart} accessibilityRole="button" accessibilityLabel={t("common.clear", "Clear")} style={styles.clearChip}>
+            <Text variant="body" weight="medium" style={{ color: "#fff" }}>{t("common.clear", "Clear")}</Text>
          </Pressable>
-      </View>
+      </LinearGradient>
 
       <FlatList
         data={items}
@@ -211,7 +222,8 @@ export default function CartScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { flexDirection: flexRow(IS_RTL), justifyContent: "space-between", alignItems: "center", paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1 },
+  header: { flexDirection: flexRow(IS_RTL), justifyContent: "space-between", alignItems: "center", paddingHorizontal: 20, paddingBottom: 16 },
+  clearChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 9999, backgroundColor: "rgba(255,255,255,0.16)" },
 
   deliveryProgressCard: { borderRadius: 16, padding: 16, marginBottom: 16, borderWidth: 1 },
   progressHeader: { alignItems: "center", marginBottom: 12 },
