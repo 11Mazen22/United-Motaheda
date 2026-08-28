@@ -214,7 +214,7 @@ function getStyles(theme: NativeTheme) {
   formCard: { borderRadius: 24, padding: 24, marginBottom: 24, ...theme.shadows[1] },
   inputContainer: { height: 64, borderRadius: 16, borderWidth: 1, alignItems: "center", paddingHorizontal: 16 },
   inputWrapper: { flex: 1, height: "100%", justifyContent: "center", position: "relative" },
-  floatingLabel: { position: "absolute", left: 0, fontFamily: legacyTheme.fonts.bold, fontSize: 15 },
+  floatingLabel: { position: "absolute", start: 0, fontFamily: legacyTheme.fonts.bold, fontSize: 15 },
   textInput: { fontFamily: legacyTheme.fonts.bold, fontSize: 16, height: "100%", width: "100%" },
   registerBtn: { height: 56, borderRadius: 16, marginTop: 32 },
   termsHint: { marginTop: 16, alignItems: "center" },

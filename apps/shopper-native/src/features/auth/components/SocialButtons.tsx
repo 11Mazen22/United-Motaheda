@@ -14,12 +14,12 @@
 
 import React, { useMemo } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import Animated, { FadeInUp } from "react-native-reanimated";
 import { Text as UIText, useTheme, type NativeTheme } from "@pharmacy/ui-native";
 
 import { isRtl, flexRow } from "@/utils/layout";
+import { GoogleIcon } from "./GoogleIcon";
 
 export type SocialProvider = "google";
 
@@ -30,7 +30,7 @@ interface Props {
 
 const IS_RTL = isRtl();
 
-// Google brand red — used only for the G mark inside the icon well.
+// Google brand red — used only for the loading spinner inside the icon well.
 const GOOGLE_RED = "#EA4335";
 
 export function SocialButtons({ onSocialPress, loading = false }: Props) {
@@ -55,7 +55,7 @@ export function SocialButtons({ onSocialPress, loading = false }: Props) {
           {loading ? (
             <ActivityIndicator size="small" color={GOOGLE_RED} />
           ) : (
-            <Ionicons name="logo-google" size={18} color={GOOGLE_RED} />
+            <GoogleIcon size={18} />
           )}
         </View>
         <UIText weight="bold" style={s.label} numberOfLines={1}>
@@ -86,14 +86,16 @@ function getStyles(theme: NativeTheme) {
       transform:       [{ scale: 0.99 }],
     },
 
-    // Icon well with explicit Google-brand surface so the G is never naked.
+    // Icon well — neutral surface so the real four-color "G" mark reads
+    // correctly (a red-tinted well made sense for the old monochrome-red
+    // glyph, not for the actual brand mark).
     iconWell: {
       width:           34,
       height:          34,
       borderRadius:    10,
-      backgroundColor: "rgba(234,67,53,0.08)",
+      backgroundColor: theme.colors.canvas.surfaceMuted,
       borderWidth:     1,
-      borderColor:     "rgba(234,67,53,0.16)",
+      borderColor:     theme.colors.border.default,
       alignItems:      "center",
       justifyContent:  "center",
       flexShrink:      0,
