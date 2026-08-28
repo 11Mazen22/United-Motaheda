@@ -25,7 +25,7 @@ import * as ExpoLocation from "expo-location";
 import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
 import { LinearGradient } from "expo-linear-gradient";
-import { Screen, Text as UIText, SkeletonCard, EmptyState, Card, StatusIndicator, useTheme } from "@pharmacy/ui-native";
+import { Screen, Text as UIText, SkeletonCard, EmptyState, Card, StatusIndicator, useTheme, type NativeTheme } from "@pharmacy/ui-native";
 import { kit } from "@pharmacy/ui-native";
 import { theme as legacyTheme, gradients } from "@pharmacy/design-tokens";
 import { useAuth } from "@/features/auth";
@@ -199,6 +199,8 @@ export function DriverManifest(): React.ReactElement {
           <MetricCard label={t("driver.completed")} value={orders.filter((o) => o.status === "delivered").length} compact icon={<Ionicons name="checkmark-done-outline" size={16} color={theme.colors.status.success} />} />
           <MetricCard label={t("driver.acceptanceRate")} value={acceptanceRateQuery.data != null ? `${acceptanceRateQuery.data}%` : "—"} compact icon={<Ionicons name="trending-up-outline" size={16} color={theme.colors.status.info} />} />
         </View>
+
+        <DailyGoalBar earnings={todayEarnings} theme={theme} t={t} />
       </View>
 
       <FlatList
@@ -267,3 +269,43 @@ export function DriverManifest(): React.ReactElement {
     </Screen>
   );
 }
+
+// ── Daily goal progress — motivational touch, no new backend: just today's
+// already-computed earnings against a fixed reference target. Common gig-app
+// pattern (Uber/Careem-style "X% of your daily goal") that gives the metrics
+// row a sense of momentum instead of three flat, disconnected numbers. ──
+const DAILY_GOAL_EGP = 500;
+
+function DailyGoalBar({
+  earnings, theme, t,
+}: {
+  earnings: number;
+  theme: NativeTheme;
+  t: ReturnType<typeof useTranslation>["t"];
+}) {
+  const pct = Math.max(0, Math.min(1, earnings / DAILY_GOAL_EGP));
+  const reached = pct >= 1;
+  return (
+    <View style={[goal.wrap, { flexDirection: flexRow(IS_RTL) }]}>
+      <View style={{ flex: 1 }}>
+        <View style={[goal.labelRow, { flexDirection: flexRow(IS_RTL) }]}>
+          <UIText variant="caption" color="secondary">{t("driver.dailyGoalLabel", "Daily goal")}</UIText>
+          <UIText variant="caption" weight="bold" style={{ color: reached ? theme.colors.status.success : theme.colors.brand.primary }}>
+            {Math.round(pct * 100)}%
+          </UIText>
+        </View>
+        <View style={[goal.track, { backgroundColor: theme.colors.canvas.surfaceMuted }]}>
+          <View style={[goal.fill, { width: `${pct * 100}%`, backgroundColor: reached ? theme.colors.status.success : theme.colors.brand.primary }]} />
+        </View>
+      </View>
+      {reached && <Ionicons name="trophy" size={18} color={theme.colors.status.success} style={{ marginStart: 12 }} />}
+    </View>
+  );
+}
+
+const goal = StyleSheet.create({
+  wrap: { alignItems: "center", marginTop: 12 },
+  labelRow: { alignItems: "center", justifyContent: "space-between", marginBottom: 6 },
+  track: { height: 8, borderRadius: 4, overflow: "hidden" },
+  fill: { height: "100%", borderRadius: 4 },
+});

@@ -1,10 +1,12 @@
 import React, { useCallback, useMemo, useState } from "react";
 import { Pressable, RefreshControl, StyleSheet, View } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
 import Animated, { FadeInDown } from "react-native-reanimated";
+import { gradients } from "@pharmacy/design-tokens";
 
 import {
   Screen,
@@ -104,6 +106,15 @@ function RxQueueCard({ rx, onPress, t }: {
   );
 }
 
+function StatChip({ value, label }: { value: number; label: string }) {
+  return (
+    <View style={styles.statChip}>
+      <Text style={styles.statValue}>{value}</Text>
+      <Text style={styles.statLabel} numberOfLines={1}>{label}</Text>
+    </View>
+  );
+}
+
 export function WorkbenchScreen(): React.ReactElement {
   const { t } = useTranslation();
   const { theme } = useTheme();
@@ -150,21 +161,38 @@ export function WorkbenchScreen(): React.ReactElement {
 
   return (
     <Screen edgeTop background={theme.colors.canvas.background} scroll={false}>
-      {/* Header */}
-      <View style={[styles.header, { backgroundColor: theme.colors.canvas.surface, borderBottomColor: theme.colors.border.default }]}>
+      {/* Header — gradient hero + glanceable stat row, matching the same
+          "live dashboard" visual language DriverManifest and Home's
+          TodayCare use, instead of a plain title bar with no summary at all. */}
+      <LinearGradient
+        colors={gradients.brandPrimary as unknown as [string, string]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.header}
+      >
         <View style={[styles.headerTop, { flexDirection: flexRow(IS_RTL) }]}>
           <View style={{ flex: 1 }}>
             <View style={[styles.liveRow, { flexDirection: flexRow(IS_RTL) }]}>
-              <StatusIndicator active={isLive} pulse={isLive} />
-              <Text variant="eyebrow" color="brand" style={styles.eyebrowSpacing}>
+              <StatusIndicator active={isLive} pulse={isLive} color={isLive ? "#4ADE80" : "rgba(255,255,255,0.5)"} />
+              <Text variant="eyebrow" style={[styles.eyebrowSpacing, { color: "rgba(255,255,255,0.8)" }]}>
                 {isLive ? t("pharmacist.liveQueue", "Live") : t("pharmacist.eyebrow")}
               </Text>
             </View>
-            <Text variant="screen-title" color="primary">{t("pharmacist.workbench", "Workbench")}</Text>
+            <Text variant="screen-title" style={{ color: "#fff" }}>
+              {user?.name ? t("pharmacist.greeting", { name: user.name.split(" ")[0] }) : t("pharmacist.workbench", "Workbench")}
+            </Text>
           </View>
           <Avatar initials={initials} size="md" status={isLive ? "online" : undefined} />
         </View>
-      </View>
+
+        {!isLoading && !isError && (
+          <View style={[styles.statRow, { flexDirection: flexRow(IS_RTL) }]}>
+            <StatChip value={attentionOrders.length + pendingRx.length} label={t("pharmacist.sectionNeedsAttention", "Needs Attention")} />
+            <StatChip value={inProgressOrders.length} label={t("pharmacist.sectionInProgress", "In Progress")} />
+            <StatChip value={readyOrders.length} label={t("pharmacist.sectionReady", "Ready")} />
+          </View>
+        )}
+      </LinearGradient>
 
       {/* Sectioned feed */}
       {isLoading ? (
@@ -270,8 +298,29 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: 20,
     paddingBottom: 16,
-    borderBottomWidth: StyleSheet.hairlineWidth,
     gap: 16,
+  },
+  statRow: {
+    gap: 10,
+  },
+  statChip: {
+    flex: 1,
+    alignItems: "center",
+    paddingVertical: 10,
+    borderRadius: 14,
+    backgroundColor: "rgba(255,255,255,0.14)",
+    gap: 2,
+  },
+  statValue: {
+    fontSize: 20,
+    fontWeight: "800",
+    color: "#fff",
+  },
+  statLabel: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: "rgba(255,255,255,0.8)",
+    textAlign: "center",
   },
   headerTop: {
     alignItems: "center",
