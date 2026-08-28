@@ -2,7 +2,7 @@ import { useTheme, type NativeTheme } from "@pharmacy/ui-native";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 
-import { Platform, Pressable, StyleSheet, View, Image } from "react-native";
+import { Linking, Platform, Pressable, StyleSheet, View, Image } from "react-native";
 
 import Animated, { Easing, FadeIn, FadeInDown, useAnimatedStyle, useSharedValue, withRepeat, withSequence, withTiming } from "react-native-reanimated";
 
@@ -144,7 +144,7 @@ export default function ScanScreen(): React.ReactElement {
               label={permission.canAskAgain
                 ? t("prescriptions.scanPermissionCta")
                 : t("prescriptions.scanPermissionSettingsCta")}
-              onPress={requestPermission}
+              onPress={permission.canAskAgain ? requestPermission : () => { void Linking.openSettings(); }}
               fullWidth
               icon={<Ionicons name="camera" size={18} color="#fff" />}
             />

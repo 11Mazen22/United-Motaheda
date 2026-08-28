@@ -96,6 +96,7 @@ export function CButton({
           borderWidth: variant === 'secondary' || variant === 'outline' ? 1 : 0,
            borderRadius: cx.radius.button,
            paddingHorizontal: cx.space[4],
+           gap: cx.space[2],
            opacity: disabled ? interaction.disabledOpacity : 1,
            alignSelf: fullWidth ? 'stretch' : 'flex-start',
         },
@@ -106,11 +107,11 @@ export function CButton({
         <ActivityIndicator color={contentColor} />
       ) : (
         <>
-          {icon && <View style={{ marginRight: cx.space[2] }}>{icon}</View>}
+          {icon && <View>{icon}</View>}
           <T scale={textScale} color={textColor} align="center">
             {label}
           </T>
-          {iconEnd && <View style={{ marginLeft: cx.space[2] }}>{iconEnd}</View>}
+          {iconEnd && <View>{iconEnd}</View>}
         </>
       )}
     </PressableScale>
