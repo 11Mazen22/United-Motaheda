@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { useCartStore, selectPricing } from "@/stores/cart";
 import { useAddressStore } from "@/features/addresses";
 import { useAuth } from "@/features/auth";
@@ -36,6 +37,8 @@ export type CheckoutStatus =
   | "OFFLINE";
 
 export function usePremiumCheckout() {
+  const { t, i18n } = useTranslation();
+  const lang: "ar" | "en" = i18n.language === "en" ? "en" : "ar";
   const [status, setStatus] = useState<CheckoutStatus>("LOADING");
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<CheckoutPaymentMethod>("cod");
@@ -157,18 +160,18 @@ export function usePremiumCheckout() {
 
      if (manual) {
        if (!transferNumber.trim()) {
-         setManualPaymentError("رقم التحويل مطلوب.");
+         setManualPaymentError(t("checkout.missingTransferNumber"));
          return;
        }
        if (!receiptUri) {
-         setManualPaymentError("يرجى إرفاق صورة إيصال التحويل.");
+         setManualPaymentError(t("checkout.missingReceipt"));
          return;
        }
        setUploadingReceipt(true);
        try {
          paymentProofUrl = await uploadPaymentReceipt(user.id, receiptUri);
        } catch (err) {
-         setManualPaymentError(err instanceof ReceiptUploadError ? err.message : "تعذّر رفع صورة الإيصال.");
+         setManualPaymentError(err instanceof ReceiptUploadError ? err.message : t("checkout.uploadReceiptError"));
          setUploadingReceipt(false);
          return;
        }
@@ -241,7 +244,7 @@ export function usePremiumCheckout() {
          prescriptionIds: needsPrescription ? selectedPrescriptionIds : undefined,
        };
 
-       const result = await createCheckoutOrder(command);
+       const result = await createCheckoutOrder(command, lang);
 
        if (manual && paymentProofUrl && (paymentMethod === "vodafone" || paymentMethod === "instapay")) {
          const needsPatch = result.status !== "payment_pending" || result.paymentStatus !== "pending_verification";
@@ -259,9 +262,9 @@ export function usePremiumCheckout() {
        setStatus("SUCCESS");
        } catch (e) {
         setStatus("FAILED");
-        setErrorMsg(e instanceof CheckoutRequestError ? e.message : "Failed to place order. Please try again.");
+        setErrorMsg(e instanceof CheckoutRequestError ? e.message : t("checkout.submitError"));
       }
-  }, [canSubmit, user, selectedAddress, paymentMethod, items, pricing, note, promoCode, clearCart, needsPrescription, selectedPrescriptionIds, transferNumber, receiptUri]);
+  }, [canSubmit, user, selectedAddress, paymentMethod, items, pricing, note, promoCode, clearCart, needsPrescription, selectedPrescriptionIds, transferNumber, receiptUri, t, lang]);
 
   return {
     status,

@@ -85,7 +85,7 @@ export default function OffersScreen() {
   const { t }                 = useTranslation();
   const router                = useRouter();
   const insets                = useSafeAreaInsets();
-  const { isTablet } = useScreenLayout();
+  const { isTablet, pagePad } = useScreenLayout();
 
   const [sortBy, setSortBy]           = useState<ProductSortMode>("price_asc");
   const [inStockOnly, setInStockOnly] = useState(false);
@@ -127,7 +127,7 @@ export default function OffersScreen() {
       {/* ══════════════════════════════════════════════════ */}
       {/* HEADER                                           */}
       {/* ══════════════════════════════════════════════════ */}
-      <View style={[s.header, { paddingTop: insets.top + 6 }]}>
+      <View style={[s.header, { paddingTop: insets.top + 6, paddingHorizontal: pagePad }]}>
 
         {/* Gradient wash */}
         <LinearGradient
@@ -157,7 +157,7 @@ export default function OffersScreen() {
           <View style={s.iconWell}>
             <Ionicons name="flash" size={28} color={theme.colors.brand.primary} />
           </View>
-          <View style={s.titleBlock}>
+          <View style={[s.titleBlock, { minWidth: 0 }]}>
             <UIText style={[s.eyebrow, { textAlign: TEXT_START }]}>
               {t("offers.eyebrow")}
             </UIText>
@@ -226,7 +226,7 @@ export default function OffersScreen() {
           data={[1, 2, 3, 4, 5, 6]}
           numColumns={2}
           keyExtractor={(k) => String(k)}
-          contentContainerStyle={{ padding: 12, gap: 10 }}
+          contentContainerStyle={{ padding: isTablet ? 16 : 12, gap: 10 }}
           columnWrapperStyle={{ gap: 10, flexDirection: flexRow(IS_RTL) }}
           showsVerticalScrollIndicator={false}
           renderItem={() => <View style={{ flex: 1 }}><ProductCardSkeleton /></View>}

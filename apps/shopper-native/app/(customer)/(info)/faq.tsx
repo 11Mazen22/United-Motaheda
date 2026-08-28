@@ -55,7 +55,7 @@ export default function FAQScreen() {
           <Ionicons name={BACK_CHEVRON} size={18} color={theme.colors.text.secondary} />
         </Pressable>
         <View style={s.tile}><Ionicons name="help-circle-outline" size={22} color={theme.colors.brand.primary} /></View>
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, minWidth: 0 }}>
           <UIText style={[s.hTitle, { textAlign: TA }]}>{t("faq.title")}</UIText>
           <UIText style={[s.hSub, { textAlign: TA }]}>{t("faq.subtitle", { q: FAQ_DATA.length, c: categories.length })}</UIText>
         </View>
@@ -119,7 +119,7 @@ function getStyles(theme: NativeTheme) {
 
     contactBar: { position: "absolute", bottom: 0, start: 0, end: 0, backgroundColor: theme.colors.canvas.surface, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.colors.border.default, paddingTop: 12, paddingHorizontal: 20, ...theme.shadows[1] },
     contactRow: { alignItems: "center", gap: 8 },
-    contactTxt: { flex: 1, fontFamily: legacyTheme.fonts.semibold, fontSize: 12, color: theme.colors.text.secondary, includeFontPadding: false },
+    contactTxt: { flex: 1, minWidth: 0, fontFamily: legacyTheme.fonts.semibold, fontSize: 12, color: theme.colors.text.secondary, includeFontPadding: false },
     contactBtnT: { borderRadius: 10, flexShrink: 0 },
     contactBtn: { alignItems: "center", gap: 4, backgroundColor: theme.colors.brand.primaryLight, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, borderWidth: 1, borderColor: theme.colors.border.default },
     contactBtnP: { backgroundColor: theme.colors.border.default },

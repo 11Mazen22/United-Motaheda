@@ -251,6 +251,14 @@
         "resetInstruction": "Enter your registered email address to receive a password reset link.",
         "resetAction": "Send Reset Link",
         "resetSuccess": "Check your email for the reset link!",
+        "resetVerifying": "Verifying your reset link...",
+        "resetLinkInvalidTitle": "This link no longer works",
+        "resetLinkInvalidBody": "This password reset link is invalid or has expired. Request a new one to continue.",
+        "resetRequestNewBtn": "Request a new link",
+        "resetNewPasswordInstruction": "Choose a new password for your account.",
+        "resetSuccessTitle": "Password updated",
+        "resetSuccessBody": "Your password has been changed. Sign in with your new password.",
+        "resetContinueBtn": "Continue to sign in",
         "eyebrowSignIn": "Sign In"
     },
     "authCallback": {
@@ -358,6 +366,8 @@
         "continueBtn": "Continue to Review",
         "confirmBtn": "Confirm Order",
         "notDeliverable": "Address is outside our delivery area",
+        "zoneCheckError": "Couldn't verify the delivery zone. Check your connection and try again.",
+        "zoneOutOfRange": "Sorry, this address is outside our current delivery range.",
         "missingTransferNumber": "Enter your transfer reference number to proceed",
         "missingReceipt": "Please upload a screenshot of the transfer.",
         "prescriptionRequired": "This order needs a prescription",
@@ -611,6 +621,7 @@
         "successBodyPost": "Open your email and click the link within 60 minutes.",
         "spamTip": "If you don't see it in your inbox, check your Spam or Junk folder.",
         "resend": "Resend",
+        "useAnotherEmail": "Use a different email",
         "rememberPassword": "Remember your password?",
         "signIn": "Sign In",
         "backLabel": "Back"
@@ -1285,7 +1296,41 @@
         "eyebrow": "Legal",
         "lastUpdated": "Last updated: January 2025",
         "introBanner": "Your privacy is our trust. This document describes how United Pharmacy collects, uses, and protects your data.",
-        "footer": "United Pharmacy • Egypt • united.pharmacy.eg@gmail.com"
+        "footer": "United Pharmacy • Egypt • united.pharmacy.eg@gmail.com",
+        "sections": {
+            "s1": {
+                "title": "1. Information We Collect",
+                "body": "We collect information you provide directly when creating your account or placing an order, including:\n• Your full name and email address\n• Phone number and delivery address\n• Order history and favorite products\n\nWe also automatically collect usage data such as device type, operating system, and the pages you visit within the app, to improve your experience."
+            },
+            "s2": {
+                "title": "2. How We Use Your Data",
+                "body": "We use your information for the following purposes:\n• Fulfilling your orders, tracking shipments, and communicating with you about them\n• Personalizing product offers and recommendations based on your interests\n• Sending important notifications about your orders and account\n• Improving our services and developing app features\n• Complying with legal and regulatory requirements\n\nWe will not use your data for marketing purposes without your explicit consent."
+            },
+            "s3": {
+                "title": "3. Sharing Data With Third Parties",
+                "body": "We do not sell your personal information to third parties. We may share your data in a limited way in the following cases:\n• Shipping and delivery companies, to fulfill your orders\n• Electronic payment providers, to securely process financial transactions\n• Government and regulatory bodies, where legally required\n\nWe require all our partners to follow strict privacy policies and never reuse your data."
+            },
+            "s4": {
+                "title": "4. Data Security",
+                "body": "We apply advanced security standards to protect your data, including:\n• SSL/TLS encryption for all transmitted data\n• Password encryption using bcrypt algorithms\n• Regular security reviews of our database and infrastructure\n• Two-factor verification for sensitive operations\n\nDespite our best efforts, absolute security over the internet can never be fully guaranteed, and we recommend keeping your password confidential."
+            },
+            "s5": {
+                "title": "5. Cookies",
+                "body": "The app uses local storage technologies similar to cookies to store:\n• Your login session data\n• Your shopping cart contents\n• Personal preferences such as language and region\n\nThis data is stored on your device only and is never sent to third parties."
+            },
+            "s6": {
+                "title": "6. Your Rights",
+                "body": "At any time, you have the right to:\n• Access the personal data we hold about you\n• Correct any inaccurate information\n• Request deletion of your account and all your data\n• Unsubscribe from marketing messages\n• Object to your data being processed for specific purposes\n\nTo reach us about these rights: united.pharmacy.eg@gmail.com"
+            },
+            "s7": {
+                "title": "7. Data Retention",
+                "body": "We retain your data for as long as your account is active, or for as long as necessary to provide our services. When you delete your account, your personal data is deleted within 30 days, except where the law requires us to retain it for tax or regulatory purposes."
+            },
+            "s8": {
+                "title": "8. Policy Changes",
+                "body": "We reserve the right to modify this policy at any time. We will notify you of any material changes through an in-app notice or by email at least 7 days before the change takes effect. Your continued use of the app after a change constitutes your acceptance of the updated policy."
+            }
+        }
     },
     "product": {
         "addToCart": "Add to Cart",
@@ -1677,7 +1722,45 @@
         "whatsappUnavailableBody": "Contact us by email:\nunited.pharmacy.eg@gmail.com",
         "whatsappErrorTitle": "Error",
         "whatsappErrorBody": "Couldn't open WhatsApp. Please try again later.",
-        "ok": "OK"
+        "ok": "OK",
+        "sections": {
+            "s1": {
+                "title": "1. Acceptance of Terms",
+                "body": "By using the United Pharmacy app or its services, you confirm your full agreement to these terms and conditions. If you do not agree with any part of them, please do not use the app.\n\nThese terms apply to all users, including visitors and account holders, and should be read together with our Privacy Policy."
+            },
+            "s2": {
+                "title": "2. Registration and Your Account",
+                "body": "• You must be 18 years of age or older to register\n• You are responsible for keeping your account credentials confidential\n• You must notify us immediately if you suspect your account has been compromised\n• You may not create more than one account\n• We reserve the right to suspend or terminate any account that violates these terms"
+            },
+            "s3": {
+                "title": "3. Orders and Products",
+                "body": "• All displayed prices are in Egyptian Pounds and include VAT\n• Prices depend on stock availability and may change without prior notice\n• Order confirmation is subject to product availability and accurate delivery details\n• Prescription-only medications are available in the app only through official channels\n• We reserve the right to refuse or cancel any order in exceptional cases, with a full refund"
+            },
+            "s4": {
+                "title": "4. Delivery and Shipping",
+                "body": "• Delivery costs 25 Egyptian Pounds on all orders\n• Delivery times are estimates and may be affected by circumstances outside our control\n• The customer is responsible for the accuracy of the delivery address they enter\n• If the customer is unavailable at delivery time, we will follow up to arrange another time\n• We take full responsibility for any damage that occurs to products during shipping"
+            },
+            "s5": {
+                "title": "5. Returns and Refunds",
+                "body": "• You may return unopened products within 7 days of receipt\n• Opened medications and pharmaceutical products cannot be returned, for health and safety reasons\n• Refrigerated products and special offers are excluded from returns unless defective\n• Refunds are processed within 5-7 business days to the original payment method\n• To reach us about a return: united.pharmacy.eg@gmail.com"
+            },
+            "s6": {
+                "title": "6. Intellectual Property",
+                "body": "All app content — logos, images, text, and designs — is the exclusive property of United Pharmacy and is protected under copyright and intellectual property law. Copying, redistributing, or commercially using any content without prior written permission is prohibited."
+            },
+            "s7": {
+                "title": "7. Limitation of Liability",
+                "body": "United Pharmacy will not be liable for:\n• Any indirect or consequential damages arising from use of the app\n• Service interruptions caused by force majeure or scheduled maintenance\n• User errors in entering order or address details\n• Use of medication contrary to medical instructions"
+            },
+            "s8": {
+                "title": "8. Changes to These Terms",
+                "body": "We reserve the right to modify these terms at any time. We will notify you of any material changes through an in-app notice before they take effect. Your continued use of the app after a change constitutes your acceptance of the updated terms."
+            },
+            "s9": {
+                "title": "9. Governing Law",
+                "body": "These terms are governed by, and construed in accordance with, the laws of Egypt. Any dispute arising from these terms will be referred to the competent courts of the Arab Republic of Egypt."
+            }
+        }
     },
     "verifyPhone": {
         "title": "Verify Phone",

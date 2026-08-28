@@ -344,7 +344,7 @@ export default function ProfileScreen() {
 
                     <View style={styles.dIcon}><Ionicons name="log-out-outline" size={20} color={theme.colors.status.error} /></View>
 
-                    <View style={{ flex: 1, gap: 2 }}>
+                    <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
 
                       <UIText style={styles.dLbl} numberOfLines={1}>{signingOut ? t("common.loading") : t("profile.logout")}</UIText>
 
@@ -370,15 +370,13 @@ export default function ProfileScreen() {
 
         <View style={styles.foot}>
 
-          <View style={[styles.fPill, { flexDirection: flexRow(RTL) }]}> 
+          <View style={[styles.fPill, { flexDirection: flexRow(RTL) }]}>
 
             <Ionicons name="medkit" size={12} color={theme.colors.brand.primary} />
 
             <UIText style={styles.fBrand}>{t("profile.footerName")}</UIText>
 
           </View>
-
-          <UIText style={styles.fName}>United Pharmacies</UIText>
 
           <UIText style={styles.fVer}>{t("profile.version", { ver: "1.0.0" })}</UIText>
 
@@ -416,7 +414,7 @@ function getStyles(theme: NativeTheme) {
 
   mrTile: { width: 44, height: 44, borderRadius: 14, alignItems: "center", justifyContent: "center", borderWidth: 1, flexShrink: 0 },
 
-  mrGrp: { flex: 1, gap: 2, justifyContent: "center", flexShrink: 1 },
+  mrGrp: { flex: 1, minWidth: 0, gap: 2, justifyContent: "center", flexShrink: 1 },
 
   mrLbl: { fontSize: 14, lineHeight: 20, color: theme.colors.text.primary, letterSpacing: -0.1, textAlign: TA, includeFontPadding: false },
 
@@ -450,7 +448,7 @@ function getStyles(theme: NativeTheme) {
 
   dPress: { opacity: 0.88, transform: [{ scale: 0.99 }] },
 
-  dLead: { flex: 1, flexDirection: flexRow(RTL), alignItems: "center", gap: 14, flexShrink: 1 },
+  dLead: { flex: 1, minWidth: 0, flexDirection: flexRow(RTL), alignItems: "center", gap: 14, flexShrink: 1 },
 
   dIcon: { width: 44, height: 44, borderRadius: 14, backgroundColor: `${theme.colors.status.error}21`, borderWidth: 1, borderColor: `${theme.colors.status.error}47`, alignItems: "center", justifyContent: "center", flexShrink: 0 },
 

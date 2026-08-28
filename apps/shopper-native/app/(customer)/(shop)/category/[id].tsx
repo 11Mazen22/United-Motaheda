@@ -24,6 +24,7 @@ import {
   type ProductSortMode,
 } from "@/features/products";
 import { flexRow, isRtl, textAlignStart, BACK_CHEVRON } from "@/utils/layout";
+import { useScreenLayout } from "@/utils/responsive";
 import { iconForCategory } from "@/utils/categoryIcons";
 
 const IS_RTL = isRtl();
@@ -61,6 +62,7 @@ export default function CategoryScreen() {
 
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { pagePad } = useScreenLayout();
   const [sortBy, setSortBy] = useState<ProductSortMode>("newest");
   const [inStockOnly, setInStockOnly] = useState(false);
   const [gradFrom, gradTo] = paletteFor(id ?? "");
@@ -100,7 +102,7 @@ export default function CategoryScreen() {
 
   return (
     <View style={[s.root, { backgroundColor: theme.colors.canvas.background }]}>
-      <View style={[s.header, theme.shadows[1], { paddingTop: insets.top + 6, backgroundColor: theme.colors.canvas.surface, borderBottomColor: theme.colors.border.default }]}>
+      <View style={[s.header, theme.shadows[1], { paddingTop: insets.top + 6, paddingHorizontal: pagePad, backgroundColor: theme.colors.canvas.surface, borderBottomColor: theme.colors.border.default }]}>
         <View style={[s.wash, { backgroundColor: `${gradFrom}18` }]} pointerEvents="none" />
 
         <View style={[s.navRow, { flexDirection: flexRow(IS_RTL) }]}>
@@ -118,7 +120,7 @@ export default function CategoryScreen() {
             <Ionicons name={icon} size={30} color="#FFFFFF" />
           </LinearGradient>
 
-          <View style={s.titleBlock}>
+          <View style={[s.titleBlock, { minWidth: 0 }]}>
             <UIText style={[s.eyebrow, { color: gradFrom, textAlign: TEXT_START }]}>
               {t("category.browse")}
             </UIText>
@@ -159,7 +161,7 @@ export default function CategoryScreen() {
       </View>
 
       {products.length > 0 && !isLoading && (
-        <View style={[s.resultsBar, { flexDirection: flexRow(IS_RTL), backgroundColor: theme.colors.canvas.surface, borderBottomColor: theme.colors.border.default }]}>
+        <View style={[s.resultsBar, { flexDirection: flexRow(IS_RTL), paddingHorizontal: pagePad, backgroundColor: theme.colors.canvas.surface, borderBottomColor: theme.colors.border.default }]}>
           <UIText style={[styles.resultsText, { color: theme.colors.text.muted }]}>
             {t("category.productCount", { count: products.length })}
           </UIText>

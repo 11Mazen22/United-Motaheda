@@ -20,6 +20,7 @@
 
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { supabase } from "@/lib/supabase";
 import { FREE_DELIVERY_THRESHOLD, DELIVERY_ETA } from "./constants";
 import { hasValidCoordinates } from "./geofencing";
@@ -49,6 +50,7 @@ async function fetchZone(lat: number, lng: number, subtotal: number): Promise<Zo
 }
 
 export function useDeliveryQuote(input: DeliveryQuoteInput): DeliveryQuote {
+  const { t } = useTranslation();
   const { data: branches = [], isLoading: branchesLoading } = useBranches();
 
   const subtotal = Math.max(0, Number.isFinite(input.subtotal) ? input.subtotal : 0);
@@ -108,7 +110,7 @@ export function useDeliveryQuote(input: DeliveryQuoteInput): DeliveryQuote {
         isLoading: false,
         branch: null,
         distanceKm: null,
-        outOfServiceMessage: "تعذر التحقق من نطاق التوصيل. تحقق من اتصالك وحاول مرة أخرى.",
+        outOfServiceMessage: t("checkout.zoneCheckError"),
       };
     }
 
@@ -123,7 +125,7 @@ export function useDeliveryQuote(input: DeliveryQuoteInput): DeliveryQuote {
         isLoading: false,
         branch: null,
         distanceKm: null,
-        outOfServiceMessage: "عذراً، هذا العنوان خارج نطاق التوصيل الحالي.",
+        outOfServiceMessage: t("checkout.zoneOutOfRange"),
       };
     }
 
@@ -143,5 +145,5 @@ export function useDeliveryQuote(input: DeliveryQuoteInput): DeliveryQuote {
       distanceKm: zone.distance_km,
       outOfServiceMessage: null,
     };
-  }, [subtotal, hasCoords, input.branchId, branches, branchesLoading, zoneQuery.isLoading, zoneQuery.isError, zoneQuery.data]);
+  }, [subtotal, hasCoords, input.branchId, branches, branchesLoading, zoneQuery.isLoading, zoneQuery.isError, zoneQuery.data, t]);
 }

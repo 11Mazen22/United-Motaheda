@@ -263,7 +263,7 @@ export default function NotificationsScreen() {
 
         <View style={n.tile}><Ionicons name="notifications-outline" size={22} color={theme.colors.brand.primary} /></View>
 
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, minWidth: 0 }}>
 
           <UIText style={[n.hTitle, { textAlign: TA }]}>{t("notifications.title")}</UIText>
 
@@ -393,11 +393,11 @@ function getStyles(theme: NativeTheme) {
 
   icon: { width: 46, height: 46, borderRadius: 14, alignItems: "center", justifyContent: "center", marginTop: 1, flexShrink: 0, borderWidth: 1 },
 
-  content: { flex: 1, gap: 5 },
+  content: { flex: 1, minWidth: 0, gap: 5 },
 
   titleRow: { alignItems: "center", justifyContent: "space-between", gap: 8 },
 
-  title: { flex: 1, fontSize: 13.5, fontFamily: legacyTheme.fonts.bold, color: theme.colors.text.secondary, includeFontPadding: false },
+  title: { flex: 1, minWidth: 0, fontSize: 13.5, fontFamily: legacyTheme.fonts.bold, color: theme.colors.text.secondary, includeFontPadding: false },
 
   titleU: { fontFamily: legacyTheme.fonts.black, color: theme.colors.text.primary },
 

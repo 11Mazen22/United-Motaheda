@@ -72,8 +72,10 @@ import { Button } from "@pharmacy/ui-native";
 
 import { Text } from "@pharmacy/ui-native";
 
-import { flexRow, isRtl, textAlignStart, BACK_CHEVRON } from "@/utils/layout";
+import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
 import { formatPrice } from "@/utils/format";
+
+import { PrescriptionsHeader } from "@/features/prescriptions/components/PrescriptionsHeader";
 
 import { useAuth } from "@/features/auth";
 
@@ -430,6 +432,8 @@ const { t, i18n } = useTranslation();
         deletePending={remove.isPending}
 
         savePending={update.isPending}
+
+        rx={rx}
 
       />
 
@@ -993,200 +997,150 @@ interface HeaderProps {
 
   savePending?:   boolean;
 
+  rx?:            { name: string } | undefined;
+
 }
 
 
 
 function Header({
 
-  insets, onBack, isEditing, onEdit, onDelete, onSave, onCancel, deletePending, savePending,
+  insets, onBack, isEditing, onEdit, onDelete, onSave, onCancel, deletePending, savePending, rx,
 
 }: HeaderProps) {
 
-  
-  const { theme } = useTheme();
-  const s = React.useMemo(() => get_s(theme), [theme]);
-const { t } = useTranslation();
+  const { t } = useTranslation();
 
   const showActions = !!(onEdit && onDelete && onSave && onCancel);
 
-  return (
-
-    <View style={[s.header, { paddingTop: insets.top + 12 }]}>
-
-      <View style={s.headerRow}>
-
-        <Pressable
-
-          onPress={onBack}
-
-          hitSlop={10}
-
-          accessibilityRole="button"
-
-          accessibilityLabel={t("common.back")}
-
-          style={s.backBtnTouchable}>
-
-          {({ pressed }) => (
-
-            <View style={[s.backBtn, pressed && s.backBtnPressed]}>
-
-              <Ionicons name={BACK_CHEVRON} size={20} color={theme.colors.text.primary} />
-
-            </View>
-
-          )}
-
-        </Pressable>
-
-
-
-        <View style={[s.headerTrailingCluster, { flexDirection: flexRow(IS_RTL) }]}>
-
-          {showActions && (
-
-            isEditing ? (
-
-              <>
-
-                <Pressable
-
-                  onPress={onCancel}
-
-                  hitSlop={10}
-
-                  disabled={savePending}
-
-                  accessibilityRole="button"
-
-                  accessibilityLabel={t("common.cancel")}
-
-                  style={s.iconBtnTouchable}>
-
-                  {({ pressed }) => (
-
-                    <View style={[s.iconBtn, pressed && s.iconBtnPressed, savePending && s.iconBtnDisabled]}>
-
-                      <Ionicons name="close-outline" size={20} color={theme.colors.text.primary} />
-
-                    </View>
-
-                  )}
-
-                </Pressable>
-
-                <Pressable
-
-                  onPress={onSave}
-
-                  hitSlop={10}
-
-                  disabled={savePending}
-
-                  accessibilityRole="button"
-
-                  accessibilityLabel={t("prescriptions.editSaveCta")}
-
-                  style={s.iconBtnTouchable}>
-
-                  {({ pressed }) => (
-
-                    <View style={[s.iconBtn, s.iconBtnAccent, pressed && s.iconBtnPressed, savePending && s.iconBtnDisabled]}>
-
-                      <Ionicons name="checkmark-outline" size={20} color={theme.colors.brand.primary} />
-
-                    </View>
-
-                  )}
-
-                </Pressable>
-
-              </>
-
-            ) : (
-
-              <>
-
-                <Pressable
-
-                  onPress={onEdit}
-
-                  hitSlop={10}
-
-                  accessibilityRole="button"
-
-                  accessibilityLabel={t("prescriptions.menuEdit")}
-
-                  style={s.iconBtnTouchable}>
-
-                  {({ pressed }) => (
-
-                    <View style={[s.iconBtn, pressed && s.iconBtnPressed]}>
-
-                      <Ionicons name="pencil-outline" size={18} color={theme.colors.text.primary} />
-
-                    </View>
-
-                  )}
-
-                </Pressable>
-
-                <Pressable
-
-                  onPress={onDelete}
-
-                  hitSlop={10}
-
-                  disabled={deletePending}
-
-                  accessibilityRole="button"
-
-                  accessibilityLabel={t("prescriptions.menuDelete")}
-
-                  style={s.iconBtnTouchable}>
-
-                  {({ pressed }) => (
-
-                    <View style={[s.iconBtn, pressed && s.iconBtnPressed, deletePending && s.iconBtnDisabled]}>
-
-                      <Ionicons name="trash-outline" size={18} color={theme.colors.status.error} />
-
-                    </View>
-
-                  )}
-
-                </Pressable>
-
-              </>
-
-            )
-
-          )}
-
-
-
-          <View style={s.secureBadge}>
-
-            <Ionicons name="shield-checkmark" size={12} color={theme.colors.status.success} />
-
-            <Text weight="black" style={s.secureText}>
-
-              {t("prescriptions.secure")}
-
-            </Text>
-
-          </View>
-
-        </View>
-
+  const trailing = (
+    <View style={[headerX.trailingCluster, { flexDirection: flexRow(IS_RTL) }]}>
+      {showActions && (
+        isEditing ? (
+          <>
+            <Pressable
+              onPress={onCancel}
+              hitSlop={10}
+              disabled={savePending}
+              accessibilityRole="button"
+              accessibilityLabel={t("common.cancel")}
+              style={headerX.iconBtnTouchable}>
+              {({ pressed }) => (
+                <View style={[headerX.iconBtn, pressed && headerX.iconBtnPressed, savePending && headerX.iconBtnDisabled]}>
+                  <Ionicons name="close-outline" size={20} color="#fff" />
+                </View>
+              )}
+            </Pressable>
+            <Pressable
+              onPress={onSave}
+              hitSlop={10}
+              disabled={savePending}
+              accessibilityRole="button"
+              accessibilityLabel={t("prescriptions.editSaveCta")}
+              style={headerX.iconBtnTouchable}>
+              {({ pressed }) => (
+                <View style={[headerX.iconBtn, headerX.iconBtnAccent, pressed && headerX.iconBtnPressed, savePending && headerX.iconBtnDisabled]}>
+                  <Ionicons name="checkmark-outline" size={20} color="#fff" />
+                </View>
+              )}
+            </Pressable>
+          </>
+        ) : (
+          <>
+            <Pressable
+              onPress={onEdit}
+              hitSlop={10}
+              accessibilityRole="button"
+              accessibilityLabel={t("prescriptions.menuEdit")}
+              style={headerX.iconBtnTouchable}>
+              {({ pressed }) => (
+                <View style={[headerX.iconBtn, pressed && headerX.iconBtnPressed]}>
+                  <Ionicons name="pencil-outline" size={18} color="#fff" />
+                </View>
+              )}
+            </Pressable>
+            <Pressable
+              onPress={onDelete}
+              hitSlop={10}
+              disabled={deletePending}
+              accessibilityRole="button"
+              accessibilityLabel={t("prescriptions.menuDelete")}
+              style={headerX.iconBtnTouchable}>
+              {({ pressed }) => (
+                <View style={[headerX.iconBtn, pressed && headerX.iconBtnPressed, deletePending && headerX.iconBtnDisabled]}>
+                  <Ionicons name="trash-outline" size={18} color="#FCA5A5" />
+                </View>
+              )}
+            </Pressable>
+          </>
+        )
+      )}
+
+      <View style={headerX.secureBadge}>
+        <Ionicons name="shield-checkmark" size={12} color="#fff" />
+        <Text weight="black" style={headerX.secureText}>
+          {t("prescriptions.secure")}
+        </Text>
       </View>
-
     </View>
-
   );
 
+  return (
+    <PrescriptionsHeader
+      insetsTop={insets.top}
+      icon="medkit"
+      eyebrow={t("prescriptions.headerEyebrow")}
+      title={rx?.name ?? t("prescriptions.listEyebrow")}
+      onBack={onBack}
+      trailing={trailing}
+    />
+  );
 }
+
+const headerX = StyleSheet.create({
+  trailingCluster: {
+    alignItems: "center",
+    gap:        8,
+  },
+  iconBtnTouchable: {
+    borderRadius: 12,
+  },
+  iconBtn: {
+    width:           36,
+    height:          36,
+    borderRadius:    12,
+    backgroundColor: "rgba(255,255,255,0.16)",
+    alignItems:      "center",
+    justifyContent:  "center",
+  },
+  iconBtnAccent: {
+    backgroundColor: "rgba(255,255,255,0.28)",
+  },
+  iconBtnPressed: {
+    opacity:   0.75,
+    transform: [{ scale: 0.96 }],
+  },
+  iconBtnDisabled: {
+    opacity: 0.45,
+  },
+  secureBadge: {
+    flexDirection:     flexRow(IS_RTL),
+    alignItems:        "center",
+    gap:               6,
+    backgroundColor:   "rgba(255,255,255,0.16)",
+    borderRadius:      9999,
+    paddingHorizontal: 12,
+    paddingVertical:   7,
+  },
+  secureText: {
+    fontSize:           11,
+    lineHeight:         15,
+    letterSpacing:      0.5,
+    textTransform:      "uppercase",
+    color:              "#fff",
+    includeFontPadding: false,
+  },
+});
 
 
 

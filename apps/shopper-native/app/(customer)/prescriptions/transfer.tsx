@@ -12,11 +12,13 @@ import { useTranslation } from "react-i18next";
 
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import Animated, { FadeInDown } from "react-native-reanimated";
+
 import { CustomerUI } from "@pharmacy/ui-native";
 
 import { Text } from "@pharmacy/ui-native";
 
-import { flexRow, isRtl, textAlignStart, BACK_CHEVRON } from "@/utils/layout";
+import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
 
 import { useAuth } from "@/features/auth";
 
@@ -25,6 +27,8 @@ import { usePrescriptionMutations } from "@/features/prescriptions";
 import { useBranches } from "@/features/delivery/branches/useBranches";
 
 import { showSuccessSheet, showErrorSheet } from "@/shared/store/appSheetStore";
+
+import { PrescriptionsHeader } from "@/features/prescriptions/components/PrescriptionsHeader";
 
 
 
@@ -94,37 +98,13 @@ export default function Page(): React.ReactElement {
 
   return (
     <View style={s.screen}>
-      <View style={[s.header, { paddingTop: insets.top + 12 }]}>
-        <View style={s.navRow}>
-          <Pressable
-            onPress={() => router.back()}
-            hitSlop={10}
-            accessibilityRole="button"
-            accessibilityLabel={t("common.back")}
-            style={s.backBtnTouchable}>
-            {({ pressed }) => (
-              <View style={[s.backBtn, pressed && s.backBtnPressed]}>
-                <Ionicons name={BACK_CHEVRON} size={20} color={theme.colors.text.primary} />
-              </View>
-            )}
-          </Pressable>
-          <View style={{ flex: 1 }} />
-        </View>
-
-        <View style={s.identityRow}>
-          <View style={s.heroTile}>
-            <Ionicons name="swap-horizontal-outline" size={24} color="#7C3AED" />
-          </View>
-          <View style={s.identityText}>
-            <Text weight="bold" style={s.eyebrow}>
-              {t("prescriptions.transfer")}
-            </Text>
-            <Text weight="black" style={s.title}>
-              {t("prescriptions.transferTitle")}
-            </Text>
-          </View>
-        </View>
-      </View>
+      <PrescriptionsHeader
+        insetsTop={insets.top}
+        icon="swap-horizontal-outline"
+        eyebrow={t("prescriptions.transfer")}
+        title={t("prescriptions.transferTitle")}
+        onBack={() => router.back()}
+      />
 
       <ScrollView
         style={s.scroll}
@@ -142,39 +122,40 @@ export default function Page(): React.ReactElement {
         </Text>
 
         <View style={s.branchList}>
-          {receivingBranches.map((b) => {
+          {receivingBranches.map((b, i) => {
             const selected = b.id === branchId;
             return (
-              <Pressable
-                key={b.id}
-                onPress={() => { setBranchId(b.id); setError(null); }}
-                accessibilityRole="radio"
-                accessibilityState={{ selected }}
-                style={s.branchTouchable}>
-                {({ pressed }) => (
-                  <View style={[
-                    s.branchRow,
-                    selected && s.branchRowSelected,
-                    pressed && s.branchRowPressed,
-                  ]}>
-                    <View style={[s.branchIconWell, selected && { backgroundColor: theme.colors.brand.primaryLight }]}>
-                      <Ionicons
-                        name={selected ? "checkmark-circle" : "storefront-outline"}
-                        size={20}
-                        color={selected ? theme.colors.brand.primary : theme.colors.text.secondary}
-                      />
+              <Animated.View key={b.id} entering={FadeInDown.duration(320).delay(Math.min(i, 6) * 45).springify()}>
+                <Pressable
+                  onPress={() => { setBranchId(b.id); setError(null); }}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected }}
+                  style={s.branchTouchable}>
+                  {({ pressed }) => (
+                    <View style={[
+                      s.branchRow,
+                      selected && s.branchRowSelected,
+                      pressed && s.branchRowPressed,
+                    ]}>
+                      <View style={[s.branchIconWell, selected && { backgroundColor: theme.colors.brand.primaryLight }]}>
+                        <Ionicons
+                          name={selected ? "checkmark-circle" : "storefront-outline"}
+                          size={20}
+                          color={selected ? theme.colors.brand.primary : theme.colors.text.secondary}
+                        />
+                      </View>
+                      <View style={s.branchText}>
+                        <Text weight="black" style={s.branchName} numberOfLines={1}>
+                          {branchName(b, i18n.language)}
+                        </Text>
+                        <Text style={s.branchAddress} numberOfLines={1}>
+                          {i18n.language === "en" ? (b.addressEn || b.area) : (b.addressAr || b.area)}
+                        </Text>
+                      </View>
                     </View>
-                    <View style={s.branchText}>
-                      <Text weight="black" style={s.branchName} numberOfLines={1}>
-                        {branchName(b, i18n.language)}
-                      </Text>
-                      <Text style={s.branchAddress} numberOfLines={1}>
-                        {i18n.language === "en" ? (b.addressEn || b.area) : (b.addressAr || b.area)}
-                      </Text>
-                    </View>
-                  </View>
-                )}
-              </Pressable>
+                  )}
+                </Pressable>
+              </Animated.View>
             );
           })}
         </View>

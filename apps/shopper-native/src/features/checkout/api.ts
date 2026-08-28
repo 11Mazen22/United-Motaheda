@@ -27,6 +27,14 @@ import type {
 const EDGE_FUNCTION_NAME = "create-order";
 const TIMEOUT_MS = 20_000;
 
+// Small helper — pick Arabic or English based on lang. Same idiom as
+// features/auth/errorMap.ts's getAuthError: this file lives outside React
+// (no useTranslation()), and these CheckoutRequestError messages render
+// directly in the checkout UI, so they need to follow the active locale
+// instead of always coming back in Arabic regardless of language.
+const bi = (lang: "ar" | "en", ar: string, en: string): string =>
+  lang === "en" ? en : ar;
+
 interface EdgeFunctionResponse {
   order: {
     id: string;
@@ -55,7 +63,7 @@ interface EdgeFunctionResponse {
  * idempotency.
  */
 
-async function ensureUserProfile(command: CheckoutSubmitCommand): Promise<void> {
+async function ensureUserProfile(command: CheckoutSubmitCommand, lang: "ar" | "en"): Promise<void> {
   const { userId, email, fullName, phone } = command.customer;
   if (!userId) return;
 
@@ -108,7 +116,7 @@ async function ensureUserProfile(command: CheckoutSubmitCommand): Promise<void> 
         userId: userId 
       });
       throw new CheckoutRequestError(
-        "تعذّر تهيئة ملفك الشخصي. حاول مجدداً أو تواصل مع الدعم.",
+        bi(lang, "تعذّر تهيئة ملفك الشخصي. حاول مجدداً أو تواصل مع الدعم.", "Couldn't set up your profile. Please try again or contact support."),
         [], false, "AUTH", false,
       );
     }
@@ -139,6 +147,7 @@ function isNetworkErrorMessage(message: string | undefined): boolean {
 
 export function createCheckoutOrder(
   command: CheckoutSubmitCommand,
+  lang: "ar" | "en" = "ar",
 ): Promise<CreateOrderResult> {
   // Two layers of protection against duplicate submissions:
   //   1. withDeduplication — collapses concurrent calls with the same key
@@ -146,7 +155,7 @@ export function createCheckoutOrder(
   return withRetry(
     () => withDeduplication(
       `checkout:${command.idempotencyKey}`,
-      () => _createCheckoutOrder(command),
+      () => _createCheckoutOrder(command, lang),
     ),
     { maxAttempts: 3, baseDelayMs: 1_000, maxDelayMs: 8_000, jitter: 0.3 },
   );
@@ -154,8 +163,9 @@ export function createCheckoutOrder(
 
 async function _createCheckoutOrder(
   command: CheckoutSubmitCommand,
+  lang: "ar" | "en",
 ): Promise<CreateOrderResult> {
-  await ensureUserProfile(command);
+  await ensureUserProfile(command, lang);
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
@@ -174,7 +184,7 @@ async function _createCheckoutOrder(
     if (error) {
       if (error instanceof FunctionsHttpError) {
         const httpStatus = error.context?.status as number | undefined;
-        let message = "تعذر إرسال الطلب حالياً.";
+        let message = bi(lang, "تعذر إرسال الطلب حالياً.", "Couldn't submit the order right now.");
         let conflicts: CreateOrderResult["conflicts"] = [];
         try {
           const body = (await error.context?.json?.()) as { error?: string; conflicts?: CreateOrderResult["conflicts"] } | null;
@@ -184,42 +194,42 @@ async function _createCheckoutOrder(
 
         if (httpStatus === 401 || httpStatus === 403) {
           throw new CheckoutRequestError(
-            "انتهت صلاحية جلستك. يرجى تسجيل الدخول مرة أخرى.",
+            bi(lang, "انتهت صلاحية جلستك. يرجى تسجيل الدخول مرة أخرى.", "Your session has expired. Please sign in again."),
             [], false, "AUTH", false,
           );
         }
 
         if (message === "order_commit_failed") {
           throw new CheckoutRequestError(
-            "عذراً، بعض العناصر في سلتك لم تعد متوفرة. يرجى مراجعة السلة والمحاولة مرة أخرى.",
+            bi(lang, "عذراً، بعض العناصر في سلتك لم تعد متوفرة. يرجى مراجعة السلة والمحاولة مرة أخرى.", "Sorry, some items in your cart are no longer available. Please review your cart and try again."),
             [], false, "RESERVATION_EXPIRED", false,
           );
         }
 
         if (message === "cart_changed") {
           throw new CheckoutRequestError(
-            "تغيّرت أسعار أو توفر بعض العناصر في سلتك. راجع السلة قبل المتابعة.",
+            bi(lang, "تغيّرت أسعار أو توفر بعض العناصر في سلتك. راجع السلة قبل المتابعة.", "Prices or availability changed for some items in your cart. Please review your cart before continuing."),
             conflicts, true, "CONFLICT", false,
           );
         }
 
         if (message === "prescription_required" || message === "prescription_not_approved") {
           throw new CheckoutRequestError(
-            "هذا الطلب يحتوي على أدوية تستلزم روشتة معتمدة من الصيدلي.",
+            bi(lang, "هذا الطلب يحتوي على أدوية تستلزم روشتة معتمدة من الصيدلي.", "This order contains medication that requires a pharmacist-approved prescription."),
             [], false, "CONFLICT", false,
           );
         }
 
         if (message === "address_not_deliverable") {
           throw new CheckoutRequestError(
-            "عذراً، هذا العنوان خارج نطاق التوصيل الحالي.",
+            bi(lang, "عذراً، هذا العنوان خارج نطاق التوصيل الحالي.", "Sorry, this address is outside our current delivery range."),
             [], false, "CONFLICT", false,
           );
         }
 
         if (message === "location_required") {
           throw new CheckoutRequestError(
-            "يرجى تحديد موقع دقيق (GPS) للعنوان قبل إتمام الطلب.",
+            bi(lang, "يرجى تحديد موقع دقيق (GPS) للعنوان قبل إتمام الطلب.", "Please set a precise (GPS) location for the address before placing the order."),
             [], false, "CONFLICT", false,
           );
         }
@@ -229,27 +239,27 @@ async function _createCheckoutOrder(
 
       if (error instanceof FunctionsRelayError) {
         throw new CheckoutRequestError(
-          "تعذر الوصول إلى خدمة الطلبات. تحقق من اتصالك بالإنترنت.",
+          bi(lang, "تعذر الوصول إلى خدمة الطلبات. تحقق من اتصالك بالإنترنت.", "Couldn't reach the order service. Check your internet connection."),
           [], false, "NETWORK", true,
         );
       }
 
       if (error instanceof FunctionsFetchError) {
         throw new CheckoutRequestError(
-          "تعذر الوصول إلى خدمة الطلبات. تحقق من اتصالك بالإنترنت.",
+          bi(lang, "تعذر الوصول إلى خدمة الطلبات. تحقق من اتصالك بالإنترنت.", "Couldn't reach the order service. Check your internet connection."),
           [], false, "NETWORK", true,
         );
       }
 
       throw new CheckoutRequestError(
-        (error as { message?: string }).message ?? "تعذر إرسال الطلب حالياً.",
+        (error as { message?: string }).message ?? bi(lang, "تعذر إرسال الطلب حالياً.", "Couldn't submit the order right now."),
         [], false, "FUNCTION_ERROR", false,
       );
     }
 
     if (!data?.order?.id || !data?.order?.created_at) {
       throw new CheckoutRequestError(
-        "استجابة غير مكتملة من خدمة الطلبات. حاول مجدداً.",
+        bi(lang, "استجابة غير مكتملة من خدمة الطلبات. حاول مجدداً.", "Incomplete response from the order service. Please try again."),
         [], false, "BAD_RESPONSE", false,
       );
     }
@@ -270,20 +280,20 @@ async function _createCheckoutOrder(
 
     if (error instanceof Error && (error.name === "AbortError" || error.message === "Aborted")) {
       throw new CheckoutRequestError(
-        "انتهت مهلة الاتصال. تحقق من اتصالك وأعد المحاولة.",
+        bi(lang, "انتهت مهلة الاتصال. تحقق من اتصالك وأعد المحاولة.", "The connection timed out. Check your connection and try again."),
         [], false, "TIMEOUT", true,
       );
     }
 
     if (error instanceof TypeError && isNetworkErrorMessage((error as Error).message)) {
       throw new CheckoutRequestError(
-        "تعذر الوصول إلى خدمة الطلبات. تحقق من اتصالك بالإنترنت.",
+        bi(lang, "تعذر الوصول إلى خدمة الطلبات. تحقق من اتصالك بالإنترنت.", "Couldn't reach the order service. Check your internet connection."),
         [], false, "NETWORK", true,
       );
     }
 
     throw new CheckoutRequestError(
-      error instanceof Error ? error.message : "تعذر إرسال الطلب حالياً.",
+      error instanceof Error ? error.message : bi(lang, "تعذر إرسال الطلب حالياً.", "Couldn't submit the order right now."),
       [], false, "UNKNOWN", false,
     );
   }

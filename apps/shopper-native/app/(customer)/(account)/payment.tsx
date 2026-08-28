@@ -130,7 +130,7 @@ export default function PaymentScreen() {
 
 
 
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, minWidth: 0 }}>
 
           <UIText style={s.headerTitle}>{t("payment.title")}</UIText>
 
@@ -160,7 +160,7 @@ export default function PaymentScreen() {
 
           </View>
 
-          <View style={{ flex: 1, gap: 3 }}>
+          <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
 
             <UIText style={[s.currentLabel, { textAlign: TEXT_START }]}>{t("payment.savedTitle")}</UIText>
 
@@ -529,6 +529,8 @@ const getStyles = (theme: NativeTheme) => StyleSheet.create({
   trustItem: {
 
     flex:        1,
+
+    minWidth:    0,
 
     alignItems:  "center",
 

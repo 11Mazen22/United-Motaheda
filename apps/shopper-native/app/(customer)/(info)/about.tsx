@@ -44,11 +44,11 @@ function ContactRow({ icon, label, value, color, onPress, theme, styles: a }: { 
 
     {({ pressed }) => <View style={[a.row, { flexDirection: flexRow(RTL) }, pressed && a.rowP]}>
 
-      <View style={{ flexDirection: flexRow(RTL), alignItems: "center", gap: 12, flex: 1 }}>
+      <View style={{ flexDirection: flexRow(RTL), alignItems: "center", gap: 12, flex: 1, minWidth: 0 }}>
 
         <View style={[a.icon, { backgroundColor: `${color}14` }]}><Ionicons name={icon} size={20} color={color} /></View>
 
-        <View style={{ gap: 2 }}>
+        <View style={{ gap: 2, flexShrink: 1, minWidth: 0 }}>
 
           <UIText style={[a.lbl, { textAlign: TA }]}>{label}</UIText>
 
@@ -110,7 +110,7 @@ export default function AboutScreen() {
 
         <View style={a.tile}><Ionicons name="information-circle-outline" size={22} color={theme.colors.brand.primary} /></View>
 
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, minWidth: 0 }}>
 
           <UIText style={[a.hTitle, { textAlign: TA }]}>{t("about.title")}</UIText>
 
