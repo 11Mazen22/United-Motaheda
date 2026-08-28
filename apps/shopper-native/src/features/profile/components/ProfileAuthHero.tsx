@@ -41,6 +41,8 @@ import { Image } from "expo-image";
 
 import { Ionicons } from "@expo/vector-icons";
 
+import { displayNameFromEmail } from "@/utils/displayName";
+
 import Animated, {
 
   useAnimatedStyle,
@@ -365,23 +367,6 @@ function getQuickActions(theme: NativeTheme) {
 }
 
 
-
-// Accounts created without a display name (e.g. straight email sign-up)
-// otherwise showed a generic "User" label right next to an avatar that
-// already smartly derives its own initial from the email — inconsistent,
-// and reads as broken rather than just "no name set yet". Derive something
-// real from the email's local part instead ("edrakmaze@..." -> "Edrakmaze").
-function displayNameFromEmail(email: string | null | undefined): string | null {
-  const local = email?.split("@")[0];
-  if (!local) return null;
-  return local
-    .replace(/[._-]+/g, " ")
-    .trim()
-    .split(" ")
-    .filter(Boolean)
-    .map((w) => w[0].toUpperCase() + w.slice(1))
-    .join(" ") || null;
-}
 
 // ─── ProfileAuthHero ──────────────────────────────────────────────────────────
 

@@ -32,6 +32,7 @@ import { useAuth } from "@/features/auth";
 import { useUnreadCount } from "@/features/notifications";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
 import { formatPrice } from "@/utils/format";
+import { displayNameFromEmail } from "@/utils/displayName";
 import MetricCard from "@/components/MetricCard";
 import { OrderCardNew } from "../components/OrderCardNew";
 import { useDriverManifest, useDriverOffers, useMyAcceptanceRate, driverQueryKeys } from "../hooks/useDriverManifest";
@@ -78,6 +79,7 @@ export function DriverManifest(): React.ReactElement {
     offerCount: { position: "absolute", top: -6, end: -6, minWidth: 20, height: 20, borderRadius: 10, backgroundColor: theme.colors.status.error, alignItems: "center", justifyContent: "center", paddingHorizontal: 4 },
     offerCountText: { color: "#fff", fontSize: 11, fontFamily: legacyTheme.fonts.black },
     metricsRow: { flexDirection: flexRow(IS_RTL), gap: 8, paddingHorizontal: kit.inset.screen, marginTop: 16 },
+    metricCard: { flex: 1, minWidth: 0 },
     sectionHeaderRow: { flexDirection: flexRow(IS_RTL), alignItems: "center", justifyContent: "space-between", paddingHorizontal: kit.inset.screen, marginTop: 20, marginBottom: 8 },
     smallRefresh: { padding: 8 },
     spotlightCard: { marginHorizontal: kit.inset.screen, gap: 10 },
@@ -152,7 +154,7 @@ export function DriverManifest(): React.ReactElement {
           <View style={s.heroTopRow}>
             <View style={{ flex: 1 }}>
               <UIText variant="eyebrow" style={{ color: "#FFFFFF" }}>{t("driver.eyebrow")}</UIText>
-              <UIText style={s.heroTitle}>{t("driver.greeting", { name: user?.name ?? "" })}</UIText>
+              <UIText style={s.heroTitle}>{t("driver.greeting", { name: user?.name ?? displayNameFromEmail(user?.email) ?? "" })}</UIText>
             </View>
             <View style={s.headerActions}>
               <Pressable onPress={() => router.push("/driver-notifications" as never)} style={s.headerAction} accessibilityRole="button" accessibilityLabel={t("notifications.title")}>
@@ -195,9 +197,9 @@ export function DriverManifest(): React.ReactElement {
         </View>
 
         <View style={s.metricsRow}>
-          <MetricCard label={t("driver.todayEarnings")} value={formatPrice(todayEarnings)} compact icon={<Ionicons name="cash-outline" size={16} color={theme.colors.brand.primary} />} />
-          <MetricCard label={t("driver.completed")} value={orders.filter((o) => o.status === "delivered").length} compact icon={<Ionicons name="checkmark-done-outline" size={16} color={theme.colors.status.success} />} />
-          <MetricCard label={t("driver.acceptanceRate")} value={acceptanceRateQuery.data != null ? `${acceptanceRateQuery.data}%` : "—"} compact icon={<Ionicons name="trending-up-outline" size={16} color={theme.colors.status.info} />} />
+          <MetricCard style={s.metricCard} label={t("driver.todayEarnings")} value={formatPrice(todayEarnings)} compact icon={<Ionicons name="cash-outline" size={16} color={theme.colors.brand.primary} />} />
+          <MetricCard style={s.metricCard} label={t("driver.completed")} value={orders.filter((o) => o.status === "delivered").length} compact icon={<Ionicons name="checkmark-done-outline" size={16} color={theme.colors.status.success} />} />
+          <MetricCard style={s.metricCard} label={t("driver.acceptanceRate")} value={acceptanceRateQuery.data != null ? `${acceptanceRateQuery.data}%` : "—"} compact icon={<Ionicons name="trending-up-outline" size={16} color={theme.colors.status.info} />} />
         </View>
 
         <DailyGoalBar earnings={todayEarnings} theme={theme} t={t} />

@@ -16,9 +16,9 @@ export default function MetricCard({ label, value, icon, compact, inverse, accen
     <Card style={wrapStyle} elevation="sm">
       <View style={s.inner}>
         <View style={[s.icon, compact && s.iconCompact]}>{icon}</View>
-        <View style={{ flex: 1 }}>
-          <UIText variant="caption" style={inverse ? { color: "rgba(255,255,255,0.72)" } : undefined} color={inverse ? undefined : "secondary"}>{label}</UIText>
-          <UIText variant="card-title" style={valueStyle}>{value}</UIText>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <UIText variant="caption" numberOfLines={1} style={inverse ? { color: "rgba(255,255,255,0.72)" } : undefined} color={inverse ? undefined : "secondary"}>{label}</UIText>
+          <UIText variant="card-title" numberOfLines={1} style={valueStyle}>{value}</UIText>
         </View>
       </View>
     </Card>
