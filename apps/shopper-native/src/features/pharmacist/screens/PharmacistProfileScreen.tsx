@@ -17,6 +17,7 @@ import { useQuery } from "@tanstack/react-query";
 import { gradients } from "@pharmacy/design-tokens";
 
 import { Screen, Text as UIText, useTheme, kit, type NativeTheme } from "@pharmacy/ui-native";
+import { fmtN } from "@/utils/format";
 
 import { useAuth } from "@/features/auth";
 import { useAppLanguage } from "@/i18n/LanguageProvider";
@@ -178,7 +179,7 @@ export function PharmacistProfileScreen(): React.ReactElement {
             <UIText variant="body-sm" style={{ flex: 1, minWidth: 0, textAlign: TEXT_START }} numberOfLines={1}>
               {t("pharmacist.statLowStock")}
             </UIText>
-            <UIText style={styles.statValue}>{statsQ.data?.lowStockCount ?? 0}</UIText>
+            <UIText style={styles.statValue}>{fmtN(statsQ.data?.lowStockCount ?? 0)}</UIText>
           </View>
         </View>
 

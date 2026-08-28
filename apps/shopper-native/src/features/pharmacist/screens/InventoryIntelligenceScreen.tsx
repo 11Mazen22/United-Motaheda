@@ -41,7 +41,7 @@ import { Screen, Text as UIText, EmptyState, useTheme, type NativeTheme } from "
 
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
 import { useScreenLayout } from "@/utils/responsive";
-import { formatPrice } from "@/utils/format";
+import { formatPrice, fmtN } from "@/utils/format";
 
 import {
   useLowStockProducts,
@@ -252,11 +252,11 @@ export function InventoryIntelligenceScreen(): React.ReactElement {
         </View>
         <View style={[styles.heroStatRow, { flexDirection: flexRow(IS_RTL) }]}>
           <View style={styles.heroStat}>
-            <UIText style={styles.heroStatValue}>{lowStockCount}</UIText>
+            <UIText style={styles.heroStatValue}>{fmtN(lowStockCount)}</UIText>
             <UIText style={styles.heroStatLabel} numberOfLines={1}>{t("pharmacist.modeLowStock")}</UIText>
           </View>
           <View style={styles.heroStat}>
-            <UIText style={styles.heroStatValue}>{outOfStockCount}</UIText>
+            <UIText style={styles.heroStatValue}>{fmtN(outOfStockCount)}</UIText>
             <UIText style={styles.heroStatLabel} numberOfLines={1}>{t("pharmacist.modeOutOfStock", "Out of Stock")}</UIText>
           </View>
         </View>

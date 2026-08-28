@@ -35,7 +35,7 @@ import { Screen, Text as UIText, useTheme, kit } from "@pharmacy/ui-native";
 
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
 import { useScreenLayout } from "@/utils/responsive";
-import { formatPrice } from "@/utils/format";
+import { formatPrice, fmtN } from "@/utils/format";
 
 import { usePharmacistDashboard, usePharmacistOrderQueue, usePrescriptionStatusCounts, useTodayOrdersForAnalytics } from "../hooks/usePharmacistQueries";
 import { pharmacistQueryKeys } from "../hooks/queryKeys";
@@ -414,7 +414,7 @@ export function AnalyticsDashboardScreen(): React.ReactElement {
           >
             <MetricRow
               label={t("pharmacist.statLowStock")}
-              value={stats?.lowStockCount ?? 0}
+              value={fmtN(stats?.lowStockCount ?? 0)}
               icon="alert-circle-outline"
               iconColor={theme.colors.status.error}
               iconBg={`${theme.colors.status.error}1A`}
