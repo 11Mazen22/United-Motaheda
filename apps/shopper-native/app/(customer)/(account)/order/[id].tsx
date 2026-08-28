@@ -157,7 +157,7 @@ export default function OrderDetailScreen(): React.ReactElement {
     <View style={[styles.screen, { paddingTop: insets.top }]}>
       <Animated.View entering={FadeIn.duration(240)} style={styles.header}>
         <HeaderBackButton onPress={() => router.back()} />
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, minWidth: 0 }}>
           <UIText variant="eyebrow" color="tertiary" style={styles.headerEyebrow}>
             {t("orders.orderDetail")}
           </UIText>
@@ -270,14 +270,14 @@ export default function OrderDetailScreen(): React.ReactElement {
                         <Ionicons name="medkit-outline" size={22} color={theme.colors.text.muted} />
                       </View>
                     )}
-                    <View style={{ flex: 1 }}>
+                    <View style={{ flex: 1, minWidth: 0 }}>
                       <UIText variant="body-sm" weight="bold" style={styles.itemTitle} numberOfLines={2}>
                         {item.name || t("orders.noItems")}
                       </UIText>
                       <View style={styles.itemMeta}>
                         <UIText variant="caption" color="secondary">{t("orders.qty", { count: item.quantity })}</UIText>
                         <UIText variant="caption" weight="bold" style={[styles.itemPrice, { color: theme.colors.brand.primary }]}>
-                          {formatPrice(item.price)}
+                          {formatPrice(item.price, language)}
                         </UIText>
                       </View>
                     </View>
@@ -313,7 +313,7 @@ export default function OrderDetailScreen(): React.ReactElement {
             <View style={styles.paymentIconBox}>
               <Ionicons name={pmMeta.icon} size={20} color={pmMeta.color} />
             </View>
-            <View style={{ flex: 1 }}>
+            <View style={{ flex: 1, minWidth: 0 }}>
               <UIText variant="body-sm" weight="bold" style={{ color: pmMeta.color, textAlign: TEXT_START }}>
                 {t(pmMeta.labelKey)}
               </UIText>
@@ -349,17 +349,17 @@ export default function OrderDetailScreen(): React.ReactElement {
         </DetailSection>
 
         <DetailSection title={t("orders.priceSection")} icon="receipt-outline" delay={300}>
-          <InfoRow label={t("checkout.subtotalRow", { count: order.items.length })} value={formatPrice(order.subtotal)} />
+          <InfoRow label={t("checkout.subtotalRow", { count: order.items.length })} value={formatPrice(order.subtotal, language)} />
           <View style={styles.priceDivider} />
           <InfoRow
             label={t("checkout.deliveryRow")}
-            value={order.delivery === 0 ? t("common.free") : formatPrice(order.delivery)}
+            value={order.delivery === 0 ? t("common.free") : formatPrice(order.delivery, language)}
             valueColor={order.delivery === 0 ? theme.colors.status.success : undefined}
           />
           {(order.discountTotal ?? 0) > 0 && (
             <InfoRow
               label={t("checkout.discountRow")}
-              value={`−${formatPrice(order.discountTotal ?? 0)}`}
+              value={`−${formatPrice(order.discountTotal ?? 0, language)}`}
               valueColor={theme.colors.status.success}
             />
           )}
@@ -372,7 +372,7 @@ export default function OrderDetailScreen(): React.ReactElement {
               variant="card-title"
               weight="black"
               style={[styles.totalValueText, { color: theme.colors.text.primary, letterSpacing: -0.4 }]}>
-              {formatPrice(order.total)}
+              {formatPrice(order.total, language)}
             </UIText>
           </View>
         </DetailSection>
