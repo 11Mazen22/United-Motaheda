@@ -9,16 +9,18 @@
 import React, { useCallback, useState } from "react";
 import { FlatList, Linking, Pressable, RefreshControl, StyleSheet, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { useTranslation } from "react-i18next";
+import { gradients } from "@pharmacy/design-tokens";
 
 import { Screen, Text as UIText, Chip, Input, Button, EmptyState, ErrorState, SkeletonCard, useTheme } from "@pharmacy/ui-native";
 
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
+import { useScreenLayout } from "@/utils/responsive";
 import { formatPrice } from "@/utils/format";
 import { showErrorSheet, showSuccessSheet } from "@/shared/store/appSheetStore";
 import { usePharmacistRefills } from "../hooks/usePharmacistQueries";
 import { usePharmacistMutations } from "../hooks/usePharmacistMutations";
-import { PharmacistScreenHeader } from "../components/PharmacistScreenHeader";
 import type { PharmacistRefillRequest, RefillRequestStatus } from "../api/types";
 
 const IS_RTL = isRtl();
@@ -94,7 +96,7 @@ function RefillCard({ refill }: { refill: PharmacistRefillRequest }) {
   return (
     <Pressable onPress={() => setExpanded((v) => !v)} style={[s.card, { backgroundColor: theme.colors.canvas.surface, borderColor: theme.colors.border.default, borderStartColor: color, borderStartWidth: 4 }]}>
       <View style={[s.row, { justifyContent: "space-between" }]}>
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, minWidth: 0 }}>
           <UIText variant="body" weight="bold" numberOfLines={1}>{refill.medicineName}</UIText>
           <UIText variant="body-sm" color="secondary" numberOfLines={1}>{refill.customerName}</UIText>
         </View>
@@ -186,25 +188,55 @@ function RefillCard({ refill }: { refill: PharmacistRefillRequest }) {
 export function RefillsScreen(): React.ReactElement {
   const { t } = useTranslation();
   const { theme } = useTheme();
+  const { pagePad, isTablet } = useScreenLayout();
   const [filter, setFilter] = useState<RefillRequestStatus | "all">("pending");
   const refillsQ = usePharmacistRefills(filter);
+  // Independent of whichever filter tab is active — the hero always states
+  // how many refills are actually waiting on a decision, the same "what
+  // needs my attention right now" framing Orders/Workbench use.
+  const pendingQ = usePharmacistRefills("pending");
 
   const items = refillsQ.data ?? [];
+  const pendingCount = pendingQ.data?.length ?? 0;
 
   const onRefresh = useCallback(async () => { await refillsQ.refetch(); }, [refillsQ]);
 
   return (
-    <Screen edgeTop background={theme.colors.canvas.background}>
-      <PharmacistScreenHeader title={t("pharmacist.refillsTitle", "Refills")} />
+    <Screen edgeTop background={theme.colors.canvas.background} scroll={false}>
+      <LinearGradient
+        colors={gradients.brandPrimary as unknown as [string, string]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={[s.hero, { paddingHorizontal: pagePad }]}
+      >
+        <View style={[s.heroRow, { flexDirection: flexRow(IS_RTL) }]}>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <UIText variant="eyebrow" style={s.heroEyebrow}>
+              {t("pharmacist.refillsEyebrow", "Refill Requests")}
+            </UIText>
+            <UIText variant="screen-title" style={{ color: "#fff" }}>
+              {t("pharmacist.refillsTitle", "Refills")}
+            </UIText>
+          </View>
+          <View style={s.heroIconWell}>
+            <Ionicons name="repeat" size={20} color="#fff" />
+          </View>
+        </View>
+        <UIText variant="caption" style={s.heroSubtitle}>
+          {pendingCount > 0
+            ? t("pharmacist.refillsPendingCount", { count: pendingCount, defaultValue: "{{count}} awaiting your decision" })
+            : t("pharmacist.refillsAllHandled", "All refill requests are handled")}
+        </UIText>
+      </LinearGradient>
 
-      <View style={[s.filterRow, { flexDirection: flexRow(IS_RTL) }]}>
+      <View style={[s.filterRow, { flexDirection: flexRow(IS_RTL), paddingHorizontal: pagePad }]}>
         {FILTERS.map((f) => (
           <Chip key={f.key} label={t(f.labelKey)} selected={filter === f.key} selectable onPress={() => setFilter(f.key)} />
         ))}
       </View>
 
       {refillsQ.isLoading ? (
-        <View style={s.listContent}>
+        <View style={[s.listContent, { paddingHorizontal: pagePad }]}>
           <SkeletonCard /><SkeletonCard /><SkeletonCard />
         </View>
       ) : refillsQ.isError ? (
@@ -213,7 +245,11 @@ export function RefillsScreen(): React.ReactElement {
         <FlatList
           data={items}
           keyExtractor={(r) => r.id}
-          contentContainerStyle={s.listContent}
+          contentContainerStyle={[
+            s.listContent,
+            { paddingHorizontal: pagePad },
+            isTablet && { maxWidth: 720, alignSelf: "center", width: "100%" },
+          ]}
           refreshControl={<RefreshControl refreshing={refillsQ.isFetching} onRefresh={onRefresh} tintColor={theme.colors.brand.primary} />}
           renderItem={({ item }) => <RefillCard refill={item} />}
           ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
@@ -231,8 +267,18 @@ export function RefillsScreen(): React.ReactElement {
 }
 
 const s = StyleSheet.create({
-  filterRow: { gap: 8, paddingHorizontal: 16, paddingVertical: 12, flexWrap: "wrap" },
-  listContent: { paddingHorizontal: 16, paddingBottom: 40 },
+  hero: { paddingTop: 12, paddingBottom: 18, gap: 6 },
+  heroRow: { alignItems: "center", justifyContent: "space-between", gap: 10 },
+  heroEyebrow: { color: "rgba(255,255,255,0.78)", letterSpacing: 1, marginBottom: 2 },
+  heroIconWell: {
+    width: 40, height: 40, borderRadius: 14,
+    alignItems: "center", justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.16)",
+    flexShrink: 0,
+  },
+  heroSubtitle: { color: "rgba(255,255,255,0.82)", marginTop: 2 },
+  filterRow: { gap: 8, paddingVertical: 12, flexWrap: "wrap" },
+  listContent: { paddingBottom: 40 },
   row: { flexDirection: flexRow(IS_RTL), alignItems: "center" },
   card: { borderRadius: 14, padding: 14, borderWidth: 1 },
   statusPill: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 9999 },
