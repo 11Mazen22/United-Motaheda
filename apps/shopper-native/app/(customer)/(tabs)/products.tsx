@@ -1,6 +1,8 @@
 import React, { useCallback, useMemo } from "react";
 import { ActivityIndicator, FlatList, Platform, Pressable, StyleSheet, View } from "react-native";
 import { GestureDetector } from "react-native-gesture-handler";
+import { LinearGradient } from "expo-linear-gradient";
+import { gradients } from "@pharmacy/design-tokens";
 import Animated from "react-native-reanimated";
 import { useRouter } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
@@ -97,39 +99,44 @@ export default function ProductsScreen() {
 
   const ListHeaderComponent = useCallback(() => (
     <>
-      <View style={[s.header, { paddingTop: insets.top + 14, paddingHorizontal: pagePad }]}>
+      <LinearGradient
+        colors={gradients.brandPrimary as unknown as [string, string]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={[s.header, { paddingTop: insets.top + 14, paddingHorizontal: pagePad }]}
+      >
         <View style={[s.headerRow, { flexDirection: flexRow(IS_RTL) }]}>
           <View style={[s.headerLeft, { flexDirection: flexRow(IS_RTL) }]}>
-            <View style={[s.headerIconTile, { backgroundColor: theme.colors.brand.primaryLight }]}>
-              <Ionicons name="grid" size={20} color={theme.colors.brand.primary} />
+            <View style={s.headerIconTile}>
+              <Ionicons name="grid" size={20} color="#fff" />
             </View>
             <View>
-              <Text variant="caption" weight="bold" style={{ color: theme.colors.brand.primary, textTransform: "uppercase" }}>
+              <Text variant="caption" weight="bold" style={{ color: "rgba(255,255,255,0.75)", textTransform: "uppercase" }}>
                 {t("products.headerEyebrow")}
               </Text>
-              <Text variant="h3" style={{ color: theme.colors.text.primary }}>
+              <Text variant="h3" style={{ color: "#fff" }}>
                 {t("products.title")}
               </Text>
             </View>
           </View>
 
-          <Pressable onPress={goCart} accessibilityRole="button" accessibilityLabel={t("tabs.cart")} style={[s.cartBtn, { backgroundColor: theme.colors.canvas.surface, borderColor: theme.colors.border.default }]}>
-            <Ionicons name="bag-outline" size={19} color={theme.colors.text.secondary} />
+          <Pressable onPress={goCart} accessibilityRole="button" accessibilityLabel={t("tabs.cart")} style={s.cartBtn}>
+            <Ionicons name="bag-outline" size={19} color="#fff" />
             {cartCount > 0 && (
-              <View style={[s.cartBadge, { backgroundColor: theme.colors.status.error, borderColor: theme.colors.canvas.surface }]}>
-                <Text variant="caption" weight="black" style={{ color: theme.colors.text.inverse, fontSize: 9 }}>{cartCount > 9 ? "9+" : cartCount}</Text>
+              <View style={[s.cartBadge, { backgroundColor: theme.colors.status.error, borderColor: theme.colors.brand.primary }]}>
+                <Text variant="caption" weight="black" style={{ color: "#fff", fontSize: 9 }}>{cartCount > 9 ? "9+" : cartCount}</Text>
               </View>
             )}
           </Pressable>
         </View>
 
-        <Pressable onPress={goSearch} accessibilityRole="button" accessibilityLabel={t("search.placeholder")} style={[s.searchBar, { flexDirection: flexRow(IS_RTL), backgroundColor: theme.colors.canvas.background }]}>
-          <View style={[s.searchIconWell, theme.shadows[1], { backgroundColor: theme.colors.canvas.surface }]}><Ionicons name="search" size={16} color={theme.colors.brand.primary} /></View>
+        <Pressable onPress={goSearch} accessibilityRole="button" accessibilityLabel={t("search.placeholder")} style={[s.searchBar, theme.shadows[2], { flexDirection: flexRow(IS_RTL), backgroundColor: theme.colors.canvas.surface }]}>
+          <View style={[s.searchIconWell, { backgroundColor: theme.colors.brand.primaryLight }]}><Ionicons name="search" size={16} color={theme.colors.brand.primary} /></View>
           <Text variant="body" style={{ color: theme.colors.text.muted, flex: 1, textAlign: TEXT_START }}>
             {t("search.placeholder")}
           </Text>
         </Pressable>
-      </View>
+      </LinearGradient>
       <StatsStrip catCount={categories.length} loading={catsLoading} />
       <View style={[s.sectionHead, { paddingHorizontal: pagePad }]}>
         <HomeSectionHeader eyebrow={t("products.sectionEyebrow")} title={t("products.sectionTitle")} icon="grid-outline" />
@@ -175,8 +182,8 @@ const s = StyleSheet.create({
   header: { gap: 16, marginBottom: 12 },
   headerRow: { alignItems: "center", justifyContent: "space-between" },
   headerLeft: { alignItems: "center", gap: 12 },
-  headerIconTile: { width: 44, height: 44, borderRadius: 14, alignItems: "center", justifyContent: "center" },
-  cartBtn: { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center", borderWidth: 1 },
+  headerIconTile: { width: 44, height: 44, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.16)" },
+  cartBtn: { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.16)" },
   cartBadge: { position: "absolute", top: -2, end: -4, minWidth: 18, height: 18, borderRadius: 9, alignItems: "center", justifyContent: "center", paddingHorizontal: 4, borderWidth: 2 },
   searchBar: { height: 48, borderRadius: 16, alignItems: "center", paddingHorizontal: 6, gap: 10 },
   searchIconWell: { width: 36, height: 36, borderRadius: 12, alignItems: "center", justifyContent: "center" },
