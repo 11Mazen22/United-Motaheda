@@ -16,17 +16,21 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useTranslation } from "react-i18next";
 
+import Animated, { FadeInDown } from "react-native-reanimated";
+
 import { CustomerUI } from "@pharmacy/ui-native";
 
 import { Text } from "@pharmacy/ui-native";
 
-import { flexRow, isRtl, textAlignStart, BACK_CHEVRON } from "@/utils/layout";
+import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
 
 import { useAuth } from "@/features/auth";
 
 import { useDeliveryContext } from "@/features/delivery";
 
 import { usePrescription, useRequestRefill } from "@/features/prescriptions";
+
+import { PrescriptionsHeader } from "@/features/prescriptions/components/PrescriptionsHeader";
 
 import type { RefillDelivery } from "@/stores/prescriptionsStore";
 
@@ -135,13 +139,14 @@ export default function RefillPage(): React.ReactElement {
 
         <View style={{ gap: 10 }}>
           <Text weight="black" style={s.sectionLabel}>{t("prescriptions.refillDeliveryLabel")}</Text>
-          {DELIVERY_OPTIONS.map((opt) => (
-            <DeliveryOptionCard
-              key={opt.key}
-              option={opt}
-              selected={selected === opt.key}
-              onSelect={() => setSelected(opt.key)}
-            />
+          {DELIVERY_OPTIONS.map((opt, i) => (
+            <Animated.View key={opt.key} entering={FadeInDown.duration(320).delay(i * 60).springify()}>
+              <DeliveryOptionCard
+                option={opt}
+                selected={selected === opt.key}
+                onSelect={() => setSelected(opt.key)}
+              />
+            </Animated.View>
           ))}
         </View>
 
@@ -252,33 +257,15 @@ function DeliveryOptionCard({ option, selected, onSelect }: DeliveryOptionCardPr
 
 
 function Header({ insets, onBack }: { insets: { top: number }; onBack: () => void }) {
-  const { theme } = useTheme();
-  const s = React.useMemo(() => get_s(theme), [theme]);
   const { t } = useTranslation();
   return (
-    <View style={[s.header, { paddingTop: insets.top + 12 }]}>
-      <View style={s.headerRow}>
-        <Pressable
-          onPress={onBack}
-          hitSlop={10}
-          accessibilityRole="button"
-          accessibilityLabel={t("common.back")}
-          style={({ pressed }) => [s.backBtn, pressed && s.backBtnPressed]}>
-          <Ionicons name={BACK_CHEVRON} size={20} color={theme.colors.text.primary} />
-        </Pressable>
-        <View style={{ flex: 1 }} />
-      </View>
-
-      <View style={s.identityRow}>
-        <View style={s.heroTile}>
-          <Ionicons name="refresh" size={22} color={theme.colors.brand.primary} />
-        </View>
-        <View style={s.identityText}>
-          <Text weight="bold" style={s.eyebrow}>{t("prescriptions.refillEyebrow")}</Text>
-          <Text weight="black" style={s.title}>{t("prescriptions.refillRequestTitle")}</Text>
-        </View>
-      </View>
-    </View>
+    <PrescriptionsHeader
+      insetsTop={insets.top}
+      icon="refresh"
+      eyebrow={t("prescriptions.refillEyebrow")}
+      title={t("prescriptions.refillRequestTitle")}
+      onBack={onBack}
+    />
   );
 }
 

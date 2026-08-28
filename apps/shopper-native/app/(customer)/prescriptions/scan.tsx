@@ -26,6 +26,8 @@ import { useAuth } from "@/features/auth";
 
 import { submitPrescriptionWithImage } from "@/features/prescriptions";
 
+import { PrescriptionsHeader } from "@/features/prescriptions/components/PrescriptionsHeader";
+
 import { showSuccessSheet, showErrorSheet } from "@/shared/store/appSheetStore";
 
 
@@ -267,30 +269,15 @@ export default function ScanScreen(): React.ReactElement {
 function ScanHeader({
   insets, onBack, title,
 }: { insets: { top: number }; onBack: () => void; title: string }): React.ReactElement {
-  const { theme } = useTheme();
-  const s = React.useMemo(() => get_s(theme), [theme]);
   const { t } = useTranslation();
   return (
-    <View style={[s.header, { paddingTop: insets.top + 12 }]}>
-      <View style={[s.headerRow, { flexDirection: flexRow(IS_RTL) }]}>
-        <Pressable
-          onPress={onBack}
-          hitSlop={10}
-          accessibilityRole="button"
-          accessibilityLabel={t("common.back")}
-          style={s.backBtnTouchable}>
-          {({ pressed }) => (
-            <View style={[s.backBtn, pressed && s.backBtnPressed]}>
-              <Ionicons name={BACK_CHEVRON} size={20} color={theme.colors.text.primary} />
-            </View>
-          )}
-        </Pressable>
-        <Text weight="black" style={s.headerTitle} numberOfLines={1}>
-          {title}
-        </Text>
-        <View style={{ width: 38 }} />
-      </View>
-    </View>
+    <PrescriptionsHeader
+      insetsTop={insets.top}
+      icon="scan-outline"
+      eyebrow={t("prescriptions.headerEyebrow")}
+      title={title}
+      onBack={onBack}
+    />
   );
 }
 

@@ -1,34 +1,24 @@
 import { useTheme, type NativeTheme } from "@pharmacy/ui-native";
-
-import React, { useMemo } from "react";
-
-import { Pressable, ScrollView, StyleSheet, View } from "react-native";
-
+import React, { useCallback, useMemo } from "react";
+import { Linking, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-
 import { useRouter } from "expo-router";
-
 import { useTranslation } from "react-i18next";
-
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-
+import Animated, { FadeInDown } from "react-native-reanimated";
 import { CustomerUI } from "@pharmacy/ui-native";
-
 import { Text } from "@pharmacy/ui-native";
-
 import {
   flexRow,
   isRtl,
   textAlignStart,
   FORWARD_CHEVRON,
-  BACK_CHEVRON,
 } from "@/utils/layout";
-
-
+import { useAuth } from "@/features/auth";
+import { createWhatsAppPrescriptionPlaceholder } from "@/features/prescriptions";
+import { PrescriptionsHeader } from "@/features/prescriptions/components/PrescriptionsHeader";
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>["name"];
-
-
 
 interface EntryOption {
   key:         string;
@@ -37,45 +27,54 @@ interface EntryOption {
   bg:          string;
   title:       string;
   description: string;
+  badge?:      string;
   onPress:     () => void;
 }
-
-
 
 const IS_RTL     = isRtl();
 const TEXT_START = textAlignStart(IS_RTL);
 
+const WHATSAPP_RX_URL =
+  `https://wa.me/201112343212?text=${encodeURIComponent("مرحباً، أريد إضافة وصفة طبية إلى حسابي.")}`;
 
-
-function EntryCard({ option }: { option: EntryOption }): React.ReactElement {
+function EntryCard({ option, index }: { option: EntryOption; index: number }): React.ReactElement {
   const { theme } = useTheme();
   const s = React.useMemo(() => get_s(theme), [theme]);
 
   return (
-    <Pressable
-      onPress={option.onPress}
-      accessibilityRole="button"
-      accessibilityLabel={option.title}
-      style={s.cardOuter}>
-      {({ pressed }) => (
-        <View style={[s.card, pressed && s.cardPressed]}>
-          <View style={[s.iconTile, { backgroundColor: option.bg }]}>
-            <Ionicons name={option.icon} size={24} color={option.tint} />
+    <Animated.View entering={FadeInDown.duration(340).delay(Math.min(index, 6) * 45).springify()}>
+      <Pressable
+        onPress={option.onPress}
+        accessibilityRole="button"
+        accessibilityLabel={option.title}
+        style={s.cardOuter}>
+        {({ pressed }) => (
+          <View style={[s.card, pressed && s.cardPressed]}>
+            <View style={[s.iconTile, { backgroundColor: option.bg }]}>
+              <Ionicons name={option.icon} size={24} color={option.tint} />
+            </View>
+            <View style={s.cardBody}>
+              <View style={s.cardTitleRow}>
+                <Text weight="black" style={s.cardTitle} numberOfLines={1}>
+                  {option.title}
+                </Text>
+                {option.badge && (
+                  <View style={s.badge}>
+                    <Text weight="black" style={s.badgeText} numberOfLines={1}>{option.badge}</Text>
+                  </View>
+                )}
+              </View>
+              <Text style={s.cardDesc} numberOfLines={2}>
+                {option.description}
+              </Text>
+            </View>
+            <View style={s.chevronWell}>
+              <Ionicons name={FORWARD_CHEVRON} size={16} color={theme.colors.text.secondary} />
+            </View>
           </View>
-          <View style={s.cardBody}>
-            <Text weight="black" style={s.cardTitle} numberOfLines={1}>
-              {option.title}
-            </Text>
-            <Text style={s.cardDesc} numberOfLines={2}>
-              {option.description}
-            </Text>
-          </View>
-          <View style={s.chevronWell}>
-            <Ionicons name={FORWARD_CHEVRON} size={16} color={theme.colors.text.secondary} />
-          </View>
-        </View>
-      )}
-    </Pressable>
+        )}
+      </Pressable>
+    </Animated.View>
   );
 }
 
@@ -86,8 +85,30 @@ export default function Page(): React.ReactElement {
   const router   = useRouter();
   const insets   = useSafeAreaInsets();
   const { t }    = useTranslation();
+  const { user } = useAuth();
+
+  // Best-effort staff-visibility record for the WhatsApp path — the actual
+  // submission is still a human WhatsApp conversation, this just means it no
+  // longer silently disappears from the admin queue's view. Never blocks
+  // opening WhatsApp: if the write fails, the customer's flow still works.
+  const handleWhatsApp = useCallback(() => {
+    if (user?.id) {
+      createWhatsAppPrescriptionPlaceholder(user.id, t("prescriptions.whatsappPlaceholderName"))
+        .catch(() => {});
+    }
+    void Linking.openURL(WHATSAPP_RX_URL).catch(() => {});
+  }, [user?.id, t]);
 
   const options: EntryOption[] = useMemo(() => [
+    {
+      key:         "whatsapp",
+      icon:        "logo-whatsapp",
+      tint:        "#16A34A",
+      bg:          "#DCFCE7",
+      title:       t("prescriptions.addWhatsAppTitle"),
+      description: t("prescriptions.addWhatsAppDesc"),
+      onPress:     handleWhatsApp,
+    },
     {
       key:         "scan",
       icon:        "scan-outline",
@@ -115,41 +136,17 @@ export default function Page(): React.ReactElement {
       description: t("prescriptions.addTransferDesc"),
       onPress:     () => router.push("/prescriptions/transfer" as never),
     },
-  ], [router, t, theme.colors.brand.primary, theme.colors.brand.primaryLight, theme.colors.status.warning, `${theme.colors.status.warning}1A`]);
+  ], [router, t, handleWhatsApp, theme.colors.brand.primary, theme.colors.brand.primaryLight, theme.colors.status.warning]);
 
   return (
     <View style={s.screen}>
-      <View style={[s.header, { paddingTop: insets.top + 12 }]}>
-        <View style={s.navRow}>
-          <Pressable
-            onPress={() => router.back()}
-            hitSlop={10}
-            accessibilityRole="button"
-            accessibilityLabel={t("common.back")}
-            style={s.backBtnTouchable}>
-            {({ pressed }) => (
-              <View style={[s.backBtn, pressed && s.backBtnPressed]}>
-                <Ionicons name={BACK_CHEVRON} size={20} color={theme.colors.text.primary} />
-              </View>
-            )}
-          </Pressable>
-          <View style={{ flex: 1 }} />
-        </View>
-
-        <View style={s.identityRow}>
-          <View style={s.heroTile}>
-            <Ionicons name="add-circle-outline" size={24} color={theme.colors.brand.primary} />
-          </View>
-          <View style={s.identityText}>
-            <Text weight="bold" style={s.eyebrow}>
-              {t("prescriptions.headerEyebrow")}
-            </Text>
-            <Text weight="black" style={s.title}>
-              {t("prescriptions.addTitle")}
-            </Text>
-          </View>
-        </View>
-      </View>
+      <PrescriptionsHeader
+        insetsTop={insets.top}
+        icon="add-circle-outline"
+        eyebrow={t("prescriptions.headerEyebrow")}
+        title={t("prescriptions.addTitle")}
+        onBack={() => router.back()}
+      />
 
       <ScrollView
         contentContainerStyle={{
@@ -164,8 +161,8 @@ export default function Page(): React.ReactElement {
           {t("prescriptions.chooseMethod")}
         </Text>
 
-        {options.map((opt) => (
-          <EntryCard key={opt.key} option={opt} />
+        {options.map((opt, i) => (
+          <EntryCard key={opt.key} option={opt} index={i} />
         ))}
 
         <CustomerUI.Notice
@@ -184,66 +181,6 @@ function get_s(theme: NativeTheme) { return StyleSheet.create({
   screen: {
     flex:            1,
     backgroundColor: theme.colors.canvas.background,
-  },
-  header: {
-    paddingHorizontal: 20,
-    paddingBottom:     20,
-    gap:               18,
-    backgroundColor:   theme.colors.canvas.surface,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border.default,
-    ...theme.shadows[1],
-  },
-  navRow: {
-    flexDirection: flexRow(IS_RTL),
-    alignItems:    "center",
-    minHeight:     38,
-  },
-  backBtnTouchable: { borderRadius: 14 },
-  backBtn: {
-    width:           38,
-    height:          38,
-    borderRadius:    14,
-    backgroundColor: theme.colors.canvas.surfaceMuted,
-    borderWidth:     1,
-    borderColor:     theme.colors.border.default,
-    alignItems:      "center",
-    justifyContent:  "center",
-  },
-  backBtnPressed: { opacity: 0.7, transform: [{ scale: 0.96 }] },
-  identityRow: {
-    flexDirection: flexRow(IS_RTL),
-    alignItems:    "center",
-    gap:           14,
-  },
-  heroTile: {
-    width:           56,
-    height:          56,
-    borderRadius:    18,
-    backgroundColor: theme.colors.brand.primaryLight,
-    borderWidth:     1,
-    borderColor:     theme.colors.border.default,
-    alignItems:      "center",
-    justifyContent:  "center",
-    flexShrink:      0,
-  },
-  identityText: { flex: 1, gap: 2 },
-  eyebrow: {
-    fontSize:           10,
-    lineHeight:         14,
-    color:              theme.colors.brand.primary,
-    letterSpacing:      0.6,
-    textTransform:      "uppercase",
-    textAlign:          TEXT_START,
-    includeFontPadding: false,
-  },
-  title: {
-    fontSize:           28,
-    lineHeight:         34,
-    color:              theme.colors.text.primary,
-    letterSpacing:      -0.6,
-    textAlign:          TEXT_START,
-    includeFontPadding: false,
   },
   sectionLabel: {
     fontSize:           11,
@@ -281,13 +218,37 @@ function get_s(theme: NativeTheme) { return StyleSheet.create({
     justifyContent: "center",
     flexShrink:    0,
   },
-  cardBody: { flex: 1, gap: 4 },
+  cardBody: { flex: 1, gap: 4, minWidth: 0 },
+  cardTitleRow: {
+    flexDirection: flexRow(IS_RTL),
+    alignItems:    "center",
+    gap:           8,
+  },
   cardTitle: {
+    flex:               1,
+    minWidth:           0,
     fontSize:           15,
     lineHeight:         21,
     color:              theme.colors.text.primary,
     letterSpacing:      -0.2,
     textAlign:          TEXT_START,
+    includeFontPadding: false,
+  },
+  badge: {
+    paddingHorizontal: 9,
+    paddingVertical:   3,
+    borderRadius:      9999,
+    backgroundColor:   theme.colors.brand.primaryLight,
+    borderWidth:       StyleSheet.hairlineWidth,
+    borderColor:       theme.colors.brand.primary,
+    flexShrink:        0,
+  },
+  badgeText: {
+    fontSize:           9,
+    lineHeight:         13,
+    letterSpacing:      0.5,
+    color:              theme.colors.brand.primary,
+    textTransform:      "uppercase",
     includeFontPadding: false,
   },
   cardDesc: {
