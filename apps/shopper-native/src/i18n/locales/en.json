@@ -251,6 +251,14 @@
         "resetInstruction": "Enter your registered email address to receive a password reset link.",
         "resetAction": "Send Reset Link",
         "resetSuccess": "Check your email for the reset link!",
+        "resetVerifying": "Verifying your reset link...",
+        "resetLinkInvalidTitle": "This link no longer works",
+        "resetLinkInvalidBody": "This password reset link is invalid or has expired. Request a new one to continue.",
+        "resetRequestNewBtn": "Request a new link",
+        "resetNewPasswordInstruction": "Choose a new password for your account.",
+        "resetSuccessTitle": "Password updated",
+        "resetSuccessBody": "Your password has been changed. Sign in with your new password.",
+        "resetContinueBtn": "Continue to sign in",
         "eyebrowSignIn": "Sign In"
     },
     "authCallback": {
@@ -611,6 +619,7 @@
         "successBodyPost": "Open your email and click the link within 60 minutes.",
         "spamTip": "If you don't see it in your inbox, check your Spam or Junk folder.",
         "resend": "Resend",
+        "useAnotherEmail": "Use a different email",
         "rememberPassword": "Remember your password?",
         "signIn": "Sign In",
         "backLabel": "Back"

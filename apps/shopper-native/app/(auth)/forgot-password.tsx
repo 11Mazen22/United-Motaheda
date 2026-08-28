@@ -348,13 +348,15 @@ export default function ForgotPasswordScreen() {
 
 
 
-  const [email,   setEmail]   = useState("");
+  const [email,     setEmail]     = useState("");
 
-  const [loading, setLoading] = useState(false);
+  const [loading,   setLoading]   = useState(false);
 
-  const [error,   setError]   = useState<string | null>(null);
+  const [resending, setResending] = useState(false);
 
-  const [sent,    setSent]    = useState(false);
+  const [error,     setError]     = useState<string | null>(null);
+
+  const [sent,      setSent]      = useState(false);
 
 
 
@@ -395,6 +397,37 @@ export default function ForgotPasswordScreen() {
     } finally {
 
       setLoading(false);
+
+    }
+
+  };
+
+
+
+  // "Resend" re-sends to the same address the user already confirmed --
+  // it must not silently wipe the field and dump them back into an empty
+  // form (that read as "resend" but actually did nothing until they
+  // retyped their email and submitted again).
+
+  const handleResend = async () => {
+
+    track("forgot_password_submitted");
+
+    setResending(true);
+
+    try {
+
+      await requestPasswordReset(email.trim());
+
+      track("forgot_password_email_sent");
+
+    } catch (e) {
+
+      captureError(e, { surface: "forgot-password-resend" });
+
+    } finally {
+
+      setResending(false);
 
     }
 
@@ -592,11 +625,27 @@ export default function ForgotPasswordScreen() {
 
                 full
 
-                onPress={() => { setSent(false); setEmail(""); }}
+                loading={resending}
+
+                onPress={handleResend}
 
                 style={{ marginTop: 4 }}
 
               />
+
+
+
+              <Pressable
+
+                hitSlop={6}
+
+                onPress={() => { setSent(false); setEmail(""); setError(null); }}
+
+                style={{ alignSelf: "center", marginTop: 4 }}>
+
+                <UIText style={s.footerLink}>{t("forgotPassword.useAnotherEmail", "Use a different email")}</UIText>
+
+              </Pressable>
 
             </Animated.View>
 
