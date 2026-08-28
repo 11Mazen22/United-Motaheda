@@ -600,6 +600,8 @@
         "continueBtn": "متابعة للمراجعة",
         "confirmBtn": "تأكيد الطلب",
         "notDeliverable": "العنوان خارج نطاق التوصيل",
+        "zoneCheckError": "تعذر التحقق من نطاق التوصيل. تحقق من اتصالك وحاول مرة أخرى.",
+        "zoneOutOfRange": "عذراً، هذا العنوان خارج نطاق التوصيل الحالي.",
         "missingTransferNumber": "أدخل رقم مرجع التحويل لإتمام الطلب",
         "missingReceipt": "يرجى رفع لقطة شاشة التحويل.",
         "prescriptionRequired": "يحتاج هذا الطلب إلى روشتة",

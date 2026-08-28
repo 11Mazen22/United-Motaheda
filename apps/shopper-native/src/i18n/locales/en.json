@@ -366,6 +366,8 @@
         "continueBtn": "Continue to Review",
         "confirmBtn": "Confirm Order",
         "notDeliverable": "Address is outside our delivery area",
+        "zoneCheckError": "Couldn't verify the delivery zone. Check your connection and try again.",
+        "zoneOutOfRange": "Sorry, this address is outside our current delivery range.",
         "missingTransferNumber": "Enter your transfer reference number to proceed",
         "missingReceipt": "Please upload a screenshot of the transfer.",
         "prescriptionRequired": "This order needs a prescription",
