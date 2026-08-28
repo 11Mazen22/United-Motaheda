@@ -5,12 +5,12 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Location from "expo-location";
 import * as Haptics from "expo-haptics";
 import { useTranslation } from "react-i18next";
-import Animated, { FadeIn, FadeOut, SlideInDown, SlideOutDown, useAnimatedStyle, useSharedValue, withRepeat, withTiming, useReducedMotion } from "react-native-reanimated";
+import Animated, { FadeIn, FadeOut, useAnimatedStyle, useSharedValue, withRepeat, withTiming, useReducedMotion } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AddressMapPlaceholder } from "./AddressMapPlaceholder";
 import { ADDRESS_LABELS } from "../types";
 import type { AddressFormData, AddressLabel } from "../types";
-import { useTheme, type NativeTheme } from "@pharmacy/ui-native";
+import { useTheme, sheetMotion, type NativeTheme } from "@pharmacy/ui-native";
 
 import { theme as legacyTheme } from "@pharmacy/design-tokens";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
@@ -236,10 +236,10 @@ export function AddressFormDrawer({
     <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
         <View style={styles.overlay}>
-          <Animated.View entering={FadeIn.duration(200)} exiting={FadeOut.duration(200)} style={[StyleSheet.absoluteFill, { backgroundColor: "rgba(0,0,0,0.5)" }]} />
+          <Animated.View entering={sheetMotion.backdropEnter} exiting={sheetMotion.backdropExit} style={[StyleSheet.absoluteFill, { backgroundColor: "rgba(0,0,0,0.5)" }]} />
           <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
-          
-          <Animated.View entering={SlideInDown.springify().damping(20)} exiting={SlideOutDown.duration(200)} style={[styles.sheet, { backgroundColor: theme.colors.canvas.surface, paddingTop: 12, paddingBottom: Math.max(insets.bottom, 20) }]}>
+
+          <Animated.View entering={sheetMotion.enter} exiting={sheetMotion.exit} style={[styles.sheet, { backgroundColor: theme.colors.canvas.surface, paddingTop: 12, paddingBottom: Math.max(insets.bottom, 20) }]}>
             <View style={styles.handle} />
             
             <View style={[styles.header, { flexDirection: flexRow(IS_RTL) }]}>
@@ -452,8 +452,8 @@ export function AddressFormDrawer({
 function getStyles(theme: NativeTheme) {
   return StyleSheet.create({
   overlay: { flex: 1, justifyContent: "flex-end" },
-  sheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: "90%", ...theme.shadows[3] },
-  handle: { width: 40, height: 4, borderRadius: 2, backgroundColor: theme.colors.border.strong, alignSelf: "center", marginBottom: 12 },
+  sheet: { borderTopLeftRadius: 28, borderTopRightRadius: 28, maxHeight: "90%", ...theme.shadows[3] },
+  handle: { width: 44, height: 4, borderRadius: 2, backgroundColor: theme.colors.border.strong, alignSelf: "center", marginBottom: 12 },
   header: { alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, marginBottom: 16 },
   title: { fontFamily: legacyTheme.fonts.extrabold, fontSize: 20 },
   closeBtn: { padding: 4 },

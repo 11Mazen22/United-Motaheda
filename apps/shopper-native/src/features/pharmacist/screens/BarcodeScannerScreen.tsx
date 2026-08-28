@@ -67,15 +67,11 @@ import Animated, {
 
   FadeOut,
 
-  SlideInDown,
-
-  SlideOutDown,
-
 } from "react-native-reanimated";
 
 
 
-import { Screen, Text as UIText, useTheme } from "@pharmacy/ui-native";
+import { Screen, Text as UIText, useTheme, sheetMotion } from "@pharmacy/ui-native";
 
 import { kit }                    from "@pharmacy/ui-native";
 
@@ -443,9 +439,9 @@ function ProductCard({
 
     <Animated.View
 
-      entering={SlideInDown.springify().damping(18).stiffness(220)}
+      entering={sheetMotion.enter}
 
-      exiting={SlideOutDown.duration(200)}
+      exiting={sheetMotion.exit}
 
       style={rcStyles.root}
 

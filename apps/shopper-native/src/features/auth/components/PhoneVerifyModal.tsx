@@ -30,10 +30,10 @@ import {
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import Animated, { FadeIn, SlideInDown, SlideOutDown } from "react-native-reanimated";
+import Animated from "react-native-reanimated";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
-import { Text, Button, useTheme, type NativeTheme } from "@pharmacy/ui-native";
+import { Text, Button, useTheme, sheetMotion, type NativeTheme } from "@pharmacy/ui-native";
 import { theme as legacyTheme } from "@pharmacy/design-tokens";
 import {
   OTP_RESEND_COOLDOWN_SECONDS,
@@ -239,7 +239,7 @@ export function PhoneVerifyModal({
       animationType="none"
       onRequestClose={onCancel}>
 
-      <Animated.View entering={FadeIn.duration(200)} style={styles.scrim}>
+      <Animated.View entering={sheetMotion.backdropEnter} exiting={sheetMotion.backdropExit} style={styles.scrim}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onCancel} />
 
         <KeyboardAvoidingView
@@ -249,8 +249,8 @@ export function PhoneVerifyModal({
           >
 
           <Animated.View
-            entering={SlideInDown.duration(280)}
-            exiting={SlideOutDown.duration(220)}
+            entering={sheetMotion.enter}
+            exiting={sheetMotion.exit}
             style={styles.sheet}>
 
             <View style={styles.handle} />
@@ -553,7 +553,6 @@ function getStyles(theme: NativeTheme) {
       backgroundColor: theme.colors.border.strong,
       alignSelf:       "center",
       marginBottom:    6,
-      opacity:         0.5,
     },
     header: {
       alignItems: "center",

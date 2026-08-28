@@ -4,12 +4,12 @@ import { Text as UIText } from "@pharmacy/ui-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useTranslation } from "react-i18next";
-import { useTheme, type ThemePreference } from "@pharmacy/ui-native";
+import { useTheme, sheetMotion, type ThemePreference } from "@pharmacy/ui-native";
 
 import { theme as legacyTheme } from "@pharmacy/design-tokens";
 import type { NativeTheme } from "@pharmacy/ui-native";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
-import Animated, { FadeIn, FadeOut, SlideInDown, SlideOutDown } from "react-native-reanimated";
+import Animated from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>["name"];
@@ -37,16 +37,16 @@ export function ThemePickerSheet({ visible, onClose }: { visible: boolean; onClo
   return (
     <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
       <View style={styles.overlay}>
-        <Animated.View 
-          entering={FadeIn.duration(200)} 
-          exiting={FadeOut.duration(200)} 
-          style={[StyleSheet.absoluteFill, { backgroundColor: "rgba(0,0,0,0.5)" }]} 
+        <Animated.View
+          entering={sheetMotion.backdropEnter}
+          exiting={sheetMotion.backdropExit}
+          style={[StyleSheet.absoluteFill, { backgroundColor: "rgba(0,0,0,0.5)" }]}
         />
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
-        
-        <Animated.View 
-          entering={SlideInDown.springify().damping(18)} 
-          exiting={SlideOutDown.duration(200)}
+
+        <Animated.View
+          entering={sheetMotion.enter}
+          exiting={sheetMotion.exit}
           style={[styles.sheet, { backgroundColor: theme.colors.canvas.surface, paddingBottom: Math.max(insets.bottom, 20) }]}
         >
           <View style={styles.handle} />
@@ -83,8 +83,8 @@ export function ThemePickerSheet({ visible, onClose }: { visible: boolean; onClo
 function getStyles(theme: NativeTheme) {
   return StyleSheet.create({
     overlay: { flex: 1, justifyContent: "flex-end" },
-    sheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24, ...theme.shadows[3] },
-    handle: { width: 40, height: 4, borderRadius: 2, backgroundColor: theme.colors.border.strong, alignSelf: "center", marginTop: 12, marginBottom: 20 },
+    sheet: { borderTopLeftRadius: 28, borderTopRightRadius: 28, ...theme.shadows[3] },
+    handle: { width: 44, height: 4, borderRadius: 2, backgroundColor: theme.colors.border.strong, alignSelf: "center", marginTop: 12, marginBottom: 20 },
     title: { fontFamily: legacyTheme.fonts.bold, fontSize: 18, paddingHorizontal: 24, marginBottom: 16 },
     container: { paddingHorizontal: 24 },
     row: { alignItems: "center", paddingVertical: 16, gap: 16 },

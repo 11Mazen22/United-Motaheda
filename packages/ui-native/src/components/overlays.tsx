@@ -21,6 +21,20 @@ import { useTheme } from "../theme";
 
 export { BottomSheetModalProvider };
 
+/**
+ * Shared motion for every hand-rolled sliding sheet in the app (bottom
+ * Modal, AddressFormDrawer, ThemePickerSheet, PhoneVerifyModal, ...).
+ * Symmetric spring in/out — a scripted duration-only exit after a spring
+ * entrance reads as janky/cheap next to it, which is what made sheets feel
+ * inconsistent across screens.
+ */
+export const sheetMotion = {
+  enter: SlideInDown.springify().damping(24).stiffness(260).mass(0.7),
+  exit: SlideOutDown.springify().damping(26).stiffness(280).mass(0.7),
+  backdropEnter: FadeIn.duration(220),
+  backdropExit: FadeOut.duration(180),
+};
+
 export type ToastType = "success" | "error" | "info" | "warning";
 export type ToastPosition = "top" | "bottom";
 export interface ToastItem { id: number; message: string; type: ToastType; position: ToastPosition; duration: number; }
@@ -67,7 +81,7 @@ export interface ModalProps { visible: boolean; onDismiss: () => void; children:
 /** Accessible center/bottom modal with a fading backdrop. */
 export function Modal({ visible, onDismiss, children, position = "center", dismissOnBackdrop = true, style, accessibilityLabel }: ModalProps): React.ReactElement {
   const { theme } = useTheme();
-  return <RNModal visible={visible} transparent animationType="none" onRequestClose={onDismiss}><View style={[styles.modalRoot, position === "bottom" && styles.modalBottom]} accessibilityViewIsModal accessibilityLabel={accessibilityLabel}><Animated.View entering={FadeIn} exiting={FadeOut} style={[StyleSheet.absoluteFill, { backgroundColor: theme.colors.canvas.overlay }]}><Pressable disabled={!dismissOnBackdrop} onPress={onDismiss} style={StyleSheet.absoluteFill} /></Animated.View><Animated.View entering={position === "bottom" ? SlideInDown : FadeIn} exiting={position === "bottom" ? SlideOutDown : FadeOut} style={[styles.modalPanel, theme.shadows[4], { backgroundColor: theme.colors.canvas.surfaceElevated }, position === "bottom" && styles.bottomPanel, style]}>{children}</Animated.View></View></RNModal>;
+  return <RNModal visible={visible} transparent animationType="none" onRequestClose={onDismiss}><View style={[styles.modalRoot, position === "bottom" && styles.modalBottom]} accessibilityViewIsModal accessibilityLabel={accessibilityLabel}><Animated.View entering={sheetMotion.backdropEnter} exiting={sheetMotion.backdropExit} style={[StyleSheet.absoluteFill, { backgroundColor: theme.colors.canvas.overlay }]}><Pressable disabled={!dismissOnBackdrop} onPress={onDismiss} style={StyleSheet.absoluteFill} /></Animated.View><Animated.View entering={position === "bottom" ? sheetMotion.enter : sheetMotion.backdropEnter} exiting={position === "bottom" ? sheetMotion.exit : sheetMotion.backdropExit} style={[styles.modalPanel, theme.shadows[4], { backgroundColor: theme.colors.canvas.surfaceElevated }, position === "bottom" && styles.bottomPanel, style]}>{children}</Animated.View></View></RNModal>;
 }
 
 export interface BottomSheetProps { visible?: boolean; onDismiss: () => void; children: React.ReactNode; snapPoints: ReadonlyArray<number | `${number}%`>; initialSnapIndex?: number; backdrop?: boolean; style?: StyleProp<ViewStyle>; }
@@ -91,8 +105,8 @@ export function BottomSheet({ visible = true, onDismiss, children, snapPoints, i
       snapPoints={snapPoints as unknown[] as (string | number)[]}
       onDismiss={onDismiss}
       backdropComponent={renderBackdrop}
-      backgroundStyle={{ backgroundColor: theme.colors.canvas.surfaceElevated, borderTopStartRadius: 24, borderTopEndRadius: 24 }}
-      handleIndicatorStyle={{ backgroundColor: theme.colors.border.strong, width: 42, height: 4 }}
+      backgroundStyle={{ backgroundColor: theme.colors.canvas.surfaceElevated, borderTopStartRadius: 28, borderTopEndRadius: 28 }}
+      handleIndicatorStyle={{ backgroundColor: theme.colors.border.strong, width: 44, height: 4 }}
       style={style}
     >
       <BottomSheetView style={styles.gorhomContent}>{children}</BottomSheetView>
@@ -106,6 +120,6 @@ export function Dialog({ visible, title, message, confirmLabel = "Confirm", canc
 
 const styles = StyleSheet.create({
   toast: { position: "absolute", start: 16, end: 16, zIndex: 9999, minHeight: 48, borderStartWidth: 4, borderRadius: 12, alignItems: "center" }, toastInner: { flex: 1, paddingHorizontal: 16, paddingVertical: 12, justifyContent: "center" },
-  modalRoot: { flex: 1, alignItems: "center", justifyContent: "center", padding: 20 }, modalBottom: { justifyContent: "flex-end", padding: 0 }, modalPanel: { width: "100%", maxWidth: 520, padding: 20, borderRadius: 16 }, bottomPanel: { maxWidth: undefined, borderBottomStartRadius: 0, borderBottomEndRadius: 0, borderTopStartRadius: 24, borderTopEndRadius: 24, paddingBottom: 32 },
+  modalRoot: { flex: 1, alignItems: "center", justifyContent: "center", padding: 20 }, modalBottom: { justifyContent: "flex-end", padding: 0 }, modalPanel: { width: "100%", maxWidth: 520, padding: 20, borderRadius: 16 }, bottomPanel: { maxWidth: undefined, borderBottomStartRadius: 0, borderBottomEndRadius: 0, borderTopStartRadius: 28, borderTopEndRadius: 28, paddingBottom: 32 },
   gorhomContent: { flex: 1, padding: 20 }, dialogActions: { flexDirection: "row", justifyContent: "flex-end", gap: 8, marginTop: 8 },
 });
