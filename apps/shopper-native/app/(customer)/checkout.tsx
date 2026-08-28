@@ -4,7 +4,7 @@
  * visual emphasis is the final "Place Order" commit action.
  */
 import React, { useState, useEffect, useCallback, useMemo } from "react";
-import { View, StyleSheet, ScrollView, Pressable, Platform, KeyboardAvoidingView } from "react-native";
+import { View, StyleSheet, ScrollView, Pressable, Platform, KeyboardAvoidingView, TextInput } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -13,12 +13,13 @@ import * as Haptics from "expo-haptics";
 import Animated, { FadeIn, FadeInDown, FadeOut, SlideInDown, Layout } from "react-native-reanimated";
 
 import { Text, Button, BottomSheet, useTheme } from "@pharmacy/ui-native";
-import { isRtl, flexRow, textAlignStart } from "@/utils/layout";
+import { isRtl, flexRow, textAlignStart, BACK_CHEVRON } from "@/utils/layout";
+import { useScreenLayout } from "@/utils/responsive";
 import { formatPrice } from "@/utils/format";
 import { useAuth } from "@/features/auth";
 
 import { usePremiumCheckout } from "@/features/checkout/hooks/usePremiumCheckout";
-import { isManualWalletPayment } from "@/features/checkout";
+import { isManualWalletPayment, isPromoCodeEligible } from "@/features/checkout";
 import { getPaymentMethodConfigs } from "@/features/checkout/constants";
 import { ManualPaymentPanel } from "@/features/payment";
 import { useCartStore } from "@/stores/cart";
@@ -61,7 +62,7 @@ function StepAccordion({
              <Text variant="caption" weight="bold" style={{ color: isActive ? theme.colors.text.inverse : theme.colors.text.secondary }}>{step}</Text>
           )}
         </View>
-        <View style={{ flex: 1, paddingHorizontal: 12 }}>
+        <View style={{ flex: 1, minWidth: 0, paddingHorizontal: 12 }}>
           <Text variant="h5" style={{ color: isActive ? theme.colors.brand.primary : theme.colors.text.primary, textAlign: TEXT_START }}>{title}</Text>
           {isCompleted && !isActive && summary && (
              <Text variant="body" style={{ color: theme.colors.text.secondary, marginTop: 2, textAlign: TEXT_START }}>
@@ -209,6 +210,85 @@ function LocationDetailsModal({
   );
 }
 
+function PromoCodeField({
+  promoCode,
+  onApply,
+  discount,
+}: {
+  promoCode: string;
+  onApply: (code: string) => void;
+  discount: number;
+}) {
+  const { theme } = useTheme();
+  const { t } = useTranslation();
+  const [draft, setDraft] = useState(promoCode);
+  const applied = promoCode.trim().length > 0;
+  const isValid = applied && discount > 0;
+  const isInvalid = applied && discount === 0 && !isPromoCodeEligible(promoCode);
+
+  const handleApply = useCallback(() => {
+    Haptics.selectionAsync();
+    onApply(draft.trim());
+  }, [draft, onApply]);
+
+  const handleClear = useCallback(() => {
+    setDraft("");
+    onApply("");
+  }, [onApply]);
+
+  return (
+    <View style={[styles.promoCard, { borderColor: isValid ? theme.colors.status.success : theme.colors.border.default, backgroundColor: theme.colors.canvas.surface }]}>
+      <View style={[styles.promoRow, { flexDirection: flexRow(IS_RTL) }]}>
+        <View style={[styles.promoIconWell, { backgroundColor: isValid ? `${theme.colors.status.success}1A` : theme.colors.canvas.surfaceMuted }]}>
+          <Ionicons name="pricetag-outline" size={18} color={isValid ? theme.colors.status.success : theme.colors.text.secondary} />
+        </View>
+        <TextInput
+          value={draft}
+          onChangeText={(v) => setDraft(v.toUpperCase())}
+          placeholder={t("checkout.promoPlaceholder", "Enter discount code")}
+          placeholderTextColor={theme.colors.text.muted}
+          autoCapitalize="characters"
+          editable={!isValid}
+          style={[styles.promoInput, { color: theme.colors.text.primary, textAlign: TEXT_START }]}
+        />
+        {isValid ? (
+          <View style={[styles.promoAppliedPill, { backgroundColor: `${theme.colors.status.success}1A` }]}>
+            <Text variant="caption" weight="bold" style={{ color: theme.colors.status.success }}>
+              {t("checkout.promoApplied", "Applied ✓")}
+            </Text>
+            <Pressable onPress={handleClear} hitSlop={10} accessibilityRole="button" accessibilityLabel={t("common.remove", "Remove")}>
+              <Ionicons name="close-circle" size={16} color={theme.colors.status.success} />
+            </Pressable>
+          </View>
+        ) : (
+          <Pressable
+            onPress={handleApply}
+            disabled={draft.trim().length === 0}
+            hitSlop={10}
+            style={[styles.promoApplyBtn, { backgroundColor: draft.trim().length === 0 ? theme.colors.canvas.surfaceMuted : theme.colors.brand.primary }]}
+            accessibilityRole="button"
+            accessibilityLabel={t("checkout.promoApply", "Apply")}
+          >
+            <Text variant="caption" weight="bold" style={{ color: draft.trim().length === 0 ? theme.colors.text.muted : "#fff" }}>
+              {t("checkout.promoApply", "Apply")}
+            </Text>
+          </Pressable>
+        )}
+      </View>
+      {isValid && (
+        <Text variant="caption" weight="bold" style={{ color: theme.colors.status.success, marginTop: 8, textAlign: TEXT_START }}>
+          {t("checkout.promoSuccess", "10% discount activated")}
+        </Text>
+      )}
+      {isInvalid && (
+        <Text variant="caption" weight="bold" style={{ color: theme.colors.status.error, marginTop: 8, textAlign: TEXT_START }}>
+          {t("checkout.promoInvalid", "Invalid discount code")}
+        </Text>
+      )}
+    </View>
+  );
+}
+
 export default function CheckoutScreen() {
   const { t, i18n } = useTranslation();
   const { theme } = useTheme();
@@ -239,11 +319,14 @@ export default function CheckoutScreen() {
     approvedPrescriptions,
     selectedPrescriptionIds,
     setSelectedPrescriptionIds,
+    promoCode,
+    setPromoCode,
   } = usePremiumCheckout();
 
   const setShippingFee = useCartStore(s => s.setShippingFee);
   const addAddress = useAddressStore(s => s.add);
   const paymentMethodConfigs = useMemo(() => getPaymentMethodConfigs(theme), [theme]);
+  const { pagePad } = useScreenLayout();
 
   const [activeStep, setActiveStep] = useState<1 | 2 | 3 | 4>(1);
   const [isAddressDrawerOpen, setIsAddressDrawerOpen] = useState(false);
@@ -348,9 +431,9 @@ export default function CheckoutScreen() {
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <View style={[styles.container, { backgroundColor: theme.colors.canvas.background, paddingTop: insets.top }]}>
 
-        <View style={[styles.header, { flexDirection: flexRow(IS_RTL), backgroundColor: theme.colors.canvas.surface, borderBottomColor: theme.colors.border.default }]}>
+        <View style={[styles.header, { flexDirection: flexRow(IS_RTL), backgroundColor: theme.colors.canvas.surface, borderBottomColor: theme.colors.border.default, paddingHorizontal: pagePad }]}>
            <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={12} accessibilityRole="button" accessibilityLabel={t("common.back")}>
-              <Ionicons name={IS_RTL ? "chevron-forward" : "chevron-back"} size={28} color={theme.colors.text.primary} />
+              <Ionicons name={BACK_CHEVRON} size={28} color={theme.colors.text.primary} />
            </Pressable>
            <Text variant="h3" style={{ color: theme.colors.text.primary }}>
               {t("checkout.title", "Checkout")}
@@ -360,7 +443,7 @@ export default function CheckoutScreen() {
 
         <ProgressRail activeStep={activeStep} />
 
-        <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 140 }} showsVerticalScrollIndicator={false}>
+        <ScrollView contentContainerStyle={{ padding: pagePad, paddingBottom: 140, maxWidth: 720, width: "100%", alignSelf: "center" }} showsVerticalScrollIndicator={false}>
 
            <StepAccordion
              step={1}
@@ -393,7 +476,7 @@ export default function CheckoutScreen() {
                         <View style={[styles.radioOuter, { borderColor: selectedAddress?.id === addr.id ? theme.colors.brand.primary : theme.colors.text.muted }]}>
                            {selectedAddress?.id === addr.id && <View style={[styles.radioInner, { backgroundColor: theme.colors.brand.primary }]} />}
                         </View>
-                        <View style={{ flex: 1, paddingHorizontal: 12 }}>
+                        <View style={{ flex: 1, minWidth: 0, paddingHorizontal: 12 }}>
                            <Text variant="body" weight="bold" style={{ color: theme.colors.text.primary, textAlign: TEXT_START }}>
                               {addr.label || t("address.labelHome", "Home")}
                            </Text>
@@ -592,6 +675,8 @@ export default function CheckoutScreen() {
                </View>
              )}
 
+             <PromoCodeField promoCode={promoCode} onApply={setPromoCode} discount={pricing.discount} />
+
              <View style={[styles.summaryCard, { backgroundColor: theme.colors.canvas.background, borderColor: theme.colors.border.default }]}>
                 <View style={[styles.summaryRow, { flexDirection: flexRow(IS_RTL) }]}>
                    <Text variant="body" style={{ color: theme.colors.text.secondary }}>{t("checkout.subtotal", "Subtotal")}</Text>
@@ -617,7 +702,7 @@ export default function CheckoutScreen() {
         </ScrollView>
 
         {activeStep === 4 && (
-          <Animated.View entering={SlideInDown.duration(300)} style={[styles.footerDock, theme.shadows[3], { backgroundColor: theme.colors.canvas.surface, borderTopColor: theme.colors.border.default }]}>
+          <Animated.View entering={SlideInDown.duration(300)} style={[styles.footerDock, theme.shadows[3], { backgroundColor: theme.colors.canvas.surface, borderTopColor: theme.colors.border.default, paddingHorizontal: pagePad }]}>
              {errorMsg && (
                 <View style={[styles.errorDock, { flexDirection: flexRow(IS_RTL), backgroundColor: `${theme.colors.status.error}1A` }]}>
                    <Ionicons name="warning" size={16} color={theme.colors.status.error} />
@@ -684,6 +769,13 @@ const styles = StyleSheet.create({
 
   methodCard: { borderRadius: 12, borderWidth: 1, padding: 16, alignItems: "center", marginBottom: 12 },
   methodIconWell: { width: 44, height: 44, borderRadius: 14, alignItems: "center", justifyContent: "center" },
+
+  promoCard: { borderRadius: 12, borderWidth: 1.5, padding: 14, marginBottom: 16 },
+  promoRow: { alignItems: "center", gap: 10 },
+  promoIconWell: { width: 36, height: 36, borderRadius: 12, alignItems: "center", justifyContent: "center", flexShrink: 0 },
+  promoInput: { flex: 1, minWidth: 0, fontSize: 14, paddingVertical: 4 },
+  promoApplyBtn: { paddingHorizontal: 16, paddingVertical: 9, borderRadius: 9999, flexShrink: 0 },
+  promoAppliedPill: { flexDirection: flexRow(IS_RTL), alignItems: "center", gap: 6, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 9999, flexShrink: 0 },
 
   rxCard: { borderRadius: 12, borderWidth: 1, padding: 14, marginBottom: 16 },
   rxChip: { flexDirection: flexRow(IS_RTL), alignItems: "center", gap: 5, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 9999, borderWidth: 1 },
