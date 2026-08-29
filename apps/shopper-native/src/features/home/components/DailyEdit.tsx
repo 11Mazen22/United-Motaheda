@@ -5,7 +5,7 @@
  * Self-contained query subscription — parent never re-renders for this section.
  */
 
-import React, { memo, useCallback } from "react";
+import React, { memo, useCallback, useState } from "react";
 import {
   Platform,
   Pressable,
@@ -148,6 +148,14 @@ const EditorialHeroCard = memo(function EditorialHeroCard({
   const isSale = product.hasActivePromotion;
   const isNew = Boolean(product.isNew);
 
+  // expo-image has no built-in fallback UI for a URL that 404s or otherwise
+  // fails to load -- unlike a genuinely missing imageUrl (which correctly
+  // hits the placeholder branch below), a *broken* one rendered nothing at
+  // all: no photo, no icon, just an empty tile. Confirmed live on the
+  // deployed Home screen, where a stale/dead image URL left the entire
+  // image column blank while the text beside it rendered fine.
+  const [imgFailed, setImgFailed] = useState(false);
+
   const scale = useSharedValue(1);
   const animStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
@@ -171,13 +179,14 @@ const EditorialHeroCard = memo(function EditorialHeroCard({
     >
       <Animated.View style={[s.heroCard, { backgroundColor: theme.colors.canvas.surface, borderColor: theme.colors.border.default }, theme.shadows[2], animStyle]}>
         <View style={[s.heroImageWrap, { backgroundColor: theme.colors.canvas.surfaceMuted }]}>
-          {product.imageUrl ? (
+          {product.imageUrl && !imgFailed ? (
             <Image
               source={{ uri: product.imageUrl }}
               style={s.heroImage}
               contentFit="contain"
               transition={200}
               placeholder="L6PZfSi_.AyE_3t7t7R**0o#DgR4"
+              onError={() => setImgFailed(true)}
             />
           ) : (
             <View style={s.heroImageEmpty}>

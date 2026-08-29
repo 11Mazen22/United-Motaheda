@@ -11,7 +11,7 @@
  *   • No border — pure white card on off-white bg speaks for itself
  */
 
-import React, { memo, useCallback, useMemo } from "react";
+import React, { memo, useCallback, useMemo, useState } from "react";
 import { Platform, Pressable, StyleSheet, View } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
@@ -211,6 +211,7 @@ export const OrderCard = memo(function OrderCard({
   const firstItem    = order.items[0];
   const extraCount   = order.items.length - 1;
   const shortId      = order.id.slice(-8).toUpperCase();
+  const [imgFailed, setImgFailed] = useState(false);
 
   const scale    = useSharedValue(1);
   const cardAnim = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
@@ -261,12 +262,13 @@ export const OrderCard = memo(function OrderCard({
         {/* ── ITEM ROW ───────────────────────────────────── */}
         <View style={oc.itemRow}>
           <View style={oc.thumb}>
-            {firstItem?.imageUrl ? (
+            {firstItem?.imageUrl && !imgFailed ? (
               <Image
                 source={{ uri: firstItem.imageUrl }}
                 style={{ width: "100%", height: "100%" }}
                 contentFit="contain"
                 transition={150}
+                onError={() => setImgFailed(true)}
               />
             ) : (
               <View style={oc.thumbFallback}>

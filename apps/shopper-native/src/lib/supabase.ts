@@ -19,15 +19,22 @@ import Constants from "expo-constants";
 
 const extra = (Constants.expoConfig?.extra ?? {}) as Record<string, string | undefined>;
 
+// Cutover (2026-08-29): fallback now points at the self-hosted Supabase
+// stack (Railway project "efficient-communication") -- migrated off
+// Supabase Cloud after their platform had multiple concurrent incidents
+// (increased response times, 401s from JWT rejections) that were directly
+// blocking signups. Full data migration verified: all 76 public tables +
+// auth.users/identities row-count-matched against the source, plus a real
+// signup -> browse -> create-order end-to-end pass before this cutover.
 const SUPABASE_URL =
   (process.env["EXPO_PUBLIC_SUPABASE_URL"] as string | undefined) ??
   extra["supabaseUrl"] ??
-  "https://gntpxffonjvnvadjclpl.supabase.co";
+  "https://envoy-production-1cbe.up.railway.app";
 
 const SUPABASE_ANON =
   (process.env["EXPO_PUBLIC_SUPABASE_ANON_KEY"] as string | undefined) ??
   extra["supabaseAnonKey"] ??
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdudHB4ZmZvbmp2bnZhZGpjbHBsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4MzA4NzEsImV4cCI6MjA5MDQwNjg3MX0.hLDucOsGEci6iWq7eHS6RsQIZEpipBxjuqlep5f9Pcs";
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlIiwiaWF0IjoxNzg4MDA2ODUzLCJleHAiOjIxMDMzNjY4NTN9.cGHr99POxNCCxKSXmYK1ySwsTiRsNMvnrDUV0UBrnoI";
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON, {
   auth: {

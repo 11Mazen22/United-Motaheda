@@ -97,6 +97,7 @@ function ReorderCard({ item, orderedAt, theme, t }: {
 }) {
   const { reorder } = useReorder();
   const [status, setStatus] = useState<"idle" | "adding" | "added">("idle");
+  const [imgFailed, setImgFailed] = useState(false);
   const pulse = useSharedValue(1);
   const pulseStyle = useAnimatedStyle(() => ({ transform: [{ scale: pulse.value }] }));
 
@@ -113,8 +114,8 @@ function ReorderCard({ item, orderedAt, theme, t }: {
   return (
     <View style={[s.card, { backgroundColor: theme.colors.canvas.surface, borderColor: theme.colors.border.default }, theme.shadows[1]]}>
       <View style={[s.imgWrap, { backgroundColor: theme.colors.canvas.surfaceMuted }]}>
-        {item.imageUrl ? (
-          <Image source={{ uri: item.imageUrl }} style={s.img} placeholder={DEFAULT_BLURHASH} contentFit="contain" transition={150} />
+        {item.imageUrl && !imgFailed ? (
+          <Image source={{ uri: item.imageUrl }} style={s.img} placeholder={DEFAULT_BLURHASH} contentFit="contain" transition={150} onError={() => setImgFailed(true)} />
         ) : (
           <Ionicons name="medkit-outline" size={22} color={theme.colors.text.muted} />
         )}

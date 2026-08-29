@@ -172,6 +172,12 @@ export const ProductCard = memo(function ProductCard({
   const { t } = useTranslation();
   const { theme } = useTheme();
 
+  // expo-image has no built-in fallback for a URL that 404s or otherwise
+  // fails to load -- a genuinely missing imageUrl correctly hits the
+  // placeholder branch below, but a broken one rendered nothing at all
+  // (confirmed live: an empty image tile with no icon, no visible error).
+  const [imgFailed, setImgFailed] = useState(false);
+
   const displayName = (lang === "en" ? (product.nameEn || product.nameAr || product.name) : (product.nameAr || product.nameEn || product.name)) ?? "";
   const categoryLabel = lang === "en" ? (product.categoryNameEn || product.categoryName) : product.categoryName;
 
@@ -216,8 +222,8 @@ export const ProductCard = memo(function ProductCard({
               end={{ x: 0.85, y: 1 }}
               style={StyleSheet.absoluteFillObject}
             />
-            {product.imageUrl ? (
-              <Image source={{ uri: product.imageUrl }} style={s.img} placeholder={DEFAULT_BLURHASH} contentFit="contain" transition={200} cachePolicy="memory-disk" />
+            {product.imageUrl && !imgFailed ? (
+              <Image source={{ uri: product.imageUrl }} style={s.img} placeholder={DEFAULT_BLURHASH} contentFit="contain" transition={200} cachePolicy="memory-disk" onError={() => setImgFailed(true)} />
             ) : (
               <View style={s.imgPlaceholder}>
                 <Ionicons name="medkit-outline" size={30} color={theme.colors.text.muted} />

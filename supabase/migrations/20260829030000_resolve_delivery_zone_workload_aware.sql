@@ -59,7 +59,13 @@ BEGIN
     ORDER BY dist ASC
   LOOP
     FOR v_zone IN
-      SELECT z.id, z.name, z."baseFee", z."freeAboveSubtotal",
+      -- baseFee/freeAboveSubtotal are integer columns on DeliveryZone; the
+      -- RETURNS TABLE above declares them numeric. Without the cast this
+      -- fails at call time with "structure of query does not match function
+      -- result type" -- caught live during the self-hosted migration's
+      -- end-to-end test, since this function had never actually been
+      -- executed against the real schema before that.
+      SELECT z.id, z.name, z."baseFee"::numeric AS "baseFee", z."freeAboveSubtotal"::numeric AS "freeAboveSubtotal",
              z."surgeStartHour", z."surgeEndHour", z."surgeMultiplier", z.polygon
       FROM public."DeliveryZone" z
       WHERE z."branchId" = v_branch.id
