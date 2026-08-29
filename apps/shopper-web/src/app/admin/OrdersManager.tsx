@@ -32,8 +32,9 @@ import {
   listDrivers,
   listOpenAssignments,
   reassignDriver,
-
+  rankAvailableDrivers,
   type LogisticsProfile,
+  type RankedDriverCandidate,
 } from "../../services/logisticsApi";
 import {
   fetchAdminOrders,
@@ -662,6 +663,9 @@ export default function OrdersManager() {
   const [currentPage, setCurrentPage] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
   const [pendingById, setPendingById] = useState<Record<string, true>>({});
+  const [rankedDrivers, setRankedDrivers] = useState<RankedDriverCandidate[]>([]);
+  const [rankingLoading, setRankingLoading] = useState(false);
+  const rankingOrderIdRef = useRef<string | null>(null);
   const firstLoadRef = useRef(true);
   const loadControllerRef = useRef<AbortController | null>(null);
   const latestRequestIdRef = useRef(0);
@@ -839,6 +843,29 @@ export default function OrdersManager() {
       setRowPending(orderId, false);
     }
   }, [lang, orders, pendingById, setRowPending]);
+
+  // Ranked driver candidates for whichever order the detail drawer is
+  // currently showing. Re-fetched every time the drawer switches to a
+  // different order; a stale-response guard (requestedOrderId check)
+  // prevents a slow response for a previously-open order from overwriting
+  // the ranking for the order the operator has since switched to.
+  useEffect(() => {
+    if (!detailOrder) {
+      setRankedDrivers([]);
+      return;
+    }
+    const requestedOrderId = detailOrder.id;
+    rankingOrderIdRef.current = requestedOrderId;
+    setRankingLoading(true);
+    rankAvailableDrivers(requestedOrderId)
+      .then((ranked) => {
+        if (rankingOrderIdRef.current !== requestedOrderId) return;
+        setRankedDrivers(ranked);
+      })
+      .finally(() => {
+        if (rankingOrderIdRef.current === requestedOrderId) setRankingLoading(false);
+      });
+  }, [detailOrder?.id]);
 
   const handleDriverAssignment = useCallback(async (driverId: string) => {
     if (!detailOrder || !user?.id || pendingById[detailOrder.id]) return;
@@ -1243,19 +1270,78 @@ export default function OrdersManager() {
               <p className="mb-1.5 text-[11px] font-black uppercase tracking-widest text-slate-400">
                 {lang === "ar" ? "تعيين السائق" : "Driver assignment"}
               </p>
-              <select
-                value={detailOrder.assignedDriverId ?? ""}
-                disabled={Boolean(pendingById[detailOrder.id])}
-                onChange={(event) => {
-                  if (event.target.value) void handleDriverAssignment(event.target.value);
-                }}
-                className="admin-input h-10 w-full rounded-xl border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700"
-              >
-                <option value="">{lang === "ar" ? "اختر سائقاً" : "Select a driver"}</option>
-                {drivers.filter((driver) => driver.is_active).map((driver) => (
-                  <option key={driver.id} value={driver.id}>{driver.full_name}</option>
-                ))}
-              </select>
+              {rankingLoading && rankedDrivers.length === 0 ? (
+                <div className="flex h-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-400">
+                  {lang === "ar" ? "جارٍ ترتيب السائقين المتاحين…" : "Ranking available drivers…"}
+                </div>
+              ) : rankedDrivers.length > 0 ? (
+                <div className="space-y-1.5 max-h-56 overflow-y-auto pe-1">
+                  {rankedDrivers.map((candidate, index) => {
+                    const isRecommended = index === 0;
+                    const isSelected = detailOrder.assignedDriverId === candidate.driverUserId;
+                    return (
+                      <button
+                        key={candidate.driverUserId}
+                        type="button"
+                        disabled={Boolean(pendingById[detailOrder.id])}
+                        onClick={() => void handleDriverAssignment(candidate.driverUserId)}
+                        className={cn(
+                          "flex w-full items-center justify-between gap-2 rounded-xl border px-3 py-2 text-start transition-colors disabled:opacity-50",
+                          isSelected
+                            ? "border-emerald-400 bg-emerald-50"
+                            : isRecommended
+                              ? "border-emerald-200 bg-emerald-50/40 hover:bg-emerald-50"
+                              : "border-slate-200 bg-white hover:bg-slate-50",
+                        )}
+                      >
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span className="truncate text-sm font-bold text-slate-700">{candidate.fullName}</span>
+                            {isRecommended && (
+                              <span className="shrink-0 rounded-full bg-emerald-500 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wide text-white">
+                                {lang === "ar" ? "موصى به" : "Recommended"}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-[11px] text-slate-500">
+                            {candidate.distanceToBranchKm != null
+                              ? (lang === "ar" ? `${candidate.distanceToBranchKm.toFixed(1)} كم من الفرع` : `${candidate.distanceToBranchKm.toFixed(1)} km from branch`)
+                              : (lang === "ar" ? "الموقع غير متاح" : "Location unavailable")}
+                            {" · "}
+                            {candidate.activeDeliveries > 0
+                              ? (lang === "ar" ? `${candidate.activeDeliveries} توصيلات نشطة` : `${candidate.activeDeliveries} active`)
+                              : (lang === "ar" ? "بلا توصيلات نشطة" : "no active deliveries")}
+                          </p>
+                        </div>
+                        <span className="shrink-0 rounded-lg bg-slate-100 px-2 py-1 text-xs font-black text-slate-600">{candidate.score}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700">
+                  {lang === "ar" ? "لا يوجد سائقون متصلون مؤهلون الآن — اختر يدوياً من القائمة الكاملة." : "No eligible online drivers right now — pick manually from the full list."}
+                </p>
+              )}
+
+              <details className="mt-2">
+                <summary className="cursor-pointer text-[11px] font-bold text-slate-400 hover:text-slate-600">
+                  {lang === "ar" ? "كل السائقين (يدوي)" : "All drivers (manual)"}
+                </summary>
+                <select
+                  value={detailOrder.assignedDriverId ?? ""}
+                  disabled={Boolean(pendingById[detailOrder.id])}
+                  onChange={(event) => {
+                    if (event.target.value) void handleDriverAssignment(event.target.value);
+                  }}
+                  className="admin-input mt-1.5 h-10 w-full rounded-xl border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700"
+                >
+                  <option value="">{lang === "ar" ? "اختر سائقاً" : "Select a driver"}</option>
+                  {drivers.filter((driver) => driver.is_active).map((driver) => (
+                    <option key={driver.id} value={driver.id}>{driver.full_name}</option>
+                  ))}
+                </select>
+              </details>
               <p className="mt-1 text-xs text-slate-500">
                 {detailOrder.assignmentStatus === "accepted"
                   ? (lang === "ar" ? "قبل السائق المهمة — تابع التقدم في الخط الزمني أدناه." : "Driver accepted — follow delivery progress in the timeline below.")

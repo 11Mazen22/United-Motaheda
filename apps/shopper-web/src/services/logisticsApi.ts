@@ -296,6 +296,57 @@ export async function listDrivers() {
   }));
 }
 
+export interface RankedDriverCandidate {
+  driverUserId: string;
+  driverProfileId: string;
+  fullName: string;
+  phone: string | null;
+  vehicleType: string | null;
+  rating: number | null;
+  distanceToBranchKm: number | null;
+  activeDeliveries: number;
+  score: number;
+}
+
+interface RankedDriverRow {
+  driver_user_id: string;
+  driver_profile_id: string;
+  full_name: string;
+  phone: string | null;
+  vehicle_type: string | null;
+  rating: number | null;
+  distance_to_branch_km: number | null;
+  active_deliveries: number;
+  score: number;
+}
+
+/** Ranks online, approved/active drivers for a given order by an
+ *  explainable score (distance to the order's real resolved branch,
+ *  current active-delivery workload) via rank_available_drivers(). Purely
+ *  advisory -- staff still makes the final call through assignDriver()
+ *  above; this only replaces the alphabetical dropdown with an informed
+ *  one. Empty array (not an error) if the order has no resolved branch or
+ *  no driver is currently online/eligible. */
+export async function rankAvailableDrivers(orderId: string): Promise<RankedDriverCandidate[]> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase.rpc("rank_available_drivers", { p_order_id: orderId });
+  if (error) {
+    console.error("[logisticsApi] rank_available_drivers failed:", error.message);
+    return [];
+  }
+  return ((data ?? []) as RankedDriverRow[]).map((row) => ({
+    driverUserId: row.driver_user_id,
+    driverProfileId: row.driver_profile_id,
+    fullName: row.full_name,
+    phone: row.phone,
+    vehicleType: row.vehicle_type,
+    rating: row.rating,
+    distanceToBranchKm: row.distance_to_branch_km,
+    activeDeliveries: row.active_deliveries,
+    score: row.score,
+  }));
+}
+
 export async function listIntegrationEvents() {
   const supabase = getSupabaseClient();
   const { data, error } = await supabase
