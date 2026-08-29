@@ -22,15 +22,6 @@ function unauthorized(message: string): Response {
   });
 }
 
-// Bind explicitly: the `-p 9000` CLI flag passed to `edge-runtime start`
-// does not control this listener (learned live tonight -- it came up on
-// localhost:9999 regardless). "::" is the dual-stack wildcard, needed for
-// the exact same reason PostgREST's private-networking connectivity failed
-// earlier: Railway's private networking resolves and connects via an IPv6
-// address, and an IPv4-only or loopback-only bind is simply unreachable
-// from Envoy no matter how correct the DNS/routing otherwise is.
-const servePort = Number(Deno.env.get("PORT") ?? "9000");
-
 serve(async (req: Request) => {
   const url = new URL(req.url);
   const { pathname } = url;
@@ -88,4 +79,4 @@ serve(async (req: Request) => {
       headers: { "Content-Type": "application/json" },
     });
   }
-}, { port: servePort, hostname: "::" });
+}, { hostname: "::" });

@@ -14,4 +14,4 @@ COPY . /home/deno/functions
 # via an IPv6 address, leaving Envoy unable to reach it at all (fails
 # silently -- looks like a dead service, not a bind-address problem). If
 # functions are unreachable through Envoy after deploy, check this first.
-CMD ["start", "--main-service", "/home/deno/functions/main", "-p", "9000"]
+CMD ["start", "--main-service", "/home/deno/functions/main"]
