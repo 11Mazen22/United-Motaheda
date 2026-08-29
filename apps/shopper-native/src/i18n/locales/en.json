@@ -1290,6 +1290,8 @@
         "previewNotice": "This document will be sent securely to the pharmacy for review.",
         "uploading": "Uploading securely...",
         "uploadError": "Failed to upload the prescription document. Please try again.",
+        "captureFailedBody": "Couldn't capture the photo. Please try again.",
+        "notSignedInBody": "Please sign in again, then retry.",
         "uploadSuccessTitle": "Prescription Submitted",
         "uploadSuccessBody": "Your prescription has been securely submitted for pharmacist review.",
         "uploadedDocumentName": "Uploaded Prescription"

@@ -72,11 +72,18 @@ export default function ScanScreen(): React.ReactElement {
         setImageUri(photo.uri);
         setPhase("preview");
         setUploadErr(null);
+      } else {
+        // takePictureAsync resolved but returned no photo -- rare, but with
+        // no feedback at all this reads as "the capture button does
+        // nothing" rather than a real (if unusual) failure.
+        if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
+        showErrorSheet(t("common.error"), t("prescriptions.captureFailedBody", "Couldn't capture the photo. Please try again."));
       }
     } catch {
       if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
+      showErrorSheet(t("common.error"), t("prescriptions.captureFailedBody", "Couldn't capture the photo. Please try again."));
     }
-  }, []);
+  }, [t]);
 
   const handleGallery = useCallback(async () => {
     if (Platform.OS !== "web") Haptics.selectionAsync().catch(() => {});
@@ -100,7 +107,14 @@ export default function ScanScreen(): React.ReactElement {
   }, []);
 
   const handleSubmit = useCallback(async () => {
-    if (!user?.id || !imageUri) return;
+    if (!imageUri) return;
+    if (!user?.id) {
+      // Previously a silent no-op -- tapping Submit while the session
+      // hadn't resolved yet (e.g. right after a cold start) looked exactly
+      // like a dead button, with nothing telling the user why.
+      showErrorSheet(t("common.error"), t("prescriptions.notSignedInBody", "Please sign in again, then retry."));
+      return;
+    }
     setPhase("uploading");
     setUploadErr(null);
     try {

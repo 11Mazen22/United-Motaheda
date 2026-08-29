@@ -4,7 +4,7 @@
  * uses copy that already existed, fully translated, in the locale files —
  * it just had no screen wired up to render it until now.
  */
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { View, StyleSheet, TextInput, Pressable, Keyboard, ActivityIndicator, ScrollView } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
@@ -128,6 +128,21 @@ export default function SearchScreen() {
     shadowOpacity: focusAnim.value * 0.18,
   }));
   const glowAnimStyle = useAnimatedStyle(() => ({ opacity: focusAnim.value }));
+
+  // The native TextInput `autoFocus` prop raises the keyboard the instant
+  // this component mounts -- which, arriving via a "slide_from_right" push,
+  // is still mid-transition. The keyboard rise interrupts Android's in-flight
+  // window-inset/transform animation for that push, and the screen can settle
+  // permanently offset to one side instead of at translateX 0 -- clipping
+  // content at the edge for the rest of the screen's lifetime, not just
+  // during the transition. Focusing imperatively after the push's own
+  // duration (the same 380ms this app already uses for its own overlay exit
+  // timing) lets the slide finish untouched before the keyboard ever appears.
+  const inputRef = useRef<TextInput>(null);
+  useEffect(() => {
+    const id = setTimeout(() => inputRef.current?.focus(), 380);
+    return () => clearTimeout(id);
+  }, []);
 
   const recentTerms = useRecentSearchesStore((s) => s.terms);
   const pushRecent = useRecentSearchesStore((s) => s.push);
@@ -260,6 +275,7 @@ export default function SearchScreen() {
             >
               <Ionicons name="search" size={20} color={theme.colors.brand.primary} />
               <TextInput
+                ref={inputRef}
                 value={query}
                 onChangeText={(txt) => { setQuery(txt); if (submitted) setSubmitted(""); }}
                 onSubmitEditing={handleSubmit}
@@ -268,7 +284,6 @@ export default function SearchScreen() {
                 placeholder={t("search.placeholder")}
                 placeholderTextColor={theme.colors.text.muted}
                 style={[styles.input, { color: theme.colors.text.primary, textAlign: IS_RTL ? "right" : "left" }]}
-                autoFocus
                 returnKeyType="search"
               />
               {query.length > 0 && (
