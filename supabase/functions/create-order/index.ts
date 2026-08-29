@@ -387,6 +387,7 @@ Deno.serve(async (req) => {
     let zoneRow: {
       branch_id: string; branch_name_ar: string; zone_id: string;
       zone_name: string; base_fee: number; effective_fee: number; surge_applied: boolean;
+      distance_km: number;
     } | null = null;
 
     if (lat !== null && lng !== null) {
@@ -456,6 +457,7 @@ Deno.serve(async (req) => {
       zone_name:         zoneRow!.zone_name,
       zone_base_fee:     zoneRow!.base_fee,
       zone_surge_applied: zoneRow!.surge_applied,
+      delivery_distance_km: zoneRow!.distance_km,
       location_source:      body.address?.locationSource ?? null,
       location_accuracy_m:  body.address?.locationAccuracyM ?? null,
       address_building:     body.address?.buildingNumber ?? null,

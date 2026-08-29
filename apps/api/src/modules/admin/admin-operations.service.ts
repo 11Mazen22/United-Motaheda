@@ -218,6 +218,14 @@ export class AdminOperationsService {
 
     const now = new Date();
     const result = await this.prisma.$transaction(async (tx) => {
+      // Legacy ledger — kept for driver-orders.service.ts's own "browse and
+      // claim" subsystem, which is internally self-consistent but is NOT
+      // what the live shopper-native driver app reads (confirmed: that app
+      // only ever queries the raw `delivery_assignments` table below). Was
+      // previously the ONLY write here, meaning a driver assigned an order
+      // through this admin surface never saw it as an offer in their actual
+      // app -- a silent dispatch failure, not a hypothetical one, since
+      // this endpoint is live and reachable from apps/admin's OrdersPage.
       await tx.deliveryAssignment.upsert({
         where: { orderId },
         update: {
@@ -255,6 +263,25 @@ export class AdminOperationsService {
           updated_at: now,
         },
       });
+
+      // The real ledger — same table shopper-web's assignDriver() writes to
+      // and the only one the live driver app's offer/accept flow reads
+      // (delivery_assignments, driver_id keyed by auth user id, one row per
+      // assignment EVENT rather than one mutable row per order — confirmed
+      // via logisticsApi.ts's reassignDriver(), which supersedes any open
+      // row before inserting a new one). Not modeled in the Prisma schema
+      // (created directly in Supabase, no tracked migration), hence raw SQL.
+      await tx.$executeRaw`
+        UPDATE public.delivery_assignments
+        SET response_status = 'superseded', superseded_at = ${now}
+        WHERE order_id = ${orderId}::uuid AND response_status IN ('offered', 'accepted')
+      `;
+      await tx.$executeRaw`
+        INSERT INTO public.delivery_assignments
+          (order_id, driver_id, assigned_by, assignment_kind, response_status)
+        VALUES
+          (${orderId}::uuid, ${resolvedDriver.userId}::uuid, ${adminUserId ?? null}::uuid, 'assigned', 'offered')
+      `;
 
       return updatedOrder;
     });
