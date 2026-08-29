@@ -1,10 +1,11 @@
-import React, { useCallback, useEffect } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   Platform,
   Pressable,
   StyleSheet,
   View,
   useWindowDimensions,
+  type LayoutChangeEvent,
   type StyleProp,
   type ViewStyle,
 } from "react-native";
@@ -17,6 +18,7 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withSpring,
+  withTiming,
 } from "react-native-reanimated";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -27,6 +29,8 @@ import { useTheme } from "../theme";
 type IoniconsName = React.ComponentProps<typeof Ionicons>["name"];
 
 const SPRING = { damping: 20, stiffness: 300, mass: 0.6 } as const;
+const PILL_SPRING = { damping: 18, stiffness: 220, mass: 0.7 } as const;
+const PRESS_SPRING = { damping: 16, stiffness: 400, mass: 0.5 } as const;
 
 export interface TabBarItemConfig {
   /** Must match the expo-router route/screen name. */
@@ -87,12 +91,32 @@ function TabBarIcon({ item, focused, tone }: { item: TabBarItemConfig; focused: 
   );
 }
 
+/** Press-in "squish" affordance shared by every tab item — a tiny, cheap
+ *  spring that makes the bar feel responsive to touch, not just to focus. */
+function TabPressable({ onPress, onLayout, children, ...rest }: Omit<React.ComponentProps<typeof Pressable>, "children" | "onLayout"> & { onLayout?: (e: LayoutChangeEvent) => void; children: React.ReactNode }): React.ReactElement {
+  const pressScale = useSharedValue(1);
+  const pressAnim = useAnimatedStyle(() => ({ transform: [{ scale: pressScale.value }] }));
+  return (
+    <Pressable
+      {...rest}
+      onPress={onPress}
+      onLayout={onLayout}
+      onPressIn={() => { pressScale.value = withSpring(0.88, PRESS_SPRING); }}
+      onPressOut={() => { pressScale.value = withSpring(1, PRESS_SPRING); }}
+    >
+      <Animated.View style={pressAnim}>{children}</Animated.View>
+    </Pressable>
+  );
+}
+
 /**
- * Shared bottom tab bar — Reanimated spring icon/label motion, an animated
- * underline dot, glass backing, RTL-aware route ordering, and theme-driven
- * colors (reads useTheme() only; never device color scheme directly, which
- * previously let tab bars disagree with the rest of the app on light/dark).
- * Used by every persona/app's tab navigation via `tabBar={(props) => ...}`.
+ * Shared bottom tab bar — a morphing "pill" highlight that glides and
+ * resizes behind the focused tab, Reanimated spring icon/label motion, an
+ * animated underline dot, press-in squish feedback, glass backing,
+ * RTL-aware route ordering, and theme-driven colors (reads useTheme() only;
+ * never device color scheme directly, which previously let tab bars
+ * disagree with the rest of the app on light/dark). Used by every
+ * persona/app's tab navigation via `tabBar={(props) => ...}`.
  */
 export function AnimatedTabBar({ state, navigation, items, barHeight, style }: AnimatedTabBarProps): React.ReactElement {
   const { theme, isDark } = useTheme();
@@ -108,6 +132,39 @@ export function AnimatedTabBar({ state, navigation, items, barHeight, style }: A
       navigation.navigate(routeName);
     }
   }, [navigation]);
+
+  // ── Morphing pill — measured per-item via onLayout (post-mirroring, so
+  // this is correct under RTL with no extra logical-direction math), then
+  // sprung to the newly focused item's slot. A plain-JS layout map is fine
+  // here: layout events are rare (mount + rotation), never per-frame. ──────
+  const [itemLayouts, setItemLayouts] = useState<Record<number, { x: number; width: number }>>({});
+  const pillX       = useSharedValue(0);
+  const pillW       = useSharedValue(0);
+  const pillOpacity = useSharedValue(0);
+  const handleItemLayout = useCallback((realIndex: number, e: LayoutChangeEvent) => {
+    const { x, width: w } = e.nativeEvent.layout;
+    setItemLayouts((prev) => {
+      const cur = prev[realIndex];
+      if (cur && cur.x === x && cur.width === w) return prev;
+      return { ...prev, [realIndex]: { x, width: w } };
+    });
+  }, []);
+  useEffect(() => {
+    const target = itemLayouts[state.index];
+    if (!target) return;
+    const firstPaint = pillW.value === 0;
+    pillX.value       = firstPaint ? target.x     : withSpring(target.x, PILL_SPRING);
+    pillW.value       = firstPaint ? target.width : withSpring(target.width, PILL_SPRING);
+    pillOpacity.value = withTiming(1, { duration: 200 });
+  }, [state.index, itemLayouts, pillX, pillW, pillOpacity]);
+  const pillAnim = useAnimatedStyle(() => ({
+    // 0.14 is the pill's resting tint strength once faded in — kept as a
+    // multiplier here (not baked into a static style opacity) so the same
+    // shared value still drives the initial fade-in from fully invisible.
+    opacity:   pillOpacity.value * 0.14,
+    width:     pillW.value,
+    transform: [{ translateX: pillX.value }],
+  }));
 
   const byName = new Map(items.map((item) => [item.name, item]));
   // Declared order is rendered as-is — the tab row's own flexDirection:"row"
@@ -139,14 +196,19 @@ export function AnimatedTabBar({ state, navigation, items, barHeight, style }: A
       )}
       <View pointerEvents="none" style={[navStyles.topHairline, { backgroundColor: theme.colors.border.default }]} />
       <View style={[navStyles.inner, { height: barH, paddingHorizontal: isTablet ? 24 : 8 }]}>
+        <Animated.View
+          pointerEvents="none"
+          style={[navStyles.pill, pillAnim, { backgroundColor: tone.active }]}
+        />
         {orderedRoutes.map((route) => {
           const item = byName.get(route.name)!;
           const realIndex = state.routes.findIndex((entry) => entry.key === route.key);
           const focused = state.index === realIndex;
           return (
-            <Pressable
+            <TabPressable
               key={route.key}
               onPress={() => onPress(route.key, route.name, focused)}
+              onLayout={(e) => handleItemLayout(realIndex, e)}
               hitSlop={6}
               accessibilityRole="tab"
               accessibilityLabel={item.label}
@@ -154,7 +216,7 @@ export function AnimatedTabBar({ state, navigation, items, barHeight, style }: A
               style={navStyles.item}
             >
               <TabBarIcon item={item} focused={focused} tone={tone} />
-            </Pressable>
+            </TabPressable>
           );
         })}
       </View>
@@ -271,6 +333,7 @@ const navStyles = StyleSheet.create({
   topHairline: { height: StyleSheet.hairlineWidth, position: "absolute", top: 0, left: 0, right: 0 },
   inner: { flexDirection: "row", alignItems: "center", justifyContent: "center" },
   item: { flex: 1, minWidth: 44, maxWidth: 120, height: "100%", alignItems: "center", justifyContent: "center", paddingTop: 2 },
+  pill: { position: "absolute", left: 0, top: 6, bottom: 6, borderRadius: 18 },
   iconWrap: { alignItems: "center", justifyContent: "center", gap: 3 },
   activeDot: { marginTop: 2, width: 16, height: 3, borderRadius: 2 },
   badgeDot: { position: "absolute", top: -2, end: -6, width: 8, height: 8, borderRadius: 4, borderWidth: 1.5, zIndex: 1 },

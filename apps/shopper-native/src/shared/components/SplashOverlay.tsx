@@ -68,6 +68,8 @@ import { Ionicons } from "@expo/vector-icons";
 
 import Animated, {
 
+  cancelAnimation,
+
   Easing,
 
   useAnimatedStyle,
@@ -77,6 +79,10 @@ import Animated, {
   useSharedValue,
 
   withDelay,
+
+  withRepeat,
+
+  withSequence,
 
   withSpring,
 
@@ -215,6 +221,15 @@ function SplashSequenceView({ onExited }: { onExited: () => void }): React.React
 
 
 
+  // Radar-style pulse ring — a distinct value from ringsScale/ringsOpacity so
+  // it can loop indefinitely on the UI thread without fighting the one-shot
+  // entrance spring above. Off entirely under reduced motion.
+  const pulseScale   = useSharedValue(1);
+
+  const pulseOpacity = useSharedValue(0);
+
+
+
   const overlayAnim = useAnimatedStyle(() => ({ opacity: overlayOpacity.value }));
 
   const holdAnim    = useAnimatedStyle(() => ({ opacity: holdOpacity.value }));
@@ -234,6 +249,14 @@ function SplashSequenceView({ onExited }: { onExited: () => void }): React.React
     opacity:   ringsOpacity.value,
 
     transform: [{ scale: ringsScale.value }],
+
+  }));
+
+  const pulseAnim = useAnimatedStyle(() => ({
+
+    opacity:   pulseOpacity.value,
+
+    transform: [{ scale: pulseScale.value }],
 
   }));
 
@@ -283,13 +306,27 @@ function SplashSequenceView({ onExited }: { onExited: () => void }): React.React
 
       wordShift.value    = withDelay(320, withSpring(0, theme.animation.spring.gentle));
 
+
+
+      // Radar pulse — starts once the rings have mostly settled (~700ms in)
+      // and loops until the phase-transition effect below cancels it.
+      pulseScale.value   = withDelay(700, withRepeat(
+        withSequence(withTiming(1, { duration: 0 }), withTiming(1.34, { duration: 1_700, easing: Easing.out(Easing.ease) })),
+        -1, false,
+      ));
+
+      pulseOpacity.value = withDelay(700, withRepeat(
+        withSequence(withTiming(0.30, { duration: 0 }), withTiming(0, { duration: 1_700, easing: Easing.out(Easing.ease) })),
+        -1, false,
+      ));
+
     }
 
 
 
     seqRef.current.begin();
 
-  }, [reduced, logoOpacity, logoScale, ringsOpacity, ringsScale, wordOpacity, wordShift]);
+  }, [reduced, logoOpacity, logoScale, ringsOpacity, ringsScale, wordOpacity, wordShift, pulseScale, pulseOpacity]);
 
 
 
@@ -324,11 +361,19 @@ function SplashSequenceView({ onExited }: { onExited: () => void }): React.React
 
     if (seq.phase === "video") {
 
+      cancelAnimation(pulseScale);
+
+      cancelAnimation(pulseOpacity);
+
       holdOpacity.value = withTiming(0, { duration: HOLD_FADE_MS, easing: Easing.in(Easing.ease) });
 
       skipOpacity.value = withTiming(1, { duration: SKIP_FADE_IN_MS, easing: Easing.out(Easing.ease) });
 
     } else if (seq.phase === "exiting") {
+
+      cancelAnimation(pulseScale);
+
+      cancelAnimation(pulseOpacity);
 
       skipOpacity.value    = withTiming(0, { duration: 160 });
 
@@ -336,8 +381,8 @@ function SplashSequenceView({ onExited }: { onExited: () => void }): React.React
 
     }
 
-      
-  }, [seq.phase, holdOpacity, overlayOpacity, skipOpacity]);
+
+  }, [seq.phase, holdOpacity, overlayOpacity, skipOpacity, pulseScale, pulseOpacity]);
 
 
 
@@ -459,6 +504,10 @@ function SplashSequenceView({ onExited }: { onExited: () => void }): React.React
           {/* Four concentric rings — outermost first so inner rings render on top */}
 
           <Animated.View style={[styles.ring4,     ringsAnim]} />
+
+          {/* Radar pulse — radiates outward from the ring band on a loop, a
+              "still alive" cue while the video decodes. Purely decorative. */}
+          <Animated.View style={[styles.ringPulse, pulseAnim]} pointerEvents="none" />
 
           <Animated.View style={[styles.ringOuter, ringsAnim]} />
 
@@ -669,6 +718,22 @@ const styles = StyleSheet.create({
     borderWidth:  1.5,
 
     borderColor:  "rgba(14,126,116,0.11)",
+
+  },
+
+  ringPulse: {
+
+    position:     "absolute",
+
+    width:        228,
+
+    height:       228,
+
+    borderRadius: 114,
+
+    borderWidth:  1.5,
+
+    borderColor:  "rgba(14,126,116,0.55)",
 
   },
 

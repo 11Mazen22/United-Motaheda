@@ -281,7 +281,20 @@ export default function RootLayout() {
 
     if (!fontsReady) return;
 
-    SplashScreen.hideAsync().catch(() => {});
+    // Fail-safe only. SplashOverlay (src/shared/components/SplashOverlay.tsx)
+    // is the intended sole authority for hiding the native splash, timed to
+    // its own opaque white "hold" painting first so the handoff has zero
+    // flash. Hiding it here too, immediately on fontsReady, raced that paint
+    // and regularly won: the OS splash lifted before SplashOverlay's hold
+    // was on screen, briefly exposing the real app underneath -- already
+    // mid "slide_from_right" screen-transition (the nested stacks' default)
+    // -- which read as the splash itself "sliding in from the side".
+    // Delayed well past SplashOverlay's own handoff window so this only
+    // fires if that path failed (e.g. its ErrorBoundary fallback swallowed
+    // it) instead of racing it every launch.
+    const failSafe = setTimeout(() => { SplashScreen.hideAsync().catch(() => {}); }, 4_000);
+
+    return () => clearTimeout(failSafe);
 
   }, [fontsReady]);
 

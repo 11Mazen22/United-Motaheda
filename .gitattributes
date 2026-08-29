@@ -1,2 +1,8 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Shell scripts run inside Linux build/deploy containers (Railway). This
+# machine's core.autocrlf=true otherwise checks them out as CRLF, which
+# breaks under bash/sh there (stray \r tokens, "invalid option" errors,
+# mangled paths) even though the repo blob itself is clean LF.
+*.sh text eol=lf

@@ -1,7 +1,12 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -eu
+# See scripts/railway/build-api.sh for why pipefail is enabled defensively,
+# and BASH_SOURCE avoided below -- Railway's build container's "bash" does
+# not support either (this script is always run directly, never sourced, so
+# $0 is the POSIX-safe equivalent here).
+(set -o pipefail) 2>/dev/null && set -o pipefail || true
 
-repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+repo_root="$(cd "$(dirname "$0")/../.." && pwd)"
 app_root="$repo_root/apps/shopper-native"
 packages_root="$repo_root/packages"
 cd "$app_root"
@@ -28,7 +33,7 @@ npm install --include=dev --production=false --no-audit --no-fund
 
 for package_name in ui-native design-tokens; do
   package_dir="$packages_root/$package_name"
-  if [[ ! -f "$package_dir/package.json" ]]; then
+  if [ ! -f "$package_dir/package.json" ]; then
     echo "ERROR: packages/$package_name/package.json is missing" >&2
     exit 1
   fi
