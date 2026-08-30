@@ -3,6 +3,7 @@ import { Platform, Pressable, StyleSheet, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { CustomerUI, useTheme } from "@pharmacy/ui-native";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
@@ -15,6 +16,7 @@ import { AddressFormDrawer } from "@/features/addresses/components/AddressFormDr
 import { useAddressStore, type AddressFormData } from "@/features/addresses/store";
 import { ADDRESS_LABELS } from "@/features/addresses/types";
 import { showErrorSheet } from "@/shared/store/appSheetStore";
+import { PressableScale } from "@/shared/motion";
 
 const IS_RTL = isRtl();
 
@@ -23,6 +25,7 @@ export const DeliveryHeader = memo(function DeliveryHeader() {
   const { isTablet, pagePad } = useScreenLayout();
   const { theme } = useTheme();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   const { user: authUser } = useAuth();
   const unreadCount = useUnreadCount(authUser?.id);
@@ -93,29 +96,35 @@ export const DeliveryHeader = memo(function DeliveryHeader() {
           },
         ]}
       >
-        <Pressable
-          style={[s.locationBox, { flexDirection: flexRow(IS_RTL) }]}
-          onPress={openAddressDrawer}
-          accessibilityRole="button"
-          accessibilityLabel={t("home.deliverTo", "Delivering to")}
-        >
-           <View style={[s.iconCircle, { backgroundColor: pinTint }]}>
-              <Ionicons name={quote.isDeliverable ? "location" : "location-outline"} size={18} color={pinTone} />
-           </View>
-
-           <View style={s.textBlock}>
-             <CustomerUI.Typography variant="caption" weight="bold" color={theme.colors.text.secondary} style={{ textAlign: textAlignStart(IS_RTL) }}>
-               {t("home.deliverTo", "Delivering to")}
-             </CustomerUI.Typography>
-
-             <View style={[s.row, { flexDirection: flexRow(IS_RTL) }]}>
-                <CustomerUI.Typography variant="body" weight="black" color={theme.colors.text.primary} style={{ textAlign: textAlignStart(IS_RTL) }} numberOfLines={1}>
-                  {selectedAddress ? (addressLabelConfig ? t(addressLabelConfig.labelKey) : selectedAddress.street) : t("home.selectLocation", "Select your location")}
-                </CustomerUI.Typography>
-                <Ionicons name="chevron-down" size={16} color={theme.colors.text.primary} style={{ marginStart: 4 }} />
+        <View style={s.locationBox}>
+          <PressableScale
+            style={[s.locationBoxInner, { flexDirection: flexRow(IS_RTL) }]}
+            scaleTo={0.97}
+            onPress={openAddressDrawer}
+            onPressIn={() => { if (Platform.OS !== "web") Haptics.selectionAsync().catch(() => {}); }}
+            accessibilityRole="button"
+            accessibilityLabel={t("home.deliverTo", "Delivering to")}
+          >
+             <View style={[s.iconCircle, { backgroundColor: pinTint, shadowColor: pinTone }, theme.shadows[1]]}>
+                <Ionicons name={quote.isDeliverable ? "location" : "location-outline"} size={18} color={pinTone} />
              </View>
-           </View>
-        </Pressable>
+
+             <View style={s.textBlock}>
+               <View style={{ flexDirection: flexRow(IS_RTL) }}>
+                 <CustomerUI.Typography variant="caption" weight="bold" color={theme.colors.text.secondary}>
+                   {t("home.deliverTo", "Delivering to")}
+                 </CustomerUI.Typography>
+               </View>
+
+               <View style={[s.row, { flexDirection: flexRow(IS_RTL) }]}>
+                  <CustomerUI.Typography variant="body" weight="black" color={theme.colors.text.primary} style={{ textAlign: textAlignStart(IS_RTL), flexShrink: 1 }} numberOfLines={1}>
+                    {selectedAddress ? (addressLabelConfig ? t(addressLabelConfig.labelKey) : selectedAddress.street) : t("home.selectLocation", "Select your location")}
+                  </CustomerUI.Typography>
+                  <Ionicons name="chevron-down" size={16} color={theme.colors.text.primary} style={{ marginStart: 4, flexShrink: 0 }} />
+               </View>
+             </View>
+          </PressableScale>
+        </View>
 
         <View style={[s.actions, { flexDirection: flexRow(IS_RTL) }]}>
           <Pressable
@@ -138,7 +147,7 @@ export const DeliveryHeader = memo(function DeliveryHeader() {
           </Pressable>
         </View>
       </View>
-      <AddressFormDrawer visible={isAddressDrawerOpen} onClose={() => setIsAddressDrawerOpen(false)} onSubmit={handleAddressSubmit} loading={isSavingAddress} />
+      <AddressFormDrawer visible={isAddressDrawerOpen} onClose={() => setIsAddressDrawerOpen(false)} onSubmit={handleAddressSubmit} loading={isSavingAddress} insetsBottom={insets.bottom} />
     </>
   );
 });
@@ -151,9 +160,11 @@ const s = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   locationBox: {
-    alignItems: "center",
     flex: 1,
     marginEnd: 16,
+  },
+  locationBoxInner: {
+    alignItems: "center",
   },
   iconCircle: {
     width: 36,

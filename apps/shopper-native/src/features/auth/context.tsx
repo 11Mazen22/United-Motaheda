@@ -149,7 +149,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Comparing by value first keeps the state (and therefore every consumer)
   // stable across redundant events.
   const setUserIfChanged = (next: AuthUser | null) => {
-    setUser((prev) => (prev?.id === next?.id && prev?.role === next?.role ? prev : next));
+    setUser((prev) => {
+      const unchanged =
+        prev?.id === next?.id &&
+        prev?.role === next?.role &&
+        prev?.name === next?.name &&
+        prev?.email === next?.email &&
+        prev?.avatarUrl === next?.avatarUrl;
+      return unchanged ? prev : next;
+    });
   };
 
   useEffect(() => {

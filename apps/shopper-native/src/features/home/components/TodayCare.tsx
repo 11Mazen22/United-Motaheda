@@ -231,7 +231,7 @@ const RxNeedCard = memo(function RxNeedCard({
         <UIText variant="card-title" numberOfLines={1} style={{ color: theme.colors.text.primary, textAlign: TEXT_START }}>{rx.name}</UIText>
         <View style={s.metaRow}>
           <View style={[s.pill, { backgroundColor: bg }]}>
-            <UIText style={[styles.pillText, { color: fg }]}>{ready ? t("home.todayReady") : t("home.todayNeedsRefill")}</UIText>
+            <UIText weight="bold" style={[styles.pillText, { color: fg }]}>{ready ? t("home.todayReady") : t("home.todayNeedsRefill")}</UIText>
           </View>
           <UIText variant="caption" numberOfLines={1} style={{ color: theme.colors.text.muted, textAlign: TEXT_START }}>{rx.dose}</UIText>
         </View>
@@ -305,5 +305,5 @@ const hero = StyleSheet.create({
 });
 
 const styles = StyleSheet.create({
-  pillText: { fontSize: 10, lineHeight: 14, fontWeight: "700" },
+  pillText: { fontSize: 10, lineHeight: 14 },
 });

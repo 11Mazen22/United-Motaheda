@@ -193,6 +193,22 @@ export async function updateProfile(params: {
   }
 }
 
+/**
+ * Permanently deletes the CALLING user's own account, via the
+ * delete-own-account Edge Function (service-role-key-backed — the client
+ * never gets that key). Cascades through every user-owned table
+ * server-side (addresses, orders, cart, favorites, etc. all reference
+ * profiles.id ON DELETE CASCADE). Does not sign the local session out —
+ * callers should do that themselves once this resolves.
+ */
+export async function deleteAccount(): Promise<void> {
+  const { data, error } = await supabase.functions.invoke<{ success?: boolean; error?: string }>(
+    "delete-own-account",
+  );
+  if (error) throw error;
+  if (!data?.success) throw new Error(data?.error ?? "Account deletion failed");
+}
+
 export async function getSession(): Promise<AuthUser | null> {
   const { data } = await supabase.auth.getSession();
   const user = data.session?.user;

@@ -9,7 +9,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { fetchUnreadCount } from "../api";
 
-const KEY = (userId: string) => ["notification-unread-count", userId] as const;
+export const unreadCountKey = (userId: string) => ["notification-unread-count", userId] as const;
+const KEY = unreadCountKey;
 
 export function useUnreadCount(userId: string | undefined): number {
   const { data } = useQuery({

@@ -46,6 +46,8 @@ const ORDERS_KEY = "um_orders_v2";
 
 export interface OrderItem {
 
+  id?: string | number;
+
   productId: string;
 
   name:      string;

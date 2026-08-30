@@ -46,6 +46,13 @@ export default function DriverLayout() {
   const [stuck, setStuck] = useState(false);
   const [attempt, setAttempt] = useState(0);
 
+  // If the user actively signs out, user becomes null. Kick them back to the
+  // customer app (guest mode) immediately. This bypasses the locked decidedAccessRef
+  // because a real sign out should always eject them.
+  if (!user && !loading) {
+    return <Redirect href={"/(tabs)" as never} />;
+  }
+
   // A network hiccup (or the profile query's own bounded timeout — see
   // getMyDriverProfile) settles into isError, not isLoading, once retries
   // are exhausted. That's "we don't know", not "not a live driver" — bouncing
@@ -78,6 +85,11 @@ export default function DriverLayout() {
     return () => clearTimeout(id);
   }, [attempt]);
 
+  const lastErrorRef = useRef<string | null>(null);
+  if (profileQuery.error?.message) {
+    lastErrorRef.current = profileQuery.error.message;
+  }
+
   if (decidedAccessRef.current === null) {
     if (stuck) {
       return (
@@ -85,9 +97,9 @@ export default function DriverLayout() {
           <Text style={{ fontSize: 17, fontWeight: "700", color: "#0F1724", textAlign: "center" }}>
             {"تعذّر تحميل حسابك كسائق\nCouldn't load your driver account"}
           </Text>
-          {profileQuery.error?.message ? (
+          {lastErrorRef.current ? (
             <View style={{ alignSelf: "stretch", padding: 12, borderRadius: 12, backgroundColor: "#F8FAFC", borderWidth: 1, borderColor: "#E2E8F0" }}>
-              <Text selectable style={{ fontSize: 11, color: "#334155" }}>{profileQuery.error.message}</Text>
+              <Text selectable style={{ fontSize: 11, color: "#334155" }}>{lastErrorRef.current}</Text>
             </View>
           ) : null}
           <Pressable

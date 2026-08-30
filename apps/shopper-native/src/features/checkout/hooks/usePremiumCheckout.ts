@@ -20,6 +20,18 @@ import { paymentLabel } from "../constants";
 import { pickPaymentReceiptImage, uploadPaymentReceipt, ReceiptUploadError } from "@/features/payment";
 import { useNetInfo } from "@react-native-community/netinfo";
 
+export interface PlacedOrderSummary {
+  orderId: string;
+  createdAt: string;
+  items: Array<{ name: string; quantity: number; unitPrice: number }>;
+  subtotal: number;
+  shipping: number;
+  discount: number;
+  total: number;
+  addressFormatted: string;
+  paymentLabel: string;
+}
+
 export type CheckoutStatus =
   | "LOADING"
   | "READY"
@@ -47,6 +59,7 @@ export function usePremiumCheckout() {
   const [note, setNote] = useState<string>("");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [placedOrderId, setPlacedOrderId] = useState<string | null>(null);
+  const [placedOrderSummary, setPlacedOrderSummary] = useState<PlacedOrderSummary | null>(null);
   const [rxRequiredProductIds, setRxRequiredProductIds] = useState<Set<string>>(new Set());
   const [selectedPrescriptionIds, setSelectedPrescriptionIds] = useState<string[]>([]);
   const allPrescriptions = usePrescriptions();
@@ -72,6 +85,14 @@ export function usePremiumCheckout() {
 
   // 1. Initial Data Fetch & Revalidation
   useEffect(() => {
+    // An order was just placed: submit() clears the cart, which changes
+    // `items`/`items.length` below and would otherwise re-run this whole
+    // effect — ending on its unconditional setStatus("READY") and
+    // stomping "SUCCESS" back to "READY" within the same tick, so the
+    // success screen never stayed visible. Once we've reached a terminal
+    // post-submit state there's nothing left to (re)validate.
+    if (status === "SUCCESS" || status === "SUBMITTING" || status === "FAILED") return;
+
     let active = true;
     const init = async () => {
       if (!user) {
@@ -122,7 +143,7 @@ export function usePremiumCheckout() {
     
     init();
     return () => { active = false; };
-  }, [user, isConnected, items.length, items, fetchAddresses, selectedAddressId]);
+  }, [user, isConnected, items.length, items, fetchAddresses, selectedAddressId, status]);
 
   const selectedAddress = addresses.find(a => a.id === selectedAddressId) || null;
 
@@ -257,6 +278,28 @@ export function usePremiumCheckout() {
          }
        }
 
+       // Snapshot everything the success screen shows BEFORE clearCart() —
+       // pricing/items/address are all live-reactive selectors, so once the
+       // cart is wiped, "the total" silently becomes just the leftover
+       // shippingFee (subtotal collapses to 0) and item lines vanish
+       // entirely. Confirmed live: a real 200 EGP + 15 EGP shipping order
+       // showed "15.00" as the total on the success screen because the
+       // cart had already been cleared by the time it rendered.
+       setPlacedOrderSummary({
+         orderId: result.orderId,
+         createdAt: result.createdAt,
+         items: items.map((i) => ({
+           name: i.product.nameAr || i.product.nameEn || i.product.name || "Product",
+           quantity: i.quantity,
+           unitPrice: i.product.price,
+         })),
+         subtotal: pricing.subtotal,
+         shipping: pricing.shipping,
+         discount: pricing.discount,
+         total: pricing.total,
+         addressFormatted: formatted,
+         paymentLabel: paymentLabel(paymentMethod),
+       });
        setPlacedOrderId(result.orderId);
        clearCart(); // Safely wipe cart ONLY on success
        setStatus("SUCCESS");
@@ -290,6 +333,7 @@ export function usePremiumCheckout() {
     pricing,
     errorMsg,
     placedOrderId,
+    placedOrderSummary,
     needsPrescription,
     rxRequiredItems,
     approvedPrescriptions,

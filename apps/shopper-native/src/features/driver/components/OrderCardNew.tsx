@@ -51,8 +51,8 @@ export function OrderCardNew({ order, onPress }: { order: ManifestOrder; onPress
   const mutations = useDriverMutations(user?.id);
 
   const stage = getDeliveryStage(order.status, order);
-  const action = getStageAction(stage);
-  const statusLabel = getStageStatusLabel(stage);
+  const action = getStageAction(stage, order?.assignmentKind);
+  const statusLabel = getStageStatusLabel(stage, order?.assignmentKind);
   const accentColor = stageAccentColor(stage, theme);
   const waitedMin = minutesSince(order.updatedAt);
 

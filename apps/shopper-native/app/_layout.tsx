@@ -4,7 +4,7 @@ import "../global.css";
 
 import React, { useEffect, useState } from "react";
 
-import { Platform, useColorScheme } from "react-native";
+import { Platform, useColorScheme, View } from "react-native";
 
 import { Stack } from "expo-router";
 
@@ -51,6 +51,7 @@ import {
 } from "@/features/notifications";
 
 import { ErrorBoundary, PharmacyBootstrap, SplashOverlay } from "@/shared/components";
+import { AppLogo } from "@/shared/components/AppLogo";
 
 import { AppSheet } from "@/shared/components/AppSheet";
 
@@ -75,6 +76,7 @@ import "@/i18n";
 import { useTranslation } from "react-i18next";
 
 import { useCartStore } from "@/stores/cart";
+import { ThemePickerSheet } from "@/features/profile/components/ThemePickerSheet";
 
 import { BottomSheetModalProvider, ThemeProvider } from "@pharmacy/ui-native";
 
@@ -218,6 +220,7 @@ function ThemedApp() {
         <NotificationBanner />
 
         <AppSheet />
+        <ThemePickerSheet />
 
       </AuthProvider>
 
@@ -298,7 +301,26 @@ export default function RootLayout() {
 
   }, [fontsReady]);
 
-  if (!fontsReady) return null;
+  // Was `return null` -- a blank white frame (status bar still visible,
+  // nothing painted) for however long font loading + JS bootstrap takes,
+  // since this was the ONLY thing standing between the native splash
+  // (already hidden by then, expo-splash-screen's own icon phase having
+  // already handed off) and literally nothing. AppLogo needs no custom
+  // font (expo-image + a PNG, see AppLogo.tsx), so it's safe to paint here
+  // without the font-flash risk that made the real tree wait on fontsReady
+  // in the first place. Matches SplashOverlay's own white background/logo
+  // sizing so the handoff into the real overlay is invisible once fonts
+  // resolve -- same hideAsync-on-first-paint pattern SplashOverlay uses.
+  if (!fontsReady) {
+    return (
+      <View
+        style={{ flex: 1, backgroundColor: "#ffffff", alignItems: "center", justifyContent: "center" }}
+        onLayout={() => { SplashScreen.hideAsync().catch(() => {}); }}
+      >
+        <AppLogo size="lg" />
+      </View>
+    );
+  }
 
 
 

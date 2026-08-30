@@ -173,7 +173,7 @@ function getStyles(theme: NativeTheme) {
   closeBtn: { padding: 8 },
   scrollContent: { paddingHorizontal: 20, paddingTop: 40, paddingBottom: 60 },
   heroSection: { marginBottom: 32 },
-  welcomeTitle: { fontFamily: legacyTheme.fonts.extrabold, fontSize: 32, marginBottom: 8, textAlign: TEXT_START },
+  welcomeTitle: { fontFamily: legacyTheme.fonts.extrabold, fontSize: 32, lineHeight: 40, marginBottom: 8, textAlign: TEXT_START },
   welcomeSub: { fontFamily: legacyTheme.fonts.regular, fontSize: 16, textAlign: TEXT_START, lineHeight: 24 },
   formCard: { borderRadius: 24, padding: 24, marginBottom: 24, ...theme.shadows[1] },
   registerBtn: { height: 56, borderRadius: 16, marginTop: 32 },

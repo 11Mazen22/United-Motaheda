@@ -1,11 +1,12 @@
 import React, { useCallback, useMemo, useState } from "react";
-import {
+import { 
   ActivityIndicator,
   Linking,
   Pressable,
   ScrollView,
   StyleSheet,
   View,
+  ActionSheetIOS, Platform, Alert
 } from "react-native";
 import { Image as ExpoImage } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -18,6 +19,7 @@ import { Screen, Text as UIText, Input, Button, kit, useTheme } from "@pharmacy/
 import { flexRow, isRtl, textAlignStart, valueTextAlign } from "@/utils/layout";
 import { useScreenLayout } from "@/utils/responsive";
 import { formatPrice } from "@/utils/format";
+import { supabase } from "@/lib/supabase";
 import { showErrorSheet, showSuccessSheet } from "@/shared/store/appSheetStore";
 import { findBranchById } from "@/features/delivery/branches/data";
 import { getPaymentMeta, getPaymentStatusDisplay } from "@/features/orders/components/OrderDetailHelpers";
@@ -172,6 +174,12 @@ export function PharmacistOrderDetailScreen(): React.ReactElement {
   const dateLocale = i18n.language === "ar" ? "ar-EG" : "en-US";
   const { id } = useLocalSearchParams<{ id: string }>();
   const { theme } = useTheme();
+  const [actionsState, setActionsState] = useState<any>(null);
+  React.useEffect(() => {
+    if (id) {
+      supabase.rpc("get_order_actions", { p_order_id: id }).then(({ data }) => setActionsState(data as any));
+    }
+  }, [id]);
   const router = useRouter();
   const { pagePad, isTablet } = useScreenLayout();
 
@@ -205,6 +213,44 @@ export function PharmacistOrderDetailScreen(): React.ReactElement {
     async (target: string) => {
       if (!id || !VALID_TRANSITION_TARGETS.has(target as PharmacistTransitionTarget)) return;
       const nextStatus = target as PharmacistTransitionTarget;
+      if (nextStatus === "cancelled") {
+        if (Platform.OS === 'ios') {
+          const options = ["PRODUCT_UNAVAILABLE","STOCK_MISMATCH","PRESCRIPTION_REJECTED","PRESCRIPTION_UNCLEAR","PHARMACY_CANNOT_FULFILL","PHARMACY_CLOSED","OTHER"].concat(['Cancel']);
+          ActionSheetIOS.showActionSheetWithOptions({
+            options,
+            cancelButtonIndex: options.length - 1,
+            title: 'Select Cancellation Reason'
+          }, async (btnIdx: number) => {
+             if (btnIdx !== options.length - 1) {
+                const reason = options[btnIdx];
+                try {
+                  await mutations.advance.mutateAsync({ orderId: id, nextStatus, reason } as any);
+                  showSuccessSheet(t("pharmacist.cancelledTitle"), t("pharmacist.cancelledBody"));
+                } catch(e: any) { Alert.alert('Error', e.message); }
+             }
+          });
+        } else {
+            // Android Alert
+            const rList = actionsState?.cancel?.reasons || [];
+            Alert.alert(
+                'Cancel Order',
+                'Select a cancellation reason:',
+                [
+                    { text: 'Cancel', style: 'cancel' },
+                    ...rList.slice(0, 2).map((r: string) => ({
+                        text: r,
+                        onPress: async () => {
+                            try {
+                                await mutations.advance.mutateAsync({ orderId: id, nextStatus, reason: r } as any);
+                                showSuccessSheet(t("pharmacist.cancelledTitle"), t("pharmacist.cancelledBody"));
+                            } catch(e: any) { Alert.alert('Error', e.message); }
+                        }
+                    }))
+                ]
+            );
+        }
+        return;
+      }
       try {
         await mutations.advance.mutateAsync({ orderId: id, nextStatus });
         if (target === "cancelled") {

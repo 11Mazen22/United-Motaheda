@@ -187,7 +187,17 @@ export async function getPharmacistOrder(orderId: string): Promise<PharmacistOrd
 export async function transitionOrder(
   orderId:    string,
   nextStatus: PharmacistTransitionTarget,
+  reason?: string
 ): Promise<void> {
+  if (nextStatus === "cancelled") {
+    const { data, error } = await supabase.functions.invoke("cancel-order", {
+      body: { orderId, reason: reason || "Pharmacist requested cancellation" },
+    });
+    if (error) throw error;
+    if (data?.error) throw new Error(data.error);
+    return;
+  }
+
   const { error } = await supabase.rpc("transition_order", {
     p_order_id:    orderId,
     p_next_status: nextStatus,
@@ -368,9 +378,23 @@ export async function getOrderCountsByDate(dateISO: string): Promise<{
     .lte("last_status_at", dayEnd);
 
   if (error) throw error;
-  const rows = (data ?? []) as Array<{ status: string }>;
+  
   return {
-    delivered: rows.filter((r) => r.status === "delivered").length,
-    cancelled: rows.filter((r) => r.status === "cancelled").length,
+    delivered: (data ?? []).filter(r => r.status === "delivered").length,
+    cancelled: (data ?? []).filter(r => r.status === "cancelled").length,
   };
+}
+
+/**
+ * Fetch pending return requests that need pharmacist review.
+ */
+export async function listPendingReturns() {
+  const { data, error } = await supabase
+    .from("return_requests")
+    .select("*, order:orders(id, customer_name, total), return_items(product_id, quantity)")
+    .eq("status", "pending_review")
+    .order("created_at", { ascending: true });
+
+  if (error) throw error;
+  return data ?? [];
 }

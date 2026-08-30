@@ -5,6 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useTranslation } from "react-i18next";
 import { useTheme, sheetMotion, type ThemePreference } from "@pharmacy/ui-native";
+import { create } from "zustand";
 
 import { theme as legacyTheme } from "@pharmacy/design-tokens";
 import type { NativeTheme } from "@pharmacy/ui-native";
@@ -14,7 +15,19 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>["name"];
 
-export function ThemePickerSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
+export const useThemePickerStore = create<{
+  visible: boolean;
+  show: () => void;
+  hide: () => void;
+}>((set) => ({
+  visible: false,
+  show: () => set({ visible: true }),
+  hide: () => set({ visible: false }),
+}));
+
+export function ThemePickerSheet() {
+  const visible = useThemePickerStore((s) => s.visible);
+  const onClose = useThemePickerStore((s) => s.hide);
   const { t } = useTranslation();
   const { theme, preference: mode, setPreference: setMode } = useTheme();
   const styles = useMemo(() => getStyles(theme), [theme]);
@@ -35,41 +48,64 @@ export function ThemePickerSheet({ visible, onClose }: { visible: boolean; onClo
   ];
 
   return (
-    <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
-      <View style={styles.overlay}>
+    <Modal
+      transparent
+      visible={visible}
+      animationType="none"
+      statusBarTranslucent
+      onRequestClose={onClose}
+    >
+      <View style={styles.overlay} pointerEvents="box-none">
         <Animated.View
           entering={sheetMotion.backdropEnter}
           exiting={sheetMotion.backdropExit}
           style={[StyleSheet.absoluteFill, { backgroundColor: "rgba(0,0,0,0.5)" }]}
         />
+        
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
 
         <Animated.View
           entering={sheetMotion.enter}
           exiting={sheetMotion.exit}
-          style={[styles.sheet, { backgroundColor: theme.colors.canvas.surface, paddingBottom: Math.max(insets.bottom, 20) }]}
+          style={[
+            styles.sheet,
+            { 
+              backgroundColor: theme.colors.canvas.surface, 
+              paddingBottom: Math.max(insets.bottom, 24) 
+            }
+          ]}
         >
           <View style={styles.handle} />
+          
           <UIText style={[styles.title, { color: theme.colors.text.primary, textAlign: textAlignStart(IS_RTL) }]}>
             {t("profile.theme", { defaultValue: "Appearance" })}
           </UIText>
 
-          <View style={styles.container}>
-            {options.map((opt, i) => {
+          <View style={[styles.container, { flexDirection: flexRow(IS_RTL) }]}>
+            {options.map((opt) => {
               const active = mode === opt.id;
               return (
-                <Pressable 
-                  key={opt.id} 
+                <Pressable
+                  key={opt.id}
                   onPress={() => handleSelect(opt.id)}
-                  style={[styles.row, { flexDirection: flexRow(IS_RTL), borderBottomWidth: i === options.length - 1 ? 0 : StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border.default }]}
+                  style={[
+                    styles.card,
+                    {
+                      backgroundColor: active ? theme.colors.brand.primaryLight : theme.colors.canvas.surfaceElevated,
+                      borderColor: active ? theme.colors.brand.primary : theme.colors.border.subtle,
+                    },
+                    !active && theme.shadows[1]
+                  ]}
                 >
-                  <View style={[styles.iconWrap, { backgroundColor: active ? theme.colors.brand.primaryLight : theme.colors.border.default }]}>
-                    <Ionicons name={opt.icon} size={20} color={active ? theme.colors.brand.primary : theme.colors.text.secondary} />
-                  </View>
-                  <UIText style={[styles.label, { color: active ? theme.colors.brand.primary : theme.colors.text.primary, textAlign: textAlignStart(IS_RTL) }]}>
+                  <Ionicons name={opt.icon} size={28} color={active ? theme.colors.brand.primary : theme.colors.text.secondary} />
+                  <UIText style={[styles.label, { color: active ? theme.colors.brand.primary : theme.colors.text.primary }]}>
                     {t(opt.labelKey, { defaultValue: opt.id.charAt(0).toUpperCase() + opt.id.slice(1) })}
                   </UIText>
-                  {active && <Ionicons name="checkmark" size={24} color={theme.colors.brand.primary} />}
+                  {active && (
+                    <View style={[styles.badge, IS_RTL ? { left: -8 } : { right: -8 }]}>
+                      <Ionicons name="checkmark" size={16} color="#FFF" />
+                    </View>
+                  )}
                 </Pressable>
               );
             })}
@@ -83,12 +119,38 @@ export function ThemePickerSheet({ visible, onClose }: { visible: boolean; onClo
 function getStyles(theme: NativeTheme) {
   return StyleSheet.create({
     overlay: { flex: 1, justifyContent: "flex-end" },
-    sheet: { borderTopLeftRadius: 28, borderTopRightRadius: 28, ...theme.shadows[3] },
-    handle: { width: 44, height: 4, borderRadius: 2, backgroundColor: theme.colors.border.strong, alignSelf: "center", marginTop: 12, marginBottom: 20 },
-    title: { fontFamily: legacyTheme.fonts.bold, fontSize: 18, paddingHorizontal: 24, marginBottom: 16 },
-    container: { paddingHorizontal: 24 },
-    row: { alignItems: "center", paddingVertical: 16, gap: 16 },
-    iconWrap: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
-    label: { flex: 1, fontFamily: legacyTheme.fonts.bold, fontSize: 16 },
+    sheet: { borderTopLeftRadius: 32, borderTopRightRadius: 32, ...theme.shadows[4] },
+    handle: { width: 48, height: 5, borderRadius: 3, backgroundColor: theme.colors.border.strong, alignSelf: "center", marginTop: 14, marginBottom: 18 },
+    title: { 
+      fontFamily: legacyTheme.fonts.extrabold, // heavier weight for premium feel
+      fontSize: 22, 
+      lineHeight: 36, // fix clipping for Arabic letters
+      paddingHorizontal: 24, 
+      marginBottom: 20, 
+      paddingBottom: 4 
+    },
+    container: { paddingHorizontal: 24, gap: 14, paddingTop: 4 },
+    card: {
+      flex: 1,
+      aspectRatio: 0.95,
+      borderRadius: 20,
+      borderWidth: 2,
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 12,
+    },
+    label: { fontFamily: legacyTheme.fonts.bold, fontSize: 14, textAlign: "center", lineHeight: 22 },
+    badge: {
+      position: "absolute",
+      top: -8,
+      width: 28,
+      height: 28,
+      borderRadius: 14,
+      backgroundColor: theme.colors.brand.primary,
+      alignItems: "center",
+      justifyContent: "center",
+      borderWidth: 3,
+      borderColor: theme.colors.canvas.surface,
+    },
   });
 }

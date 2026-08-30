@@ -39,7 +39,7 @@ export const SavingsStrip = memo(function SavingsStrip() {
     <View style={[s.wrap, { marginHorizontal: pagePad, backgroundColor: theme.colors.canvas.surface, borderColor: theme.colors.border.default }, theme.shadows[1]]}>
       <View style={s.eyebrowRow}>
         <View style={[s.eyebrowDot, { backgroundColor: `${theme.colors.brand.primary}40` }]} />
-        <UIText style={[styles.eyebrow, { color: theme.colors.brand.primary }]}>{t("home.savingsPromise")}</UIText>
+        <UIText weight="extrabold" style={[styles.eyebrow, { color: theme.colors.brand.primary }]}>{t("home.savingsPromise")}</UIText>
         <View style={[s.eyebrowDot, { backgroundColor: `${theme.colors.brand.primary}40` }]} />
       </View>
 
@@ -77,5 +77,5 @@ const s = StyleSheet.create({
 });
 
 const styles = StyleSheet.create({
-  eyebrow: { fontSize: 11, lineHeight: 16, letterSpacing: 1.4, textTransform: "uppercase", fontWeight: "800" },
+  eyebrow: { fontSize: 11, lineHeight: 16, letterSpacing: 1.4, textTransform: "uppercase" },
 });

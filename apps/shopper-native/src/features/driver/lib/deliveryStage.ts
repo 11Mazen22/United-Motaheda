@@ -28,6 +28,7 @@ export type DeliveryStage =
   | "unknown";       // any other order status (offer not yet accepted, cancelled, etc.)
 
 export interface AssignmentMilestones {
+  assignmentKind?: string;
   arrivedAtPharmacy: string | null;
   pickedUpAt: string | null;
   arrivedAtCustomer: string | null;
@@ -37,6 +38,14 @@ export function getDeliveryStage(
   orderStatus: Order["status"],
   assignment: AssignmentMilestones | null | undefined,
 ): DeliveryStage {
+  if (assignment?.assignmentKind === "return_pickup") {
+    // Return flow: Customer -> Pharmacy
+    if (assignment.arrivedAtPharmacy) return "delivered"; // Or 'completed'
+    if (assignment.pickedUpAt) return "to_pharmacy"; // Heading back
+    if (assignment.arrivedAtCustomer) return "at_customer"; // Arrived at customer, waiting to pick up
+    return "to_customer"; // Heading to customer to pick up
+  }
+
   if (orderStatus === "delivered" || orderStatus === "archived") return "delivered";
   if (orderStatus === "out_for_delivery") {
     return assignment?.arrivedAtCustomer ? "at_customer" : "to_customer";
@@ -63,7 +72,19 @@ const STAGE_ACTIONS: Record<DeliveryStage, StageAction> = {
   unknown:     { kind: "none", labelKey: "driver.noActionNeeded", fallback: "No action needed right now", icon: "checkmark-done-outline" },
 };
 
-export function getStageAction(stage: DeliveryStage): StageAction {
+const RETURN_STAGE_ACTIONS: Record<DeliveryStage, StageAction> = {
+  to_customer: { kind: "arrive_customer", labelKey: "driver.arrivedAtCustomer", fallback: "Arrived at customer", icon: "location" },
+  at_customer: { kind: "confirm_pickup", labelKey: "driver.confirmPickup", fallback: "Confirm pickup", icon: "cube-outline" },
+  to_pharmacy: { kind: "arrive_pharmacy", labelKey: "driver.arrivedAtPharmacy", fallback: "Arrived at pharmacy", icon: "location" },
+  at_pharmacy: { kind: "complete", labelKey: "driver.handoverToPharmacy", fallback: "Handover to pharmacy", icon: "checkmark-circle" },
+  delivered:   { kind: "none", labelKey: "driver.completedTitle", fallback: "Completed", icon: "checkmark-done-outline" },
+  unknown:     { kind: "none", labelKey: "driver.noActionNeeded", fallback: "No action needed right now", icon: "checkmark-done-outline" },
+};
+
+export function getStageAction(stage: DeliveryStage, assignmentKind?: string): StageAction {
+  if (assignmentKind === "return_pickup") {
+    return RETURN_STAGE_ACTIONS[stage];
+  }
   return STAGE_ACTIONS[stage];
 }
 
@@ -79,6 +100,18 @@ const STAGE_STATUS_LABEL_KEYS: Record<DeliveryStage, { key: string; fallback: st
   unknown:     { key: "driver.noActionNeeded", fallback: "Awaiting update" },
 };
 
-export function getStageStatusLabel(stage: DeliveryStage): { key: string; fallback: string } {
+const RETURN_STAGE_STATUS_LABEL_KEYS: Record<DeliveryStage, { key: string; fallback: string }> = {
+  to_customer: { key: "driver.stageToCustomer", fallback: "Heading to pickup" },
+  at_customer: { key: "driver.stageAtCustomer", fallback: "At customer location" },
+  to_pharmacy: { key: "driver.stageToPharmacy", fallback: "Returning to pharmacy" },
+  at_pharmacy: { key: "driver.stageAtPharmacy", fallback: "At pharmacy" },
+  delivered:   { key: "driver.completedTitle", fallback: "Completed" },
+  unknown:     { key: "driver.noActionNeeded", fallback: "Awaiting update" },
+};
+
+export function getStageStatusLabel(stage: DeliveryStage, assignmentKind?: string): { key: string; fallback: string } {
+  if (assignmentKind === "return_pickup") {
+    return RETURN_STAGE_STATUS_LABEL_KEYS[stage];
+  }
   return STAGE_STATUS_LABEL_KEYS[stage];
 }

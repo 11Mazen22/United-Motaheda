@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Platform, Pressable, StyleSheet, View } from "react-native";
-import { Text as UIText, useTheme, type NativeTheme } from "@pharmacy/ui-native";
+import { Text as UIText, useTheme, PressableScale, type NativeTheme } from "@pharmacy/ui-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter, useSegments } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -165,13 +165,11 @@ export function NotificationBanner() {
       ]}
     >
 
-      <Pressable
+      <PressableScale
         onLayout={(e) => setBannerWidth(e.nativeEvent.layout.width)}
         onPress={handlePress}
-        style={({ pressed }) => [
-          styles.card,
-          pressed && { opacity: 0.88, transform: [{ scale: 0.97 }] },
-        ]}>
+        scaleTo={0.97}
+        style={styles.card}>
 
         {/* Accent strip */}
         <View style={[styles.accentStrip, { backgroundColor: meta.color }]} />
@@ -204,7 +202,7 @@ export function NotificationBanner() {
         <View style={styles.progressTrack}>
           <Animated.View style={[styles.progressFill, { backgroundColor: meta.color }, progressAnim]} />
         </View>
-      </Pressable>
+      </PressableScale>
     </Animated.View>
   );
 }

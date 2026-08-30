@@ -233,7 +233,7 @@ const { t, i18n } = useTranslation();
 
   const [isEditing, setIsEditing] = useState(false);
 
-  const [ctaHeight, setCtaHeight] = useState(110);
+  const ctaHeight = 12 + 56 + Math.max(insets.bottom, 8) + 4;
 
   const [editName,   setEditName]   = useState("");
 
@@ -938,9 +938,6 @@ const { t, i18n } = useTranslation();
       {/* ── Sticky refill CTA ────────────────────────────────────────── */}
 
       <View
-
-        onLayout={(e) => setCtaHeight(e.nativeEvent.layout.height)}
-
         style={[s.ctaBar, { paddingBottom: Math.max(insets.bottom, 8) + 4 }]}>
 
         <Button

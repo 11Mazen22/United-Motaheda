@@ -1,5 +1,6 @@
+import { abortTimeout } from "@/utils/timeout";
+
 /**
- * Geoapify geocoding — converts a structured address to lat/lng.
  *
  * Used when saving a delivery address so coordinates are stored
  * and fed into the Railway /delivery/quote zone-polygon engine.
@@ -96,7 +97,7 @@ export async function reverseGeocode(lat: number, lng: number): Promise<ReverseG
       apiKey: GEOAPIFY_KEY,
     });
     const res = await fetch(`${REVERSE_BASE}?${query.toString()}`, {
-      signal: AbortSignal.timeout(8_000) as unknown as never,
+      signal: abortTimeout(8_000) as unknown as never,
     });
     if (!res.ok) return null;
 
@@ -135,7 +136,7 @@ async function _geocodeText(text: string, country: string): Promise<GeocodedCoor
     });
     const res = await fetch(`${BASE}?${query.toString()}`, {
 
-      signal: AbortSignal.timeout(8_000) as unknown as never,
+      signal: abortTimeout(8_000) as unknown as never,
 
     });
     if (!res.ok) return null;

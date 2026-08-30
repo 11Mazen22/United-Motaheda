@@ -11,9 +11,9 @@
  *     1. Validates admin JWT + is_manager() check
  *     2. Locks the campaign row (SELECT FOR UPDATE via service-role)
  *     3. Reads up to batch_size recipients for the given batch_index
- *     4. Sends each SMS via the configured provider (Vonage by default;
- *        falls back to a no-op log when VONAGE_API_KEY is absent — useful
- *        for staging/preview environments)
+ *     4. Sends each SMS via Twilio (falls back to a no-op log when
+ *        TWILIO_ACCOUNT_SID is absent — useful for staging/preview
+ *        environments)
  *     5. Updates recipient rows (sent/failed) and campaign counters atomically
  *     6. Appends to sms_audit_log
  *     7. Marks campaign 'completed' when all batches are done
@@ -36,9 +36,9 @@
  *
  * Environment variables required:
  *   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, SUPABASE_ANON_KEY
- *   VONAGE_API_KEY    (optional — SMS disabled without it)
- *   VONAGE_API_SECRET (optional)
- *   VONAGE_FROM       (optional — defaults to 'UnitedRx')
+ *   TWILIO_ACCOUNT_SID (optional — SMS disabled, NO-OP mode, without it)
+ *   TWILIO_AUTH_TOKEN  (optional)
+ *   TWILIO_FROM        (optional)
  *
  * Deploy: supabase functions deploy sms-campaign-worker
  */
@@ -65,12 +65,11 @@ interface SMSResult {
 }
 
 /**
- * sendSMS — sends one SMS via Vonage REST API.
+ * sendSMS — sends one SMS via the Twilio REST API.
  * Returns { success, errorMessage } instead of throwing so a single failed
  * send does not abort the batch. All errors are captured per-recipient.
  *
- * Vonage status codes: "0" = success, anything else = error.
- * Docs: https://developer.vonage.com/en/messaging/sms/code-snippets/send-an-sms
+ * Docs: https://www.twilio.com/docs/sms/api/message-resource
  */
 async function sendSMS(
   to:      string,

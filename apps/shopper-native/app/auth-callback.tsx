@@ -52,6 +52,22 @@ export default function AuthCallbackScreen(): React.ReactElement {
         router.replace({ pathname: "/(auth)/verify-phone", params: {} });
         return;
       }
+
+      // OAuth (Google) never gives us a phone number the way the
+      // email/password signup form does — that provider's users land here
+      // with app_metadata.provider !== "email" and no user_metadata.phone,
+      // so route them through complete-profile once before they ever reach
+      // the app (checkout requires a phone on every order).
+      const provider = data.session.user.app_metadata?.provider;
+      const hasPhoneOnFile = Boolean(data.session.user.user_metadata?.phone);
+      if (provider && provider !== "email" && !hasPhoneOnFile) {
+        router.replace({
+          pathname: "/(auth)/complete-profile",
+          params: redirect ? { redirect } : {},
+        } as never);
+        return;
+      }
+
       router.replace(destination as never);
     })();
   }, [codeStr, router, destination]);

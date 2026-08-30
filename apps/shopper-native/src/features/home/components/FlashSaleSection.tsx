@@ -42,8 +42,6 @@ import {
 
   Platform,
 
-  Pressable,
-
   StyleSheet,
 
   View,
@@ -64,7 +62,7 @@ import { useTranslation } from "react-i18next";
 
 import { useQuery } from "@tanstack/react-query";
 
-import { Text as UIText, useTheme, SkeletonCard } from "@pharmacy/ui-native";
+import { PressableScale, Text as UIText, useTheme, SkeletonCard } from "@pharmacy/ui-native";
 
 import { theme } from "@pharmacy/design-tokens";
 
@@ -244,7 +242,7 @@ const OfferBannerCard = memo(function OfferBannerCard({
 
 
 
-          <Pressable
+          <PressableScale
 
             onPress={() => {
 
@@ -254,11 +252,13 @@ const OfferBannerCard = memo(function OfferBannerCard({
 
             }}
 
+            scaleTo={0.96}
+
             accessibilityRole="button"
 
             accessibilityLabel={t("home.flashShopNow")}
 
-            style={({ pressed }) => [s.shopNowBtn, pressed && s.shopNowBtnPressed]}
+            style={s.shopNowBtn}
 
           >
 
@@ -266,7 +266,7 @@ const OfferBannerCard = memo(function OfferBannerCard({
 
             <Ionicons name={FORWARD_CHEVRON} size={13} color={BANNER_BUTTON_TEXT} />
 
-          </Pressable>
+          </PressableScale>
 
         </View>
 
@@ -743,12 +743,6 @@ const s = StyleSheet.create({
     backgroundColor:   "#FFFFFF",
 
     marginTop:         4,
-
-  },
-
-  shopNowBtnPressed: {
-
-    opacity: 0.85,
 
   },
 

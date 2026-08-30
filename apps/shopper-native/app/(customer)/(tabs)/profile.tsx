@@ -35,7 +35,7 @@ import { ProfileAuthHero } from "@/features/profile/components/ProfileAuthHero";
 
 import { ProfileGuestHero } from "@/features/profile/components/ProfileGuestHero";
 
-import { ThemePickerSheet } from "@/features/profile/components/ThemePickerSheet";
+import { useThemePickerStore } from "@/features/profile/components/ThemePickerSheet";
 
 
 import { flexRow, isRtl, textAlignStart, FORWARD_CHEVRON } from "@/utils/layout";
@@ -172,8 +172,6 @@ export default function ProfileScreen() {
 
   const { user, signOut } = useAuth();
 
-  const [showThemePicker, setShowThemePicker] = useState(false);
-
   const cartCount = useCartStore(s => s.itemCount());
 
   const wishlistCount = useWishlistStore(s => s.items.length);
@@ -286,7 +284,19 @@ export default function ProfileScreen() {
 
           <View style={styles.card}>
 
-            <MenuRow icon="moon-outline" color="#6366F1" label={t("profile.theme")} subtitle={themeMode === "dark" ? t("profile.themeDark") : themeMode === "light" ? t("profile.themeLight") : t("profile.themeSystem")} onPress={() => setShowThemePicker(true)} last styles={styles} />
+            <MenuRow
+          icon="moon-outline"
+          color="#6366F1"
+          label={t("profile.theme")}
+          subtitle={
+            themeMode === "dark" ? t("profile.themeDark") :
+            themeMode === "light" ? t("profile.themeLight") :
+            t("profile.themeSystem")
+          }
+          onPress={() => useThemePickerStore.getState().show()}
+          last
+          styles={styles}
+        />
 
           </View>
 
@@ -332,35 +342,17 @@ export default function ProfileScreen() {
 
         {user && (
 
-          <View style={styles.dWrap}>
+          <View style={styles.card}>
 
-            <Pressable onPress={handleSignOut} disabled={signingOut} accessibilityRole="button" accessibilityLabel={t("profile.logout")} style={styles.dCard}>
-
-              {({ pressed }) => (
-
-                <View style={[styles.dInner, pressed && styles.dPress]}>
-
-                  <View style={styles.dLead}>
-
-                    <View style={styles.dIcon}><Ionicons name="log-out-outline" size={20} color={theme.colors.status.error} /></View>
-
-                    <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-
-                      <UIText style={styles.dLbl} numberOfLines={1}>{signingOut ? t("common.loading") : t("profile.logout")}</UIText>
-
-                      <UIText style={styles.dSub} numberOfLines={1}>{t("profile.logoutSubtitle")}</UIText>
-
-                    </View>
-
-                  </View>
-
-                  <Ionicons name={FORWARD_CHEVRON} size={16} color={`${theme.colors.status.error}8C`} />
-
-                </View>
-
-              )}
-
-            </Pressable>
+            <MenuRow
+              icon="log-out-outline"
+              label={signingOut ? t("common.loading") : t("profile.logout")}
+              subtitle={t("profile.logoutSubtitle")}
+              onPress={() => { if (!signingOut) handleSignOut(); }}
+              danger
+              last
+              styles={styles}
+            />
 
           </View>
 
@@ -383,9 +375,6 @@ export default function ProfileScreen() {
         </View>
 
       </ScrollView>
-
-      <ThemePickerSheet visible={showThemePicker} onClose={() => setShowThemePicker(false)} />
-
     </Animated.View>
 
     </GestureDetector>
@@ -440,21 +429,6 @@ function getStyles(theme: NativeTheme) {
 
   card: { marginHorizontal: legacyTheme.layout.pagePaddingH, backgroundColor: theme.colors.canvas.surface, borderRadius: 12, overflow: "hidden", borderWidth: 1, borderColor: theme.colors.border.default, ...theme.shadows[1] },
 
-  dWrap: { paddingHorizontal: legacyTheme.layout.pagePaddingH, marginTop: 20 },
-
-  dCard: { borderRadius: 12, overflow: "hidden" },
-
-  dInner: { flexDirection: flexRow(RTL), alignItems: "center", justifyContent: "space-between", gap: 12, backgroundColor: `${theme.colors.status.error}1A`, borderRadius: 12, paddingVertical: 14, paddingHorizontal: 16, borderWidth: 1.5, borderColor: `${theme.colors.status.error}52`, ...theme.shadows[1] },
-
-  dPress: { opacity: 0.88, transform: [{ scale: 0.99 }] },
-
-  dLead: { flex: 1, minWidth: 0, flexDirection: flexRow(RTL), alignItems: "center", gap: 14, flexShrink: 1 },
-
-  dIcon: { width: 44, height: 44, borderRadius: 14, backgroundColor: `${theme.colors.status.error}21`, borderWidth: 1, borderColor: `${theme.colors.status.error}47`, alignItems: "center", justifyContent: "center", flexShrink: 0 },
-
-  dLbl: { fontFamily: legacyTheme.fonts.extrabold, fontSize: 14, lineHeight: 20, letterSpacing: -0.1, color: theme.colors.status.error, textAlign: TA, includeFontPadding: false },
-
-  dSub: { fontFamily: legacyTheme.fonts.regular, fontSize: 11.5, lineHeight: 16, color: `${theme.colors.status.error}A6`, textAlign: TA, includeFontPadding: false },
 
   foot: { alignItems: "center", marginTop: 20, paddingBottom: 16, gap: 6 },
 

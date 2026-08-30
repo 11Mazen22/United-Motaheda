@@ -24,4 +24,5 @@ export const pharmacistQueryKeys = {
     status
       ? ["pharmacist", "refills", "list", status] as const
       : ["pharmacist", "refills", "list"]         as const,
+  returnsQueue:       ()         => ["pharmacist", "returns", "queue"] as const,
 };

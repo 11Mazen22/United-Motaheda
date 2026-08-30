@@ -47,7 +47,7 @@ import Animated, {
   withSequence,
 } from "react-native-reanimated";
 
-import { Text as UIText, useTheme, type NativeTheme } from "@pharmacy/ui-native";
+import { Text as UIText, useTheme, PressableScale, type NativeTheme } from "@pharmacy/ui-native";
 
 import { theme as legacyTheme } from "@pharmacy/design-tokens";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
@@ -650,9 +650,10 @@ export function DeliveryMap({
           )}
         </View>
 
-        <Pressable
+        <PressableScale
           onPress={handleConfirm}
-          style={({ pressed }) => [s.confirmBtn, pressed && s.confirmBtnPressed]}
+          scaleTo={0.98}
+          style={s.confirmBtn}
           accessibilityRole="button"
           accessibilityLabel={t("delivery.confirmAddress", "تأكيد العنوان")}
         >
@@ -660,7 +661,7 @@ export function DeliveryMap({
           <UIText style={s.confirmText}>
             {t("delivery.confirmAddress", "تأكيد العنوان")}
           </UIText>
-        </Pressable>
+        </PressableScale>
       </View>
     </View>
   );
@@ -768,10 +769,6 @@ function getStyles(theme: NativeTheme) {
       borderRadius:    12,
       paddingVertical: 13,
       ...theme.shadows[2],
-    },
-    confirmBtnPressed: {
-      opacity:   0.88,
-      transform: [{ scale: 0.98 }],
     },
     confirmText: {
       fontSize:   14,

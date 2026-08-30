@@ -3,16 +3,16 @@
  * spectacle. Calm, trustworthy step progression; the only moment of real
  * visual emphasis is the final "Place Order" commit action.
  */
-import React, { useState, useEffect, useCallback, useMemo } from "react";
-import { View, StyleSheet, ScrollView, Pressable, Platform, KeyboardAvoidingView, TextInput } from "react-native";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { Modal, View, StyleSheet, ScrollView, Pressable, Platform, KeyboardAvoidingView, TextInput } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import Animated, { FadeIn, FadeInDown, FadeOut, SlideInDown, Layout } from "react-native-reanimated";
+import Animated, { FadeIn, FadeInDown, FadeOut, SlideInDown, SlideOutDown, Layout } from "react-native-reanimated";
 
-import { Text, Button, BottomSheet, useTheme } from "@pharmacy/ui-native";
+import { Text, Button, useTheme } from "@pharmacy/ui-native";
 import { isRtl, flexRow, textAlignStart, BACK_CHEVRON } from "@/utils/layout";
 import { useScreenLayout } from "@/utils/responsive";
 import { formatPrice } from "@/utils/format";
@@ -53,7 +53,7 @@ function StepAccordion({
   const { theme } = useTheme();
 
   return (
-    <Animated.View layout={Layout.springify().damping(20)} style={[styles.accordionCard, theme.shadows[1], { backgroundColor: theme.colors.canvas.surface, borderColor: isActive ? theme.colors.brand.primary : theme.colors.border.default }]}>
+    <Animated.View layout={Layout.duration(220)} style={[styles.accordionCard, theme.shadows[1], { backgroundColor: theme.colors.canvas.surface, borderColor: isActive ? theme.colors.brand.primary : theme.colors.border.default }]}>
       <Pressable onPress={() => isCompleted && !isActive && onEdit()} style={[styles.accordionHeader, { flexDirection: flexRow(IS_RTL) }]}>
         <View style={[styles.stepBadge, { backgroundColor: isActive ? theme.colors.brand.primary : (isCompleted ? theme.colors.status.success : theme.colors.canvas.background) }]}>
           {isCompleted && !isActive ? (
@@ -128,11 +128,13 @@ function LocationDetailsModal({
   quote,
   visible,
   onClose,
+  insetsBottom = 0,
 }: {
   address: { street: string; building?: string; apartment?: string; city: string; lat?: number; lng?: number };
   quote: ReturnType<typeof useDeliveryQuote>;
   visible: boolean;
   onClose: () => void;
+  insetsBottom?: number;
 }) {
   const { theme } = useTheme();
   const { t, i18n } = useTranslation();
@@ -142,8 +144,29 @@ function LocationDetailsModal({
   const branchName = branch ? (i18n.language === "en" ? branch.nameEn : branch.nameAr) : null;
   const branchHours = branch ? (i18n.language === "en" ? branch.hoursEn : branch.hoursAr) : null;
 
+  // Plain RN <Modal> instead of the @gorhom/bottom-sheet-backed <BottomSheet>
+  // — that one's present()/dismiss() ref calls and state all fired
+  // correctly (confirmed live via logcat: every step of the visible=true
+  // chain ran through cleanly) but the sheet itself never actually painted
+  // on screen, with no error anywhere. Rather than debug a third-party
+  // gesture library's internals blind, this uses the same Modal + Animated
+  // slide-in shell already proven working for ThemePickerSheet/
+  // AddressFormDrawer in this app.
   return (
-    <BottomSheet visible={visible} onDismiss={onClose} snapPoints={["65%", "90%"]}>
+    <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
+      <View style={styles.locModalOverlay}>
+        <Animated.View
+          entering={FadeIn.duration(200)}
+          exiting={FadeOut.duration(150)}
+          style={[StyleSheet.absoluteFill, { backgroundColor: "rgba(0,0,0,0.5)" }]}
+        />
+        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
+
+        <Animated.View
+          entering={SlideInDown.springify().damping(24).stiffness(260).mass(0.7)}
+          exiting={SlideOutDown.springify().damping(26).stiffness(280).mass(0.7)}
+          style={[styles.locModalSheet, { backgroundColor: theme.colors.canvas.surface, paddingBottom: Math.max(insetsBottom, 20) }]}
+        >
       <View style={[styles.modalHeader, { flexDirection: flexRow(IS_RTL) }]}>
         <Text variant="h4" style={{ color: theme.colors.text.primary }}>{t("checkout.locationDetails", "Location Details")}</Text>
         <Pressable onPress={onClose} hitSlop={10} accessibilityRole="button" accessibilityLabel={t("common.close", "Close")}>
@@ -151,7 +174,7 @@ function LocationDetailsModal({
         </Pressable>
       </View>
 
-      <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 0 }}>
         <Text variant="h6" style={{ color: theme.colors.text.primary, marginBottom: 12, textAlign: TEXT_START }}>
           {t("checkout.yourAddress", "Your Delivery Address")}
         </Text>
@@ -206,7 +229,9 @@ function LocationDetailsModal({
 
         <Button label={t("common.close", "Close")} variant="secondary" onPress={onClose} style={{ marginTop: 24 }} />
       </ScrollView>
-    </BottomSheet>
+        </Animated.View>
+      </View>
+    </Modal>
   );
 }
 
@@ -314,6 +339,7 @@ export default function CheckoutScreen() {
     pricing,
     errorMsg,
     placedOrderId,
+    placedOrderSummary,
     needsPrescription,
     rxRequiredItems,
     approvedPrescriptions,
@@ -338,10 +364,18 @@ export default function CheckoutScreen() {
     setIsAddressDrawerOpen(false);
   }, [user?.id, addAddress]);
 
+  const customerCoords = useMemo(
+    () => (selectedAddress?.lat && selectedAddress?.lng ? { lat: selectedAddress.lat, lng: selectedAddress.lng } : null),
+    [selectedAddress?.lat, selectedAddress?.lng],
+  );
+  const deliveryAddress = useMemo(
+    () => (selectedAddress ? { city: selectedAddress.city, streetName: selectedAddress.street } : undefined),
+    [selectedAddress?.city, selectedAddress?.street],
+  );
   const quote = useDeliveryQuote({
     subtotal: pricing.subtotal,
-    customerCoords: selectedAddress?.lat && selectedAddress?.lng ? { lat: selectedAddress.lat, lng: selectedAddress.lng } : null,
-    address: selectedAddress ? { city: selectedAddress.city, streetName: selectedAddress.street } : undefined,
+    customerCoords,
+    address: deliveryAddress,
   });
 
   useEffect(() => {
@@ -350,8 +384,23 @@ export default function CheckoutScreen() {
     }
   }, [quote.cost, setShippingFee]);
 
+  // Auto-advances step 1 -> 2 the first time a freshly-selected address
+  // resolves as deliverable — but only once per address. Without the ref
+  // guard this re-fired every time activeStep was 1 for ANY reason,
+  // including the user explicitly tapping "Edit" to go back and change the
+  // address: activeStep hits 1, selectedAddress/quote are still the old
+  // (deliverable) ones, so the effect immediately bounced back to step 2
+  // before the user could touch anything.
+  const autoAdvancedForAddressId = useRef<string | null>(null);
   useEffect(() => {
-    if (status === "READY" && selectedAddress && quote.isDeliverable && activeStep === 1) {
+    if (
+      status === "READY" &&
+      selectedAddress &&
+      quote.isDeliverable &&
+      activeStep === 1 &&
+      autoAdvancedForAddressId.current !== selectedAddress.id
+    ) {
+       autoAdvancedForAddressId.current = selectedAddress.id;
        setActiveStep(2);
     }
   }, [selectedAddress, quote.isDeliverable, status, activeStep]);
@@ -369,43 +418,114 @@ export default function CheckoutScreen() {
   }
 
   if (status === "SUCCESS") {
+    const summary = placedOrderSummary;
+    const shortOrderRef = (summary?.orderId ?? placedOrderId ?? "").slice(-8).toUpperCase();
+    const orderDate = summary?.createdAt ? new Date(summary.createdAt) : new Date();
+    const locale = lang === "ar" ? "ar-EG" : "en-GB";
+
     return (
-       <View style={[styles.container, { backgroundColor: theme.colors.canvas.background, paddingTop: insets.top }]}>
+       <View style={[styles.container, { backgroundColor: theme.colors.canvas.background }]}>
+         <ScrollView
+           contentContainerStyle={[styles.successScroll, { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 32 }]}
+           showsVerticalScrollIndicator={false}
+         >
           <Animated.View entering={FadeIn.duration(400)} style={styles.successContent}>
              <View style={styles.successGlowWrap}>
                 <View style={[styles.successGlow, { backgroundColor: `${theme.colors.status.success}22` }]} />
-                <Animated.View entering={FadeIn.delay(150).duration(500)} style={[styles.successIconCircle, { backgroundColor: `${theme.colors.status.success}1A` }]}>
-                   <Ionicons name="checkmark-circle" size={80} color={theme.colors.status.success} />
+                <Animated.View entering={FadeIn.delay(150).duration(500).springify()} style={[styles.successIconCircle, { backgroundColor: `${theme.colors.status.success}1A` }]}>
+                   <Ionicons name="checkmark-circle" size={96} color={theme.colors.status.success} />
                 </Animated.View>
              </View>
 
              <Animated.View entering={FadeInDown.delay(280).duration(400)}>
-                <Text variant="h2" style={{ color: theme.colors.text.primary, marginTop: 24, textAlign: "center" }}>
+                <Text variant="h1" style={{ color: theme.colors.text.primary, marginTop: 28, textAlign: "center" }}>
                    {t("checkout.orderPlaced", "Order Confirmed")}
                 </Text>
-                <Text variant="body" style={{ color: theme.colors.text.secondary, marginTop: 8, textAlign: "center", paddingHorizontal: 20 }}>
+                <Text variant="body" style={{ color: theme.colors.text.secondary, marginTop: 10, textAlign: "center", paddingHorizontal: 24, lineHeight: 22 }}>
                    {t("checkout.orderPlacedDesc", "Your order has been received and is being prepared by our pharmacists.")}
                 </Text>
              </Animated.View>
 
-             <Animated.View entering={FadeInDown.delay(400).duration(400)} style={[styles.successDetailsCard, { backgroundColor: theme.colors.canvas.surface, borderColor: theme.colors.border.default }]}>
+             <Animated.View entering={FadeInDown.delay(400).duration(400)} style={[styles.receiptCard, theme.shadows[2], { backgroundColor: theme.colors.canvas.surface, borderColor: theme.colors.border.default }]}>
+
+                {/* Order ref + date */}
+                <View style={[styles.receiptHeaderRow, { flexDirection: flexRow(IS_RTL) }]}>
+                   <View style={{ flex: 1 }}>
+                      <Text variant="caption" style={{ color: theme.colors.text.muted, textAlign: TEXT_START }}>{t("checkout.orderNumber", "Order #")}</Text>
+                      <Text variant="h5" weight="bold" style={{ color: theme.colors.text.primary, textAlign: TEXT_START }} numberOfLines={1}>#{shortOrderRef}</Text>
+                   </View>
+                   <View style={{ alignItems: IS_RTL ? "flex-start" : "flex-end" }}>
+                      <Text variant="caption" style={{ color: theme.colors.text.muted }}>{t("checkout.orderDate", "Date")}</Text>
+                      <Text variant="body" weight="bold" style={{ color: theme.colors.text.primary }} numberOfLines={1}>
+                         {orderDate.toLocaleDateString(locale, { day: "numeric", month: "short" })} · {orderDate.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" })}
+                      </Text>
+                   </View>
+                </View>
+
+                <View style={[styles.receiptDivider, { borderColor: theme.colors.border.default }]} />
+
+                {/* Items */}
+                <Text variant="caption" weight="bold" style={{ color: theme.colors.text.muted, textAlign: TEXT_START, marginBottom: 12, letterSpacing: 0.5, textTransform: "uppercase" }}>
+                   {t("checkout.itemsHeader", "Order Items")}
+                </Text>
+                {(summary?.items ?? []).map((line, idx) => (
+                  <View key={idx} style={[styles.receiptItemRow, { flexDirection: flexRow(IS_RTL) }]}>
+                     <View style={{ flex: 1, minWidth: 0 }}>
+                        <Text variant="body" numberOfLines={2} style={{ color: theme.colors.text.primary, textAlign: TEXT_START }}>{line.name}</Text>
+                        <Text variant="caption" style={{ color: theme.colors.text.muted, textAlign: TEXT_START, marginTop: 2 }}>
+                           {line.quantity} × {formatPrice(line.unitPrice, lang)}
+                        </Text>
+                     </View>
+                     <Text variant="body" weight="bold" style={{ color: theme.colors.text.primary, flexShrink: 0 }}>
+                        {formatPrice(line.unitPrice * line.quantity, lang)}
+                     </Text>
+                  </View>
+                ))}
+
+                <View style={[styles.receiptDivider, { borderColor: theme.colors.border.default }]} />
+
+                {/* Pricing breakdown */}
                 <View style={[styles.summaryRow, { flexDirection: flexRow(IS_RTL) }]}>
-                   <Text variant="body" style={{ color: theme.colors.text.secondary }}>{t("checkout.orderNumber", "Order #")}</Text>
-                   <Text variant="body" weight="bold" style={{ color: theme.colors.text.primary }}>{placedOrderId}</Text>
+                   <Text variant="body" style={{ color: theme.colors.text.secondary }}>{t("checkout.subtotal", "Subtotal")}</Text>
+                   <Text variant="body" style={{ color: theme.colors.text.primary }}>{formatPrice(summary?.subtotal ?? 0, lang)}</Text>
                 </View>
                 <View style={[styles.summaryRow, { flexDirection: flexRow(IS_RTL) }]}>
-                   <Text variant="body" style={{ color: theme.colors.text.secondary }}>{t("checkout.totalPaid", "Total Amount")}</Text>
-                   <Text variant="body" weight="bold" style={{ color: theme.colors.brand.primary }}>{formatPrice(pricing.total, lang)}</Text>
+                   <Text variant="body" style={{ color: theme.colors.text.secondary }}>{t("checkout.deliveryFee", "Shipping")}</Text>
+                   <Text variant="body" style={{ color: theme.colors.text.primary }}>{formatPrice(summary?.shipping ?? 0, lang)}</Text>
                 </View>
-                <View style={[styles.summaryRow, { flexDirection: flexRow(IS_RTL), borderBottomWidth: 0 }]}>
-                   <Text variant="body" style={{ color: theme.colors.text.secondary }}>{t("checkout.deliveryTo", "Delivery To")}</Text>
-                   <Text variant="body" weight="bold" style={{ color: theme.colors.text.primary, maxWidth: "60%", textAlign: TEXT_START }}>
-                      {selectedAddress?.street}
-                   </Text>
+                {(summary?.discount ?? 0) > 0 && (
+                  <View style={[styles.summaryRow, { flexDirection: flexRow(IS_RTL) }]}>
+                     <Text variant="body" style={{ color: theme.colors.text.secondary }}>{t("checkout.discount", "Discount")}</Text>
+                     <Text variant="body" style={{ color: theme.colors.status.success }}>-{formatPrice(summary?.discount ?? 0, lang)}</Text>
+                  </View>
+                )}
+                <View style={[styles.summaryRow, { flexDirection: flexRow(IS_RTL), borderBottomWidth: 0, marginTop: 4 }]}>
+                   <Text variant="h6" weight="bold" style={{ color: theme.colors.text.primary }}>{t("checkout.totalPaid", "Total Amount")}</Text>
+                   <Text variant="h5" weight="bold" style={{ color: theme.colors.brand.primary }}>{formatPrice(summary?.total ?? 0, lang)}</Text>
+                </View>
+
+                <View style={[styles.receiptDivider, { borderColor: theme.colors.border.default }]} />
+
+                {/* Delivery + payment */}
+                <View style={{ gap: 14 }}>
+                   <View style={[styles.receiptMetaRow, { flexDirection: flexRow(IS_RTL) }]}>
+                      <Ionicons name="location-outline" size={18} color={theme.colors.text.muted} />
+                      <View style={{ flex: 1, minWidth: 0 }}>
+                         <Text variant="caption" style={{ color: theme.colors.text.muted, textAlign: TEXT_START }}>{t("checkout.deliveryTo", "Delivery To")}</Text>
+                         <Text variant="body" weight="bold" style={{ color: theme.colors.text.primary, textAlign: TEXT_START }}>{summary?.addressFormatted}</Text>
+                      </View>
+                   </View>
+                   <View style={[styles.receiptMetaRow, { flexDirection: flexRow(IS_RTL) }]}>
+                      <Ionicons name="card-outline" size={18} color={theme.colors.text.muted} />
+                      <View style={{ flex: 1, minWidth: 0 }}>
+                         <Text variant="caption" style={{ color: theme.colors.text.muted, textAlign: TEXT_START }}>{t("payment.paymentMethod", "Payment Method")}</Text>
+                         <Text variant="body" weight="bold" style={{ color: theme.colors.text.primary, textAlign: TEXT_START }}>{summary?.paymentLabel}</Text>
+                      </View>
+                   </View>
                 </View>
              </Animated.View>
 
-             <Animated.View entering={FadeInDown.delay(520).duration(400)} style={{ width: "100%", gap: 12, marginTop: 40 }}>
+             <Animated.View entering={FadeInDown.delay(560).duration(400)} style={{ width: "100%", gap: 12, marginTop: 32 }}>
                 <Button
                    label={t("checkout.trackOrder", "Track Order")}
                    onPress={() => {
@@ -421,6 +541,7 @@ export default function CheckoutScreen() {
                 />
              </Animated.View>
           </Animated.View>
+         </ScrollView>
        </View>
     );
   }
@@ -504,13 +625,13 @@ export default function CheckoutScreen() {
                          </Text>
                       </View>
                       <View style={[styles.smartZoneBody, { flexDirection: flexRow(IS_RTL) }]}>
-                         <View style={{ flex: 1 }}>
-                            <Text variant="body" style={{ color: theme.colors.text.secondary, textAlign: TEXT_START }}>
+                         <View style={{ flex: 1, minWidth: 0 }}>
+                            <Text variant="body" numberOfLines={1} style={{ color: theme.colors.text.secondary, textAlign: TEXT_START }}>
                                {t("checkout.assignedBranch", "Processing from:")} <Text variant="body" weight="bold" style={{ color: theme.colors.text.primary }}>{i18n.language === "en" ? quote.branch.nameEn : quote.branch.nameAr}</Text>
                             </Text>
                          </View>
-                         <Pressable onPress={() => setLocationDetailsModal(true)}>
-                            <Text variant="caption" weight="bold" style={{ color: theme.colors.brand.primary }}>{t("checkout.viewDetails", "Location Details")}</Text>
+                         <Pressable onPress={() => setLocationDetailsModal(true)} hitSlop={8} style={{ flexShrink: 0 }}>
+                            <Text variant="caption" weight="bold" numberOfLines={1} style={{ color: theme.colors.brand.primary }}>{t("checkout.viewDetails", "Location Details")}</Text>
                          </Pressable>
                       </View>
                    </Animated.View>
@@ -731,16 +852,19 @@ export default function CheckoutScreen() {
            address={selectedAddress}
            quote={quote}
            onClose={() => setLocationDetailsModal(false)}
+           insetsBottom={insets.bottom}
         />
       )}
 
-      <AddressFormDrawer visible={isAddressDrawerOpen} onClose={() => setIsAddressDrawerOpen(false)} onSubmit={handleAddressSubmit} loading={false} />
+      <AddressFormDrawer visible={isAddressDrawerOpen} onClose={() => setIsAddressDrawerOpen(false)} onSubmit={handleAddressSubmit} loading={false} insetsBottom={insets.bottom} />
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  locModalOverlay: { flex: 1, justifyContent: "flex-end" },
+  locModalSheet: { maxHeight: "85%", borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 20 },
   header: { justifyContent: "space-between", alignItems: "center", paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1 },
   backBtn: { padding: 4 },
 
@@ -763,7 +887,7 @@ const styles = StyleSheet.create({
 
   smartZoneCard: { marginTop: 8, padding: 12, borderRadius: 12, borderWidth: 1 },
   smartZoneHeader: { alignItems: "center", marginBottom: 6 },
-  smartZoneBody: { alignItems: "center", justifyContent: "space-between" },
+  smartZoneBody: { alignItems: "center", justifyContent: "space-between", gap: 12 },
 
   warningBox: { padding: 12, borderRadius: 12, borderWidth: 1, marginTop: 8, alignItems: "center" },
 
@@ -787,11 +911,16 @@ const styles = StyleSheet.create({
   footerDock: { position: "absolute", bottom: 0, left: 0, right: 0, paddingHorizontal: 20, paddingTop: 16, borderTopWidth: 1 },
   errorDock: { alignItems: "center", padding: 12, borderRadius: 8, marginBottom: 12 },
 
-  successContent: { flex: 1, justifyContent: "center", alignItems: "center", paddingHorizontal: 20 },
-  successGlowWrap: { width: 200, height: 200, alignItems: "center", justifyContent: "center" },
-  successGlow: { position: "absolute", width: 200, height: 200, borderRadius: 100 },
-  successIconCircle: { width: 120, height: 120, borderRadius: 60, alignItems: "center", justifyContent: "center" },
-  successDetailsCard: { width: "100%", borderRadius: 16, borderWidth: 1, padding: 20, marginTop: 32 },
+  successScroll: { flexGrow: 1, paddingHorizontal: 20, maxWidth: 560, width: "100%", alignSelf: "center" },
+  successContent: { alignItems: "center" },
+  successGlowWrap: { width: 220, height: 220, alignItems: "center", justifyContent: "center" },
+  successGlow: { position: "absolute", width: 220, height: 220, borderRadius: 110 },
+  successIconCircle: { width: 140, height: 140, borderRadius: 70, alignItems: "center", justifyContent: "center" },
+  receiptCard: { width: "100%", borderRadius: 20, borderWidth: 1, padding: 20, marginTop: 32 },
+  receiptHeaderRow: { alignItems: "flex-start", justifyContent: "space-between" },
+  receiptDivider: { borderBottomWidth: StyleSheet.hairlineWidth, marginVertical: 16 },
+  receiptItemRow: { alignItems: "flex-start", justifyContent: "space-between", gap: 12, marginBottom: 14 },
+  receiptMetaRow: { alignItems: "flex-start", gap: 10 },
 
   modalHeader: { paddingBottom: 16, alignItems: "center", justifyContent: "space-between" },
   branchMetaBox: { borderRadius: 12, padding: 16 },

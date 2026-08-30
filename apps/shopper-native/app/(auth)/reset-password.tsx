@@ -348,6 +348,7 @@ function getStyles(theme: NativeTheme) {
   title: {
     fontFamily: legacyTheme.fonts.bold,
     fontSize: 18,
+    lineHeight: 24,
   },
   content: {
     paddingHorizontal: 20,
@@ -376,6 +377,7 @@ function getStyles(theme: NativeTheme) {
   errorTitle: {
     fontFamily: legacyTheme.fonts.black,
     fontSize: 20,
+    lineHeight: 26,
     textAlign: "center",
   },
   cardGroup: {

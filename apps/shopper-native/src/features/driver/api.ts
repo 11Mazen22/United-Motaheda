@@ -21,6 +21,7 @@
  */
 
 import { supabase } from "@/lib/supabase";
+import { abortTimeout } from "@/utils/timeout";
 import { fetchOrderById } from "@/features/orders/api";
 import { normalizeOrderStatus, type Order, type OrderItem } from "@/stores/orders";
 import { notifyCustomerOrderUpdate } from "./customerNotify";
@@ -37,7 +38,7 @@ export interface DeliveryAssignment {
   orderId:        string;
   driverId:       string;
   assignedBy:     string | null;
-  assignmentKind: "assigned" | "reassigned";
+  assignmentKind: "assigned" | "reassigned" | "return_pickup";
   responseStatus: AssignmentResponseStatus;
   declineReason:  string | null;
   offeredAt:      string;
@@ -109,6 +110,7 @@ export interface ManifestOrder {
   paymentMethod:   string | null;
   updatedAt:       string;
   assignmentId:       string;
+  assignmentKind?:    string;
   pickedUpAt:         string | null;
   arrivedAtPharmacy:  string | null;
   arrivedAtCustomer:  string | null;
@@ -158,6 +160,7 @@ interface RawManifestRow extends OrderLocationRow {
 
 interface ManifestAssignmentInfo {
   id:               string;
+  assignmentKind?:  string;
   pickedUpAt:       string | null;
   arrivedAtPharmacy: string | null;
   arrivedAtCustomer: string | null;
@@ -232,6 +235,7 @@ function mapManifestRow(row: RawManifestRow, assignment: ManifestAssignmentInfo)
     paymentMethod: row.payment_method,
     updatedAt: row.updated_at,
     assignmentId: assignment.id,
+    assignmentKind: assignment.assignmentKind,
     pickedUpAt: assignment.pickedUpAt,
     arrivedAtPharmacy: assignment.arrivedAtPharmacy,
     arrivedAtCustomer: assignment.arrivedAtCustomer,
@@ -268,15 +272,17 @@ const ACTIVE_ORDER_STATUSES = [
 export async function listMyManifest(driverId: string): Promise<ManifestOrder[]> {
   const { data: accepted, error: assignmentsError } = await supabase
     .from("delivery_assignments")
-    .select("id, order_id, picked_up_at, arrived_at_pharmacy, arrived_at_customer")
+    .select("id, order_id, assignment_kind, picked_up_at, arrived_at_pharmacy, arrived_at_customer")
     .eq("driver_id", driverId)
-    .eq("response_status", "accepted");
+    .eq("response_status", "accepted")
+    .is("delivered_at", null); // Don't fetch already delivered assignments!
 
   if (assignmentsError) throw assignmentsError;
   const assignmentByOrderId = new Map<string, ManifestAssignmentInfo>();
-  for (const row of (accepted ?? []) as Array<{ id: string; order_id: string; picked_up_at: string | null; arrived_at_pharmacy: string | null; arrived_at_customer: string | null }>) {
+  for (const row of (accepted ?? []) as Array<{ id: string; order_id: string; assignment_kind: string; picked_up_at: string | null; arrived_at_pharmacy: string | null; arrived_at_customer: string | null }>) {
     assignmentByOrderId.set(row.order_id, {
       id: row.id,
+      assignmentKind: row.assignment_kind,
       pickedUpAt: row.picked_up_at,
       arrivedAtPharmacy: row.arrived_at_pharmacy,
       arrivedAtCustomer: row.arrived_at_customer,
@@ -290,7 +296,7 @@ export async function listMyManifest(driverId: string): Promise<ManifestOrder[]>
     .select(`id, status, customer_name, customer_phone, total, payment_method, updated_at, ${ORDER_LOCATION_SELECT.join(",")}`)
     .in("id", orderIds)
     .eq("assigned_driver_id", driverId)
-    .in("status", ACTIVE_ORDER_STATUSES)
+    .in("status", [...ACTIVE_ORDER_STATUSES, "delivered"])
     .order("updated_at", { ascending: false });
 
   if (error) throw error;
@@ -539,7 +545,35 @@ export async function markArrival(
   return mapAssignmentRow(data as RawAssignmentRow);
 }
 
-export async function completeDelivery(orderId: string, assignmentId: string, driverId: string): Promise<void> {
+export async function completeDelivery(orderId: string, assignmentId: string, driverId: string, assignmentKind: string = "delivery"): Promise<void> {
+  if (assignmentKind === "return_pickup") {
+    // For returns, we don't transition the order status. We complete the return request.
+    const { data: request } = await supabase
+      .from("return_requests")
+      .select("id")
+      .eq("order_id", orderId)
+      .not("status", "in", '("completed","rejected")') // not completed or rejected
+      .limit(1)
+      .maybeSingle();
+
+    if (!request) throw new Error("Could not find the return request for this order.");
+
+    const { data, error } = await supabase.functions.invoke("process-return", {
+      body: { requestId: request.id, action: "complete" },
+    });
+    if (error) throw error;
+    if (data?.error) throw new Error(data.error);
+
+    await supabase
+      .from("delivery_assignments")
+      .update({ delivered_at: new Date().toISOString(), response_status: "completed" })
+      .eq("id", assignmentId)
+      .eq("driver_id", driverId);
+
+    return;
+  }
+
+  // Normal delivery
   const { data, error } = await supabase.rpc("transition_order", {
     p_order_id: orderId,
     p_next_status: "delivered",
@@ -758,7 +792,7 @@ export async function getMyDriverProfile(userId: string): Promise<DriverProfileR
     .from("DriverProfile")
     .select(DRIVER_PROFILE_COLUMNS)
     .eq("userId", userId)
-    .abortSignal(AbortSignal.timeout(20_000))
+    .abortSignal(abortTimeout(20_000))
     .maybeSingle();
 
   if (error) throw error;

@@ -60,8 +60,17 @@ export const adminApi = {
   assignOrder: (orderId: string, driverId: string) =>
     api.post(`/admin/orders/${orderId}/assign`, { driverId }).then((r) => r.data),
 
-  updateOrderStatus: (orderId: string, status: string) =>
-    api.patch(`/admin/orders/${orderId}/status`, { status }).then((r) => r.data),
+  updateOrderStatus: async (orderId: string, status: string) => {
+    if (status === "cancelled") {
+      const { data, error } = await getAdminSupabase().functions.invoke("cancel-order", {
+        body: { orderId, reason: "Admin forced cancellation" },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      return data;
+    }
+    return api.patch(`/admin/orders/${orderId}/status`, { status }).then((r) => r.data);
+  },
 
   // Stats
   getDashboardStats: () =>
@@ -243,12 +252,9 @@ export const marketingApi = {
 
     if (rowsErr) throw new Error(rowsErr.message);
 
-    // 4. Write audit log entry.
-    await sb.from('sms_audit_log').insert({
-      campaign_id: (campaign as SMSCampaign).id,
-      event:       'created',
-      detail:      { recipient_count: rows.length, batch_size: params.batchSize },
-    });
+    // Audit log entries are written by the service-role worker only (see
+    // the sms_marketing migration) -- RLS has no authenticated insert
+    // policy, so an insert from here would always fail.
 
     return campaign as SMSCampaign;
   },
@@ -262,11 +268,6 @@ export const marketingApi = {
       .eq('id', campaignId)
       .eq('status', 'draft');
     if (error) throw new Error(error.message);
-
-    await sb.from('sms_audit_log').insert({
-      campaign_id: campaignId,
-      event:       'queued',
-    });
   },
 
   /** Cancel a running or queued campaign. */
@@ -285,11 +286,6 @@ export const marketingApi = {
       .in('status', ['queued', 'running', 'draft']);
 
     if (error) throw new Error(error.message);
-
-    await sb.from('sms_audit_log').insert({
-      campaign_id: campaignId,
-      event:       'cancelled',
-    });
   },
 
   /** Invoke the sms-campaign-worker edge function for one batch. */

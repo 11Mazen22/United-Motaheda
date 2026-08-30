@@ -6,6 +6,7 @@
  */
 
 import { supabase } from "@/lib/supabase";
+import * as FileSystem from "expo-file-system";
 import type { Prescription } from "@/stores/prescriptionsStore";
 import { rowToPrescription, type PrescriptionRow } from "./lib/rowMappers";
 
@@ -51,15 +52,16 @@ export async function uploadPrescriptionImage(
   const ext  = extForMime(mime);
   const path = `${userId}/${prescriptionId}/image.${ext}`;
 
-  const response = await fetch(localUri);
-  if (!response.ok) {
-    throw new Error("Failed to read local image file");
-  }
-  const blob = await response.blob();
+  const formData = new FormData();
+  formData.append("file", {
+    uri: localUri,
+    name: `image.${ext}`,
+    type: mime,
+  } as any);
 
   const attempt = () => supabase.storage
     .from("prescriptions")
-    .upload(path, blob, { contentType: mime, upsert: true });
+    .upload(path, formData, { upsert: true });
 
   let { error } = await attempt();
   if (error) {

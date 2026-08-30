@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { abortTimeout } from "@/utils/timeout";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -95,7 +96,7 @@ export default function LoginScreen() {
             .from("profiles")
             .select("role")
             .eq("id", signedInUser.id)
-            .abortSignal(AbortSignal.timeout(4_000))
+            .abortSignal(abortTimeout(4_000))
             .maybeSingle();
           const role = (data as { role?: string } | null)?.role;
           if (role === "driver") {
@@ -199,7 +200,7 @@ export default function LoginScreen() {
 
         <Animated.View entering={FadeInDown.duration(600).delay(200).springify()}>
           <AuthDivider />
-          <SocialButtons 
+          <SocialButtons
             onSocialPress={(provider) => signInWithProvider(provider).catch(() => {})}
             loading={loading}
           />
@@ -228,7 +229,7 @@ function getStyles(theme: NativeTheme) {
   heroSection: { alignItems: "center", marginBottom: 32 },
   logoWrapper: { width: 120, height: 120, alignItems: "center", justifyContent: "center", marginBottom: 24 },
   halo: { position: "absolute", width: 140, height: 140, borderRadius: 70 },
-  welcomeTitle: { fontFamily: legacyTheme.fonts.extrabold, fontSize: 28, marginBottom: 8, textAlign: "center" },
+  welcomeTitle: { fontFamily: legacyTheme.fonts.extrabold, fontSize: 28, lineHeight: 36, marginBottom: 8, textAlign: "center" },
   welcomeSub: { fontFamily: legacyTheme.fonts.regular, fontSize: 15, textAlign: "center", paddingHorizontal: 20, lineHeight: 22 },
   formCard: { borderRadius: 24, padding: 24, marginBottom: 24, ...theme.shadows[1] },
   optionsRow: { justifyContent: "flex-end", marginTop: 12, marginBottom: 24 },

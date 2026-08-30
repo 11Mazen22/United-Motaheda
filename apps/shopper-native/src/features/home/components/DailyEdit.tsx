@@ -200,7 +200,7 @@ const EditorialHeroCard = memo(function EditorialHeroCard({
                 { backgroundColor: isSale ? theme.colors.status.error : theme.colors.brand.primary },
               ]}
             >
-              <UIText style={styles.heroBadgeText}>
+              <UIText weight="extrabold" style={styles.heroBadgeText}>
                 {isSale ? t("common.sale") : t("common.new")}
               </UIText>
             </View>
@@ -218,9 +218,9 @@ const EditorialHeroCard = memo(function EditorialHeroCard({
             </UIText>
           )}
           <View style={s.heroFoot}>
-            <UIText variant="h4" style={{ color: theme.colors.text.primary }}>{formatPrice(product.price)}</UIText>
+            <UIText variant="h4" style={{ color: theme.colors.text.primary, flexShrink: 0 }}>{formatPrice(product.price)}</UIText>
             <View style={[s.heroCta, { backgroundColor: theme.colors.brand.primary }]}>
-              <UIText style={[styles.heroCtaText, { color: theme.colors.text.inverse }]}>{t("home.dailyEditShopNow")}</UIText>
+              <UIText weight="extrabold" numberOfLines={1} style={[styles.heroCtaText, { color: theme.colors.text.inverse }]}>{t("home.dailyEditShopNow")}</UIText>
               <Ionicons name={FORWARD_CHEVRON} size={12} color={theme.colors.text.inverse} />
             </View>
           </View>
@@ -240,17 +240,27 @@ const s = StyleSheet.create({
     overflow: "hidden",
     minHeight: 160,
   },
-  heroImageWrap: { width: 148, alignItems: "center", justifyContent: "center", padding: 12 },
+  // Explicit height, not just width -- heroImage/heroImageEmpty below are
+  // sized height:"100%", which needs a resolved parent height to mean
+  // anything. Relying on heroCard's alignItems:"stretch" to hand this down
+  // created a circular dependency (heroCard's own height depends on its
+  // tallest child, which this wrap was supposed to be one of) that Yoga
+  // resolved fine for a loaded <Image> but not for the plain-View
+  // fallback (no imageUrl) -- confirmed live: every "newest"-sorted
+  // product in the DB has a null image_url, so the daily-edit rail's hero
+  // slot hit the empty-icon branch and the whole card stretched to fill
+  // the rest of the scroll content instead of sizing to its content.
+  heroImageWrap: { width: 128, height: 160, alignItems: "center", justifyContent: "center", padding: 12 },
   heroImage: { width: "100%", height: "100%" },
   heroImageEmpty: { width: "100%", height: "100%", alignItems: "center", justifyContent: "center" },
   heroBadge: { position: "absolute", top: 10, start: 10, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 9999 },
   heroBody: { flex: 1, paddingHorizontal: 16, paddingVertical: 16, justifyContent: "space-between", gap: 6 },
   heroFoot: { flexDirection: flexRow(IS_RTL), alignItems: "center", justifyContent: "space-between", gap: 8, marginTop: 4 },
-  heroCta: { flexDirection: flexRow(IS_RTL), alignItems: "center", gap: 4, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 9999 },
+  heroCta: { flexDirection: flexRow(IS_RTL), alignItems: "center", flexShrink: 1, minWidth: 0, gap: 4, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 9999 },
   compactRow: { flexDirection: flexRow(IS_RTL), gap: GAP },
 });
 
 const styles = StyleSheet.create({
-  heroBadgeText: { fontSize: 9, lineHeight: 13, color: "#FFFFFF", letterSpacing: 0.6, textTransform: "uppercase", fontWeight: "800" },
-  heroCtaText: { fontSize: 11, lineHeight: 15, fontWeight: "800" },
+  heroBadgeText: { fontSize: 9, lineHeight: 13, color: "#FFFFFF", letterSpacing: 0.6, textTransform: "uppercase" },
+  heroCtaText: { fontSize: 11, lineHeight: 15, flexShrink: 1 },
 });

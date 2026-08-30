@@ -65,7 +65,7 @@ export const Hero = memo(function Hero({ onSearch, onScanRx }: HeroProps) {
         <Animated.View entering={FadeInDown.duration(500).springify()} style={styles.headline}>
           <View style={styles.badge}>
             <View style={styles.badgeDot} />
-            <UIText style={styles.badgeText}>
+            <UIText weight="bold" style={styles.badgeText}>
               {firstName ? t("home.greeting", { name: firstName }) : t("home.greetingGuest")}
             </UIText>
           </View>
@@ -94,7 +94,7 @@ export const Hero = memo(function Hero({ onSearch, onScanRx }: HeroProps) {
             <View style={styles.rxIconWell}>
               <Ionicons name="document-text-outline" size={18} color="#FFFFFF" />
             </View>
-            <UIText numberOfLines={1} style={{ flex: 1, color: "#FFFFFF", textAlign: TEXT_START, fontWeight: "700" }}>
+            <UIText weight="bold" numberOfLines={1} style={{ flex: 1, color: "#FFFFFF", textAlign: TEXT_START }}>
               {t("home.qaScanLabel", "Scan Rx")}
             </UIText>
             <Ionicons name={IS_RTL ? "chevron-back" : "chevron-forward"} size={18} color="rgba(255,255,255,0.65)" />
@@ -150,7 +150,6 @@ const styles = StyleSheet.create({
   badgeText: {
     fontSize: 11,
     lineHeight: 14,
-    fontWeight: "700",
     color: "#FFFFFF",
   },
   searchBox: {

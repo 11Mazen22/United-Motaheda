@@ -134,7 +134,7 @@ function mirror(label: string, fn: () => Promise<unknown>): void {
 }
 
 /** Parse the RPC error code/message produced by reserve_inventory. */
-function parseReserveError(e: unknown): { reason: string; available?: number } {
+function parseReserveError(e: unknown): { reason: string; available?: number; rawMessage?: string } {
   // Supabase throws plain PostgrestError objects (not Error instances), so we
   // must check for a .message property before falling back to String().
   const message =
@@ -151,7 +151,7 @@ function parseReserveError(e: unknown): { reason: string; available?: number } {
   if (message.includes("product_not_found"))   return { reason: "product_not_found" };
   if (message.includes("invalid_quantity"))    return { reason: "invalid_quantity" };
   if (message.includes("not_authenticated"))   return { reason: "not_authenticated" };
-  return { reason: "unknown" };
+  return { reason: "unknown", rawMessage: message };
 }
 
 export const useCartStore = create<CartState>((set, get) => ({

@@ -385,7 +385,7 @@ export default function AddressesScreen() {
 
 
 
-      <AddressFormDrawer visible={drawer} initialData={editing ?? undefined} onClose={() => setDrawer(false)} onSubmit={handleSubmit} loading={submitting} />
+      <AddressFormDrawer visible={drawer} initialData={editing ?? undefined} onClose={() => setDrawer(false)} onSubmit={handleSubmit} loading={submitting} insetsBottom={insets.bottom} />
 
     </View>
 

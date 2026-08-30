@@ -37,10 +37,10 @@ export const publicEnv = {
   shippingMatrixJson: readStringEnv("VITE_SHIPPING_MATRIX_JSON"),
   supabaseAnonKey:
     readStringEnv("VITE_SUPABASE_ANON_KEY") ||
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdudHB4ZmZvbmp2bnZhZGpjbHBsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4MzA4NzEsImV4cCI6MjA5MDQwNjg3MX0.hLDucOsGEci6iWq7eHS6RsQIZEpipBxjuqlep5f9Pcs",
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlIiwiaWF0IjoxNzg4MDA2ODUzLCJleHAiOjIxMDMzNjY4NTN9.cGHr99POxNCCxKSXmYK1ySwsTiRsNMvnrDUV0UBrnoI",
   supabaseUrl:
     readStringEnv("VITE_SUPABASE_URL") ||
-    "https://gntpxffonjvnvadjclpl.supabase.co",
+    "https://envoy-production-1cbe.up.railway.app",
   /** Base URL for search suggestions (falls back to current origin). */
   searchApiBase: readStringEnv("VITE_SEARCH_API_BASE") || defaultSearchApi,
   web3formsAccessKey: readStringEnv("VITE_WEB3FORMS_ACCESS_KEY"),

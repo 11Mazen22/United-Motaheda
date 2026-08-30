@@ -1,22 +1,21 @@
 /**
  * SocialButtons — "Continue with Google" button.
  *
- * Redesign (2026 visual pass):
- *   • Fixed the floating "G" bug — the icon now sits inside a tinted well
- *     with explicit background, border, and dimensions.
- *   • Button itself now declares borderColor (was missing — caused the
- *     button outline to disappear on some platforms).
- *   • Icon + label form a tightly-grouped leading cluster, centered as a
- *     unit. No more `spacer` hack to balance the row — RN's `alignItems:
- *     center` + `justifyContent: center` does it cleanly.
- *   • Stronger press feedback (scale + accent-tint background).
+ * Uses PressableScale (not raw Pressable) — a raw `Pressable` whose `style`
+ * prop is the `({pressed}) => [...]` function form was silently dropping
+ * `flexDirection: "row"` on this RN/Fabric version: icon and label measured
+ * and laid out as a column (confirmed via uiautomator bounds — both
+ * children spanned the same full width, stacked top/bottom) despite the
+ * style object clearly requesting a centered row. PressableScale applies a
+ * static `[style, animatedStyle]` array instead, which is the same pattern
+ * every other working row-shaped button in this design system uses
+ * (Button, Chip) — and it renders correctly.
  */
 
 import React, { useMemo } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
+import { ActivityIndicator, StyleSheet, View } from "react-native";
 import { useTranslation } from "react-i18next";
-import Animated, { FadeInUp } from "react-native-reanimated";
-import { Text as UIText, useTheme, type NativeTheme } from "@pharmacy/ui-native";
+import { PressableScale, Text as UIText, useTheme, type NativeTheme } from "@pharmacy/ui-native";
 
 import { isRtl, flexRow } from "@/utils/layout";
 import { GoogleIcon } from "./GoogleIcon";
@@ -39,30 +38,25 @@ export function SocialButtons({ onSocialPress, loading = false }: Props) {
   const { t } = useTranslation();
 
   return (
-    <Animated.View entering={FadeInUp.duration(320)}>
-      <Pressable
-        onPress={() => !loading && onSocialPress("google")}
-        disabled={loading}
-        style={({ pressed }) => [
-          s.btn,
-          pressed && s.btnPressed,
-          loading && { opacity: 0.72 },
-        ]}
-        accessibilityRole="button"
-        accessibilityState={{ disabled: loading, busy: loading }}
-        accessibilityLabel={t("auth.continueWithGoogle")}>
-        <View style={s.iconWell}>
-          {loading ? (
-            <ActivityIndicator size="small" color={GOOGLE_RED} />
-          ) : (
-            <GoogleIcon size={18} />
-          )}
-        </View>
-        <UIText weight="bold" style={s.label} numberOfLines={1}>
-          {loading ? t("common.loading") : t("auth.continueWithGoogle")}
-        </UIText>
-      </Pressable>
-    </Animated.View>
+    <PressableScale
+      onPress={() => !loading && onSocialPress("google")}
+      disabled={loading}
+      scaleTo={0.99}
+      style={[s.btn, loading && { opacity: 0.72 }]}
+      accessibilityRole="button"
+      accessibilityState={{ disabled: loading, busy: loading }}
+      accessibilityLabel={t("auth.continueWithGoogle")}>
+      <View style={s.iconWell}>
+        {loading ? (
+          <ActivityIndicator size="small" color={GOOGLE_RED} />
+        ) : (
+          <GoogleIcon size={18} />
+        )}
+      </View>
+      <UIText weight="bold" style={s.label} numberOfLines={1}>
+        {loading ? t("common.loading") : t("auth.continueWithGoogle")}
+      </UIText>
+    </PressableScale>
   );
 }
 
@@ -81,10 +75,6 @@ function getStyles(theme: NativeTheme) {
       backgroundColor:   theme.colors.canvas.surface,
       borderWidth:       1,
       borderColor:       theme.colors.border.default,
-    },
-    btnPressed: {
-      backgroundColor: theme.colors.canvas.surfaceMuted,
-      transform:       [{ scale: 0.99 }],
     },
 
     // Icon well — neutral surface so the real four-color "G" mark reads

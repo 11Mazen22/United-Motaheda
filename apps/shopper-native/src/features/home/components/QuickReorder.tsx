@@ -120,7 +120,7 @@ function ReorderCard({ item, orderedAt, theme, t }: {
           <Ionicons name="medkit-outline" size={22} color={theme.colors.text.muted} />
         )}
       </View>
-      <UIText numberOfLines={2} style={[s.name, { color: theme.colors.text.primary, textAlign: TEXT_START }]}>
+      <UIText weight="bold" numberOfLines={2} style={[s.name, { color: theme.colors.text.primary, textAlign: TEXT_START }]}>
         {item.name}
       </UIText>
       <UIText style={[s.meta, { color: theme.colors.text.muted, textAlign: TEXT_START }]}>
@@ -137,12 +137,12 @@ function ReorderCard({ item, orderedAt, theme, t }: {
           {status === "added" ? (
             <Animated.View entering={FadeIn.duration(120)} style={{ flexDirection: flexRow(IS_RTL), alignItems: "center", gap: 4 }}>
               <Ionicons name="checkmark" size={13} color="#FFFFFF" />
-              <UIText style={s.addBtnText}>{t("home.reorderAdded")}</UIText>
+              <UIText weight="extrabold" style={s.addBtnText}>{t("home.reorderAdded")}</UIText>
             </Animated.View>
           ) : (
             <>
               <Ionicons name="add" size={13} color="#FFFFFF" />
-              <UIText style={s.addBtnText}>{t("home.reorderAdd")}</UIText>
+              <UIText weight="extrabold" style={s.addBtnText}>{t("home.reorderAdd")}</UIText>
             </>
           )}
         </Pressable>
@@ -155,8 +155,8 @@ const s = StyleSheet.create({
   card: { width: CARD_W, borderRadius: 16, borderWidth: 1, padding: 10, gap: 6 },
   imgWrap: { width: "100%", height: 72, borderRadius: 10, alignItems: "center", justifyContent: "center", overflow: "hidden" },
   img: { width: "100%", height: "100%" },
-  name: { fontSize: 12, lineHeight: 16, fontWeight: "700", minHeight: 32, includeFontPadding: false },
+  name: { fontSize: 12, lineHeight: 16, minHeight: 32, includeFontPadding: false },
   meta: { fontSize: 10, lineHeight: 13, includeFontPadding: false },
   addBtn: { height: 28, borderRadius: 14, alignItems: "center", justifyContent: "center", gap: 4, marginTop: 2 },
-  addBtnText: { fontSize: 11, lineHeight: 14, fontWeight: "800", color: "#FFFFFF", includeFontPadding: false },
+  addBtnText: { fontSize: 11, lineHeight: 14, color: "#FFFFFF", includeFontPadding: false },
 });

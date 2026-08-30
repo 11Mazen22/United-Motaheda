@@ -37,10 +37,18 @@ if (!SUPABASE_URL || !SUPABASE_ANON) {
  */
 export function getAdminSupabase(): SupabaseClient {
   const token = useAdminStore.getState().token;
-  return createClient(SUPABASE_URL, SUPABASE_ANON, {
+  const client = createClient(SUPABASE_URL, SUPABASE_ANON, {
     global: token
       ? { headers: { Authorization: `Bearer ${token}` } }
       : undefined,
     auth: { persistSession: false, autoRefreshToken: false },
   });
+  // The Authorization header above only covers REST calls -- Realtime
+  // authenticates its websocket separately and falls back to the anon key
+  // unless told otherwise, which makes RLS reject every subscription for
+  // tables that require the admin/manager role (orders, delivery_assignments,
+  // driver_locations). Without this, those subscriptions connect and report
+  // "SUBSCRIBED" but silently never deliver events.
+  if (token) client.realtime.setAuth(token);
+  return client;
 }

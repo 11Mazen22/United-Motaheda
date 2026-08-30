@@ -1,3 +1,6 @@
+import { abortTimeout } from "@/utils/timeout";
+import { Platform } from "react-native";
+
 /**
  * Geoapify Places Autocomplete API client.
  *
@@ -98,8 +101,8 @@ export async function fetchPlacesSuggestions(
       `${AUTOCOMPLETE_BASE}?${params.toString()}`,
       {
         signal: options?.signal ??
-          (typeof AbortSignal !== "undefined"
-            ? AbortSignal.timeout(5_000)
+          (Platform.OS !== "web"
+            ? abortTimeout(5_000)
             : undefined),
       },
     );

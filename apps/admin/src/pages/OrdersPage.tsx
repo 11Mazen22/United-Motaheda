@@ -85,6 +85,24 @@ export function OrdersPage() {
   const orders = data?.orders ?? [];
   const totalPages = data?.totalPages ?? 1;
 
+  const orderIds = orders.map((o: any) => o.id);
+  const { data: returnsData } = useQuery({
+    queryKey: ['admin', 'orders', 'returns', orderIds],
+    queryFn: async () => {
+      if (orderIds.length === 0) return [];
+      const { data, error } = await getAdminSupabase()
+        .from('return_requests')
+        .select('order_id, status')
+        .in('order_id', orderIds);
+      if (error) throw error;
+      return data;
+    },
+    enabled: orderIds.length > 0,
+    staleTime: 15_000,
+  });
+
+  const returnsByOrder = new Map(returnsData?.map(r => [r.order_id, r.status]) ?? []);
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
@@ -173,9 +191,16 @@ export function OrdersPage() {
                           )}
                         </td>
                         <td className="px-6 py-4">
-                          <span className={`inline-flex px-3 py-1 rounded-full text-xs font-bold ${statusBadge(order.status)}`}>
-                            {formatStatus(order.status)}
-                          </span>
+                          <div className="flex flex-col gap-1 items-start">
+                            <span className={`inline-flex px-3 py-1 rounded-full text-xs font-bold ${statusBadge(order.status)}`}>
+                              {formatStatus(order.status)}
+                            </span>
+                            {returnsByOrder.has(order.id) && (
+                              <span className="inline-flex px-2 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-800 border border-purple-200">
+                                Return: {formatStatus(returnsByOrder.get(order.id)!)}
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td className="px-6 py-4 text-sm font-bold text-pharmacy-ink dark:text-white whitespace-nowrap">
                           {parseFloat(order.total ?? '0').toFixed(2)} EGP

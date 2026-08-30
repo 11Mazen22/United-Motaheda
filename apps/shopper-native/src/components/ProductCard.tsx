@@ -151,7 +151,7 @@ const CartControl = memo(function CartControl({ product, theme }: { product: Nat
       <Pressable onPress={handleDecrement} hitSlop={4} style={s.stepBtn}>
         <Ionicons name={qty === 1 ? "trash-outline" : "remove"} size={14} color={theme.colors.brand.accent} />
       </Pressable>
-      <UIText style={[s.stepQty, { color: theme.colors.text.primary }]}>{qty}</UIText>
+      <UIText weight="extrabold" style={[s.stepQty, { color: theme.colors.text.primary }]}>{qty}</UIText>
       <Pressable onPress={handleIncrement} hitSlop={4} style={s.stepBtn}>
         <Ionicons name="add" size={14} color={theme.colors.brand.accent} />
       </Pressable>
@@ -233,7 +233,7 @@ export const ProductCard = memo(function ProductCard({
             {!product.inStock && (
               <View style={[s.oosOverlay, { backgroundColor: theme.isDark ? "rgba(11,18,16,0.78)" : "rgba(250,248,244,0.86)" }]}>
                 <View style={[s.oosPill, { backgroundColor: theme.colors.canvas.surface, borderColor: theme.colors.border.default }]}>
-                  <UIText style={{ color: theme.colors.text.secondary, fontSize: 10, fontWeight: "700" }}>{t("product.outOfStock")}</UIText>
+                  <UIText weight="bold" style={{ color: theme.colors.text.secondary, fontSize: 10 }}>{t("product.outOfStock")}</UIText>
                 </View>
               </View>
             )}
@@ -241,7 +241,7 @@ export const ProductCard = memo(function ProductCard({
             {/* Low-stock urgency — real signal from product.stock, not decoration */}
             {isLowStock && (
               <View style={[s.stockStrip, { backgroundColor: `${theme.colors.status.warning}E6` }]}>
-                <UIText style={s.stockStripText} numberOfLines={1}>
+                <UIText weight="extrabold" style={s.stockStripText} numberOfLines={1}>
                   {t("product.stockRemaining", { count: product.stock })}
                 </UIText>
               </View>
@@ -254,7 +254,7 @@ export const ProductCard = memo(function ProductCard({
             <View style={[s.badge, { backgroundColor: badgeTone }, theme.shadows[1]]}>
               {effectiveBadge === "sale" && <Ionicons name="flash" size={9} color="#FFFFFF" />}
               {effectiveBadge === "bestseller" && <Ionicons name="star" size={9} color="#FFFFFF" />}
-              <UIText style={s.badgeText}>
+              <UIText weight="extrabold" style={s.badgeText}>
                 {effectiveBadge === "sale" ? (effectiveDiscount ? `-${effectiveDiscount}%` : t("product.sale")) : effectiveBadge === "new" ? t("product.new") : t("product.bestseller")}
               </UIText>
             </View>
@@ -274,7 +274,7 @@ export const ProductCard = memo(function ProductCard({
             </View>
           )}
 
-          <UIText numberOfLines={2} style={[s.nameLabel, { color: theme.colors.text.primary, textAlign: TEXT_START }]}>
+          <UIText weight="bold" numberOfLines={2} style={[s.nameLabel, { color: theme.colors.text.primary, textAlign: TEXT_START }]}>
             {displayName}
           </UIText>
 
@@ -289,7 +289,7 @@ export const ProductCard = memo(function ProductCard({
 
           <View style={[s.bottomRow, { flexDirection: flexRow(IS_RTL) }]}>
             <View style={s.priceCol}>
-              <UIText numberOfLines={1} style={[s.price, { color: theme.colors.text.primary }]}>
+              <UIText weight="extrabold" numberOfLines={1} style={[s.price, { color: theme.colors.text.primary }]}>
                 {formatPrice(product.price, lang)}
               </UIText>
               {basePrice !== null && (
@@ -347,7 +347,7 @@ const s = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 8,
   },
-  badgeText: { fontSize: 9, lineHeight: 11, fontWeight: "800", color: "#FFFFFF", includeFontPadding: false },
+  badgeText: { fontSize: 9, lineHeight: 11, color: "#FFFFFF", includeFontPadding: false },
   heartBtn: {
     position: "absolute",
     top: 3,
@@ -367,21 +367,21 @@ const s = StyleSheet.create({
     paddingVertical: 4,
     alignItems: "center",
   },
-  stockStripText: { fontSize: 9, lineHeight: 12, fontWeight: "800", color: "#FFFFFF", includeFontPadding: false },
+  stockStripText: { fontSize: 9, lineHeight: 12, color: "#FFFFFF", includeFontPadding: false },
   oosOverlay: { ...StyleSheet.absoluteFillObject, alignItems: "center", justifyContent: "center" },
   oosPill: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 9999, borderWidth: 1 },
   info: { paddingHorizontal: 10, paddingTop: 9, paddingBottom: 11, gap: 3, flex: 1, justifyContent: "space-between" },
   trustRow: { alignItems: "center", gap: 3 },
   categoryText: { fontSize: 10, lineHeight: 13, includeFontPadding: false, flexShrink: 1 },
-  nameLabel: { fontSize: 12.5, lineHeight: 17, fontWeight: "700", minHeight: 34, letterSpacing: -0.1, includeFontPadding: false },
+  nameLabel: { fontSize: 12.5, lineHeight: 17, minHeight: 34, letterSpacing: -0.1, includeFontPadding: false },
   ratingRow: { alignItems: "center", gap: 3 },
   ratingText: { fontSize: 10, lineHeight: 13, includeFontPadding: false },
   bottomRow: { alignItems: "flex-end", justifyContent: "space-between", marginTop: 3 },
   priceCol: { flex: 1, gap: 0 },
-  price: { fontSize: 15, lineHeight: 19, fontWeight: "800", letterSpacing: -0.2, includeFontPadding: false },
+  price: { fontSize: 15, lineHeight: 19, letterSpacing: -0.2, includeFontPadding: false },
   priceStruck: { fontSize: 10, lineHeight: 13, textDecorationLine: "line-through", includeFontPadding: false },
   addBtn: { width: 30, height: 30, borderRadius: 15, alignItems: "center", justifyContent: "center" },
   stepper: { flexDirection: flexRow(IS_RTL), alignItems: "center", justifyContent: "space-between", height: 30, borderRadius: 15, borderWidth: 1, width: 78, paddingHorizontal: 2 },
   stepBtn: { width: 26, height: 28, alignItems: "center", justifyContent: "center" },
-  stepQty: { fontSize: 12, fontWeight: "800", includeFontPadding: false },
+  stepQty: { fontSize: 12, includeFontPadding: false },
 });

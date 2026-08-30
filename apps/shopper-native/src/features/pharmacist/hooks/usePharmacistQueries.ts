@@ -18,6 +18,7 @@ import {
   getOrderDeliveryAssignment,
   getOrderTimeline,
   getActiveDeliveryIssue,
+  listPendingReturns,
 }                                      from "../api/orders";
 import {
   listPendingPrescriptions,
@@ -59,6 +60,15 @@ export function usePharmacistOrderQueue() {
     queryFn:  listPharmacistOrderQueue,
     ...BASE,
     staleTime: 10_000,
+  });
+}
+
+export function usePharmacistReturns() {
+  return useQuery({
+    queryKey: pharmacistQueryKeys.returnsQueue(),
+    queryFn:  listPendingReturns,
+    ...BASE,
+    staleTime: 15_000,
   });
 }
 

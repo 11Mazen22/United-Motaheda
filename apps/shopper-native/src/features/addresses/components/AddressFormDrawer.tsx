@@ -1,12 +1,11 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { ActivityIndicator, Modal, Platform, Pressable, ScrollView, StyleSheet, View, TextInput, KeyboardAvoidingView } from "react-native";
-import { Text as UIText, Button } from "@pharmacy/ui-native";
+import { Text as UIText, Button, PressableScale } from "@pharmacy/ui-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Location from "expo-location";
 import * as Haptics from "expo-haptics";
 import { useTranslation } from "react-i18next";
 import Animated, { FadeIn, FadeOut, useAnimatedStyle, useSharedValue, withRepeat, withTiming, useReducedMotion } from "react-native-reanimated";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AddressMapPlaceholder } from "./AddressMapPlaceholder";
 import { ADDRESS_LABELS } from "../types";
 import type { AddressFormData, AddressLabel } from "../types";
@@ -24,6 +23,12 @@ interface AddressFormDrawerProps {
   initialData?: AddressFormData;
   onSubmit: (form: AddressFormData) => void;
   loading?: boolean;
+  /** Passed down from the host screen's own useSafeAreaInsets() — reading
+   *  the hook directly inside this component was returning bogus/inflated
+   *  values, since a bare RN <Modal> renders in its own native root outside
+   *  the app's SafeAreaProvider tree, and that showed up as a large blank
+   *  gap at the bottom of the drawer instead of a normal safe-area inset. */
+  insetsBottom?: number;
 }
 
 export function AddressFormDrawer({
@@ -32,11 +37,11 @@ export function AddressFormDrawer({
   initialData,
   onSubmit,
   loading = false,
+  insetsBottom = 0,
 }: AddressFormDrawerProps) {
   const { t } = useTranslation();
   const { theme } = useTheme();
   const styles = useMemo(() => getStyles(theme), [theme]);
-  const insets = useSafeAreaInsets();
   const IS_RTL = isRtl();
 
   const [form, setForm] = useState<AddressFormData>(
@@ -239,7 +244,7 @@ export function AddressFormDrawer({
           <Animated.View entering={sheetMotion.backdropEnter} exiting={sheetMotion.backdropExit} style={[StyleSheet.absoluteFill, { backgroundColor: "rgba(0,0,0,0.5)" }]} />
           <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
 
-          <Animated.View entering={sheetMotion.enter} exiting={sheetMotion.exit} style={[styles.sheet, { backgroundColor: theme.colors.canvas.surface, paddingTop: 12, paddingBottom: Math.max(insets.bottom, 20) }]}>
+          <Animated.View entering={sheetMotion.enter} exiting={sheetMotion.exit} style={[styles.sheet, { backgroundColor: theme.colors.canvas.surface, paddingTop: 12 }]}>
             <View style={styles.handle} />
             
             <View style={[styles.header, { flexDirection: flexRow(IS_RTL) }]}>
@@ -272,10 +277,11 @@ export function AddressFormDrawer({
                 {showSuggestions && suggestions.length > 0 && (
                   <Animated.View entering={FadeIn.duration(150)} exiting={FadeOut.duration(120)} style={[styles.suggestionsBox, { backgroundColor: theme.colors.canvas.surface, borderColor: theme.colors.border.default }, theme.shadows[2]]}>
                     {suggestions.map((s) => (
-                      <Pressable
+                      <PressableScale
                         key={s.placeId}
                         onPress={() => handleSelectSuggestion(s)}
-                        style={({ pressed }) => [styles.suggestionRow, { borderBottomColor: theme.colors.border.default }, pressed && { backgroundColor: theme.colors.canvas.background }]}
+                        scaleTo={0.98}
+                        style={[styles.suggestionRow, { borderBottomColor: theme.colors.border.default }]}
                       >
                         <Ionicons name="location-outline" size={16} color={theme.colors.brand.primary} />
                         <View style={{ flex: 1 }}>
@@ -283,7 +289,7 @@ export function AddressFormDrawer({
                             {s.formatted}
                           </UIText>
                         </View>
-                      </Pressable>
+                      </PressableScale>
                     ))}
                   </Animated.View>
                 )}
@@ -438,7 +444,7 @@ export function AddressFormDrawer({
 
             </ScrollView>
             
-            <View style={[styles.footer, { borderTopColor: theme.colors.border.default }]}>
+            <View style={[styles.footer, { borderTopColor: theme.colors.border.default, paddingBottom: Math.max(insetsBottom, 20) }]}>
               <Button label={t("common.save", { defaultValue: "Save Address" })} onPress={handleSave} loading={loading} />
             </View>
 
@@ -457,7 +463,7 @@ function getStyles(theme: NativeTheme) {
   header: { alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, marginBottom: 16 },
   title: { fontFamily: legacyTheme.fonts.extrabold, fontSize: 20 },
   closeBtn: { padding: 4 },
-  scrollContent: { paddingHorizontal: 20, paddingBottom: 40 },
+  scrollContent: { paddingHorizontal: 20, paddingBottom: 16 },
   searchWrap: { marginBottom: 12, zIndex: 20 },
   searchBar: { alignItems: "center", gap: 10, height: 52, borderRadius: 16, borderWidth: 1, paddingHorizontal: 16 },
   searchInput: { flex: 1, fontFamily: legacyTheme.fonts.medium, fontSize: 15, height: "100%" },
@@ -484,6 +490,6 @@ function getStyles(theme: NativeTheme) {
   labelRow: { gap: 12 },
   labelChip: { flexDirection: flexRow(isRtl()), alignItems: "center", paddingHorizontal: 16, height: 44, borderRadius: 22, gap: 8, borderWidth: 1 },
   labelChipText: { fontFamily: legacyTheme.fonts.bold, fontSize: 14 },
-  footer: { paddingHorizontal: 20, paddingTop: 16, borderTopWidth: StyleSheet.hairlineWidth },
+  footer: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 20, borderTopWidth: StyleSheet.hairlineWidth, backgroundColor: theme.colors.canvas.surface },
   });
 }

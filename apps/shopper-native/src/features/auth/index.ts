@@ -1,6 +1,6 @@
 export {
   signIn, signUp, signOut, getSession,
-  requestPasswordReset, updatePassword, updateProfile,
+  requestPasswordReset, updatePassword, updateProfile, deleteAccount,
   type AuthUser,
 } from "./api";
 export { AuthProvider, useAuth } from "./context";

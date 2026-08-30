@@ -50,6 +50,12 @@ export default function PharmacistLayout() {
       (user?.role === "pharmacist" || user?.role === "admin" || user?.role === "manager");
   }
 
+  // If the user actively signs out, user becomes null. Kick them back to the
+  // customer app (guest mode) immediately.
+  if (!user && !loading) {
+    return <Redirect href={"/(tabs)" as never} />;
+  }
+
   if (decidedAccessRef.current === null) {
     return (
       <View style={{ flex: 1, backgroundColor: "#FFFFFF", alignItems: "center", justifyContent: "center" }}>

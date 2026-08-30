@@ -27,8 +27,8 @@ export function usePharmacistMutations() {
   // ── Order transitions ────────────────────────────────────────────────────────
 
   const advance = useMutation({
-    mutationFn: (args: { orderId: string; nextStatus: PharmacistTransitionTarget }) =>
-      transitionOrder(args.orderId, args.nextStatus),
+    mutationFn: (args: { orderId: string; nextStatus: PharmacistTransitionTarget; reason?: string }) =>
+      transitionOrder(args.orderId, args.nextStatus, args.reason),
     onSuccess: (_data, args) => {
       invalidateQueue();
       void queryClient.invalidateQueries({ queryKey: pharmacistQueryKeys.order(args.orderId) });

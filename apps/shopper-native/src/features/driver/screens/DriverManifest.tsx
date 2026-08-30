@@ -25,6 +25,8 @@ import * as ExpoLocation from "expo-location";
 import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
 import { LinearGradient } from "expo-linear-gradient";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Animated from "react-native-reanimated";
 import { Screen, Text as UIText, SkeletonCard, EmptyState, Card, StatusIndicator, useTheme, type NativeTheme } from "@pharmacy/ui-native";
 import { theme as legacyTheme, gradients } from "@pharmacy/design-tokens";
 import { useAuth } from "@/features/auth";
@@ -64,6 +66,7 @@ export function DriverManifest(): React.ReactElement {
   // pagePad scales with the actual viewport (16/24/32) like every other
   // screen in this app already does.
   const { pagePad, isTablet } = useScreenLayout();
+  const insets = useSafeAreaInsets();
 
   const s = useMemo(() => StyleSheet.create({
     logoutBtn: { width: 48, height: 48, borderRadius: 24, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.16)" },
@@ -72,18 +75,19 @@ export function DriverManifest(): React.ReactElement {
     notificationDot: { position: "absolute", top: 8, end: 8, width: 7, height: 7, borderRadius: 4, backgroundColor: "#fff" },
     listContent: { paddingHorizontal: pagePad, paddingBottom: 40, maxWidth: isTablet ? 720 : undefined, alignSelf: isTablet ? "center" : undefined, width: isTablet ? "100%" : undefined },
     heroWrap: { marginBottom: 8 },
-    heroGradient: { paddingHorizontal: pagePad, paddingTop: 14, paddingBottom: 18 },
+    heroGradient: { paddingHorizontal: pagePad, paddingBottom: 36, borderBottomLeftRadius: 28, borderBottomRightRadius: 28 },
+    profileAvatarBtn: { marginRight: 12 },
     heroTopRow: { flexDirection: flexRow(IS_RTL), alignItems: "center", gap: 8 },
     heroTitle: { fontSize: 20, fontFamily: legacyTheme.fonts.black, color: "#fff", marginTop: 4 },
     availabilityCard: {
-      marginHorizontal: pagePad, marginTop: 14,
-      padding: 14, borderRadius: 16, backgroundColor: "rgba(255,255,255,0.14)", gap: 10,
+      marginHorizontal: pagePad, marginTop: -24,
+      padding: 16, borderRadius: 20, backgroundColor: theme.colors.canvas.surfaceElevated, gap: 10, ...theme.shadows[3], zIndex: 10
     },
     availabilityTopRow: { flexDirection: flexRow(IS_RTL), alignItems: "center", justifyContent: "space-between" },
     availabilityLabelCol: { flex: 1, minWidth: 0 },
-    availabilitySubtitle: { fontSize: 11.5, lineHeight: 16, color: "rgba(255,255,255,0.78)", marginTop: 4 },
-    availabilityToggle: { width: 52, height: 30, borderRadius: 15, padding: 3, justifyContent: "center" },
-    availabilityKnob: { width: 24, height: 24, borderRadius: 12, backgroundColor: "#fff" },
+    availabilitySubtitle: { fontSize: 12, lineHeight: 18, color: theme.colors.text.muted, marginTop: 4 },
+    availabilityToggle: { width: 56, height: 32, borderRadius: 16, padding: 3, justifyContent: "center" },
+    availabilityKnob: { width: 26, height: 26, borderRadius: 13, backgroundColor: "#fff", ...theme.shadows[1] },
     quickActionsRow: { flexDirection: flexRow(IS_RTL), gap: 10, paddingHorizontal: pagePad, marginTop: 14 },
     quickTile: { flex: 1, backgroundColor: theme.colors.canvas.surface, paddingVertical: 12, borderRadius: 14, alignItems: "center", justifyContent: "center", gap: 4, ...theme.shadows[1] },
     offerCount: { position: "absolute", top: -6, end: -6, minWidth: 20, height: 20, borderRadius: 10, backgroundColor: theme.colors.status.error, alignItems: "center", justifyContent: "center", paddingHorizontal: 4 },
@@ -189,12 +193,15 @@ export function DriverManifest(): React.ReactElement {
   const spotlightStatusLabel = spotlightOrder ? getStageStatusLabel(spotlightStage) : null;
 
   return (
-    <Screen edgeTop background={theme.colors.canvas.background}>
+    <Screen edgeToEdge background={theme.colors.canvas.background}>
       <View style={s.heroWrap}>
-        <LinearGradient colors={gradients.brandPrimary as unknown as [string, string]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.heroGradient}>
+        <LinearGradient colors={gradients.brandPrimary as unknown as [string, string]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[s.heroGradient, { paddingTop: Math.max(insets.top + 10, 24) }]}>
           <View style={s.heroTopRow}>
+            <Pressable onPress={() => router.push("/(driver)/profile" as never)} style={s.profileAvatarBtn} accessibilityRole="button">
+                <Ionicons name="person-circle" size={44} color="#fff" />
+            </Pressable>
             <View style={{ flex: 1 }}>
-              <UIText variant="eyebrow" style={{ color: "#FFFFFF" }}>{t("driver.eyebrow")}</UIText>
+              <UIText variant="eyebrow" style={{ color: "#FFFFFF", opacity: 0.8 }}>{t("driver.eyebrow")}</UIText>
               <UIText style={s.heroTitle}>{t("driver.greeting", { name: user?.name ?? displayNameFromEmail(user?.email) ?? "" })}</UIText>
             </View>
             <View style={s.headerActions}>
@@ -202,53 +209,27 @@ export function DriverManifest(): React.ReactElement {
                 <Ionicons name="notifications-outline" size={20} color="#fff" />
                 {unreadCount > 0 && <View style={s.notificationDot} />}
               </Pressable>
-              <Pressable
-                onPress={() => showConfirmSheet(t("driver.signOutConfirmTitle", "Sign out?"), t("driver.signOutConfirmBody", "You'll stop receiving new delivery offers until you sign back in."), () => void signOut(), { danger: true, confirmLabel: t("driver.signOut") })}
-                style={s.logoutBtn}
-                accessibilityRole="button"
-                accessibilityLabel={t("driver.signOut")}
-              >
-                <Ionicons name="log-out-outline" size={18} color="#fff" />
-              </Pressable>
             </View>
           </View>
-
-          <Pressable onPress={() => void handleToggleAvailability()} disabled={mutations.setAvailability.isPending} style={s.availabilityCard} accessibilityRole="switch" accessibilityState={{ checked: isOnline }}>
-            <View style={[s.availabilityTopRow]}>
-              <View style={s.availabilityLabelCol}>
-                <StatusIndicator active={isOnline} pulse={isOnline} color={isOnline ? "#4ADE80" : "rgba(255,255,255,0.5)"} label={isOnline ? t("driver.online") : t("driver.offline")} />
-              </View>
-              <View style={[s.availabilityToggle, { backgroundColor: isOnline ? "#22C55E" : "rgba(255,255,255,0.25)", alignItems: isOnline ? (IS_RTL ? "flex-start" : "flex-end") : (IS_RTL ? "flex-end" : "flex-start") }]}>
-                <View style={s.availabilityKnob} />
-              </View>
-            </View>
-            {/* Reported live: "why is this switch even here, what does it do?"
-                -- this is the single most important control on the whole
-                screen (it's what actually makes you eligible to receive
-                delivery offers at all), and it had zero explanation. */}
-            <UIText numberOfLines={2} style={[s.availabilitySubtitle, { textAlign: TEXT_START }]}>
-              {isOnline ? t("driver.onlineSubtitle") : t("driver.offlineSubtitle")}
-            </UIText>
-          </Pressable>
         </LinearGradient>
 
-        <View style={s.quickActionsRow}>
-          <Pressable onPress={() => router.push("/(driver)/offers" as never)} style={s.quickTile} accessibilityRole="button">
-            <Ionicons name="notifications" size={18} color={theme.colors.brand.primary} />
-            <UIText variant="caption" color="secondary">{t("driver.offers")}</UIText>
-            {offerCount > 0 && <View style={s.offerCount}><UIText style={s.offerCountText}>{offerCount}</UIText></View>}
-          </Pressable>
-          <Pressable onPress={() => router.push("/(driver)/map" as never)} style={s.quickTile} accessibilityRole="button">
-            <Ionicons name="map-outline" size={18} color={theme.colors.brand.primary} />
-            <UIText variant="caption" color="secondary">{t("driver.map")}</UIText>
-          </Pressable>
-          <Pressable onPress={() => router.push("/(driver)/profile" as never)} style={s.quickTile} accessibilityRole="button">
-            <Ionicons name="person-circle" size={18} color={theme.colors.brand.primary} />
-            <UIText variant="caption" color="secondary">{t("driver.profile")}</UIText>
-          </Pressable>
-        </View>
+        <Card onPress={() => void handleToggleAvailability()} style={s.availabilityCard} elevation="none">
+          <View style={s.availabilityTopRow}>
+            <View style={s.availabilityLabelCol}>
+              <UIText variant="label" style={{ color: theme.colors.text.primary, textAlign: TEXT_START, fontFamily: legacyTheme.fonts.bold, fontSize: 16 }}>
+                {isOnline ? t("driver.statusOnline", "You're Online") : t("driver.statusOffline", "You're Offline")}
+              </UIText>
+              <UIText numberOfLines={1} style={s.availabilitySubtitle}>
+                {isOnline ? t("driver.onlineSubtitle") : t("driver.offlineSubtitle")}
+              </UIText>
+            </View>
+            <View style={[s.availabilityToggle, { backgroundColor: isOnline ? theme.colors.status.success : "rgba(128,128,128,0.2)" }]}>
+              <Animated.View style={[s.availabilityKnob, { transform: [{ translateX: isOnline ? (IS_RTL ? -24 : 24) : 0 }] }]} />
+            </View>
+          </View>
+        </Card>
 
-        <View style={{ paddingHorizontal: pagePad }}>
+        <View style={{ paddingHorizontal: pagePad, marginTop: 14 }}>
           <DriverGuideCard />
         </View>
 

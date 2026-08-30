@@ -57,5 +57,10 @@ const defaultOptions: DefaultOptions = {
 export const queryClient = new QueryClient({ defaultOptions });
 
 /** Bump when query key shape or persisted DTOs change — wipes stale cache.
- *  v2: wiped after ProductCard TDZ crash-fix + i18n addressForm refactor. */
-export const QUERY_CACHE_BUSTER = "v2";
+ *  v2: wiped after ProductCard TDZ crash-fix + i18n addressForm refactor.
+ *  v3: wiped after the get_effective_product RPC outage (Supabase
+ *      self-host cutover) — every product detail query hit during the
+ *      outage persisted a `null` result via queryPersister's MMKV storage,
+ *      and with refetchOnMount:false + 24h gcTime that null never
+ *      revalidated on its own even after the RPC was restored. */
+export const QUERY_CACHE_BUSTER = "v3";

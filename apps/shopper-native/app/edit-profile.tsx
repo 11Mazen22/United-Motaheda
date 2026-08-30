@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from "react";
 import {
+  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -15,7 +16,7 @@ import Animated, { FadeInDown, FadeIn, SlideInDown, SlideOutDown } from "react-n
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 
-import { useAuth, updateProfile } from "@/features/auth";
+import { useAuth, updateProfile, deleteAccount } from "@/features/auth";
 import { Button, Text as UIText } from "@pharmacy/ui-native";
 import { useTheme } from "@pharmacy/ui-native";
 import type { NativeTheme } from "@pharmacy/ui-native";
@@ -23,6 +24,7 @@ import type { NativeTheme } from "@pharmacy/ui-native";
 import { theme as legacyTheme } from "@pharmacy/design-tokens";
 import { flexRow, isRtl, textAlignStart, BACK_CHEVRON } from "@/utils/layout";
 import { TextInput } from "react-native-gesture-handler";
+import { showConfirmSheet, showErrorSheet } from "@/shared/store/appSheetStore";
 
 const IS_RTL = isRtl();
 const TEXT_START = textAlignStart(IS_RTL);
@@ -64,12 +66,13 @@ export default function EditProfileScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
 
   const [name, setName] = useState(user?.name || "");
-  
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const isDirty = useMemo(() => {
     return name !== (user?.name || "");
@@ -93,6 +96,32 @@ export default function EditProfileScreen() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const confirmDeleteAccount = () => {
+    if (deleting) return;
+    showConfirmSheet(
+      t("profile.deleteAccountConfirmTitle", { defaultValue: "Delete your account?" }),
+      t("profile.deleteAccountConfirmBody", {
+        defaultValue: "This permanently deletes your account, orders, addresses, and saved data. This cannot be undone.",
+      }),
+      async () => {
+        setDeleting(true);
+        try {
+          await deleteAccount();
+          if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          await signOut();
+        } catch (err: unknown) {
+          setDeleting(false);
+          if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+          showErrorSheet(
+            t("common.error"),
+            err instanceof Error ? err.message : t("errors.unknown"),
+          );
+        }
+      },
+      { danger: true, confirmLabel: t("profile.deleteAccount", { defaultValue: "Delete Account" }) },
+    );
   };
 
   return (
@@ -175,8 +204,18 @@ export default function EditProfileScreen() {
           </View>
           
           <View style={[styles.cardGroup, { backgroundColor: theme.colors.canvas.surface, borderColor: theme.colors.border.default }]}>
-             <Pressable style={[styles.dangerRow, { flexDirection: flexRow(IS_RTL) }]}>
-                <Ionicons name="trash-outline" size={20} color={theme.colors.status.error} />
+             <Pressable
+               onPress={confirmDeleteAccount}
+               disabled={deleting}
+               accessibilityRole="button"
+               accessibilityLabel={t("profile.deleteAccount", { defaultValue: "Delete Account" })}
+               style={[styles.dangerRow, { flexDirection: flexRow(IS_RTL), opacity: deleting ? 0.6 : 1 }]}
+             >
+                {deleting ? (
+                  <ActivityIndicator size="small" color={theme.colors.status.error} />
+                ) : (
+                  <Ionicons name="trash-outline" size={20} color={theme.colors.status.error} />
+                )}
                 <UIText style={[styles.dangerText, { textAlign: TEXT_START }]}>{t("profile.deleteAccount", { defaultValue: "Delete Account" })}</UIText>
              </Pressable>
           </View>

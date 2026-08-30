@@ -171,7 +171,7 @@ return StyleSheet.create({
 
   back: { width: 40, height: 40, borderRadius: 20, backgroundColor: theme.colors.canvas.surface, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: theme.colors.border.default, ...theme.shadows[1] },
 
-  title: { fontSize: 22, fontFamily: legacyTheme.fonts.black, color: theme.colors.text.primary },
+  title: { fontSize: 22, lineHeight: 28, fontFamily: legacyTheme.fonts.black, color: theme.colors.text.primary },
 
   content: { padding: 20 },
 

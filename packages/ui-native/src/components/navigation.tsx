@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Platform,
   Pressable,
@@ -22,23 +22,20 @@ import Animated, {
 } from "react-native-reanimated";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+// Local & Theme Imports
 import { legacyColors } from "@pharmacy/design-tokens";
 import { Text } from "./primitives";
 import { useTheme } from "../theme";
 
+// ── Types & Interfaces ──────────────────────────────────────────────────────
+
 type IoniconsName = React.ComponentProps<typeof Ionicons>["name"];
 
-const SPRING = { damping: 20, stiffness: 300, mass: 0.6 } as const;
-const PILL_SPRING = { damping: 18, stiffness: 220, mass: 0.7 } as const;
-const PRESS_SPRING = { damping: 16, stiffness: 400, mass: 0.5 } as const;
-
 export interface TabBarItemConfig {
-  /** Must match the expo-router route/screen name. */
   name: string;
   icon: { active: IoniconsName; inactive: IoniconsName };
-  /** Already resolved/translated by the caller — this component doesn't own copy. */
   label: string;
-  /** number = count badge (0/undefined hides it), true = plain dot badge. */
   badge?: number | boolean;
 }
 
@@ -48,11 +45,47 @@ export interface AnimatedTabBarProps extends BottomTabBarProps {
   style?: StyleProp<ViewStyle>;
 }
 
-interface TabTone { active: string; inactive: string; surface: string }
+export interface ScreenHeaderAction {
+  icon: IoniconsName;
+  onPress: () => void;
+  badge?: number;
+  accessibilityLabel?: string;
+}
 
-function TabBarIcon({ item, focused, tone }: { item: TabBarItemConfig; focused: boolean; tone: TabTone }): React.ReactElement {
+export interface ScreenHeaderProps {
+  title: string;
+  subtitle?: string;
+  onBack?: () => void;
+  rightAction?: ScreenHeaderAction;
+  trailing?: React.ReactNode;
+  align?: "center" | "start";
+  backStyle?: "flat" | "floating";
+  transparent?: boolean;
+  style?: StyleProp<ViewStyle>;
+}
+
+interface TabTone {
+  active: string;
+  inactive: string;
+  surface: string;
+  error: string;
+  inverse: string;
+}
+
+// ── Animation Constants ─────────────────────────────────────────────────────
+
+const SPRING = { damping: 20, stiffness: 300, mass: 0.6 } as const;
+const PILL_SPRING = { damping: 18, stiffness: 220, mass: 0.7 } as const;
+const PRESS_SPRING = { damping: 16, stiffness: 400, mass: 0.5 } as const;
+
+// ── Sub-Components ──────────────────────────────────────────────────────────
+
+const TabBarIcon = React.memo(({ item, focused, tone }: { item: TabBarItemConfig; focused: boolean; tone: TabTone }) => {
   const progress = useSharedValue(focused ? 1 : 0);
-  useEffect(() => { progress.value = withSpring(focused ? 1 : 0, SPRING); }, [focused, progress]);
+
+  useEffect(() => {
+    progress.value = withSpring(focused ? 1 : 0, SPRING);
+  }, [focused, progress]);
 
   const iconAnim = useAnimatedStyle(() => ({
     transform: [
@@ -60,9 +93,11 @@ function TabBarIcon({ item, focused, tone }: { item: TabBarItemConfig; focused: 
       { translateY: interpolate(progress.value, [0, 1], [0, -2], Extrapolation.CLAMP) },
     ],
   }));
+
   const labelAnim = useAnimatedStyle(() => ({
     opacity: interpolate(progress.value, [0, 1], [0.6, 1], Extrapolation.CLAMP),
   }));
+
   const dotAnim = useAnimatedStyle(() => ({
     opacity: interpolate(progress.value, [0, 1], [0, 1], Extrapolation.CLAMP),
     transform: [{ scaleX: interpolate(progress.value, [0, 0.5, 1], [0, 0.6, 1], Extrapolation.CLAMP) }],
@@ -71,144 +106,193 @@ function TabBarIcon({ item, focused, tone }: { item: TabBarItemConfig; focused: 
   const color = focused ? tone.active : tone.inactive;
   const showDotBadge = item.badge === true;
   const showCountBadge = typeof item.badge === "number" && item.badge > 0;
+  const displayBadgeCount = (item.badge as number) > 9 ? "9+" : item.badge;
 
   return (
     <View style={navStyles.iconWrap}>
-      {showDotBadge ? <View style={[navStyles.badgeDot, { backgroundColor: tone.active, borderColor: tone.surface }]} /> : null}
+      {showDotBadge && (
+        <View style={[navStyles.badgeDot, { backgroundColor: tone.active, borderColor: tone.surface }]} />
+      )}
+      
       <Animated.View style={iconAnim}>
         <Ionicons name={focused ? item.icon.active : item.icon.inactive} size={22} color={color} />
       </Animated.View>
+      
       <Animated.View style={labelAnim}>
-        <Text variant="caption" numberOfLines={1} style={{ color }}>{item.label}</Text>
+        <Text variant="caption" numberOfLines={1} style={{ color }}>
+          {item.label}
+        </Text>
       </Animated.View>
+      
       <Animated.View style={[navStyles.activeDot, dotAnim, { backgroundColor: tone.active }]} />
-      {showCountBadge ? (
-        <View style={navStyles.badgeCount}>
-          <Text style={navStyles.badgeCountText}>{(item.badge as number) > 9 ? "9+" : item.badge}</Text>
+      
+      {showCountBadge && (
+        <View style={[navStyles.badgeCount, { backgroundColor: tone.error, borderColor: tone.surface }]}>
+          <Text style={[navStyles.badgeCountText, { color: tone.inverse }]}>{displayBadgeCount}</Text>
         </View>
-      ) : null}
+      )}
     </View>
   );
-}
+});
+TabBarIcon.displayName = "TabBarIcon";
 
-/** Press-in "squish" affordance shared by every tab item — a tiny, cheap
- *  spring that makes the bar feel responsive to touch, not just to focus. */
-function TabPressable({ onPress, onLayout, children, ...rest }: Omit<React.ComponentProps<typeof Pressable>, "children" | "onLayout"> & { onLayout?: (e: LayoutChangeEvent) => void; children: React.ReactNode }): React.ReactElement {
+const TabPressable = React.memo(({ onPress, onLayout, children, ...rest }: Omit<React.ComponentProps<typeof Pressable>, "children" | "onLayout"> & { onLayout?: (e: LayoutChangeEvent) => void; children: React.ReactNode }) => {
   const pressScale = useSharedValue(1);
   const pressAnim = useAnimatedStyle(() => ({ transform: [{ scale: pressScale.value }] }));
+
+  const handlePressIn = useCallback(() => { pressScale.value = withSpring(0.88, PRESS_SPRING); }, [pressScale]);
+  const handlePressOut = useCallback(() => { pressScale.value = withSpring(1, PRESS_SPRING); }, [pressScale]);
+
   return (
     <Pressable
       {...rest}
       onPress={onPress}
       onLayout={onLayout}
-      onPressIn={() => { pressScale.value = withSpring(0.88, PRESS_SPRING); }}
-      onPressOut={() => { pressScale.value = withSpring(1, PRESS_SPRING); }}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
     >
       <Animated.View style={pressAnim}>{children}</Animated.View>
     </Pressable>
   );
-}
+});
+TabPressable.displayName = "TabPressable";
 
-/**
- * Shared bottom tab bar — a morphing "pill" highlight that glides and
- * resizes behind the focused tab, Reanimated spring icon/label motion, an
- * animated underline dot, press-in squish feedback, glass backing,
- * RTL-aware route ordering, and theme-driven colors (reads useTheme() only;
- * never device color scheme directly, which previously let tab bars
- * disagree with the rest of the app on light/dark). Used by every
- * persona/app's tab navigation via `tabBar={(props) => ...}`.
- */
+// ── Main Components ─────────────────────────────────────────────────────────
+
 export function AnimatedTabBar({ state, navigation, items, barHeight, style }: AnimatedTabBarProps): React.ReactElement {
-  const { theme, isDark } = useTheme();
+  const { theme, isDark, isRTL } = useTheme();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
+  
   const isTablet = width >= 600;
-  const barH = barHeight ?? (isTablet ? 72 : Platform.OS === "ios" ? 82 : 64);
+  const resolvedBarHeight = barHeight ?? (isTablet ? 72 : Platform.OS === "ios" ? 82 : 64);
+  const paddingBottom = Math.max(insets.bottom, isTablet ? 8 : 6);
 
-  const onPress = useCallback((routeKey: string, routeName: string, focused: boolean) => {
+  const [barWidth, setBarWidth] = useState(0);
+
+  const pillX = useSharedValue(0);
+  const pillW = useSharedValue(0);
+  const pillOpacity = useSharedValue(0);
+  const orderedRoutesRef = useRef<typeof state.routes>([]);
+
+  // Memoized routing and theme data to prevent unnecessary re-renders
+  const byName = useMemo(() => new Map(items.map((item) => [item.name, item])), [items]);
+
+  const orderedRoutes = useMemo(() => {
+    const routes = state.routes.filter((route) => byName.has(route.name));
+    orderedRoutesRef.current = routes;
+    return routes;
+  }, [state.routes, byName]);
+
+  const tone: TabTone = useMemo(() => ({
+    active: theme.colors.brand.primary,
+    inactive: theme.colors.text.muted,
+    surface: theme.colors.canvas.surface,
+    error: theme.colors.status?.error ?? "#EF4444",
+    inverse: theme.colors.text?.inverse ?? "#FFFFFF",
+  }), [theme]);
+
+  const handleTabPress = useCallback((routeKey: string, routeName: string, focused: boolean) => {
     const event = navigation.emit({ type: "tabPress", target: routeKey, canPreventDefault: true });
     if (!focused && !event.defaultPrevented) {
-      if (Platform.OS !== "web") void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => undefined);
+      if (Platform.OS !== "web") {
+        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => undefined);
+      }
       navigation.navigate(routeName);
     }
   }, [navigation]);
 
-  // ── Morphing pill — measured per-item via onLayout (post-mirroring, so
-  // this is correct under RTL with no extra logical-direction math), then
-  // sprung to the newly focused item's slot. A plain-JS layout map is fine
-  // here: layout events are rare (mount + rotation), never per-frame. ──────
-  const [itemLayouts, setItemLayouts] = useState<Record<number, { x: number; width: number }>>({});
-  const pillX       = useSharedValue(0);
-  const pillW       = useSharedValue(0);
-  const pillOpacity = useSharedValue(0);
-  const handleItemLayout = useCallback((realIndex: number, e: LayoutChangeEvent) => {
-    const { x, width: w } = e.nativeEvent.layout;
-    setItemLayouts((prev) => {
-      const cur = prev[realIndex];
-      if (cur && cur.x === x && cur.width === w) return prev;
-      return { ...prev, [realIndex]: { x, width: w } };
-    });
-  }, []);
+  // Pill slot is computed purely from item count + measured bar width, never
+  // from each item's own onLayout — every item is flex:1 (uniform width),
+  // so the slot math is exact, and onLayout's reported x/width turned out
+  // to be unreliable under native RTL mirroring (it reports each item's
+  // position in *declared* order, not its actual mirrored screen position).
+  // The pill's own base anchor mattered just as much: `left:0` on this
+  // absolutely-positioned pill was itself being mirrored under forceRTL, so
+  // translateX(0) (the active-tab-0 case) landed at the *physical right*
+  // edge instead of the left — confirmed live via logcat (slot math was
+  // always correct; only the rendered position was wrong) and fixed by
+  // anchoring with `right:0` instead, which pairs correctly with a
+  // physical-pixel translateX.
+  // barWidth is measured off navStyles.inner's own onLayout, which reports
+  // that View's full border-box width — including its own paddingHorizontal
+  // (isTablet ? 24 : 8). The tab items are normal-flow children, so they're
+  // inset by that padding on each side; the pill is `position:"absolute"`,
+  // which is positioned relative to the parent's border-box edges and does
+  // NOT get inset by the parent's own padding. Left uncorrected, the two
+  // coordinate systems disagree by exactly `barPaddingH`, which reads as
+  // the pill sitting a few px off — "leaning" — rather than centered under
+  // its tab.
+  const barPaddingH = isTablet ? 24 : 8;
+
   useEffect(() => {
-    const target = itemLayouts[state.index];
-    if (!target) return;
-    const firstPaint = pillW.value === 0;
-    pillX.value       = firstPaint ? target.x     : withSpring(target.x, PILL_SPRING);
-    pillW.value       = firstPaint ? target.width : withSpring(target.width, PILL_SPRING);
+    if (barWidth <= 0) return;
+    const renderIndex = orderedRoutesRef.current.findIndex((r) => r.key === state.routes[state.index]?.key);
+    if (renderIndex < 0) return;
+
+    const count = orderedRoutesRef.current.length || 1;
+    const contentWidth = Math.max(0, barWidth - barPaddingH * 2);
+    const slotW = contentWidth / count;
+    const slot = isRTL ? count - 1 - renderIndex : renderIndex;
+    const targetX = barPaddingH + slot * slotW;
+
+    const isFirstPaint = pillW.value === 0;
+    pillX.value = isFirstPaint ? targetX : withSpring(targetX, PILL_SPRING);
+    pillW.value = isFirstPaint ? slotW : withSpring(slotW, PILL_SPRING);
     pillOpacity.value = withTiming(1, { duration: 200 });
-  }, [state.index, itemLayouts, pillX, pillW, pillOpacity]);
+  }, [state.index, state.routes, barWidth, isRTL, barPaddingH, pillX, pillW, pillOpacity]);
+
   const pillAnim = useAnimatedStyle(() => ({
-    // 0.14 is the pill's resting tint strength once faded in — kept as a
-    // multiplier here (not baked into a static style opacity) so the same
-    // shared value still drives the initial fade-in from fully invisible.
-    opacity:   pillOpacity.value * 0.14,
-    width:     pillW.value,
+    opacity: pillOpacity.value * 0.14,
+    width: pillW.value,
     transform: [{ translateX: pillX.value }],
   }));
 
-  const byName = new Map(items.map((item) => [item.name, item]));
-  // Declared order is rendered as-is — the tab row's own flexDirection:"row"
-  // already gets mirrored right-to-left automatically wherever the platform
-  // has RTL wired up correctly (I18nManager.forceRTL on native; the DOM's
-  // dir="rtl" on web, set once in src/i18n/index.ts). Manually reversing this
-  // array used to compensate for that mirroring being missing on web, which
-  // made this component correct on web but WRONG on native (forceRTL mirrors
-  // the already-reversed array a second time there) -- and once the web-side
-  // dir="rtl" gap was fixed, this reversal started double-flipping on web
-  // too. Declared order + automatic mirroring is what every other row in
-  // this app relies on (see utils/layout.ts's flexRow()); this just needed
-  // to stop being the one exception.
-  const orderedRoutes = state.routes.filter((route) => byName.has(route.name));
-
-  const tone: TabTone = {
-    active: theme.colors.brand.primary,
-    inactive: theme.colors.text.muted,
-    surface: theme.colors.canvas.surface,
-  };
-
   return (
-    <View style={[navStyles.outer, theme.shadows[2], Platform.OS === "web" && { backgroundColor: theme.colors.canvas.surface }, { paddingBottom: Math.max(insets.bottom, isTablet ? 8 : 6) }, style]}>
-      {Platform.OS !== "web" && (
-        <>
-          <BlurView intensity={60} tint={isDark ? "dark" : "light"} style={StyleSheet.absoluteFill} />
-          <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: isDark ? legacyColors.glassDark : legacyColors.glass }]} />
-        </>
-      )}
+    <View style={[
+      navStyles.outer,
+      theme.shadows[2],
+      // A themed, fully-opaque base color underneath the blur on every
+      // platform — not just web. expo-blur's Android BlurView frequently
+      // doesn't actually blur anything on real devices (a known limitation
+      // on many GPU/OS combinations) and instead paints a generic grey
+      // fallback that ignores the app's theme entirely, which is exactly
+      // what made the whole bar "literally grey" in dark mode. With a
+      // correct theme.colors.canvas.surface base already in place, that
+      // fallback (or a genuinely working blur) only ever layers subtly on
+      // top instead of being the sole source of color.
+      { backgroundColor: theme.colors.canvas.surface },
+      { paddingBottom },
+      style
+    ]}>
+      {/* Clip blur layers so they don't bleed past the bar bounds */}
+      <View style={[StyleSheet.absoluteFill, { overflow: "hidden" }]} pointerEvents="none">
+        {Platform.OS !== "web" && (
+          <>
+            <BlurView intensity={60} tint={isDark ? "dark" : "light"} style={StyleSheet.absoluteFill} />
+            <View style={[StyleSheet.absoluteFill, { backgroundColor: isDark ? legacyColors.glassDark : legacyColors.glass }]} />
+          </>
+        )}
+      </View>
+      
       <View pointerEvents="none" style={[navStyles.topHairline, { backgroundColor: theme.colors.border.default }]} />
-      <View style={[navStyles.inner, { height: barH, paddingHorizontal: isTablet ? 24 : 8 }]}>
-        <Animated.View
-          pointerEvents="none"
-          style={[navStyles.pill, pillAnim, { backgroundColor: tone.active }]}
-        />
+
+      <View
+        style={[navStyles.inner, { height: resolvedBarHeight, paddingHorizontal: isTablet ? 24 : 8 }]}
+        onLayout={(e) => setBarWidth(e.nativeEvent.layout.width)}
+      >
+
+        <Animated.View pointerEvents="none" style={[navStyles.pill, pillAnim, { backgroundColor: tone.active }]} />
+        
         {orderedRoutes.map((route) => {
           const item = byName.get(route.name)!;
           const realIndex = state.routes.findIndex((entry) => entry.key === route.key);
           const focused = state.index === realIndex;
+          
           return (
             <TabPressable
               key={route.key}
-              onPress={() => onPress(route.key, route.name, focused)}
-              onLayout={(e) => handleItemLayout(realIndex, e)}
+              onPress={() => handleTabPress(route.key, route.name, focused)}
               hitSlop={6}
               accessibilityRole="tab"
               accessibilityLabel={item.label}
@@ -224,39 +308,6 @@ export function AnimatedTabBar({ state, navigation, items, barHeight, style }: A
   );
 }
 
-export interface ScreenHeaderAction {
-  icon: IoniconsName;
-  onPress: () => void;
-  badge?: number;
-  accessibilityLabel?: string;
-}
-export interface ScreenHeaderProps {
-  title: string;
-  subtitle?: string;
-  /** Omit to hide the back button entirely. The canonical header never
-   *  navigates on its own (this package has no expo-router dependency) —
-   *  callers (or a persona wrapper) always supply the handler. */
-  onBack?: () => void;
-  /** A single structured icon+badge action on the trailing edge. */
-  rightAction?: ScreenHeaderAction;
-  /** A free-form trailing slot for cases rightAction's single-icon shape
-   *  can't express. Takes precedence over rightAction if both are given. */
-  trailing?: React.ReactNode;
-  /** "center" (default) for hero/functional screens; "start" for dense
-   *  operational screens (pharmacist/driver) where the title reads better
-   *  aligned with body content below it. */
-  align?: "center" | "start";
-  /** "flat" (default) is an icon-only touch target on a plain/bordered
-   *  surface. "floating" is an elevated circular chip — driver's treatment,
-   *  giving operational screens a touch more physical presence. */
-  backStyle?: "flat" | "floating";
-  transparent?: boolean;
-  style?: StyleProp<ViewStyle>;
-}
-
-/** Shared in-content header — all three personas set headerShown:false
- *  globally and build headers per-screen from this one implementation.
- *  RTL-correct back chevron via useTheme().isRTL. */
 export function ScreenHeader({
   title,
   subtitle,
@@ -269,21 +320,22 @@ export function ScreenHeader({
   style,
 }: ScreenHeaderProps): React.ReactElement {
   const { theme, isRTL } = useTheme();
+  
   const backIcon: IoniconsName = isRTL ? "chevron-forward" : "chevron-back";
   const isStart = align === "start";
   const isFloating = backStyle === "floating";
+  const textAlign = isStart ? (isRTL ? "right" : "left") : "center";
 
   return (
     <View
       style={[
         navStyles.headerContainer,
-        { flexDirection: "row" },
         !transparent && { backgroundColor: theme.colors.canvas.surface, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border.default },
         style,
       ]}
     >
       <View style={[navStyles.headerSide, { alignItems: isRTL ? "flex-end" : "flex-start" }]}>
-        {onBack ? (
+        {onBack && (
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Back"
@@ -306,21 +358,35 @@ export function ScreenHeader({
           >
             <Ionicons name={backIcon} size={isFloating ? 18 : 24} color={theme.colors.text.primary} />
           </Pressable>
-        ) : null}
+        )}
       </View>
+      
       <View style={[navStyles.headerCenter, isStart && navStyles.headerCenterStart]}>
-        <Text variant="h4" align={isStart ? (isRTL ? "right" : "left") : "center"} numberOfLines={1}>{title}</Text>
-        {subtitle ? <Text variant="caption" color="secondary" align={isStart ? (isRTL ? "right" : "left") : "center"} numberOfLines={1}>{subtitle}</Text> : null}
+        <Text variant="h4" align={textAlign} numberOfLines={1}>{title}</Text>
+        {subtitle && (
+          <Text variant="caption" color="secondary" align={textAlign} numberOfLines={1}>{subtitle}</Text>
+        )}
       </View>
+
       <View style={[navStyles.headerSide, { alignItems: isRTL ? "flex-start" : "flex-end" }]}>
-        {trailing ? trailing : rightAction ? (
-          <Pressable accessibilityRole="button" accessibilityLabel={rightAction.accessibilityLabel ?? "Action"} onPress={rightAction.onPress} hitSlop={8} style={navStyles.headerIconButton}>
+        {trailing ? (
+          trailing
+        ) : rightAction ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={rightAction.accessibilityLabel ?? "Action"}
+            onPress={rightAction.onPress}
+            hitSlop={8}
+            style={navStyles.headerIconButton}
+          >
             <Ionicons name={rightAction.icon} size={24} color={theme.colors.text.primary} />
-            {rightAction.badge != null && rightAction.badge > 0 ? (
-              <View style={[navStyles.badgeCount, { top: 2, end: 2 }, { backgroundColor: theme.colors.status.error }]}>
-                <Text style={navStyles.badgeCountText}>{rightAction.badge > 99 ? "99+" : rightAction.badge}</Text>
+            {rightAction.badge != null && rightAction.badge > 0 && (
+              <View style={[navStyles.badgeCount, { top: 2, end: 2, backgroundColor: theme.colors.status?.error ?? "#EF4444" }]}>
+                <Text style={[navStyles.badgeCountText, { color: theme.colors.text?.inverse ?? "#FFFFFF" }]}>
+                  {rightAction.badge > 99 ? "99+" : rightAction.badge}
+                </Text>
               </View>
-            ) : null}
+            )}
           </Pressable>
         ) : null}
       </View>
@@ -328,18 +394,23 @@ export function ScreenHeader({
   );
 }
 
+// ── Styles ──────────────────────────────────────────────────────────────────
+
 const navStyles = StyleSheet.create({
-  outer: { width: "100%", overflow: "hidden" },
-  topHairline: { height: StyleSheet.hairlineWidth, position: "absolute", top: 0, left: 0, right: 0 },
-  inner: { flexDirection: "row", alignItems: "center", justifyContent: "center" },
+  // overflow:visible so the box-shadow / elevation is not clipped.
+  // The blur and glass tint layers are still clipped to their own bounds
+  // via their own styles — they don't need the outer View to clip them.
+  outer: { width: "100%", overflow: "visible" },
+  topHairline: { height: StyleSheet.hairlineWidth, position: "absolute", top: 0, left: 0, right: 0, zIndex: 2 },
+  inner: { flexDirection: "row", alignItems: "center", justifyContent: "center", overflow: "hidden" },
   item: { flex: 1, minWidth: 44, maxWidth: 120, height: "100%", alignItems: "center", justifyContent: "center", paddingTop: 2 },
-  pill: { position: "absolute", left: 0, top: 6, bottom: 6, borderRadius: 18 },
+  pill: { position: "absolute", right: 0, top: 6, bottom: 6, borderRadius: 18 },
   iconWrap: { alignItems: "center", justifyContent: "center", gap: 3 },
   activeDot: { marginTop: 2, width: 16, height: 3, borderRadius: 2 },
   badgeDot: { position: "absolute", top: -2, end: -6, width: 8, height: 8, borderRadius: 4, borderWidth: 1.5, zIndex: 1 },
-  badgeCount: { position: "absolute", top: -4, end: "22%", minWidth: 16, height: 16, borderRadius: 8, backgroundColor: "#EF4444", alignItems: "center", justifyContent: "center", paddingHorizontal: 3, borderWidth: 2, borderColor: "#FFFFFF" },
-  badgeCountText: { color: "#FFFFFF", fontSize: 9, lineHeight: 11, fontWeight: "700", textAlign: "center" },
-  headerContainer: { height: 56, alignItems: "center", justifyContent: "space-between", paddingHorizontal: 8 },
+  badgeCount: { position: "absolute", top: -4, end: "22%", minWidth: 16, height: 16, borderRadius: 8, alignItems: "center", justifyContent: "center", paddingHorizontal: 3, borderWidth: 2 },
+  badgeCountText: { fontSize: 9, lineHeight: 11, fontWeight: "700", textAlign: "center" },
+  headerContainer: { flexDirection: "row", height: 56, alignItems: "center", justifyContent: "space-between", paddingHorizontal: 8 },
   headerSide: { width: 48, justifyContent: "center" },
   headerCenter: { flex: 1, justifyContent: "center", paddingHorizontal: 8 },
   headerCenterStart: { alignItems: "flex-start" },

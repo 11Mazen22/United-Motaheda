@@ -74,6 +74,7 @@ function parseItemRows(rows: OrderItemRow[]): OrderItem[] {
   return (rows ?? []).map((row) => {
     const snap = (row.product_snapshot ?? {}) as ProductSnapshot;
     return {
+      id: row.id,
       productId: row.product_id,
       name:      snap.name ?? snap.name_ar ?? snap.name_en ?? "",
       price:     num(row.unit_price),
@@ -184,17 +185,7 @@ export async function fetchOrderById(orderId: string): Promise<Order | null> {
   return hydrated ?? null;
 }
 
-export async function cancelOrder(orderId: string): Promise<void> {
-  const { error } = await timed(
-    "orders:cancelOrder",
-    () =>
-      supabase
-        .from("orders")
-        .update({ status: "cancelled" })
-        .eq("id", orderId),
-  );
-  if (error) throw error;
-}
+
 
 // ─── Image hydration ─────────────────────────────────────────────────────────
 
@@ -248,4 +239,22 @@ async function _hydrateImages(orders: Order[]): Promise<Order[]> {
   } catch {
     return orders;
   }
+}
+
+/**
+ * Cancels an order via the Edge Function.
+ * The edge function handles state validation and inventory release.
+ */
+export async function cancelOrder(orderId: string, reason: string = "User requested cancellation", idempotencyKey?: string): Promise<boolean> {
+  const { data, error } = await supabase.functions.invoke("cancel-order", {
+    body: { orderId, reason, idempotencyKey },
+  });
+  if (error) {
+    console.error("[cancelOrder] Error cancelling order:", error);
+    throw new Error(error.message);
+  }
+  if (data?.error) {
+    throw new Error(data.error);
+  }
+  return true;
 }

@@ -103,8 +103,8 @@ export function DeliveryExecutionScreen(): React.ReactElement {
   const assignment = assignmentQuery.data;
   const statusMeta = order ? (ORDER_STATUS_META[order.status] ?? ORDER_STATUS_META.pending) : null;
   const stage = order ? getDeliveryStage(order.status, assignment) : "unknown";
-  const stageAction = getStageAction(stage);
-  const stageLabel = getStageStatusLabel(stage);
+  const stageAction = getStageAction(stage, assignment?.assignmentKind);
+  const stageLabel = getStageStatusLabel(stage, assignment?.assignmentKind);
   const [locationSyncState, setLocationSyncState] = React.useState<"idle" | "syncing" | "ready" | "denied" | "error">("idle");
   const isCod = order?.paymentMethod === "cod";
 
@@ -156,7 +156,7 @@ export function DeliveryExecutionScreen(): React.ReactElement {
   const handleCompleteDelivery = async () => {
     if (!orderId || !assignment) return;
     try {
-      await mutations.deliver.mutateAsync({ orderId, assignmentId: assignment.id });
+      await mutations.deliver.mutateAsync({ orderId, assignmentId: assignment.id, assignmentKind: assignment.assignmentKind });
       showSuccessSheet(t("driver.deliveredTitle"), t("driver.deliveredBody"), () => router.replace("/(driver)" as never));
     } catch (e) {
       showErrorSheet(t("driver.actionFailedTitle"), e instanceof Error ? e.message : t("driver.actionFailedBody"));
@@ -316,30 +316,35 @@ export function DeliveryExecutionScreen(): React.ReactElement {
 
           <View style={s.section}>
             <DeliveryLocationCard
-              kind="pharmacy"
-              title={t("driver.pickupSection", "Pickup")}
-              name={branchName}
-              formattedAddress={branchAddress}
-              zoneName={null}
-              phone={branchPhone}
-              coords={branchCoords}
+              kind={assignment?.assignmentKind === "return_pickup" ? "customer" : "pharmacy"}
+              title={assignment?.assignmentKind === "return_pickup" ? t("driver.pickupSection", "Pickup") : t("driver.pickupSection", "Pickup")}
+              name={assignment?.assignmentKind === "return_pickup" ? order.address.name : branchName}
+              formattedAddress={assignment?.assignmentKind === "return_pickup" ? (order.address.formatted || [order.address.street, order.address.city].filter(Boolean).join(", ")) : branchAddress}
+              building={assignment?.assignmentKind === "return_pickup" ? order.address.building : undefined}
+              floor={assignment?.assignmentKind === "return_pickup" ? order.address.floor : undefined}
+              apartment={assignment?.assignmentKind === "return_pickup" ? order.address.apartment : undefined}
+              landmark={assignment?.assignmentKind === "return_pickup" ? order.address.landmark : undefined}
+              instructions={assignment?.assignmentKind === "return_pickup" ? order.address.notes : undefined}
+              zoneName={assignment?.assignmentKind === "return_pickup" ? order.zoneName : null}
+              phone={assignment?.assignmentKind === "return_pickup" ? order.address.phone : branchPhone}
+              coords={assignment?.assignmentKind === "return_pickup" ? destinationCoords : branchCoords}
             />
           </View>
 
           <View style={s.section}>
             <DeliveryLocationCard
-              kind="customer"
-              title={t("driver.destinationSection", "Destination")}
-              name={order.address.name}
-              formattedAddress={order.address.formatted || [order.address.street, order.address.city].filter(Boolean).join(", ")}
-              building={order.address.building}
-              floor={order.address.floor}
-              apartment={order.address.apartment}
-              landmark={order.address.landmark}
-              instructions={order.address.notes}
-              zoneName={order.zoneName}
-              phone={order.address.phone}
-              coords={destinationCoords}
+              kind={assignment?.assignmentKind === "return_pickup" ? "pharmacy" : "customer"}
+              title={assignment?.assignmentKind === "return_pickup" ? t("driver.destinationSection", "Destination") : t("driver.destinationSection", "Destination")}
+              name={assignment?.assignmentKind === "return_pickup" ? branchName : order.address.name}
+              formattedAddress={assignment?.assignmentKind === "return_pickup" ? branchAddress : (order.address.formatted || [order.address.street, order.address.city].filter(Boolean).join(", "))}
+              building={assignment?.assignmentKind === "return_pickup" ? undefined : order.address.building}
+              floor={assignment?.assignmentKind === "return_pickup" ? undefined : order.address.floor}
+              apartment={assignment?.assignmentKind === "return_pickup" ? undefined : order.address.apartment}
+              landmark={assignment?.assignmentKind === "return_pickup" ? undefined : order.address.landmark}
+              instructions={assignment?.assignmentKind === "return_pickup" ? undefined : order.address.notes}
+              zoneName={assignment?.assignmentKind === "return_pickup" ? null : order.zoneName}
+              phone={assignment?.assignmentKind === "return_pickup" ? branchPhone : order.address.phone}
+              coords={assignment?.assignmentKind === "return_pickup" ? branchCoords : destinationCoords}
             />
           </View>
 

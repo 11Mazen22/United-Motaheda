@@ -5,11 +5,11 @@
  */
 
 import React, { memo } from "react";
-import { Pressable, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useTranslation } from "react-i18next";
-import { Text as UIText, useTheme } from "@pharmacy/ui-native";
+import { PressableScale, Text as UIText, useTheme } from "@pharmacy/ui-native";
 import { isRtl, textAlignStart, FORWARD_CHEVRON } from "@/utils/layout";
 import { useScreenLayout } from "@/utils/responsive";
 import { shStyles } from "./home.styles";
@@ -61,6 +61,7 @@ export const HomeSectionHeader = memo(function HomeSectionHeader({
         <View style={{ flexShrink: 1, gap: 2, minWidth: 0 }}>
           {eyebrow ? (
             <UIText
+              weight="bold"
               numberOfLines={1}
               style={[styles.eyebrow, { color: tone, textAlign: TEXT_START }]}
             >
@@ -75,20 +76,20 @@ export const HomeSectionHeader = memo(function HomeSectionHeader({
 
       <View style={{ flexShrink: 0, marginStart: 12 }}>
         {rightSlot ?? (onMore ? (
-          <Pressable
+          <PressableScale
             onPress={onMore}
+            scaleTo={0.94}
             hitSlop={12}
             accessibilityRole="button"
             accessibilityLabel={t("home.viewAll")}
-            style={({ pressed }) => [
+            style={[
               shStyles.moreBtn,
               { borderRadius: 9999, backgroundColor: tint, borderWidth: 1, borderColor: `${tone}20` },
-              pressed && { opacity: 0.75 },
             ]}
           >
             <UIText variant="caption" style={{ color: tone }}>{t("home.viewAll")}</UIText>
             <Ionicons name={FORWARD_CHEVRON} size={12} color={tone} />
-          </Pressable>
+          </PressableScale>
         ) : null)}
       </View>
     </View>
@@ -101,6 +102,5 @@ const styles = StyleSheet.create({
     lineHeight: 14,
     letterSpacing: 1.2,
     textTransform: "uppercase",
-    fontWeight: "700",
   },
 });

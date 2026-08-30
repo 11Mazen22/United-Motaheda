@@ -21,6 +21,7 @@ import {
   markAllNotificationsRead,
   markNotificationRead,
 } from "../api";
+import { unreadCountKey } from "./useUnreadCount";
 import type { AppNotification, NotificationPage } from "../types";
 
 const KEY = (userId: string) => ["notifications", userId] as const;
@@ -110,7 +111,9 @@ export function useNotifications(userId: string | undefined) {
       }
     },
     onSettled: () => {
-      if (userId) void qc.invalidateQueries({ queryKey: KEY(userId) });
+      if (!userId) return;
+      void qc.invalidateQueries({ queryKey: KEY(userId) });
+      void qc.invalidateQueries({ queryKey: unreadCountKey(userId) });
     },
   });
 
@@ -140,7 +143,9 @@ export function useNotifications(userId: string | undefined) {
       }
     },
     onSettled: () => {
-      if (userId) void qc.invalidateQueries({ queryKey: KEY(userId) });
+      if (!userId) return;
+      void qc.invalidateQueries({ queryKey: KEY(userId) });
+      void qc.invalidateQueries({ queryKey: unreadCountKey(userId) });
     },
   });
 
@@ -158,7 +163,9 @@ export function useNotifications(userId: string | undefined) {
       }
     },
     onSettled: () => {
-      if (userId) void qc.invalidateQueries({ queryKey: KEY(userId) });
+      if (!userId) return;
+      void qc.invalidateQueries({ queryKey: KEY(userId) });
+      void qc.invalidateQueries({ queryKey: unreadCountKey(userId) });
     },
   });
 

@@ -62,8 +62,8 @@ export function useDriverMutations(driverId: string | undefined) {
   });
 
   const deliver = useMutation({
-    mutationFn: (args: { orderId: string; assignmentId: string }) =>
-      completeDelivery(args.orderId, args.assignmentId, requireDriverId()),
+    mutationFn: (args: { orderId: string; assignmentId: string; assignmentKind?: string }) =>
+      completeDelivery(args.orderId, args.assignmentId, requireDriverId(), args.assignmentKind),
     onSuccess: (_data, args) => {
       invalidateAll();
       void queryClient.invalidateQueries({ queryKey: driverQueryKeys.order(args.orderId) });
