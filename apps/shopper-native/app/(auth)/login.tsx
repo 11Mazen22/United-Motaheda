@@ -54,6 +54,7 @@ export default function LoginScreen() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [pendingConfirmation, setPendingConfirmation] = useState(false);
 
   const haloPulse = useSharedValue(1);
 
@@ -117,8 +118,14 @@ export default function LoginScreen() {
       }
       router.replace(destination as never);
     } catch (err: unknown) {
-      setError(getAuthError(err));
-      if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      const msg = (err instanceof Error ? err.message : String(err ?? "")).toLowerCase();
+      if (msg.includes("email not confirmed") || msg.includes("email_not_confirmed")) {
+        setPendingConfirmation(true);
+        if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      } else {
+        setError(getAuthError(err));
+        if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      }
     } finally {
       setLoading(false);
     }
@@ -135,85 +142,136 @@ export default function LoginScreen() {
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         
-        {/* Massive Smart Hero */}
-        <Animated.View entering={FadeInDown.duration(600).springify()} style={styles.heroSection}>
-          <View style={styles.logoWrapper}>
-            <Animated.View style={[styles.halo, { backgroundColor: theme.colors.brand.primaryLight }, animatedHalo]} />
-            <AppLogo size={80} />
-          </View>
-          <UIText style={[styles.welcomeTitle, { color: theme.colors.text.primary }]}>{t("auth.welcomeBack", { defaultValue: "Welcome Back" })}</UIText>
-          <UIText style={[styles.welcomeSub, { color: theme.colors.text.secondary }]}>{t("auth.loginSubtitle", { defaultValue: "Sign in securely to your premium pharmacy experience." })}</UIText>
-        </Animated.View>
-
-        {/* Form Card */}
-        <Animated.View entering={FadeInDown.duration(600).delay(100).springify()} style={[styles.formCard, { backgroundColor: theme.colors.canvas.surface }]}>
-          
-          {error ? (
-            <Animated.View entering={FadeIn.duration(200)} style={[styles.errorBox, { backgroundColor: `${theme.colors.status.error}1A`, borderColor: theme.colors.status.error }]}>
-              <Ionicons name="alert-circle" size={20} color={theme.colors.status.error} />
-              <UIText style={[styles.errorText, { color: theme.colors.status.error }]}>{error}</UIText>
+        {pendingConfirmation ? (
+            <Animated.View entering={FadeInDown.duration(500).springify()} style={[styles.formCard, { backgroundColor: theme.colors.canvas.surface, alignItems: "center", paddingVertical: 40 }]}>
+              <View style={[styles.confirmIcon, { backgroundColor: `${theme.colors.status.warning}1A` }]}>
+                <Ionicons name="mail-unread-outline" size={40} color={theme.colors.status.warning} />
+              </View>
+              <UIText style={[styles.welcomeTitle, { color: theme.colors.text.primary, fontSize: 22, marginTop: 20, textAlign: "center" }]}>
+                {t("auth.checkEmail", { defaultValue: "Verify Your Email" })}
+              </UIText>
+              <UIText style={[styles.welcomeSub, { color: theme.colors.text.secondary, textAlign: "center", marginTop: 12 }]}>
+                {t("auth.emailNotConfirmed", { defaultValue: "Your email address has not been verified yet. Please check your inbox for the confirmation link sent to:" })}
+              </UIText>
+              <UIText style={{ fontFamily: legacyTheme.fonts.bold, color: theme.colors.brand.primary, marginTop: 6, textAlign: "center" }}>
+                {email}
+              </UIText>
+              
+              <Button 
+                label={t("auth.resendEmail", { defaultValue: "Resend Verification Email" })}
+                onPress={async () => {
+                  try {
+                    setLoading(true);
+                    await supabase.auth.resend({ type: 'signup', email, options: { emailRedirectTo: 'shopper://auth-callback' }});
+                    if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                    setError(t("auth.emailResent", { defaultValue: "Verification email sent!" }));
+                  } catch (e) {
+                    setError(getAuthError(e));
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
+                loading={loading}
+                style={[styles.loginBtn, { marginTop: 28, width: "100%" }]}
+              />
+              <Pressable onPress={() => setPendingConfirmation(false)} style={{ marginTop: 20, padding: 8 }}>
+                <UIText style={{ fontFamily: legacyTheme.fonts.bold, color: theme.colors.text.secondary, fontSize: 16 }}>
+                  {t("auth.useDifferentEmail", { defaultValue: "Use a different email" })}
+                </UIText>
+              </Pressable>
+              
+              {!!error && (
+                <View style={{ marginTop: 16 }}>
+                  <Animated.View entering={FadeIn.duration(200)} style={[styles.errorBox, { backgroundColor: `${theme.colors.status.error}1A`, borderColor: theme.colors.status.error }]}>
+                    <Ionicons name="alert-circle" size={20} color={theme.colors.status.error} />
+                    <UIText style={[styles.errorText, { color: theme.colors.status.error }]}>{error}</UIText>
+                  </Animated.View>
+                </View>
+              )}
             </Animated.View>
-          ) : null}
+          ) : (
+            <>
+              {/* Massive Smart Hero */}
+              <Animated.View entering={FadeInDown.duration(600).springify()} style={styles.heroSection}>
+                <View style={styles.logoWrapper}>
+                  <Animated.View style={[styles.halo, { backgroundColor: theme.colors.brand.primaryLight }, animatedHalo]} />
+                  <AppLogo size={80} />
+                </View>
+                <UIText style={[styles.welcomeTitle, { color: theme.colors.text.primary }]}>{t("auth.welcomeBack", { defaultValue: "Welcome Back" })}</UIText>
+                <UIText style={[styles.welcomeSub, { color: theme.colors.text.secondary }]}>{t("auth.loginSubtitle", { defaultValue: "Sign in securely to your premium pharmacy experience." })}</UIText>
+              </Animated.View>
 
-          <AuthField
-            label={t("auth.emailLabel", { defaultValue: "Email or Phone" })}
-            icon="person-outline"
-            value={email}
-            onChangeText={(v: string) => { setEmail(v); setError(""); }}
-            keyboardType="email-address"
-            autoComplete="email"
-            returnKeyType="next"
-          />
-          <View style={{ height: 16 }} />
-          <AuthField
-            label={t("auth.passwordLabel", { defaultValue: "Password" })}
-            icon="lock-closed-outline"
-            value={password}
-            onChangeText={(v: string) => { setPassword(v); setError(""); }}
-            secure
-            autoComplete="password"
-            returnKeyType="done"
-            onSubmitEditing={handleLogin}
-          />
+              {/* Form Card */}
+              <Animated.View entering={FadeInDown.duration(600).delay(100).springify()} style={[styles.formCard, { backgroundColor: theme.colors.canvas.surface }]}>
+                {!!error && (
+                  <Animated.View entering={FadeIn.duration(200)} style={[styles.errorBox, { backgroundColor: `${theme.colors.status.error}1A`, borderColor: theme.colors.status.error }]}>
+                    <Ionicons name="alert-circle" size={20} color={theme.colors.status.error} />
+                    <UIText style={[styles.errorText, { color: theme.colors.status.error }]}>{error}</UIText>
+                  </Animated.View>
+                )}
 
-          <View style={[styles.optionsRow, { flexDirection: flexRow(IS_RTL) }]}>
-             <Link href="/(auth)/forgot-password" asChild>
-               <Pressable>
-                 <UIText style={styles.forgotText}>{t("auth.forgotPassword", { defaultValue: "Forgot Password?" })}</UIText>
-               </Pressable>
-             </Link>
-          </View>
+                <AuthField
+                  label={t("auth.emailLabel", { defaultValue: "Email or Phone" })}
+                  icon="person-outline"
+                  value={email}
+                  onChangeText={(v: string) => { setEmail(v); setError(""); }}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoComplete="email"
+                  returnKeyType="next"
+                />
+                <View style={{ height: 16 }} />
+                <AuthField
+                  label={t("auth.passwordLabel", { defaultValue: "Password" })}
+                  icon="lock-closed-outline"
+                  value={password}
+                  onChangeText={(v: string) => { setPassword(v); setError(""); }}
+                  secure
+                  autoComplete="password"
+                  returnKeyType="done"
+                  onSubmitEditing={handleLogin}
+                />
 
-          <Button 
-            label={t("auth.loginBtn", { defaultValue: "Sign In" })}
-            onPress={handleLogin}
-            loading={loading}
-            style={styles.loginBtn}
-          />
+                <View style={[styles.optionsRow, { flexDirection: flexRow(IS_RTL) }]}>
+                  <Link href="/(auth)/forgot-password" asChild>
+                    <Pressable>
+                      <UIText style={styles.forgotText}>{t("auth.forgotPassword", { defaultValue: "Forgot Password?" })}</UIText>
+                    </Pressable>
+                  </Link>
+                </View>
 
-          <View style={styles.biometricHint}>
-             <Ionicons name="scan-outline" size={16} color={theme.colors.text.muted} />
-             <UIText style={[styles.biometricText, { color: theme.colors.text.muted }]}>{t("auth.biometricHint", { defaultValue: "FaceID enabled for this device" })}</UIText>
-          </View>
+                <Button 
+                  label={t("auth.loginBtn", { defaultValue: "Sign In" })}
+                  onPress={handleLogin}
+                  loading={loading}
+                  style={styles.loginBtn}
+                />
 
-        </Animated.View>
+                <View style={styles.biometricHint}>
+                  <Ionicons name="scan-outline" size={16} color={theme.colors.text.muted} />
+                  <UIText style={[styles.biometricText, { color: theme.colors.text.muted }]}>{t("auth.biometricHint", { defaultValue: "FaceID enabled for this device" })}</UIText>
+                </View>
 
-        <Animated.View entering={FadeInDown.duration(600).delay(200).springify()}>
-          <AuthDivider />
-          <SocialButtons
-            onSocialPress={(provider) => signInWithProvider(provider).catch(() => {})}
-            loading={loading}
-          />
-        </Animated.View>
+              </Animated.View>
 
-        <Animated.View entering={FadeIn.duration(800).delay(300)} style={styles.footerRow}>
-          <UIText style={[styles.footerText, { color: theme.colors.text.secondary }]}>{t("auth.noAccount", { defaultValue: "New to United Pharmacy?" })}</UIText>
-          <Link href="/(auth)/register" asChild>
-            <Pressable>
-              <UIText style={styles.footerLink}>{t("auth.createAccount", { defaultValue: "Create Account" })}</UIText>
-            </Pressable>
-          </Link>
-        </Animated.View>
+              <Animated.View entering={FadeInDown.duration(600).delay(200).springify()}>
+                <AuthDivider />
+                <SocialButtons
+                  onSocialPress={(provider) => signInWithProvider(provider).catch(() => {})}
+                  loading={loading}
+                />
+              </Animated.View>
+
+              <Animated.View entering={FadeIn.duration(800).delay(300)} style={styles.footerRow}>
+                <UIText style={[styles.footerText, { color: theme.colors.text.secondary }]}>{t("auth.noAccount", { defaultValue: "New to United Pharmacy?" })}</UIText>
+                <Link href="/(auth)/register" asChild>
+                  <Pressable>
+                    <UIText style={styles.footerLink}>{t("auth.createAccount", { defaultValue: "Create Account" })}</UIText>
+                  </Pressable>
+                </Link>
+              </Animated.View>
+            </>
+          )}
 
       </ScrollView>
     </KeyboardAvoidingView>
