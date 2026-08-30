@@ -1,38 +1,62 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
+import { Webhook } from "npm:standardwebhooks@1.0.0";
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 const EMAIL_FROM = Deno.env.get("EMAIL_FROM") || "United Communication <noreply@unitedmotaheda.com>";
-const WEBHOOK_SECRET = Deno.env.get("EMAIL_WEBHOOK_SECRET");
+const WEBHOOK_SECRET = Deno.env.get("EMAIL_WEBHOOK_SECRET"); // e.g. whsec_...
 
 serve(async (req: Request) => {
   if (req.method !== "POST") {
-    return new Response(JSON.stringify({ error: "Method not allowed" }), { status: 405 });
+    return new Response(JSON.stringify({ error: "Method not allowed" }), { status: 405, headers: { "Content-Type": "application/json" } });
   }
 
-  const authHeader = req.headers.get("x-supabase-webhook-secret");
-  if (WEBHOOK_SECRET && authHeader !== WEBHOOK_SECRET) {
-    console.error(JSON.stringify({ event: "email.send.failed", error: "Unauthorized webhook access" }));
-    return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
+  // 1. Authenticate the request using Standard Webhooks
+  let payloadString: string;
+  try {
+    payloadString = await req.text();
+  } catch (e) {
+    return new Response(JSON.stringify({ error: "Invalid body" }), { status: 400, headers: { "Content-Type": "application/json" } });
   }
 
+  if (WEBHOOK_SECRET) {
+    try {
+      const wh = new Webhook(WEBHOOK_SECRET);
+      // Verify throws if the signature is invalid or expired (default tolerance is 5 minutes)
+      wh.verify(payloadString, {
+        "webhook-id": req.headers.get("webhook-id") || "",
+        "webhook-timestamp": req.headers.get("webhook-timestamp") || "",
+        "webhook-signature": req.headers.get("webhook-signature") || "",
+      });
+    } catch (err) {
+      console.error(JSON.stringify({ event: "email.send.failed", error: "Webhook signature verification failed" }));
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { "Content-Type": "application/json" } });
+    }
+  } else {
+    console.warn("EMAIL_WEBHOOK_SECRET is not set. Skipping signature verification.");
+  }
+
+  // 2. Parse the payload
   let payload;
   try {
-    payload = await req.json();
+    payload = JSON.parse(payloadString);
   } catch (e) {
-    return new Response(JSON.stringify({ error: "Invalid JSON" }), { status: 400 });
+    return new Response(JSON.stringify({ error: "Invalid JSON" }), { status: 400, headers: { "Content-Type": "application/json" } });
   }
 
   const { user, email_data } = payload;
   if (!user || !user.email || !email_data) {
-    return new Response(JSON.stringify({ error: "Missing required fields" }), { status: 422 });
+    return new Response(JSON.stringify({ error: "Missing required fields" }), { status: 422, headers: { "Content-Type": "application/json" } });
   }
 
   const actionType = email_data.email_action_type;
   const tokenHash = email_data.token_hash;
   const redirectTo = email_data.redirect_to;
+  
+  // Use SUPABASE_URL if set, otherwise fallback to the public Envoy gateway URL
   const siteUrl = Deno.env.get("SUPABASE_URL") || email_data.site_url || "https://envoy-production-1cbe.up.railway.app";
   
-  // Construct the verification URL following Supabase's standard structure
+  // 3. Construct the exact GoTrue verify URL
+  // In GoTrue v2.195.0, the GET /verify endpoint checks the 'token' query parameter and maps it to TokenHash.
   const actionLink = `${siteUrl}/auth/v1/verify?token=${tokenHash}&type=${actionType}&redirect_to=${encodeURIComponent(redirectTo)}`;
 
   let subject = "";
@@ -86,17 +110,19 @@ serve(async (req: Request) => {
     `;
   } else {
     console.log(JSON.stringify({ event: "email.send.ignored", reason: `Unsupported action type: ${actionType}` }));
-    return new Response(JSON.stringify({ ok: true }), { status: 200 });
+    return new Response(JSON.stringify({ ok: true }), { status: 200, headers: { "Content-Type": "application/json" } });
   }
 
   if (!RESEND_API_KEY) {
     console.error(JSON.stringify({ event: "email.send.failed", error: "Missing RESEND_API_KEY" }));
-    return new Response(JSON.stringify({ error: "Server misconfigured" }), { status: 500 });
+    return new Response(JSON.stringify({ error: "Server misconfigured" }), { status: 500, headers: { "Content-Type": "application/json" } });
   }
 
+  // 4. Send the email via Resend API
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000);
+    // GoTrue's default HTTP webhook timeout is 5 seconds. We use 4s so we can respond cleanly before GoTrue hangs up.
+    const timeoutId = setTimeout(() => controller.abort(), 4000);
 
     console.log(JSON.stringify({ event: "email.send.started", provider: "resend", action: actionType }));
     const resendStart = Date.now();
@@ -117,31 +143,32 @@ serve(async (req: Request) => {
     });
     
     clearTimeout(timeoutId);
-    
     const durationMs = Date.now() - resendStart;
     
     if (!res.ok) {
       const errorText = await res.text();
       console.error(JSON.stringify({ event: "email.send.failed", provider: "resend", status: res.status, duration_ms: durationMs, error: errorText }));
       
-      // Retry transient errors to allow GoTrue to handle backoff
+      // Retry transient errors to allow GoTrue to handle backoff (GoTrue retries up to 3 times)
       if ([429, 502, 503, 504].includes(res.status)) {
-        return new Response(JSON.stringify({ error: "Transient provider error" }), { status: 500 });
+        return new Response(JSON.stringify({ error: "Transient provider error" }), { status: 500, headers: { "Content-Type": "application/json" } });
       }
-      // Return 200 for terminal errors so GoTrue doesn't pointlessly retry forever
-      return new Response(JSON.stringify({ error: "Terminal provider error" }), { status: 200 });
+      
+      // If it's a 4xx error (e.g. invalid email format), return 500 to rollback the transaction.
+      // Returning 200 would cause GoTrue to commit the user without an email being sent!
+      // Since GoTrue will retry 500s 3 times, it's safer to fail loudly than silently succeed.
+      return new Response(JSON.stringify({ error: "Terminal provider error" }), { status: 500, headers: { "Content-Type": "application/json" } });
     }
     
     const responseData = await res.json();
-    console.log(JSON.stringify({ event: "email.send.succeeded", provider: "resend", duration_ms: durationMs, provider_request_id: responseData.id }));
+    console.log(JSON.stringify({ event: "email.send.succeeded", provider: "resend", duration_ms: durationMs, provider_request_id: responseData?.id }));
     
-    return new Response(JSON.stringify({ ok: true }), { status: 200 });
+    return new Response(JSON.stringify({ ok: true }), { status: 200, headers: { "Content-Type": "application/json" } });
 
   } catch (error) {
     const isTimeout = error instanceof DOMException && error.name === "AbortError";
     console.error(JSON.stringify({ event: isTimeout ? "email.send.timeout" : "email.send.failed", provider: "resend", error: String(error) }));
     
-    // Timeouts and network errors should be retried by GoTrue
-    return new Response(JSON.stringify({ error: isTimeout ? "Timeout" : "Network error" }), { status: 500 });
+    return new Response(JSON.stringify({ error: isTimeout ? "Timeout" : "Network error" }), { status: 500, headers: { "Content-Type": "application/json" } });
   }
 });
