@@ -41,7 +41,8 @@ serve(async (req: Request) => {
   // read the Authorization header themselves (create-order does, to resolve
   // the calling user) — this is only a coarse "is there a real bearer JWT
   // at all" gate, matching Supabase Cloud's default verify_jwt behavior.
-  if (VERIFY_JWT && req.method !== "OPTIONS") {
+  const bypassJwt = ["email-webhook"].includes(serviceName);
+  if (VERIFY_JWT && !bypassJwt && req.method !== "OPTIONS") {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) return unauthorized("Missing authorization header");
     if (!JWT_SECRET) {
