@@ -1,0 +1,100 @@
+# 知识卡导出索引文件
+schema_version: 1
+locale: en-US
+branch: main
+nodes_managed: true
+exported_at: "2026-08-20T20:34:53Z"
+modules:
+    "":
+        dir_name: United Pharmacy Monorepo (Shopper Web, Native & Supabase Backend)
+        title: United Pharmacy Monorepo (Shopper Web, Native & Supabase Backend)
+        scope:
+            - README.md
+            - package.json
+            - package-lock.json
+            - .gitignore
+            - railway.json
+            - railway.toml
+            - vercel.json
+            - tsconfig.json
+            - tsconfig.base.json
+            - postcss.config.mjs
+            - app.json
+            - eas.json
+            - .npmrc
+            - ATTRIBUTIONS.md
+            - .easignore
+            - .env.local
+            - .gitattributes
+            - .kiro.zip
+            - .node-version
+            - .nvmrc
+            - Code.gs
+            - Dockerfile.ollama
+            - ENGINEERING_ROADMAP.md
+            - GET_SUPABASE_KEY.md
+            - LICENSE
+            - OLLAMA_RAILWAY_SETUP.md
+            - PERFORMANCE_OPTIMIZATION_GUIDE.md
+            - PRODUCTION_SETUP_CHECKLIST.md
+            - SUPABASE_FUZZY_SEARCH.sql
+            - SUPABASE_INDEXES.sql
+            - audit-output.txt
+            - fix.js
+            - fix2.js
+            - fix3.js
+            - fix_all.js
+            - fix_all2.py
+            - fix_all3.py
+            - fix_all_err.py
+            - fix_dark.js
+            - fix_exports.py
+            - fix_exports2.py
+            - fix_final.js
+            - fix_idx.py
+            - fix_idx2.py
+            - fix_idx3.py
+            - fix_idx4.py
+            - fix_imports.js
+            - fix_reg.py
+            - guidelines.7z
+            - native-typecheck-latest.txt
+            - nixpacks.toml
+            - project.7z
+            - redesign_driver.py
+            - redesign_pharma.py
+            - shopper-web-typecheck-code.txt
+            - shopper-web-typecheck-out.txt
+            - src.zip
+            - start-ollama.sh
+            - temp-shopper-web-typecheck.txt
+            - terminal-check.txt
+            - tsc_output.txt
+            - ui.xml
+            - united.7z
+        source_files: []
+        children:
+            - scripts_and_assets
+            - supabase_infra
+        depends_on: []
+        related_to: []
+    scripts_and_assets:
+        dir_name: Build, Deployment & Static Assets
+        title: Build, Deployment & Static Assets
+        scope:
+            - scripts/
+            - assets/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    supabase_infra:
+        dir_name: Supabase Backend Infrastructure (Edge Functions, Migrations & Indexes)
+        title: Supabase Backend Infrastructure (Edge Functions, Migrations & Indexes)
+        scope:
+            - supabase/
+            - database/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []

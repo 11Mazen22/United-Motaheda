@@ -1,0 +1,4 @@
+- Railway shell scripts use `#!/usr/bin/env bash` with `set -euo pipefail` and prefix every log line with a `==> [service]` tag to distinguish output across services.
+- Each Railway service has a paired `build-*` and `start-*` script under `scripts/railway/`, keeping build-time and runtime concerns separate.
+- CLI scripts accept flags via `process.argv` parsing rather than a dedicated argument library, and exit with non-zero status on usage errors.
+- Static assets are organized by consumer domain (`brand/`, `categories/`, `web/`) and named after their visual role rather than technical type.

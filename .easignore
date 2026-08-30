@@ -50,6 +50,14 @@ apps/shopper-web/build/
 *.tar
 *.rar
 
+# ─── Agent/IDE skill tooling (symlinks that break EAS's tarball step) ────────
+.agents/
+.qoder/
+.kiro/
+.trae/skills/
+.windsurf/skills/
+skills-lock.json
+
 # ─── OS noise ─────────────────────────────────────────────────────────────────
 .DS_Store
 Thumbs.db

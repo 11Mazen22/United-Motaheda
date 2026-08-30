@@ -17,6 +17,10 @@ apps/shopper-web/dist/
 # Claude internal
 .claude/
 
+# Contains live infra secrets (DB password, worker secrets) -- never commit,
+# repo is public.
+SESSION_HANDOFF.md
+
 # Temp diagnostic output files
 temp-tsc-output.txt
 

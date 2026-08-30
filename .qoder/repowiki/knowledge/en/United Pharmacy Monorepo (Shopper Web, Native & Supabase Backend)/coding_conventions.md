@@ -1,0 +1,2 @@
+- Each target (API, web, native) has its own build/start script under `scripts/railway/` and is launched through a top-level `npm run railway:*` alias rather than direct shell invocation.
+- Shared UI primitives, types, and utilities are extracted into `packages/*` and consumed by both `apps/shopper-web` and `apps/shopper-native` instead of being duplicated per app.

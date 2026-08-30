@@ -1,0 +1,1 @@
+Supabase Edge Functions built on Deno runtime with `@supabase/supabase-js` v2 loaded from esm.sh; PostgreSQL PL/pgSQL stored procedures using `SECURITY DEFINER`; Expo Push API for outbound notifications; Postgres GIN full-text search indexes via `to_tsvector('simple', ...)`.
