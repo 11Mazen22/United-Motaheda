@@ -1,3 +1,4 @@
+import { getSupabaseClient } from "../../lib/supabase";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   CheckBadgeIcon,
@@ -248,9 +249,16 @@ export default function PrescriptionsManager() {
     if (!reviewTarget) return null;
     if (reviewTarget.kind === "prescription") {
       const rx = reviewTarget.item;
+        
+      let imageUrl = null;
+      if (rx.imagePath) {
+        imageUrl = getSupabaseClient().storage.from("prescriptions").getPublicUrl(rx.imagePath).data.publicUrl;
+      }
+
       return {
         title: rx.name,
-        subtitle: `${rx.customerName} · ${rx.customerPhone}`,
+        subtitle: `${rx.customerName} | ${rx.customerPhone}`,
+        imageUrl,
         warning: rx.submissionSource === "whatsapp"
           ? (isArabic
             ? "هذه إشارة أن العميل سيرسل صورة عبر واتساب — لم يتم استلام أي صورة أو رقم بعد."

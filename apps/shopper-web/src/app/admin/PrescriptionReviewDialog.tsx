@@ -21,6 +21,8 @@ export interface ReviewDialogTarget {
   detailRows: ReviewDialogDetailRow[];
   /** Extra warning shown for controlled substances / WhatsApp-source rows. */
   warning?: string;
+  /** Full URL to the prescription image bucket */
+  imageUrl?: string | null;
 }
 
 interface PrescriptionReviewDialogProps {
@@ -114,6 +116,17 @@ export default function PrescriptionReviewDialog({
             <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
               <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
               <p className="text-sm font-medium text-amber-800">{target.warning}</p>
+            </div>
+          )}
+
+          {/* Prescription Image */}
+          {target.imageUrl && (
+            <div className="overflow-hidden rounded-xl border border-slate-200 bg-slate-100 flex justify-center">
+              <img 
+                src={target.imageUrl} 
+                alt="Prescription" 
+                className="max-h-[400px] object-contain w-full"
+              />
             </div>
           )}
 

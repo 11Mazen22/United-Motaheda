@@ -24,6 +24,7 @@ export interface AdminPrescription {
   adminNotes: string | null;
   rejectionReason: string | null;
   addedAt: string;
+  imagePath: string | null;
 }
 
 export interface AdminRefillRequest {
@@ -171,7 +172,7 @@ export async function fetchPrescriptions(
   let query = supabase
     .from("prescriptions")
     .select(
-      "id, user_id, name, dose, doctor, rx_number, is_controlled, dea_schedule, review_status, submission_source, admin_notes, rejection_reason, added_at",
+      "id, user_id, name, dose, doctor, rx_number, is_controlled, dea_schedule, review_status, submission_source, admin_notes, rejection_reason, added_at, image_path",
       { count: "exact" },
     );
 
@@ -213,6 +214,7 @@ export async function fetchPrescriptions(
       adminNotes: row.admin_notes,
       rejectionReason: row.rejection_reason,
       addedAt: row.added_at,
+      imagePath: row.image_path,
     };
   });
 
