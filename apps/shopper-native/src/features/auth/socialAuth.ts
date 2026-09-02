@@ -96,7 +96,22 @@ export async function signInWithProvider(
 
   // On dev it resolves to exp://... ; in production to shopper://auth-callback
 
-  const redirectTo = Linking.createURL("/auth-callback", destination ? { queryParams: { redirect: destination } } : undefined);
+  // `via` rides through the whole OAuth round-trip (Supabase preserves
+  // arbitrary redirectTo query params, same as `redirect` already does) so
+  // auth-callback.tsx can trust "this session just came from the Google
+  // button" directly, instead of inferring it from
+  // session.user.app_metadata.provider — which, confirmed against real rows
+  // in auth.users, stays pinned to whichever identity was linked *first* on
+  // the account (often "email") and does not update to reflect the provider
+  // actually used for the current sign-in. Relying on that silently skipped
+  // the complete-profile gate for any Google sign-in on an account that also
+  // had an email identity linked.
+  const redirectTo = Linking.createURL("/auth-callback", {
+    queryParams: {
+      via: provider,
+      ...(destination ? { redirect: destination } : {}),
+    },
+  });
 
 
 
@@ -164,10 +179,18 @@ export async function signInWithProvider(
 
     const code = typeof parsed.queryParams?.code === "string" ? parsed.queryParams.code : undefined;
     const redirectParam = typeof parsed.queryParams?.redirect === "string" ? parsed.queryParams.redirect : undefined;
+    const viaParam = typeof parsed.queryParams?.via === "string" ? parsed.queryParams.via : undefined;
 
     if (code) {
 
-      router.replace({ pathname: "/auth-callback", params: redirectParam ? { code, redirect: redirectParam } : { code } });
+      router.replace({
+        pathname: "/auth-callback",
+        params: {
+          code,
+          ...(redirectParam ? { redirect: redirectParam } : {}),
+          ...(viaParam ? { via: viaParam } : {}),
+        },
+      });
 
     }
 

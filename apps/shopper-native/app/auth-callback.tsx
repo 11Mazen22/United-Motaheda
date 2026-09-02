@@ -24,7 +24,7 @@ export default function AuthCallbackScreen(): React.ReactElement {
   const s = useMemo(() => getStyles(theme), [theme]);
   const { t } = useTranslation();
   const router = useRouter();
-  const { code, redirect } = useLocalSearchParams<{ code?: string; redirect?: string }>();
+  const { code, redirect, via } = useLocalSearchParams<{ code?: string; redirect?: string; via?: string }>();
   const codeStr = typeof code === "string" ? code : "";
   const destination = redirect ? decodeURIComponent(redirect) : "/(customer)/(tabs)";
 
@@ -54,13 +54,20 @@ export default function AuthCallbackScreen(): React.ReactElement {
       }
 
       // OAuth (Google) never gives us a phone number the way the
-      // email/password signup form does — that provider's users land here
-      // with app_metadata.provider !== "email" and no user_metadata.phone,
-      // so route them through complete-profile once before they ever reach
-      // the app (checkout requires a phone on every order).
-      const provider = data.session.user.app_metadata?.provider;
+      // email/password signup form does, so a fresh OAuth sign-in without
+      // one on file gets routed through complete-profile once before ever
+      // reaching the app (checkout requires a phone on every order).
+      //
+      // Whether THIS session came from the Google button is read from the
+      // `via` param socialAuth.ts threads through the redirect URL, not from
+      // session.user.app_metadata.provider — confirmed against real rows in
+      // auth.users that field stays pinned to whichever identity was linked
+      // *first* on the account (frequently "email", even for a session that
+      // was just authenticated via Google), so checking it here silently
+      // skipped this entire gate for any account with an email identity
+      // linked at all.
       const hasPhoneOnFile = Boolean(data.session.user.user_metadata?.phone);
-      if (provider && provider !== "email" && !hasPhoneOnFile) {
+      if (via && !hasPhoneOnFile) {
         router.replace({
           pathname: "/(auth)/complete-profile",
           params: redirect ? { redirect } : {},
