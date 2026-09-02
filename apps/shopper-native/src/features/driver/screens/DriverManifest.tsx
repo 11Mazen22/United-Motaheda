@@ -32,7 +32,7 @@ import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Animated, { useAnimatedStyle, useSharedValue, withSpring, withTiming } from "react-native-reanimated";
+import Animated, { FadeInDown, useAnimatedStyle, useSharedValue, withSpring, withTiming } from "react-native-reanimated";
 import { Screen, Text as UIText, SkeletonCard, EmptyState, Card, useTheme, type NativeTheme } from "@pharmacy/ui-native";
 import { theme as legacyTheme, gradients } from "@pharmacy/design-tokens";
 import { useAuth } from "@/features/auth";
@@ -47,6 +47,7 @@ import { useDriverManifest, useDriverOffers, useMyAcceptanceRate, driverQueryKey
 import { useMyDriverProfile, useMyEarnings } from "../hooks/useDriverProfile";
 import { useDriverMutations } from "../hooks/useDriverMutations";
 import { getDeliveryStage, getStageAction, getStageStatusLabel, type DeliveryStage } from "../lib/deliveryStage";
+import { computeStreakDays } from "../lib/driverMetrics";
 import { getDriverActionErrorMessage } from "../lib/errorMessage";
 import { showErrorSheet } from "@/shared/store/appSheetStore";
 
@@ -87,6 +88,18 @@ export function DriverManifest(): React.ReactElement {
   const todayEarnings = (earningsQuery.data ?? [])
     .filter((e) => new Date(e.earnedAt).toDateString() === new Date().toDateString())
     .reduce((sum, e) => sum + e.totalAmount, 0);
+
+  const yesterdayEarnings = (earningsQuery.data ?? [])
+    .filter((e) => new Date(e.earnedAt).toDateString() === new Date(Date.now() - 86_400_000).toDateString())
+    .reduce((sum, e) => sum + e.totalAmount, 0);
+
+  const earningsTrendPct = yesterdayEarnings > 0
+    ? Math.round(((todayEarnings - yesterdayEarnings) / yesterdayEarnings) * 100)
+    : null;
+  const trendTone: "up" | "down" | "flat" | null =
+    earningsTrendPct === null ? null : earningsTrendPct > 0 ? "up" : earningsTrendPct < 0 ? "down" : "flat";
+
+  const streakDays = useMemo(() => computeStreakDays(earningsQuery.data ?? []), [earningsQuery.data]);
 
   const onRefresh = useCallback(async () => {
     if (!user?.id) return;
@@ -154,6 +167,12 @@ export function DriverManifest(): React.ReactElement {
   const spotlightAction      = spotlightOrder ? getStageAction(spotlightStage) : null;
   const spotlightStatusLabel = spotlightOrder ? getStageStatusLabel(spotlightStage) : null;
 
+  const trendColors = trendTone === "up"
+    ? { bg: theme.colors.statusSoft.success.bg, fg: theme.colors.statusSoft.success.text }
+    : trendTone === "down"
+    ? { bg: theme.colors.statusSoft.error.bg, fg: theme.colors.statusSoft.error.text }
+    : { bg: theme.colors.canvas.surfaceMuted, fg: theme.colors.text.muted };
+
   const quickActions = [
     {
       key: "offers",
@@ -220,6 +239,35 @@ export function DriverManifest(): React.ReactElement {
             ) : null}
           </Pressable>
         </View>
+
+        {driverProfileQuery.data || streakDays > 1 ? (
+          <View style={[s.heroStatsRow, { flexDirection: flexRow(IS_RTL) }]}>
+            {driverProfileQuery.data ? (
+              <View
+                style={s.heroStatPill}
+                accessible
+                accessibilityLabel={`${t("driver.rating")} ${driverProfileQuery.data.rating.toFixed(1)}`}
+              >
+                <Ionicons name="star" size={13} color="#FFD166" />
+                <UIText style={s.heroStatText} numberOfLines={1}>
+                  {driverProfileQuery.data.rating.toFixed(1)}
+                </UIText>
+              </View>
+            ) : null}
+            {streakDays > 1 ? (
+              <View
+                style={s.heroStatPill}
+                accessible
+                accessibilityLabel={t("driver.earningsStreak", "{{count}}-day streak", { count: streakDays })}
+              >
+                <Ionicons name="flame" size={13} color="#FFD166" />
+                <UIText style={s.heroStatText} numberOfLines={1}>
+                  {t("driver.earningsStreak", "{{count}}-day streak", { count: streakDays })}
+                </UIText>
+              </View>
+            ) : null}
+          </View>
+        ) : null}
       </LinearGradient>
 
       {/* ── Availability ───────────────────────────────────────────────── */}
@@ -248,7 +296,7 @@ export function DriverManifest(): React.ReactElement {
 
       {/* ── Active delivery ────────────────────────────────────────────── */}
       {spotlightOrder && spotlightAction ? (
-        <View style={s.blockGap}>
+        <Animated.View entering={FadeInDown.delay(60).duration(280)} style={s.blockGap}>
           <View style={s.sectionHeaderRow}>
             <UIText variant="section-head" style={s.sectionTitle}>{t("driver.activeDelivery")}</UIText>
           </View>
@@ -282,11 +330,11 @@ export function DriverManifest(): React.ReactElement {
               <UIText color="#fff" variant="label">{t(spotlightAction.labelKey, spotlightAction.fallback)}</UIText>
             </Pressable>
           </Card>
-        </View>
+        </Animated.View>
       ) : null}
 
       {/* ── Quick actions ──────────────────────────────────────────────── */}
-      <View style={s.quickActionsRow}>
+      <Animated.View entering={FadeInDown.delay(100).duration(280)} style={s.quickActionsRow}>
         {quickActions.map((a) => (
           <Pressable
             key={a.key}
@@ -308,13 +356,14 @@ export function DriverManifest(): React.ReactElement {
             <UIText style={s.quickLabel} numberOfLines={1}>{a.label}</UIText>
           </Pressable>
         ))}
-      </View>
+      </Animated.View>
 
-      <View style={s.guideWrap}>
+      <Animated.View entering={FadeInDown.delay(140).duration(280)} style={s.guideWrap}>
         <DriverGuideCard />
-      </View>
+      </Animated.View>
 
       {/* ── Performance ────────────────────────────────────────────────── */}
+      <Animated.View entering={FadeInDown.delay(180).duration(280)}>
       <View style={s.perfSectionHeader}>
         <UIText style={s.perfSectionTitle}>{t("driver.performanceTitle")}</UIText>
         <UIText style={s.perfSectionSubtitle}>{t("driver.performanceSubtitle")}</UIText>
@@ -331,7 +380,25 @@ export function DriverManifest(): React.ReactElement {
           </View>
           <View style={s.flexMin}>
             <UIText numberOfLines={1} style={s.perfHeroLabel}>{t("driver.todayEarnings")}</UIText>
-            <UIText numberOfLines={1} style={s.perfHeroValue}>{formatPrice(todayEarnings)}</UIText>
+            <View style={[s.perfHeroValueRow, { flexDirection: flexRow(IS_RTL) }]}>
+              <UIText numberOfLines={1} style={s.perfHeroValue}>{formatPrice(todayEarnings)}</UIText>
+              {trendTone ? (
+                <View
+                  style={[s.trendPill, { backgroundColor: trendColors.bg }]}
+                  accessible
+                  accessibilityLabel={`${earningsTrendPct! > 0 ? "+" : ""}${earningsTrendPct}% ${t("driver.vsYesterday", "vs yesterday")}`}
+                >
+                  <Ionicons
+                    name={trendTone === "up" ? "trending-up" : trendTone === "down" ? "trending-down" : "remove-outline"}
+                    size={11}
+                    color={trendColors.fg}
+                  />
+                  <UIText numberOfLines={1} style={[s.trendText, { color: trendColors.fg }]}>
+                    {earningsTrendPct! > 0 ? `+${earningsTrendPct}` : earningsTrendPct}%
+                  </UIText>
+                </View>
+              ) : null}
+            </View>
           </View>
           <Ionicons name={IS_RTL ? "chevron-back" : "chevron-forward"} size={18} color={theme.colors.text.muted} />
         </Pressable>
@@ -352,8 +419,11 @@ export function DriverManifest(): React.ReactElement {
           </View>
         </View>
       </View>
+      </Animated.View>
 
-      <DailyGoalCard earnings={todayEarnings} styles={s} theme={theme} t={t} />
+      <Animated.View entering={FadeInDown.delay(220).duration(280)}>
+        <DailyGoalCard earnings={todayEarnings} styles={s} theme={theme} t={t} />
+      </Animated.View>
 
       {/* ── Queue heading ──────────────────────────────────────────────── */}
       <View style={s.sectionHeaderRow}>
@@ -512,6 +582,16 @@ function getStyles(theme: NativeTheme, pagePad: number, isTablet: boolean) {
     },
     headerBadgeText: { color: "#fff", fontSize: 10, lineHeight: 14, fontFamily: legacyTheme.fonts.black },
 
+    heroStatsRow: { gap: 8, marginTop: 14 },
+    heroStatPill: {
+      flexDirection: flexRow(IS_RTL),
+      alignItems: "center", gap: 5,
+      paddingHorizontal: 10, paddingVertical: 5,
+      borderRadius: 9999,
+      backgroundColor: "rgba(255,255,255,0.16)",
+    },
+    heroStatText: { fontSize: 12, lineHeight: 16, fontFamily: legacyTheme.fonts.extrabold, color: "#fff" },
+
     // Availability
     availabilityCard: {
       marginHorizontal: pagePad,
@@ -627,8 +707,15 @@ function getStyles(theme: NativeTheme, pagePad: number, isTablet: boolean) {
       fontFamily: legacyTheme.fonts.black,
       color: theme.colors.text.primary,
       textAlign: TEXT_START,
-      marginTop: 2,
     },
+    perfHeroValueRow: { alignItems: "center", gap: 8, marginTop: 2 },
+    trendPill: {
+      flexDirection: flexRow(IS_RTL),
+      alignItems: "center", gap: 2,
+      paddingHorizontal: 6, paddingVertical: 2,
+      borderRadius: 8,
+    },
+    trendText: { fontSize: 10.5, lineHeight: 14, fontFamily: legacyTheme.fonts.black },
     perfDivider: { height: StyleSheet.hairlineWidth, backgroundColor: theme.colors.border.default },
     perfSecondaryRow: { flexDirection: flexRow(IS_RTL) },
     perfStatCell: { flex: 1, minWidth: 0, alignItems: "center", gap: 3 },

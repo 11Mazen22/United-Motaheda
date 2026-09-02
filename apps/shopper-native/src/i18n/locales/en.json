@@ -2049,6 +2049,7 @@
     "earningsEmptySubtitle": "Completed deliveries will show up here with a full breakdown.",
     "memberSince": "Member since {{date}}",
     "rating": "Rating",
+    "vsYesterday": "vs yesterday",
     "offerExpiresWarning": "Waiting a while — respond soon",
     "distanceUnavailable": "Distance unavailable",
     "refreshing": "Refreshing…",

@@ -2049,6 +2049,7 @@
     "earningsEmptySubtitle": "ستظهر هنا كل توصيلة مكتملة مع تفاصيل الأرباح كاملة.",
     "memberSince": "عضو منذ {{date}}",
     "rating": "التقييم",
+    "vsYesterday": "مقابل الأمس",
     "offerExpiresWarning": "مضى وقت — يرجى الرد قريباً",
     "distanceUnavailable": "المسافة غير متاحة",
     "refreshing": "جارٍ التحديث…",
