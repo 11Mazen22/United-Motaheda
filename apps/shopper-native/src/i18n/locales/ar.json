@@ -2261,6 +2261,12 @@
     },
     "returnBannerTitle": "إرجاع قيد التنفيذ",
     "returnBannerSubtitle": "يوجد طلب إرجاع نشط لهذا الطلب",
+    "returnsEyebrow": "فحص المرتجعات",
+    "returnsTitle": "المرتجعات",
+    "returnsPendingCount": "{{count}} بانتظار الفحص",
+    "returnsAllHandled": "لا توجد مرتجعات بانتظار الفحص",
+    "emptyReturnsTitle": "لا يوجد ما يتطلب الفحص",
+    "emptyReturnsSubtitle": "ستظهر المرتجعات هنا عند وصولها لمرحلة الفحص.",
     "returnInspection": {
       "title": "فحص الإرجاع",
       "customerLabel": "العميل",

@@ -13,8 +13,14 @@
  *   order/[id]         — PharmacistOrderDetail (stack-pushed over the tabs)
  *   prescription/[id]  — PrescriptionDetailScreen (stack-pushed over the tabs)
  *   refills            — RefillsScreen (reached from Prescriptions' header)
+ *   returns            — ReturnsQueueScreen (reached from Orders' header)
+ *   return/[id]        — ReturnInspectionScreen (stack-pushed from Orders' return banner)
  *   scanner            — BarcodeScannerScreen (full-screen, no tab bar)
  *   notifications      — NotificationCenterScreen (pharmacist-scoped, full-screen)
+ *
+ * Not every route above appears in the Stack.Screen list below -- Expo
+ * Router auto-discovers file-based routes regardless; an explicit entry is
+ * only needed to override screenOptions for that one screen.
  */
 
 import React, { useRef } from "react";

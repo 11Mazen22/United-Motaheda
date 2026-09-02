@@ -27,6 +27,7 @@ import type {
   PharmacistDeliveryAssignment,
   OrderTimelineEvent,
   PharmacistDeliveryIssue,
+  PharmacistReturnRequest,
 } from "./types";
 import { PHARMACIST_ACTIVE_STATUSES } from "./types";
 import { parseOrderAddress, parseOrderZone, ORDER_LOCATION_SELECT, type OrderLocationRow } from "@/lib/orderAddress";
@@ -409,27 +410,47 @@ export async function getOrderCountsByDate(dateISO: string): Promise<{
 }
 
 /**
- * Fetch return requests actually waiting on a pharmacist decision.
+ * Return requests sitting in INSPECTION -- the one status the app's
+ * return-inspection screen (app/(pharmacist)/return/[id].tsx) actually
+ * knows how to act on (transition_return_status only allows
+ * APPROVED_FOR_REFUND from INSPECTION or APPROVED; a REQUESTED/
+ * UNDER_REVIEW request needs a *different*, not-yet-built initial
+ * admit/decline flow -- process-return's approve_request/reject_request
+ * actions exist server-side with no UI anywhere, same gap this screen
+ * itself was in before it got wired up). Scoped to just INSPECTION so
+ * every row this returns is actually actionable, not a dead-end tap.
  *
- * Was broken before this: filtered on status = 'pending_review', which
- * isn't a value in the return_status enum at all (REQUESTED, UNDER_REVIEW,
- * ..., INSPECTION, ...) -- every call would have errored (unknown enum
- * value) or returned nothing, and return_items(product_id, quantity)
- * selected two columns that don't exist on that table (the real ones are
- * order_item_id and requested_quantity). Never caught because nothing
- * calls this yet -- see usePharmacistReturns().
- *
- * REQUESTED/UNDER_REVIEW need an initial admit/decline decision;
- * INSPECTION is the item-by-item review this app's return-inspection
- * screen (app/(pharmacist)/return/[id].tsx) actually acts on.
+ * Was broken before this fix: filtered on status = 'pending_review',
+ * which isn't a value in the return_status enum at all -- every call
+ * would have errored (unknown enum value) or returned nothing, and
+ * return_items(product_id, quantity) selected two columns that don't
+ * exist on that table (the real ones are order_item_id and
+ * requested_quantity). Never caught because nothing called this yet --
+ * see usePharmacistReturns().
  */
-export async function listPendingReturns() {
+export async function listPendingReturns(): Promise<PharmacistReturnRequest[]> {
   const { data, error } = await supabase
     .from("return_requests")
-    .select("*, order:orders(id, customer_name, total), return_items(order_item_id, requested_quantity)")
-    .in("status", ["REQUESTED", "UNDER_REVIEW", "INSPECTION"])
+    .select("id, order_id, status, reason, created_at, order:orders(customer_name, total), return_items(order_item_id)")
+    .eq("status", "INSPECTION")
     .order("created_at", { ascending: true });
 
   if (error) throw error;
-  return data ?? [];
+
+  type Row = {
+    id: string; order_id: string; status: string; reason: string; created_at: string;
+    order: { customer_name: string | null; total: number | string } | null;
+    return_items: { order_item_id: number }[] | null;
+  };
+
+  return ((data ?? []) as unknown as Row[]).map((row) => ({
+    id: row.id,
+    orderId: row.order_id,
+    status: row.status as PharmacistReturnRequest["status"],
+    reason: row.reason,
+    customerName: row.order?.customer_name ?? null,
+    orderTotal: num(row.order?.total),
+    itemCount: row.return_items?.length ?? 0,
+    createdAt: row.created_at,
+  }));
 }

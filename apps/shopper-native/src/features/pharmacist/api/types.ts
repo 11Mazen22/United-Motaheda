@@ -155,6 +155,25 @@ export interface PharmacistRefillRequest {
   rejectionReason:  string | null;
 }
 
+// ─── Returns ────────────────────────────────────────────────────────────────
+
+export type ReturnRequestStatus =
+  | "REQUESTED" | "UNDER_REVIEW" | "APPROVED" | "REJECTED"
+  | "AWAITING_PICKUP" | "DRIVER_ASSIGNED" | "PICKUP_IN_PROGRESS" | "PICKUP_FAILED"
+  | "PICKED_UP" | "RETURN_IN_TRANSIT" | "RECEIVED" | "INSPECTION"
+  | "RETURN_REJECTED" | "APPROVED_FOR_REFUND" | "REFUND_PENDING" | "COMPLETED";
+
+export interface PharmacistReturnRequest {
+  id:            string;
+  orderId:       string;
+  status:        ReturnRequestStatus;
+  reason:        string;
+  customerName:  string | null;
+  orderTotal:    number;
+  itemCount:     number;
+  createdAt:     string;
+}
+
 // ─── Inventory ─────────────────────────────────────────────────────────────────
 
 export interface PharmacistProduct {

@@ -11,7 +11,7 @@
  * opened has anything the Workbench snapshot didn't already show them.
  */
 import React, { useCallback, useMemo, useState } from "react";
-import { RefreshControl, StyleSheet, View } from "react-native";
+import { Pressable, RefreshControl, StyleSheet, View } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -134,9 +134,14 @@ export function OrdersWorkspaceScreen(): React.ReactElement {
               {t("pharmacist.ordersTitle", "Orders")}
             </Text>
           </View>
-          <View style={styles.heroIcon}>
-            <Ionicons name="receipt" size={20} color="#fff" />
-          </View>
+          <Pressable
+            onPress={() => router.push("/(pharmacist)/returns" as never)}
+            accessibilityRole="button"
+            accessibilityLabel={t("pharmacist.returnsTitle", "Returns")}
+            style={styles.heroIcon}
+          >
+            <Ionicons name="return-up-back" size={20} color="#fff" />
+          </Pressable>
         </View>
 
         {!isLoading && !isError && (
