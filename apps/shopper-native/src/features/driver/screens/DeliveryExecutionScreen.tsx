@@ -17,12 +17,10 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { RefreshControl, StyleSheet, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import * as ExpoLocation from "expo-location";
-import * as Haptics from "expo-haptics";
 import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
 import { Screen, Text as UIText, useTheme, Badge, Card } from "@pharmacy/ui-native";
-import { Button, kit } from "@pharmacy/ui-native";
+import { Button } from "@pharmacy/ui-native";
 import {
   DetailSection,
   InfoRow,
@@ -31,11 +29,12 @@ import {
 import { useAuth } from "@/features/auth";
 import { useAppLanguage } from "@/i18n/LanguageProvider";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
+import { useScreenLayout } from "@/utils/responsive";
 import { formatPrice } from "@/utils/format";
-import { showErrorSheet, showSuccessSheet } from "@/shared/store/appSheetStore";
 import { useDriverOrderDetail, useMyAssignmentForOrder, driverQueryKeys } from "../hooks/useDriverManifest";
 import { useDriverMutations } from "../hooks/useDriverMutations";
-import { pushDriverLocation, TooFarFromDestinationError } from "../api";
+import { useDeliveryStageActions } from "../hooks/useDeliveryStageActions";
+import { pushDriverLocation } from "../api";
 import { findBranchById } from "@/features/delivery/branches/data";
 import { useDriverLivePosition } from "../hooks/useDriverLivePosition";
 import { getDeliveryStage, getStageAction, getStageStatusLabel } from "../lib/deliveryStage";
@@ -58,6 +57,7 @@ export function DeliveryExecutionScreen(): React.ReactElement {
   const { theme } = useTheme();
   const router = useRouter();
   const { language } = useAppLanguage();
+  const { pagePad } = useScreenLayout();
   const { orderId } = useLocalSearchParams<{ orderId: string }>();
   const { user } = useAuth();
 
@@ -70,9 +70,9 @@ export function DeliveryExecutionScreen(): React.ReactElement {
   const s = useMemo(() => StyleSheet.create({
     content: { paddingBottom: 140, gap: 14 },
     centered: { alignItems: "center", paddingTop: 60, paddingHorizontal: 24, gap: 10 },
-    section: { marginHorizontal: kit.inset.screen },
+    section: { marginHorizontal: pagePad },
     heroBanner: {
-      marginHorizontal: kit.inset.screen,
+      marginHorizontal: pagePad,
       flexDirection: flexRow(IS_RTL), alignItems: "center", gap: 12,
       padding: 16, borderRadius: 18,
       backgroundColor: theme.colors.brand.primaryLight,
@@ -80,7 +80,7 @@ export function DeliveryExecutionScreen(): React.ReactElement {
     },
     heroIcon: { width: 44, height: 44, borderRadius: 16, alignItems: "center", justifyContent: "center", backgroundColor: theme.colors.canvas.surface },
     doneBanner: {
-      marginHorizontal: kit.inset.screen,
+      marginHorizontal: pagePad,
       flexDirection: flexRow(IS_RTL), alignItems: "center", gap: 12,
       padding: 16, borderRadius: 18,
       backgroundColor: `${theme.colors.status.success}12`,
@@ -97,7 +97,7 @@ export function DeliveryExecutionScreen(): React.ReactElement {
       backgroundColor: `${theme.colors.status.warning}12`,
       borderWidth: 1, borderColor: `${theme.colors.status.warning}40`,
     },
-  }), [theme]);
+  }), [theme, pagePad]);
 
   const order = orderQuery.data;
   const assignment = assignmentQuery.data;
@@ -121,49 +121,20 @@ export function DeliveryExecutionScreen(): React.ReactElement {
     }
   }, [orderId, queryClient]);
 
+  const stageActions = useDeliveryStageActions(user?.id);
+
   const handleArrivalOrPickup = async () => {
     if (!orderId || !assignment) return;
-    try {
-      if (stageAction.kind === "arrive_pharmacy" || stageAction.kind === "arrive_customer") {
-        const permission = await ExpoLocation.requestForegroundPermissionsAsync();
-        if (permission.status !== "granted") {
-          showErrorSheet(t("driver.actionFailedTitle"), t("driver.locationPermissionRequired"));
-          return;
-        }
-        const position = await ExpoLocation.getCurrentPositionAsync({ accuracy: ExpoLocation.Accuracy.Balanced });
-        const coords = { lat: position.coords.latitude, lng: position.coords.longitude };
-        const arrivalStage = stageAction.kind === "arrive_pharmacy" ? "pharmacy" : "customer";
-        await mutations.arrival.mutateAsync({ orderId, assignmentId: assignment.id, stage: arrivalStage, coords });
-        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        showSuccessSheet(
-          arrivalStage === "pharmacy" ? t("driver.arrivedAtPharmacyTitle") : t("driver.arrivedAtCustomerTitle"),
-          arrivalStage === "pharmacy" ? t("driver.arrivedAtPharmacyBody") : t("driver.arrivedAtCustomerBody"),
-        );
-      } else if (stageAction.kind === "confirm_pickup") {
-        await mutations.pickup.mutateAsync({ orderId, assignmentId: assignment.id });
-        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        showSuccessSheet(t("driver.pickupConfirmedTitle"), t("driver.pickupConfirmedBody"));
-      }
-    } catch (e) {
-      if (e instanceof TooFarFromDestinationError) {
-        showErrorSheet(t("driver.tooFarTitle"), t("driver.tooFarBody"));
-        return;
-      }
-      showErrorSheet(t("driver.actionFailedTitle"), e instanceof Error ? e.message : t("driver.actionFailedBody"));
-    }
+    await stageActions.runArrivalOrPickup(orderId, assignment, stageAction);
   };
 
   const handleCompleteDelivery = async () => {
     if (!orderId || !assignment) return;
-    try {
-      await mutations.deliver.mutateAsync({ orderId, assignmentId: assignment.id, assignmentKind: assignment.assignmentKind });
-      showSuccessSheet(t("driver.deliveredTitle"), t("driver.deliveredBody"), () => router.replace("/(driver)" as never));
-    } catch (e) {
-      showErrorSheet(t("driver.actionFailedTitle"), e instanceof Error ? e.message : t("driver.actionFailedBody"));
-    }
+    const ok = await stageActions.runComplete(orderId, assignment);
+    if (ok) router.replace("/(driver)" as never);
   };
 
-  const actionPending = mutations.arrival.isPending || mutations.pickup.isPending || mutations.deliver.isPending;
+  const actionPending = stageActions.isPending;
   const loading = orderQuery.isLoading || assignmentQuery.isLoading;
 
   const destinationCoords = useMemo(() => {
@@ -292,6 +263,7 @@ export function DeliveryExecutionScreen(): React.ReactElement {
           )}
 
           <ProgressTracker
+            pagePad={pagePad}
             steps={[
               { id: "pharmacy", label: t("driver.stageAtPharmacy", "At pharmacy"), done: ["at_pharmacy", "to_customer", "at_customer", "delivered"].includes(stage) },
               { id: "pickedUp", label: t("driver.statusPickedUp"), done: ["to_customer", "at_customer", "delivered"].includes(stage) },
@@ -316,6 +288,7 @@ export function DeliveryExecutionScreen(): React.ReactElement {
 
           <View style={s.section}>
             <DeliveryLocationCard
+              pagePad={pagePad}
               kind={assignment?.assignmentKind === "return_pickup" ? "customer" : "pharmacy"}
               title={assignment?.assignmentKind === "return_pickup" ? t("driver.pickupSection", "Pickup") : t("driver.pickupSection", "Pickup")}
               name={assignment?.assignmentKind === "return_pickup" ? order.address.name : branchName}
@@ -333,6 +306,7 @@ export function DeliveryExecutionScreen(): React.ReactElement {
 
           <View style={s.section}>
             <DeliveryLocationCard
+              pagePad={pagePad}
               kind={assignment?.assignmentKind === "return_pickup" ? "pharmacy" : "customer"}
               title={assignment?.assignmentKind === "return_pickup" ? t("driver.destinationSection", "Destination") : t("driver.destinationSection", "Destination")}
               name={assignment?.assignmentKind === "return_pickup" ? branchName : order.address.name}
@@ -350,6 +324,7 @@ export function DeliveryExecutionScreen(): React.ReactElement {
 
           {activeDestCoords && stage !== "delivered" && stage !== "unknown" && (
             <RouteSummary
+              pagePad={pagePad}
               driverCoords={liveFix ? { lat: liveFix.lat, lng: liveFix.lng } : undefined}
               destCoords={activeDestCoords}
             />
@@ -389,7 +364,7 @@ export function DeliveryExecutionScreen(): React.ReactElement {
             </DetailSection>
           )}
 
-          <ActionDock>
+          <ActionDock pagePad={pagePad}>
             <View style={s.dockActions}>
               {stage === "at_customer" ? (
                 <HoldToConfirmButton

@@ -15,7 +15,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useTranslation } from "react-i18next";
 import { gradients } from "@pharmacy/design-tokens";
 
-import { Screen, Text as UIText, Chip, EmptyState, SkeletonCard, useTheme, type NativeTheme } from "@pharmacy/ui-native";
+import { Screen, Text as UIText, Chip, EmptyState, SkeletonCard, Button, useTheme, type NativeTheme } from "@pharmacy/ui-native";
 import { useAuth } from "@/features/auth";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
 import { useScreenLayout } from "@/utils/responsive";
@@ -125,11 +125,12 @@ export function DriverEarningsScreen(): React.ReactElement {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await earningsQuery.refetch();
+    await Promise.all([profileQuery.refetch(), earningsQuery.refetch()]);
     setRefreshing(false);
   };
 
   const isLoading = profileQuery.isLoading || earningsQuery.isLoading;
+  const isError = profileQuery.isError || earningsQuery.isError;
 
   return (
     <Screen edgeTop background={theme.colors.canvas.background} scroll={false}>
@@ -172,6 +173,11 @@ export function DriverEarningsScreen(): React.ReactElement {
       {isLoading ? (
         <View style={{ paddingHorizontal: pagePad, gap: 10 }}>
           <SkeletonCard /><SkeletonCard /><SkeletonCard />
+        </View>
+      ) : isError ? (
+        <View style={{ paddingHorizontal: pagePad, paddingTop: 60, alignItems: "center" }}>
+          <UIText variant="h6" style={{ textAlign: "center", marginBottom: 8 }}>{t("errors.network")}</UIText>
+          <Button label={t("common.retry")} onPress={onRefresh} />
         </View>
       ) : (
         <FlatList

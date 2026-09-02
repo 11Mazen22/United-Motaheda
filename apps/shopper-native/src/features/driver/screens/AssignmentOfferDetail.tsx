@@ -9,13 +9,14 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { Screen, Text as UIText, Card, Input, Badge, useTheme } from "@pharmacy/ui-native";
-import { Button, kit } from "@pharmacy/ui-native";
+import { Button } from "@pharmacy/ui-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { InfoRow } from "@/features/orders/components/OrderDetailHelpers";
 import RouteSummary from "../components/RouteSummary";
 import MetricCard from "@/components/MetricCard";
 import { useAuth } from "@/features/auth";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
+import { useScreenLayout } from "@/utils/responsive";
 import { formatPrice } from "@/utils/format";
 import { findBranchById } from "@/features/delivery/branches/data";
 import { useAppLanguage } from "@/i18n/LanguageProvider";
@@ -23,6 +24,7 @@ import { showErrorSheet, showSuccessSheet } from "@/shared/store/appSheetStore";
 import { useDriverOffer, useDriverOrderDetail } from "../hooks/useDriverManifest";
 import { useDriverMutations } from "../hooks/useDriverMutations";
 import { DriverScreenHeader } from "../components/DriverScreenHeader";
+import { getDriverActionErrorMessage } from "../lib/errorMessage";
 
 const OFFER_URGENT_AFTER_MIN = 10;
 
@@ -36,6 +38,7 @@ const TEXT_START = textAlignStart(IS_RTL);
 export function AssignmentOfferDetail(): React.ReactElement {
   const { t } = useTranslation();
   const { theme } = useTheme();
+  const { pagePad } = useScreenLayout();
   const router = useRouter();
   const { assignmentId } = useLocalSearchParams<{ assignmentId: string }>();
   const { user } = useAuth();
@@ -67,12 +70,12 @@ export function AssignmentOfferDetail(): React.ReactElement {
   const s = useMemo(() => StyleSheet.create({
     content: { paddingBottom: 40, gap: 12 },
     centered: { alignItems: "center", paddingTop: 60, paddingHorizontal: 24 },
-    section: { marginHorizontal: kit.inset.screen },
-    actions: { marginHorizontal: kit.inset.screen, marginTop: 8, gap: 12 },
+    section: { marginHorizontal: pagePad },
+    actions: { marginHorizontal: pagePad, marginTop: 8, gap: 12 },
     declineInput: { minHeight: 80, textAlignVertical: "top" },
     declineActions: { flexDirection: flexRow(IS_RTL), justifyContent: "flex-end", gap: 10, marginTop: 14 },
     heroSubRow: { marginTop: 10, flexDirection: flexRow(IS_RTL), gap: 12 },
-  }), [theme]);
+  }), [theme, pagePad]);
 
   const handleAccept = async () => {
     if (!assignmentId) return;
@@ -80,7 +83,7 @@ export function AssignmentOfferDetail(): React.ReactElement {
       await mutations.accept.mutateAsync(assignmentId);
       showSuccessSheet(t("driver.acceptedTitle"), t("driver.acceptedBody"), () => router.replace("/(driver)" as never));
     } catch (e) {
-      showErrorSheet(t("driver.actionFailedTitle"), e instanceof Error ? e.message : t("driver.actionFailedBody"));
+      showErrorSheet(t("driver.actionFailedTitle"), getDriverActionErrorMessage(e, t, t("driver.actionFailedBody")));
     }
   };
 
@@ -90,7 +93,7 @@ export function AssignmentOfferDetail(): React.ReactElement {
       await mutations.decline.mutateAsync({ assignmentId, orderId: offer.orderId, reason });
       showSuccessSheet(t("driver.declinedTitle"), t("driver.declinedBody"), () => router.replace("/(driver)" as never));
     } catch (e) {
-      showErrorSheet(t("driver.actionFailedTitle"), e instanceof Error ? e.message : t("driver.actionFailedBody"));
+      showErrorSheet(t("driver.actionFailedTitle"), getDriverActionErrorMessage(e, t, t("driver.actionFailedBody")));
     }
   };
 
@@ -159,7 +162,7 @@ export function AssignmentOfferDetail(): React.ReactElement {
             </View>
           )}
 
-          <RouteSummary driverCoords={undefined} destCoords={order && typeof order.customerLat === 'number' && typeof order.customerLng === 'number' ? { lat: order.customerLat, lng: order.customerLng } : undefined} />
+          <RouteSummary pagePad={pagePad} driverCoords={undefined} destCoords={order && typeof order.customerLat === 'number' && typeof order.customerLng === 'number' ? { lat: order.customerLat, lng: order.customerLng } : undefined} />
 
           {!declining ? (
             <View style={s.actions}>

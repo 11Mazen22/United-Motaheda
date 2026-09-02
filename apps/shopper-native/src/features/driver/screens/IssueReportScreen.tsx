@@ -10,14 +10,16 @@ import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { useTranslation } from "react-i18next";
 import { Screen, Text as UIText, Input, useTheme } from "@pharmacy/ui-native";
-import { Button, kit } from "@pharmacy/ui-native";
+import { Button } from "@pharmacy/ui-native";
 import { useAuth } from "@/features/auth";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
+import { useScreenLayout } from "@/utils/responsive";
 import { showErrorSheet, showSuccessSheet } from "@/shared/store/appSheetStore";
 import { useMyIssuesForOrder } from "../hooks/useDriverManifest";
 import { useDriverMutations } from "../hooks/useDriverMutations";
 import type { IssueReasonCode } from "../api";
 import { DriverScreenHeader } from "../components/DriverScreenHeader";
+import { getDriverActionErrorMessage } from "../lib/errorMessage";
 
 const IS_RTL = isRtl();
 const TEXT_START = textAlignStart(IS_RTL);
@@ -36,6 +38,7 @@ const REASONS: { code: IssueReasonCode; icon: React.ComponentProps<typeof Ionico
 export function IssueReportScreen(): React.ReactElement {
   const { t } = useTranslation();
   const { theme } = useTheme();
+  const { pagePad } = useScreenLayout();
   const router = useRouter();
   const { orderId } = useLocalSearchParams<{ orderId: string }>();
   const { user } = useAuth();
@@ -63,13 +66,13 @@ export function IssueReportScreen(): React.ReactElement {
       alignItems: "center",
       gap: 8,
       backgroundColor: `${theme.colors.status.warning}1A`,
-      marginHorizontal: kit.inset.screen,
+      marginHorizontal: pagePad,
       marginBottom: 14,
       padding: 12,
       borderRadius: 12,
     },
     noteInputContainer: {
-      marginHorizontal: kit.inset.screen,
+      marginHorizontal: pagePad,
       marginTop: 8,
     },
     noteInput: {
@@ -77,7 +80,7 @@ export function IssueReportScreen(): React.ReactElement {
       textAlignVertical: "top",
     },
     submitWrap: {
-      marginHorizontal: kit.inset.screen,
+      marginHorizontal: pagePad,
       marginTop: 20,
     },
     reasonGrid: { flexDirection: flexRow(IS_RTL), flexWrap: 'wrap', gap: 8 },
@@ -85,14 +88,14 @@ export function IssueReportScreen(): React.ReactElement {
     priorItem: { marginTop: 8, padding: 10, backgroundColor: theme.colors.canvas.surface, borderRadius: 12, borderWidth: 1, borderColor: theme.colors.border.default },
     photoPicker: {
       flexDirection: flexRow(IS_RTL), alignItems: "center", gap: 10,
-      marginHorizontal: kit.inset.screen, marginTop: 10,
+      marginHorizontal: pagePad, marginTop: 10,
       padding: 12, borderRadius: 12, borderWidth: 1, borderStyle: "dashed", borderColor: theme.colors.border.default,
     },
     photoPickerIcon: { width: 36, height: 36, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: theme.colors.canvas.surfaceMuted },
-    photoPreviewWrap: { marginHorizontal: kit.inset.screen, marginTop: 10, borderRadius: 12, overflow: "hidden" },
+    photoPreviewWrap: { marginHorizontal: pagePad, marginTop: 10, borderRadius: 12, overflow: "hidden" },
     photoPreview: { width: "100%", height: 160, borderRadius: 12 },
     photoRemoveBtn: { position: "absolute", top: 8, end: 8, width: 28, height: 28, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(0,0,0,0.55)" },
-  }), [theme]);
+  }), [theme, pagePad]);
 
   const handleSubmit = async () => {
     if (!orderId || !selected) return;
@@ -100,7 +103,7 @@ export function IssueReportScreen(): React.ReactElement {
       await mutations.report.mutateAsync({ orderId, reasonCode: selected, note: note.trim() || undefined, photoUri: photoUri ?? undefined });
       showSuccessSheet(t("driver.issueReportedTitle"), t("driver.issueReportedBody"), () => router.back());
     } catch (e) {
-      showErrorSheet(t("driver.actionFailedTitle"), e instanceof Error ? e.message : t("driver.actionFailedBody"));
+      showErrorSheet(t("driver.actionFailedTitle"), getDriverActionErrorMessage(e, t, t("driver.actionFailedBody")));
     }
   };
 
@@ -120,11 +123,11 @@ export function IssueReportScreen(): React.ReactElement {
           </View>
         )}
 
-        <UIText variant="card-title" style={{ paddingHorizontal: kit.inset.screen, textAlign: TEXT_START }}>
+        <UIText variant="card-title" style={{ paddingHorizontal: pagePad, textAlign: TEXT_START }}>
           {t("driver.whatWentWrong")}
         </UIText>
 
-        <View style={{ paddingHorizontal: kit.inset.screen, marginTop: 10 }}>
+        <View style={{ paddingHorizontal: pagePad, marginTop: 10 }}>
           <View style={s.reasonGrid}>
             {REASONS.map((r) => {
               const active = selected === r.code;
@@ -142,7 +145,7 @@ export function IssueReportScreen(): React.ReactElement {
           </View>
         </View>
 
-        <UIText variant="card-title" style={{ paddingHorizontal: kit.inset.screen, marginTop: 20, textAlign: TEXT_START }}>
+        <UIText variant="card-title" style={{ paddingHorizontal: pagePad, marginTop: 20, textAlign: TEXT_START }}>
           {t("driver.additionalNotes")}
         </UIText>
         <Input
@@ -185,7 +188,7 @@ export function IssueReportScreen(): React.ReactElement {
 
         {/* Prior reports for context */}
         {(priorIssuesQuery.data ?? []).length > 0 && (
-          <View style={{ paddingHorizontal: kit.inset.screen, marginTop: 14 }}>
+          <View style={{ paddingHorizontal: pagePad, marginTop: 14 }}>
             <UIText variant="caption" color="secondary">{t("driver.yourPreviousReports")}</UIText>
             {(priorIssuesQuery.data ?? []).map((p) => (
               <View key={p.id} style={s.priorItem}>

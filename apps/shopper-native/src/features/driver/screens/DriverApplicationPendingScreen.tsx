@@ -9,8 +9,9 @@ import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { Ionicons } from "@expo/vector-icons";
 
-import { Screen, Text as UIText, Button, useTheme, kit } from "@pharmacy/ui-native";
+import { Screen, Text as UIText, Button, useTheme } from "@pharmacy/ui-native";
 import { useAuth } from "@/features/auth";
+import { useScreenLayout } from "@/utils/responsive";
 import { DriverScreenHeader } from "../components/DriverScreenHeader";
 import { useMyDriverProfilePolling } from "../hooks/useDriverProfile";
 import type { DriverApplicationStatus } from "../api";
@@ -29,6 +30,7 @@ const STATUS_CONFIG: Record<DriverApplicationStatus, { icon: React.ComponentProp
 export function DriverApplicationPendingScreen(): React.ReactElement {
   const { theme } = useTheme();
   const { t } = useTranslation();
+  const { pagePad } = useScreenLayout();
   const router = useRouter();
   const { user } = useAuth();
   const profileQuery = useMyDriverProfilePolling(user?.id, true);
@@ -58,7 +60,7 @@ export function DriverApplicationPendingScreen(): React.ReactElement {
         <UIText variant="screen-title" style={{ textAlign: "center", marginTop: 16 }}>
           {t(config.titleKey)}
         </UIText>
-        <UIText variant="body-sm" color="secondary" style={{ textAlign: "center", marginTop: 8, paddingHorizontal: kit.inset.screen }}>
+        <UIText variant="body-sm" color="secondary" style={{ textAlign: "center", marginTop: 8, paddingHorizontal: pagePad }}>
           {t(config.bodyKey)}
         </UIText>
         {status === "REJECTED" && profile?.rejectionReason && (

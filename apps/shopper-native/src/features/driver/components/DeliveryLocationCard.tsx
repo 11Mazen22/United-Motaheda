@@ -15,6 +15,7 @@ import { Linking, Pressable, StyleSheet, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { Text as UIText, Card, useTheme } from "@pharmacy/ui-native";
+import { kit } from "@pharmacy/ui-native";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
 
 const IS_RTL = isRtl();
@@ -33,6 +34,7 @@ export interface DeliveryLocationCardProps {
   zoneName?: string | null;
   phone?: string | null;
   coords?: { lat: number; lng: number } | null;
+  pagePad?: number;
 }
 
 function buildNavigationUrl(coords: { lat: number; lng: number } | null | undefined, address: string | null | undefined): string | null {
@@ -46,7 +48,7 @@ function buildNavigationUrl(coords: { lat: number; lng: number } | null | undefi
 }
 
 export function DeliveryLocationCard({
-  kind, title, name, formattedAddress, building, floor, apartment, landmark, instructions, zoneName, phone, coords,
+  kind, title, name, formattedAddress, building, floor, apartment, landmark, instructions, zoneName, phone, coords, pagePad = kit.inset.screen,
 }: DeliveryLocationCardProps): React.ReactElement {
   const { t } = useTranslation();
   const { theme } = useTheme();
@@ -62,7 +64,7 @@ export function DeliveryLocationCard({
     actionBtn: { flex: 1, flexDirection: flexRow(IS_RTL), alignItems: "center", justifyContent: "center", gap: 8, minHeight: 48, borderRadius: 14 },
     navigateBtn: { backgroundColor: theme.colors.brand.primary },
     callBtn: { backgroundColor: theme.colors.canvas.surfaceMuted, borderWidth: 1, borderColor: theme.colors.border.default },
-  }), [theme, kind]);
+  }), [theme, kind, pagePad]);
 
   const address = formattedAddress?.trim() || null;
   const navUrl = buildNavigationUrl(coords ?? null, address);

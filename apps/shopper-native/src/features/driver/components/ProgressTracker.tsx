@@ -14,10 +14,10 @@ interface Step {
   done: boolean;
 }
 
-export default function ProgressTracker({ steps }: { steps: Step[] }) {
+export default function ProgressTracker({ steps, pagePad = kit.inset.screen }: { steps: Step[]; pagePad?: number }) {
   const { theme } = useTheme();
   const s = useMemo(() => StyleSheet.create({
-    wrap: { flexDirection: flexRow(IS_RTL), marginHorizontal: kit.inset.screen, marginBottom: 18 },
+    wrap: { flexDirection: flexRow(IS_RTL), marginHorizontal: pagePad, marginBottom: 18 },
     step: { flex: 1, alignItems: "center", position: "relative" },
     dot: { width: 26, height: 26, borderRadius: 13, borderWidth: 2, borderColor: theme.colors.border.default, backgroundColor: theme.colors.canvas.surface, alignItems: "center", justifyContent: "center", zIndex: 2 },
     dotDone: { backgroundColor: theme.colors.brand.primary, borderColor: theme.colors.brand.primary },
@@ -25,7 +25,7 @@ export default function ProgressTracker({ steps }: { steps: Step[] }) {
     lineDone: { backgroundColor: theme.colors.brand.primary },
     label: { marginTop: 8, fontFamily: legacyTheme.fonts.semibold, fontSize: 11, color: theme.colors.text.muted, textAlign: "center" },
     labelDone: { color: theme.colors.brand.primary },
-  }), [theme]);
+  }), [theme, pagePad]);
 
   return (
     <View style={s.wrap}>

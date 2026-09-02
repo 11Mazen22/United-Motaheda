@@ -1,3 +1,16 @@
+/**
+ * RouteSummary — distance + ETA strip, shared by the map screen and the
+ * delivery execution screen.
+ *
+ * Units were hardcoded English ("m"/"km"/"min") regardless of app
+ * language — fixed to route through i18n like the rest of the driver app.
+ *
+ * Distance/ETA are a straight-line (haversine) estimate at an assumed
+ * ~30km/h average, not a routed distance — there's no turn-by-turn
+ * directions provider wired into this project. The map screen labels this
+ * explicitly ("estimated") rather than presenting it as more precise than
+ * it is.
+ */
 import React, { useMemo } from "react";
 import { View, StyleSheet } from "react-native";
 import { useTranslation } from "react-i18next";
@@ -21,33 +34,58 @@ function haversineKm(a: { lat: number; lng: number }, b: { lat: number; lng: num
   return R * c;
 }
 
-export default function RouteSummary({ driverCoords, destCoords }: { driverCoords?: { lat: number; lng: number } | null; destCoords?: { lat: number; lng: number } | null }) {
+interface RouteSummaryProps {
+  driverCoords?: { lat: number; lng: number } | null;
+  destCoords?: { lat: number; lng: number } | null;
+  pagePad?: number;
+  /** Compact strips (e.g. inside the map's floating sheet) drop the card
+   *  chrome — the parent surface already provides it. */
+  bare?: boolean;
+}
+
+export default function RouteSummary({ driverCoords, destCoords, pagePad = kit.inset.screen, bare = false }: RouteSummaryProps) {
   const { t } = useTranslation();
   const { theme } = useTheme();
   const s = useMemo(() => StyleSheet.create({
-    wrap: { flexDirection: flexRow(IS_RTL), justifyContent: "space-between", marginHorizontal: kit.inset.screen, marginBottom: 12, padding: 12, borderRadius: 12, backgroundColor: theme.colors.canvas.surface, borderWidth: 1, borderColor: theme.colors.border.default, ...theme.shadows[1] },
+    wrap: {
+      flexDirection: flexRow(IS_RTL),
+      justifyContent: "space-between",
+      marginHorizontal: bare ? 0 : pagePad,
+      marginBottom: bare ? 0 : 12,
+      padding: bare ? 0 : 12,
+      borderRadius: 12,
+      backgroundColor: bare ? "transparent" : theme.colors.canvas.surface,
+      borderWidth: bare ? 0 : 1,
+      borderColor: theme.colors.border.default,
+      ...(bare ? {} : theme.shadows[1]),
+    },
     col: { alignItems: "center", flex: 1 },
-  }), [theme]);
+  }), [theme, pagePad, bare]);
+
   const data = useMemo(() => {
-    if (!destCoords) return null;
-    let km: number | null = null;
-    if (driverCoords) {
-      km = haversineKm(driverCoords, destCoords);
-    }
-    const distance = km != null ? `${km < 1 ? `${Math.round(km * 1000)} m` : `${km.toFixed(1)} km`}` : "—";
-    const eta = km != null ? `${Math.max(1, Math.round((km / 30) * 60))} min` : "—"; // assume ~30 km/h average
+    if (!destCoords || !driverCoords) return null;
+    const km = haversineKm(driverCoords, destCoords);
+    const distance = km < 1
+      ? t("driver.distanceMeters", { value: Math.round(km * 1000) })
+      : t("driver.distanceKm", { value: km.toFixed(1) });
+    const totalMin = Math.max(1, Math.round((km / 30) * 60));
+    const eta = totalMin >= 60
+      ? t("driver.etaHoursMinutes", { h: Math.floor(totalMin / 60), m: totalMin % 60 })
+      : t("driver.etaMinutes", { value: totalMin });
     return { distance, eta };
-  }, [driverCoords, destCoords]);
+  }, [driverCoords, destCoords, t]);
+
+  const waitingForGps = Boolean(destCoords) && !driverCoords;
 
   return (
     <View style={s.wrap}>
       <View style={s.col}>
         <UIText variant="caption" color="secondary">{t("driver.distance")}</UIText>
-        <UIText variant="card-title">{data?.distance ?? "—"}</UIText>
+        <UIText variant="card-title">{data?.distance ?? (waitingForGps ? "…" : "—")}</UIText>
       </View>
       <View style={s.col}>
         <UIText variant="caption" color="secondary">{t("driver.eta")}</UIText>
-        <UIText variant="card-title">{data?.eta ?? "—"}</UIText>
+        <UIText variant="card-title">{data?.eta ?? (waitingForGps ? "…" : "—")}</UIText>
       </View>
     </View>
   );
