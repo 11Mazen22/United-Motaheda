@@ -19,6 +19,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
+import Animated, { FadeInDown, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from "react-native-reanimated";
 import { Screen, Text as UIText, useTheme, Badge, Card } from "@pharmacy/ui-native";
 import { Button } from "@pharmacy/ui-native";
 import {
@@ -83,18 +84,19 @@ export function DeliveryExecutionScreen(): React.ReactElement {
       marginHorizontal: pagePad,
       flexDirection: flexRow(IS_RTL), alignItems: "center", gap: 12,
       padding: 16, borderRadius: 18,
-      backgroundColor: `${theme.colors.status.success}12`,
+      backgroundColor: theme.colors.statusSoft.success.bg,
       borderWidth: 1, borderColor: `${theme.colors.status.success}40`,
     },
     metricsRow: { flexDirection: flexRow(IS_RTL), gap: 10 },
-    metricChip: { flex: 1, flexDirection: flexRow(IS_RTL), alignItems: "center", gap: 6, padding: 10, borderRadius: 12, backgroundColor: theme.colors.canvas.surfaceMuted },
+    metricChip: { flex: 1, flexDirection: flexRow(IS_RTL), alignItems: "center", gap: 8, padding: 10, borderRadius: 12, backgroundColor: theme.colors.canvas.surfaceMuted },
+    liveDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: theme.colors.status.success, flexShrink: 0 },
     timelineRow: { flexDirection: flexRow(IS_RTL), alignItems: "center", gap: 10, paddingVertical: 6 },
     timelineDot: { width: 10, height: 10, borderRadius: 5 },
     dockActions: { gap: 10 },
     codBanner: {
       flexDirection: flexRow(IS_RTL), alignItems: "flex-start", gap: 10,
       padding: 14, borderRadius: 14,
-      backgroundColor: `${theme.colors.status.warning}12`,
+      backgroundColor: theme.colors.statusSoft.warning.bg,
       borderWidth: 1, borderColor: `${theme.colors.status.warning}40`,
     },
   }), [theme, pagePad]);
@@ -107,6 +109,14 @@ export function DeliveryExecutionScreen(): React.ReactElement {
   const stageLabel = getStageStatusLabel(stage, assignment?.assignmentKind);
   const [locationSyncState, setLocationSyncState] = React.useState<"idle" | "syncing" | "ready" | "denied" | "error">("idle");
   const isCod = order?.paymentMethod === "cod";
+
+  const livePulse = useSharedValue(1);
+  useEffect(() => {
+    livePulse.value = locationSyncState === "ready"
+      ? withRepeat(withTiming(0.3, { duration: 700 }), -1, true)
+      : withTiming(1, { duration: 200 });
+  }, [locationSyncState, livePulse]);
+  const livePulseStyle = useAnimatedStyle(() => ({ opacity: livePulse.value }));
 
   const onRefresh = useCallback(async () => {
     if (!orderId) return;
@@ -245,39 +255,41 @@ export function DeliveryExecutionScreen(): React.ReactElement {
       ) : (
         <>
           {stage === "delivered" ? (
-            <View style={s.doneBanner}>
+            <Animated.View entering={FadeInDown.duration(360)} style={s.doneBanner}>
               <View style={s.heroIcon}><Ionicons name="checkmark-done-circle" size={24} color={theme.colors.status.success} /></View>
               <View style={{ flex: 1 }}>
                 <UIText variant="card-title" style={{ textAlign: TEXT_START }}>{t("driver.deliveredTitle")}</UIText>
                 <UIText variant="body-sm" color="secondary" style={{ textAlign: TEXT_START, marginTop: 2 }}>{t("driver.deliveredBody")}</UIText>
               </View>
-            </View>
+            </Animated.View>
           ) : (
-            <View style={s.heroBanner}>
-              <View style={s.heroIcon}><Ionicons name={stageAction.icon} size={22} color={theme.colors.brand.primary} /></View>
+            <Animated.View entering={FadeInDown.duration(360)} style={s.heroBanner}>
+              <View style={s.heroIcon}><Ionicons name={stageAction.icon} size={22} color={theme.colors.brand.primaryDark} /></View>
               <View style={{ flex: 1 }}>
                 <UIText variant="caption" color="brand" style={{ textAlign: TEXT_START }}>{t(stageLabel.key, stageLabel.fallback)}</UIText>
                 <UIText variant="card-title" style={{ textAlign: TEXT_START, marginTop: 2 }}>{t(stageAction.labelKey, stageAction.fallback)}</UIText>
               </View>
-            </View>
+            </Animated.View>
           )}
 
-          <ProgressTracker
-            pagePad={pagePad}
-            steps={[
-              { id: "pharmacy", label: t("driver.stageAtPharmacy", "At pharmacy"), done: ["at_pharmacy", "to_customer", "at_customer", "delivered"].includes(stage) },
-              { id: "pickedUp", label: t("driver.statusPickedUp"), done: ["to_customer", "at_customer", "delivered"].includes(stage) },
-              { id: "customer", label: t("driver.stageAtCustomer", "At customer"), done: ["at_customer", "delivered"].includes(stage) },
-              { id: "delivered", label: t("driver.deliveredTitle"), done: stage === "delivered" },
-            ]}
-          />
+          <Animated.View entering={FadeInDown.delay(20).duration(360)}>
+            <ProgressTracker
+              pagePad={pagePad}
+              steps={[
+                { id: "pharmacy", label: t("driver.stageAtPharmacy", "At pharmacy"), done: ["at_pharmacy", "to_customer", "at_customer", "delivered"].includes(stage) },
+                { id: "pickedUp", label: t("driver.statusPickedUp"), done: ["to_customer", "at_customer", "delivered"].includes(stage) },
+                { id: "customer", label: t("driver.stageAtCustomer", "At customer"), done: ["at_customer", "delivered"].includes(stage) },
+                { id: "delivered", label: t("driver.deliveredTitle"), done: stage === "delivered" },
+              ]}
+            />
+          </Animated.View>
 
           {isCod && stage !== "delivered" && (
             <View style={s.section}>
               <View style={s.codBanner}>
-                <Ionicons name="cash-outline" size={18} color={theme.colors.status.warning} />
+                <Ionicons name="cash-outline" size={18} color={theme.colors.statusSoft.warning.text} />
                 <View style={{ flex: 1 }}>
-                  <UIText variant="label" style={{ textAlign: TEXT_START, color: theme.colors.status.warning }}>{t("driver.codReminderTitle")}</UIText>
+                  <UIText variant="label" style={{ textAlign: TEXT_START, color: theme.colors.statusSoft.warning.text }}>{t("driver.codReminderTitle")}</UIText>
                   <UIText variant="caption" color="secondary" style={{ textAlign: TEXT_START, marginTop: 2 }}>
                     {t("driver.codReminderBody", { amount: formatPrice(order.total) })}
                   </UIText>
@@ -334,7 +346,11 @@ export function DeliveryExecutionScreen(): React.ReactElement {
             <Card padding="md">
               <View style={s.metricsRow}>
                 <View style={s.metricChip}>
-                  <Ionicons name={locationSyncState === "ready" ? "radio-outline" : locationSyncState === "error" ? "alert-circle-outline" : "navigate-outline"} size={14} color={locationSyncState === "ready" ? theme.colors.status.success : theme.colors.brand.primary} />
+                  {locationSyncState === "ready" ? (
+                    <Animated.View style={[s.liveDot, livePulseStyle]} />
+                  ) : (
+                    <Ionicons name={locationSyncState === "error" ? "alert-circle-outline" : "navigate-outline"} size={14} color={theme.colors.brand.primaryDark} />
+                  )}
                   <UIText variant="caption" color="secondary" style={{ flex: 1 }}>
                     {locationSyncState === "ready" ? t("driver.liveLocationReady") : locationSyncState === "denied" ? t("driver.liveLocationDenied") : locationSyncState === "error" ? t("driver.liveLocationError") : shouldBroadcastLocation ? t("driver.liveLocationSyncing") : t("driver.liveLocationInactive", "Location updates start once you're out for delivery.")}
                   </UIText>
@@ -347,7 +363,7 @@ export function DeliveryExecutionScreen(): React.ReactElement {
             {order.items.map((item) => (
               <InfoRow key={item.productId} label={`${item.name} × ${item.quantity}`} value={formatPrice(item.price * item.quantity)} />
             ))}
-            <InfoRow label={t("driver.total")} value={formatPrice(order.total)} valueColor={theme.colors.brand.primary} />
+            <InfoRow label={t("driver.total")} value={formatPrice(order.total)} valueColor={theme.colors.brand.primaryDark} />
           </DetailSection>
 
           {timelineSteps.length > 0 && (
