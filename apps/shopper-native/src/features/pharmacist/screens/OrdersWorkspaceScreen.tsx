@@ -38,13 +38,17 @@ type FilterKey = "all" | "attention" | "inProgress" | "ready" | "completed";
 function matchesQuery(order: PharmacistOrder, query: string): boolean {
   if (!query) return true;
   const q = query.trim().toLowerCase();
-  const branchName = order.branchId ? findBranchById(order.branchId)?.nameAr ?? "" : "";
+  // Both language names, regardless of the app's current display language —
+  // a pharmacist might type either, and this is a search filter, not a
+  // display value that needs to follow the UI language.
+  const branch = order.branchId ? findBranchById(order.branchId) : null;
   const haystack = [
     order.id.slice(-8),
     order.customerName,
     order.customerPhone,
     order.status,
-    branchName,
+    branch?.nameAr ?? "",
+    branch?.nameEn ?? "",
     order.zoneName ?? "",
   ].join(" ").toLowerCase();
   return haystack.includes(q);

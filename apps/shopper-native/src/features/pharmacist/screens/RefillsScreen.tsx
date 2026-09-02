@@ -22,6 +22,7 @@ import { showErrorSheet, showSuccessSheet } from "@/shared/store/appSheetStore";
 import { usePharmacistRefills } from "../hooks/usePharmacistQueries";
 import { usePharmacistMutations } from "../hooks/usePharmacistMutations";
 import type { PharmacistRefillRequest, RefillRequestStatus } from "../api/types";
+import { getPharmacistActionErrorMessage } from "../lib/errorMessage";
 
 const IS_RTL = isRtl();
 const TEXT_START = textAlignStart(IS_RTL);
@@ -69,7 +70,7 @@ function RefillCard({ refill }: { refill: PharmacistRefillRequest }) {
       await mutations.reviewRefill.mutateAsync({ id: refill.id, decision: "approved" });
       showSuccessSheet(t("pharmacist.refillApprovedTitle", "Refill approved"), t("pharmacist.refillApprovedBody", "Moved to preparation."));
     } catch (e) {
-      showErrorSheet(t("pharmacist.actionFailedTitle"), e instanceof Error ? e.message : "");
+      showErrorSheet(t("pharmacist.actionFailedTitle"), getPharmacistActionErrorMessage(e, t, t("pharmacist.actionFailedBody")));
     }
   };
 
@@ -80,7 +81,7 @@ function RefillCard({ refill }: { refill: PharmacistRefillRequest }) {
       showSuccessSheet(t("pharmacist.refillRejectedTitle", "Refill rejected"), t("pharmacist.refillRejectedBody", "The customer has been notified."));
       setShowReject(false);
     } catch (e) {
-      showErrorSheet(t("pharmacist.actionFailedTitle"), e instanceof Error ? e.message : "");
+      showErrorSheet(t("pharmacist.actionFailedTitle"), getPharmacistActionErrorMessage(e, t, t("pharmacist.actionFailedBody")));
     }
   };
 
@@ -89,12 +90,17 @@ function RefillCard({ refill }: { refill: PharmacistRefillRequest }) {
     try {
       await mutations.advanceRefill.mutateAsync({ id: refill.id, nextStatus });
     } catch (e) {
-      showErrorSheet(t("pharmacist.actionFailedTitle"), e instanceof Error ? e.message : "");
+      showErrorSheet(t("pharmacist.actionFailedTitle"), getPharmacistActionErrorMessage(e, t, t("pharmacist.actionFailedBody")));
     }
   };
 
   return (
-    <Pressable onPress={() => setExpanded((v) => !v)} style={[s.card, { backgroundColor: theme.colors.canvas.surface, borderColor: theme.colors.border.default, borderStartColor: color, borderStartWidth: 4 }]}>
+    <Pressable
+      onPress={() => setExpanded((v) => !v)}
+      style={[s.card, { backgroundColor: theme.colors.canvas.surface, borderColor: theme.colors.border.default, borderStartColor: color, borderStartWidth: 4 }]}
+      accessibilityRole="button"
+      accessibilityLabel={t("pharmacist.orderCardLabel", { id: refill.id.slice(-8), customer: refill.customerName })}
+    >
       <View style={[s.row, { justifyContent: "space-between" }]}>
         <View style={{ flex: 1, minWidth: 0 }}>
           <UIText variant="body" weight="bold" numberOfLines={1}>{refill.medicineName}</UIText>

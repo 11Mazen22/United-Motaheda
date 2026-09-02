@@ -1,30 +1,30 @@
 import React, { useCallback, useMemo, useState } from "react";
-import { 
+import {
   ActivityIndicator,
   Linking,
+  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
   View,
-  ActionSheetIOS, Platform, Alert
 } from "react-native";
 import { Image as ExpoImage } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { Screen, Text as UIText, Input, Button, kit, useTheme } from "@pharmacy/ui-native";
+import { Screen, Text as UIText, Input, Button, kit, useTheme, PressableScale } from "@pharmacy/ui-native";
 
 import { flexRow, isRtl, textAlignStart, valueTextAlign } from "@/utils/layout";
 import { useScreenLayout } from "@/utils/responsive";
 import { formatPrice } from "@/utils/format";
-import { supabase } from "@/lib/supabase";
 import { showErrorSheet, showSuccessSheet } from "@/shared/store/appSheetStore";
 import { findBranchById } from "@/features/delivery/branches/data";
 import { getPaymentMeta, getPaymentStatusDisplay } from "@/features/orders/components/OrderDetailHelpers";
 
-import { usePharmacistOrder, useOrderDeliveryAssignment, useOrderTimeline, useActiveDeliveryIssue } from "../hooks/usePharmacistQueries";
+import { usePharmacistOrder, useOrderDeliveryAssignment, useOrderTimeline, useActiveDeliveryIssue, useActiveReturnRequest } from "../hooks/usePharmacistQueries";
 import { usePharmacistMutations } from "../hooks/usePharmacistMutations";
 import { PharmacistScreenHeader } from "../components/PharmacistScreenHeader";
 import { OrderStatusChip } from "../components/OrderStatusChip";
@@ -32,6 +32,7 @@ import { PharmacistActionDock } from "../components/PharmacistActionDock";
 import { getOrderAttentionReason } from "../domain/orderAttention";
 import { getPharmacistActionTargets } from "../domain/orderActions";
 import type { PharmacistTransitionTarget, OrderTimelineEvent, DeliveryAssignmentStatus, DeliveryIssueReasonCode } from "../api/types";
+import { getPharmacistActionErrorMessage } from "../lib/errorMessage";
 
 const IS_RTL = isRtl();
 const TEXT_START = textAlignStart(IS_RTL);
@@ -39,6 +40,63 @@ const TEXT_START = textAlignStart(IS_RTL);
 const VALID_TRANSITION_TARGETS = new Set<PharmacistTransitionTarget>([
   "verification", "payment_pending", "payment_approved", "preparing", "ready", "cancelled",
 ]);
+
+/** Mirrors get_order_actions()'s pharmacist/admin/manager reason list
+ * exactly (supabase/migrations -- the RPC's role branch for
+ * 'pharmacist' OR 'admin' OR 'manager'). Hardcoded rather than fetched
+ * live: the list is a static, role-keyed constant server-side too (not
+ * order-specific), and execute_order_cancellation stores whatever
+ * p_reason_code string it's given without validating it against this
+ * list -- so there's nothing this screen gains from a network round trip
+ * that a local mirror of the same constant doesn't already give it. */
+const PHARMACIST_CANCEL_REASONS = [
+  "PRODUCT_UNAVAILABLE",
+  "STOCK_MISMATCH",
+  "PRESCRIPTION_REJECTED",
+  "PRESCRIPTION_UNCLEAR",
+  "PHARMACY_CANNOT_FULFILL",
+  "PHARMACY_CLOSED",
+  "OTHER",
+] as const;
+
+function CancelReasonSheet({ visible, onSelect, onDismiss }: {
+  visible: boolean;
+  onSelect: (reason: string) => void;
+  onDismiss: () => void;
+}) {
+  const { t } = useTranslation();
+  const { theme } = useTheme();
+  const insets = useSafeAreaInsets();
+
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onDismiss}>
+      <Pressable style={s.sheetBackdrop} onPress={onDismiss} accessibilityRole="button" accessibilityLabel={t("common.cancel")} />
+      <View style={[s.sheetCard, { backgroundColor: theme.colors.canvas.surface, paddingBottom: Math.max(insets.bottom, 16) }]}>
+        <View style={s.sheetHandle} />
+        <UIText variant="card-title" style={{ textAlign: "center", marginBottom: 12 }}>
+          {t("pharmacist.cancelReasonPickerTitle", "Select a reason")}
+        </UIText>
+        <ScrollView style={s.sheetScroll} showsVerticalScrollIndicator={false}>
+          {PHARMACIST_CANCEL_REASONS.map((code) => (
+            <PressableScale
+              key={code}
+              onPress={() => onSelect(code)}
+              style={[s.sheetRow, { borderColor: theme.colors.border.default }]}
+              accessibilityRole="button"
+            >
+              <UIText variant="body-sm">{t(`pharmacist.cancelReasons.${code}`, code)}</UIText>
+            </PressableScale>
+          ))}
+        </ScrollView>
+        <Pressable onPress={onDismiss} style={s.sheetCancelBtn} accessibilityRole="button">
+          <UIText variant="body-sm" weight="bold" style={{ color: theme.colors.brand.primary }}>
+            {t("common.cancel")}
+          </UIText>
+        </Pressable>
+      </View>
+    </Modal>
+  );
+}
 
 function actionLabel(target: PharmacistTransitionTarget, t: (k: string) => string): string {
   switch (target) {
@@ -122,7 +180,7 @@ function IssueBanner({ orderId, issue, theme }: {
       showSuccessSheet(t("pharmacist.issueResolvedTitle", "Issue resolved"), t("pharmacist.issueResolvedBody", "The delivery issue has been marked resolved."));
       setExpanded(false);
     } catch (e) {
-      showErrorSheet(t("pharmacist.actionFailedTitle"), e instanceof Error ? e.message : "");
+      showErrorSheet(t("pharmacist.actionFailedTitle"), getPharmacistActionErrorMessage(e, t, t("pharmacist.actionFailedBody")));
     }
   };
 
@@ -174,12 +232,7 @@ export function PharmacistOrderDetailScreen(): React.ReactElement {
   const dateLocale = i18n.language === "ar" ? "ar-EG" : "en-US";
   const { id } = useLocalSearchParams<{ id: string }>();
   const { theme } = useTheme();
-  const [actionsState, setActionsState] = useState<any>(null);
-  React.useEffect(() => {
-    if (id) {
-      supabase.rpc("get_order_actions", { p_order_id: id }).then(({ data }) => setActionsState(data as any));
-    }
-  }, [id]);
+  const [showCancelReasons, setShowCancelReasons] = useState(false);
   const router = useRouter();
   const { pagePad, isTablet } = useScreenLayout();
 
@@ -192,6 +245,7 @@ export function PharmacistOrderDetailScreen(): React.ReactElement {
   const assignmentQuery = useOrderDeliveryAssignment(id, showDriverSection);
   const timelineQuery = useOrderTimeline(id);
   const issueQuery = useActiveDeliveryIssue(id);
+  const returnRequestQuery = useActiveReturnRequest(id);
 
   const [noteDraft, setNoteDraft] = useState("");
   const handleAddNote = useCallback(async () => {
@@ -200,7 +254,7 @@ export function PharmacistOrderDetailScreen(): React.ReactElement {
       await mutations.addNote.mutateAsync({ orderId: id, body: noteDraft.trim() });
       setNoteDraft("");
     } catch (e) {
-      showErrorSheet(t("pharmacist.actionFailedTitle"), e instanceof Error ? e.message : "");
+      showErrorSheet(t("pharmacist.actionFailedTitle"), getPharmacistActionErrorMessage(e, t, t("pharmacist.actionFailedBody")));
     }
   }, [id, noteDraft, mutations.addNote, t]);
 
@@ -214,54 +268,33 @@ export function PharmacistOrderDetailScreen(): React.ReactElement {
       if (!id || !VALID_TRANSITION_TARGETS.has(target as PharmacistTransitionTarget)) return;
       const nextStatus = target as PharmacistTransitionTarget;
       if (nextStatus === "cancelled") {
-        if (Platform.OS === 'ios') {
-          const options = ["PRODUCT_UNAVAILABLE","STOCK_MISMATCH","PRESCRIPTION_REJECTED","PRESCRIPTION_UNCLEAR","PHARMACY_CANNOT_FULFILL","PHARMACY_CLOSED","OTHER"].concat(['Cancel']);
-          ActionSheetIOS.showActionSheetWithOptions({
-            options,
-            cancelButtonIndex: options.length - 1,
-            title: 'Select Cancellation Reason'
-          }, async (btnIdx: number) => {
-             if (btnIdx !== options.length - 1) {
-                const reason = options[btnIdx];
-                try {
-                  await mutations.advance.mutateAsync({ orderId: id, nextStatus, reason } as any);
-                  showSuccessSheet(t("pharmacist.cancelledTitle"), t("pharmacist.cancelledBody"));
-                } catch(e: any) { Alert.alert('Error', e.message); }
-             }
-          });
-        } else {
-            // Android Alert
-            const rList = actionsState?.cancel?.reasons || [];
-            Alert.alert(
-                'Cancel Order',
-                'Select a cancellation reason:',
-                [
-                    { text: 'Cancel', style: 'cancel' },
-                    ...rList.slice(0, 2).map((r: string) => ({
-                        text: r,
-                        onPress: async () => {
-                            try {
-                                await mutations.advance.mutateAsync({ orderId: id, nextStatus, reason: r } as any);
-                                showSuccessSheet(t("pharmacist.cancelledTitle"), t("pharmacist.cancelledBody"));
-                            } catch(e: any) { Alert.alert('Error', e.message); }
-                        }
-                    }))
-                ]
-            );
-        }
+        setShowCancelReasons(true);
         return;
       }
       try {
         await mutations.advance.mutateAsync({ orderId: id, nextStatus });
-        if (target === "cancelled") {
-          showSuccessSheet(t("pharmacist.cancelledTitle"), t("pharmacist.cancelledBody"));
-        } else {
-          showSuccessSheet(t("pharmacist.advancedTitle"), t("pharmacist.advancedBody"));
-        }
+        showSuccessSheet(t("pharmacist.advancedTitle"), t("pharmacist.advancedBody"));
       } catch (e) {
         showErrorSheet(
           t("pharmacist.actionFailedTitle"),
-          e instanceof Error ? e.message : t("pharmacist.actionFailedBody"),
+          getPharmacistActionErrorMessage(e, t, t("pharmacist.actionFailedBody")),
+        );
+      }
+    },
+    [id, mutations.advance, t],
+  );
+
+  const handleCancelWithReason = useCallback(
+    async (reason: string) => {
+      if (!id) return;
+      setShowCancelReasons(false);
+      try {
+        await mutations.advance.mutateAsync({ orderId: id, nextStatus: "cancelled", reason });
+        showSuccessSheet(t("pharmacist.cancelledTitle"), t("pharmacist.cancelledBody"));
+      } catch (e) {
+        showErrorSheet(
+          t("pharmacist.actionFailedTitle"),
+          getPharmacistActionErrorMessage(e, t, t("pharmacist.actionFailedBody")),
         );
       }
     },
@@ -317,7 +350,10 @@ export function PharmacistOrderDetailScreen(): React.ReactElement {
   }
 
   const isUrgent = (order.ageMs ?? 0) > 30 * 60_000;
-  const branchName = order.branchId ? (findBranchById(order.branchId)?.nameAr ?? order.branchId) : null;
+  const orderBranch = order.branchId ? findBranchById(order.branchId) : null;
+  const branchName = orderBranch
+    ? (i18n.language === "ar" ? orderBranch.nameAr : orderBranch.nameEn)
+    : order.branchId;
 
   // getPharmacistActionTargets already lists the sensible default transition
   // first for every status, and PharmacistActionDock already treats index 0
@@ -399,6 +435,31 @@ export function PharmacistOrderDetailScreen(): React.ReactElement {
             of and stackable with a prescription attention reason. */}
         {issueQuery.data && (
           <IssueBanner orderId={order.id} issue={issueQuery.data} theme={theme} />
+        )}
+
+        {/* Return awaiting inspection — this order has a return_requests row
+            in INSPECTION with no other surface anywhere in the app pointing
+            at it; without this the screen it belongs to (return/[id].tsx)
+            was unreachable. */}
+        {returnRequestQuery.data && (
+          <Animated.View entering={FadeIn.duration(220)}>
+            <Pressable
+              onPress={() => router.push(`/(pharmacist)/return/${order.id}` as never)}
+              style={[s.attentionBanner, { flexDirection: flexRow(IS_RTL), backgroundColor: `${theme.colors.status.warning}14`, borderColor: theme.colors.status.warning }]}
+              accessibilityRole="button"
+            >
+              <Ionicons name="return-up-back" size={18} color={theme.colors.status.warning} />
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <UIText variant="body-sm" weight="bold" style={{ textAlign: TEXT_START, color: theme.colors.status.warning }}>
+                  {t("pharmacist.returnBannerTitle", "Return in progress")}
+                </UIText>
+                <UIText variant="caption" color="secondary" style={{ textAlign: TEXT_START }}>
+                  {t("pharmacist.returnBannerSubtitle", "This order has an active return request")}
+                </UIText>
+              </View>
+              <Ionicons name={IS_RTL ? "chevron-back" : "chevron-forward"} size={16} color={theme.colors.text.muted} />
+            </Pressable>
+          </Animated.View>
         )}
 
         {/* Customer — identity + contact only. Name sits in its own flexed,
@@ -637,6 +698,12 @@ export function PharmacistOrderDetailScreen(): React.ReactElement {
         loading={mutations.advance.isPending}
         onAction={handleAdvance}
       />
+
+      <CancelReasonSheet
+        visible={showCancelReasons}
+        onSelect={(reason) => void handleCancelWithReason(reason)}
+        onDismiss={() => setShowCancelReasons(false)}
+      />
     </Screen>
   );
 }
@@ -644,6 +711,31 @@ export function PharmacistOrderDetailScreen(): React.ReactElement {
 const s = StyleSheet.create({
   centered: { alignItems: "center", justifyContent: "center", flex: 1 },
   scroll: { paddingBottom: 100 },
+  sheetBackdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)" },
+  sheetCard: {
+    borderTopStartRadius: 24,
+    borderTopEndRadius: 24,
+    paddingTop: 10,
+    paddingHorizontal: 20,
+  },
+  sheetHandle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: "rgba(128,128,128,0.4)",
+    alignSelf: "center",
+    marginBottom: 14,
+  },
+  sheetScroll: { maxHeight: 360 },
+  sheetRow: {
+    paddingVertical: 14,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  sheetCancelBtn: {
+    alignItems: "center",
+    paddingVertical: 16,
+    marginTop: 4,
+  },
   topCard: {
     padding: kit.inset.screen,
     borderBottomWidth: 1,

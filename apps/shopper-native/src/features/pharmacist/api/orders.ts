@@ -281,6 +281,29 @@ export async function resolveDeliveryIssue(issueId: string, resolutionNote: stri
 }
 
 /**
+ * Whether this order has a return_requests row sitting in INSPECTION —
+ * the one status ReturnInspectionScreen (app/(pharmacist)/return/[id].tsx)
+ * actually knows how to act on (transition_return_status only allows
+ * APPROVED_FOR_REFUND from INSPECTION or APPROVED). Existed with a fully
+ * built screen and zero navigation entry point anywhere in the app before
+ * this — a return could reach INSPECTION server-side with no way for a
+ * pharmacist to discover or act on it.
+ */
+export async function getActiveReturnRequestId(orderId: string): Promise<string | null> {
+  const { data, error } = await supabase
+    .from("return_requests")
+    .select("id")
+    .eq("order_id", orderId)
+    .eq("status", "INSPECTION")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw error;
+  return (data as { id: string } | null)?.id ?? null;
+}
+
+/**
  * Appends a staff note to an order's internal log (order_notes, staff-only
  * visibility). A plain insert is safe here — unlike a status transition,
  * there's no server-side rule to validate, just an append-only record —
@@ -386,13 +409,25 @@ export async function getOrderCountsByDate(dateISO: string): Promise<{
 }
 
 /**
- * Fetch pending return requests that need pharmacist review.
+ * Fetch return requests actually waiting on a pharmacist decision.
+ *
+ * Was broken before this: filtered on status = 'pending_review', which
+ * isn't a value in the return_status enum at all (REQUESTED, UNDER_REVIEW,
+ * ..., INSPECTION, ...) -- every call would have errored (unknown enum
+ * value) or returned nothing, and return_items(product_id, quantity)
+ * selected two columns that don't exist on that table (the real ones are
+ * order_item_id and requested_quantity). Never caught because nothing
+ * calls this yet -- see usePharmacistReturns().
+ *
+ * REQUESTED/UNDER_REVIEW need an initial admit/decline decision;
+ * INSPECTION is the item-by-item review this app's return-inspection
+ * screen (app/(pharmacist)/return/[id].tsx) actually acts on.
  */
 export async function listPendingReturns() {
   const { data, error } = await supabase
     .from("return_requests")
-    .select("*, order:orders(id, customer_name, total), return_items(product_id, quantity)")
-    .eq("status", "pending_review")
+    .select("*, order:orders(id, customer_name, total), return_items(order_item_id, requested_quantity)")
+    .in("status", ["REQUESTED", "UNDER_REVIEW", "INSPECTION"])
     .order("created_at", { ascending: true });
 
   if (error) throw error;

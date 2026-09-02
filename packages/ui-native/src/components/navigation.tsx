@@ -22,6 +22,7 @@ import Animated, {
 } from "react-native-reanimated";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTranslation } from "react-i18next";
 
 // Local & Theme Imports
 import { legacyColors } from "@pharmacy/design-tokens";
@@ -320,7 +321,8 @@ export function ScreenHeader({
   style,
 }: ScreenHeaderProps): React.ReactElement {
   const { theme, isRTL } = useTheme();
-  
+  const { t } = useTranslation();
+
   const backIcon: IoniconsName = isRTL ? "chevron-forward" : "chevron-back";
   const isStart = align === "start";
   const isFloating = backStyle === "floating";
@@ -338,7 +340,7 @@ export function ScreenHeader({
         {onBack && (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Back"
+            accessibilityLabel={t("common.back")}
             onPress={onBack}
             hitSlop={8}
             style={[
@@ -368,7 +370,7 @@ export function ScreenHeader({
         )}
       </View>
 
-      <View style={[navStyles.headerSide, { alignItems: isRTL ? "flex-start" : "flex-end" }]}>
+      <View style={[trailing ? navStyles.headerSideAuto : navStyles.headerSide, { alignItems: isRTL ? "flex-start" : "flex-end" }]}>
         {trailing ? (
           trailing
         ) : rightAction ? (
@@ -412,6 +414,11 @@ const navStyles = StyleSheet.create({
   badgeCountText: { fontSize: 9, lineHeight: 11, fontWeight: "700", textAlign: "center" },
   headerContainer: { flexDirection: "row", height: 56, alignItems: "center", justifyContent: "space-between", paddingHorizontal: 8 },
   headerSide: { width: 48, justifyContent: "center" },
+  // A custom `trailing` node is usually a text action ("Mark all read"),
+  // which cannot survive the fixed 48px icon-sized slot -- it wrapped into
+  // a clipped one-word-per-line column. Size to content instead, keeping
+  // 48 as the floor so a bare icon still balances the back button.
+  headerSideAuto: { minWidth: 48, flexShrink: 0, justifyContent: "center" },
   headerCenter: { flex: 1, justifyContent: "center", paddingHorizontal: 8 },
   headerCenterStart: { alignItems: "flex-start" },
   headerIconButton: { padding: 8 },

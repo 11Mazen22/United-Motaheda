@@ -37,7 +37,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { gradients } from "@pharmacy/design-tokens";
 
-import { Screen, Text as UIText, EmptyState, useTheme, type NativeTheme } from "@pharmacy/ui-native";
+import { Screen, Text as UIText, EmptyState, useTheme, PressableScale, type NativeTheme } from "@pharmacy/ui-native";
 
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
 import { useScreenLayout } from "@/utils/responsive";
@@ -142,14 +142,14 @@ function ProductCard({
 
           {/* Scan button */}
           {product.barcode && (
-            <Pressable
+            <PressableScale
               onPress={() => onScan(product.barcode!)}
-              style={({ pressed }) => [styles.scanBtn, pressed && { opacity: 0.75 }, { backgroundColor: colors.brand.primaryLight, borderColor: colors.line }]}
+              style={[styles.scanBtn, { backgroundColor: colors.brand.primaryLight, borderColor: colors.line }]}
               accessibilityRole="button"
               accessibilityLabel={t("pharmacist.scannerTitle")}
             >
               <Ionicons name="barcode-outline" size={14} color={colors.brand.primaryDark} />
-            </Pressable>
+            </PressableScale>
           )}
         </View>
       </View>
@@ -276,7 +276,12 @@ export function InventoryIntelligenceScreen(): React.ReactElement {
           returnKeyType="search"
         />
         {rawQuery.length > 0 && (
-          <Pressable onPress={() => { setRawQuery(""); setTab("lowstock"); }} hitSlop={8}>
+          <Pressable
+            onPress={() => { setRawQuery(""); setTab("lowstock"); }}
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel={t("common.clear", "Clear")}
+          >
             <Ionicons name="close-circle" size={16} color={theme.colors.text.muted} />
           </Pressable>
         )}
@@ -299,7 +304,8 @@ export function InventoryIntelligenceScreen(): React.ReactElement {
                 if (tabKey !== "search") setRawQuery("");
               }}
               style={[styles.tab, { backgroundColor: active ? theme.colors.brand.primary : theme.colors.canvas.surfaceMuted, borderColor: active ? theme.colors.brand.primary : theme.colors.border.default }]}
-              accessibilityRole="button"
+              accessibilityRole="tab"
+              accessibilityState={{ selected: active }}
             >
               <UIText style={[styles.tabText, { color: active ? theme.colors.text.inverse : theme.colors.text.secondary }]}>
                 {labels[tabKey]}

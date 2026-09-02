@@ -1,8 +1,9 @@
 import React, { useMemo } from "react";
-import { Pressable, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import { Text as UIText, useTheme } from "@pharmacy/ui-native";
+import { useAppLanguage } from "@/i18n/LanguageProvider";
+import { Text as UIText, useTheme, PressableScale } from "@pharmacy/ui-native";
 import { FORWARD_CHEVRON, flexRow, isRtl } from "@/utils/layout";
 import { formatPrice } from "@/utils/format";
 import { findBranchById } from "@/features/delivery/branches/data";
@@ -37,9 +38,11 @@ function formatAge(ms: number): string {
 export function OrderQueueCard({ order, onPress }: Props) {
   const { t } = useTranslation();
   const { theme } = useTheme();
+  const { language } = useAppLanguage();
   const isUrgent = (order.ageMs ?? 0) > 30 * 60_000;
   const attention = getOrderAttentionReason(order);
-  const branchName = order.branchId ? findBranchById(order.branchId)?.nameAr ?? null : null;
+  const branch = order.branchId ? findBranchById(order.branchId) : null;
+  const branchName = branch ? (language === "ar" ? branch.nameAr : branch.nameEn) : null;
   const primaryAction = getPrimaryAction(order);
 
   const accentColor = attention === "prescription_rejected" ? theme.colors.status.error
@@ -54,9 +57,6 @@ export function OrderQueueCard({ order, onPress }: Props) {
       borderWidth: 1,
       gap: 10,
       ...theme.shadows[1],
-    },
-    cardPressed: {
-      opacity: 0.85,
     },
     row: {
       flexDirection: flexRow(IS_RTL),
@@ -104,15 +104,14 @@ export function OrderQueueCard({ order, onPress }: Props) {
   }), [theme]);
 
   return (
-    <Pressable
+    <PressableScale
       onPress={onPress}
-      style={({ pressed }) => [
+      style={[
         styles.card,
-        pressed && styles.cardPressed,
-        { borderStartColor: accentColor, borderStartWidth: 4, backgroundColor: pressed ? theme.colors.canvas.surfaceMuted : theme.colors.canvas.surface, borderColor: theme.colors.border.default },
+        { borderStartColor: accentColor, borderStartWidth: 4, backgroundColor: theme.colors.canvas.surface, borderColor: theme.colors.border.default },
       ]}
       accessibilityRole="button"
-      accessibilityLabel={`Order ${order.id.slice(-8)} for ${order.customerName}`}
+      accessibilityLabel={t("pharmacist.orderCardLabel", { id: order.id.slice(-8), customer: order.customerName })}
     >
       {/* Identity */}
       <View style={styles.identityRow}>
@@ -163,6 +162,6 @@ export function OrderQueueCard({ order, onPress }: Props) {
           <Ionicons name={FORWARD_CHEVRON} size={12} color={accentColor} />
         </View>
       </View>
-    </Pressable>
+    </PressableScale>
   );
 }

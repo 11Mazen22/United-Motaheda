@@ -8,7 +8,7 @@
  * sign-up — same fix already applied for driver/customer.
  */
 import React, { useMemo } from "react";
-import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { ScrollView, StyleSheet, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -16,7 +16,7 @@ import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { gradients } from "@pharmacy/design-tokens";
 
-import { Screen, Text as UIText, useTheme, kit, type NativeTheme } from "@pharmacy/ui-native";
+import { Screen, Text as UIText, useTheme, kit, PressableScale, type NativeTheme } from "@pharmacy/ui-native";
 import { fmtN } from "@/utils/format";
 
 import { useAuth } from "@/features/auth";
@@ -56,13 +56,9 @@ function MenuRow({ icon, label, onPress, danger = false }: MenuRowProps) {
     },
   }), [theme]);
   return (
-    <Pressable
+    <PressableScale
       onPress={onPress}
-      style={({ pressed }) => [
-        styles.menuRow,
-        pressed && { backgroundColor: theme.colors.canvas.surfaceMuted },
-        { flexDirection: flexRow(IS_RTL) },
-      ]}
+      style={[styles.menuRow, { flexDirection: flexRow(IS_RTL) }]}
       accessibilityRole="button"
     >
       <View style={[styles.menuIcon, { backgroundColor: danger ? `${theme.colors.status.error}1A` : theme.colors.brand.primaryLight }]}>
@@ -76,7 +72,7 @@ function MenuRow({ icon, label, onPress, danger = false }: MenuRowProps) {
         {label}
       </UIText>
       {!danger && <Ionicons name={FORWARD_CHEVRON} size={14} color={theme.colors.text.muted} />}
-    </Pressable>
+    </PressableScale>
   );
 }
 
@@ -107,7 +103,10 @@ export function PharmacistProfileScreen(): React.ReactElement {
     enabled: Boolean(user?.id),
     staleTime: 60_000,
   });
-  const branchName = branchQ.data ? findBranchById(branchQ.data)?.nameAr ?? branchQ.data : null;
+  const profileBranch = branchQ.data ? findBranchById(branchQ.data) : null;
+  const branchName = profileBranch
+    ? (language === "ar" ? profileBranch.nameAr : profileBranch.nameEn)
+    : branchQ.data;
 
   const displayName = user?.name?.trim() || displayNameFromEmail(user?.email) || t("pharmacist.unnamed");
 

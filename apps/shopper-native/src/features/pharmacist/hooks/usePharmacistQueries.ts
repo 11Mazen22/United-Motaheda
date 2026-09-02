@@ -18,6 +18,7 @@ import {
   getOrderDeliveryAssignment,
   getOrderTimeline,
   getActiveDeliveryIssue,
+  getActiveReturnRequestId,
   listPendingReturns,
 }                                      from "../api/orders";
 import {
@@ -94,6 +95,16 @@ export function useActiveDeliveryIssue(orderId: string | null | undefined) {
   return useQuery({
     queryKey: [...pharmacistQueryKeys.order(orderId ?? ""), "delivery-issue"],
     queryFn:  () => getActiveDeliveryIssue(orderId!),
+    enabled:  Boolean(orderId),
+    ...BASE,
+    staleTime: 15_000,
+  });
+}
+
+export function useActiveReturnRequest(orderId: string | null | undefined) {
+  return useQuery({
+    queryKey: [...pharmacistQueryKeys.order(orderId ?? ""), "return-request"],
+    queryFn:  () => getActiveReturnRequestId(orderId!),
     enabled:  Boolean(orderId),
     ...BASE,
     staleTime: 15_000,

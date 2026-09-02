@@ -73,7 +73,7 @@ import Animated, {
 
 
 
-import { Screen, Text as UIText, useTheme, sheetMotion } from "@pharmacy/ui-native";
+import { Screen, Text as UIText, useTheme, sheetMotion, PressableScale } from "@pharmacy/ui-native";
 
 import { kit }                    from "@pharmacy/ui-native";
 
@@ -161,11 +161,11 @@ function PermissionGate({ onRequest }: { onRequest: () => void }) {
 
       </UIText>
 
-      <Pressable
+      <PressableScale
 
         onPress={onRequest}
 
-        style={({ pressed }) => [pgStyles.btn, pressed && pgStyles.btnPressed]}
+        style={pgStyles.btn}
 
         accessibilityRole="button"
 
@@ -177,7 +177,7 @@ function PermissionGate({ onRequest }: { onRequest: () => void }) {
 
         </UIText>
 
-      </Pressable>
+      </PressableScale>
 
     </View>
 
@@ -451,7 +451,7 @@ function ProductCard({
 
       {/* Dismiss */}
 
-      <Pressable onPress={onDismiss} style={rcStyles.close} hitSlop={12} accessibilityRole="button">
+      <Pressable onPress={onDismiss} style={rcStyles.close} hitSlop={12} accessibilityRole="button" accessibilityLabel={t("common.close", "Close")}>
 
         <Ionicons name="close-circle" size={22} color={theme.colors.text.muted} />
 
@@ -601,7 +601,7 @@ function ProductCard({
 
           <View style={[rcStyles.adjustRow, { flexDirection: flexRow(IS_RTL) }]}>
 
-            <Pressable onPress={() => onAdjust(-1)} style={rcStyles.adjustBtn} accessibilityRole="button">
+            <Pressable onPress={() => onAdjust(-1)} style={rcStyles.adjustBtn} accessibilityRole="button" accessibilityLabel={t("common.decrement")}>
 
               <Ionicons name="remove" size={18} color={theme.colors.brand.primary} />
 
@@ -619,7 +619,7 @@ function ProductCard({
 
             </View>
 
-            <Pressable onPress={() => onAdjust(1)} style={rcStyles.adjustBtn} accessibilityRole="button">
+            <Pressable onPress={() => onAdjust(1)} style={rcStyles.adjustBtn} accessibilityRole="button" accessibilityLabel={t("common.increment")}>
 
               <Ionicons name="add" size={18} color={theme.colors.brand.primary} />
 
@@ -1298,7 +1298,9 @@ export function BarcodeScannerScreen(): React.ReactElement {
 
             style={[styles.modeBtn, mode === m && styles.modeBtnActive]}
 
-            accessibilityRole="button"
+            accessibilityRole="tab"
+
+            accessibilityState={{ selected: mode === m }}
 
           >
 
@@ -1378,9 +1380,11 @@ export function BarcodeScannerScreen(): React.ReactElement {
 
           style={[styles.iconCircle, torchOn && styles.iconCircleActive]}
 
-          accessibilityRole="button"
+          accessibilityRole="switch"
 
           accessibilityLabel={t("pharmacist.scannerTorch", "الفلاش")}
+
+          accessibilityState={{ checked: torchOn }}
 
         >
 
@@ -1446,7 +1450,7 @@ export function BarcodeScannerScreen(): React.ReactElement {
 
           ) : null}
 
-          <Pressable onPress={dismissResult} hitSlop={10}>
+          <Pressable onPress={dismissResult} hitSlop={14} accessibilityRole="button" accessibilityLabel={t("common.close", "Close")}>
 
             <Ionicons name="close" size={14} color={theme.colors.status.error} />
 
