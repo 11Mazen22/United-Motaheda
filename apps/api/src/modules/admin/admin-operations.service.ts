@@ -5,6 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { FileUploadService } from '../driver/file-upload.service';
 
 function addressText(value: unknown): string {
   if (typeof value === 'string') return value;
@@ -46,7 +47,10 @@ function normalizeOrderStatus(value: string): string {
 
 @Injectable()
 export class AdminOperationsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly fileUploadService: FileUploadService,
+  ) {}
 
   async listDrivers(page = 1, limit = 20, status?: string) {
     const safePage = Math.max(1, page);
@@ -68,7 +72,7 @@ export class AdminOperationsService {
       limit: safeLimit,
       total,
       totalPages: Math.ceil(total / safeLimit),
-      drivers: drivers.map((driver) => this.mapDriver(driver)),
+      drivers: await Promise.all(drivers.map((driver) => this.mapDriver(driver))),
     };
   }
 
@@ -78,7 +82,7 @@ export class AdminOperationsService {
       include: { user: true },
     });
     if (!driver) throw new NotFoundException('Driver not found');
-    return this.mapDriver(driver);
+    return await this.mapDriver(driver);
   }
 
   async approveDriver(driverId: string, adminUserId?: string) {
@@ -390,7 +394,21 @@ export class AdminOperationsService {
     };
   }
 
-  private mapDriver(driver: any) {
+  /** driver-documents is a private bucket (confirmed: storage.buckets.public
+   * = false) -- the DB only ever stores the getPublicUrl()-shaped string
+   * (see shopper-native's uploadDriverDocument), which 403s if fetched
+   * directly. Admins reviewing an application need to actually see the
+   * license/ID/vehicle/insurance photos, so every URL is resolved to a
+   * short-lived signed URL here, once, server-side -- not left for the
+   * admin frontend to guess at. */
+  private async mapDriver(driver: any) {
+    const [licensePhotoUrl, idPhotoUrl, vehiclePhotoUrl, insurancePhotoUrl] = await Promise.all([
+      driver.licensePhotoUrl ? this.fileUploadService.getSignedUrl(driver.licensePhotoUrl) : null,
+      driver.idPhotoUrl ? this.fileUploadService.getSignedUrl(driver.idPhotoUrl) : null,
+      driver.vehiclePhotoUrl ? this.fileUploadService.getSignedUrl(driver.vehiclePhotoUrl) : null,
+      driver.insurancePhotoUrl ? this.fileUploadService.getSignedUrl(driver.insurancePhotoUrl) : null,
+    ]);
+
     return {
       id: driver.user.id,
       fullName: driver.user.full_name,
@@ -408,10 +426,10 @@ export class AdminOperationsService {
         totalDeliveries: driver.totalDeliveries,
         totalEarnings: driver.totalEarnings.toString(),
         completionRate: driver.completionRate.toString(),
-        licensePhotoUrl: driver.licensePhotoUrl,
-        idPhotoUrl: driver.idPhotoUrl,
-        vehiclePhotoUrl: driver.vehiclePhotoUrl,
-        insurancePhotoUrl: driver.insurancePhotoUrl,
+        licensePhotoUrl,
+        idPhotoUrl,
+        vehiclePhotoUrl,
+        insurancePhotoUrl,
         rejectionReason: driver.rejectionReason,
         isOnline: driver.isOnline,
         currentLat: driver.currentLat,
