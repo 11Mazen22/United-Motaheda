@@ -379,8 +379,8 @@ export default function AuthLayout({
             <ShieldCheck className="h-3.5 w-3.5 text-slate-300" />
             <span className="text-[11px] font-semibold text-slate-400">
               {isArabic
-                ? "مؤمّن بـ Supabase Auth · تشفير 256-bit SSL"
-                : "Secured by Supabase Auth · 256-bit SSL"}
+                ? "جلسة آمنة ومشفّرة · SSL 256-bit"
+                : "Secure & encrypted · 256-bit SSL"}
             </span>
           </div>
         </div>
