@@ -1,4 +1,4 @@
-import { getSupabaseClient } from "../../lib/supabase";
+import { getSupabaseClient } from "../../lib/supabaseClient";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   CheckBadgeIcon,

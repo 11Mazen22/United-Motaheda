@@ -95,6 +95,7 @@ type PrescriptionRow = {
   admin_notes: string | null;
   rejection_reason: string | null;
   added_at: string;
+  image_path: string | null;
 };
 
 type RefillRequestRow = {

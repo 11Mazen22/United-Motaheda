@@ -144,7 +144,7 @@ function normalizeNumber(value: number | string | null | undefined): number {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-function formatAddress(address: Record<string, unknown> | null | undefined): string {
+export function formatAddress(address: Record<string, unknown> | null | undefined): string {
   const candidate = address ?? {};
 
   if (typeof candidate.formatted === "string" && candidate.formatted.trim()) {
