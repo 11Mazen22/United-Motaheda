@@ -50,6 +50,16 @@ export function OrderQueueCard({ order, onPress }: Props) {
     : isUrgent ? theme.colors.status.warning
     : theme.colors.brand.primary;
 
+  // accentColor above is for the card's left border only -- status.* is
+  // tuned for icon/border use (~3:1), not text-on-tint. The action pill
+  // renders that color as text on its own ~9% tint, which needs the pair
+  // this design system actually built for that (statusSoft.*, verified
+  // against packages/design-tokens/semantic.ts).
+  const accentSoft = attention === "prescription_rejected" ? theme.colors.statusSoft.error
+    : attention ? theme.colors.statusSoft.warning
+    : isUrgent ? theme.colors.statusSoft.warning
+    : { bg: theme.colors.brand.primaryLight, text: theme.colors.brand.primaryDark };
+
   const styles = useMemo(() => StyleSheet.create({
     card: {
       borderRadius: 14,
@@ -140,13 +150,13 @@ export function OrderQueueCard({ order, onPress }: Props) {
 
       {/* Operational state — attention strip takes priority over everything else */}
       {attention && (
-        <View style={[styles.attentionStrip, { backgroundColor: attention === "prescription_rejected" ? `${theme.colors.status.error}14` : `${theme.colors.status.warning}14` }]}>
+        <View style={[styles.attentionStrip, { backgroundColor: attention === "prescription_rejected" ? theme.colors.statusSoft.error.bg : theme.colors.statusSoft.warning.bg }]}>
           <Ionicons
             name={attention === "prescription_rejected" ? "close-circle" : "document-text"}
             size={13}
-            color={attention === "prescription_rejected" ? theme.colors.status.error : theme.colors.status.warning}
+            color={attention === "prescription_rejected" ? theme.colors.statusSoft.error.text : theme.colors.statusSoft.warning.text}
           />
-          <UIText variant="caption" weight="bold" style={{ color: attention === "prescription_rejected" ? theme.colors.status.error : theme.colors.status.warning }}>
+          <UIText variant="caption" weight="bold" style={{ color: attention === "prescription_rejected" ? theme.colors.statusSoft.error.text : theme.colors.statusSoft.warning.text }}>
             {t(attention === "prescription_rejected" ? "pharmacist.attentionPrescriptionRejected" : "pharmacist.attentionPrescriptionPending")}
           </UIText>
         </View>
@@ -155,11 +165,11 @@ export function OrderQueueCard({ order, onPress }: Props) {
       {/* Footer: price + contextual next action */}
       <View style={styles.footerRow}>
         <UIText variant="body" weight="bold">{formatPrice(order.total)}</UIText>
-        <View style={[styles.actionPill, { backgroundColor: `${accentColor}17` }]}>
-          <UIText variant="caption" weight="bold" style={{ color: accentColor }}>
+        <View style={[styles.actionPill, { backgroundColor: accentSoft.bg }]}>
+          <UIText variant="caption" weight="bold" style={{ color: accentSoft.text }}>
             {t(primaryActionLabelKey(primaryAction))}
           </UIText>
-          <Ionicons name={FORWARD_CHEVRON} size={12} color={accentColor} />
+          <Ionicons name={FORWARD_CHEVRON} size={12} color={accentSoft.text} />
         </View>
       </View>
     </PressableScale>

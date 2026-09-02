@@ -55,29 +55,36 @@ export function OrderStatusChip({ status, size = "md" }: Props) {
 
   const { theme } = useTheme();
 
+  // color is rendered as both icon tint and label text on top of bg, so it
+  // needs real text contrast, not the ~3:1 icon/border-tuned status.* or
+  // brand.primary tokens directly. statusSoft.{success,warning,error}
+  // (packages/design-tokens/semantic.ts) is the pair this design system
+  // already built for that; brand.primaryDark-on-primaryLight matches the
+  // same bar for the brand-teal statuses (same fix already used correctly
+  // in InventoryIntelligenceScreen).
   const STATUS_MAP: Record<PharmacistOrderStatus, () => ChipMeta> = useMemo(() => ({
 
-    pending:         () => ({ labelKey: "pharmacist.statusPending",        color: theme.colors.status.warning,       bg: `${theme.colors.status.warning}1A`,    icon: "time-outline"              }),
+    pending:         () => ({ labelKey: "pharmacist.statusPending",        color: theme.colors.statusSoft.warning.text, bg: theme.colors.statusSoft.warning.bg,    icon: "time-outline"              }),
 
-    verification:    () => ({ labelKey: "pharmacist.statusVerification",   color: theme.colors.brand.primary,     bg: theme.colors.brand.primaryLight,  icon: "shield-checkmark-outline"  }),
+    verification:    () => ({ labelKey: "pharmacist.statusVerification",   color: theme.colors.brand.primaryDark, bg: theme.colors.brand.primaryLight,  icon: "shield-checkmark-outline"  }),
 
-    payment_pending: () => ({ labelKey: "pharmacist.statusPaymentPending", color: theme.colors.brand.primary, bg: theme.colors.brand.primaryLight,  icon: "card-outline"              }),
+    payment_pending: () => ({ labelKey: "pharmacist.statusPaymentPending", color: theme.colors.brand.primaryDark, bg: theme.colors.brand.primaryLight,  icon: "card-outline"              }),
 
-    payment_approved:() => ({ labelKey: "pharmacist.statusPaymentApproved",color: theme.colors.status.success,    bg: `${theme.colors.status.success}1A`, icon: "checkmark-circle-outline"  }),
+    payment_approved:() => ({ labelKey: "pharmacist.statusPaymentApproved",color: theme.colors.statusSoft.success.text, bg: theme.colors.statusSoft.success.bg, icon: "checkmark-circle-outline"  }),
 
-    preparing:       () => ({ labelKey: "pharmacist.statusPreparing",      color: theme.colors.brand.primary, bg: theme.colors.brand.primaryLight,  icon: "construct-outline"         }),
+    preparing:       () => ({ labelKey: "pharmacist.statusPreparing",      color: theme.colors.brand.primaryDark, bg: theme.colors.brand.primaryLight,  icon: "construct-outline"         }),
 
-    ready:           () => ({ labelKey: "pharmacist.statusReady",          color: theme.colors.brand.primary, bg: theme.colors.brand.primaryLight,  icon: "cube-outline"              }),
+    ready:           () => ({ labelKey: "pharmacist.statusReady",          color: theme.colors.brand.primaryDark, bg: theme.colors.brand.primaryLight,  icon: "cube-outline"              }),
 
     driver_assigned: () => ({ labelKey: "pharmacist.statusDriverAssigned", color: theme.colors.text.secondary,    bg: theme.colors.canvas.surfaceMuted,        icon: "car-outline"               }),
 
     driver_accepted: () => ({ labelKey: "pharmacist.statusDriverAccepted", color: theme.colors.text.secondary,    bg: theme.colors.canvas.surfaceMuted,        icon: "car-sport-outline"         }),
 
-    out_for_delivery:() => ({ labelKey: "pharmacist.statusOutForDelivery", color: theme.colors.brand.primary,     bg: theme.colors.brand.primaryLight,  icon: "navigate-outline"          }),
+    out_for_delivery:() => ({ labelKey: "pharmacist.statusOutForDelivery", color: theme.colors.brand.primaryDark, bg: theme.colors.brand.primaryLight,  icon: "navigate-outline"          }),
 
-    delivered:       () => ({ labelKey: "pharmacist.statusDelivered",      color: theme.colors.status.success,    bg: `${theme.colors.status.success}1A`, icon: "checkmark-done-outline"    }),
+    delivered:       () => ({ labelKey: "pharmacist.statusDelivered",      color: theme.colors.statusSoft.success.text, bg: theme.colors.statusSoft.success.bg, icon: "checkmark-done-outline"    }),
 
-    cancelled:       () => ({ labelKey: "pharmacist.statusCancelled",      color: theme.colors.status.error,     bg: `${theme.colors.status.error}1A`,  icon: "close-circle-outline"      }),
+    cancelled:       () => ({ labelKey: "pharmacist.statusCancelled",      color: theme.colors.statusSoft.error.text, bg: theme.colors.statusSoft.error.bg,  icon: "close-circle-outline"      }),
 
     archived:        () => ({ labelKey: "pharmacist.statusArchived",       color: theme.colors.text.muted,   bg: theme.colors.canvas.surfaceMuted,        icon: "archive-outline"           }),
 

@@ -74,6 +74,14 @@ function RxCard({ rx, onPress, theme, locale, index }: {
     rx.reviewStatus === "approved" ? theme.colors.status.success :
     rx.reviewStatus === "rejected" ? theme.colors.status.error :
     theme.colors.status.warning;
+  // tone above is for the card's left border only (~3:1 is fine there);
+  // the status pill renders a color as text on its own tint and needs
+  // statusSoft's text/bg pair instead -- see OrderStatusChip for the same
+  // fix applied to the equivalent pharmacist order-status pill.
+  const toneSoft =
+    rx.reviewStatus === "approved" ? theme.colors.statusSoft.success :
+    rx.reviewStatus === "rejected" ? theme.colors.statusSoft.error :
+    theme.colors.statusSoft.warning;
   const statusLabelKey =
     rx.reviewStatus === "approved" ? "pharmacist.rxApproved" :
     rx.reviewStatus === "rejected" ? "pharmacist.rxRejected" :
@@ -99,8 +107,8 @@ function RxCard({ rx, onPress, theme, locale, index }: {
               {rx.doctor ? <UIText variant="caption" color="muted" numberOfLines={1}>· Dr. {rx.doctor}</UIText> : null}
             </View>
           </View>
-          <View style={[s.statusPill, { backgroundColor: `${tone}17` }]}>
-            <UIText variant="eyebrow" style={{ color: tone }}>{t(statusLabelKey)}</UIText>
+          <View style={[s.statusPill, { backgroundColor: toneSoft.bg }]}>
+            <UIText variant="eyebrow" style={{ color: toneSoft.text }}>{t(statusLabelKey)}</UIText>
           </View>
         </View>
 
