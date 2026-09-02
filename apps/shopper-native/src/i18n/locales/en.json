@@ -2102,6 +2102,7 @@
     "uploading": "Uploading…",
     "uploaded": "Uploaded",
     "tapToUpload": "Tap to upload",
+    "documentsProgress": "{{done}} of {{total}} uploaded",
     "uploadFailed": "Couldn't upload the photo. Please try again.",
     "submitFailed": "Couldn't submit your application. Please try again.",
     "submit": "Submit application",
@@ -2112,7 +2113,10 @@
     "statusSuspendedTitle": "Account suspended",
     "statusSuspendedBody": "Your driver account has been temporarily suspended. Contact support for details.",
     "statusRejectedTitle": "Application not approved",
-    "statusRejectedBody": "Your application didn't meet our requirements this time."
+    "statusRejectedBody": "Your application didn't meet our requirements this time.",
+    "timelineSubmitted": "Submitted",
+    "timelineReview": "Under review",
+    "timelineDecision": "Decision"
   },
   "pharmacist": {
     "eyebrow": "Pharmacist Workbench",
