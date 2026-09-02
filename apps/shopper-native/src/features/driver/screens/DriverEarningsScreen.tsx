@@ -89,8 +89,8 @@ function EarningRow({ record, theme }: { record: DriverEarningRecord; theme: Nat
         </View>
         <View style={{ alignItems: "flex-end" }}>
           <UIText variant="card-title" weight="black" style={{ color: theme.colors.brand.primary }}>{formatPrice(record.totalAmount)}</UIText>
-          <View style={[s.paidPill, { backgroundColor: record.isPaid ? `${theme.colors.status.success}17` : `${theme.colors.status.warning}17` }]}>
-            <UIText variant="eyebrow" style={{ color: record.isPaid ? theme.colors.status.success : theme.colors.status.warning }}>
+          <View style={[s.paidPill, { backgroundColor: record.isPaid ? theme.colors.statusSoft.success.bg : theme.colors.statusSoft.warning.bg }]}>
+            <UIText variant="eyebrow" style={{ color: record.isPaid ? theme.colors.statusSoft.success.text : theme.colors.statusSoft.warning.text }}>
               {record.isPaid ? t("driver.earningsPaid", "Paid") : t("driver.earningsPending", "Pending")}
             </UIText>
           </View>

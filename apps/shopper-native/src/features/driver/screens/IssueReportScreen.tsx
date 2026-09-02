@@ -242,7 +242,7 @@ function ReasonRow({
   }), [theme]);
 
   return (
-    <Pressable onPress={onPress} style={[s.reasonRow, active && s.reasonRowActive]}>
+    <Pressable onPress={onPress} style={[s.reasonRow, active && s.reasonRowActive]} accessibilityRole="radio" accessibilityState={{ checked: active }}>
       <View style={[s.reasonRowIcon, active && s.reasonRowIconActive]}>
         <Ionicons name={icon} size={16} color={active ? theme.colors.text.inverse : theme.colors.text.secondary} />
       </View>
