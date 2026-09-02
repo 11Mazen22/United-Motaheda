@@ -13,15 +13,18 @@ import { FlatList, RefreshControl, StyleSheet, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useTranslation } from "react-i18next";
+import Animated, { FadeInDown } from "react-native-reanimated";
 import { gradients } from "@pharmacy/design-tokens";
 
-import { Screen, Text as UIText, Chip, EmptyState, SkeletonCard, Button, useTheme, type NativeTheme } from "@pharmacy/ui-native";
+import { Screen, Text as UIText, Card, Chip, EmptyState, SkeletonCard, Button, useTheme, type NativeTheme } from "@pharmacy/ui-native";
 import { useAuth } from "@/features/auth";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
 import { useScreenLayout } from "@/utils/responsive";
 import { formatPrice } from "@/utils/format";
 import { fmtN } from "@/utils/format";
 import { useMyDriverProfile, useMyEarnings } from "../hooks/useDriverProfile";
+import { computeWeeklyEarnings, computeStreakDays } from "../lib/driverMetrics";
+import { WeeklyEarningsChart } from "../components/WeeklyEarningsChart";
 import type { DriverEarningRecord } from "../api";
 
 const IS_RTL = isRtl();
@@ -123,6 +126,33 @@ export function DriverEarningsScreen(): React.ReactElement {
   const totalAmount = filtered.reduce((sum, r) => sum + r.totalAmount, 0);
   const sections = useMemo(() => groupByDay(filtered), [filtered]);
 
+  // Weekly trend is always the real last 7 days regardless of the active
+  // filter chip -- "how am I trending" is a fixed-window question, not one
+  // that should reset to a single bar when the driver taps "Today".
+  const weeklyChartData = useMemo(
+    () => computeWeeklyEarnings(all).map((d) => ({ date: new Date(d.date), total: d.total })),
+    [all],
+  );
+  const streakDays = useMemo(() => computeStreakDays(all), [all]);
+
+  // Breakdown DOES respect the active filter -- "where did this week's
+  // money come from" is naturally scoped to whatever period is selected.
+  const breakdown = useMemo(() => {
+    const totals = { base: 0, distance: 0, tip: 0, bonus: 0 };
+    for (const r of filtered) {
+      totals.base += r.baseFee;
+      totals.distance += r.distanceFee;
+      totals.tip += r.tipAmount;
+      totals.bonus += r.bonusAmount;
+    }
+    return [
+      { key: "base", value: totals.base, label: t("driver.earningsBaseFee", "Base fee"), icon: "bicycle-outline" as const },
+      { key: "distance", value: totals.distance, label: t("driver.earningsDistanceFee", "Distance"), icon: "navigate-outline" as const },
+      { key: "tip", value: totals.tip, label: t("driver.earningsTip", "Tip"), icon: "heart-outline" as const },
+      { key: "bonus", value: totals.bonus, label: t("driver.earningsBonus", "Bonus"), icon: "gift-outline" as const },
+    ].filter((b) => b.value > 0);
+  }, [filtered, t]);
+
   const onRefresh = async () => {
     setRefreshing(true);
     await Promise.all([profileQuery.refetch(), earningsQuery.refetch()]);
@@ -162,6 +192,15 @@ export function DriverEarningsScreen(): React.ReactElement {
             <UIText style={s.statLbl} numberOfLines={1}>{t("driver.earningsAvgLabel", "Avg / delivery")}</UIText>
           </View>
         </View>
+
+        {streakDays > 1 && (
+          <View style={[s.streakPill, { flexDirection: flexRow(IS_RTL) }]}>
+            <Ionicons name="flame" size={14} color="#FFD166" />
+            <UIText style={s.streakText}>
+              {t("driver.earningsStreak", "{{count}}-day streak", { count: streakDays })}
+            </UIText>
+          </View>
+        )}
       </LinearGradient>
 
       <View style={[s.filterRow, { flexDirection: flexRow(IS_RTL), paddingHorizontal: pagePad }]}>
@@ -190,17 +229,62 @@ export function DriverEarningsScreen(): React.ReactElement {
           ]}
           showsVerticalScrollIndicator={false}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.colors.brand.primary} />}
-          renderItem={({ item: sec }) => (
+          renderItem={({ item: sec, index: secIndex }) => (
             <View style={{ marginBottom: 18 }}>
               <View style={[s.dayHeader, { flexDirection: flexRow(IS_RTL) }]}>
                 <UIText variant="card-title" style={{ textAlign: TEXT_START }}>{formatDayLabel(sec.date, t, locale)}</UIText>
                 <UIText variant="caption" weight="bold" style={{ color: theme.colors.brand.primary }}>{formatPrice(sec.total)}</UIText>
               </View>
               <View style={{ gap: 8 }}>
-                {sec.items.map((r) => <EarningRow key={r.id} record={r} theme={theme} />)}
+                {sec.items.map((r, i) => (
+                  <Animated.View key={r.id} entering={FadeInDown.delay(Math.min(secIndex * 3 + i, 10) * 40).duration(240)}>
+                    <EarningRow record={r} theme={theme} />
+                  </Animated.View>
+                ))}
               </View>
             </View>
           )}
+          ListHeaderComponent={
+            sections.length > 0 ? (
+              <View style={{ gap: 14, marginBottom: 20 }}>
+                <Card padding="md" elevation="sm">
+                  <UIText variant="eyebrow" color="tertiary" style={{ textAlign: TEXT_START, marginBottom: 10 }}>
+                    {t("driver.earningsWeeklyTrend", "Last 7 days")}
+                  </UIText>
+                  <WeeklyEarningsChart data={weeklyChartData} />
+                </Card>
+
+                {breakdown.length > 0 && (
+                  <Card padding="md" elevation="sm">
+                    <UIText variant="eyebrow" color="tertiary" style={{ textAlign: TEXT_START, marginBottom: 10 }}>
+                      {t("driver.earningsBreakdownTitle", "Where it came from")}
+                    </UIText>
+                    <View style={{ gap: 10 }}>
+                      {breakdown.map((b) => {
+                        const pct = totalAmount > 0 ? Math.round((b.value / totalAmount) * 100) : 0;
+                        return (
+                          <View key={b.key} style={[s.breakdownRow, { flexDirection: flexRow(IS_RTL) }]}>
+                            <View style={[s.breakdownIcon, { backgroundColor: theme.colors.brand.primaryLight }]}>
+                              <Ionicons name={b.icon} size={14} color={theme.colors.brand.primaryDark} />
+                            </View>
+                            <UIText variant="body-sm" style={{ flex: 1, minWidth: 0, textAlign: TEXT_START }} numberOfLines={1}>
+                              {b.label}
+                            </UIText>
+                            <View style={[s.breakdownTrack, { backgroundColor: theme.colors.canvas.surfaceMuted }]}>
+                              <View style={[s.breakdownFill, { width: `${pct}%`, backgroundColor: theme.colors.brand.primary }]} />
+                            </View>
+                            <UIText variant="body-sm" weight="bold" style={{ width: 68, textAlign: IS_RTL ? "left" : "right" }} numberOfLines={1}>
+                              {formatPrice(b.value)}
+                            </UIText>
+                          </View>
+                        );
+                      })}
+                    </View>
+                  </Card>
+                )}
+              </View>
+            ) : null
+          }
           ListEmptyComponent={
             <EmptyState
               icon="wallet-outline"
@@ -223,6 +307,19 @@ const s = StyleSheet.create({
   statsRow: { gap: 10, marginTop: 16 },
   statCell: { flex: 1, minWidth: 0, alignItems: "center", paddingVertical: 10, borderRadius: 14, backgroundColor: "rgba(255,255,255,0.14)", gap: 2 },
   statVal: { fontSize: 17, fontWeight: "800", color: "#fff" },
+  streakPill: {
+    alignSelf: "flex-start",
+    alignItems: "center", gap: 6,
+    marginTop: 12,
+    paddingHorizontal: 12, paddingVertical: 6,
+    borderRadius: 9999,
+    backgroundColor: "rgba(255,209,102,0.18)",
+  },
+  streakText: { fontSize: 12, fontWeight: "800", color: "#FFD166" },
+  breakdownRow: { alignItems: "center", gap: 8 },
+  breakdownIcon: { width: 26, height: 26, borderRadius: 9, alignItems: "center", justifyContent: "center", flexShrink: 0 },
+  breakdownTrack: { flex: 1, height: 6, borderRadius: 3, overflow: "hidden" },
+  breakdownFill: { height: "100%", borderRadius: 3 },
   statLbl: { fontSize: 10, fontWeight: "700", color: "rgba(255,255,255,0.8)", textAlign: "center" },
   filterRow: { gap: 8, paddingVertical: 12 },
   listContent: { paddingBottom: 48 },
