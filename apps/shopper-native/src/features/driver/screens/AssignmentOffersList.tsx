@@ -1,77 +1,95 @@
 /**
  * AssignmentOffersList — all pending assignment offers awaiting this
  * driver's response. Usually just one, but staff can offer more than one
- * order at a time, so this list exists rather than assuming a single offer.
+ * order at a time, so this stays a list rather than assuming a single offer.
  *
- * Confirmed bug fixed here: the decline "confirmation" used to fire the
- * decline mutation immediately on the first tap, then render a
- * ConfirmationSheet that only appeared AFTER the request was already in
- * flight/done. Fixed to reveal a reason field first, only submit when the
- * driver explicitly confirms.
+ * Redesigned card: a driver deciding whether to accept needs to answer four
+ * questions in under two seconds — how much, how far, from where, how
+ * urgent — and the previous version buried all four behind small text rows
+ * with the price in a badge no bigger than the order number next to it.
+ * Earnings is now the single largest number on the card (it's the one thing
+ * that actually drives the decision); distance is real, not omitted — the
+ * API already fetched customer_lat/customer_lng for every offer preview and
+ * simply never returned it, so this used to always be missing, not just
+ * hidden — computed live against the driver's own GPS fix; and urgency is a
+ * depleting bar instead of a sentence a driver has to stop and read.
  *
- * Also fixed: this screen used to show literally nothing about the
- * delivery itself — no destination area, no branch, no real fee — just a
- * static "Estimated fee" label with no value next to it. listMyOpenAssignmentOffers
- * now joins through the order's own zone/branch/total (see api.ts's
- * AssignmentOffer type), so a driver can actually make an informed
- * accept/decline decision instead of guessing from an order id alone.
+ * Confirmed bug fixed earlier and preserved here: the decline "confirm"
+ * used to fire the mutation on the first tap and show a reason field
+ * afterward. Reason first, submit only on explicit confirm.
  */
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { FlatList, Linking, Pressable, RefreshControl, StyleSheet, View } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
-import { Screen, Text as UIText, Card, Button, Input, Badge, SkeletonCard, EmptyState, useTheme } from "@pharmacy/ui-native";
-import { kit } from "@pharmacy/ui-native";
+import Animated, { useAnimatedStyle, useSharedValue, withTiming, FadeIn } from "react-native-reanimated";
+import { Screen, Text as UIText, Card, Button, Input, SkeletonCard, EmptyState, PressableScale, useTheme, type NativeTheme } from "@pharmacy/ui-native";
+import { theme as legacyTheme } from "@pharmacy/design-tokens";
 import { useAuth } from "@/features/auth";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
+import { useScreenLayout } from "@/utils/responsive";
 import { formatPrice } from "@/utils/format";
 import { findBranchById } from "@/features/delivery/branches/data";
 import { useAppLanguage } from "@/i18n/LanguageProvider";
 import { useDriverOffers, driverQueryKeys } from "../hooks/useDriverManifest";
 import { useDriverMutations } from "../hooks/useDriverMutations";
+import { useDriverLivePosition } from "../hooks/useDriverLivePosition";
 import { showErrorSheet, showSuccessSheet } from "@/shared/store/appSheetStore";
+import { getDriverActionErrorMessage } from "../lib/errorMessage";
 import { DriverScreenHeader } from "../components/DriverScreenHeader";
+import type { AssignmentOffer } from "../api";
 
 const IS_RTL = isRtl();
 const TEXT_START = textAlignStart(IS_RTL);
-const OFFER_URGENT_AFTER_MIN = 10;
+
+/** An offer is expected to be actioned within this window; the countdown
+ *  bar depletes across it and crosses into "urgent" styling at zero. Not a
+ *  hard server-enforced expiry (there isn't one) -- purely a decision aid. */
+const OFFER_ATTENTION_WINDOW_MIN = 10;
 
 function minutesSince(iso: string): number {
   return Math.max(0, Math.floor((Date.now() - Date.parse(iso)) / 60_000));
+}
+
+function haversineKm(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const R = 6371;
+  const dLat = toRad(b.lat - a.lat);
+  const dLon = toRad(b.lng - a.lng);
+  const s1 = Math.sin(dLat / 2);
+  const s2 = Math.sin(dLon / 2);
+  const h = s1 * s1 + s2 * s2 * Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat));
+  return R * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
 }
 
 export function AssignmentOffersList(): React.ReactElement {
   const { t } = useTranslation();
   const { theme } = useTheme();
   const { language } = useAppLanguage();
+  const { pagePad } = useScreenLayout();
   const router = useRouter();
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const offersQuery = useDriverOffers(user?.id);
   const offers = offersQuery.data ?? [];
   const mutations = useDriverMutations(user?.id);
+  const { fix: driverFix } = useDriverLivePosition(true);
   const [pendingAccept, setPendingAccept] = useState<string | null>(null);
   const [decliningId, setDecliningId] = useState<string | null>(null);
   const [reason, setReason] = useState("");
   const [refreshing, setRefreshing] = useState(false);
 
-  const s = useMemo(() => StyleSheet.create({
-    listContent: { paddingHorizontal: kit.inset.screen, paddingBottom: 40 },
-    card: { gap: 12 },
-    urgentCard: { borderColor: theme.colors.status.warning, borderWidth: 1.5 },
-    headerRow: { flexDirection: flexRow(IS_RTL), alignItems: "center", gap: 12 },
-    offerIcon: { width: 42, height: 42, borderRadius: 14, backgroundColor: `${theme.colors.status.warning}1A`, alignItems: "center", justifyContent: "center" },
-    infoGrid: { gap: 8 },
-    infoRow: { flexDirection: flexRow(IS_RTL), alignItems: "center", gap: 8 },
-    infoLabel: { flex: 1 },
-    actionsRow: { flexDirection: flexRow(IS_RTL), gap: 10 },
-    actionBtn: { flex: 1 },
-    quickBtn: { width: 48, height: 48, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: theme.colors.canvas.surfaceMuted },
-    declineInput: { minHeight: 70, textAlignVertical: "top" },
-    declineActions: { flexDirection: flexRow(IS_RTL), justifyContent: "flex-end", gap: 10 },
-  }), [theme]);
+  // Re-render once a minute so "waited Nm" / the countdown bar actually
+  // advance without requiring a pull-to-refresh.
+  const [, forceTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => forceTick((n) => n + 1), 30_000);
+    return () => clearInterval(id);
+  }, []);
+
+  const s = useMemo(() => getStyles(theme, pagePad), [theme, pagePad]);
 
   const onRefresh = useCallback(async () => {
     if (!user?.id) return;
@@ -89,7 +107,7 @@ export function AssignmentOffersList(): React.ReactElement {
       await mutations.accept.mutateAsync(assignmentId);
       showSuccessSheet(t("driver.acceptedTitle"), t("driver.acceptedBody"), () => router.replace("/(driver)" as never));
     } catch (e) {
-      showErrorSheet(t("driver.actionFailedTitle"), e instanceof Error ? e.message : String(e));
+      showErrorSheet(t("driver.actionFailedTitle"), getDriverActionErrorMessage(e, t, t("driver.actionFailedBody")));
     } finally {
       setPendingAccept(null);
     }
@@ -105,7 +123,7 @@ export function AssignmentOffersList(): React.ReactElement {
       await mutations.decline.mutateAsync({ assignmentId, orderId, reason });
       showSuccessSheet(t("driver.declinedTitle"), t("driver.declinedBody"));
     } catch (e) {
-      showErrorSheet(t("driver.actionFailedTitle"), e instanceof Error ? e.message : String(e));
+      showErrorSheet(t("driver.actionFailedTitle"), getDriverActionErrorMessage(e, t, t("driver.actionFailedBody")));
     } finally {
       setDecliningId(null);
       setReason("");
@@ -121,87 +139,27 @@ export function AssignmentOffersList(): React.ReactElement {
         keyExtractor={(o) => o.id}
         contentContainerStyle={s.listContent}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.colors.brand.primary} />}
-        renderItem={({ item }) => {
-          const isDeclining = decliningId === item.id;
-          const waitedMin = minutesSince(item.offeredAt);
-          const isUrgent = waitedMin >= OFFER_URGENT_AFTER_MIN;
-          const branch = item.branchId ? findBranchById(item.branchId) : null;
-          const branchName = branch ? (language === "ar" ? branch.nameAr : branch.nameEn) : null;
-          const branchPhone = branch?.phones?.[0] ?? null;
-
-          return (
-            <Card style={[s.card, isUrgent && s.urgentCard]} padding="lg" elevation="sm">
-              <View style={s.headerRow}>
-                <View style={s.offerIcon}><Ionicons name="flash-outline" size={20} color={theme.colors.status.warning} /></View>
-                <View style={{ flex: 1 }}>
-                  <UIText variant="card-title" style={{ textAlign: TEXT_START }}>#{item.orderId?.slice(-8).toUpperCase()}</UIText>
-                  <UIText variant="caption" color={isUrgent ? "warn" : "secondary"} style={{ textAlign: TEXT_START, marginTop: 2 }}>
-                    {waitedMin < 1 ? t("driver.elapsedJustNow") : t("driver.elapsedMinutes", { count: waitedMin })}
-                    {isUrgent ? ` · ${t("driver.offerExpiresWarning")}` : ""}
-                  </UIText>
-                </View>
-                <Badge variant="primary" label={formatPrice(item.total)} />
-              </View>
-
-              <View style={s.infoGrid}>
-                {branchName ? (
-                  <View style={s.infoRow}>
-                    <Ionicons name="storefront-outline" size={14} color={theme.colors.text.muted} />
-                    <UIText variant="body-sm" color="secondary" style={s.infoLabel}>{branchName}</UIText>
-                  </View>
-                ) : null}
-                {item.destinationArea ? (
-                  <View style={s.infoRow}>
-                    <Ionicons name="location-outline" size={14} color={theme.colors.text.muted} />
-                    <UIText variant="body-sm" color="secondary" style={s.infoLabel}>{item.destinationArea}</UIText>
-                  </View>
-                ) : null}
-                {item.zoneName ? (
-                  <View style={s.infoRow}>
-                    <Ionicons name="map-outline" size={14} color={theme.colors.text.muted} />
-                    <UIText variant="body-sm" color="secondary" style={s.infoLabel}>{item.zoneName}</UIText>
-                  </View>
-                ) : null}
-              </View>
-
-              {!isDeclining ? (
-                <View style={s.actionsRow}>
-                  <Button style={s.actionBtn} label={t("driver.accept")} onPress={() => void handleAccept(item.id)} loading={pendingAccept === item.id} />
-                  <Button style={s.actionBtn} label={t("driver.decline")} variant="outline" onPress={() => startDecline(item.id)} disabled={pendingAccept === item.id} />
-                  {branchPhone ? (
-                    <Pressable onPress={() => void Linking.openURL(`tel:${branchPhone}`)} style={s.quickBtn} accessibilityRole="button" accessibilityLabel={t("driver.callPharmacy")}>
-                      <Ionicons name="call-outline" size={18} color={theme.colors.text.secondary} />
-                    </Pressable>
-                  ) : null}
-                </View>
-              ) : (
-                <View style={{ gap: 10 }}>
-                  <UIText variant="label" style={{ textAlign: TEXT_START }}>{t("driver.declineReasonTitle")}</UIText>
-                  <Input
-                    value={reason}
-                    onChangeText={setReason}
-                    placeholder={t("driver.declineReasonPlaceholder")}
-                    multiline
-                    numberOfLines={3}
-                    style={s.declineInput}
-                  />
-                  <View style={s.declineActions}>
-                    <Button label={t("common.cancel")} variant="ghost" onPress={() => setDecliningId(null)} />
-                    <Button
-                      label={t("driver.confirmDecline")}
-                      variant="danger"
-                      onPress={() => void confirmDecline(item.id, item.orderId)}
-                      loading={mutations.decline.isPending}
-                    />
-                  </View>
-                </View>
-              )}
-
-              <Button label={t("common.view")} variant="ghost" size="sm" onPress={() => router.push(`/(driver)/offer/${item.id}` as never)} />
-            </Card>
-          );
-        }}
-        ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
+        renderItem={({ item }) => (
+          <OfferCard
+            item={item}
+            styles={s}
+            theme={theme}
+            t={t}
+            language={language}
+            driverFix={driverFix}
+            isDeclining={decliningId === item.id}
+            reason={reason}
+            setReason={setReason}
+            accepting={pendingAccept === item.id}
+            declinePending={mutations.decline.isPending}
+            onAccept={() => void handleAccept(item.id)}
+            onStartDecline={() => startDecline(item.id)}
+            onCancelDecline={() => setDecliningId(null)}
+            onConfirmDecline={() => void confirmDecline(item.id, item.orderId)}
+            onView={() => router.push(`/(driver)/offer/${item.id}` as never)}
+          />
+        )}
+        ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
         ListEmptyComponent={offersQuery.isLoading ? (
           <View>{[1, 2].map((i) => <SkeletonCard key={i} lines={4} style={{ marginBottom: 10 }} />)}</View>
         ) : offersQuery.isError ? (
@@ -212,4 +170,202 @@ export function AssignmentOffersList(): React.ReactElement {
       />
     </Screen>
   );
+}
+
+// ── Offer card ───────────────────────────────────────────────────────────
+
+interface OfferCardProps {
+  item: AssignmentOffer;
+  styles: ReturnType<typeof getStyles>;
+  theme: NativeTheme;
+  t: (key: string, opts?: Record<string, unknown>) => string;
+  language: string;
+  driverFix: { lat: number; lng: number } | null;
+  isDeclining: boolean;
+  reason: string;
+  setReason: (v: string) => void;
+  accepting: boolean;
+  declinePending: boolean;
+  onAccept: () => void;
+  onStartDecline: () => void;
+  onCancelDecline: () => void;
+  onConfirmDecline: () => void;
+  onView: () => void;
+}
+
+function OfferCard({
+  item, styles: s, theme, t, language, driverFix,
+  isDeclining, reason, setReason, accepting, declinePending,
+  onAccept, onStartDecline, onCancelDecline, onConfirmDecline, onView,
+}: OfferCardProps) {
+  const waitedMin = minutesSince(item.offeredAt);
+  const urgencyFrac = Math.min(1, waitedMin / OFFER_ATTENTION_WINDOW_MIN);
+  const isUrgent = urgencyFrac >= 1;
+  const branch = item.branchId ? findBranchById(item.branchId) : null;
+  const branchName = branch ? (language === "ar" ? branch.nameAr : branch.nameEn) : null;
+  const branchPhone = branch?.phones?.[0] ?? null;
+
+  const distanceKm = driverFix && item.customerLat != null && item.customerLng != null
+    ? haversineKm(driverFix, { lat: item.customerLat, lng: item.customerLng })
+    : null;
+
+  const barWidth = useSharedValue(1 - urgencyFrac);
+  useEffect(() => {
+    barWidth.value = withTiming(1 - urgencyFrac, { duration: 600 });
+  }, [urgencyFrac, barWidth]);
+  const barStyle = useAnimatedStyle(() => ({ width: `${barWidth.value * 100}%` }));
+
+  const urgencyColor = isUrgent ? theme.colors.status.error : urgencyFrac > 0.5 ? theme.colors.status.warning : theme.colors.status.success;
+
+  return (
+    <Animated.View entering={FadeIn.duration(280)}>
+      <Card style={[s.card, isUrgent && s.urgentCard]} padding="none" elevation="sm">
+        {/* Urgency depletion bar */}
+        <View style={s.urgencyTrack}>
+          <Animated.View style={[s.urgencyFill, { backgroundColor: urgencyColor }, barStyle]} />
+        </View>
+
+        <View style={s.body}>
+          {/* Earnings hero + order ref */}
+          <View style={[s.heroRow, { flexDirection: flexRow(IS_RTL) }]}>
+            <View style={s.flexMin}>
+              <UIText variant="eyebrow" color="tertiary" style={s.start}>
+                #{item.orderId?.slice(-8).toUpperCase()}
+              </UIText>
+              <UIText style={[s.earningsText, { color: theme.colors.brand.primary }]} numberOfLines={1}>
+                {formatPrice(item.total)}
+              </UIText>
+            </View>
+            <View style={[s.waitPill, { backgroundColor: `${urgencyColor}17` }]}>
+              <Ionicons name={isUrgent ? "alert-circle" : "time-outline"} size={13} color={urgencyColor} />
+              <UIText weight="bold" style={[s.waitPillText, { color: urgencyColor }]}>
+                {waitedMin < 1 ? t("driver.elapsedJustNow") : t("driver.elapsedMinutes", { count: waitedMin })}
+              </UIText>
+            </View>
+          </View>
+
+          {/* Distance + branch + destination, icon rows */}
+          <View style={s.infoGrid}>
+            {distanceKm != null ? (
+              <View style={[s.infoRow, { flexDirection: flexRow(IS_RTL) }]}>
+                <View style={s.infoIconWell}><Ionicons name="navigate-outline" size={13} color={theme.colors.brand.primary} /></View>
+                <UIText variant="body-sm" weight="bold" style={[s.start, { color: theme.colors.text.primary }]}>
+                  {distanceKm < 1 ? t("driver.distanceMeters", { value: Math.round(distanceKm * 1000) }) : t("driver.distanceKm", { value: distanceKm.toFixed(1) })}
+                </UIText>
+              </View>
+            ) : null}
+            {branchName ? (
+              <View style={[s.infoRow, { flexDirection: flexRow(IS_RTL) }]}>
+                <View style={s.infoIconWell}><Ionicons name="storefront-outline" size={13} color={theme.colors.text.muted} /></View>
+                <UIText variant="body-sm" color="secondary" style={s.start} numberOfLines={1}>{branchName}</UIText>
+              </View>
+            ) : null}
+            {item.destinationArea ? (
+              <View style={[s.infoRow, { flexDirection: flexRow(IS_RTL) }]}>
+                <View style={s.infoIconWell}><Ionicons name="location-outline" size={13} color={theme.colors.text.muted} /></View>
+                <UIText variant="body-sm" color="secondary" style={s.start} numberOfLines={1}>{item.destinationArea}</UIText>
+              </View>
+            ) : null}
+            {item.zoneName ? (
+              <View style={[s.infoRow, { flexDirection: flexRow(IS_RTL) }]}>
+                <View style={s.infoIconWell}><Ionicons name="map-outline" size={13} color={theme.colors.text.muted} /></View>
+                <UIText variant="body-sm" color="secondary" style={s.start} numberOfLines={1}>{item.zoneName}</UIText>
+              </View>
+            ) : null}
+          </View>
+
+          {!isDeclining ? (
+            <>
+              <View style={[s.actionsRow, { flexDirection: flexRow(IS_RTL) }]}>
+                <Button style={s.acceptBtn} size="lg" label={t("driver.accept")} onPress={onAccept} loading={accepting} />
+                {branchPhone ? (
+                  <PressableScale onPress={() => void Linking.openURL(`tel:${branchPhone}`)} style={s.quickBtn} accessibilityRole="button" accessibilityLabel={t("driver.callPharmacy")}>
+                    <Ionicons name="call-outline" size={18} color={theme.colors.text.secondary} />
+                  </PressableScale>
+                ) : null}
+              </View>
+              <View style={[s.secondaryRow, { flexDirection: flexRow(IS_RTL) }]}>
+                <Pressable onPress={onStartDecline} disabled={accepting} hitSlop={8}>
+                  <UIText variant="body-sm" style={{ color: theme.colors.status.error }}>{t("driver.decline")}</UIText>
+                </Pressable>
+                <Pressable onPress={onView} hitSlop={8}>
+                  <UIText variant="body-sm" color="secondary">{t("common.view")}</UIText>
+                </Pressable>
+              </View>
+            </>
+          ) : (
+            <View style={s.declineWrap}>
+              <UIText variant="label" style={s.start}>{t("driver.declineReasonTitle")}</UIText>
+              <Input
+                value={reason}
+                onChangeText={setReason}
+                placeholder={t("driver.declineReasonPlaceholder")}
+                multiline
+                numberOfLines={3}
+                style={s.declineInput}
+              />
+              <View style={[s.declineActions, { flexDirection: flexRow(IS_RTL) }]}>
+                <Button label={t("common.cancel")} variant="ghost" onPress={onCancelDecline} />
+                <Button label={t("driver.confirmDecline")} variant="danger" onPress={onConfirmDecline} loading={declinePending} />
+              </View>
+            </View>
+          )}
+        </View>
+      </Card>
+    </Animated.View>
+  );
+}
+
+function getStyles(theme: NativeTheme, pagePad: number) {
+  return StyleSheet.create({
+    listContent: { paddingHorizontal: pagePad, paddingBottom: 40, paddingTop: 4 },
+    flexMin: { flex: 1, minWidth: 0 },
+    start: { textAlign: TEXT_START },
+
+    card: { overflow: "hidden" },
+    urgentCard: { borderColor: theme.colors.status.error, borderWidth: 1.5 },
+
+    urgencyTrack: { height: 3, backgroundColor: theme.colors.canvas.surfaceMuted },
+    urgencyFill: { height: "100%", borderRadius: 2 },
+
+    body: { padding: 16, gap: 14 },
+
+    heroRow: { alignItems: "flex-start", justifyContent: "space-between", gap: 10 },
+    earningsText: {
+      fontSize: 30, lineHeight: 36,
+      fontFamily: legacyTheme.fonts.black,
+      marginTop: 2,
+      textAlign: TEXT_START,
+    },
+    waitPill: {
+      flexDirection: flexRow(IS_RTL),
+      alignItems: "center", gap: 5,
+      paddingHorizontal: 10, paddingVertical: 6,
+      borderRadius: 999,
+      flexShrink: 0,
+    },
+    waitPillText: { fontSize: 11.5 },
+
+    infoGrid: { gap: 8 },
+    infoRow: { alignItems: "center", gap: 8 },
+    infoIconWell: {
+      width: 22, height: 22, borderRadius: 7,
+      alignItems: "center", justifyContent: "center",
+      backgroundColor: theme.colors.canvas.surfaceMuted,
+      flexShrink: 0,
+    },
+
+    actionsRow: { alignItems: "center", gap: 10 },
+    acceptBtn: { flex: 1 },
+    quickBtn: {
+      width: 50, height: 50, borderRadius: 15,
+      alignItems: "center", justifyContent: "center",
+      backgroundColor: theme.colors.canvas.surfaceMuted,
+    },
+    secondaryRow: { justifyContent: "space-between", paddingTop: 2 },
+
+    declineWrap: { gap: 10 },
+    declineInput: { minHeight: 70, textAlignVertical: "top" },
+    declineActions: { justifyContent: "flex-end", gap: 10 },
+  });
 }

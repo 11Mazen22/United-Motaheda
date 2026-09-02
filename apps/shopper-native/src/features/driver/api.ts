@@ -332,6 +332,12 @@ export interface AssignmentOffer extends DeliveryAssignment {
   branchId: string | null;
   destinationArea: string | null;
   total: number;
+  /** Already fetched via ORDER_LOCATION_SELECT for every offer preview, but
+   *  previously dropped on the floor before reaching this type -- the offers
+   *  screen had everything it needed to show a real distance and showed
+   *  none. */
+  customerLat: number | null;
+  customerLng: number | null;
 }
 
 interface RawOfferOrderRow extends OrderLocationRow {
@@ -360,7 +366,10 @@ export async function listMyOpenAssignmentOffers(driverId: string): Promise<Assi
     .in("id", orderIds);
   if (orderError) throw orderError;
 
-  const previewByOrderId = new Map<string, { zoneName: string | null; branchId: string | null; destinationArea: string | null; total: number }>();
+  const previewByOrderId = new Map<string, {
+    zoneName: string | null; branchId: string | null; destinationArea: string | null; total: number;
+    customerLat: number | null; customerLng: number | null;
+  }>();
   for (const row of (orderRows ?? []) as unknown as RawOfferOrderRow[]) {
     const parsed = parseOrderAddress(row);
     const zone = parseOrderZone(row);
@@ -369,6 +378,8 @@ export async function listMyOpenAssignmentOffers(driverId: string): Promise<Assi
       branchId: zone.branchId,
       destinationArea: parsed.city || null,
       total: num(row.total),
+      customerLat: row.customer_lat != null ? num(row.customer_lat) : null,
+      customerLng: row.customer_lng != null ? num(row.customer_lng) : null,
     });
   }
 
@@ -378,6 +389,8 @@ export async function listMyOpenAssignmentOffers(driverId: string): Promise<Assi
     branchId: previewByOrderId.get(a.orderId)?.branchId ?? null,
     destinationArea: previewByOrderId.get(a.orderId)?.destinationArea ?? null,
     total: previewByOrderId.get(a.orderId)?.total ?? 0,
+    customerLat: previewByOrderId.get(a.orderId)?.customerLat ?? null,
+    customerLng: previewByOrderId.get(a.orderId)?.customerLng ?? null,
   }));
 }
 
