@@ -233,7 +233,7 @@ export function DriverEarningsScreen(): React.ReactElement {
             <View style={{ marginBottom: 18 }}>
               <View style={[s.dayHeader, { flexDirection: flexRow(IS_RTL) }]}>
                 <UIText variant="card-title" style={{ textAlign: TEXT_START }}>{formatDayLabel(sec.date, t, locale)}</UIText>
-                <UIText variant="caption" weight="bold" style={{ color: theme.colors.brand.primary }}>{formatPrice(sec.total)}</UIText>
+                <UIText variant="caption" weight="bold" style={{ color: theme.colors.brand.primaryDark }}>{formatPrice(sec.total)}</UIText>
               </View>
               <View style={{ gap: 8 }}>
                 {sec.items.map((r, i) => (
@@ -245,45 +245,43 @@ export function DriverEarningsScreen(): React.ReactElement {
             </View>
           )}
           ListHeaderComponent={
-            sections.length > 0 ? (
-              <View style={{ gap: 14, marginBottom: 20 }}>
+            <View style={{ gap: 14, marginBottom: 20 }}>
+              <Card padding="md" elevation="sm">
+                <UIText variant="eyebrow" color="tertiary" style={{ textAlign: TEXT_START, marginBottom: 10 }}>
+                  {t("driver.earningsWeeklyTrend", "Last 7 days")}
+                </UIText>
+                <WeeklyEarningsChart data={weeklyChartData} />
+              </Card>
+
+              {breakdown.length > 0 && (
                 <Card padding="md" elevation="sm">
                   <UIText variant="eyebrow" color="tertiary" style={{ textAlign: TEXT_START, marginBottom: 10 }}>
-                    {t("driver.earningsWeeklyTrend", "Last 7 days")}
+                    {t("driver.earningsBreakdownTitle", "Where it came from")}
                   </UIText>
-                  <WeeklyEarningsChart data={weeklyChartData} />
-                </Card>
-
-                {breakdown.length > 0 && (
-                  <Card padding="md" elevation="sm">
-                    <UIText variant="eyebrow" color="tertiary" style={{ textAlign: TEXT_START, marginBottom: 10 }}>
-                      {t("driver.earningsBreakdownTitle", "Where it came from")}
-                    </UIText>
-                    <View style={{ gap: 10 }}>
-                      {breakdown.map((b) => {
-                        const pct = totalAmount > 0 ? Math.round((b.value / totalAmount) * 100) : 0;
-                        return (
-                          <View key={b.key} style={[s.breakdownRow, { flexDirection: flexRow(IS_RTL) }]}>
-                            <View style={[s.breakdownIcon, { backgroundColor: theme.colors.brand.primaryLight }]}>
-                              <Ionicons name={b.icon} size={14} color={theme.colors.brand.primaryDark} />
-                            </View>
-                            <UIText variant="body-sm" style={{ flex: 1, minWidth: 0, textAlign: TEXT_START }} numberOfLines={1}>
-                              {b.label}
-                            </UIText>
-                            <View style={[s.breakdownTrack, { backgroundColor: theme.colors.canvas.surfaceMuted }]}>
-                              <View style={[s.breakdownFill, { width: `${pct}%`, backgroundColor: theme.colors.brand.primary }]} />
-                            </View>
-                            <UIText variant="body-sm" weight="bold" style={{ width: 68, textAlign: IS_RTL ? "left" : "right" }} numberOfLines={1}>
-                              {formatPrice(b.value)}
-                            </UIText>
+                  <View style={{ gap: 10 }}>
+                    {breakdown.map((b) => {
+                      const pct = totalAmount > 0 ? Math.round((b.value / totalAmount) * 100) : 0;
+                      return (
+                        <View key={b.key} style={[s.breakdownRow, { flexDirection: flexRow(IS_RTL) }]}>
+                          <View style={[s.breakdownIcon, { backgroundColor: theme.colors.brand.primaryLight }]}>
+                            <Ionicons name={b.icon} size={14} color={theme.colors.brand.primaryDark} />
                           </View>
-                        );
-                      })}
-                    </View>
-                  </Card>
-                )}
-              </View>
-            ) : null
+                          <UIText variant="body-sm" style={{ flex: 1, minWidth: 0, textAlign: TEXT_START }} numberOfLines={1}>
+                            {b.label}
+                          </UIText>
+                          <View style={[s.breakdownTrack, { backgroundColor: theme.colors.canvas.surfaceMuted }]}>
+                            <View style={[s.breakdownFill, { width: `${pct}%`, backgroundColor: theme.colors.brand.primary }]} />
+                          </View>
+                          <UIText variant="body-sm" weight="bold" style={{ width: 68, textAlign: IS_RTL ? "left" : "right" }} numberOfLines={1}>
+                            {formatPrice(b.value)}
+                          </UIText>
+                        </View>
+                      );
+                    })}
+                  </View>
+                </Card>
+              )}
+            </View>
           }
           ListEmptyComponent={
             <EmptyState
