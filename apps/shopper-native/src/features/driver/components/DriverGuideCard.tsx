@@ -17,7 +17,7 @@ import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated, { FadeOut, FadeInDown } from "react-native-reanimated";
 import { useTranslation } from "react-i18next";
-import { Text as UIText, useTheme, type NativeTheme } from "@pharmacy/ui-native";
+import { Text as UIText, useTheme, type NativeTheme, PressableScale } from "@pharmacy/ui-native";
 import { gradients } from "@pharmacy/design-tokens";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
 import { appKV } from "@/lib/mmkv";
@@ -93,10 +93,10 @@ export function DriverGuideCard(): React.ReactElement | null {
           ))}
         </View>
 
-        <Pressable onPress={handleDismiss} accessibilityRole="button" style={({ pressed }) => [s.gotItBtn, pressed && { opacity: 0.85 }]}>
+        <PressableScale onPress={handleDismiss} accessibilityRole="button" style={s.gotItBtn}>
           <UIText style={s.gotItText}>{t("driver.guideGotIt", "فهمت، ابدأ")}</UIText>
-          <Ionicons name="checkmark-circle" size={16} color={theme.colors.brand.primary} />
-        </Pressable>
+          <Ionicons name="checkmark-circle" size={16} color={theme.colors.brand.primaryDark} />
+        </PressableScale>
       </LinearGradient>
     </Animated.View>
   );
@@ -108,7 +108,7 @@ function getStyles(theme: NativeTheme) {
     card: { borderRadius: 20, padding: 16, gap: 14, ...theme.shadows[3] },
     headerRow: { alignItems: "center", gap: 10 },
     headerIcon: { width: 36, height: 36, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.18)" },
-    headerEyebrow: { fontSize: 10, lineHeight: 14, color: "rgba(255,255,255,0.75)", letterSpacing: 0.4 },
+    headerEyebrow: { fontSize: 10, lineHeight: 14, color: "#fff", letterSpacing: 0.4 },
     headerTitle: { fontSize: 16, lineHeight: 21, fontWeight: "800", color: "#fff", marginTop: 1 },
     closeBtn: { width: 30, height: 30, borderRadius: 15, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.16)" },
     stepsCol: { gap: 12 },
@@ -117,8 +117,8 @@ function getStyles(theme: NativeTheme) {
     stepBadgeText: { fontSize: 10, lineHeight: 13, fontWeight: "800", color: "#fff" },
     stepIconWell: { width: 30, height: 30, borderRadius: 10, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.14)" },
     stepTitle: { fontSize: 13, lineHeight: 18, fontWeight: "800", color: "#fff" },
-    stepBody: { fontSize: 11.5, lineHeight: 16, color: "rgba(255,255,255,0.78)", marginTop: 1 },
+    stepBody: { fontSize: 11.5, lineHeight: 16, color: "#fff", marginTop: 1 },
     gotItBtn: { flexDirection: flexRow(IS_RTL), alignItems: "center", justifyContent: "center", gap: 6, height: 44, borderRadius: 12, backgroundColor: "#fff", marginTop: 2 },
-    gotItText: { fontSize: 13, lineHeight: 17, fontWeight: "800", color: theme.colors.brand.primary },
+    gotItText: { fontSize: 13, lineHeight: 17, fontWeight: "800", color: theme.colors.brand.primaryDark },
   });
 }

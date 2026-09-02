@@ -205,7 +205,7 @@ export default function DriverMap({ compact }: { compact?: boolean } = {}): Reac
             <Ionicons
               name="locate"
               size={19}
-              color={recentering ? theme.colors.brand.primary : driverCoords ? theme.colors.text.primary : theme.colors.text.disabled}
+              color={recentering ? theme.colors.brand.primaryDark : driverCoords ? theme.colors.text.primary : theme.colors.text.disabled}
             />
           </Pressable>
         </View>
@@ -235,7 +235,7 @@ export default function DriverMap({ compact }: { compact?: boolean } = {}): Reac
           <View style={[s.sheet, { backgroundColor: theme.colors.canvas.surfaceElevated }]}>
             <View style={[s.sheetHeaderRow, { flexDirection: flexRow(IS_RTL) }]}>
               <View style={s.sheetIcon}>
-                <Ionicons name="navigate" size={16} color={theme.colors.brand.primary} />
+                <Ionicons name="navigate" size={16} color={theme.colors.brand.primaryDark} />
               </View>
               <View style={s.flexMin}>
                 {stageLabel ? (
@@ -270,7 +270,7 @@ export default function DriverMap({ compact }: { compact?: boolean } = {}): Reac
               {stageAction ? (
                 <Pressable
                   onPress={() => router.push(`/(driver)/delivery/${activeOrder.id}` as never)}
-                  style={[s.sheetPrimaryBtn, { backgroundColor: theme.colors.brand.primary }]}
+                  style={[s.sheetPrimaryBtn, { backgroundColor: theme.colors.brand.primaryDark }]}
                   accessibilityRole="button"
                 >
                   <Ionicons name={stageAction.icon} size={17} color="#fff" />
@@ -357,7 +357,7 @@ function getStyles(theme: NativeTheme, pagePad: number) {
     compactMapWrap: { flex: 1, borderRadius: 12, overflow: "hidden", backgroundColor: theme.colors.canvas.surface },
     compactOverlay: {
       position: "absolute", start: 12, bottom: 12,
-      backgroundColor: theme.colors.brand.primary,
+      backgroundColor: theme.colors.brand.primaryDark,
       padding: 8, borderRadius: 10,
     },
   });

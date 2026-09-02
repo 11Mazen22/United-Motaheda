@@ -255,7 +255,7 @@ export function DriverManifest(): React.ReactElement {
           <Card style={s.spotlightCard} padding="lg" elevation="md">
             <View style={s.spotlightHeaderRow}>
               <View style={s.spotlightIcon}>
-                <Ionicons name="navigate" size={18} color={theme.colors.brand.primary} />
+                <Ionicons name="navigate" size={18} color={theme.colors.brand.primaryDark} />
               </View>
               <View style={s.flexMin}>
                 <UIText variant="caption" color="brand" style={s.startText} numberOfLines={1}>
@@ -296,7 +296,7 @@ export function DriverManifest(): React.ReactElement {
             accessibilityLabel={a.label}
           >
             <View style={s.quickIconWell}>
-              <Ionicons name={a.icon} size={19} color={theme.colors.brand.primary} />
+              <Ionicons name={a.icon} size={19} color={theme.colors.brand.primaryDark} />
               {a.badge > 0 ? (
                 <View style={s.offerCount}>
                   <UIText style={s.offerCountText} numberOfLines={1}>
@@ -327,7 +327,7 @@ export function DriverManifest(): React.ReactElement {
           style={s.perfHeroRow}
         >
           <View style={s.perfHeroIconWell}>
-            <Ionicons name="cash-outline" size={20} color={theme.colors.brand.primary} />
+            <Ionicons name="cash-outline" size={20} color={theme.colors.brand.primaryDark} />
           </View>
           <View style={s.flexMin}>
             <UIText numberOfLines={1} style={s.perfHeroLabel}>{t("driver.todayEarnings")}</UIText>
@@ -437,7 +437,7 @@ function DailyGoalCard({
 }) {
   const pct = Math.max(0, Math.min(1, earnings / DAILY_GOAL_EGP));
   const reached = pct >= 1;
-  const tone = reached ? theme.colors.status.success : theme.colors.brand.primary;
+  const tone = reached ? theme.colors.status.success : theme.colors.brand.primaryDark;
   return (
     <View style={styles.goalCard}>
       <View style={styles.goalHeaderRow}>
@@ -486,7 +486,7 @@ function getStyles(theme: NativeTheme, pagePad: number, isTablet: boolean) {
     },
     heroTopRow: { flexDirection: flexRow(IS_RTL), alignItems: "center", gap: 10 },
     heroTitleCol: { flex: 1, minWidth: 0 },
-    heroEyebrow: { color: "#FFFFFF", opacity: 0.8 },
+    heroEyebrow: { color: "#FFFFFF" },
     heroTitle: {
       fontSize: 20,
       lineHeight: 28,
@@ -681,7 +681,7 @@ function getStyles(theme: NativeTheme, pagePad: number, isTablet: boolean) {
       gap: 8,
       minHeight: 50,
       borderRadius: 14,
-      backgroundColor: theme.colors.brand.primary,
+      backgroundColor: theme.colors.brand.primaryDark,
       marginTop: 4,
     },
   });

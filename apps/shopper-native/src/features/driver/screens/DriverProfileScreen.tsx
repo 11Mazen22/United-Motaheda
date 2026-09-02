@@ -52,7 +52,7 @@ function MenuRow({ icon, label, onPress, danger = false }: MenuRowProps) {
       accessibilityRole="button"
     >
       <View style={[{ width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" }, { backgroundColor: danger ? `${theme.colors.status.error}1A` : theme.colors.brand.primaryLight }]}>
-        <Ionicons name={icon} size={18} color={danger ? theme.colors.status.error : theme.colors.brand.primary} />
+        <Ionicons name={icon} size={18} color={danger ? theme.colors.status.error : theme.colors.brand.primaryDark} />
       </View>
       <UIText variant="body-sm" style={{ flex: 1, textAlign: TEXT_START, color: danger ? theme.colors.status.error : theme.colors.text.primary, fontFamily: legacyTheme.fonts.bold }}>
         {label}
@@ -67,7 +67,7 @@ function StatTile({ icon, label, value, onPress }: { icon: React.ComponentProps<
   const content = (
     <View style={{ alignItems: "center", justifyContent: "center" }}>
       <View style={[{ width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center" }, { backgroundColor: theme.colors.brand.primaryLight }]}>
-        <Ionicons name={icon} size={20} color={theme.colors.brand.primary} />
+        <Ionicons name={icon} size={20} color={theme.colors.brand.primaryDark} />
       </View>
       <UIText variant="caption" color="secondary" style={{ textAlign: "center", marginTop: 8 }}>{label}</UIText>
       <UIText style={{ fontSize: 20, fontFamily: legacyTheme.fonts.bold, color: theme.colors.text.primary, marginTop: 4, textAlign: "center" }}>{value}</UIText>
@@ -163,7 +163,7 @@ export function DriverProfileScreen(): React.ReactElement {
     avatar: { flex: 1, borderRadius: 45, alignItems: "center", justifyContent: "center" },
     avatarLetter: { fontSize: 38, fontFamily: legacyTheme.fonts.black, color: "#fff" },
     heroName: { fontSize: 22, fontFamily: legacyTheme.fonts.black, color: "#fff", textAlign: "center" },
-    heroEmail: { fontSize: 14, color: "rgba(255,255,255,0.8)", textAlign: "center", marginTop: 4 },
+    heroEmail: { fontSize: 14, color: "#fff", textAlign: "center", marginTop: 4 },
     badgesRow: { flexDirection: flexRow(IS_RTL), alignItems: "center", justifyContent: "center", gap: 10, marginTop: 12 },
     roleBadge: { flexDirection: flexRow(IS_RTL), alignItems: "center", gap: 6, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 9999, backgroundColor: "rgba(255,255,255,0.2)" },
     newDriverBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 9999, backgroundColor: "rgba(255,255,255,0.2)" },
@@ -186,7 +186,7 @@ export function DriverProfileScreen(): React.ReactElement {
       >
         <LinearGradient colors={gradients.brandPrimary as unknown as [string, string]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.heroGradient}>
           <View style={s.avatarContainer}>
-            <View style={[s.avatar, { backgroundColor: theme.colors.brand.primary }]}>
+            <View style={[s.avatar, { backgroundColor: theme.colors.brand.primaryDark }]}>
               <UIText style={s.avatarLetter}>{(user?.name ?? user?.email ?? "D").charAt(0).toUpperCase()}</UIText>
             </View>
           </View>
@@ -207,7 +207,7 @@ export function DriverProfileScreen(): React.ReactElement {
             ) : null}
           </View>
           {profile?.createdAt ? (
-            <UIText variant="caption" style={{ color: "rgba(255,255,255,0.6)", marginTop: 12 }}>
+            <UIText variant="caption" style={{ color: "#fff", marginTop: 12 }}>
               {t("driver.memberSince", { date: formatMemberSince(profile.createdAt, language) })}
             </UIText>
           ) : null}
@@ -237,7 +237,7 @@ export function DriverProfileScreen(): React.ReactElement {
           <View style={s.section}>
             <View style={s.vehicleRow}>
               <View style={[{ width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" }, { backgroundColor: theme.colors.brand.primaryLight }]}>
-                <Ionicons name="bicycle-outline" size={18} color={theme.colors.brand.primary} />
+                <Ionicons name="bicycle-outline" size={18} color={theme.colors.brand.primaryDark} />
               </View>
               <UIText variant="body-sm" style={{ flex: 1, textAlign: TEXT_START, fontFamily: legacyTheme.fonts.bold }}>
                 {t(VEHICLE_LABELS[profile.vehicleType] ?? "driverApplication.vehicleMotorcycle")}

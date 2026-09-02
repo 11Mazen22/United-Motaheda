@@ -215,14 +215,21 @@ function OfferCard({
   }, [urgencyFrac, barWidth]);
   const barStyle = useAnimatedStyle(() => ({ width: `${barWidth.value * 100}%` }));
 
-  const urgencyColor = isUrgent ? theme.colors.status.error : urgencyFrac > 0.5 ? theme.colors.status.warning : theme.colors.status.success;
+  // status.{error,warning,success} are tuned for icon/border use (~3:1
+  // against light backgrounds), not text -- statusSoft.{...}.text is the
+  // token this design system actually built for colored text on a tinted
+  // pill (verified against packages/design-tokens/semantic.ts: paired
+  // with a matching .bg at proper contrast, not just the raw status color
+  // at reduced opacity).
+  const urgencySoft = isUrgent ? theme.colors.statusSoft.error : urgencyFrac > 0.5 ? theme.colors.statusSoft.warning : theme.colors.statusSoft.success;
+  const urgencyBarColor = isUrgent ? theme.colors.status.error : urgencyFrac > 0.5 ? theme.colors.status.warning : theme.colors.status.success;
 
   return (
     <Animated.View entering={FadeIn.duration(280)}>
       <Card style={[s.card, isUrgent && s.urgentCard]} padding="none" elevation="sm">
         {/* Urgency depletion bar */}
         <View style={s.urgencyTrack}>
-          <Animated.View style={[s.urgencyFill, { backgroundColor: urgencyColor }, barStyle]} />
+          <Animated.View style={[s.urgencyFill, { backgroundColor: urgencyBarColor }, barStyle]} />
         </View>
 
         <View style={s.body}>
@@ -232,13 +239,13 @@ function OfferCard({
               <UIText variant="eyebrow" color="tertiary" style={s.start}>
                 #{item.orderId?.slice(-8).toUpperCase()}
               </UIText>
-              <UIText style={[s.earningsText, { color: theme.colors.brand.primary }]} numberOfLines={1}>
+              <UIText style={[s.earningsText, { color: theme.colors.brand.primaryDark }]} numberOfLines={1}>
                 {formatPrice(item.total)}
               </UIText>
             </View>
-            <View style={[s.waitPill, { backgroundColor: `${urgencyColor}17` }]}>
-              <Ionicons name={isUrgent ? "alert-circle" : "time-outline"} size={13} color={urgencyColor} />
-              <UIText weight="bold" style={[s.waitPillText, { color: urgencyColor }]}>
+            <View style={[s.waitPill, { backgroundColor: urgencySoft.bg }]}>
+              <Ionicons name={isUrgent ? "alert-circle" : "time-outline"} size={13} color={urgencySoft.text} />
+              <UIText weight="bold" style={[s.waitPillText, { color: urgencySoft.text }]}>
                 {waitedMin < 1 ? t("driver.elapsedJustNow") : t("driver.elapsedMinutes", { count: waitedMin })}
               </UIText>
             </View>
