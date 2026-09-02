@@ -29,6 +29,7 @@ import { useDriverMutations } from "../hooks/useDriverMutations";
 import { TooFarFromDestinationError } from "../api";
 import { getDeliveryStage, getStageAction, getStageStatusLabel, type DeliveryStage } from "../lib/deliveryStage";
 import { showErrorSheet, showSuccessSheet } from "@/shared/store/appSheetStore";
+import { getDriverActionErrorMessage } from "../lib/errorMessage";
 
 const IS_RTL = isRtl();
 
@@ -44,7 +45,7 @@ function minutesSince(iso: string): number {
   return Math.max(0, Math.floor((Date.now() - Date.parse(iso)) / 60_000));
 }
 
-export function OrderCardNew({ order, onPress }: { order: ManifestOrder; onPress: (event?: unknown) => void }) {
+export function OrderCardNew({ order, onPress, pagePad = kit.inset.screen }: { order: ManifestOrder; onPress: (event?: unknown) => void; pagePad?: number }) {
   const { t } = useTranslation();
   const { theme } = useTheme();
   const { user } = useAuth();
@@ -84,7 +85,7 @@ export function OrderCardNew({ order, onPress }: { order: ManifestOrder; onPress
         showErrorSheet(t("driver.tooFarTitle"), t("driver.tooFarBody"));
         return;
       }
-      showErrorSheet(t("driver.actionFailedTitle"), e instanceof Error ? e.message : String(e));
+      showErrorSheet(t("driver.actionFailedTitle"), getDriverActionErrorMessage(e, t, t("driver.actionFailedBody")));
     }
   };
 
@@ -105,7 +106,7 @@ export function OrderCardNew({ order, onPress }: { order: ManifestOrder; onPress
   const canNavigate = (typeof order.lat === "number" && typeof order.lng === "number") || Boolean(order.customerAddress);
 
   const oc = useMemo(() => StyleSheet.create({
-    cardWrap: { marginHorizontal: kit.inset.screen, borderRadius: 16, overflow: "hidden", flexDirection: flexRow(IS_RTL) },
+    cardWrap: { marginHorizontal: pagePad, borderRadius: 16, overflow: "hidden", flexDirection: flexRow(IS_RTL) },
     accent: { width: 4 },
     card: { flex: 1, padding: 14, borderRadius: 0 },
     titleRow: { flexDirection: flexRow(IS_RTL), justifyContent: "space-between", alignItems: "center" },
@@ -115,7 +116,7 @@ export function OrderCardNew({ order, onPress }: { order: ManifestOrder; onPress
     footerRow: { flexDirection: flexRow(IS_RTL), alignItems: "center", justifyContent: "space-between", marginTop: 12, gap: 8 },
     quickActions: { flexDirection: flexRow(IS_RTL), gap: 6 },
     stageDot: { width: 6, height: 6, borderRadius: 3 },
-  }), [theme]);
+  }), [theme, pagePad]);
 
   return (
     <View style={oc.cardWrap}>
@@ -155,8 +156,8 @@ export function OrderCardNew({ order, onPress }: { order: ManifestOrder; onPress
 
         <View style={oc.footerRow}>
           <View style={oc.quickActions}>
-            <IconButton icon="call-outline" size={36} onPress={handleCall} disabled={!order.customerPhone} accessibilityLabel={t("driver.phone")} />
-            <IconButton icon="navigate-outline" size={36} onPress={handleNavigate} disabled={!canNavigate} accessibilityLabel={t("driver.navigate")} />
+            <IconButton icon="call-outline" size={40} onPress={handleCall} disabled={!order.customerPhone} accessibilityLabel={t("driver.phone")} />
+            <IconButton icon="navigate-outline" size={40} onPress={handleNavigate} disabled={!canNavigate} accessibilityLabel={t("driver.navigate")} />
           </View>
           {action.kind !== "none" ? (
             <Button label={t(action.labelKey, action.fallback)} size="sm" onPress={() => void handlePrimaryAction()} loading={actionPending} />

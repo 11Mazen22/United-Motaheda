@@ -2057,6 +2057,7 @@
     "etaHoursMinutes": "{{h}}h {{m}}m",
     "fitRoute": "Fit route",
     "recenter": "Recenter",
+    "openInMaps": "Open in external maps",
     "openSettings": "Open Settings",
     "gpsAcquiring": "Still finding your GPS signal — this can take a moment outdoors.",
     "routeEstimateNote": "Estimated — straight-line, not routed",

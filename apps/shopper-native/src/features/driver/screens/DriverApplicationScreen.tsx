@@ -5,16 +5,17 @@
  * own theme/components rather than CourierUI, and with no account-creation
  * step — the applicant is always an already-authenticated user.
  */
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 
-import { Screen, Text as UIText, Input, Button, SegmentedToggle, useTheme, kit, showToast } from "@pharmacy/ui-native";
+import { Screen, Text as UIText, Input, Button, SegmentedToggle, useTheme, showToast } from "@pharmacy/ui-native";
 import { useAuth } from "@/features/auth";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
+import { useScreenLayout } from "@/utils/responsive";
 import { DriverScreenHeader } from "../components/DriverScreenHeader";
 import { uploadDriverDocument, type DriverDocumentType } from "../api";
 import { useCreateDriverApplication } from "../hooks/useDriverProfile";
@@ -60,6 +61,8 @@ export function DriverApplicationScreen(): React.ReactElement {
   const [documents, setDocuments] = useState<Partial<Record<DriverDocumentType, string>>>({});
   const [uploadingType, setUploadingType] = useState<DriverDocumentType | null>(null);
 
+  const { pagePad } = useScreenLayout();
+
   const vehicleStepValid = vehiclePlate.trim().length >= 2 && vehicleModel.trim().length >= 2 && vehicleColor.trim().length >= 2;
   const allDocumentsUploaded = DOCUMENTS.every((d) => Boolean(documents[d.type]));
 
@@ -94,6 +97,14 @@ export function DriverApplicationScreen(): React.ReactElement {
       showToast(t("driverApplication.submitFailed"), "error");
     }
   };
+
+  const s = useMemo(() => StyleSheet.create({
+    stepRow: { flexDirection: flexRow(IS_RTL), justifyContent: "center", gap: 10, marginBottom: 12 },
+    stepDot: { width: 26, height: 26, borderRadius: 13, alignItems: "center", justifyContent: "center" },
+    scroll: { paddingHorizontal: pagePad, paddingBottom: 60 },
+    docRow: { alignItems: "center", gap: 12, padding: 14, borderRadius: 14, borderWidth: 1, marginBottom: 10 },
+    docIcon: { width: 36, height: 36, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  }), [pagePad]);
 
   return (
     <Screen edgeTop background={theme.colors.canvas.background}>
@@ -151,6 +162,7 @@ export function DriverApplicationScreen(): React.ReactElement {
             {DOCUMENTS.map((doc) => {
               const uploaded = Boolean(documents[doc.type]);
               const uploading = uploadingType === doc.type;
+
               return (
                 <Pressable
                   key={doc.type}
@@ -186,11 +198,3 @@ export function DriverApplicationScreen(): React.ReactElement {
     </Screen>
   );
 }
-
-const s = StyleSheet.create({
-  stepRow: { flexDirection: "row", justifyContent: "center", gap: 10, marginBottom: 12 },
-  stepDot: { width: 26, height: 26, borderRadius: 13, alignItems: "center", justifyContent: "center" },
-  scroll: { paddingHorizontal: kit.inset.screen, paddingBottom: 60 },
-  docRow: { alignItems: "center", gap: 12, padding: 14, borderRadius: 14, borderWidth: 1, marginBottom: 10 },
-  docIcon: { width: 36, height: 36, borderRadius: 12, alignItems: "center", justifyContent: "center" },
-});

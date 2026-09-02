@@ -18,7 +18,7 @@ import { useTranslation } from "react-i18next";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated from "react-native-reanimated";
 
-import { Screen, Text as UIText, StatusIndicator, useTheme, kit } from "@pharmacy/ui-native";
+import { Screen, Text as UIText, useTheme, PressableScale } from "@pharmacy/ui-native";
 import { theme as legacyTheme, gradients } from "@pharmacy/design-tokens";
 import { useAuth } from "@/features/auth";
 import { useAppLanguage } from "@/i18n/LanguageProvider";
@@ -31,6 +31,7 @@ import { DriverScreenHeader } from "../components/DriverScreenHeader";
 import { useDriverManifest, useMyAcceptanceRate } from "../hooks/useDriverManifest";
 import { useMyDriverProfile } from "../hooks/useDriverProfile";
 import { useDriverMutations } from "../hooks/useDriverMutations";
+import { getDriverActionErrorMessage } from "../lib/errorMessage";
 
 const IS_RTL = isRtl();
 const TEXT_START = textAlignStart(IS_RTL);
@@ -45,12 +46,9 @@ interface MenuRowProps {
 function MenuRow({ icon, label, onPress, danger = false }: MenuRowProps) {
   const { theme } = useTheme();
   return (
-    <Pressable
+    <PressableScale
       onPress={onPress}
-      style={({ pressed }) => [
-        { flexDirection: flexRow(IS_RTL), alignItems: "center", padding: 16, gap: 14 },
-        pressed && { backgroundColor: theme.colors.canvas.surfaceMuted },
-      ]}
+      style={{ flexDirection: flexRow(IS_RTL), alignItems: "center", padding: 16, gap: 14 }}
       accessibilityRole="button"
     >
       <View style={[{ width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" }, { backgroundColor: danger ? `${theme.colors.status.error}1A` : theme.colors.brand.primaryLight }]}>
@@ -60,7 +58,7 @@ function MenuRow({ icon, label, onPress, danger = false }: MenuRowProps) {
         {label}
       </UIText>
       {!danger && <Ionicons name={FORWARD_CHEVRON} size={16} color={theme.colors.text.muted} />}
-    </Pressable>
+    </PressableScale>
   );
 }
 
@@ -80,9 +78,9 @@ function StatTile({ icon, label, value, onPress }: { icon: React.ComponentProps<
   
   if (onPress) {
     return (
-      <Pressable onPress={onPress} accessibilityRole="button" style={({ pressed }) => [tileStyle, pressed && { opacity: 0.7, backgroundColor: theme.colors.canvas.surfaceMuted }]}>
+      <PressableScale onPress={onPress} accessibilityRole="button" style={tileStyle}>
         {content}
-      </Pressable>
+      </PressableScale>
     );
   }
   return <View style={tileStyle}>{content}</View>;
@@ -145,7 +143,7 @@ export function DriverProfileScreen(): React.ReactElement {
     try {
       await mutations.setAvailability.mutateAsync({ isOnline: !isOnline });
     } catch (e) {
-      showErrorSheet(t("driver.actionFailedTitle"), e instanceof Error ? e.message : t("driver.actionFailedBody"));
+      showErrorSheet(t("driver.actionFailedTitle"), getDriverActionErrorMessage(e, t, t("driver.actionFailedBody")));
     }
   };
 
@@ -180,7 +178,7 @@ export function DriverProfileScreen(): React.ReactElement {
   }), [theme, pagePad]);
 
   return (
-    <Screen edgeToEdge background={theme.colors.canvas.background}>
+    <Screen edgeTop background={theme.colors.canvas.background}>
       <DriverScreenHeader title={t("driver.profileTitle")} />
       <ScrollView
         contentContainerStyle={[s.scroll, isTablet && { maxWidth: 640, alignSelf: "center", width: "100%" }]}
@@ -192,8 +190,8 @@ export function DriverProfileScreen(): React.ReactElement {
               <UIText style={s.avatarLetter}>{(user?.name ?? user?.email ?? "D").charAt(0).toUpperCase()}</UIText>
             </View>
           </View>
-          <UIText style={s.heroName}>{user?.name || displayNameFromEmail(user?.email) || t("driver.unnamed")}</UIText>
-          <UIText style={s.heroEmail}>{user?.email || ""}</UIText>
+          <UIText style={s.heroName} numberOfLines={1}>{user?.name || displayNameFromEmail(user?.email) || t("driver.unnamed")}</UIText>
+          <UIText style={s.heroEmail} numberOfLines={1}>{user?.email || ""}</UIText>
 
           <View style={s.badgesRow}>
             <View style={s.roleBadge}>
