@@ -46,6 +46,11 @@ export class AdminOperationsController {
     return this.operations.suspendDriver(id, body?.reason, req.user?.userId);
   }
 
+  @Post('drivers')
+  createDriver(@Body() body: { userId: string }, @Request() req: any) {
+    return this.operations.createDriver(body.userId, req.user?.userId);
+  }
+
   @Get('orders')
   listOrders(
     @Query('page') page?: string,

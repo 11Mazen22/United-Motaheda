@@ -7,6 +7,7 @@ const NAV_ITEMS = [
   { to: '/',             label: 'Dashboard',     icon: '📊', exact: true  },
   { to: '/map',          label: 'Live Map',       icon: '🗺️', exact: false },
   { to: '/drivers',      label: 'Drivers',        icon: '🚗', exact: false },
+  { to: '/staff',        label: 'Staff',          icon: '🧑‍⚕️', exact: false },
   { to: '/orders',       label: 'Orders',         icon: '📦', exact: false },
   { to: '/notifications',label: 'Notifications',  icon: '🔔', exact: false },
   { to: '/marketing',    label: 'Marketing',      icon: '📣', exact: false },

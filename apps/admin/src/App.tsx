@@ -14,6 +14,7 @@ import { BranchesPage } from '@/pages/BranchesPage';
 import { InventoryPage } from '@/pages/InventoryPage';
 import { ProductsPage } from '@/pages/ProductsPage';
 import { CustomersPage } from '@/pages/CustomersPage';
+import { StaffPage } from '@/pages/StaffPage';
 
 import { Toast } from '@/components/Toast';
 
@@ -52,6 +53,7 @@ export default function App() {
           <Route index element={<DashboardPage />} />
           <Route path="map" element={<MapPage />} />
           <Route path="drivers" element={<DriversPage />} />
+          <Route path="staff" element={<StaffPage />} />
           <Route path="orders" element={<OrdersPage />} />
           <Route path="branches" element={<BranchesPage />} />
           <Route path="inventory" element={<InventoryPage />} />

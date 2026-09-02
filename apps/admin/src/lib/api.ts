@@ -337,6 +337,11 @@ export const marketingApi = {
   updateProduct: (id: string, data: any) => api.patch(`/admin/products/${id}`, data).then(r => r.data),
 
   // Customers
-  getCustomers: (page = 1, limit = 20) => api.get('/admin/customers', { params: { page, limit } }).then(r => r.data),
+  getCustomers: (page = 1, limit = 20, search?: string, role?: string) =>
+    api.get('/admin/customers', { params: { page, limit, search, role } }).then(r => r.data),
+
+  // Staff (driver/pharmacist account creation)
+  createDriver: (userId: string) =>
+    api.post('/admin/drivers', { userId }).then(r => r.data),
 
 };

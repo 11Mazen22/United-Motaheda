@@ -189,6 +189,44 @@ export class AdminOperationsService {
     return { success: true, message: 'Driver suspended', driverId, status: 'SUSPENDED', reason: suspensionReason };
   }
 
+  /** Admin-vouched driver creation -- just a user id. Skips the public
+   * apply-and-vet queue entirely (status goes straight to APPROVED) for a
+   * person the admin already knows and trusts directly, e.g. onboarding a
+   * driver in person. vehicleType is the only DriverProfile column that's
+   * actually NOT NULL at the DB level (confirmed live) so it gets a
+   * placeholder here rather than one more thing the admin has to type --
+   * plate/model/color/documents all stay nullable until the driver fills
+   * them in from their own profile screen, same as the public apply flow. */
+  async createDriver(userId: string, adminUserId?: string) {
+    const user = await this.prisma.profiles.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException('User not found');
+
+    const existing = await this.prisma.driverProfile.findUnique({ where: { userId } });
+    if (existing) throw new ConflictException('This user already has a driver profile');
+
+    const now = new Date();
+    const driver = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.driverProfile.create({
+        data: {
+          userId,
+          vehicleType: 'motorcycle',
+          status: 'APPROVED',
+          approvedAt: now,
+          approvedBy: adminUserId ?? null,
+        },
+      });
+
+      await tx.profiles.update({
+        where: { id: userId },
+        data: { status: 'Active', role: 'driver', updated_at: now },
+      });
+
+      return created;
+    });
+
+    return { success: true, message: 'Driver created', driverId: driver.id, status: 'APPROVED' };
+  }
+
   async assignOrder(orderId: string, driverId?: string, adminUserId?: string) {
     if (!driverId) throw new BadRequestException('driverId is required');
 
