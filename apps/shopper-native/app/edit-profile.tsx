@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from "react";
 import {
   ActivityIndicator,
+  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -15,8 +16,9 @@ import { useTranslation } from "react-i18next";
 import Animated, { FadeInDown, FadeIn, SlideInDown, SlideOutDown } from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
+import * as ImagePicker from "expo-image-picker";
 
-import { useAuth, updateProfile, deleteAccount } from "@/features/auth";
+import { useAuth, updateProfile, uploadAvatar, deleteAccount } from "@/features/auth";
 import { Button, Text as UIText } from "@pharmacy/ui-native";
 import { useTheme } from "@pharmacy/ui-native";
 import type { NativeTheme } from "@pharmacy/ui-native";
@@ -69,14 +71,50 @@ export default function EditProfileScreen() {
   const { user, signOut } = useAuth();
 
   const [name, setName] = useState(user?.name || "");
+  const [avatarUrl, setAvatarUrl] = useState(user?.avatarUrl);
 
   const [loading, setLoading] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
 
   const isDirty = useMemo(() => {
     return name !== (user?.name || "");
   }, [name, user]);
+
+  // Applies immediately (its own updateProfile call, not folded into
+  // isDirty/handleSave) -- matches how a profile-photo change reads
+  // everywhere else (WhatsApp, Instagram, etc.): pick, done, no separate
+  // save step just for the photo.
+  const handlePickPhoto = async () => {
+    if (!user?.id || uploadingPhoto) return;
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      setError(t("driver.photoPermissionRequired", "Photo library access is required to attach a photo."));
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+    if (result.canceled || !result.assets?.[0]?.uri) return;
+
+    setUploadingPhoto(true);
+    setError(null);
+    try {
+      const publicUrl = await uploadAvatar(user.id, result.assets[0].uri);
+      await updateProfile({ avatarUrl: publicUrl });
+      setAvatarUrl(publicUrl);
+      if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : t("errors.unknown"));
+      if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
 
   const handleSave = async () => {
     if (!name.trim()) {
@@ -151,18 +189,33 @@ export default function EditProfileScreen() {
           
           {/* Avatar Hero */}
           <View style={styles.avatarSection}>
-            <LinearGradient
-              colors={["#0A5F58", "#12A898"]}
-              style={styles.avatarRing}
-            >
-              <View style={[styles.avatarInner, { backgroundColor: theme.colors.canvas.surface }]}>
-                <UIText style={[styles.avatarInitials, { color: theme.colors.text.primary }]}>
-                  {name ? name.substring(0, 2).toUpperCase() : (user?.email ? user.email.substring(0, 2).toUpperCase() : "US")}
-                </UIText>
+            <Pressable onPress={() => void handlePickPhoto()} disabled={uploadingPhoto} style={styles.avatarPressable} accessibilityRole="button" accessibilityLabel={t("profile.editPhoto", { defaultValue: "Edit Photo" })}>
+              <LinearGradient
+                colors={["#0A5F58", "#12A898"]}
+                style={styles.avatarRing}
+              >
+                <View style={[styles.avatarInner, { backgroundColor: theme.colors.canvas.surface }]}>
+                  {avatarUrl ? (
+                    <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
+                  ) : (
+                    <UIText style={[styles.avatarInitials, { color: theme.colors.text.primary }]}>
+                      {name ? name.substring(0, 2).toUpperCase() : (user?.email ? user.email.substring(0, 2).toUpperCase() : "US")}
+                    </UIText>
+                  )}
+                </View>
+              </LinearGradient>
+              <View style={[styles.avatarCameraBadge, { backgroundColor: theme.colors.brand.primaryDark, borderColor: theme.colors.canvas.background }]}>
+                {uploadingPhoto ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Ionicons name="camera" size={14} color="#fff" />
+                )}
               </View>
-            </LinearGradient>
-            <Pressable style={styles.editAvatarBtn}>
-              <UIText style={styles.editAvatarText}>{t("profile.editPhoto", { defaultValue: "Edit Photo" })}</UIText>
+            </Pressable>
+            <Pressable onPress={() => void handlePickPhoto()} disabled={uploadingPhoto} style={styles.editAvatarBtn}>
+              <UIText style={[styles.editAvatarText, uploadingPhoto && { opacity: 0.5 }]}>
+                {uploadingPhoto ? t("driverApplication.uploading", "Uploading…") : t("profile.editPhoto", { defaultValue: "Edit Photo" })}
+              </UIText>
             </Pressable>
           </View>
 
@@ -273,12 +326,14 @@ function getStyles(theme: NativeTheme) {
     alignItems: "center",
     marginBottom: 32,
   },
+  avatarPressable: {
+    marginBottom: 12,
+  },
   avatarRing: {
     width: 96,
     height: 96,
     borderRadius: 48,
     padding: 3,
-    marginBottom: 12,
   },
   avatarInner: {
     flex: 1,
@@ -291,6 +346,22 @@ function getStyles(theme: NativeTheme) {
   avatarInitials: {
     fontFamily: legacyTheme.fonts.extrabold,
     fontSize: 32,
+  },
+  avatarImage: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 45,
+  },
+  avatarCameraBadge: {
+    position: "absolute",
+    bottom: 0,
+    end: -2,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
   },
   editAvatarBtn: {
     paddingVertical: 4,

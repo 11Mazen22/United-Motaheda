@@ -1,6 +1,7 @@
 export {
   signIn, signUp, signOut, getSession,
-  requestPasswordReset, updatePassword, updateProfile, deleteAccount,
+  requestPasswordReset, updatePassword, updateProfile, uploadAvatar, deleteAccount,
+  resendConfirmationEmail, EMAIL_REDIRECT_URL, RESET_PASSWORD_REDIRECT_URL,
   type AuthUser,
 } from "./api";
 export { AuthProvider, useAuth } from "./context";
