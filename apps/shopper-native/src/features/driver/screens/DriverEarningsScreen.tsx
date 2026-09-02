@@ -8,12 +8,13 @@
  * figures shown here can never drift from the per-delivery rows below them.
  */
 import React, { useMemo, useState } from "react";
-import { FlatList, RefreshControl, ScrollView, StyleSheet, View } from "react-native";
+import { FlatList, Pressable, RefreshControl, ScrollView, StyleSheet, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
-import Animated, { FadeInDown } from "react-native-reanimated";
-import { gradients } from "@pharmacy/design-tokens";
+import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
+import { gradients, theme as legacyTheme } from "@pharmacy/design-tokens";
 
 import { Screen, Text as UIText, Card, Chip, EmptyState, SkeletonCard, Button, useTheme, type NativeTheme } from "@pharmacy/ui-native";
 import { useAuth } from "@/features/auth";
@@ -171,6 +172,7 @@ function MilestoneCard({
 export function DriverEarningsScreen(): React.ReactElement {
   const { t, i18n } = useTranslation();
   const { theme } = useTheme();
+  const router = useRouter();
   const { user } = useAuth();
   const { pagePad, isTablet } = useScreenLayout();
   const locale = i18n.language === "ar" ? "ar-EG" : "en-US";
@@ -247,54 +249,59 @@ export function DriverEarningsScreen(): React.ReactElement {
         end={{ x: 1, y: 1 }}
         style={[s.hero, { paddingHorizontal: pagePad }]}
       >
-        <View style={[s.heroTopRow, { flexDirection: flexRow(IS_RTL) }]}>
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <UIText variant="eyebrow" style={s.heroEyebrow}>{t("driver.earningsEyebrow", "Your Earnings")}</UIText>
-            <UIText variant="screen-title" style={{ color: "#fff" }}>{t("driver.earningsTitle", "Earnings")}</UIText>
-          </View>
-          <View style={s.heroIconWell}>
-            <Ionicons name="wallet" size={20} color="#fff" />
-          </View>
-        </View>
-
-        <UIText style={s.heroTotal} numberOfLines={1}>{formatPrice(Math.round(animatedTotal))}</UIText>
-
-        <View style={[s.splitRow, { flexDirection: flexRow(IS_RTL) }]}>
-          <View style={s.splitCell}>
-            <View style={[s.splitDot, { backgroundColor: "#FFD166" }]} />
-            <View style={{ flex: 1, minWidth: 0 }}>
-              <UIText style={s.splitVal} numberOfLines={1}>{formatPrice(pendingTotal)}</UIText>
-              <UIText style={s.statLbl} numberOfLines={1}>{t("driver.earningsPending", "Pending")}</UIText>
+        <Animated.View entering={FadeIn.duration(280)}>
+          <View style={[s.heroTopRow, { flexDirection: flexRow(IS_RTL) }]}>
+            <Pressable
+              onPress={() => router.back()}
+              style={s.heroIconWell}
+              accessibilityRole="button"
+              accessibilityLabel={t("common.back")}
+              hitSlop={8}
+            >
+              <Ionicons name={IS_RTL ? "chevron-forward" : "chevron-back"} size={20} color="#fff" />
+            </Pressable>
+            <UIText style={s.heroTitle} numberOfLines={1}>{t("driver.earningsTitle", "Earnings")}</UIText>
+            <View style={s.heroIconWell}>
+              <Ionicons name="wallet" size={18} color="#fff" />
             </View>
           </View>
-          <View style={s.splitCell}>
-            <View style={[s.splitDot, { backgroundColor: "#7FE8B8" }]} />
-            <View style={{ flex: 1, minWidth: 0 }}>
-              <UIText style={s.splitVal} numberOfLines={1}>{formatPrice(paidTotal)}</UIText>
-              <UIText style={s.statLbl} numberOfLines={1}>{t("driver.earningsPaid", "Paid")}</UIText>
+
+          <UIText style={s.heroTotal} numberOfLines={1}>{formatPrice(Math.round(animatedTotal))}</UIText>
+
+          <View style={[s.splitRow, { flexDirection: flexRow(IS_RTL) }]}>
+            <View style={s.splitCell}>
+              <View style={[s.splitDot, { backgroundColor: "#FFD166" }]} />
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <UIText style={s.splitVal} numberOfLines={1}>{formatPrice(pendingTotal)}</UIText>
+                <UIText style={s.splitLbl} numberOfLines={1}>{t("driver.earningsPending", "Pending")}</UIText>
+              </View>
+            </View>
+            <View style={s.splitCell}>
+              <View style={[s.splitDot, { backgroundColor: "#7FE8B8" }]} />
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <UIText style={s.splitVal} numberOfLines={1}>{formatPrice(paidTotal)}</UIText>
+                <UIText style={s.splitLbl} numberOfLines={1}>{t("driver.earningsPaid", "Paid")}</UIText>
+              </View>
             </View>
           </View>
-        </View>
 
-        <View style={[s.statsRow, { flexDirection: flexRow(IS_RTL) }]}>
-          <View style={s.statCell}>
-            <UIText style={s.statVal}>{fmtN(filtered.length)}</UIText>
-            <UIText style={s.statLbl} numberOfLines={1}>{t("driver.earningsDeliveriesLabel", "Deliveries")}</UIText>
-          </View>
-          <View style={s.statCell}>
-            <UIText style={s.statVal}>{filtered.length > 0 ? formatPrice(totalAmount / filtered.length) : "—"}</UIText>
-            <UIText style={s.statLbl} numberOfLines={1}>{t("driver.earningsAvgLabel", "Avg / delivery")}</UIText>
-          </View>
-        </View>
-
-        {streakDays > 1 && (
-          <View style={[s.streakPill, { flexDirection: flexRow(IS_RTL) }]}>
-            <Ionicons name="flame" size={14} color="#FFD166" />
-            <UIText style={s.streakText}>
-              {t("driver.earningsStreak", "{{count}}-day streak", { count: streakDays })}
+          <View style={[s.metaRow, { flexDirection: flexRow(IS_RTL) }]}>
+            <UIText style={s.metaText} numberOfLines={1}>
+              {t("driver.earningsMetaSummary", "{{count}} deliveries · avg {{amount}}", {
+                count: filtered.length,
+                amount: filtered.length > 0 ? formatPrice(totalAmount / filtered.length) : formatPrice(0),
+              })}
             </UIText>
+            {streakDays > 1 && (
+              <View style={[s.streakPill, { flexDirection: flexRow(IS_RTL) }]}>
+                <Ionicons name="flame" size={12} color="#FFD166" />
+                <UIText style={s.streakText}>
+                  {t("driver.earningsStreak", "{{count}}-day streak", { count: streakDays })}
+                </UIText>
+              </View>
+            )}
           </View>
-        )}
+        </Animated.View>
       </LinearGradient>
 
       <View style={[s.filterRow, { flexDirection: flexRow(IS_RTL), paddingHorizontal: pagePad }]}>
@@ -416,26 +423,24 @@ export function DriverEarningsScreen(): React.ReactElement {
 const s = StyleSheet.create({
   hero: { paddingTop: 12, paddingBottom: 18, gap: 4 },
   heroTopRow: { alignItems: "center", justifyContent: "space-between", gap: 10 },
-  heroEyebrow: { color: "rgba(255,255,255,0.78)", letterSpacing: 1, marginBottom: 2 },
-  heroIconWell: { width: 40, height: 40, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.16)", flexShrink: 0 },
-  heroTotal: { fontSize: 40, lineHeight: 46, fontWeight: "900", color: "#fff", marginTop: 6 },
+  heroIconWell: { width: 38, height: 38, borderRadius: 13, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.16)", flexShrink: 0 },
+  heroTitle: { flex: 1, minWidth: 0, textAlign: "center", fontSize: 17, lineHeight: 22, fontFamily: legacyTheme.fonts.extrabold, color: "#fff" },
+  heroTotal: { fontSize: 38, lineHeight: 44, fontFamily: legacyTheme.fonts.black, color: "#fff", marginTop: 12, textAlign: TEXT_START },
   splitRow: { gap: 10, marginTop: 14 },
   splitCell: { flex: 1, minWidth: 0, flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 8, paddingHorizontal: 10, borderRadius: 12, backgroundColor: "rgba(255,255,255,0.10)" },
   splitDot: { width: 8, height: 8, borderRadius: 4, flexShrink: 0 },
-  splitVal: { fontSize: 13, fontWeight: "800", color: "#fff" },
-  statsRow: { gap: 10, marginTop: 10 },
-  statCell: { flex: 1, minWidth: 0, alignItems: "center", paddingVertical: 10, borderRadius: 14, backgroundColor: "rgba(255,255,255,0.14)", gap: 2 },
-  statVal: { fontSize: 17, fontWeight: "800", color: "#fff" },
+  splitVal: { fontSize: 13, lineHeight: 17, fontFamily: legacyTheme.fonts.extrabold, color: "#fff" },
+  splitLbl: { fontSize: 10, lineHeight: 14, fontFamily: legacyTheme.fonts.bold, color: "rgba(255,255,255,0.78)" },
+  metaRow: { alignItems: "center", justifyContent: "space-between", gap: 8, marginTop: 12 },
+  metaText: { flex: 1, minWidth: 0, fontSize: 11.5, lineHeight: 16, fontFamily: legacyTheme.fonts.bold, color: "rgba(255,255,255,0.82)", textAlign: TEXT_START },
   streakPill: {
-    alignSelf: "flex-start",
-    alignItems: "center", gap: 6,
-    marginTop: 12,
-    paddingHorizontal: 12, paddingVertical: 6,
+    alignItems: "center", gap: 5,
+    paddingHorizontal: 10, paddingVertical: 5,
     borderRadius: 9999,
     backgroundColor: "rgba(255,209,102,0.18)",
+    flexShrink: 0,
   },
-  streakText: { fontSize: 12, fontWeight: "800", color: "#FFD166" },
-  statLbl: { fontSize: 10, fontWeight: "700", color: "rgba(255,255,255,0.8)" },
+  streakText: { fontSize: 11, lineHeight: 15, fontFamily: legacyTheme.fonts.extrabold, color: "#FFD166" },
   filterRow: { gap: 8, paddingVertical: 12 },
   listContent: { paddingBottom: 48 },
   dayHeader: { alignItems: "center", justifyContent: "space-between", marginBottom: 8 },
