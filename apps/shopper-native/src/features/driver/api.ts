@@ -446,41 +446,22 @@ export async function getAssignment(assignmentId: string, driverId: string): Pro
   return data ? mapAssignmentRow(data as RawAssignmentRow) : null;
 }
 
-export async function acceptAssignment(assignmentId: string, driverId: string): Promise<DeliveryAssignment> {
-  const { data: offer, error: offerError } = await supabase
-    .from("delivery_assignments")
-    .select("order_id")
-    .eq("id", assignmentId)
-    .eq("driver_id", driverId)
-    .eq("response_status", "offered")
-    .maybeSingle();
-
-  if (offerError) throw offerError;
-  const orderId = (offer as { order_id?: string } | null)?.order_id;
-  if (!orderId) throw new Error("This delivery offer is no longer available.");
-
-  const { error: transitionError } = await supabase.rpc("transition_order", {
-    p_order_id: orderId,
-    p_next_status: "driver_accepted",
+/** Accepts an offered assignment through driver_accept_assignment — a
+ * single SECURITY DEFINER RPC that transitions the order AND updates
+ * delivery_assignments.response_status atomically, rather than the two
+ * separate client writes this used to be. Those could fall out of sync on
+ * a crash between them (order at driver_accepted, assignment still
+ * "offered") with no way to self-heal on retry — the same class of bug
+ * declineAssignment's own driver_decline_assignment RPC already existed
+ * to avoid. */
+export async function acceptAssignment(assignmentId: string): Promise<DeliveryAssignment> {
+  const { data, error } = await supabase.rpc("driver_accept_assignment", {
+    p_assignment_id: assignmentId,
   });
-  if (transitionError) throw transitionError;
-
-  const { data, error } = await supabase
-    .from("delivery_assignments")
-    .update({ response_status: "accepted", responded_at: new Date().toISOString() })
-    .eq("id", assignmentId)
-    .eq("driver_id", driverId)
-    .select(ASSIGNMENT_COLUMNS);
 
   if (error) throw error;
-  if (!data || data.length === 0) {
-    throw new Error("Could not accept this assignment — it may have already been reassigned.");
-  }
-  const updated = mapAssignmentRow(data[0] as RawAssignmentRow);
-  if (updated.responseStatus !== "accepted") {
-    throw new Error("Acceptance did not persist; please try again.");
-  }
-  notifyCustomerOrderUpdate(orderId, "driver_accepted");
+  const updated = mapAssignmentRow(data as RawAssignmentRow);
+  notifyCustomerOrderUpdate(updated.orderId, "driver_accepted");
   return updated;
 }
 

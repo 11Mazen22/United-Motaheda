@@ -30,7 +30,7 @@ export function useDriverMutations(driverId: string | undefined) {
   };
 
   const accept = useMutation({
-    mutationFn: (assignmentId: string) => acceptAssignment(assignmentId, requireDriverId()),
+    mutationFn: (assignmentId: string) => acceptAssignment(assignmentId),
     onSuccess: (_data, assignmentId) => {
       invalidateAll();
       void queryClient.invalidateQueries({ queryKey: driverQueryKeys.offer(assignmentId) });
