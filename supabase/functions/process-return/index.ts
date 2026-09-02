@@ -77,21 +77,28 @@ export default async function handler(req: Request) {
         if (!isStaff) throw new Error("Forbidden");
         nextStatus = "INSPECTION";
         break;
-      case "complete_inspection":
+      case "complete_inspection": {
         // Pharmacist passes payload.items: { id: return_item_id, disposition: 'RESTOCK', approved_quantity: 1 }
         if (!isStaff) throw new Error("Forbidden");
-        
-        // Before transitioning, update the return_items records
+
+        // Before transitioning, update the return_items records. Each
+        // write is checked -- a failure partway through used to be
+        // silently ignored, then the transition below would still fire
+        // against a half-updated item set. Safe to fail the whole request
+        // here: these are overwrites (not increments), so retrying after
+        // a failure just re-applies the same payload.
         if (payload?.items && Array.isArray(payload.items)) {
           for (const item of payload.items) {
-            await supabaseAdmin.from("return_items").update({
+            const { error: itemError } = await supabaseAdmin.from("return_items").update({
               disposition: item.disposition,
               approved_quantity: item.approved_quantity
             }).eq("id", item.id);
+            if (itemError) throw itemError;
           }
         }
         nextStatus = "APPROVED_FOR_REFUND";
         break;
+      }
       case "approve_refund":
         if (!isStaff) throw new Error("Forbidden");
         nextStatus = "REFUND_PENDING";
@@ -99,9 +106,6 @@ export default async function handler(req: Request) {
       case "complete_refund":
         if (!isStaff) throw new Error("Forbidden");
         nextStatus = "COMPLETED";
-        
-        // Also update refunds table
-        await supabaseAdmin.from("refunds").update({ status: "COMPLETED" }).eq("idempotency_key", `return-${requestId}`);
         break;
       default:
         throw new Error("Invalid action");
@@ -118,7 +122,22 @@ export default async function handler(req: Request) {
 
     if (transitionError) throw transitionError;
 
-    // 3. Side effects (Delivery Assignment)
+    // 3. Side effects
+    // Was previously written before the RPC call above -- a failed
+    // transition (network blip, validation error) would still leave the
+    // refund marked COMPLETED while the state machine, and whatever
+    // inventory effects live inside transition_return_status's COMPLETED
+    // branch, never actually ran. Now only runs once the transition is
+    // confirmed to have actually happened.
+    if (action === "complete_refund") {
+      const { error: refundError } = await supabaseAdmin
+        .from("refunds")
+        .update({ status: "COMPLETED" })
+        .eq("idempotency_key", `return-${requestId}`);
+      if (refundError) throw refundError;
+    }
+
+    // 4. Side effects (Delivery Assignment)
     if (action === "assign_driver") {
       const { data: reqData } = await supabaseAdmin.from("return_requests").select("order_id").eq("id", requestId).single();
       if (reqData && payload?.driver_id) {
