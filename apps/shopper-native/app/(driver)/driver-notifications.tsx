@@ -94,7 +94,7 @@ export default function DriverNotificationsScreen() {
             style={s.markAllBtn}
             accessibilityRole="button"
           >
-            <UIText variant="caption" color="brand">
+            <UIText variant="caption" color="brand" numberOfLines={1}>
               {t("notifications.markAllRead")}
             </UIText>
           </Pressable>
@@ -167,7 +167,7 @@ export default function DriverNotificationsScreen() {
 
 const useSStyles = (theme: NativeTheme) => useMemo(() => StyleSheet.create({
   centered:    { flex: 1, alignItems: "center", justifyContent: "center" },
-  markAllBtn:  { paddingHorizontal: 10, paddingVertical: 6 },
+  markAllBtn:  { paddingHorizontal: 10, paddingVertical: 6, flexShrink: 0 },
   sectionHeader: {
     paddingHorizontal: kit.inset.screen,
     paddingTop:        14,
