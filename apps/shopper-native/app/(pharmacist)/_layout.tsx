@@ -76,13 +76,29 @@ export default function PharmacistLayout() {
   // of), but hasLeftRef ensures the replace() call inside only ever actually
   // fires once. Mirrors the "leave" condition of both <Redirect> sites below
   // combined.
+  //
+  // The replace() call is deferred one macrotask via setTimeout rather than
+  // called synchronously. Reproduced live on (driver)/_layout.tsx's matching
+  // guard: this layout's Stack contains its own nested (tabs) navigator with
+  // several screens -- calling replace() synchronously here unmounts that
+  // whole subtree within the same React commit that's still flushing other
+  // pending updates, and each unmounting screen's cleanup
+  // (@react-navigation/core's SceneView clears the options it registered on
+  // its parent navigator on unmount) triggers a parent state update. Enough
+  // of those cascading synchronously in one commit trips React's own
+  // "Maximum update depth exceeded" (error #185) — confirmed via the
+  // captured stack, which is entirely inside react-navigation's
+  // clearOptions/options-getter machinery, no application code in it at
+  // all. Deferring by one tick lets React fully settle the current commit
+  // before the heavy nested-unmount transition begins, without changing
+  // what navigates or how many times (still guarded to exactly once).
   useEffect(() => {
     const shouldLeave =
       decidedAccessRef.current === false ||
       (decidedAccessRef.current === true && !user && !loading);
     if (shouldLeave && !hasLeftRef.current) {
       hasLeftRef.current = true;
-      router.replace("/" as never);
+      setTimeout(() => router.replace("/" as never), 0);
     }
   });
 

@@ -82,15 +82,34 @@ export default function Entry() {
   // of), but hasNavigatedRef ensures the replace() call inside only ever
   // actually fires once. See hasNavigatedRef's declaration for why a plain
   // <Redirect> here isn't safe.
+  //
+  // The replace() call itself is deferred one macrotask via setTimeout
+  // rather than called synchronously inside the effect. Reproduced live:
+  // calling it synchronously here can unmount a deeply-nested navigator (a
+  // Stack containing its own nested Tabs, several screens deep) in the same
+  // React commit that's still flushing other pending updates -- each
+  // unmounting screen's own cleanup (@react-navigation/core's SceneView
+  // clears the options it registered on its parent navigator on unmount)
+  // triggers a parent state update, and enough of those cascading
+  // synchronously in one commit trips React's own "Maximum update depth
+  // exceeded" (error #185) -- confirmed via the captured stack, which is
+  // entirely inside react-navigation's clearOptions/options-getter
+  // machinery, no application code in it at all. Deferring by one tick lets
+  // React fully settle the current commit before the heavy nested-unmount
+  // transition begins, which avoids the pile-up without changing what
+  // actually navigates or how many times (still guarded to exactly once).
   useEffect(() => {
     if (decidedTarget.current !== null && !hasNavigatedRef.current) {
       hasNavigatedRef.current = true;
-      // Cast: expo-router's generated route types haven't picked up the new
-      // (driver) group's routes at the time of this typecheck run (typegen
-      // regenerates on next `expo start`/build) — same pattern already used
-      // for dynamic push targets elsewhere in this app (e.g. root
-      // _layout.tsx's PushBootstrap).
-      router.replace(decidedTarget.current as never);
+      const target = decidedTarget.current;
+      setTimeout(() => {
+        // Cast: expo-router's generated route types haven't picked up the
+        // new (driver) group's routes at the time of this typecheck run
+        // (typegen regenerates on next `expo start`/build) — same pattern
+        // already used for dynamic push targets elsewhere in this app (e.g.
+        // root _layout.tsx's PushBootstrap).
+        router.replace(target as never);
+      }, 0);
     }
   });
 

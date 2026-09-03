@@ -104,11 +104,27 @@ export default function TabLayout() {
   // hasLeftRef for the full incident). Calling router.replace() ourselves,
   // gated by this ref, is the only way to guarantee it fires at most once.
   const hasLeftRef = useRef(false);
+  // The replace() call is deferred one macrotask via setTimeout rather than
+  // called synchronously. Reproduced live on (driver)/_layout.tsx's matching
+  // guard: this layout's Tabs contains several screens -- calling replace()
+  // synchronously here unmounts that whole subtree within the same React
+  // commit that's still flushing other pending updates, and each unmounting
+  // screen's cleanup (@react-navigation/core's SceneView clears the options
+  // it registered on its parent navigator on unmount) triggers a parent
+  // state update. Enough of those cascading synchronously in one commit
+  // trips React's own "Maximum update depth exceeded" (error #185) —
+  // confirmed via the captured stack, which is entirely inside
+  // react-navigation's clearOptions/options-getter machinery, no
+  // application code in it at all. Deferring by one tick lets React fully
+  // settle the current commit before the heavy nested-unmount transition
+  // begins, without changing what navigates or how many times (still
+  // guarded to exactly once).
   useEffect(() => {
     if (redirectRef.current === "driver" || redirectRef.current === "pharmacist") {
       if (!hasLeftRef.current) {
         hasLeftRef.current = true;
-        router.replace((redirectRef.current === "driver" ? "/(driver)" : "/(pharmacist)") as never);
+        const target = redirectRef.current === "driver" ? "/(driver)" : "/(pharmacist)";
+        setTimeout(() => router.replace(target as never), 0);
       }
     }
   });
