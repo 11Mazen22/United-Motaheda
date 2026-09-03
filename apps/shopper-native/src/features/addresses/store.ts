@@ -65,18 +65,30 @@ export const useAddressStore = create<AddressState>((set, get) => ({
       }));
     }
 
-    // Geocode the address to get coordinates for delivery zone lookup
-    const coords = await geocodeAddress({
-      street:   form.street,
-      building: form.building,
-      district: form.district,
-      city:     form.city,
-    });
-
-    const formWithCoords: AddressFormData = {
-      ...form,
-      ...(coords ? { lat: coords.lat, lng: coords.lng } : {}),
-    };
+    // If lat/lng are already set, they came from a precise source --
+    // selecting a Geoapify place suggestion (handleSelectSuggestion) or
+    // "detect my location" (handleDetectLocation), both of which set real
+    // coordinates directly. Re-geocoding from the text fields here would
+    // silently discard that precision: confirmed live, a saved address
+    // whose "street" ended up as a bare formatted place name (Geoapify's
+    // fallback when a selected suggestion has no granular street --
+    // handleSelectSuggestion's `s.street ?? s.formatted`) got re-geocoded
+    // from that generic text into a point ~30km from the correct location,
+    // pushing a real, deliverable address into "out of zone." Only geocode
+    // here for the pure-manual-entry path, where no suggestion/GPS ever
+    // ran and lat/lng genuinely aren't set yet.
+    let formWithCoords: AddressFormData = form;
+    if (form.lat == null || form.lng == null) {
+      const coords = await geocodeAddress({
+        street:   form.street,
+        building: form.building,
+        district: form.district,
+        city:     form.city,
+      });
+      if (coords) {
+        formWithCoords = { ...form, lat: coords.lat, lng: coords.lng };
+      }
+    }
 
     const created = await createAddress(userId, formWithCoords);
     set((s) => ({ addresses: [created, ...s.addresses] }));
@@ -97,11 +109,17 @@ export const useAddressStore = create<AddressState>((set, get) => ({
       }),
     }));
     try {
-      // Re-geocode if any address fields changed
+      // Re-geocode if any address fields changed AND the caller didn't
+      // already supply fresh coordinates of their own -- mirrors add()'s
+      // fix (see its comment for the incident this closes): a form.lat/lng
+      // present here came from selecting a place suggestion or GPS-detect
+      // during this same edit, which is more precise than re-deriving it
+      // from text fields and must not be silently overwritten.
       const addressFields: (keyof AddressFormData)[] = ["street", "building", "district", "city"];
       const hasAddressChange = addressFields.some((k) => k in form);
+      const hasFreshCoords = form.lat != null && form.lng != null;
       let formWithCoords = form;
-      if (hasAddressChange && form.street && form.district && form.city) {
+      if (hasAddressChange && !hasFreshCoords && form.street && form.district && form.city) {
         const coords = await geocodeAddress({
           street:   form.street,
           building: form.building ?? "",
