@@ -492,7 +492,30 @@
     "privacyNote": "بياناتك محمية ومشفّرة تماماً",
     "emptyHeadline": "طلبك الأول في انتظارك!",
     "reordering": "جارٍ الإضافة إلى السلة...",
-    "statusUnknown": "حالة غير معروفة"
+    "statusUnknown": "حالة غير معروفة",
+    "cancelOrder": "إلغاء الطلب",
+    "cancelSheetTitle": "إلغاء الطلب",
+    "cancelSheetSubtitle": "أخبرنا بالسبب لمساعدتنا على تحسين خدمتنا",
+    "cancelReasonsLabel": "سبب الإلغاء",
+    "cancelReasonRequired": "الرجاء اختيار سبب الإلغاء للمتابعة",
+    "cancelOtherLabel": "اكتب السبب (اختياري)",
+    "cancelOtherPlaceholder": "أخبرنا بمزيد من التفاصيل...",
+    "cancelKeepOrder": "تراجع، احتفظ بطلبي",
+    "cancelConfirmButton": "تأكيد الإلغاء",
+    "cancelSuccessTitle": "تم إلغاء طلبك",
+    "cancelSuccessBody": "تم إلغاء الطلب بنجاح، وسيتم استرداد أي مبلغ مدفوع خلال 3–5 أيام عمل.",
+    "cancelErrorTitle": "تعذّر إلغاء الطلب",
+    "cancelDone": "تم",
+    "cancelReasons": {
+      "CHANGED_MIND": "غيّرت رأيي",
+      "ORDERED_BY_MISTAKE": "طلبت عن طريق الخطأ",
+      "WRONG_ADDRESS": "العنوان غير صحيح",
+      "DUPLICATE_ORDER": "طلب مكرر",
+      "PAYMENT_PROBLEM": "مشكلة في الدفع",
+      "DELIVERY_DELAY": "التوصيل يتأخر كثيراً",
+      "FOUND_ELSEWHERE": "وجدت المنتج في مكان آخر",
+      "OTHER": "سبب آخر"
+    }
   },
   "profile": {
     "title": "حسابي",

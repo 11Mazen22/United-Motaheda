@@ -24,7 +24,6 @@ import {
   View,
   Platform,
   StyleSheet,
-  Alert,
 } from "react-native";
 import { useTranslation } from "react-i18next";
 import { Image as ExpoImage } from "expo-image";
@@ -36,9 +35,9 @@ import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 
 import { useOrderDetail } from "@/features/orders/hooks/useOrders";
 import { supabase } from "@/lib/supabase";
-import { cancelOrder } from "@/features/orders/api";
 import { Text as UIText, Badge, useTheme } from "@pharmacy/ui-native";
 import { ReorderButton } from "@/features/orders/components/ReorderButton";
+import { CancelOrderSheet } from "@/features/orders/components/CancelOrderSheet";
 import { formatPrice } from "@/utils/format";
 import { FORWARD_CHEVRON, textAlignStart, isRtl, flexRow } from "@/utils/layout";
 import { useScreenLayout } from "@/utils/responsive";
@@ -96,33 +95,9 @@ export default function OrderDetailScreen(): React.ReactElement {
       supabase.rpc("get_order_actions", { p_order_id: id }).then(({ data }) => setActions(data as any));
     }
   }, [id, order?.status]);
-  
-  const [isCancelling, setIsCancelling] = React.useState(false);
-  const handleCancelOrder = useCallback(() => {
-    Alert.alert(
-      t("orders.cancelOrder", "Cancel Order"),
-      t("orders.cancelConfirm", "Are you sure you want to cancel this order?"),
-      [
-        { text: t("common.no", "No"), style: "cancel" },
-        { 
-          text: t("common.yes", "Yes"), 
-          style: "destructive",
-          onPress: async () => {
-            try {
-              setIsCancelling(true);
-              await cancelOrder(id as string, "Customer requested cancellation", `cancel-mobile-${id}-${Date.now()}`);
-              await refetch();
-              Alert.alert(t("common.success", "Success"), t("orders.cancelledMsg", "Order has been cancelled."));
-            } catch (err: any) {
-              Alert.alert(t("common.error", "Error"), err.message);
-            } finally {
-              setIsCancelling(false);
-            }
-          }
-        }
-      ]
-    );
-  }, [id, refetch, t]);
+
+  const [showCancelSheet, setShowCancelSheet] = React.useState(false);
+  const handleOrderCancelled = useCallback(() => { void refetch(); }, [refetch]);
 
   if (isLoading) {
     return (
@@ -425,9 +400,8 @@ export default function OrderDetailScreen(): React.ReactElement {
         <ReorderButton items={order.items} />
         
         {actions?.cancel?.allowed && (
-          <Pressable 
-            onPress={handleCancelOrder}
-            disabled={isCancelling}
+          <Pressable
+            onPress={() => setShowCancelSheet(true)}
             style={({ pressed }) => [
               {
                 paddingVertical: 14,
@@ -435,17 +409,13 @@ export default function OrderDetailScreen(): React.ReactElement {
                 borderWidth: 1,
                 borderColor: theme.colors.status.error,
                 alignItems: "center",
-                opacity: isCancelling ? 0.6 : (pressed ? 0.8 : 1),
+                opacity: pressed ? 0.8 : 1,
               }
             ]}
           >
-            {isCancelling ? (
-              <ActivityIndicator color={theme.colors.status.error} size="small" />
-            ) : (
-              <UIText variant="body-sm" weight="bold" style={{ color: theme.colors.status.error }}>
-                {t("orders.cancelOrder", "Cancel Order")}
-              </UIText>
-            )}
+            <UIText variant="body-sm" weight="bold" style={{ color: theme.colors.status.error }}>
+              {t("orders.cancelOrder", "Cancel Order")}
+            </UIText>
           </Pressable>
         )}
 
@@ -470,6 +440,14 @@ export default function OrderDetailScreen(): React.ReactElement {
         )}
       </View>
       </ScrollView>
+
+      <CancelOrderSheet
+        visible={showCancelSheet}
+        orderId={id as string}
+        reasonCodes={actions?.cancel?.reasons}
+        onDismiss={() => setShowCancelSheet(false)}
+        onCancelled={handleOrderCancelled}
+      />
     </View>
   );
 }

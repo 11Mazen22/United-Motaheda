@@ -983,7 +983,30 @@
     "floor": "Floor {{n}}",
     "apt": "Apt {{n}}",
     "reordering": "Adding to cart...",
-    "statusUnknown": "Unknown Status"
+    "statusUnknown": "Unknown Status",
+    "cancelOrder": "Cancel Order",
+    "cancelSheetTitle": "Cancel Order",
+    "cancelSheetSubtitle": "Tell us why to help us improve our service",
+    "cancelReasonsLabel": "Reason for cancellation",
+    "cancelReasonRequired": "Please select a reason to continue",
+    "cancelOtherLabel": "Add details (optional)",
+    "cancelOtherPlaceholder": "Tell us more...",
+    "cancelKeepOrder": "No, keep my order",
+    "cancelConfirmButton": "Confirm Cancellation",
+    "cancelSuccessTitle": "Order Cancelled",
+    "cancelSuccessBody": "Your order has been cancelled. Any payment made will be refunded within 3–5 business days.",
+    "cancelErrorTitle": "Couldn't Cancel Order",
+    "cancelDone": "Done",
+    "cancelReasons": {
+      "CHANGED_MIND": "Changed my mind",
+      "ORDERED_BY_MISTAKE": "Ordered by mistake",
+      "WRONG_ADDRESS": "Wrong address",
+      "DUPLICATE_ORDER": "Duplicate order",
+      "PAYMENT_PROBLEM": "Payment problem",
+      "DELIVERY_DELAY": "Delivery taking too long",
+      "FOUND_ELSEWHERE": "Found it elsewhere",
+      "OTHER": "Other"
+    }
   },
   "orderStatus": {
     "pending": "Pending",
