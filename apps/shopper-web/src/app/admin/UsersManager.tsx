@@ -68,6 +68,7 @@ import { useDirectoryCounts } from "../../hooks/useDirectoryCounts";
 import { useSortableColumn } from "../../hooks/useSortableColumn";
 import { useAdminConfirmedAction } from "../../hooks/useAdminConfirmedAction";
 import { useAdminBulkStatus } from "../../hooks/useAdminBulkStatus";
+import { useAdminRealtimeSync } from "../../hooks/useAdminRealtimeSync";
 import SuspendDialog from "./SuspendDialog";
 import DeleteUserDialog from "./DeleteUserDialog";
 import {
@@ -326,6 +327,14 @@ export default function UsersManager() {
   const refreshAll = useCallback(() => {
     startTransition(() => { void loadUsers(); void loadCounts(); });
   }, [loadUsers, loadCounts]);
+
+  // Keeps the table and the metric cards live: a signup, role change, or
+  // suspension made anywhere (this tab, another admin's session, the
+  // native app) refetches this page's current view instead of requiring a
+  // manual reload. refreshAll re-runs the SAME query with the CURRENT
+  // filters/page/sort, so a change elsewhere shows up without disturbing
+  // whatever the admin is actively looking at.
+  useAdminRealtimeSync(refreshAll);
 
   const handlePermanentDelete = useCallback(async (payload: DeleteUserPayload) => {
     const deletedUser = users.find((user) => user.id === payload.userId);
