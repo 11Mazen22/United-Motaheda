@@ -59,6 +59,16 @@ const PHARMACIST_CANCEL_REASONS = [
   "OTHER",
 ] as const;
 
+const PHARMACIST_CANCEL_REASON_ICONS: Record<typeof PHARMACIST_CANCEL_REASONS[number], React.ComponentProps<typeof Ionicons>["name"]> = {
+  PRODUCT_UNAVAILABLE:     "cube-outline",
+  STOCK_MISMATCH:          "swap-horizontal-outline",
+  PRESCRIPTION_REJECTED:   "document-text-outline",
+  PRESCRIPTION_UNCLEAR:    "help-circle-outline",
+  PHARMACY_CANNOT_FULFILL: "storefront-outline",
+  PHARMACY_CLOSED:         "time-outline",
+  OTHER:                   "ellipsis-horizontal-circle-outline",
+};
+
 function CancelReasonSheet({ visible, onSelect, onDismiss }: {
   visible: boolean;
   onSelect: (reason: string) => void;
@@ -73,20 +83,31 @@ function CancelReasonSheet({ visible, onSelect, onDismiss }: {
       <Pressable style={s.sheetBackdrop} onPress={onDismiss} accessibilityRole="button" accessibilityLabel={t("common.cancel")} />
       <View style={[s.sheetCard, { backgroundColor: theme.colors.canvas.surface, paddingBottom: Math.max(insets.bottom, 16) }]}>
         <View style={s.sheetHandle} />
-        <UIText variant="card-title" style={{ textAlign: "center", marginBottom: 12 }}>
-          {t("pharmacist.cancelReasonPickerTitle", "Select a reason")}
-        </UIText>
+        <View style={s.sheetHeader}>
+          <View style={[s.sheetIconTile, { backgroundColor: `${theme.colors.status.error}18`, borderColor: `${theme.colors.status.error}33` }]}>
+            <Ionicons name="close-circle-outline" size={26} color={theme.colors.status.error} />
+          </View>
+          <UIText variant="card-title" style={{ textAlign: "center" }}>
+            {t("pharmacist.cancelReasonPickerTitle", "Select a reason")}
+          </UIText>
+        </View>
         <ScrollView style={s.sheetScroll} showsVerticalScrollIndicator={false}>
-          {PHARMACIST_CANCEL_REASONS.map((code) => (
-            <PressableScale
-              key={code}
-              onPress={() => onSelect(code)}
-              style={[s.sheetRow, { borderColor: theme.colors.border.default }]}
-              accessibilityRole="button"
-            >
-              <UIText variant="body-sm">{t(`pharmacist.cancelReasons.${code}`, code)}</UIText>
-            </PressableScale>
-          ))}
+          <View style={{ gap: 8 }}>
+            {PHARMACIST_CANCEL_REASONS.map((code) => (
+              <PressableScale
+                key={code}
+                onPress={() => onSelect(code)}
+                style={[s.sheetRow, { borderColor: theme.colors.border.default, flexDirection: flexRow(IS_RTL) }]}
+                accessibilityRole="button"
+              >
+                <View style={[s.sheetRowIcon, { backgroundColor: theme.colors.canvas.surfaceMuted }]}>
+                  <Ionicons name={PHARMACIST_CANCEL_REASON_ICONS[code]} size={16} color={theme.colors.text.secondary} />
+                </View>
+                <UIText variant="body-sm" style={{ flex: 1 }}>{t(`pharmacist.cancelReasons.${code}`, code)}</UIText>
+                <Ionicons name={IS_RTL ? "chevron-back" : "chevron-forward"} size={16} color={theme.colors.text.muted} />
+              </PressableScale>
+            ))}
+          </View>
         </ScrollView>
         <Pressable onPress={onDismiss} style={s.sheetCancelBtn} accessibilityRole="button">
           <UIText variant="body-sm" weight="bold" style={{ color: theme.colors.brand.primary }}>
@@ -726,10 +747,30 @@ const s = StyleSheet.create({
     alignSelf: "center",
     marginBottom: 14,
   },
+  sheetHeader: { alignItems: "center", gap: 8, marginBottom: 16 },
+  sheetIconTile: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   sheetScroll: { maxHeight: 360 },
   sheetRow: {
-    paddingVertical: 14,
-    borderTopWidth: StyleSheet.hairlineWidth,
+    alignItems: "center",
+    gap: 10,
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+  },
+  sheetRowIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
   },
   sheetCancelBtn: {
     alignItems: "center",

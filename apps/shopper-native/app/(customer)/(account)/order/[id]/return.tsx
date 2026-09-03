@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, ScrollView, StyleSheet, Pressable, ActivityIndicator, Alert } from "react-native";
+import { View, ScrollView, StyleSheet, Pressable, ActivityIndicator } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
@@ -9,6 +9,7 @@ import { useOrderDetail } from "@/features/orders/hooks/useOrders";
 import { HeaderBackButton } from "@/features/orders/components/OrderDetailHelpers";
 import { isRtl, flexRow, textAlignStart } from "@/utils/layout";
 import { supabase } from "@/lib/supabase";
+import { showErrorSheet, showSuccessSheet } from "@/shared/store/appSheetStore";
 
 interface EligibleItem {
   order_item_id: number;
@@ -48,7 +49,7 @@ export default function OrderReturnScreen() {
       .then(({ error, data }) => {
         if (error) {
           console.error("Eligibility check failed:", error);
-          Alert.alert("Error", error.message);
+          showErrorSheet(t("common.error", "Error"), error.message);
         } else {
           setEligibility(data as unknown as EligibilityResult);
         }
@@ -107,11 +108,11 @@ export default function OrderReturnScreen() {
 
   const handleSubmit = async () => {
     if (!hasItems) {
-      Alert.alert(t("orders.returnError", "Error"), t("orders.returnNoItems", "Please select at least one item to return."));
+      showErrorSheet(t("orders.returnError", "Error"), t("orders.returnNoItems", "Please select at least one item to return."));
       return;
     }
     if (!reason.trim()) {
-      Alert.alert(t("orders.returnError", "Error"), t("orders.returnNoReason", "Please provide a reason for the return."));
+      showErrorSheet(t("orders.returnError", "Error"), t("orders.returnNoReason", "Please provide a reason for the return."));
       return;
     }
 
@@ -137,15 +138,15 @@ export default function OrderReturnScreen() {
 
       if (error) throw error;
 
-      Alert.alert(
-        t("common.success", "Success"), 
+      showSuccessSheet(
+        t("common.success", "Success"),
         t("orders.returnSubmitted", "Your return request has been submitted and is pending review."),
-        [{ text: t("common.ok", "OK"), onPress: () => router.back() }]
+        () => router.back(),
       );
 
     } catch (e: any) {
       console.error(e);
-      Alert.alert(t("common.error", "Error"), e.message);
+      showErrorSheet(t("common.error", "Error"), e.message);
     } finally {
       setIsSubmitting(false);
     }
