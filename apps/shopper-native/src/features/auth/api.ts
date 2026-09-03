@@ -1,5 +1,6 @@
 import * as Linking from "expo-linking";
 import { supabase } from "@/lib/supabase";
+import { readLocalFileAsBlob } from "@/lib/readLocalFileAsBlob";
 import type { Role } from "./role";
 
 /** Real Android/iOS App Link domain (see assets/web/.well-known/assetlinks.json
@@ -283,9 +284,7 @@ export async function uploadAvatar(userId: string, localUri: string): Promise<st
   const ext = mime === "image/png" ? "png" : "jpg";
   const path = `${userId}/${Date.now()}.${ext}`;
 
-  const response = await fetch(localUri);
-  if (!response.ok) throw new Error("read_failed");
-  const blob = await response.blob();
+  const blob = await readLocalFileAsBlob(localUri);
 
   const { error } = await supabase.storage
     .from("avatars")

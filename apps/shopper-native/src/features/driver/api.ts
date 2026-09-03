@@ -22,6 +22,7 @@
 
 import { supabase } from "@/lib/supabase";
 import { abortTimeout } from "@/utils/timeout";
+import { readLocalFileAsBlob } from "@/lib/readLocalFileAsBlob";
 import { fetchOrderById } from "@/features/orders/api";
 import { normalizeOrderStatus, type Order, type OrderItem } from "@/stores/orders";
 import { notifyCustomerOrderUpdate } from "./customerNotify";
@@ -638,9 +639,7 @@ export async function uploadIssuePhoto(driverId: string, orderId: string, localU
   const ext = mime === "image/png" ? "png" : "jpg";
   const path = `${driverId}/${orderId}/${Date.now()}.${ext}`;
 
-  const response = await fetch(localUri);
-  if (!response.ok) throw new Error("read_failed");
-  const blob = await response.blob();
+  const blob = await readLocalFileAsBlob(localUri);
 
   const { error } = await supabase.storage
     .from("delivery-issue-photos")
@@ -838,9 +837,7 @@ export async function uploadDriverDocument(
   const ext = mime === "image/png" ? "png" : "jpg";
   const path = `${userId}/${documentType}/${Date.now()}.${ext}`;
 
-  const response = await fetch(localUri);
-  if (!response.ok) throw new Error("read_failed");
-  const blob = await response.blob();
+  const blob = await readLocalFileAsBlob(localUri);
 
   const { error } = await supabase.storage
     .from("driver-documents")

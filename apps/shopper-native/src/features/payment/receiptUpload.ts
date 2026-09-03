@@ -4,6 +4,7 @@
 
 import * as ImagePicker from "expo-image-picker";
 import { supabase } from "@/lib/supabase";
+import { readLocalFileAsBlob } from "@/lib/readLocalFileAsBlob";
 import { RECEIPTS_BUCKET } from "./constants";
 
 export type ReceiptErrorCode =
@@ -77,11 +78,12 @@ export async function uploadPaymentReceipt(
   const ext  = extForMime(mime);
   const path = `${userId}/${Date.now()}.${ext}`;
 
-  const response = await fetch(localUri);
-  if (!response.ok) {
+  let blob: Blob;
+  try {
+    blob = await readLocalFileAsBlob(localUri);
+  } catch {
     throw new ReceiptUploadError("read_failed");
   }
-  const blob = await response.blob();
 
   const { error } = await supabase.storage
     .from(RECEIPTS_BUCKET)
