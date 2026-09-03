@@ -96,8 +96,19 @@ export default function DriverLayout() {
   // `user`) and bounces a real driver to the customer tabs before their role
   // has even loaded. Once this layout unmounts via that wrong redirect,
   // `user` resolving correctly afterwards can't undo it.
+  //
+  // Redirects to "/" (the app root), not "/(tabs)" directly. Confirmed live:
+  // "/(tabs)" chains straight into (customer)/(tabs)/_layout.tsx's OWN
+  // independent role-redirect guard, so a sign-out fired two separate
+  // "decide where this user belongs" evaluations back to back -- and on the
+  // real device that produced a genuine navigation storm (Chrome's own
+  // "Throttling navigation to prevent the browser from hanging" firing
+  // repeatedly, and on native the equivalent shows up as a hooks-count
+  // crash). index.tsx is the one place that decision is already made
+  // correctly and exactly once per mount; routing through it instead of
+  // duplicating the same logic here closes the loop instead of chaining it.
   if (decidedAccessRef.current !== null && !user && !loading) {
-    return <Redirect href={"/(tabs)" as never} />;
+    return <Redirect href={"/" as never} />;
   }
 
   if (decidedAccessRef.current === null) {
@@ -129,7 +140,7 @@ export default function DriverLayout() {
   }
 
   if (decidedAccessRef.current === false) {
-    return <Redirect href={"/(tabs)" as never} />;
+    return <Redirect href={"/" as never} />;
   }
 
   return (

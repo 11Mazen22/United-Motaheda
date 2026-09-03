@@ -65,8 +65,17 @@ export default function PharmacistLayout() {
   // customer tabs before their role has even loaded. Once this layout
   // unmounts via that wrong redirect, `user` resolving correctly afterwards
   // can't undo it -- there's no one left mounted to notice.
+  //
+  // Redirects to "/" (the app root), not "/(tabs)" directly -- confirmed
+  // live that "/(tabs)" chains straight into (customer)/(tabs)/_layout.tsx's
+  // own independent role-redirect guard, so a sign-out fired two separate
+  // "decide where this user belongs" evaluations back to back, producing a
+  // real navigation storm (see (driver)/_layout.tsx's matching fix for the
+  // full incident). index.tsx already makes this decision exactly once per
+  // mount; routing through it instead of duplicating the logic here closes
+  // the loop instead of chaining it.
   if (decidedAccessRef.current !== null && !user && !loading) {
-    return <Redirect href={"/(tabs)" as never} />;
+    return <Redirect href={"/" as never} />;
   }
 
   if (decidedAccessRef.current === null) {
@@ -78,7 +87,7 @@ export default function PharmacistLayout() {
   }
 
   if (decidedAccessRef.current === false) {
-    return <Redirect href={"/(tabs)" as never} />;
+    return <Redirect href={"/" as never} />;
   }
 
   return (
