@@ -123,28 +123,40 @@ function logOperation(operation: string, data?: any, error?: unknown) {
 
 export async function fetchAdminProducts(opts?: { signal?: AbortSignal }): Promise<AdminProduct[]> {
   const operation = 'fetchAdminProducts';
-  
+  const PAGE_SIZE = 1000; // PostgREST's default db-max-rows cap -- a single unpaginated
+                           // .select() silently truncates here, which is exactly what was
+                           // hiding all but the 1000 newest of 8000+ real products.
+
   try {
     const supabase = getSupabaseClient();
-    let query = supabase
-      .from('products')
-      .select('*')
-      .order('created_at', { ascending: false });
+    const rows: any[] = [];
+    let from = 0;
+    for (;;) {
+      let query = supabase
+        .from('products')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .range(from, from + PAGE_SIZE - 1);
 
-    if (opts?.signal) {
-      query = query.abortSignal(opts.signal) as typeof query;
-    }
-
-    const { data, error } = await query;
-
-    if (error) {
-      if (!isAbortError(error)) {
-        logOperation(operation, null, error);
+      if (opts?.signal) {
+        query = query.abortSignal(opts.signal) as typeof query;
       }
-      throw new Error(`Failed to fetch products: ${error.message}`);
+
+      const { data, error } = await query;
+
+      if (error) {
+        if (!isAbortError(error)) {
+          logOperation(operation, null, error);
+        }
+        throw new Error(`Failed to fetch products: ${error.message}`);
+      }
+
+      rows.push(...(data ?? []));
+      if (!data || data.length < PAGE_SIZE) break;
+      from += PAGE_SIZE;
     }
 
-    const products: AdminProduct[] = (data || []).map((row: any) => ({
+    const products: AdminProduct[] = rows.map((row: any) => ({
       id: row.id,
       code: row.Code || '',
       barcode: row.Barcode || '',
