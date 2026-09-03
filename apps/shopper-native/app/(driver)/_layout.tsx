@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Pressable, Text, View } from "react-native";
 import { Stack, useRouter } from "expo-router";
 import { useAuth } from "@/features/auth";
+import { claimPostSignOutNavigation } from "@/features/auth/postSignOutNav";
 import { useDriverRealtimeSync, useMyDriverProfile } from "@/features/driver";
 
 // Longer than the DriverProfile query's own 20s abort timeout (see
@@ -58,12 +59,14 @@ export default function DriverLayout() {
   // throttle — which delays the transition further, feeding the same loop.
   // Confirmed live on this exact screen: repeated aborted `HEAD /` requests
   // and a climbing "Throttling navigation" warning count that never
-  // settled. Calling router.replace() ourselves, gated by this ref, is the
-  // only way to guarantee it fires at most once no matter how many times
-  // this component re-renders afterward (see useDriverRealtimeSync/
-  // profileQuery above for hooks that can legitimately keep re-rendering
-  // this layout while it's mid-teardown).
-  const hasLeftRef = useRef(false);
+  // settled. Calling router.replace() ourselves is the fix -- but a
+  // per-instance ref guard on its own turned out not to be enough (see
+  // claimPostSignOutNavigation's doc: a remount of this exact layout gets a
+  // fresh ref, and that's what a stale/queued auth event bouncing the user
+  // back here mid-sign-out was doing, confirmed live by a slow-but-endless
+  // trickle of aborted `HEAD /` requests that persisted well past 10s even
+  // with the ref guard in place). claimPostSignOutNavigation is module
+  // state, so it survives exactly that remount.
 
   // A network hiccup (or the profile query's own bounded timeout — see
   // getMyDriverProfile) settles into isError, not isLoading, once retries
@@ -131,8 +134,7 @@ export default function DriverLayout() {
     const shouldLeave =
       decidedAccessRef.current === false ||
       (decidedAccessRef.current === true && !user && !loading);
-    if (shouldLeave && !hasLeftRef.current) {
-      hasLeftRef.current = true;
+    if (shouldLeave && claimPostSignOutNavigation()) {
       setTimeout(() => router.replace("/" as never), 0);
     }
   });

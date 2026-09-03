@@ -27,6 +27,7 @@ import React, { useEffect, useRef } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { Stack, useRouter } from "expo-router";
 import { useAuth } from "@/features/auth";
+import { claimPostSignOutNavigation } from "@/features/auth/postSignOutNav";
 import { usePharmacistRealtimeSync } from "@/features/pharmacist";
 
 export default function PharmacistLayout() {
@@ -66,11 +67,13 @@ export default function PharmacistLayout() {
   // re-render in between re-issues the same replace() call, and the
   // resulting burst is what trips the browser's own rapid-navigation
   // throttle — which delays the transition further, feeding the same loop
-  // (see (driver)/_layout.tsx's matching hasLeftRef for the full incident).
-  // Calling router.replace() ourselves, gated by this ref, is the only way
-  // to guarantee it fires at most once no matter how many times this
-  // component re-renders afterward.
-  const hasLeftRef = useRef(false);
+  // (see (driver)/_layout.tsx's matching guard for the full incident).
+  // Calling router.replace() ourselves is the fix -- but a per-instance ref
+  // guard on its own turned out not to be enough (see
+  // claimPostSignOutNavigation's doc: a remount of this exact layout gets a
+  // fresh ref, and that's what a stale/queued auth event bouncing the user
+  // back here mid-sign-out was doing). claimPostSignOutNavigation is module
+  // state, so it survives exactly that remount.
   // No dependency array: this must re-check on every render (decidedAccessRef
   // is a ref, not state, so there's nothing reactive to key an effect off
   // of), but hasLeftRef ensures the replace() call inside only ever actually
@@ -96,8 +99,7 @@ export default function PharmacistLayout() {
     const shouldLeave =
       decidedAccessRef.current === false ||
       (decidedAccessRef.current === true && !user && !loading);
-    if (shouldLeave && !hasLeftRef.current) {
-      hasLeftRef.current = true;
+    if (shouldLeave && claimPostSignOutNavigation()) {
       setTimeout(() => router.replace("/" as never), 0);
     }
   });

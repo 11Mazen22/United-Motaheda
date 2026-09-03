@@ -11,6 +11,7 @@ import { unregisterAllPushTokensForUser } from "@/features/notifications";
 import { wipeUserData } from "./userDataWipe";
 import type { AuthUser } from "./api";
 import { normalizeRole } from "./role";
+import { rearmPostSignOutNavigation } from "./postSignOutNav";
 
 /** When the OS hands us a deep link shaped like
  *  `shopper://auth-callback?code=<authCode>` (or the dev-mode equivalent),
@@ -287,7 +288,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         await reconcile(base?.id ?? null);
         const next = await attachRole(base);
         setUserIfChanged(next);
-        if (next) { identify(next.id); setCrashUser(next.id); }
+        if (next) { identify(next.id); setCrashUser(next.id); rearmPostSignOutNavigation(); }
         else      { resetAnalytics(); setCrashUser(null); }
         track("app_opened", { authed: next !== null });
       })
@@ -305,7 +306,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         await reconcile(base?.id ?? null);
         const next = await attachRole(base);
         setUserIfChanged(next);
-        if (next) { identify(next.id); setCrashUser(next.id); }
+        if (next) { identify(next.id); setCrashUser(next.id); rearmPostSignOutNavigation(); }
         else      { resetAnalytics(); setCrashUser(null); }
       } catch (e) {
         if (__DEV__) console.error("[auth] onAuthStateChange handler threw:", e);
