@@ -57,8 +57,15 @@ export default function PharmacistLayout() {
   }
 
   // If the user actively signs out, user becomes null. Kick them back to the
-  // customer app (guest mode) immediately.
-  if (!user && !loading) {
+  // customer app (guest mode) immediately. Gated on decidedAccessRef already
+  // having resolved once -- without that, this misfires on a transient
+  // null-user/not-loading frame during startup (confirmed live: right after
+  // the native restart a language switch triggers, before the restored
+  // session repopulates `user`) and bounces a real pharmacist to the
+  // customer tabs before their role has even loaded. Once this layout
+  // unmounts via that wrong redirect, `user` resolving correctly afterwards
+  // can't undo it -- there's no one left mounted to notice.
+  if (decidedAccessRef.current !== null && !user && !loading) {
     return <Redirect href={"/(tabs)" as never} />;
   }
 

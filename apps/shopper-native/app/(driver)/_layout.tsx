@@ -45,13 +45,7 @@ export default function DriverLayout() {
   const decidedAccessRef = useRef<boolean | null>(null);
   const [stuck, setStuck] = useState(false);
   const [attempt, setAttempt] = useState(0);
-
-  // If the user actively signs out, user becomes null. Kick them back to the
-  // customer app (guest mode) immediately. This bypasses the locked decidedAccessRef
-  // because a real sign out should always eject them.
-  if (!user && !loading) {
-    return <Redirect href={"/(tabs)" as never} />;
-  }
+  const lastErrorRef = useRef<string | null>(null);
 
   // A network hiccup (or the profile query's own bounded timeout — see
   // getMyDriverProfile) settles into isError, not isLoading, once retries
@@ -69,6 +63,10 @@ export default function DriverLayout() {
   const stillDeciding = loading || (isDriverRole && (profileQuery.isLoading || profileQuery.isError));
   const hasLiveDriverProfile = Boolean(profileQuery.data && LIVE_DRIVER_STATUSES.has(profileQuery.data.status));
 
+  // All hooks above this line run unconditionally on every render, matching
+  // React's rules -- everything below is plain conditional logic (early
+  // returns and a render-phase ref update), which is safe to skip on any
+  // given render since none of it registers new hook state.
   if (decidedAccessRef.current === null && !stillDeciding) {
     decidedAccessRef.current = Boolean(user) && isDriverRole && hasLiveDriverProfile;
   }
@@ -85,9 +83,21 @@ export default function DriverLayout() {
     return () => clearTimeout(id);
   }, [attempt]);
 
-  const lastErrorRef = useRef<string | null>(null);
   if (profileQuery.error?.message) {
     lastErrorRef.current = profileQuery.error.message;
+  }
+
+  // If the user actively signs out, user becomes null. Kick them back to the
+  // customer app (guest mode) immediately. Gated on decidedAccessRef already
+  // having resolved once -- checking live `!user && !loading` unconditionally
+  // (as this used to) misfires on a transient null-user/not-loading frame
+  // during startup (confirmed live: right after the native restart a
+  // language switch triggers, before the restored session repopulates
+  // `user`) and bounces a real driver to the customer tabs before their role
+  // has even loaded. Once this layout unmounts via that wrong redirect,
+  // `user` resolving correctly afterwards can't undo it.
+  if (decidedAccessRef.current !== null && !user && !loading) {
+    return <Redirect href={"/(tabs)" as never} />;
   }
 
   if (decidedAccessRef.current === null) {
