@@ -45,8 +45,8 @@ const FALLBACK_BRANCHES: Branch[] = [
     nameEn:      "United Pharmacies - Masakin Al-Dabbat 2",
     governorate: "Cairo",
     area:        "مدينة نصر",
-    lat:         30.0521,
-    lng:         31.3551,
+    lat:         30.0525,
+    lng:         31.3558,
     isActive:    true,
   },
   {
