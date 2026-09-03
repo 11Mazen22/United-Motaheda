@@ -39,7 +39,26 @@
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION"
       ],
-      "versionCode": 54
+      "versionCode": 54,
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "united-motaheda-production.up.railway.app",
+              "pathPrefix": "/reset-password"
+            },
+            {
+              "scheme": "https",
+              "host": "united-motaheda-production.up.railway.app",
+              "pathPrefix": "/auth-callback"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ]
     },
     "web": {
       "bundler": "metro",

@@ -150,7 +150,16 @@ export function SplashOverlay(): React.ReactElement | null {
 
   useEffect(() => {
 
-    if (visible) alreadyShown = true;
+    if (visible) { alreadyShown = true; return; }
+
+    // We are not rendering the splash at all on this mount (it already played
+    // once in this JS session). That means nothing will ever call onExited,
+    // so anything waiting on the splash-exit event waits forever -- notably
+    // ArrivalOverlay, whose full-screen iris only opens when it hears this.
+    // Stranding it leaves a blank overlay permanently covering Home, with the
+    // real screen alive but invisible underneath. Fire the event instead.
+
+    notifySplashExited();
 
   }, [visible]);
 

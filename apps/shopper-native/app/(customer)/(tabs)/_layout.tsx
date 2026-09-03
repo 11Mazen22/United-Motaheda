@@ -47,7 +47,7 @@ function CustomerTabBar(props: BottomTabBarProps) {
 }
 
 export default function TabLayout() {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const insets = useSafeAreaInsets();
   const [showArrival, setShowArrival] = useState(!arrivalComplete);
 
@@ -67,14 +67,31 @@ export default function TabLayout() {
   // own decidedAccessRef already exists to prevent on that side; this ports
   // the same lock here since a role can't legitimately change mid-session
   // without a fresh sign-in remounting this whole tree anyway.
+  //
+  // Locking is still right, but *when* it locked was not. `user.role` is
+  // fetched separately from the session (see features/auth/api.ts, which
+  // warns in as many words: "never assume a customer default here, since
+  // callers gating on 'driver' must wait for a real value"), so on the very
+  // first render it is almost always still undefined. Locking then pinned
+  // every driver and pharmacist to "none" and stranded them in the customer
+  // app for the entire session -- a driver signing in landed on the customer
+  // home and could never reach their own tabs.
+  //
+  // So: only lock once auth has actually settled and a role is available.
+  // Until then render nothing rather than the customer tabs, which also
+  // avoids mounting the whole customer tree just to unmount it one render
+  // later (that mount/unmount churn is what stranded the splash-exit event
+  // and left ArrivalOverlay covering the app -- see ArrivalOverlay's
+  // watchdog).
   const redirectRef = useRef<"driver" | "pharmacist" | "none" | null>(null);
-  if (redirectRef.current === null) {
+  if (redirectRef.current === null && !loading && (!user || user.role !== undefined)) {
     redirectRef.current =
       user?.role === "driver" ? "driver" :
       user?.role === "pharmacist" ? "pharmacist" :
       "none";
   }
 
+  if (redirectRef.current === null) return <View style={{ flex: 1 }} />;
   if (redirectRef.current === "driver") return <Redirect href={"/(driver)" as never} />;
   if (redirectRef.current === "pharmacist") return <Redirect href={"/(pharmacist)" as never} />;
 

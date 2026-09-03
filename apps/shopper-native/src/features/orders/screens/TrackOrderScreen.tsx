@@ -2,13 +2,16 @@ import React, { useMemo } from "react";
 import { Pressable, ScrollView, StyleSheet, View, Linking } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { MapView, Marker } from "@/shared/maps";
+import { LeafletMap } from "@/shared/leafletMap/LeafletMap";
+import { headingMarkerHtml, pinMarkerHtml } from "@/shared/leafletMap/html";
+import type { MapMarkerSpec } from "@/shared/leafletMap/types";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, { FadeIn, FadeInDown, useSharedValue, withRepeat, withTiming, useAnimatedStyle } from "react-native-reanimated";
 import { useTranslation } from "react-i18next";
 
 import { useOrderTracking } from "../hooks/useOrderTracking";
+import { useOrderTrackingRealtime } from "../hooks/useOrderTrackingRealtime";
 import { Text as UIText } from "@pharmacy/ui-native";
 import { useTheme, type NativeTheme } from "@pharmacy/ui-native";
 import { theme as legacyTheme } from "@pharmacy/design-tokens";
@@ -27,7 +30,6 @@ const STATUS_STEPS = [
   { status: "delivered", icon: "home-outline" as IoniconsName, labelKey: "order.statusDelivered" },
 ];
 
-const MAP_DELTA = 0.02;
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -154,6 +156,7 @@ export default function TrackOrderScreen() {
   const { id, token } = useLocalSearchParams<{ id: string; token: string }>();
 
   const { data: track, isLoading, isError, refetch } = useOrderTracking(id as string, token as string);
+  useOrderTrackingRealtime(id as string);
 
   const currentStepIndex = useMemo(() => {
     if (!track) return 0;
@@ -168,6 +171,29 @@ export default function TrackOrderScreen() {
     ? { latitude: track.location.lat, longitude: track.location.lng }
     : null;
   const mapCenter = driverPos ?? destination;
+
+  const navyColor = theme.colors.pharmacy.navy;
+  const brandColor = theme.colors.brand.primary;
+  const trackMarkers: MapMarkerSpec[] = useMemo(() => {
+    const list: MapMarkerSpec[] = [];
+    if (destination) {
+      list.push({
+        id: "destination",
+        coordinate: destination,
+        html: pinMarkerHtml(navyColor, "&#127968;"),
+        width: 34, height: 42, anchorX: 0.5, anchorY: 1, zIndexOffset: 10,
+      });
+    }
+    if (driverPos) {
+      list.push({
+        id: "driver",
+        coordinate: driverPos,
+        html: headingMarkerHtml(brandColor, undefined),
+        width: 28, height: 28, anchorX: 0.5, anchorY: 0.5, zIndexOffset: 20,
+      });
+    }
+    return list;
+  }, [destination, driverPos, navyColor, brandColor]);
 
   if (isLoading) return <TrackSkeleton topInset={insets.top} />;
   if (isError || !track) return <TrackErrorState onRetry={() => void refetch()} onBack={() => router.back()} />;
@@ -213,33 +239,13 @@ export default function TrackOrderScreen() {
           {/* Live map / placeholder */}
           <View style={[styles.mapCard, { backgroundColor: theme.colors.canvas.surfaceMuted, borderColor: theme.colors.border.default }]}>
              {mapCenter ? (
-               <MapView
-                 style={StyleSheet.absoluteFill}
-                 initialRegion={{ ...mapCenter, latitudeDelta: MAP_DELTA, longitudeDelta: MAP_DELTA }}
-                 region={{ ...mapCenter, latitudeDelta: MAP_DELTA, longitudeDelta: MAP_DELTA }}
-                 scrollEnabled={false}
-                 zoomEnabled={false}
-                 pitchEnabled={false}
-                 rotateEnabled={false}
-                 showsCompass={false}
-                 toolbarEnabled={false}
-                 pointerEvents="none"
-               >
-                 {destination && (
-                   <Marker coordinate={destination} anchor={{ x: 0.5, y: 1 }}>
-                     <View style={[styles.destPin, { backgroundColor: theme.colors.pharmacy.navy }]}>
-                       <Ionicons name="home" size={14} color="#fff" />
-                     </View>
-                   </Marker>
-                 )}
-                 {driverPos && (
-                   <Marker coordinate={driverPos} anchor={{ x: 0.5, y: 0.5 }}>
-                     <View style={[styles.driverPin, { backgroundColor: theme.colors.brand.primary }]}>
-                       <Ionicons name="bicycle" size={16} color="#fff" />
-                     </View>
-                   </Marker>
-                 )}
-               </MapView>
+               <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+                 <LeafletMap
+                   initialRegion={{ latitude: mapCenter.latitude, longitude: mapCenter.longitude, zoom: 15 }}
+                   markers={trackMarkers}
+                   zoomControl={false}
+                 />
+               </View>
              ) : (
                <>
                  <Ionicons name="map-outline" size={40} color={theme.colors.text.muted} />

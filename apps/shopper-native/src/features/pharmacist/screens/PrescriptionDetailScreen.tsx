@@ -22,6 +22,7 @@ import { showErrorSheet, showSuccessSheet } from "@/shared/store/appSheetStore";
 import { usePrescription, usePrescriptionImage } from "../hooks/usePharmacistQueries";
 import { usePharmacistMutations } from "../hooks/usePharmacistMutations";
 import { PharmacistScreenHeader } from "../components/PharmacistScreenHeader";
+import { getPharmacistActionErrorMessage } from "../lib/errorMessage";
 
 const IS_RTL = isRtl();
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
@@ -140,7 +141,7 @@ export function PrescriptionDetailScreen(): React.ReactElement {
       });
       showSuccessSheet(t("pharmacist.rxApprovedTitle"), t("pharmacist.rxApprovedBody"));
     } catch (e) {
-      showErrorSheet(t("pharmacist.actionFailedTitle"), e instanceof Error ? e.message : "");
+      showErrorSheet(t("pharmacist.actionFailedTitle"), getPharmacistActionErrorMessage(e, t, t("pharmacist.actionFailedBody")));
     }
   };
 
@@ -165,7 +166,7 @@ export function PrescriptionDetailScreen(): React.ReactElement {
       showSuccessSheet(t("pharmacist.rxRejectedTitle"), t("pharmacist.rxRejectedBody"));
       setShowRejectForm(false);
     } catch (e) {
-      showErrorSheet(t("pharmacist.actionFailedTitle"), e instanceof Error ? e.message : "");
+      showErrorSheet(t("pharmacist.actionFailedTitle"), getPharmacistActionErrorMessage(e, t, t("pharmacist.actionFailedBody")));
     }
   };
 

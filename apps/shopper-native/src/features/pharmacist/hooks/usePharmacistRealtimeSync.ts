@@ -1,54 +1,41 @@
 /**
  * usePharmacistRealtimeSync — mount once in (pharmacist)/_layout.tsx.
  *
- * Subscribes to order and prescription changes for the duration of the
- * pharmacist session. On any change it invalidates the relevant query keys
- * so all mounted screens refresh automatically.
+ * Subscribes to order, prescription, and inventory changes for the duration
+ * of the pharmacist session. On any change it invalidates the relevant query
+ * keys so all mounted screens refresh automatically.
  *
- * Mirrors useDriverRealtimeSync exactly — one hook, mounted at the layout
- * level, not per-screen.
+ * Built on the shared useRealtimeInvalidate — see shared/hooks for the
+ * channel+retry mechanics this used to duplicate per-feature.
  */
 
-import { useEffect } from "react";
-import { useQueryClient } from "@tanstack/react-query";
-import {
-  subscribeToPharmacistOrders,
-  subscribeToPharmacistPrescriptions,
-  subscribeToPharmacistInventory,
-} from "../realtime";
+import { useRealtimeInvalidate } from "@/shared/hooks/useRealtimeInvalidate";
 import { pharmacistQueryKeys } from "./queryKeys";
 
 export function usePharmacistRealtimeSync(userId: string | undefined): void {
-  const queryClient = useQueryClient();
+  useRealtimeInvalidate({
+    enabled: Boolean(userId),
+    channelName: "pharmacist-orders",
+    table: "orders",
+    queryKeys: [
+      pharmacistQueryKeys.orderQueue(),
+      ["pharmacist", "orders"],
+      pharmacistQueryKeys.dashboard(),
+      pharmacistQueryKeys.recentlyCompleted(),
+    ],
+  });
 
-  useEffect(() => {
-    if (!userId) return;
+  useRealtimeInvalidate({
+    enabled: Boolean(userId),
+    channelName: "pharmacist-prescriptions",
+    table: "prescriptions",
+    queryKeys: [pharmacistQueryKeys.prescriptionQueue(), pharmacistQueryKeys.dashboard()],
+  });
 
-    const invalidateOrders = () => {
-      void queryClient.invalidateQueries({ queryKey: pharmacistQueryKeys.orderQueue() });
-      void queryClient.invalidateQueries({ queryKey: ["pharmacist", "orders"] });
-      void queryClient.invalidateQueries({ queryKey: pharmacistQueryKeys.dashboard() });
-      void queryClient.invalidateQueries({ queryKey: pharmacistQueryKeys.recentlyCompleted() });
-    };
-
-    const invalidateRx = () => {
-      void queryClient.invalidateQueries({ queryKey: pharmacistQueryKeys.prescriptionQueue() });
-      void queryClient.invalidateQueries({ queryKey: pharmacistQueryKeys.dashboard() });
-    };
-
-    const invalidateInventory = () => {
-      void queryClient.invalidateQueries({ queryKey: pharmacistQueryKeys.lowStock() });
-      void queryClient.invalidateQueries({ queryKey: ["pharmacist", "products"] });
-    };
-
-    const ordersSub = subscribeToPharmacistOrders(invalidateOrders);
-    const rxSub     = subscribeToPharmacistPrescriptions(invalidateRx);
-    const inventorySub = subscribeToPharmacistInventory(invalidateInventory);
-
-    return () => {
-      ordersSub.unsubscribe();
-      rxSub.unsubscribe();
-      inventorySub.unsubscribe();
-    };
-  }, [userId, queryClient]);
+  useRealtimeInvalidate({
+    enabled: Boolean(userId),
+    channelName: "pharmacist-inventory",
+    table: "inventory_state",
+    queryKeys: [pharmacistQueryKeys.lowStock(), ["pharmacist", "products"]],
+  });
 }

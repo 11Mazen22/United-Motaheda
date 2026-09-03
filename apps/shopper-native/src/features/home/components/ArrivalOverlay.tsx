@@ -26,6 +26,9 @@
  */
 
 import React, { memo, useEffect, useMemo } from "react";
+
+/** Upper bound on waiting for the splash-exit event before revealing anyway. */
+const ARRIVAL_WATCHDOG_MS = 4000;
 import { StyleSheet, useWindowDimensions } from "react-native";
 import Animated, {
   cancelAnimation,
@@ -126,8 +129,14 @@ export function ArrivalOverlay({ onComplete }: ArrivalOverlayProps) {
   useEffect(() => {
     const ids: ReturnType<typeof setTimeout>[] = [];
     const at = (fn: () => void, ms: number) => ids.push(setTimeout(fn, ms));
+    let started = false;
 
-    const unsub = onSplashExited(() => {
+    const begin = () => {
+      // The splash-exit event can arrive twice (a late notify after the
+      // watchdog already ran); the sequence must only play once.
+      if (started) return;
+      started = true;
+
       if (reduced) {
         onComplete();
         return;
@@ -164,10 +173,23 @@ export function ArrivalOverlay({ onComplete }: ArrivalOverlayProps) {
         irisOpacity.value = 0;
         onComplete();
       }, 1780);
-    });
+    };
+
+    const unsub = onSplashExited(begin);
+
+    // Watchdog. Every phase above is gated behind the splash-exit event, and
+    // the iris starts at IRIS_MAX covering the entire screen. So if that event
+    // never arrives -- splash skipped, remounted, or any failure inside the
+    // splash sequence -- nothing is ever scheduled, the iris never opens, and
+    // the app is left permanently behind a blank full-screen overlay with the
+    // real screen alive but invisible underneath (uiautomator still sees it;
+    // the user sees nothing). No entrance animation is worth a permanently
+    // unusable app, so force the handoff if the event is late.
+    const watchdog = setTimeout(begin, ARRIVAL_WATCHDOG_MS);
 
     return () => {
       unsub();
+      clearTimeout(watchdog);
       ids.forEach(clearTimeout);
       cancelAnimation(glowOpacity);
       cancelAnimation(glowScale);

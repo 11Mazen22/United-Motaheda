@@ -60,12 +60,33 @@ export default function RegisterScreen() {
     setError("");
     setLoading(true);
     try {
-      await signUp(email, password, name, normalizedPhone);
+      const result = await signUp(email, password, name, normalizedPhone);
       if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      router.replace("/(customer)/(tabs)");
+      if (result.hasSession) {
+        router.replace("/(customer)/(tabs)");
+      } else {
+        // Email confirmation is required. This is its own screen, not an
+        // inline branch: it owns the resend cooldown and mail-app handoff.
+        router.replace({
+          pathname: "/(auth)/verify-email",
+          params: { email: email.trim().toLowerCase() },
+        } as never);
+      }
     } catch (err: unknown) {
-      setError(getAuthError(err));
-      if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      const errMsg = (err instanceof Error ? err.message : String(err ?? "")).toLowerCase();
+      // If the server timed out (504), the account may still have been created
+      // and a confirmation email may be on its way. Show the pending state instead
+      // of a scary red error so the user knows to check their inbox.
+      if (errMsg.includes("request_timeout") || errMsg.includes("timed out")) {
+        if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+        router.replace({
+          pathname: "/(auth)/verify-email",
+          params: { email: email.trim().toLowerCase() },
+        } as never);
+      } else {
+        setError(getAuthError(err));
+        if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      }
     } finally {
       setLoading(false);
     }

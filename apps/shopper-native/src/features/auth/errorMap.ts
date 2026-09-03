@@ -86,6 +86,19 @@ export function getAuthError(err: unknown, lang = "ar"): string {
     );
   }
 
+  // Server-side 504 timeout (GoTrue/Railway slowness on signup)
+  if (
+    msg.includes("request_timeout") ||
+    msg.includes("timed out") ||
+    msg.includes("504")
+  ) {
+    return bi(
+      lang,
+      "الخادم يستغرق وقتاً أطول من المعتاد. انتظر لحظة ثم حاول مجدداً.",
+      "The server is taking too long to respond. Please wait a moment and try again.",
+    );
+  }
+
   // Invalid credentials (sign-in path)
   if (msg.includes("invalid login") || msg.includes("invalid credentials")) {
     return bi(

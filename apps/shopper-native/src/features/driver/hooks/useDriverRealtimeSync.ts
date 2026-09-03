@@ -1,38 +1,56 @@
 /**
  * useDriverRealtimeSync — mount once for the whole driver section (in
- * (driver)/_layout.tsx), mirrors useNotificationSync's "one channel for the
- * lifetime of the session" shape. Any change to my assignments or my
- * assigned orders invalidates the manifest/offers query cache, so the task
- * list and offer screens update live instead of waiting for a manual pull-
- * to-refresh — and now also invalidates that specific order's own detail/
- * assignment queries, so a driver sitting on DeliveryExecutionScreen for
- * order X sees it update live too, not just the list screens.
+ * (driver)/_layout.tsx). Any change to my assignments, my assigned orders,
+ * or my own driver profile (approval/online status, changed by an admin)
+ * invalidates the relevant query cache, so the manifest/offers/profile
+ * screens update live instead of waiting for a manual pull-to-refresh —
+ * including that specific order's own detail/assignment queries, so a
+ * driver sitting on DeliveryExecutionScreen for order X sees it update live
+ * too, not just the list screens.
+ *
+ * Built on the shared useRealtimeInvalidate — see shared/hooks for the
+ * channel+retry mechanics this used to duplicate per-feature.
  */
 
-import { useEffect } from "react";
-import { useQueryClient } from "@tanstack/react-query";
-import { subscribeToMyAssignments, subscribeToMyOrders } from "../realtime";
-import { driverQueryKeys, invalidateDriverLists } from "./useDriverManifest";
+import { useRealtimeInvalidate } from "@/shared/hooks/useRealtimeInvalidate";
+import { driverQueryKeys } from "./useDriverManifest";
+import { driverProfileQueryKeys } from "./useDriverProfile";
+import type { QueryKey } from "@tanstack/react-query";
+import type { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
+
+function manifestKeys(driverId: string, orderId: string | undefined): QueryKey[] {
+  return [
+    driverQueryKeys.manifest(driverId),
+    driverQueryKeys.offers(driverId),
+    ...(orderId ? [driverQueryKeys.order(orderId), driverQueryKeys.assignmentForOrder(orderId)] : []),
+  ];
+}
 
 export function useDriverRealtimeSync(driverId: string | undefined): void {
-  const queryClient = useQueryClient();
+  useRealtimeInvalidate<{ order_id?: string }>({
+    enabled: Boolean(driverId),
+    channelName: `driver-assignments-${driverId}`,
+    table: "delivery_assignments",
+    filter: `driver_id=eq.${driverId}`,
+    queryKeys: (payload: RealtimePostgresChangesPayload<{ order_id?: string }>) =>
+      manifestKeys(driverId!, (payload.new as { order_id?: string } | null)?.order_id ?? (payload.old as { order_id?: string } | null)?.order_id),
+  });
 
-  useEffect(() => {
-    if (!driverId) return;
+  useRealtimeInvalidate<{ id?: string }>({
+    enabled: Boolean(driverId),
+    channelName: `driver-orders-${driverId}`,
+    table: "orders",
+    filter: `assigned_driver_id=eq.${driverId}`,
+    queryKeys: (payload: RealtimePostgresChangesPayload<{ id?: string }>) =>
+      manifestKeys(driverId!, (payload.new as { id?: string } | null)?.id ?? (payload.old as { id?: string } | null)?.id),
+  });
 
-    const onChange = (orderId: string | undefined) => {
-      invalidateDriverLists(queryClient, driverId);
-      if (orderId) {
-        void queryClient.invalidateQueries({ queryKey: driverQueryKeys.order(orderId) });
-        void queryClient.invalidateQueries({ queryKey: driverQueryKeys.assignmentForOrder(orderId) });
-      }
-    };
-    const assignmentsSub = subscribeToMyAssignments(driverId, onChange);
-    const ordersSub = subscribeToMyOrders(driverId, onChange);
-
-    return () => {
-      assignmentsSub.unsubscribe();
-      ordersSub.unsubscribe();
-    };
-  }, [driverId, queryClient]);
+  useRealtimeInvalidate({
+    enabled: Boolean(driverId),
+    channelName: `driver-profile-${driverId}`,
+    table: "DriverProfile",
+    event: "UPDATE",
+    filter: `userId=eq.${driverId}`,
+    queryKeys: [driverProfileQueryKeys.mine(driverId ?? "")],
+  });
 }

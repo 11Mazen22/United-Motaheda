@@ -297,6 +297,7 @@ function getStyles(theme: NativeTheme) {
   biometricText: { fontFamily: legacyTheme.fonts.medium, fontSize: 12 },
   errorBox: { flexDirection: flexRow(IS_RTL), alignItems: "center", padding: 12, borderRadius: 12, borderWidth: 1, gap: 8, marginBottom: 16 },
   errorText: { flex: 1, fontFamily: legacyTheme.fonts.bold, fontSize: 13 },
+  confirmIcon: { width: 80, height: 80, borderRadius: 40, alignItems: "center", justifyContent: "center" },
   footerRow: { flexDirection: flexRow(IS_RTL), alignItems: "center", justifyContent: "center", marginTop: 32, gap: 6 },
   footerText: { fontFamily: legacyTheme.fonts.medium, fontSize: 14 },
   footerLink: { fontFamily: legacyTheme.fonts.bold, fontSize: 14, color: theme.colors.brand.primary },

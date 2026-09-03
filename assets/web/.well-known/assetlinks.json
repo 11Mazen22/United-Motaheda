@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.unitedpharmacy.app",
+      "sha256_cert_fingerprints": [
+        "13:F7:0F:0B:47:C9:DE:1C:93:15:45:3D:C2:87:21:06:73:C9:CE:C4:85:FC:7A:D4:13:D1:7D:CB:AE:FE:D7:52"
+      ]
+    }
+  }
+]

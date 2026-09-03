@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from "react";
-import { Pressable, RefreshControl, StyleSheet, View } from "react-native";
+import { RefreshControl, StyleSheet, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -17,6 +17,7 @@ import {
   SkeletonCard,
   StatusIndicator,
   useTheme,
+  PressableScale,
 } from "@pharmacy/ui-native";
 
 import { useAuth } from "@/features/auth";
@@ -86,13 +87,13 @@ function RxQueueCard({ rx, onPress, t }: {
   const sourceIcon = RX_SOURCE_ICON[rx.submissionSource ?? "manual"] ?? "document-text";
   return (
     <Animated.View entering={FadeInDown.duration(220)}>
-      <Pressable
+      <PressableScale
         onPress={onPress}
         accessibilityRole="button"
-        style={({ pressed }) => [
+        style={[
           styles.rxCard,
           { borderStartColor, borderStartWidth: 4, borderColor: theme.colors.border.default },
-          { backgroundColor: pressed ? theme.colors.canvas.surfaceMuted : theme.colors.canvas.surface },
+          { backgroundColor: theme.colors.canvas.surface },
         ]}
       >
         <View style={[styles.rxRow, { flexDirection: flexRow(IS_RTL) }]}>
@@ -111,7 +112,7 @@ function RxQueueCard({ rx, onPress, t }: {
           </View>
           <Ionicons name={IS_RTL ? "chevron-back" : "chevron-forward"} size={18} color={theme.colors.text.muted} />
         </View>
-      </Pressable>
+      </PressableScale>
     </Animated.View>
   );
 }

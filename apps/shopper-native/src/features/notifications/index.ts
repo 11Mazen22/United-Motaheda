@@ -20,9 +20,6 @@ export {
   unregisterAllPushTokensForUser,
 } from "./api";
 
-// ─── Realtime primitive (low-level — most code should use hooks) ──────────
-export { subscribeToNotifications } from "./realtime";
-
 // ─── Hooks (component-facing) ──────────────────────────────────────────────
 export { useNotifications } from "./hooks/useNotifications";
 export { useNotificationPreferences } from "./hooks/useNotificationPreferences";

@@ -28,4 +28,9 @@ export function Circle(_props: Record<string, unknown>): null {
   return null;
 }
 
+/** No-op on web — same reasoning as Marker. */
+export function Polyline(_props: Record<string, unknown>): null {
+  return null;
+}
+
 export type MapPressEvent = { nativeEvent: { coordinate: { latitude: number; longitude: number } } };

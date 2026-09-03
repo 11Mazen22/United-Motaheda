@@ -50,6 +50,8 @@ import {
 
 } from "@/features/notifications";
 
+import { useCustomerOrdersRealtimeSync } from "@/features/orders";
+
 import { ErrorBoundary, PharmacyBootstrap, SplashOverlay } from "@/shared/components";
 import { AppLogo } from "@/shared/components/AppLogo";
 
@@ -115,6 +117,18 @@ function NotificationSync() {
   const { user } = useAuth();
 
   useNotificationSync(user?.id);
+
+  return null;
+
+}
+
+
+
+function CustomerOrdersSync() {
+
+  const { user } = useAuth();
+
+  useCustomerOrdersRealtimeSync(user?.id);
 
   return null;
 
@@ -200,6 +214,8 @@ function ThemedApp() {
         )}
 
         <NotificationSync />
+
+        <CustomerOrdersSync />
 
         <PushBootstrap />
 

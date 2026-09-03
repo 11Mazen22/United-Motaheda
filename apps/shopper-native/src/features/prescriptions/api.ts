@@ -6,7 +6,7 @@
  */
 
 import { supabase } from "@/lib/supabase";
-import * as FileSystem from "expo-file-system";
+
 import type { Prescription } from "@/stores/prescriptionsStore";
 import { rowToPrescription, type PrescriptionRow } from "./lib/rowMappers";
 

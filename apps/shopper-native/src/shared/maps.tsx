@@ -18,5 +18,5 @@
  * `tsx` step where the web shim lives — silently bundling the native,
  * web-incompatible module. Keep native/web shim pairs on the same extension.
  */
-export { default as MapView, Marker, Circle } from "react-native-maps";
+export { default as MapView, Marker, Circle, Polyline } from "react-native-maps";
 export type { MapPressEvent } from "react-native-maps";
