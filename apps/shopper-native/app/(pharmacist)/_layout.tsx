@@ -23,13 +23,14 @@
  * only needed to override screenOptions for that one screen.
  */
 
-import React, { useRef } from "react";
+import React, { useEffect, useRef } from "react";
 import { ActivityIndicator, View } from "react-native";
-import { Redirect, Stack } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import { useAuth } from "@/features/auth";
 import { usePharmacistRealtimeSync } from "@/features/pharmacist";
 
 export default function PharmacistLayout() {
+  const router = useRouter();
   const { user, loading } = useAuth();
 
   // Mount realtime sync once for the lifetime of the pharmacist session.
@@ -56,6 +57,35 @@ export default function PharmacistLayout() {
       (user?.role === "pharmacist" || user?.role === "admin" || user?.role === "manager");
   }
 
+  // Guards the imperative redirect below, separately from decidedAccessRef.
+  // expo-router's <Redirect> fires router.replace() from a useFocusEffect
+  // whose dependency is a fresh inline callback on every render of
+  // <Redirect> — so it re-fires on every re-render where this screen is
+  // still focused, not just once. Once the real navigation is at all slow
+  // to take over focus (which a throttled one is, by definition), every
+  // re-render in between re-issues the same replace() call, and the
+  // resulting burst is what trips the browser's own rapid-navigation
+  // throttle — which delays the transition further, feeding the same loop
+  // (see (driver)/_layout.tsx's matching hasLeftRef for the full incident).
+  // Calling router.replace() ourselves, gated by this ref, is the only way
+  // to guarantee it fires at most once no matter how many times this
+  // component re-renders afterward.
+  const hasLeftRef = useRef(false);
+  // No dependency array: this must re-check on every render (decidedAccessRef
+  // is a ref, not state, so there's nothing reactive to key an effect off
+  // of), but hasLeftRef ensures the replace() call inside only ever actually
+  // fires once. Mirrors the "leave" condition of both <Redirect> sites below
+  // combined.
+  useEffect(() => {
+    const shouldLeave =
+      decidedAccessRef.current === false ||
+      (decidedAccessRef.current === true && !user && !loading);
+    if (shouldLeave && !hasLeftRef.current) {
+      hasLeftRef.current = true;
+      router.replace("/" as never);
+    }
+  });
+
   // If the user actively signs out, user becomes null. Kick them back to the
   // customer app (guest mode) immediately. Gated on decidedAccessRef already
   // having resolved once -- without that, this misfires on a transient
@@ -75,7 +105,7 @@ export default function PharmacistLayout() {
   // mount; routing through it instead of duplicating the logic here closes
   // the loop instead of chaining it.
   if (decidedAccessRef.current !== null && !user && !loading) {
-    return <Redirect href={"/" as never} />;
+    return <View style={{ flex: 1, backgroundColor: "#FFFFFF" }} />;
   }
 
   if (decidedAccessRef.current === null) {
@@ -87,7 +117,7 @@ export default function PharmacistLayout() {
   }
 
   if (decidedAccessRef.current === false) {
-    return <Redirect href={"/" as never} />;
+    return <View style={{ flex: 1, backgroundColor: "#FFFFFF" }} />;
   }
 
   return (

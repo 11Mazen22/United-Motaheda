@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Pressable, Text, View } from "react-native";
-import { Redirect, Stack } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import { useAuth } from "@/features/auth";
 import { useDriverRealtimeSync, useMyDriverProfile } from "@/features/driver";
 
@@ -27,6 +27,7 @@ const LIVE_DRIVER_STATUSES = new Set(["APPROVED", "ACTIVE"]);
  * DriverProfile still can't reach these screens.
  */
 export default function DriverLayout() {
+  const router = useRouter();
   const { user, loading } = useAuth();
   const isDriverRole = user?.role === "driver";
   const profileQuery = useMyDriverProfile(isDriverRole ? user?.id : undefined);
@@ -46,6 +47,23 @@ export default function DriverLayout() {
   const [stuck, setStuck] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const lastErrorRef = useRef<string | null>(null);
+  // Guards the imperative redirect below, separately from decidedAccessRef.
+  // expo-router's <Redirect> fires router.replace() from a useFocusEffect
+  // whose dependency is a fresh inline callback on every render of
+  // <Redirect> — so it re-fires on every re-render where this screen is
+  // still focused, not just once. Once the real navigation is at all slow
+  // to take over focus (which a throttled one is, by definition), every
+  // re-render in between re-issues the same replace() call, and the
+  // resulting burst is what trips the browser's own rapid-navigation
+  // throttle — which delays the transition further, feeding the same loop.
+  // Confirmed live on this exact screen: repeated aborted `HEAD /` requests
+  // and a climbing "Throttling navigation" warning count that never
+  // settled. Calling router.replace() ourselves, gated by this ref, is the
+  // only way to guarantee it fires at most once no matter how many times
+  // this component re-renders afterward (see useDriverRealtimeSync/
+  // profileQuery above for hooks that can legitimately keep re-rendering
+  // this layout while it's mid-teardown).
+  const hasLeftRef = useRef(false);
 
   // A network hiccup (or the profile query's own bounded timeout — see
   // getMyDriverProfile) settles into isError, not isLoading, once retries
@@ -87,6 +105,22 @@ export default function DriverLayout() {
     lastErrorRef.current = profileQuery.error.message;
   }
 
+  // No dependency array: this must re-check on every render (decidedAccessRef
+  // is a ref, not state, so there's nothing reactive to key an effect off
+  // of), but hasLeftRef ensures the replace() call inside only ever actually
+  // fires once. Mirrors the "leave" condition of both <Redirect> sites below
+  // combined — see hasLeftRef's declaration for why a plain <Redirect> isn't
+  // safe here.
+  useEffect(() => {
+    const shouldLeave =
+      decidedAccessRef.current === false ||
+      (decidedAccessRef.current === true && !user && !loading);
+    if (shouldLeave && !hasLeftRef.current) {
+      hasLeftRef.current = true;
+      router.replace("/" as never);
+    }
+  });
+
   // If the user actively signs out, user becomes null. Kick them back to the
   // customer app (guest mode) immediately. Gated on decidedAccessRef already
   // having resolved once -- checking live `!user && !loading` unconditionally
@@ -108,7 +142,7 @@ export default function DriverLayout() {
   // correctly and exactly once per mount; routing through it instead of
   // duplicating the same logic here closes the loop instead of chaining it.
   if (decidedAccessRef.current !== null && !user && !loading) {
-    return <Redirect href={"/" as never} />;
+    return <View style={{ flex: 1, backgroundColor: "#FFFFFF" }} />;
   }
 
   if (decidedAccessRef.current === null) {
@@ -140,7 +174,7 @@ export default function DriverLayout() {
   }
 
   if (decidedAccessRef.current === false) {
-    return <Redirect href={"/" as never} />;
+    return <View style={{ flex: 1, backgroundColor: "#FFFFFF" }} />;
   }
 
   return (

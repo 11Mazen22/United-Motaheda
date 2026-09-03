@@ -1,6 +1,6 @@
-import React, { useCallback, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { View } from "react-native";
-import { Redirect, Tabs } from "expo-router";
+import { Tabs, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { Ionicons } from "@expo/vector-icons";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
@@ -47,6 +47,7 @@ function CustomerTabBar(props: BottomTabBarProps) {
 }
 
 export default function TabLayout() {
+  const router = useRouter();
   const { user, loading } = useAuth();
   const insets = useSafeAreaInsets();
   const [showArrival, setShowArrival] = useState(!arrivalComplete);
@@ -91,9 +92,31 @@ export default function TabLayout() {
       "none";
   }
 
+  // Guards the imperative redirect below. expo-router's <Redirect> fires
+  // router.replace() from a useFocusEffect whose dependency is a fresh
+  // inline callback on every render of <Redirect> -- so it re-fires on
+  // every re-render where this screen is still focused, not just once.
+  // Once the real navigation is at all slow to take over focus (which a
+  // throttled one is, by definition), every re-render in between re-issues
+  // the same replace() call, and the resulting burst is what trips the
+  // browser's own rapid-navigation throttle -- which delays the transition
+  // further, feeding the same loop (see (driver)/_layout.tsx's matching
+  // hasLeftRef for the full incident). Calling router.replace() ourselves,
+  // gated by this ref, is the only way to guarantee it fires at most once.
+  const hasLeftRef = useRef(false);
+  useEffect(() => {
+    if (redirectRef.current === "driver" || redirectRef.current === "pharmacist") {
+      if (!hasLeftRef.current) {
+        hasLeftRef.current = true;
+        router.replace((redirectRef.current === "driver" ? "/(driver)" : "/(pharmacist)") as never);
+      }
+    }
+  });
+
   if (redirectRef.current === null) return <View style={{ flex: 1 }} />;
-  if (redirectRef.current === "driver") return <Redirect href={"/(driver)" as never} />;
-  if (redirectRef.current === "pharmacist") return <Redirect href={"/(pharmacist)" as never} />;
+  if (redirectRef.current === "driver" || redirectRef.current === "pharmacist") {
+    return <View style={{ flex: 1 }} />;
+  }
 
   return (
     <View style={{ flex: 1 }}>
