@@ -85,6 +85,8 @@ import { formatPrice }            from "@/utils/format";
 
 import { newIdempotencyKey }      from "@/lib/idempotency";
 
+import { useQueryClient }         from "@tanstack/react-query";
+
 
 
 import { adjustInventory, getProductByBarcode } from "../api/inventory";
@@ -685,6 +687,8 @@ export function BarcodeScannerScreen(): React.ReactElement {
 
   const router   = useRouter();
 
+  const queryClient = useQueryClient();
+
   const params   = useLocalSearchParams<{ barcode?: string; mode?: ScanMode }>();
 
   const [permission, requestPermission] = useCameraPermissions();
@@ -1153,6 +1157,17 @@ export function BarcodeScannerScreen(): React.ReactElement {
         idempotencyKey: newIdempotencyKey(),
 
       });
+
+
+
+      // The RPC + DB trigger update products.Stock immediately, but nothing
+      // told the Inventory Intelligence screen's queries (5min staleTime,
+      // no window-focus refetch) that anything changed -- a pharmacist
+      // adjusting stock here would see it stay stale everywhere else in the
+      // app until that cache aged out on its own. Invalidate every
+      // pharmacist "products" query (lowstock, out-of-stock nested under
+      // it, and any active search) so they refetch next time they're seen.
+      void queryClient.invalidateQueries({ queryKey: ["pharmacist", "products"] });
 
 
 
