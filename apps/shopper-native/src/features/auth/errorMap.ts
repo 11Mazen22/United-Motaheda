@@ -14,8 +14,39 @@
 const bi = (lang: string, ar: string, en: string): string =>
   lang === "en" ? en : ar;
 
+// Supabase's non-throwing `{ data, error }` pattern (used everywhere in this
+// codebase) returns PostgrestError/AuthError as plain JSON objects, not real
+// Error instances -- postgrest-js only wraps them in the (Error-extending)
+// PostgrestError class when .throwOnError() is used, which nothing here does.
+// So `err instanceof Error` is false for practically every real database
+// error (RLS denials, unique violations, etc.), and relying on it silently
+// swallowed every one of those into the generic fallback below -- exactly
+// the "catch-all hides root causes" failure mode this file's own doc comment
+// says to avoid. Duck-type on `.message` instead so both real Errors and
+// these plain error objects surface correctly.
+function extractMessage(err: unknown): string {
+  if (err && typeof err === "object" && "message" in err && typeof (err as { message: unknown }).message === "string") {
+    return (err as { message: string }).message;
+  }
+  return err instanceof Error ? err.message : String(err ?? "");
+}
+
 export function getAuthError(err: unknown, lang = "ar"): string {
-  const msg = (err instanceof Error ? err.message : String(err ?? "")).toLowerCase();
+  const rawMessage = extractMessage(err);
+  const msg = rawMessage.toLowerCase();
+
+  // Duplicate key on phone specifically (profiles.phone is UNIQUE) -- must
+  // be checked before the generic/email duplicate branch below, since a
+  // Postgres unique-violation message ("duplicate key value violates unique
+  // constraint \"profiles_phone_key\"") also contains "duplicate" and would
+  // otherwise be misreported as an email conflict.
+  if (msg.includes("duplicate") && msg.includes("phone")) {
+    return bi(
+      lang,
+      "رقم الهاتف مستخدم بالفعل في حساب آخر.",
+      "This phone number is already in use by another account.",
+    );
+  }
 
   // Email already registered
   if (
@@ -118,8 +149,8 @@ export function getAuthError(err: unknown, lang = "ar"): string {
   }
 
   // Fall through — surface raw message for diagnosability.
-  if (err instanceof Error && err.message) {
-    return err.message;
+  if (rawMessage) {
+    return rawMessage;
   }
   return bi(
     lang,

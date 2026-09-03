@@ -238,9 +238,18 @@ export async function updateProfile(params: {
   if (getError) throw getError;
   if (!user) throw new Error("Not authenticated");
 
+  // params.phone arrives pre-validated/normalized by normalizeEgyptianPhone()
+  // as E.164 ("+201003118151", 13 chars) -- stripping non-digits here only
+  // drops the leading "+" to match the digits-only convention public.profiles
+  // and auth metadata already use elsewhere. Truncating length was the bug:
+  // an old `.slice(0, 11)` (sized for the bare local "01XXXXXXXXX" format)
+  // chopped the last digit off every "20" + 10-digit number, silently
+  // corrupting every stored phone number and -- since profiles.phone is
+  // UNIQUE -- causing collisions between different real numbers that
+  // happened to truncate to the same 11 digits.
   const meta: Record<string, string> = {};
   if (params.name      !== undefined) meta.name       = params.name.trim();
-  if (params.phone     !== undefined) meta.phone      = params.phone.replace(/\D/g, "").slice(0, 11);
+  if (params.phone     !== undefined) meta.phone      = params.phone.replace(/\D/g, "");
   if (params.avatarUrl !== undefined) meta.avatar_url = params.avatarUrl;
 
   if (Object.keys(meta).length > 0) {
@@ -250,7 +259,7 @@ export async function updateProfile(params: {
 
   const cols: Record<string, string | null> = {};
   if (params.name  !== undefined) cols.full_name = params.name.trim();
-  if (params.phone !== undefined) cols.phone     = params.phone.replace(/\D/g, "").slice(0, 11) || null;
+  if (params.phone !== undefined) cols.phone     = params.phone.replace(/\D/g, "") || null;
 
   if (Object.keys(cols).length > 0) {
     const { error: profileError } = await supabase
