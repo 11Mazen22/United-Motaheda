@@ -132,8 +132,21 @@ export function usePremiumCheckout() {
       const rxIds = await fetchPrescriptionRequiredProductIds(items.map((i) => i.productId));
       if (active) setRxRequiredProductIds(rxIds);
 
+      // Only auto-select when there's a real, explicit default, or exactly one
+      // address to begin with (an unambiguous choice either way). With 2+
+      // addresses and none marked default, this used to fall back to
+      // addresses[0] -- which, since fetchAddresses() orders by
+      // updated_at DESC, silently picked whichever address was saved most
+      // recently. That has nothing to do with which one is actually
+      // deliverable: confirmed live, a customer's most-recent address had a
+      // bad geocode (a vague "district + city" query with no street matched
+      // ~30km off), so checkout opened already pointed at an undeliverable
+      // address before they had touched anything -- correctly SELECTED per
+      // this logic, but never a choice the customer actually made. Leaving
+      // selectedAddressId null here instead makes them pick consciously.
       const addresses = useAddressStore.getState().addresses;
-      const defaultAddr = addresses.find(a => a.is_default) || addresses[0];
+      const defaultAddr = addresses.find(a => a.is_default)
+        ?? (addresses.length === 1 ? addresses[0] : undefined);
       if (defaultAddr && !selectedAddressId) {
         setSelectedAddressId(defaultAddr.id);
       }
