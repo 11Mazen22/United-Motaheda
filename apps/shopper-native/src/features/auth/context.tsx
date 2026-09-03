@@ -62,8 +62,28 @@ async function handleAuthDeepLink(url: string): Promise<void> {
     // routing (verify-phone vs tabs) stays in one place.
     const code = (parsed.queryParams?.code as string | undefined) ?? undefined;
     if (code) {
+      // Confirmed live: on Android, this listener AND socialAuth.ts's own
+      // manual re-navigation (see that file's comment on why it exists) can
+      // both fire for the same OAuth redirect -- contrary to that comment's
+      // assumption that Custom Tabs never surface a system intent here. The
+      // second one to land wins (router.replace on the same route just
+      // updates its params), and this one used to forward only `code`,
+      // dropping `via` — so a driver who briefly saw the correct
+      // complete-profile redirect got silently bounced to the app a moment
+      // later once this handler's param-less replace overwrote it. Forward
+      // `via`/`redirect` too so whichever handler wins carries the same
+      // information either way.
+      const via      = (parsed.queryParams?.via as string | undefined) ?? undefined;
+      const redirect = (parsed.queryParams?.redirect as string | undefined) ?? undefined;
       try {
-        router.replace({ pathname: "/auth-callback", params: { code } });
+        router.replace({
+          pathname: "/auth-callback",
+          params: {
+            code,
+            ...(via ? { via } : {}),
+            ...(redirect ? { redirect } : {}),
+          },
+        });
       } catch (navErr) {
         if (__DEV__) console.error("[auth] auth-callback router.replace failed:", navErr);
       }
@@ -356,6 +376,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const nextRole = normalizeRole(next.role);
             if (userRef.current && nextRole !== userRef.current.role) {
               setUser((cur) => (cur ? { ...cur, role: nextRole } : cur));
+              // (customer)/(tabs), (driver), and (pharmacist) layouts each lock
+              // their redirect/access decision once per mount (see their own
+              // decidedAccessRef/redirectRef comments) and never re-check
+              // user.role afterward -- a deliberate fix for a prior "Maximum
+              // update depth exceeded" crash from role flicker during auth
+              // churn. That means updating `user` alone is not enough for a
+              // *confirmed* role change (this branch only) to actually move
+              // someone to their new section; send them back through
+              // app/index.tsx so it mounts fresh and re-locks on the now-
+              // current role, exactly like a real sign-in already does.
+              router.replace("/");
             }
           },
         )
