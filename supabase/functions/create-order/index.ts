@@ -62,6 +62,10 @@ interface CheckoutCommand {
   };
   payment: CheckoutPayment;
   note?: string;
+  /** Coupon code applied at checkout, if any — validated and priced
+   *  authoritatively server-side below; never trusted from
+   *  expectedPricing.discount alone. See the discount computation for why. */
+  promoCode?: string;
   expectedPricing: {
     subtotal: number;
     discount: number;
@@ -414,7 +418,44 @@ Deno.serve(async (req) => {
       );
     }
 
-    const discount = Math.max(0, Math.min(body.expectedPricing?.discount ?? 0, serverSubtotal));
+    // ── Authoritative coupon discount — never trust the client's number ────
+    // validate-coupon's own header comment already documents the intended
+    // design ("The redemption is recorded atomically by the create-order
+    // Edge Function after the order is committed"), but that half was never
+    // built: body.expectedPricing.discount was accepted verbatim from the
+    // client with no server-side coupon check at all, and coupon_redemptions
+    // was never written to anywhere — confirmed live (0 rows in
+    // coupon_redemptions despite coupons being actively offered and applied
+    // at checkout in both apps), so per-user/global redemption limits could
+    // never actually be enforced, and any caller could set
+    // expectedPricing.discount to an arbitrary amount up to the full
+    // subtotal with no coupon at all. Both shopper-native and shopper-web
+    // already send the applied code as `promoCode` on this exact command
+    // (features/checkout/payload.ts, hooks/usePremiumCheckout.ts,
+    // app/pages/Checkout.tsx) — it was simply never read here.
+    let discount = 0;
+    let appliedCouponCode: string | null = null;
+    if (typeof body.promoCode === "string" && body.promoCode.trim()) {
+      const code = body.promoCode.trim().toUpperCase();
+      const { data: couponResult, error: couponError } = await userClient.rpc(
+        "validate_coupon",
+        { p_code: code, p_order_subtotal: serverSubtotal },
+      );
+      if (couponError) {
+        return new Response(JSON.stringify({ error: "Failed to validate coupon: " + couponError.message }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const result = couponResult as { valid: boolean; discount_amount?: number; reason?: string } | null;
+      if (!result?.valid) {
+        return new Response(
+          JSON.stringify({ error: "coupon_invalid", reason: result?.reason ?? "not_found" }),
+          { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+      discount = Math.max(0, Math.min(result.discount_amount ?? 0, serverSubtotal));
+      appliedCouponCode = code;
+    }
     const tax = Math.max(0, body.expectedPricing?.tax ?? 0);
     const total = Math.round((serverSubtotal - discount + tax + shippingFee) * 100) / 100;
 
@@ -533,6 +574,24 @@ Deno.serve(async (req) => {
         JSON.stringify({ error: "order_commit_failed" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
+    }
+
+    if (appliedCouponCode) {
+      try {
+        await admin.rpc("record_coupon_redemption", {
+          p_code: appliedCouponCode,
+          p_user_id: user.id,
+          p_order_id: orderId,
+          p_subtotal: serverSubtotal,
+        });
+      } catch (redemptionError) {
+        // Non-fatal: the order is already correctly priced and committed —
+        // the discount actually charged was validated and capped
+        // server-side above regardless of whether this insert lands.
+        // Losing it would only mean this order doesn't count against the
+        // coupon's redemption limits, not a pricing/security issue.
+        console.error("record_coupon_redemption failed:", redemptionError);
+      }
     }
 
     try {
