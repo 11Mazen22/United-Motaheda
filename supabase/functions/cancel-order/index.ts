@@ -35,7 +35,18 @@ export default async function handler(req: Request) {
       });
     }
 
-    const idemKey = idempotencyKey || `cancel-${orderId}-${user.id}-${Date.now()}`;
+    // Stable per (order, user) — no timestamp. A caller that doesn't supply
+    // its own key (the pharmacist app never does; see
+    // features/pharmacist/api/orders.ts's transitionOrder) previously got a
+    // fresh key on every call via Date.now(), which defeated
+    // execute_order_cancellation's idempotency short-circuit for retries the
+    // exact same way apps/shopper-native/.../CancelOrderSheet.tsx's own
+    // per-submit key generation did (fixed separately). An order can only
+    // be cancelled once, so reusing the same key across retries from the
+    // same user for the same order is exactly the intended semantics here —
+    // there's no legitimate case where a second "distinct" cancel attempt
+    // for an already-cancelled order needs to be told apart from a retry.
+    const idemKey = idempotencyKey || `cancel-${orderId}-${user.id}`;
 
     // Note: We MUST use the authenticated client to execute the RPC so that auth.uid() resolves correctly!
     const { data: cancelData, error: cancelError } = await supabaseClient.rpc("execute_order_cancellation", {
