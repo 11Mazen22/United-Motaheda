@@ -104,6 +104,37 @@ export default function PharmacistLayout() {
     }
   });
 
+  // Watchdog, independent of claimPostSignOutNavigation entirely. Reproduced
+  // live: after a real sign-out, this layout can be stuck showing the blank
+  // "leaving" view below forever, recoverable only by force-restarting the
+  // app. A longer cooldown on the claim above doesn't reliably fix this --
+  // confirmed live that raising it from a permanent one-shot to a 1s window
+  // still didn't help, which only makes sense if the *retry* itself never
+  // happens, not that it happens too late. Most likely explanation: the
+  // remounted instance that should retry never gets the chance to, because
+  // whatever bounced it back here (see claimPostSignOutNavigation's doc for
+  // the stale-auth-event race) can leave ITS OWN decidedAccessRef never
+  // settling either, so it never even reaches a `shouldLeave` determination
+  // to retry from. Rather than chase that race further blind (no console
+  // access on a production build to confirm it directly), this is an
+  // unconditional fallback: if we're still rendering the "leaving" blank
+  // view a few seconds later, force the same replace() again regardless of
+  // the claim's state, guaranteeing a bounded worst case instead of a
+  // silent hang. leftRef stops it from restarting on every subsequent
+  // render while it's already pending.
+  const watchdogFiredRef = useRef(false);
+  useEffect(() => {
+    const shouldLeave =
+      decidedAccessRef.current === false ||
+      (decidedAccessRef.current === true && !user && !loading);
+    if (!shouldLeave || watchdogFiredRef.current) return;
+    const id = setTimeout(() => {
+      watchdogFiredRef.current = true;
+      router.replace("/" as never);
+    }, 2500);
+    return () => clearTimeout(id);
+  });
+
   // If the user actively signs out, user becomes null. Kick them back to the
   // customer app (guest mode) immediately. Gated on decidedAccessRef already
   // having resolved once -- without that, this misfires on a transient
