@@ -549,6 +549,29 @@ export const useCartStore = create<CartState>((set, get) => ({
   },
 
   clearCart: () => {
+    // Release every outstanding reservation before wiping local state —
+    // this previously only cleared local/storage state, leaking any
+    // reserved-but-not-yet-committed line straight through to its 15-minute
+    // expiry. Runs on every sign-out (userDataWipe.ts), so a user who signs
+    // out mid-cart routinely left stock reserved-and-unavailable to other
+    // customers for up to 15 minutes for no reason. Mirrors CartContext.tsx's
+    // web equivalent, which already does this. Best-effort/fire-and-forget
+    // like every other reservation mutation in this file (via mirror()) —
+    // clearing the cart must never fail or block just because a release
+    // call has trouble; the 15-minute TTL is still the ultimate backstop.
+    const itemsToRelease = get().items;
+    for (const item of itemsToRelease) {
+      if (!item.reservationId) continue;
+      const idToRelease: string = item.reservationId;
+      mirror("release(clear-cart)", () =>
+        releaseInventory({
+          reservationId:  idToRelease,
+          reason:         "cart_cleared",
+          idempotencyKey: newIdempotencyKey(),
+        }),
+      );
+    }
+
     storageSet(STORAGE_KEYS.cart, []);
     set({ items: [], promoCode: "", userId: null });
   },

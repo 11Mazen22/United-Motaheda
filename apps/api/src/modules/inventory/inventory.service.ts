@@ -11,6 +11,11 @@ export class InventoryService {
       this.prisma.inventory.findMany({
         skip,
         take: limit,
+        // No timestamp column on this table to order by — product_id at
+        // least makes pagination deterministic instead of relying on
+        // Postgres's unspecified default order, which can duplicate or
+        // skip rows across pages under concurrent writes.
+        orderBy: { product_id: 'asc' },
       }),
       this.prisma.inventory.count(),
     ]);

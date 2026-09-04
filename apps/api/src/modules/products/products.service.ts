@@ -11,6 +11,7 @@ export class ProductsService {
       this.prisma.products.findMany({
         skip,
         take: limit,
+        orderBy: { created_at: 'desc' },
       }),
       this.prisma.products.count(),
     ]);

@@ -218,18 +218,63 @@ export async function updateAdminProduct(payload: ProductMutationPayload): Promi
       throw new Error(`Product not found with code ${payload.Code}`);
     }
 
-    // Prepare update data
+    // Stock changes must go through adjust_inventory() rather than a raw
+    // column write. inventory_state (reserved/committed included) is the
+    // real source of truth once a product has been touched by any
+    // reservation — products.Stock is a one-way mirror written by a
+    // trigger on inventory_state, not the other way around. A direct write
+    // here either gets silently clobbered back by the next
+    // reservation/commit/adjust event on that product, or (if nothing has
+    // touched it yet) works today but leaves inventory_state to lazily
+    // re-derive from whatever this column said much later — either way,
+    // there was no reliable way to actually correct a product's stock
+    // through this form. adjust_inventory takes a delta, not an absolute
+    // value, so the desired new count is diffed against the current
+    // mirrored value; a no-op (delta 0) is skipped since the RPC itself
+    // rejects a zero delta.
+    const { data: currentRow, error: currentError } = await supabase
+      .from('products')
+      .select('Stock')
+      .eq('id', productId)
+      .single();
+    if (currentError) {
+      logOperation(operation, { payload }, currentError);
+      throw new Error(`Failed to read current stock: ${currentError.message}`);
+    }
+    const stockDelta = Number(payload.Stock) - Number(currentRow?.Stock ?? 0);
+    if (stockDelta !== 0) {
+      const { error: adjustError } = await supabase.rpc('adjust_inventory', {
+        p_product_id: productId,
+        p_delta: stockDelta,
+        p_reason: 'Manual admin correction',
+        p_idempotency_key: `admin-stock-${productId}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
+      });
+      if (adjustError) {
+        logOperation(operation, { payload, stockDelta }, adjustError);
+        throw new Error(`Failed to adjust stock: ${adjustError.message}`);
+      }
+    }
+
+    // Prepare update data — Stock excluded, adjust_inventory (plus the
+    // sync trigger it runs through) already applied and mirrored it above.
     const updateData: Record<string, unknown> = {
       Barcode: payload.Barcode || '',
       Name: payload.Name,
       Name_Ar: payload.Name_Ar,
       Name_En: payload.Name_En,
       Price: Number(payload.Price),
-      Stock: Number(payload.Stock),
       Category: payload.Category,
       Category_Name: payload.Category_Name,
       Category_Name_En: payload.Category_Name_En,
-      is_active: Number(payload.Stock) > 0,
+      // is_active intentionally omitted — it previously silently derived
+      // from Stock > 0 on every single save, delisting a product from the
+      // whole catalog (product_effective_prices/search_effective_products
+      // both filter on is_active = true) the moment it was edited while
+      // happening to be out of stock, e.g. fixing a typo in the name.
+      // Restocking via adjust_inventory() never touched is_active either,
+      // so the product stayed invisible until someone happened to re-save
+      // this form while stock was positive. Now left untouched on update —
+      // active/inactive is a distinct decision from current stock level.
       updated_at: new Date().toISOString(),
     };
 
@@ -296,7 +341,9 @@ export async function createAdminProduct(payload: ProductMutationPayload): Promi
       Category: payload.Category,
       Category_Name: payload.Category_Name,
       Category_Name_En: payload.Category_Name_En,
-      is_active: Number(payload.Stock) > 0,
+      // is_active omitted — see updateAdminProduct's comment. products.is_active
+      // defaults to true at the database level, which is the right default
+      // for a newly created product regardless of its starting stock count.
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
