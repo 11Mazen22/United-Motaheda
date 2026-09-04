@@ -104,17 +104,35 @@ function supabaseToAdminOrder(o: SupabaseAdminOrder): WorkflowOrder {
   // to the 5-bucket legacy Title-Case enum this screen displays. Buckets
   // confirmed/ready alongside their adjacent stage so nothing silently
   // falls back to "Pending" just because this screen predates them.
+  //
+  // verification/payment_pending/payment_approved/driver_assigned/
+  // driver_accepted/out_for_delivery were previously missing here entirely
+  // and fell through to the `?? "Pending"` default below — confirmed live
+  // via transition_order's real state graph (supabase/migrations/
+  // 20260827090000_pharmacist_backend_fixes.sql), which is what actually
+  // produces these values. Worst case was out_for_delivery: an order with
+  // a driver actively en route showed the exact same amber "Pending" badge
+  // as a brand-new, untouched order. Note payment_pending (real, used by
+  // transition_order) is a distinct value from pending_payment (legacy,
+  // set by create-order before manual-payment orders reach verification) —
+  // both map here, but they are not the same string.
   const statusMap: Record<string, OrderStatus> = {
-    pending:         "Pending",
-    pending_payment: "Pending",
-    confirmed:       "Pending",
-    processing:      "Processing",
-    preparing:       "Processing",
-    ready:           "Out for Delivery",
-    shipped:         "Out for Delivery",
-    picked_up:       "Out for Delivery",
-    delivered:       "Delivered",
-    cancelled:       "Cancelled",
+    pending:           "Pending",
+    pending_payment:   "Pending",
+    confirmed:         "Pending",
+    verification:      "Pending",
+    payment_pending:   "Pending",
+    processing:        "Processing",
+    preparing:         "Processing",
+    payment_approved:  "Processing",
+    ready:             "Out for Delivery",
+    shipped:           "Out for Delivery",
+    picked_up:         "Out for Delivery",
+    driver_assigned:   "Out for Delivery",
+    driver_accepted:   "Out for Delivery",
+    out_for_delivery:  "Out for Delivery",
+    delivered:         "Delivered",
+    cancelled:         "Cancelled",
   };
 
   return {
@@ -754,10 +772,19 @@ export default function OrdersManager() {
     // Map the display bucket back to the canonical order status written by
     // this workspace. The actual mutation is Supabase-native and uses the
     // same contract as the driver and shopper flows.
+    //
+    // "Out for Delivery" previously targeted "picked_up", which never
+    // appears as a valid p_next_status in transition_order's real state
+    // graph for ANY source status — selecting this option always failed
+    // with invalid_order_transition, for every order, unconditionally.
+    // out_for_delivery is the actual canonical value this bucket
+    // represents; it now succeeds when the order is legitimately at
+    // driver_accepted (the real precondition) and fails with a clear,
+    // truthful error otherwise, instead of never working at all.
     const statusMapReverse: Record<OrderStatus, string> = {
       Pending:            "pending",
       Processing:         "preparing",
-      "Out for Delivery": "picked_up",
+      "Out for Delivery": "out_for_delivery",
       Delivered:          "delivered",
       Cancelled:          "cancelled",
     };

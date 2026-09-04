@@ -7,7 +7,7 @@ import {
   type OrderLifecycleStatus,
 } from "../app/orders";
 import { getSupabaseClient } from "../lib/supabaseClient";
-import { notifyDriverAssigned, notifyDriverUnassigned, notifyIssueResolved, notifyOrderStatusChange } from "./orderNotificationsApi";
+import { notifyDriverAssigned, notifyDriverUnassigned, notifyIssueResolved } from "./orderNotificationsApi";
 
 export type LogisticsRole = "manager" | "pharmacist" | "driver" | "admin" | "customer";
 export type LogisticsOrderStatus = OrderLifecycleStatus;
@@ -472,75 +472,18 @@ export async function listManagedOrders(options?: {
     .map((order) => mapToManagedOrder(order, driversById));
 }
 
-export async function updateManagedOrderStatus(
-  orderId: string,
-  nextStatus: LogisticsOrderStatus,
-): Promise<ManagedOrder> {
-  const supabase = getSupabaseClient();
-  const normalizedStatus = normalizeOrderStatus(nextStatus);
-
-  // Step 1: Update the row AND ask PostgREST to return the modified row.
-  //
-  // Critically we need `.select()` here. Without it, an RLS policy that
-  // silently denies the UPDATE leaves no rows changed but also returns no
-  // error — the request looks like a success, and the follow-up SELECT in
-  // step 2 returns the unchanged row, so the UI replaces the optimistic
-  // status with the OLD value. The user sees "تم التحديث" toast but the
-  // status stays "في الانتظار". That's the exact bug reported.
-  //
-  // With `.select()` PostgREST returns the rows it actually mutated. If the
-  // array comes back empty, the update was blocked (or the id is wrong) and
-  // we throw so the caller can revert the optimistic state.
-  const { data: updatedRows, error: updateError } = await supabase
-    .from("orders")
-    .update({
-      status: normalizedStatus,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", orderId)
-    .select(
-      "id, external_ref, customer_name, customer_phone, customer_address, customer_lat, customer_lng, status, assigned_driver_id, updated_at, created_at, note, total, qr_token",
-    );
-
-  if (updateError) {
-    throw new Error(updateError.message || "Unable to update the order status.");
-  }
-
-  if (!updatedRows || updatedRows.length === 0) {
-    // RLS blocked the update silently, or no row matched. Either way the
-    // status was NOT changed — surface a real error so the UI reverts.
-    throw new Error(
-      "Status update was not applied. Check that your role can update orders (RLS).",
-    );
-  }
-
-  // Defensive verification: the row we got back should reflect the new status.
-  // If it doesn't, the UPDATE was effectively a no-op (e.g. RLS row visible
-  // but write blocked) and we must NOT pretend it succeeded.
-  const updatedRow = updatedRows[0] as RawOpsOrderRow;
-  if (normalizeOrderStatus(updatedRow.status) !== normalizedStatus) {
-    throw new Error("Status did not persist; the database returned the previous value.");
-  }
-
-  notifyOrderStatusChange(orderId, normalizedStatus);
-
-  // Step 2: Fetch line items separately (tolerant of order_items missing).
-  let items: Array<{ product_id: string | null; quantity: number | null; product_snapshot?: Record<string, unknown> | null }> = [];
-  try {
-    const { data: itemsData } = await supabase
-      .from("order_items")
-      .select("product_id, quantity, product_snapshot")
-      .eq("order_id", orderId);
-    items = itemsData ?? [];
-  } catch {
-    items = [];
-  }
-
-  const orderWithItems = { ...updatedRow, order_items: items } as RawOpsOrderRow;
-  const drivers = await listDrivers();
-  const driversById = new Map(drivers.map((driver) => [driver.id, driver]));
-  return mapToManagedOrder(mapRawOrderRow(orderWithItems), driversById);
-}
+// updateManagedOrderStatus was removed (2026-09-04): a raw
+// `.from("orders").update({ status, ... })` that bypassed transition_order's
+// entire state machine and, for "cancelled" specifically, everything
+// execute_order_cancellation provides (inventory release, refund tracking,
+// audit trail, driver-assignment cleanup, the out_for_delivery block) —
+// same class of bug as OrdersManager's status dropdown, fixed separately by
+// routing through admin_transition_order. This function had zero live
+// callers (its only referrer, googleSheetsApi.ts's updateOrderStatus, itself
+// had zero callers — both removed together) — a landmine left in place
+// would only invite a future screen to import it and reintroduce the bug.
+// Use adminUpdateOrderStatus (adminOrdersApi.ts) instead, which already
+// goes through admin_transition_order.
 
 // Same fix as the native app's listMyManifest (apps/shopper-native/src/
 // features/driver/api.ts): filtering orders directly by status IN

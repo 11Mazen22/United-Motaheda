@@ -303,29 +303,37 @@ export async function adminUpdateOrderStatus(
   notifyOrderStatusChange(orderId, status);
 }
 
-/** Mark a manual payment as verified (admin review). */
+/** Mark a manual payment as verified (admin review).
+ *
+ * Routed through the admin_review_payment RPC rather than a raw
+ * `.from("orders").update(...)` — orders' only UPDATE RLS policy gates on
+ * role IN ('admin','manager'), which silently drops this write to zero
+ * matched rows (no error, since RLS just filters the row out) for a
+ * pharmacist, even though this button has no role gate of its own and
+ * pharmacists are expected to use it. A raw update also can't distinguish
+ * "nothing changed" from "succeeded" without an extra .select() + row-count
+ * check; the RPC raises a real error instead when it can't write. */
 export async function adminVerifyPayment(orderId: string): Promise<void> {
-  const { error } = await getSupabaseClient()
-    .from("orders")
-    .update({ payment_status: "verified" })
-    .eq("id", orderId);
+  const { error } = await getSupabaseClient().rpc("admin_review_payment", {
+    p_order_id: orderId,
+    p_decision: "verified",
+  });
 
   if (error) throw error;
   notifyPaymentStatusChange(orderId, "verified");
 }
 
-/** Reject / flag a payment as failed. */
+/** Reject / flag a payment as failed. See adminVerifyPayment for why this
+ *  goes through the RPC instead of a raw table update. */
 export async function adminRejectPayment(
   orderId: string,
   reason?: string,
 ): Promise<void> {
-  const { error } = await getSupabaseClient()
-    .from("orders")
-    .update({
-      payment_status: "failed",
-      failure_reason: reason ?? "تم رفض الإيصال من قِبَل الإدارة",
-    })
-    .eq("id", orderId);
+  const { error } = await getSupabaseClient().rpc("admin_review_payment", {
+    p_order_id: orderId,
+    p_decision: "failed",
+    p_failure_reason: reason ?? null,
+  });
 
   if (error) throw error;
   notifyPaymentStatusChange(orderId, "rejected", reason);

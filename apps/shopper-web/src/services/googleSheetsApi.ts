@@ -9,7 +9,6 @@ import {
 import {
   assignDriver as assignManagedOrderDriver,
   listManagedOrders,
-  updateManagedOrderStatus,
   reassignDriver,
   listAssignmentHistory,
   listOpenAssignments,
@@ -681,28 +680,6 @@ function mapCanonicalToLegacyOrderStatus(status: OrderLifecycleStatus): OrderSta
   return "Pending";
 }
 
-function mapLegacyToCanonicalOrderStatus(status: OrderStatus): OrderLifecycleStatus {
-  // Map UI status to database order_status enum values:
-  // pending, confirmed, preparing, ready, picked_up, delivered, cancelled
-  if (status === "Out for Delivery") {
-    return "picked_up";
-  }
-
-  if (status === "Delivered") {
-    return "delivered";
-  }
-
-  if (status === "Cancelled") {
-    return "cancelled";
-  }
-
-  if (status === "Processing") {
-    return "preparing";
-  }
-
-  return "pending";
-}
-
 function normalizeStaffStatus(value: string): StaffStatus {
   const normalized = normalizeText(value).toLowerCase();
 
@@ -1160,19 +1137,6 @@ export async function getCustomerOrders(force = false) {
 
 export function getCachedCustomerOrders() {
   return compatibilityCustomerOrdersCache;
-}
-
-export async function updateOrderStatus(orderId: string, status: OrderStatus) {
-  const updatedOrder = await updateManagedOrderStatus(
-    orderId.trim(),
-    mapLegacyToCanonicalOrderStatus(status),
-  );
-
-  const normalizedOrder = mapManagedOrderToAdminOrder(updatedOrder);
-  applyAdminOrderCacheUpdate(normalizedOrder);
-  invalidateRequestCache(["get_dashboard_stats"]);
-
-  return normalizedOrder;
 }
 
 export async function assignOrderDriver(orderId: string, driverId: string | null, staffId?: string) {
