@@ -7,14 +7,10 @@
  * cancellation_completely_broken.sql), this just surfaces them instead of
  * silently discarding them like the screen used to.
  *
- * Owns its own submit/error/success state (mirrors PhoneVerifyModal's
- * self-contained pattern) so the parent screen only needs to pass the order
- * id, the reason codes, visibility, and what to do once the order is
- * actually cancelled.
- *
- * Mode flow: "select" (reason list) → "success" (confirmation), with the
- * error state rendered inline in "select" mode rather than an interrupting
- * native alert.
+ * Success/failure feedback goes through the app-wide showSuccessSheet /
+ * showErrorSheet (shared/store/appSheetStore) rather than a bespoke inline
+ * state here — same pattern pharmacist's OrderDetailScreen already uses for
+ * its own cancel flow, kept consistent rather than reinvented.
  */
 
 import React, { useCallback, useMemo, useState } from "react";
@@ -35,6 +31,7 @@ import { Text, Button, Input, useTheme, sheetMotion, type NativeTheme } from "@p
 import { theme as legacyTheme } from "@pharmacy/design-tokens";
 import { flexRow, isRtl } from "@/utils/layout";
 import { cancelOrder } from "@/features/orders/api";
+import { showErrorSheet, showSuccessSheet } from "@/shared/store/appSheetStore";
 
 const IS_RTL = isRtl();
 
@@ -49,11 +46,9 @@ export interface CancelOrderSheetProps {
   /** From get_order_actions()'s cancel.reasons — falls back to the standard customer list if absent. */
   reasonCodes?: string[];
   onDismiss: () => void;
-  /** Fired once the order is actually cancelled server-side, before the success view is shown. */
+  /** Fired once the order is actually cancelled server-side. */
   onCancelled: () => void;
 }
-
-type Mode = "select" | "success";
 
 export function CancelOrderSheet({
   visible, orderId, reasonCodes, onDismiss, onCancelled,
@@ -63,43 +58,58 @@ export function CancelOrderSheet({
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => getStyles(theme), [theme]);
 
-  const [mode, setMode] = useState<Mode>("select");
   const [selectedCode, setSelectedCode] = useState<string | null>(null);
   const [otherDetail, setOtherDetail] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const reasons = reasonCodes && reasonCodes.length > 0 ? reasonCodes : DEFAULT_REASON_CODES;
 
+  // One idempotency key per cancel *attempt sequence*, not per submit()
+  // call. Previously generated inline as `cancel-mobile-${orderId}-
+  // ${Date.now()}`, which meant a retry (including the automatic one from
+  // showErrorSheet's onRetry, below) always minted a brand-new key — so the
+  // server's idempotency short-circuit could never actually recognize a
+  // retry as the same attempt. A lost-response-but-actually-succeeded retry
+  // would then hit "Order cannot be cancelled: already cancelled" instead
+  // of cleanly replaying the original success. Regenerated whenever the
+  // sheet opens fresh (same place the selection itself resets below), so a
+  // genuinely new cancellation attempt still gets its own key.
+  const idempotencyKeyRef = React.useRef(`cancel-mobile-${orderId}-${Date.now()}`);
+
   // Reset to a clean slate each time the sheet is (re)opened for a
   // (possibly different) order, rather than carrying over a stale
-  // selection/error/success state from the last time it was shown.
+  // selection from the last time it was shown.
   const wasVisible = React.useRef(visible);
   if (visible && !wasVisible.current) {
-    setMode("select");
     setSelectedCode(null);
     setOtherDetail("");
-    setError(null);
+    idempotencyKeyRef.current = `cancel-mobile-${orderId}-${Date.now()}`;
   }
   wasVisible.current = visible;
 
-  const handleConfirm = useCallback(async () => {
+  const submit = useCallback(async () => {
     if (!selectedCode || submitting) return;
     const reason = selectedCode === "OTHER" && otherDetail.trim()
       ? `OTHER: ${otherDetail.trim()}`
       : selectedCode;
     setSubmitting(true);
-    setError(null);
     try {
-      await cancelOrder(orderId, reason, `cancel-mobile-${orderId}-${Date.now()}`);
+      await cancelOrder(orderId, reason, idempotencyKeyRef.current);
       onCancelled();
-      setMode("success");
+      onDismiss();
+      showSuccessSheet(t("orders.cancelSuccessTitle", "Order Cancelled"), t("orders.cancelSuccessBody", "Your order has been cancelled. Any payment made will be refunded within 3–5 business days."));
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      const message = err instanceof Error ? err.message : String(err);
+      showErrorSheet(t("orders.cancelErrorTitle", "Couldn't Cancel Order"), message, { onRetry: () => void submit() });
     } finally {
       setSubmitting(false);
     }
-  }, [selectedCode, otherDetail, submitting, orderId, onCancelled]);
+    // submit is intentionally re-created each render (closes over the
+    // current selectedCode/otherDetail) — showErrorSheet's onRetry captures
+    // whichever instance was current at submit time, which is correct. The
+    // idempotency key itself lives in a ref specifically so it survives
+    // that re-creation unchanged across retries.
+  }, [selectedCode, otherDetail, submitting, orderId, onCancelled, onDismiss, t]);
 
   return (
     <Modal visible={visible} transparent statusBarTranslucent animationType="none" onRequestClose={onDismiss}>
@@ -114,109 +124,87 @@ export function CancelOrderSheet({
           <Animated.View entering={sheetMotion.enter} exiting={sheetMotion.exit} style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 18) }]}>
             <View style={styles.handle} />
 
-            {mode === "select" ? (
-              <>
-                <View style={styles.header}>
-                  <View style={[styles.iconTile, { backgroundColor: `${theme.colors.status.error}18`, borderColor: `${theme.colors.status.error}33` }]}>
-                    <Ionicons name="close-circle-outline" size={28} color={theme.colors.status.error} />
-                  </View>
-                  <Text variant="sheet-title">{t("orders.cancelSheetTitle", "Cancel Order")}</Text>
-                  <Text variant="body-sm" color="secondary" align="center">
-                    {t("orders.cancelSheetSubtitle", "Tell us why to help us improve our service")}
-                  </Text>
-                </View>
-
-                <Text variant="label" color="secondary" style={styles.reasonsLabel}>
-                  {t("orders.cancelReasonsLabel", "Reason for cancellation")}
-                </Text>
-
-                <ScrollView style={styles.reasonScroll} showsVerticalScrollIndicator={false}>
-                  <View style={{ gap: 8 }}>
-                    {reasons.map((code) => {
-                      const selected = selectedCode === code;
-                      return (
-                        <Pressable
-                          key={code}
-                          onPress={() => setSelectedCode(code)}
-                          accessibilityRole="radio"
-                          accessibilityState={{ checked: selected }}
-                          style={[
-                            styles.reasonRow,
-                            {
-                              borderColor: selected ? theme.colors.brand.primary : theme.colors.border.default,
-                              backgroundColor: selected ? theme.colors.brand.primaryLight : theme.colors.canvas.surface,
-                              flexDirection: flexRow(IS_RTL),
-                            },
-                          ]}
-                        >
-                          <View style={[styles.radioOuter, { borderColor: selected ? theme.colors.brand.primary : theme.colors.border.strong }]}>
-                            {selected ? <View style={[styles.radioInner, { backgroundColor: theme.colors.brand.primary }]} /> : null}
-                          </View>
-                          <Text variant="body-sm" weight={selected ? "bold" : "regular"} style={{ flex: 1 }}>
-                            {t(`orders.cancelReasons.${code}`, code)}
-                          </Text>
-                        </Pressable>
-                      );
-                    })}
-                  </View>
-
-                  {selectedCode === "OTHER" ? (
-                    <Animated.View entering={sheetMotion.backdropEnter} style={{ marginTop: 12 }}>
-                      <Input
-                        label={t("orders.cancelOtherLabel", "Add details (optional)")}
-                        placeholder={t("orders.cancelOtherPlaceholder", "Tell us more...")}
-                        value={otherDetail}
-                        onChangeText={setOtherDetail}
-                        multiline
-                        style={{ minHeight: 44, textAlignVertical: "top" }}
-                      />
-                    </Animated.View>
-                  ) : null}
-                </ScrollView>
-
-                {!selectedCode ? (
-                  <Text variant="caption" color="muted" style={{ marginTop: 8, textAlign: IS_RTL ? "right" : "left" }}>
-                    {t("orders.cancelReasonRequired", "Please select a reason to continue")}
-                  </Text>
-                ) : null}
-
-                {error ? (
-                  <View style={[styles.errorBanner, { backgroundColor: `${theme.colors.status.error}14`, borderColor: `${theme.colors.status.error}33` }]}>
-                    <Ionicons name="alert-circle-outline" size={16} color={theme.colors.status.error} />
-                    <Text variant="caption" style={{ color: theme.colors.status.error, flex: 1 }}>{error}</Text>
-                  </View>
-                ) : null}
-
-                <View style={styles.actions}>
-                  <Button
-                    variant="danger"
-                    full
-                    loading={submitting}
-                    disabled={!selectedCode}
-                    label={t("orders.cancelConfirmButton", "Confirm Cancellation")}
-                    onPress={() => void handleConfirm()}
-                  />
-                  <Button
-                    variant="ghost"
-                    full
-                    disabled={submitting}
-                    label={t("orders.cancelKeepOrder", "No, keep my order")}
-                    onPress={onDismiss}
-                  />
-                </View>
-              </>
-            ) : (
-              <View style={styles.successWrap}>
-                <View style={[styles.iconTile, styles.successIconTile, { backgroundColor: `${theme.colors.status.success}18`, borderColor: `${theme.colors.status.success}33` }]}>
-                  <Ionicons name="checkmark-circle-outline" size={32} color={theme.colors.status.success} />
-                </View>
-                <Text variant="sheet-title" align="center">{t("orders.cancelSuccessTitle", "Order Cancelled")}</Text>
-                <Text variant="body-sm" color="secondary" align="center" style={{ marginBottom: 8 }}>
-                  {t("orders.cancelSuccessBody", "Your order has been cancelled. Any payment made will be refunded within 3–5 business days.")}
-                </Text>
-                <Button variant="primary" full label={t("orders.cancelDone", "Done")} onPress={onDismiss} />
+            <View style={styles.header}>
+              <View style={[styles.iconTile, { backgroundColor: `${theme.colors.status.error}18`, borderColor: `${theme.colors.status.error}33` }]}>
+                <Ionicons name="close-circle-outline" size={28} color={theme.colors.status.error} />
               </View>
-            )}
+              <Text variant="sheet-title">{t("orders.cancelSheetTitle", "Cancel Order")}</Text>
+              <Text variant="body-sm" color="secondary" align="center">
+                {t("orders.cancelSheetSubtitle", "Tell us why to help us improve our service")}
+              </Text>
+            </View>
+
+            <Text variant="label" color="secondary" style={styles.reasonsLabel}>
+              {t("orders.cancelReasonsLabel", "Reason for cancellation")}
+            </Text>
+
+            <ScrollView style={styles.reasonScroll} showsVerticalScrollIndicator={false}>
+              <View style={{ gap: 8 }}>
+                {reasons.map((code) => {
+                  const selected = selectedCode === code;
+                  return (
+                    <Pressable
+                      key={code}
+                      onPress={() => setSelectedCode(code)}
+                      accessibilityRole="radio"
+                      accessibilityState={{ checked: selected }}
+                      style={[
+                        styles.reasonRow,
+                        {
+                          borderColor: selected ? theme.colors.brand.primary : theme.colors.border.default,
+                          backgroundColor: selected ? theme.colors.brand.primaryLight : theme.colors.canvas.surface,
+                          flexDirection: flexRow(IS_RTL),
+                        },
+                      ]}
+                    >
+                      <View style={[styles.radioOuter, { borderColor: selected ? theme.colors.brand.primary : theme.colors.border.strong }]}>
+                        {selected ? <View style={[styles.radioInner, { backgroundColor: theme.colors.brand.primary }]} /> : null}
+                      </View>
+                      <Text variant="body-sm" weight={selected ? "bold" : "regular"} style={{ flex: 1 }}>
+                        {t(`orders.cancelReasons.${code}`, code)}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+
+              {selectedCode === "OTHER" ? (
+                <Animated.View entering={sheetMotion.backdropEnter} style={{ marginTop: 12 }}>
+                  <Input
+                    label={t("orders.cancelOtherLabel", "Add details (optional)")}
+                    placeholder={t("orders.cancelOtherPlaceholder", "Tell us more...")}
+                    value={otherDetail}
+                    onChangeText={setOtherDetail}
+                    multiline
+                    style={{ minHeight: 44, textAlignVertical: "top" }}
+                  />
+                </Animated.View>
+              ) : null}
+            </ScrollView>
+
+            {!selectedCode ? (
+              <Text variant="caption" color="muted" style={{ marginTop: 8, textAlign: IS_RTL ? "right" : "left" }}>
+                {t("orders.cancelReasonRequired", "Please select a reason to continue")}
+              </Text>
+            ) : null}
+
+            <View style={styles.actions}>
+              <Button
+                variant="danger"
+                full
+                loading={submitting}
+                disabled={!selectedCode}
+                label={t("orders.cancelConfirmButton", "Confirm Cancellation")}
+                onPress={() => void submit()}
+              />
+              <Button
+                variant="ghost"
+                full
+                disabled={submitting}
+                label={t("orders.cancelKeepOrder", "No, keep my order")}
+                onPress={onDismiss}
+              />
+            </View>
           </Animated.View>
         </KeyboardAvoidingView>
       </Animated.View>
@@ -265,10 +253,6 @@ function getStyles(theme: NativeTheme) {
       marginBottom: theme.spacing[1],
       borderWidth: 1,
     },
-    successIconTile: {
-      width: 64,
-      height: 64,
-    },
     reasonsLabel: {
       marginTop: 4,
     },
@@ -296,24 +280,9 @@ function getStyles(theme: NativeTheme) {
       height: 10,
       borderRadius: 5,
     },
-    errorBanner: {
-      flexDirection: "row",
-      alignItems: "flex-start",
-      gap: 8,
-      borderWidth: 1,
-      borderRadius: theme.radii.lg,
-      padding: 10,
-      marginTop: 10,
-    },
     actions: {
       gap: 10,
       marginTop: 14,
-    },
-    successWrap: {
-      alignItems: "center",
-      paddingVertical: 8,
-      paddingBottom: 4,
-      gap: 6,
     },
   });
 }
