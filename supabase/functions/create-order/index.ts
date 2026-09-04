@@ -309,6 +309,33 @@ Deno.serve(async (req) => {
     }
     const liveById = new Map((liveProducts ?? []).map((p) => [p.id as string, p]));
 
+    // product_effective_prices.stock mirrors inventory_state (total -
+    // reserved - committed) — i.e. it already has THIS customer's own
+    // cart-line reservation subtracted out, since reserve_inventory
+    // incremented `reserved` the moment they reserved it. Checking
+    // `live.stock < line.quantity` directly therefore double-counts their
+    // own hold: reserving the very last unit(s) of a product succeeds
+    // (correctly — availability was checked before the reservation moved
+    // it into `reserved`), but the mirrored stock the checkout stock-check
+    // reads is now net of that same reservation, so it always looks
+    // unavailable at checkout — confirmed by tracing reserve_inventory /
+    // fn_sync_product_stock directly. Fixed by trusting a verified
+    // reservation (owned by this user, right product, right quantity,
+    // still 'reserved' and unexpired) instead of re-deriving availability
+    // from the already-adjusted stock column for that line. Lines with no
+    // reservationId (or an invalid/expired/insufficient one) fall back to
+    // the original stock check unchanged.
+    const reservationIds = body.cartLines
+      .map((l) => l.reservationId)
+      .filter((id): id is string => typeof id === "string" && id.length > 0);
+    const { data: reservationRows } = reservationIds.length
+      ? await admin
+          .from("inventory_reservations")
+          .select("id, product_id, user_id, quantity, state, expires_at")
+          .in("id", reservationIds)
+      : { data: [] as Array<{ id: string; product_id: string; user_id: string; quantity: number; state: string; expires_at: string }> };
+    const reservationById = new Map((reservationRows ?? []).map((r) => [r.id, r]));
+
     const conflicts: PriceConflict[] = [];
     let serverSubtotal = 0;
     const verifiedLines = body.cartLines.map((line) => {
@@ -320,7 +347,17 @@ Deno.serve(async (req) => {
         });
         return null;
       }
-      if (live.stock < line.quantity) {
+
+      const reservation = line.reservationId ? reservationById.get(line.reservationId) : undefined;
+      const hasValidOwnReservation =
+        !!reservation
+        && reservation.user_id === user.id
+        && reservation.product_id === line.productId
+        && reservation.state === "reserved"
+        && reservation.quantity >= line.quantity
+        && new Date(reservation.expires_at).getTime() > Date.now();
+
+      if (!hasValidOwnReservation && live.stock < line.quantity) {
         conflicts.push({
           productId: line.productId, code: "out_of_stock",
           message: `Only ${live.stock} of ${line.name} left in stock.`,
