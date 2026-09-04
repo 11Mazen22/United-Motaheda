@@ -16,19 +16,8 @@ import {
 } from './dto';
 import { LocationBroadcastGateway } from './location-broadcast.gateway';
 
-// Pharmacy location — in production this comes from the Branch table
-const DEFAULT_PHARMACY = {
-  name: 'Main Pharmacy Branch',
-  lat: 30.0444,
-  lng: 31.2357,
-  address: '123 Cairo Street, Cairo, Egypt',
-};
-
-// Base delivery fee in EGP
-const BASE_DELIVERY_FEE = 15;
-
-// Geofence radius in meters for arrival checks
-const ARRIVAL_RADIUS_METERS = 200;
+// Arrival geofence radius in metres — configurable per deployment.
+const ARRIVAL_RADIUS_METERS = Number(process.env.DRIVER_ARRIVAL_RADIUS_METERS ?? 200);
 
 /** Haversine distance between two coordinates in metres */
 function haversineMeters(
@@ -65,6 +54,49 @@ export class DriverOrdersService {
     return profile;
   }
 
+  private async getDefaultBranch() {
+    const branch = await this.prisma.branch.findFirst({
+      where: { isActive: true },
+      orderBy: { createdAt: 'asc' },
+      select: { id: true, nameAr: true, nameEn: true, address: true, lat: true, lng: true, governorate: true, area: true },
+    });
+    if (!branch) throw new NotFoundException('No active pharmacy branch found');
+    return branch;
+  }
+
+  private async getOrderBranch(orderId: string) {
+    const order = await this.prisma.orders.findUnique({
+      where: { id: orderId },
+      select: { branch_id: true },
+    });
+    if (!order?.branch_id) return this.getDefaultBranch();
+    const branch = await this.prisma.branch.findUnique({
+      where: { id: order.branch_id },
+      select: { id: true, nameAr: true, nameEn: true, address: true, lat: true, lng: true, governorate: true, area: true },
+    });
+    if (!branch) return this.getDefaultBranch();
+    return branch;
+  }
+
+  private async getOrderZoneBaseFee(orderId: string): Promise<number> {
+    const order = await this.prisma.orders.findUnique({
+      where: { id: orderId },
+      select: { branch_id: true, zone_id: true, subtotal: true },
+    });
+    if (!order?.zone_id) {
+      return Number(process.env.DRIVER_BASE_DELIVERY_FEE ?? 15);
+    }
+    const zone = await this.prisma.deliveryZone.findUnique({
+      where: { id: order.zone_id },
+      select: { baseFee: true, freeAboveSubtotal: true },
+    });
+    if (!zone) return Number(process.env.DRIVER_BASE_DELIVERY_FEE ?? 15);
+    if (zone.freeAboveSubtotal != null && order.subtotal != null && Number(order.subtotal) >= zone.freeAboveSubtotal) {
+      return 0;
+    }
+    return zone.baseFee;
+  }
+
   private requireOnline(isOnline: boolean) {
     if (!isOnline) throw new ForbiddenException('Driver must be online');
   }
@@ -74,14 +106,17 @@ export class DriverOrdersService {
   /**
    * GET /driver/orders/available
    * Returns "ready" orders not yet assigned, sorted nearest-first when
-   * the driver's coordinates are available.
+   * the driver's coordinates are available. Uses the order's own branch
+   * for pickup location and the zone's baseFee for earnings estimates
+   * instead of hardcoded fallbacks.
    */
   async getAvailableOrders(userId: string) {
     const profile = await this.getDriverProfile(userId);
     this.requireOnline(profile.driverProfile!.isOnline);
 
-    // Get orders that are ready and not currently assigned.
-    // Include orders that were previously rejected/cancelled (they can be retried).
+    const driverLat = profile.driverProfile!.currentLat;
+    const driverLng = profile.driverProfile!.currentLng;
+
     const orders = await this.prisma.orders.findMany({
       where: {
         status: 'ready',
@@ -99,41 +134,39 @@ export class DriverOrdersService {
       orderBy: { created_at: 'asc' },
     });
 
-    const driverLat = profile.driverProfile!.currentLat;
-    const driverLng = profile.driverProfile!.currentLng;
+    const branchIds = [...new Set(orders.map((o) => o.branch_id).filter((id): id is string => Boolean(id)))];
+    const branches = branchIds.length
+      ? await this.prisma.branch.findMany({ where: { id: { in: branchIds } }, select: { id: true, nameAr: true, nameEn: true, address: true, lat: true, lng: true } })
+      : [];
+    const branchMap = new Map(branches.map((b) => [b.id, b]));
+
+    const zoneIds = [...new Set(orders.map((o) => o.zone_id).filter((id): id is string => Boolean(id)))];
+    const zones = zoneIds.length
+      ? await this.prisma.deliveryZone.findMany({ where: { id: { in: zoneIds } }, select: { id: true, baseFee: true, freeAboveSubtotal: true } })
+      : [];
+    const zoneMap = new Map(zones.map((z) => [z.id, z]));
+
+    const defaultBranch = branchIds.length === 0 ? await this.getDefaultBranch() : null;
 
     const mapped = orders.map((order) => {
-      const customerLat = order.customer_lat
-        ? Number(order.customer_lat)
-        : null;
-      const customerLng = order.customer_lng
-        ? Number(order.customer_lng)
-        : null;
+      const customerLat = order.customer_lat ? Number(order.customer_lat) : null;
+      const customerLng = order.customer_lng ? Number(order.customer_lng) : null;
+      const branch = order.branch_id ? branchMap.get(order.branch_id) : (defaultBranch ?? null);
+      const branchLat = branch?.lat ?? 0;
+      const branchLng = branch?.lng ?? 0;
+      const zone = order.zone_id ? zoneMap.get(order.zone_id) : null;
+      const baseFee = zone?.baseFee ?? Number(process.env.DRIVER_BASE_DELIVERY_FEE ?? 15);
+      const subtotal = Number(order.subtotal ?? 0);
+      const effectiveBaseFee = (zone && zone.freeAboveSubtotal != null && subtotal >= zone.freeAboveSubtotal) ? 0 : baseFee;
 
-      // Straight-line distance from driver → pharmacy (pickup)
       const distanceToPickup =
         driverLat && driverLng
-          ? Math.round(
-              haversineMeters(
-                driverLat,
-                driverLng,
-                DEFAULT_PHARMACY.lat,
-                DEFAULT_PHARMACY.lng,
-              ),
-            )
+          ? Math.round(haversineMeters(driverLat, driverLng, branchLat, branchLng))
           : null;
 
-      // Pharmacy → customer (delivery leg)
       const distanceToCustomer =
         customerLat && customerLng
-          ? Math.round(
-              haversineMeters(
-                DEFAULT_PHARMACY.lat,
-                DEFAULT_PHARMACY.lng,
-                customerLat,
-                customerLng,
-              ),
-            )
+          ? Math.round(haversineMeters(branchLat, branchLng, customerLat, customerLng))
           : null;
 
       const totalDistanceKm =
@@ -141,7 +174,8 @@ export class DriverOrdersService {
           ? Math.round((distanceToPickup + distanceToCustomer) / 100) / 10
           : null;
 
-      const estimatedEarnings = BASE_DELIVERY_FEE + (totalDistanceKm ? totalDistanceKm * 2 : 0);
+      const distanceFee = totalDistanceKm ? Math.round(totalDistanceKm * 200) / 100 : 0;
+      const estimatedEarnings = Math.round((effectiveBaseFee + distanceFee) * 100) / 100;
 
       return {
         id: order.id,
@@ -157,12 +191,12 @@ export class DriverOrdersService {
         note: order.note,
         createdAt: order.created_at,
         pharmacy: {
-          name: DEFAULT_PHARMACY.name,
-          lat: DEFAULT_PHARMACY.lat,
-          lng: DEFAULT_PHARMACY.lng,
-          address: DEFAULT_PHARMACY.address,
+          name: branch ? (branch.nameAr ?? branch.nameEn) : (defaultBranch?.nameAr ?? defaultBranch?.nameEn ?? 'Pharmacy'),
+          lat: branchLat,
+          lng: branchLng,
+          address: branch?.address ?? defaultBranch?.address,
         },
-        estimatedEarnings: Math.round(estimatedEarnings * 100) / 100,
+        estimatedEarnings,
         distanceToPickupMeters: distanceToPickup,
         distanceToCustomerMeters: distanceToCustomer,
         totalDistanceKm,
@@ -170,7 +204,6 @@ export class DriverOrdersService {
       };
     });
 
-    // Sort by distance to pickup when available
     if (driverLat && driverLng) {
       mapped.sort(
         (a, b) =>
@@ -188,7 +221,6 @@ export class DriverOrdersService {
     const profile = await this.getDriverProfile(userId);
     this.requireOnline(profile.driverProfile!.isOnline);
 
-    // Check driver has no active delivery
     const activeDelivery = await this.prisma.deliveryAssignment.findFirst({
       where: {
         driverId: profile.driverProfile!.id,
@@ -201,7 +233,9 @@ export class DriverOrdersService {
     if (activeDelivery)
       throw new ConflictException('You already have an active delivery');
 
-    // Lock & fetch the order in a transaction
+    const branch = await this.getOrderBranch(orderId);
+    const baseFee = await this.getOrderZoneBaseFee(orderId);
+
     return this.prisma.$transaction(async (tx) => {
       const order = await tx.orders.findUnique({
         where: { id: orderId },
@@ -214,28 +248,24 @@ export class DriverOrdersService {
       if (order.assigned_driver_id)
         throw new ConflictException('Order already assigned to another driver');
 
-      const totalDistanceKm = order.customer_lat && order.customer_lng
-        ? Math.round(
-            haversineMeters(
-              DEFAULT_PHARMACY.lat, DEFAULT_PHARMACY.lng,
-              Number(order.customer_lat), Number(order.customer_lng),
-            ) / 100,
-          ) / 10
-        : 5; // default 5 km
+      const customerLat = order.customer_lat ? Number(order.customer_lat) : null;
+      const customerLng = order.customer_lng ? Number(order.customer_lng) : null;
+      const totalDistanceKm = customerLat && customerLng
+        ? Math.round(haversineMeters(branch.lat, branch.lng, customerLat, customerLng) / 100) / 10
+        : 5;
 
-      const distanceFee  = totalDistanceKm * 2;
-      const totalEarnings = BASE_DELIVERY_FEE + distanceFee;
+      const distanceFee = Math.round(totalDistanceKm * 200) / 100;
+      const totalEarnings = Math.round((baseFee + distanceFee) * 100) / 100;
 
-      // Create delivery assignment
       const assignment = await tx.deliveryAssignment.create({
         data: {
           orderId: order.id,
           driverId: profile.driverProfile!.id,
-          pharmacyName:    DEFAULT_PHARMACY.name,
-          pharmacyLat:     DEFAULT_PHARMACY.lat,
-          pharmacyLng:     DEFAULT_PHARMACY.lng,
-          pharmacyAddress: DEFAULT_PHARMACY.address,
-          baseFee:          BASE_DELIVERY_FEE,
+          pharmacyName:    branch.nameAr ?? branch.nameEn,
+          pharmacyLat:     branch.lat,
+          pharmacyLng:     branch.lng,
+          pharmacyAddress: branch.address ?? '',
+          baseFee,
           distanceFee,
           totalEarnings,
           status:           'ACCEPTED',
@@ -245,7 +275,6 @@ export class DriverOrdersService {
         },
       });
 
-      // Update order to the canonical driver-accepted lifecycle state.
       await tx.orders.update({
         where: { id: orderId },
         data: {
@@ -256,7 +285,6 @@ export class DriverOrdersService {
         },
       });
 
-      // Broadcast update to admin
       this.gateway.sendToAdmins('order-assigned', {
         orderId,
         driverId:   profile.driverProfile!.id,

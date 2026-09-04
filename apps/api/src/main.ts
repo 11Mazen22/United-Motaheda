@@ -3,6 +3,7 @@ import { NestFactory } from "@nestjs/core";
 import { AppModule } from "./app.module";
 import { ApiResponseInterceptor } from "./common/api-response.interceptor";
 import { HttpExceptionFilter } from "./common/http-exception.filter";
+import { RateLimitMiddleware } from "./common/rate-limit.middleware";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -29,6 +30,7 @@ async function bootstrap() {
 
   app.useGlobalInterceptors(new ApiResponseInterceptor());
   app.useGlobalFilters(new HttpExceptionFilter());
+  app.use(new RateLimitMiddleware().use.bind(new RateLimitMiddleware()));
 
   const port = Number(process.env.PORT ?? 3000);
   await app.listen(port, "0.0.0.0");
