@@ -18,22 +18,42 @@
  * "leave" decision from a brand-new component instance.
  *
  * This flag survives remounts (it's module state, not component state), so
- * once any instance claims the transition, no later remount can re-fire
- * it -- regardless of how many more bounces the underlying auth-state race
- * produces. Re-armed on the next real sign-in so a later sign-out is
- * guarded fresh.
+ * a rapid-fire burst of claims (many within the same throttle-storm window)
+ * only actually navigates once. It is a *debounce*, not a permanent latch,
+ * for exactly this reason: reproduced live on a real device that a
+ * permanent one-shot version deadlocks the app. Sequence observed: the
+ * layout claims the flag and defers to index.tsx; index.tsx's own
+ * decidedTarget read hits the exact stale-role race described above and
+ * sends the app straight back into (pharmacist)/_layout.tsx; that fresh
+ * instance correctly re-decides it should still leave (decidedAccessRef
+ * settles to false once `user` has genuinely resolved to null by then) --
+ * but a permanent latch had already been spent by the first, hijacked
+ * attempt, so this second, actually-necessary call silently did nothing,
+ * leaving the blank placeholder <View> on screen forever with nothing left
+ * to trigger a further retry (confirmed: a full app restart was the only
+ * way out). A short cooldown still absorbs the original storm (many claims
+ * within milliseconds of each other), while a later bounce -- which needs
+ * at least a couple of macrotasks plus a full mount/decide cycle, reliably
+ * tens to hundreds of ms later -- gets through. Also re-armed on the next
+ * real sign-in, same as before, so a later sign-out is guarded fresh
+ * regardless of the cooldown's state.
  */
 
-let hasNavigatedAwayThisSignOut = false;
+const COOLDOWN_MS = 1_000;
+let lastClaimAt = 0;
 
-/** Returns true only for the first caller since the last sign-in (or app start). */
+/** Returns true unless another caller already claimed within the last
+ *  COOLDOWN_MS -- i.e. once per sign-out, but not pinned there forever if
+ *  that first attempt gets hijacked before it actually lands outside the
+ *  driver/pharmacist section (see module doc for the observed sequence). */
 export function claimPostSignOutNavigation(): boolean {
-  if (hasNavigatedAwayThisSignOut) return false;
-  hasNavigatedAwayThisSignOut = true;
+  const now = Date.now();
+  if (now - lastClaimAt < COOLDOWN_MS) return false;
+  lastClaimAt = now;
   return true;
 }
 
 /** Call once a real (non-null) user is set, so the next sign-out is guarded fresh. */
 export function rearmPostSignOutNavigation(): void {
-  hasNavigatedAwayThisSignOut = false;
+  lastClaimAt = 0;
 }
