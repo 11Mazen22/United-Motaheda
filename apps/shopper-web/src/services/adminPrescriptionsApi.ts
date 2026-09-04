@@ -77,6 +77,14 @@ export interface ReviewPayload {
   adminEmail?: string;
   adminNotes?: string;
   rejectionReason?: string;
+  /** Corrections recorded during review — scanned prescriptions have no
+   *  OCR, these fields start empty/placeholder until a human fills them
+   *  in here. Only meaningful for reviewPrescription(); ignored by
+   *  reviewRefillRequest(). */
+  name?: string;
+  dose?: string;
+  doctor?: string;
+  rxNumber?: string;
 }
 
 // ─── Row shapes ───────────────────────────────────────────────────────────────
@@ -231,6 +239,10 @@ export async function reviewPrescription(id: string, userId: string, payload: Re
     p_decision: payload.decision,
     p_admin_notes: payload.adminNotes ?? null,
     p_rejection_reason: payload.rejectionReason ?? null,
+    p_name: payload.name ?? null,
+    p_dose: payload.dose ?? null,
+    p_doctor: payload.doctor ?? null,
+    p_rx_number: payload.rxNumber ?? null,
   });
 
   if (error) throw new Error(`[adminPrescriptionsApi.reviewPrescription] ${error.message}`);

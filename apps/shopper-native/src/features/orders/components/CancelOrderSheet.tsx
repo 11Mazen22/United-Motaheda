@@ -13,7 +13,7 @@
  * its own cancel flow, kept consistent rather than reinvented.
  */
 
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useMemo } from "react";
 import {
   KeyboardAvoidingView,
   Modal,
@@ -24,43 +24,69 @@ import {
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import Animated from "react-native-reanimated";
+import { LinearGradient } from "expo-linear-gradient";
+import Animated, { FadeIn } from "react-native-reanimated";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Text, Button, Input, useTheme, sheetMotion, type NativeTheme } from "@pharmacy/ui-native";
+import { Text, Button, Input, PressableScale, useTheme, sheetMotion, type NativeTheme } from "@pharmacy/ui-native";
+import { gradients } from "@pharmacy/design-tokens";
 import { theme as legacyTheme } from "@pharmacy/design-tokens";
-import { flexRow, isRtl } from "@/utils/layout";
+import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
+import { formatPrice } from "@/utils/format";
+import { useAppLanguage } from "@/i18n/LanguageProvider";
 import { cancelOrder } from "@/features/orders/api";
 import { showErrorSheet, showSuccessSheet } from "@/shared/store/appSheetStore";
 
 const IS_RTL = isRtl();
+const TEXT_START = textAlignStart(IS_RTL);
 
 const DEFAULT_REASON_CODES = [
   "CHANGED_MIND", "ORDERED_BY_MISTAKE", "WRONG_ADDRESS", "DUPLICATE_ORDER",
   "PAYMENT_PROBLEM", "DELIVERY_DELAY", "FOUND_ELSEWHERE", "OTHER",
 ] as const;
 
+/** Every code get_order_actions() can hand back gets a distinct glyph, so
+ *  the list reads at a glance instead of as eight identical rows. Falls
+ *  back to a generic dot for any server-added code this hasn't been
+ *  updated for yet. */
+const REASON_ICONS: Record<string, React.ComponentProps<typeof Ionicons>["name"]> = {
+  CHANGED_MIND: "arrow-undo-circle-outline",
+  ORDERED_BY_MISTAKE: "warning-outline",
+  WRONG_ADDRESS: "location-outline",
+  DUPLICATE_ORDER: "copy-outline",
+  PAYMENT_PROBLEM: "card-outline",
+  DELIVERY_DELAY: "time-outline",
+  FOUND_ELSEWHERE: "storefront-outline",
+  OTHER: "chatbox-ellipses-outline",
+};
+const FALLBACK_REASON_ICON: React.ComponentProps<typeof Ionicons>["name"] = "ellipse-outline";
+
 export interface CancelOrderSheetProps {
   visible: boolean;
   orderId: string;
   /** From get_order_actions()'s cancel.reasons — falls back to the standard customer list if absent. */
   reasonCodes?: string[];
+  /** Order context shown in the sheet so cancelling is never a decision made blind. */
+  orderShortId: string;
+  itemCount: number;
+  total: number;
   onDismiss: () => void;
   /** Fired once the order is actually cancelled server-side. */
   onCancelled: () => void;
 }
 
 export function CancelOrderSheet({
-  visible, orderId, reasonCodes, onDismiss, onCancelled,
+  visible, orderId, reasonCodes, orderShortId, itemCount, total, onDismiss, onCancelled,
 }: CancelOrderSheetProps): React.ReactElement {
   const { t } = useTranslation();
   const { theme } = useTheme();
+  const { language } = useAppLanguage();
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => getStyles(theme), [theme]);
 
-  const [selectedCode, setSelectedCode] = useState<string | null>(null);
-  const [otherDetail, setOtherDetail] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+  const [selectedCode, setSelectedCode] = React.useState<string | null>(null);
+  const [otherDetail, setOtherDetail] = React.useState("");
+  const [submitting, setSubmitting] = React.useState(false);
 
   const reasons = reasonCodes && reasonCodes.length > 0 ? reasonCodes : DEFAULT_REASON_CODES;
 
@@ -122,16 +148,45 @@ export function CancelOrderSheet({
           style={styles.kbContainer}
         >
           <Animated.View entering={sheetMotion.enter} exiting={sheetMotion.exit} style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 18) }]}>
+            <LinearGradient
+              pointerEvents="none"
+              colors={[`${theme.colors.status.error}26`, `${theme.colors.status.error}00`]}
+              start={{ x: 0.5, y: 0 }}
+              end={{ x: 0.5, y: 1 }}
+              style={styles.headerWash}
+            />
+
             <View style={styles.handle} />
 
             <View style={styles.header}>
-              <View style={[styles.iconTile, { backgroundColor: `${theme.colors.status.error}18`, borderColor: `${theme.colors.status.error}33` }]}>
-                <Ionicons name="close-circle-outline" size={28} color={theme.colors.status.error} />
+              <View style={styles.iconTileOuter}>
+                <LinearGradient
+                  colors={gradients.error as unknown as [string, string]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.iconTile}
+                >
+                  <Ionicons name="close-circle" size={32} color="#fff" />
+                </LinearGradient>
               </View>
               <Text variant="sheet-title">{t("orders.cancelSheetTitle", "Cancel Order")}</Text>
               <Text variant="body-sm" color="secondary" align="center">
                 {t("orders.cancelSheetSubtitle", "Tell us why to help us improve our service")}
               </Text>
+            </View>
+
+            {/* Order-context strip — cancelling should never be a decision made blind. */}
+            <View style={[styles.orderStrip, { flexDirection: flexRow(IS_RTL) }]}>
+              <View style={styles.orderStripIcon}>
+                <Ionicons name="receipt-outline" size={16} color={theme.colors.text.secondary} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text variant="label" style={{ textAlign: TEXT_START }}>#{orderShortId}</Text>
+                <Text variant="caption" color="muted" style={{ textAlign: TEXT_START }}>
+                  {t("orders.cancelItemCount", "{{count}} items", { count: itemCount })}
+                </Text>
+              </View>
+              <Text variant="card-title" weight="extrabold">{formatPrice(total, language)}</Text>
             </View>
 
             <Text variant="label" color="secondary" style={styles.reasonsLabel}>
@@ -143,8 +198,9 @@ export function CancelOrderSheet({
                 {reasons.map((code) => {
                   const selected = selectedCode === code;
                   return (
-                    <Pressable
+                    <PressableScale
                       key={code}
+                      scaleTo={0.98}
                       onPress={() => setSelectedCode(code)}
                       accessibilityRole="radio"
                       accessibilityState={{ checked: selected }}
@@ -152,18 +208,36 @@ export function CancelOrderSheet({
                         styles.reasonRow,
                         {
                           borderColor: selected ? theme.colors.brand.primary : theme.colors.border.default,
+                          borderStartWidth: selected ? 3 : 1,
                           backgroundColor: selected ? theme.colors.brand.primaryLight : theme.colors.canvas.surface,
                           flexDirection: flexRow(IS_RTL),
                         },
+                        selected ? theme.shadows[2] : null,
                       ]}
                     >
-                      <View style={[styles.radioOuter, { borderColor: selected ? theme.colors.brand.primary : theme.colors.border.strong }]}>
-                        {selected ? <View style={[styles.radioInner, { backgroundColor: theme.colors.brand.primary }]} /> : null}
+                      <View
+                        style={[
+                          styles.reasonIconWell,
+                          {
+                            backgroundColor: selected ? theme.colors.brand.primary : theme.colors.canvas.surfaceMuted,
+                          },
+                        ]}
+                      >
+                        <Ionicons
+                          name={REASON_ICONS[code] ?? FALLBACK_REASON_ICON}
+                          size={17}
+                          color={selected ? "#fff" : theme.colors.text.secondary}
+                        />
                       </View>
-                      <Text variant="body-sm" weight={selected ? "bold" : "regular"} style={{ flex: 1 }}>
+                      <Text variant="body-sm" weight={selected ? "bold" : "regular"} style={{ flex: 1, textAlign: TEXT_START }}>
                         {t(`orders.cancelReasons.${code}`, code)}
                       </Text>
-                    </Pressable>
+                      <Ionicons
+                        name={selected ? "checkmark-circle" : "ellipse-outline"}
+                        size={20}
+                        color={selected ? theme.colors.brand.primary : theme.colors.border.strong}
+                      />
+                    </PressableScale>
                   );
                 })}
               </View>
@@ -180,18 +254,32 @@ export function CancelOrderSheet({
                   />
                 </Animated.View>
               ) : null}
+
+              {selectedCode ? (
+                <Animated.View entering={FadeIn.duration(180)} style={[styles.refundNote, { flexDirection: flexRow(IS_RTL) }]}>
+                  <Ionicons name="shield-checkmark-outline" size={15} color={theme.colors.status.info} />
+                  <Text variant="caption" color="secondary" style={{ flex: 1, textAlign: TEXT_START }}>
+                    {t("orders.cancelRefundNote", "Any amount already paid will be refunded within 3–5 business days, if applicable.")}
+                  </Text>
+                </Animated.View>
+              ) : null}
             </ScrollView>
 
             {!selectedCode ? (
-              <Text variant="caption" color="muted" style={{ marginTop: 8, textAlign: IS_RTL ? "right" : "left" }}>
+              <Text variant="caption" color="muted" style={{ marginTop: 8, textAlign: TEXT_START }}>
                 {t("orders.cancelReasonRequired", "Please select a reason to continue")}
               </Text>
             ) : null}
 
+            <View style={styles.divider} />
+
             <View style={styles.actions}>
               <Button
                 variant="danger"
+                tone="gradient"
+                glow
                 full
+                icon="close-circle-outline"
                 loading={submitting}
                 disabled={!selectedCode}
                 label={t("orders.cancelConfirmButton", "Confirm Cancellation")}
@@ -200,6 +288,7 @@ export function CancelOrderSheet({
               <Button
                 variant="ghost"
                 full
+                icon="shield-checkmark-outline"
                 disabled={submitting}
                 label={t("orders.cancelKeepOrder", "No, keep my order")}
                 onPress={onDismiss}
@@ -228,9 +317,22 @@ function getStyles(theme: NativeTheme) {
       borderTopEndRadius: legacyTheme.layout.bottomSheetRadius,
       paddingHorizontal: legacyTheme.layout.pagePaddingH,
       paddingTop: theme.spacing[1],
-      maxHeight: "86%",
+      maxHeight: "88%",
       gap: theme.spacing[2],
       ...theme.shadows[4],
+    },
+    headerWash: {
+      position: "absolute",
+      top: 0,
+      start: 0,
+      end: 0,
+      height: 190,
+      // Rounds its own top corners to match `sheet` instead of relying on
+      // the parent clipping it -- `sheet` needs overflow:visible to keep
+      // its own drop shadow (shadowOpacity + overflow:hidden don't render
+      // together on iOS), so this can't lean on a clipping ancestor.
+      borderTopStartRadius: legacyTheme.layout.bottomSheetRadius,
+      borderTopEndRadius: legacyTheme.layout.bottomSheetRadius,
     },
     handle: {
       width: 44,
@@ -244,14 +346,39 @@ function getStyles(theme: NativeTheme) {
       alignItems: "center",
       gap: 4,
     },
+    iconTileOuter: {
+      marginBottom: theme.spacing[1],
+      borderRadius: 999,
+      shadowColor: theme.colors.status.error,
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.28,
+      shadowRadius: 12,
+      elevation: 6,
+    },
     iconTile: {
-      width: 56,
-      height: 56,
-      borderRadius: theme.radii["2xl"],
+      width: 64,
+      height: 64,
+      borderRadius: 32,
       alignItems: "center",
       justifyContent: "center",
-      marginBottom: theme.spacing[1],
+    },
+    orderStrip: {
+      alignItems: "center",
+      gap: 10,
+      borderRadius: theme.radii.lg,
       borderWidth: 1,
+      borderColor: theme.colors.border.default,
+      backgroundColor: theme.colors.canvas.surfaceMuted,
+      paddingVertical: 10,
+      paddingHorizontal: 12,
+    },
+    orderStripIcon: {
+      width: 32,
+      height: 32,
+      borderRadius: 10,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: theme.colors.canvas.surface,
     },
     reasonsLabel: {
       marginTop: 4,
@@ -261,28 +388,35 @@ function getStyles(theme: NativeTheme) {
     },
     reasonRow: {
       alignItems: "center",
-      gap: 10,
+      gap: 13,
       borderWidth: 1,
       borderRadius: theme.radii.lg,
-      paddingVertical: 12,
-      paddingHorizontal: 14,
+      paddingVertical: 14,
+      paddingHorizontal: 15,
     },
-    radioOuter: {
-      width: 20,
-      height: 20,
-      borderRadius: 10,
-      borderWidth: 2,
+    reasonIconWell: {
+      width: 36,
+      height: 36,
+      borderRadius: 12,
       alignItems: "center",
       justifyContent: "center",
     },
-    radioInner: {
-      width: 10,
-      height: 10,
-      borderRadius: 5,
+    refundNote: {
+      alignItems: "flex-start",
+      gap: 8,
+      marginTop: 12,
+      padding: 10,
+      borderRadius: theme.radii.md,
+      backgroundColor: `${theme.colors.status.info}10`,
+    },
+    divider: {
+      height: StyleSheet.hairlineWidth,
+      backgroundColor: theme.colors.border.default,
+      marginTop: 4,
     },
     actions: {
       gap: 10,
-      marginTop: 14,
+      marginTop: 4,
     },
   });
 }

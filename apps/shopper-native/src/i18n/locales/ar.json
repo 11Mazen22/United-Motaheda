@@ -494,6 +494,7 @@
     "reordering": "جارٍ الإضافة إلى السلة...",
     "statusUnknown": "حالة غير معروفة",
     "cancelOrder": "إلغاء الطلب",
+    "cancelOrderHint": "متاح إلى أن تبدأ الصيدلية في تجهيز الطلب",
     "cancelSheetTitle": "إلغاء الطلب",
     "cancelSheetSubtitle": "أخبرنا بالسبب لمساعدتنا على تحسين خدمتنا",
     "cancelReasonsLabel": "سبب الإلغاء",
@@ -506,6 +507,8 @@
     "cancelSuccessBody": "تم إلغاء الطلب بنجاح، وسيتم استرداد أي مبلغ مدفوع خلال 3–5 أيام عمل.",
     "cancelErrorTitle": "تعذّر إلغاء الطلب",
     "cancelDone": "تم",
+    "cancelItemCount": "{{count}} منتج",
+    "cancelRefundNote": "سيتم استرداد أي مبلغ تم دفعه خلال 3–5 أيام عمل، إن وجد.",
     "cancelReasons": {
       "CHANGED_MIND": "غيّرت رأيي",
       "ORDERED_BY_MISTAKE": "طلبت عن طريق الخطأ",

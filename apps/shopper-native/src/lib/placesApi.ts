@@ -1,24 +1,26 @@
 import { abortTimeout } from "@/utils/timeout";
 import { Platform } from "react-native";
+import { MAPTILER_KEY } from "@/lib/maptilerConfig";
 
 /**
- * Geoapify Places Autocomplete API client.
+ * MapTiler Geocoding API client, used in autocomplete mode.
  *
  * Returns address suggestions for a query string, biased to Egypt (Cairo).
  * Used in the address form drawer and checkout details step to replace
  * manual street text entry with auto-suggested structured addresses.
  *
- * Docs: https://apidocs.geoapify.com/docs/geocoding/address-autocomplete
+ * Docs: https://docs.maptiler.com/cloud/api/geocoding/
  *
- * The same API key used for geocoding is reused here — both geocoding
- * and autocomplete are part of the same Geoapify plan.
+ * The same API key used for geocoding (geocoding.ts) is reused here —
+ * MapTiler serves autocomplete and one-shot geocoding from the same
+ * `/geocoding/{query}.json` endpoint, distinguished only by `autocomplete=true`.
  */
 
-const GEOAPIFY_KEY =
-  process.env.EXPO_PUBLIC_GEOAPIFY_KEY ?? "c6beba954a794cb49263d1679e4bc8bf";
+const BASE = "https://api.maptiler.com/geocoding";
 
-const AUTOCOMPLETE_BASE =
-  "https://api.geoapify.com/v1/geocode/autocomplete";
+// Cairo-area bounding box (west,south,east,north) — same box geocoding.ts
+// uses, keeping search-box and map-geocode results consistent.
+const CAIRO_BBOX = "30.70,29.78,31.90,30.28";
 
 export interface PlacesSuggestion {
   /** Full formatted address string */
@@ -37,27 +39,22 @@ export interface PlacesSuggestion {
   lng:          number;
   /** 0–1 confidence score */
   confidence:   number;
-  /** Geoapify place_id — stable identifier */
+  /** MapTiler feature id — stable identifier */
   placeId:      string;
 }
 
-interface GeoapifyFeature {
-  properties: {
-    formatted:    string;
-    street?:      string;
-    housenumber?: string;
-    suburb?:      string;
-    district?:    string;
-    city?:        string;
-    lat:          number;
-    lon:          number;
-    confidence?:  number;
-    place_id:     string;
-  };
+interface MapTilerFeature {
+  id: string;
+  place_name: string;
+  place_type: string[];
+  relevance?: number;
+  center: [number, number]; // [lng, lat]
+  text: string;
+  context?: Array<{ id: string; text: string; kind?: string }>;
 }
 
-interface GeoapifyAutocompleteResponse {
-  features: GeoapifyFeature[];
+interface MapTilerGeocodingResponse {
+  features: MapTilerFeature[];
 }
 
 /** In-memory cache for the current session — avoids re-fetching the same
@@ -88,17 +85,16 @@ export async function fetchPlacesSuggestions(
 
   try {
     const params = new URLSearchParams({
-      text:      q,
-      apiKey:    GEOAPIFY_KEY,
-      limit:     String(options?.limit ?? 6),
-      lang:      "ar",
-      // Bias to Cairo bounding box: SW 29.78,30.70 → NE 30.28,31.90
-      bias:      "rect:30.70,29.78,31.90,30.28",
-      filter:    "countrycode:eg",
+      key:          MAPTILER_KEY,
+      limit:        String(options?.limit ?? 6),
+      language:     "ar",
+      country:      "eg",
+      bbox:         CAIRO_BBOX,
+      autocomplete: "true",
     });
 
     const resp = await fetch(
-      `${AUTOCOMPLETE_BASE}?${params.toString()}`,
+      `${BASE}/${encodeURIComponent(q)}.json?${params.toString()}`,
       {
         signal: options?.signal ??
           (Platform.OS !== "web"
@@ -109,18 +105,21 @@ export async function fetchPlacesSuggestions(
 
     if (!resp.ok) return [];
 
-    const json = (await resp.json()) as GeoapifyAutocompleteResponse;
-    const results: PlacesSuggestion[] = (json.features ?? []).map((f) => ({
-      formatted:   f.properties.formatted,
-      street:      f.properties.street ?? null,
-      houseNumber: f.properties.housenumber ?? null,
-      district:    f.properties.suburb ?? f.properties.district ?? null,
-      city:        f.properties.city ?? null,
-      lat:         f.properties.lat,
-      lng:         f.properties.lon,
-      confidence:  f.properties.confidence ?? 0,
-      placeId:     f.properties.place_id,
-    }));
+    const json = (await resp.json()) as MapTilerGeocodingResponse;
+    const results: PlacesSuggestion[] = (json.features ?? []).map((f) => {
+      const [lng, lat] = f.center ?? [];
+      return {
+        formatted:   f.place_name,
+        street:      f.place_type?.[0] === "address" ? f.text : null,
+        houseNumber: null,
+        district:    f.context?.find((c) => c.kind === "place")?.text ?? null,
+        city:        f.context?.find((c) => c.kind === "admin_area")?.text ?? null,
+        lat,
+        lng,
+        confidence:  f.relevance ?? 0,
+        placeId:     f.id,
+      };
+    }).filter((s) => s.lat != null && s.lng != null);
 
     cache.set(cacheKey, results);
     return results;

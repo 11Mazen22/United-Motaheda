@@ -21,6 +21,8 @@ import {
 import { fetchTrackingSnapshot } from "../../services/logisticsApi";
 import { normalizeOrderStatus } from "@pharmacy/contracts";
 import { useLanguage } from "../../contexts/LanguageContext";
+import { useAuth } from "../../contexts/AuthContext";
+import { useRealtimeSync } from "../../hooks/useRealtimeSync";
 import { BrandActionGroup, StatusPanel } from "../components/BrandPrimitives";
 import { cn } from "../components/UI";
 
@@ -407,6 +409,7 @@ export default function OrderTracking() {
   const { orderId = "" } = useParams();
   const [searchParams] = useSearchParams();
   const { lang, t } = useLanguage();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
@@ -495,6 +498,19 @@ export default function OrderTracking() {
       window.removeEventListener("online", handleOnline);
     };
   }, [orderId, token, t, lang]);
+
+  // This page is reachable from a shareable token link with no session at
+  // all (that's the point of it), and orders' RLS is auth.uid()-gated with
+  // no anon carve-out -- an unauthenticated realtime subscription here
+  // would silently receive nothing, so the 20s poll above stays the
+  // baseline for that case. When the viewer DOES have their own session
+  // open (the common case: tracking an order they placed while signed in),
+  // add a live subscription scoped to their own rows on top of it for an
+  // instant update instead of waiting out the poll interval.
+  useRealtimeSync("orders", () => void load(), {
+    enabled: Boolean(user?.id) && Boolean(orderId),
+    filter: user?.id ? `user_id=eq.${user.id}` : undefined,
+  });
 
   const currentStatus = snapshot?.order.status
     ? normalizeOrderStatus(snapshot.order.status)

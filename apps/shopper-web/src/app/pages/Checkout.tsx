@@ -2,7 +2,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { getSupabaseClient } from "../../lib/supabaseClient";
-import { useDeliveryQuote, useLocationState, useBrowserLocation } from "@pharmacy/domain-location";
+import { useLocationState, useBrowserLocation } from "@pharmacy/domain-location";
+import { useDeliveryQuote } from "../hooks/useDeliveryQuote";
 import {
   ArrowLeft,
   ArrowRight,
@@ -427,18 +428,19 @@ export default function Checkout() {
     const timer = setTimeout(async () => {
       try {
         const params = new URLSearchParams({
-          text: `${street}, القاهرة, مصر`,
-          apiKey: "c6beba954a794cb49263d1679e4bc8bf",
+          key: import.meta.env.VITE_MAPTILER_KEY ?? "QrLZWoUCSARVeuDA8fc1",
           limit: "1",
-          lang: "ar",
-          filter: "countrycode:eg",
+          language: "ar",
+          country: "eg",
+          bbox: "30.70,29.78,31.90,30.28",
         });
-        const resp = await fetch(`https://api.geoapify.com/v1/geocode/search?${params}`);
+        const query = encodeURIComponent(`${street}, القاهرة, مصر`);
+        const resp = await fetch(`https://api.maptiler.com/geocoding/${query}.json?${params}`);
         if (!resp.ok) return;
         const json = await resp.json();
         const feature = json.features?.[0];
         if (!feature) return;
-        const { lat, lon } = feature.properties;
+        const [lon, lat] = feature.center ?? [];
         if (lat && lon) {
           setLocationCoordinates({ lat, lng: lon });
         }

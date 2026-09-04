@@ -390,6 +390,78 @@ export async function createAdminProduct(payload: ProductMutationPayload): Promi
   }
 }
 
+/**
+ * Bulk variant of createAdminProduct — inserts every payload in ONE
+ * PostgREST request instead of one round-trip per row. For a CSV import in
+ * the thousands-of-rows range (the catalog this app manages runs to
+ * 50,000+ products), the single-row loop this replaced meant importing the
+ * full catalog would take hours of sequential network round-trips with the
+ * browser tab pinned open the whole time.
+ *
+ * A caveat that comes with batching: Postgres inserts a multi-row VALUES
+ * list atomically — if ANY row in the array violates a constraint (most
+ * likely a duplicate Code/Barcode against a row from an earlier import,
+ * since parseProductCsv already de-duplicates within the file itself), the
+ * WHOLE batch is rejected, not just that row. Callers should catch and fall
+ * back to inserting the batch's rows individually to salvage the rest —
+ * see ProductManager.tsx's handleCsvImport for that fallback.
+ */
+export async function createAdminProductsBulk(payloads: ProductMutationPayload[]): Promise<AdminProduct[]> {
+  const operation = 'createAdminProductsBulk';
+  if (payloads.length === 0) return [];
+
+  const now = new Date().toISOString();
+  const insertRows = payloads.map((payload) => ({
+    Code: payload.Code,
+    Barcode: payload.Barcode || '',
+    Name: payload.Name,
+    Name_Ar: payload.Name_Ar,
+    Name_En: payload.Name_En,
+    Price: Number(payload.Price),
+    Stock: Number(payload.Stock),
+    Category: payload.Category,
+    Category_Name: payload.Category_Name,
+    Category_Name_En: payload.Category_Name_En,
+    created_at: now,
+    updated_at: now,
+  }));
+
+  try {
+    const supabase = getSupabaseClient();
+    const { data, error } = await supabase.from('products').insert(insertRows).select();
+
+    if (error) {
+      logOperation(operation, { count: payloads.length }, error);
+      throw new Error(`Bulk insert failed: ${error.message}`);
+    }
+    if (!data) throw new Error('No data returned after bulk insert');
+
+    const created: AdminProduct[] = data.map((row) => ({
+      id: row.id,
+      code: row.Code || '',
+      barcode: row.Barcode || '',
+      name: row.Name || '',
+      nameAr: row.Name_Ar || '',
+      nameEn: row.Name_En || '',
+      price: Number(row.Price) || 0,
+      stock: Number(row.Stock) || 0,
+      category: row.Category || '',
+      categoryName: row.Category_Name || '',
+      categoryNameEn: row.Category_Name_En || '',
+      inStock: Boolean(row.is_active),
+      is_active: Boolean(row.is_active),
+      created_at: row.created_at,
+      updated_at: row.updated_at,
+    }));
+
+    logOperation(operation, { count: payloads.length, created: created.length });
+    return created;
+  } catch (error) {
+    logOperation(operation, { count: payloads.length }, error);
+    throw error;
+  }
+}
+
 export async function deleteAdminProduct(code: string): Promise<void> {
   const operation = 'deleteAdminProduct';
   

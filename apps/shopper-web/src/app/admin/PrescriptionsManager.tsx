@@ -15,6 +15,7 @@ import {
   TableRow,
 } from "../components/ui/table";
 import { cn } from "../components/UI";
+import { useRealtimeSync } from "../../hooks/useRealtimeSync";
 import { useLanguage } from "../../contexts/LanguageContext";
 import { useAuth } from "../../contexts/AuthContext";
 import {
@@ -155,6 +156,26 @@ export default function PrescriptionsManager() {
     | null
   >(null);
 
+  // Draft corrections for the fields scanned prescriptions never had OCR
+  // for — reset whenever a *different* prescription is opened, kept as-is
+  // across re-renders while the same one stays open so typing doesn't get
+  // clobbered. A plain render-phase reset here read stale (pre-update)
+  // rxDraft in this same function's dialogTarget computation below —
+  // confirmed live, the inputs opened empty instead of pre-filled with the
+  // record's current values. useEffect avoids that: it runs after the
+  // state commits, so the render it triggers has the real values.
+  const [rxDraft, setRxDraft] = useState({ name: "", dose: "", doctor: "", rxNumber: "" });
+  useEffect(() => {
+    if (reviewTarget?.kind === "prescription") {
+      setRxDraft({
+        name: reviewTarget.item.name,
+        dose: reviewTarget.item.dose,
+        doctor: reviewTarget.item.doctor,
+        rxNumber: reviewTarget.item.rxNumber ?? "",
+      });
+    }
+  }, [reviewTarget]);
+
   // ── Loaders ───────────────────────────────────────────────────────────────
   const loadCounts = useCallback(async () => {
     try {
@@ -244,6 +265,15 @@ export default function PrescriptionsManager() {
   useEffect(() => { setRxPage(1); }, [rxSearch, rxStatusFilter]);
   useEffect(() => { setRefillPage(1); }, [refillSearch, refillStatusFilter]);
 
+  // Live sync -- a prescription uploaded from the native app, or a refill
+  // request submitted while this dashboard is open, now shows up without a
+  // manual refresh. Counts refresh alongside both since the queue badges
+  // depend on the same underlying rows.
+  const refreshRxQueue = useCallback(() => { void loadCounts(); void loadPrescriptions(); }, [loadCounts, loadPrescriptions]);
+  const refreshRefills = useCallback(() => { void loadCounts(); void loadRefills(); }, [loadCounts, loadRefills]);
+  useRealtimeSync("prescriptions", refreshRxQueue);
+  useRealtimeSync("refill_requests", refreshRefills);
+
   // ── Review dialog target builder ─────────────────────────────────────────
   const dialogTarget: ReviewDialogTarget | null = (() => {
     if (!reviewTarget) return null;
@@ -266,10 +296,34 @@ export default function PrescriptionsManager() {
           : rx.isControlled
           ? (isArabic ? "دواء خاضع للرقابة — يتطلب وصفة ورقية أصلية." : "Controlled substance — requires an original paper prescription.")
           : undefined,
+        editableFields: [
+          {
+            key: "name",
+            label: isArabic ? "اسم الدواء" : "Medication name",
+            value: rxDraft.name,
+            placeholder: isArabic ? "اقرأ الاسم من الصورة…" : "Read the name from the image…",
+            onChange: (value) => setRxDraft((d) => ({ ...d, name: value })),
+          },
+          {
+            key: "rxNumber",
+            label: isArabic ? "رقم الوصفة" : "Rx Number",
+            value: rxDraft.rxNumber,
+            onChange: (value) => setRxDraft((d) => ({ ...d, rxNumber: value })),
+          },
+          {
+            key: "dose",
+            label: isArabic ? "الجرعة" : "Dose",
+            value: rxDraft.dose,
+            onChange: (value) => setRxDraft((d) => ({ ...d, dose: value })),
+          },
+          {
+            key: "doctor",
+            label: isArabic ? "الطبيب" : "Doctor",
+            value: rxDraft.doctor,
+            onChange: (value) => setRxDraft((d) => ({ ...d, doctor: value })),
+          },
+        ],
         detailRows: [
-          { label: isArabic ? "رقم الوصفة" : "Rx Number", value: rx.rxNumber ?? "—" },
-          { label: isArabic ? "الجرعة" : "Dose", value: rx.dose || "—" },
-          { label: isArabic ? "الطبيب" : "Doctor", value: rx.doctor || "—" },
           { label: isArabic ? "المصدر" : "Source", value: isArabic ? SOURCE_LABEL[rx.submissionSource]?.ar : SOURCE_LABEL[rx.submissionSource]?.en },
         ],
       };
@@ -302,6 +356,10 @@ export default function PrescriptionsManager() {
               reviewStatus: newStatus,
               adminNotes: payload.adminNotes ?? null,
               rejectionReason: newStatus === "rejected" ? (payload.rejectionReason ?? null) : null,
+              name: payload.name?.trim() || rx.name,
+              dose: payload.dose ?? rx.dose,
+              doctor: payload.doctor ?? rx.doctor,
+              rxNumber: payload.rxNumber?.trim() || rx.rxNumber,
             }
           : rx
       )));
@@ -356,7 +414,7 @@ export default function PrescriptionsManager() {
     if (!reviewTarget || !adminUser) return;
     const payload: ReviewPayload = { decision: "approved", adminId: adminUser.id, adminEmail: adminUser.email, adminNotes };
     if (reviewTarget.kind === "prescription") {
-      await applyPrescriptionReview(reviewTarget.item, payload);
+      await applyPrescriptionReview(reviewTarget.item, { ...payload, ...rxDraft });
     } else {
       await applyRefillReview(reviewTarget.item, payload);
     }
@@ -366,7 +424,7 @@ export default function PrescriptionsManager() {
     if (!reviewTarget || !adminUser) return;
     const payload: ReviewPayload = { decision: "rejected", adminId: adminUser.id, adminEmail: adminUser.email, adminNotes, rejectionReason };
     if (reviewTarget.kind === "prescription") {
-      await applyPrescriptionReview(reviewTarget.item, payload);
+      await applyPrescriptionReview(reviewTarget.item, { ...payload, ...rxDraft });
     } else {
       await applyRefillReview(reviewTarget.item, payload);
     }

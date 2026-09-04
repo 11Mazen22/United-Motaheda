@@ -95,45 +95,46 @@ export default function PharmacistLayout() {
   // all. Deferring by one tick lets React fully settle the current commit
   // before the heavy nested-unmount transition begins, without changing
   // what navigates or how many times (still guarded to exactly once).
+  const shouldLeave =
+    decidedAccessRef.current === false ||
+    (decidedAccessRef.current === true && !user && !loading);
+
+  // ROOT CAUSE FOUND (2026-09-04), after two prior attempts (permanent latch
+  // -> 1s cooldown -> unconditional watchdog) all failed to fix a hang
+  // reproduced live on a real device: this effect and the watchdog below it
+  // both had NO dependency array, so React re-ran (and re-cleaned-up) both
+  // of them on EVERY render of this component, not just when shouldLeave
+  // actually changed. usePharmacistRealtimeSync above keeps re-rendering
+  // this layout for as long as it's mounted with a defined id (channel
+  // reconnects, presence updates, etc.) — once shouldLeave went true and the
+  // "leaving" blank view rendered, the layout is STILL mounted (it hasn't
+  // navigated away yet, that's the whole problem), so those re-renders kept
+  // happening. Each one re-ran the watchdog's useEffect body, whose own
+  // cleanup (`clearTimeout(id)`) fired first and cancelled whatever was left
+  // of the previous 2500ms countdown — so the timer was perpetually reset
+  // to 0 and could structurally never reach 2500ms, no matter how long the
+  // hang was left alone. This wasn't a race that happened to lose; it was a
+  // countdown that could never finish. Keying both effects on the *value*
+  // of shouldLeave (a plain boolean, stable across re-renders where it
+  // doesn't change) instead of leaving them with no dependency array fixes
+  // this at the actual mechanism -- confirmed by reasoning through the
+  // effect-cleanup order above, not just retried and hoped. Mirrors the
+  // identical fix in (driver)/_layout.tsx.
   useEffect(() => {
-    const shouldLeave =
-      decidedAccessRef.current === false ||
-      (decidedAccessRef.current === true && !user && !loading);
     if (shouldLeave && claimPostSignOutNavigation()) {
       setTimeout(() => router.replace("/" as never), 0);
     }
-  });
+  }, [shouldLeave]);
 
-  // Watchdog, independent of claimPostSignOutNavigation entirely. Reproduced
-  // live: after a real sign-out, this layout can be stuck showing the blank
-  // "leaving" view below forever, recoverable only by force-restarting the
-  // app. A longer cooldown on the claim above doesn't reliably fix this --
-  // confirmed live that raising it from a permanent one-shot to a 1s window
-  // still didn't help, which only makes sense if the *retry* itself never
-  // happens, not that it happens too late. Most likely explanation: the
-  // remounted instance that should retry never gets the chance to, because
-  // whatever bounced it back here (see claimPostSignOutNavigation's doc for
-  // the stale-auth-event race) can leave ITS OWN decidedAccessRef never
-  // settling either, so it never even reaches a `shouldLeave` determination
-  // to retry from. Rather than chase that race further blind (no console
-  // access on a production build to confirm it directly), this is an
-  // unconditional fallback: if we're still rendering the "leaving" blank
-  // view a few seconds later, force the same replace() again regardless of
-  // the claim's state, guaranteeing a bounded worst case instead of a
-  // silent hang. leftRef stops it from restarting on every subsequent
-  // render while it's already pending.
   const watchdogFiredRef = useRef(false);
   useEffect(() => {
-    const shouldLeave =
-      decidedAccessRef.current === false ||
-      (decidedAccessRef.current === true && !user && !loading);
     if (!shouldLeave || watchdogFiredRef.current) return;
     const id = setTimeout(() => {
       watchdogFiredRef.current = true;
       router.replace("/" as never);
     }, 2500);
     return () => clearTimeout(id);
-  });
+  }, [shouldLeave]);
 
   // If the user actively signs out, user becomes null. Kick them back to the
   // customer app (guest mode) immediately. Gated on decidedAccessRef already

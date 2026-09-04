@@ -35,7 +35,7 @@ import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 
 import { useOrderDetail } from "@/features/orders/hooks/useOrders";
 import { supabase } from "@/lib/supabase";
-import { Text as UIText, Badge, useTheme } from "@pharmacy/ui-native";
+import { Text as UIText, Badge, PressableScale, useTheme } from "@pharmacy/ui-native";
 import { ReorderButton } from "@/features/orders/components/ReorderButton";
 import { CancelOrderSheet } from "@/features/orders/components/CancelOrderSheet";
 import { formatPrice } from "@/utils/format";
@@ -400,23 +400,45 @@ export default function OrderDetailScreen(): React.ReactElement {
         <ReorderButton items={order.items} />
         
         {actions?.cancel?.allowed && (
-          <Pressable
+          <PressableScale
+            scaleTo={0.98}
             onPress={() => setShowCancelSheet(true)}
-            style={({ pressed }) => [
-              {
-                paddingVertical: 14,
-                borderRadius: 12,
-                borderWidth: 1,
-                borderColor: theme.colors.status.error,
-                alignItems: "center",
-                opacity: pressed ? 0.8 : 1,
-              }
-            ]}
+            accessibilityRole="button"
+            accessibilityLabel={t("orders.cancelOrder", "Cancel Order")}
+            style={{
+              flexDirection: flexRow(isRtl()),
+              alignItems: "center",
+              gap: 12,
+              borderRadius: 16,
+              borderWidth: 1,
+              borderColor: `${theme.colors.status.error}30`,
+              backgroundColor: `${theme.colors.status.error}0D`,
+              paddingVertical: 12,
+              paddingHorizontal: 14,
+            }}
           >
-            <UIText variant="body-sm" weight="bold" style={{ color: theme.colors.status.error }}>
-              {t("orders.cancelOrder", "Cancel Order")}
-            </UIText>
-          </Pressable>
+            <View
+              style={{
+                width: 38,
+                height: 38,
+                borderRadius: 12,
+                alignItems: "center",
+                justifyContent: "center",
+                backgroundColor: `${theme.colors.status.error}1A`,
+              }}
+            >
+              <Ionicons name="close-circle" size={20} color={theme.colors.status.error} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <UIText variant="body-sm" weight="bold" style={{ color: theme.colors.status.error, textAlign: TEXT_START }}>
+                {t("orders.cancelOrder", "Cancel Order")}
+              </UIText>
+              <UIText variant="caption" color="muted" style={{ textAlign: TEXT_START }}>
+                {t("orders.cancelOrderHint", "Available until the pharmacy starts preparing it")}
+              </UIText>
+            </View>
+            <Ionicons name={FORWARD_CHEVRON} size={18} color={theme.colors.status.error} />
+          </PressableScale>
         )}
 
         {actions?.return?.allowed && (
@@ -445,6 +467,9 @@ export default function OrderDetailScreen(): React.ReactElement {
         visible={showCancelSheet}
         orderId={id as string}
         reasonCodes={actions?.cancel?.reasons}
+        orderShortId={shortId}
+        itemCount={order.items.length}
+        total={order.total}
         onDismiss={() => setShowCancelSheet(false)}
         onCancelled={handleOrderCancelled}
       />

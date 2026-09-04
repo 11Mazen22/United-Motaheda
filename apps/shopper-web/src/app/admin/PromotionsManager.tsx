@@ -57,6 +57,7 @@ import { useBulkSelection } from "../../hooks/useBulkSelection";
 import { useSortableColumn } from "../../hooks/useSortableColumn";
 import { SortIcon } from "./adminTableIcons";
 import { cn } from "../components/UI";
+import { useRealtimeSync } from "../../hooks/useRealtimeSync";
 import { PromotionProductSelector } from "./PromotionProductSelector";
 import { PromotionCopilotWorkspace, type PromotionCopilotFormContext } from "./PromotionCopilotWorkspace";
 import type { PromotionCopilotProposal } from "../../services/promotionCopilotApi";
@@ -371,6 +372,10 @@ export default function PromotionsManager() {
       }
     };
   }, [load]);
+
+  // Live sync -- a promotion created/toggled from another admin tab shows
+  // up here without a manual refresh.
+  useRealtimeSync("promotions", () => void load());
 
   // ---- Reset page and selection on filter change ----
   useEffect(() => {

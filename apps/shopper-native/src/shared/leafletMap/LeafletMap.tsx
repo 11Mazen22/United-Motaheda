@@ -1,10 +1,15 @@
 /**
- * LeafletMap — WebView/Leaflet map, tiled from Geoapify. See types.ts for
- * the full rationale (react-native-maps needs a Google Maps API key this
- * project has never had, which crashes the app on Android the instant any
- * MapView mounts). This is the drop-in replacement's shared engine; each
- * screen (DriverMap, TrackOrderScreen, DeliveryMap) builds its own marker
- * HTML via the helpers in html.ts and renders this component underneath.
+ * LeafletMap — WebView map running MapLibre GL JS against MapTiler's vector
+ * style (kept the historical name — see git history for the Leaflet/raster
+ * predecessor this replaced; MapLibre was needed specifically because
+ * MapTiler's raster tiles ignore the `language` param entirely, so there
+ * was no way to get Arabic labels out of them). See types.ts for the
+ * broader rationale for a WebView map at all (react-native-maps needs a
+ * Google Maps API key this project has never had, which crashes the app on
+ * Android the instant any MapView mounts). This is the drop-in
+ * replacement's shared engine; each screen (DriverMap, TrackOrderScreen,
+ * AddressMapPlaceholder) builds its own marker HTML via the helpers in
+ * html.ts and renders this component underneath.
  *
  * Bridge shape: React Native pushes state INTO the page via
  * `injectJavaScript` calls to the `window.__sync*`/`window.__animate*`
@@ -22,19 +27,19 @@ import { WebView, type WebViewMessageEvent } from "react-native-webview";
 import { useTheme } from "@pharmacy/ui-native";
 import { buildMapHtml } from "./html";
 import type { LeafletMapProps, LeafletMapRef, LeafletOutboundMessage } from "./types";
+import { MAPTILER_KEY } from "@/lib/maptilerConfig";
 
-const GEOAPIFY_KEY = (process.env["EXPO_PUBLIC_GEOAPIFY_KEY"] as string | undefined) ?? "";
-const DEFAULT_STYLE = "osm-bright";
+const DEFAULT_STYLE = "streets-v2";
 
-function tileUrlFor(style: string): string {
-  return `https://maps.geoapify.com/v1/tile/${style}/{z}/{x}/{y}.png?apiKey=${GEOAPIFY_KEY}`;
+function styleUrlFor(style: string): string {
+  return `https://api.maptiler.com/maps/${style}/style.json?key=${MAPTILER_KEY}`;
 }
 
 export const LeafletMap = forwardRef<LeafletMapRef, LeafletMapProps>(function LeafletMap(
   {
     initialRegion, markers = [], circles = [], polyline = null,
     onPress, onMarkerPress, onMarkerDragEnd,
-    tileStyle = DEFAULT_STYLE, zoomControl = true, style, testID,
+    tileStyle = DEFAULT_STYLE, zoomControl = true, interactive = true, style, testID,
   },
   ref,
 ) {
@@ -47,7 +52,7 @@ export const LeafletMap = forwardRef<LeafletMapRef, LeafletMapProps>(function Le
   // after mount goes through animateToRegion instead, so this is
   // intentionally not a dependency of the WebView's `source`.
   const html = useMemo(
-    () => buildMapHtml(initialRegion, tileUrlFor(tileStyle), zoomControl),
+    () => buildMapHtml(initialRegion, styleUrlFor(tileStyle), zoomControl, interactive),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   );
@@ -113,11 +118,12 @@ export const LeafletMap = forwardRef<LeafletMapRef, LeafletMapProps>(function Le
         onMarkerDragEnd?.(msg.id, { latitude: msg.lat, longitude: msg.lng });
         break;
       case "error":
+        console.warn("[LeafletMap] webview error:", msg.message);
         break;
     }
   }, [onPress, onMarkerPress, onMarkerDragEnd, syncMarkers, syncCircles, syncPolyline]);
 
-  if (!GEOAPIFY_KEY) {
+  if (!MAPTILER_KEY) {
     return (
       <View style={[styles.missingKey, { backgroundColor: theme.colors.canvas.surfaceMuted }, style]} testID={testID} />
     );

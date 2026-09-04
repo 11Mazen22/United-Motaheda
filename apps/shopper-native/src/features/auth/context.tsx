@@ -369,6 +369,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           "postgres_changes",
           { event: "UPDATE", schema: "public", table: "profiles", filter: `id=eq.${userId}` },
           (payload) => {
+            // A channel's removeChannel() request is async over the socket —
+            // an event already in flight when sign-out tears this channel
+            // down can still land here once after `stopped` was set and
+            // after `user` has already moved on (to null, or to whichever
+            // account signed in next on this device). Reproduced live: this
+            // stale callback firing on a routine profile UPDATE (e.g. a
+            // presence/last-seen heartbeat on the OLD account) kept calling
+            // router.replace("/") below every time that heartbeat landed,
+            // well after this effect's own `stopped`/cleanup should have
+            // silenced it -- the repeated forced navigation is what left the
+            // post-sign-out screen stuck reprocessing its navigation stack
+            // instead of settling. Comparing against the id THIS channel was
+            // actually opened for (not just truthiness) makes a leaked
+            // straggler inert instead of acting on data for an account this
+            // channel no longer corresponds to.
+            if (stopped || userRef.current?.id !== userId) return;
+
             const next = payload.new as { role?: string; status?: string };
             const nextStatus = String(next.status ?? "Active");
             if (nextStatus === "Suspended") { handleForcedSignOut("suspended"); return; }

@@ -68,7 +68,7 @@ import { useDirectoryCounts } from "../../hooks/useDirectoryCounts";
 import { useSortableColumn } from "../../hooks/useSortableColumn";
 import { useAdminConfirmedAction } from "../../hooks/useAdminConfirmedAction";
 import { useAdminBulkStatus } from "../../hooks/useAdminBulkStatus";
-import { useAdminRealtimeSync } from "../../hooks/useAdminRealtimeSync";
+import { useRealtimeSync } from "../../hooks/useRealtimeSync";
 import SuspendDialog from "./SuspendDialog";
 import DeleteUserDialog from "./DeleteUserDialog";
 import {
@@ -334,7 +334,7 @@ export default function UsersManager() {
   // manual reload. refreshAll re-runs the SAME query with the CURRENT
   // filters/page/sort, so a change elsewhere shows up without disturbing
   // whatever the admin is actively looking at.
-  useAdminRealtimeSync(refreshAll);
+  useRealtimeSync("profiles", refreshAll);
 
   const handlePermanentDelete = useCallback(async (payload: DeleteUserPayload) => {
     const deletedUser = users.find((user) => user.id === payload.userId);

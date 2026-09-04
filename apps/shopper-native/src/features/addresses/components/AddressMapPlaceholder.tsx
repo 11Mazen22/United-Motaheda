@@ -1,22 +1,20 @@
 /**
 
- * AddressMapPlaceholder — real Geoapify static-map tile.
+ * AddressMapPlaceholder — real MapTiler map tile, rendered via the shared
+ * LeafletMap engine in non-interactive mode (a fixed preview, not a
+ * pannable map — see LeafletMapProps.interactive).
 
  *
 
  * Behaviour:
 
- *   1. lat + lng provided  → renders a real map image centred on those coords
+ *   1. lat + lng provided  → renders a real map centred on those coords
 
  *   2. addressHint provided → geocodes on mount, then renders the map
 
  *   3. Nothing              → elegant animated placeholder with pin
 
  *
-
- * Works on both web and native — it is just an <Image> component.
-
- * No additional packages required.
 
  */
 
@@ -27,8 +25,6 @@ import React, { useEffect, useMemo, useState } from "react";
 import {
 
   ActivityIndicator,
-
-  Image,
 
   Linking,
 
@@ -62,9 +58,8 @@ import { useTheme, type NativeTheme } from "@pharmacy/ui-native";
 
 import { flexRow, isRtl } from "@/utils/layout";
 
-
-
-const GEOAPIFY_KEY = process.env.EXPO_PUBLIC_GEOAPIFY_KEY ?? "c6beba954a794cb49263d1679e4bc8bf";
+import { LeafletMap } from "@/shared/leafletMap/LeafletMap";
+import { pinMarkerHtml } from "@/shared/leafletMap/html";
 
 
 
@@ -97,52 +92,6 @@ interface Props {
   compact?:     boolean;
 
   height?:      number;
-
-}
-
-
-
-function buildMapUrl(lat: number, lng: number, compact: boolean): string {
-
-  const w    = compact ? 400 : 800;
-
-  const h    = compact ? 200 : 400;
-
-  const zoom = compact ? 14   : 15;
-
-
-
-  // Geoapify marker format uses `;` as separator — URLSearchParams would encode
-
-  // it to %3B which breaks the marker parser. Build the URL as a template string
-
-  // so semicolons and the `lonlat:` prefix stay as literal characters.
-
-  const markerColor = encodeURIComponent(PIN_COLOR); // "#0db8a8" → "%230db8a8"
-
-  const marker = `lonlat:${lng},${lat};color:${markerColor};size:large;icontype:awesome;icon:map-marker-alt`;
-
-
-
-  return (
-
-    `https://maps.geoapify.com/v1/staticmap` +
-
-    `?style=osm-bright-smooth` +
-
-    `&width=${w}` +
-
-    `&height=${h}` +
-
-    `&zoom=${zoom}` +
-
-    `&center=lonlat:${lng},${lat}` +
-
-    `&marker=${marker}` +
-
-    `&apiKey=${GEOAPIFY_KEY}`
-
-  );
 
 }
 
@@ -286,8 +235,6 @@ export function AddressMapPlaceholder({
 
   const [loading, setLoading]   = useState(false);
 
-  const [imgError, setImgError] = useState(false);
-
   const [geoFailed, setGeoFailed] = useState(false);
 
   // useState's initializer above only runs once, at mount — it doesn't
@@ -299,7 +246,6 @@ export function AddressMapPlaceholder({
 
     if (lat != null && lng != null) {
       setCoords({ lat, lng });
-      setImgError(false);
       setGeoFailed(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -318,8 +264,6 @@ export function AddressMapPlaceholder({
     let cancelled = false;
 
     setLoading(true);
-
-    setImgError(false);
 
     setGeoFailed(false);
 
@@ -389,33 +333,22 @@ export function AddressMapPlaceholder({
 
 
 
-  const mapUrl = buildMapUrl(coords.lat, coords.lng, compact);
-
-
-
   return (
 
     <View style={[styles.container, { height }]}>
 
-      {imgError ? (
-
-        <MapPlaceholder height={height} />
-
-      ) : (
-
-        <Image
-
-          source={{ uri: mapUrl }}
-
-          style={StyleSheet.absoluteFill}
-
-          resizeMode="cover"
-
-          onError={() => setImgError(true)}
-
-        />
-
-      )}
+      <LeafletMap
+        initialRegion={{ latitude: coords.lat, longitude: coords.lng, zoom: compact ? 14 : 15 }}
+        markers={[{
+          id: "selected",
+          coordinate: { latitude: coords.lat, longitude: coords.lng },
+          html: pinMarkerHtml(PIN_COLOR, "&#128205;"),
+          width: 38, height: 46, anchorX: 0.5, anchorY: 1,
+        }]}
+        zoomControl={false}
+        interactive={false}
+        style={StyleSheet.absoluteFill}
+      />
 
 
 

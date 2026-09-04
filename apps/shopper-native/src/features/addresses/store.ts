@@ -66,11 +66,11 @@ export const useAddressStore = create<AddressState>((set, get) => ({
     }
 
     // If lat/lng are already set, they came from a precise source --
-    // selecting a Geoapify place suggestion (handleSelectSuggestion) or
+    // selecting a MapTiler place suggestion (handleSelectSuggestion) or
     // "detect my location" (handleDetectLocation), both of which set real
     // coordinates directly. Re-geocoding from the text fields here would
     // silently discard that precision: confirmed live, a saved address
-    // whose "street" ended up as a bare formatted place name (Geoapify's
+    // whose "street" ended up as a bare formatted place name (MapTiler's
     // fallback when a selected suggestion has no granular street --
     // handleSelectSuggestion's `s.street ?? s.formatted`) got re-geocoded
     // from that generic text into a point ~30km from the correct location,

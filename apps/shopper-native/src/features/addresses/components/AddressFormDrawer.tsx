@@ -66,7 +66,7 @@ export function AddressFormDrawer({
     });
   };
 
-  // Smart address search — Geoapify autocomplete-as-you-type, replacing
+  // Smart address search — MapTiler autocomplete-as-you-type, replacing
   // manual free-text city/district/street entry with "search once, get
   // everything filled" (address, district, city, lat/lng all resolved
   // together, so the map and the fields can never disagree with each other).
@@ -169,11 +169,11 @@ export function AddressFormDrawer({
       let resolvedStreet = form.street;
       let resolvedFormatted = "";
 
-      // Geoapify first — it's the same index the search box and the map use,
+      // MapTiler first — it's the same index the search box and the map use,
       // so a GPS-detected address reads consistently with a typed/selected
       // one (same district naming, same Arabic transliteration). Falls back
       // to the OS's on-device geocoder (works offline, no API key) only if
-      // Geoapify can't be reached.
+      // MapTiler can't be reached.
       const geo = await reverseGeocode(loc.coords.latitude, loc.coords.longitude);
       if (geo) {
         resolvedCity = geo.city || resolvedCity;
@@ -259,7 +259,7 @@ export function AddressFormDrawer({
             <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
 
               {/* Smart address search — type once, get city/district/street/
-                  coordinates filled together from Geoapify's live index. */}
+                  coordinates filled together from MapTiler's live index. */}
               <View style={styles.searchWrap}>
                 <View style={[styles.searchBar, { flexDirection: flexRow(IS_RTL), backgroundColor: theme.colors.canvas.background, borderColor: theme.colors.border.default }]}>
                   <Ionicons name="search" size={18} color={theme.colors.text.muted} />

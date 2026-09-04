@@ -90,7 +90,7 @@ import { useDirectoryCounts } from "../../hooks/useDirectoryCounts";
 import { useSortableColumn } from "../../hooks/useSortableColumn";
 import { useAdminConfirmedAction } from "../../hooks/useAdminConfirmedAction";
 import { useAdminBulkStatus } from "../../hooks/useAdminBulkStatus";
-import { useAdminRealtimeSync } from "../../hooks/useAdminRealtimeSync";
+import { useRealtimeSync } from "../../hooks/useRealtimeSync";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 // Role union/labels come from @pharmacy/contracts/src/role.ts (canonical).
@@ -462,7 +462,7 @@ export default function StaffManager() {
   // Same live-sync as UsersManager -- gated on isAdmin since this page's
   // own data never loads for a non-admin viewer either (see the loadStaff
   // effect above and the early UnauthorizedMessage return below).
-  useAdminRealtimeSync(refreshAll, isAdmin);
+  useRealtimeSync("profiles", refreshAll, { enabled: isAdmin });
 
   const totalPages = Math.max(1, Math.ceil(total / ITEMS_PER_PAGE));
   const hasFilters = statusFilter !== "all" || roleFilter !== "all" || rawSearch.length > 0;

@@ -32,6 +32,7 @@ export type { UseInfiniteProductsArgs, UseInfiniteProductsResult } from "./hooks
 export { useProduct } from "./hooks/useProduct";
 export { useProductSearch } from "./hooks/useProductSearch";
 export { usePrefetchCategory } from "./hooks/usePrefetchCategory";
+export { useProductsRealtimeSync } from "./hooks/useProductsRealtimeSync";
 
 // Stores
 export {

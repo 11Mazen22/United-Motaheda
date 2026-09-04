@@ -11,11 +11,12 @@
  * mounted a `react-native-maps` `MapView` (driver map, order tracking,
  * delivery-address picker) was one tap away from crashing the app.
  *
- * This replaces the native map with Leaflet.js running inside a
- * `react-native-webview`, tiled from Geoapify (no Google dependency, no
- * billing account, works with a free-tier API key). It ships through the
- * same OTA update pipeline as everything else in this app — no native
- * rebuild required, since `react-native-webview` was already a dependency.
+ * This replaces the native map with MapLibre GL JS running inside a
+ * `react-native-webview`, styled from MapTiler's vector tiles (no Google
+ * dependency, no billing account, works with a free-tier API key). It ships
+ * through the same OTA update pipeline as everything else in this app — no
+ * native rebuild required, since `react-native-webview` was already a
+ * dependency.
  */
 
 export interface LatLng {
@@ -60,6 +61,9 @@ export interface MapPolyline {
   coordinates: LatLng[];
   color: string;
   width?: number;
+  /** Dashed stroke — signals "as-the-crow-flies direction", not a real
+   *  road-following route (this app has no routing/directions API). */
+  dashed?: boolean;
 }
 
 export interface LeafletMapRef {
@@ -75,9 +79,16 @@ export interface LeafletMapProps {
   onPress?: (coordinate: LatLng) => void;
   onMarkerPress?: (id: string) => void;
   onMarkerDragEnd?: (id: string, coordinate: LatLng) => void;
-  /** Geoapify raster style — see https://apidocs.geoapify.com/docs/maps/map-tiles/ */
+  /** MapTiler vector style id (e.g. "streets-v2") — resolved to that
+   *  style's style.json. See https://docs.maptiler.com/cloud/api/maps/ */
   tileStyle?: string;
   zoomControl?: boolean;
+  /** false renders a fixed, non-pannable/non-zoomable preview (drag, touch-zoom,
+   *  scroll-zoom and double-click-zoom all disabled). Default true. Used by
+   *  AddressMapPlaceholder's compact preview card, which sits inside a
+   *  scrollable form — an interactive Leaflet map there would steal the
+   *  parent ScrollView's drag gesture the moment a finger lands on the card. */
+  interactive?: boolean;
   style?: import("react-native").StyleProp<import("react-native").ViewStyle>;
   testID?: string;
 }

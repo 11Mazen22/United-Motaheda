@@ -51,6 +51,7 @@ import {
   type ProductFilters,
   type PageResult,
 } from "../services/shopperCatalogApi";
+import { useRealtimeSync } from "../hooks/useRealtimeSync";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -240,6 +241,23 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     void refreshCategories();
   }, [refreshCategories]);
+
+  // ── Live sync ─────────────────────────────────────────────────────────────
+  //
+  // A stock/price change or a new product from the admin panel (including a
+  // CSV bulk import) previously only reached a shopper's browser after the
+  // page's own cache/staleTime lapsed or a manual reload. invalidatePageCache
+  // clears the HTTP-level cache this context's own fetchProductsPage calls
+  // already read through; re-fetching page 1 of whatever view (browse/
+  // search/category filter) is CURRENTLY active reuses the exact same
+  // fetch+applyPageResult path search()/filterByCategory() already use, so
+  // this can't drift from how a real filter change is handled.
+  useRealtimeSync("products", () => {
+    invalidatePageCache();
+    void fetchProductsPage(1, activeFilters)
+      .then((result) => applyPageResult(result, 1, false))
+      .catch(() => {});
+  });
 
   // ── loadNextPage ──────────────────────────────────────────────────────────
 

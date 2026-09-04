@@ -7,7 +7,7 @@
  * configured (that requires a Google Cloud billing account) and the native
  * Google Maps SDK does not fail gracefully without one. This screen now
  * renders on `LeafletMap` (see src/shared/leafletMap) — Leaflet.js inside a
- * WebView, tiled from Geoapify, no Google dependency, no crash, no native
+ * WebView, tiled from MapTiler, no Google dependency, no crash, no native
  * rebuild needed to ship it.
  *
  * Also fixed: the "recenter" control in the map overlay used to be a bare
@@ -28,7 +28,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Screen, Text as UIText, EmptyState, useTheme, type NativeTheme } from "@pharmacy/ui-native";
 import { LeafletMap } from "@/shared/leafletMap/LeafletMap";
 import { headingMarkerHtml, pinMarkerHtml } from "@/shared/leafletMap/html";
-import type { LeafletMapRef, MapMarkerSpec } from "@/shared/leafletMap/types";
+import type { LeafletMapRef, MapMarkerSpec, MapPolyline } from "@/shared/leafletMap/types";
 import { useAuth } from "@/features/auth";
 import { useScreenLayout } from "@/utils/responsive";
 import { flexRow, isRtl, textAlignStart } from "@/utils/layout";
@@ -105,6 +105,24 @@ export default function DriverMap({ compact }: { compact?: boolean } = {}): Reac
     return list;
   }, [dest, driverCoords, fix?.heading, brand, info]);
 
+  // Straight-line connector, not a real route — this app has no
+  // routing/directions API (confirmed unavailable on the MapTiler key this
+  // app uses). Dashed styling signals "as-the-crow-flies direction" rather
+  // than implying a road-following path; RouteSummary's driving distance/ETA
+  // stays the authoritative number, this is purely an at-a-glance visual.
+  const polyline: MapPolyline | null = useMemo(() => {
+    if (!dest || !driverCoords) return null;
+    return {
+      coordinates: [
+        { latitude: driverCoords.lat, longitude: driverCoords.lng },
+        { latitude: dest.lat, longitude: dest.lng },
+      ],
+      color: brand,
+      width: 3,
+      dashed: true,
+    };
+  }, [dest, driverCoords, brand]);
+
   const s = useMemo(() => getStyles(theme, pagePad), [theme, pagePad]);
 
   const handleRecenter = useCallback(() => {
@@ -165,6 +183,7 @@ export default function DriverMap({ compact }: { compact?: boolean } = {}): Reac
           ref={mapRef}
           initialRegion={initialRegion}
           markers={markers}
+          polyline={polyline}
           testID="driver-map"
         />
       </View>

@@ -1,5 +1,5 @@
 /**
- * PlacesAutocompleteField — web address autocomplete backed by Geoapify.
+ * PlacesAutocompleteField — web address autocomplete backed by MapTiler.
  *
  * Matches the visual style of the existing <Field /> component used in
  * Checkout.tsx so it integrates without a layout change.
@@ -11,6 +11,9 @@
  *     onSuggestionSelect so parent can fill building/district/coords
  *   - Aborts in-flight requests when value changes
  *   - Caches results in memory for the session
+ *
+ * Mirrors apps/shopper-native/src/lib/placesApi.ts — same provider, same
+ * Cairo bbox bias, same context-parsing rules for district/city.
  */
 
 import {
@@ -22,8 +25,15 @@ import {
 import { MapPin, Loader2, X } from "lucide-react";
 import { cn } from "./UI";
 
-const GEOAPIFY_KEY =
-  import.meta.env.VITE_GEOAPIFY_KEY ?? "c6beba954a794cb49263d1679e4bc8bf";
+const MAPTILER_KEY =
+  import.meta.env.VITE_MAPTILER_KEY ?? "QrLZWoUCSARVeuDA8fc1";
+
+const GEOCODING_BASE = "https://api.maptiler.com/geocoding";
+
+// Cairo-area bounding box (west,south,east,north) — narrows results to the
+// app's actual delivery area instead of letting a bare place name resolve
+// to a same-named place in another country.
+const CAIRO_BBOX = "30.70,29.78,31.90,30.28";
 
 export interface PlacesSuggestion {
   formatted:    string;
@@ -36,7 +46,29 @@ export interface PlacesSuggestion {
   placeId:      string;
 }
 
+interface MapTilerFeature {
+  id: string;
+  place_name: string;
+  place_type: string[];
+  center: [number, number]; // [lng, lat]
+  text: string;
+  context?: Array<{ id: string; text: string; kind?: string }>;
+}
+
 const cache = new Map<string, PlacesSuggestion[]>();
+
+/** The `place`-kind context entry (neighbourhood/suburb/locality) is the
+ *  closest equivalent to Geoapify's `district`. Deliberately not "any entry
+ *  that isn't admin_area" — some context entries (a postal code, a river,
+ *  the continent) carry no `kind` at all or a non-place kind, and a
+ *  negative filter matches those by accident. */
+function extractDistrict(f: MapTilerFeature): string | null {
+  return f.context?.find((c) => c.kind === "place")?.text ?? null;
+}
+
+function extractCity(f: MapTilerFeature): string | null {
+  return f.context?.find((c) => c.kind === "admin_area")?.text ?? null;
+}
 
 async function fetchSuggestions(
   query:  string,
@@ -49,29 +81,34 @@ async function fetchSuggestions(
 
   try {
     const params = new URLSearchParams({
-      text:   q,
-      apiKey: GEOAPIFY_KEY,
-      limit:  "6",
-      lang:   "ar",
-      bias:   "rect:30.70,29.78,31.90,30.28",
-      filter: "countrycode:eg",
+      key:          MAPTILER_KEY,
+      limit:        "6",
+      language:     "ar",
+      country:      "eg",
+      bbox:         CAIRO_BBOX,
+      autocomplete: "true",
     });
     const resp = await fetch(
-      `https://api.geoapify.com/v1/geocode/autocomplete?${params.toString()}`,
+      `${GEOCODING_BASE}/${encodeURIComponent(q)}.json?${params.toString()}`,
       { signal },
     );
     if (!resp.ok) return [];
     const json = await resp.json();
-    const results: PlacesSuggestion[] = (json.features ?? []).map((f: any) => ({
-      formatted:   f.properties.formatted,
-      street:      f.properties.street ?? null,
-      houseNumber: f.properties.housenumber ?? null,
-      district:    f.properties.suburb ?? f.properties.district ?? null,
-      city:        f.properties.city ?? null,
-      lat:         f.properties.lat,
-      lng:         f.properties.lon,
-      placeId:     f.properties.place_id,
-    }));
+    const results: PlacesSuggestion[] = (json.features ?? [])
+      .map((f: MapTilerFeature) => {
+        const [lng, lat] = f.center ?? [];
+        return {
+          formatted:   f.place_name,
+          street:      f.place_type?.[0] === "address" ? f.text : null,
+          houseNumber: null,
+          district:    extractDistrict(f),
+          city:        extractCity(f),
+          lat,
+          lng,
+          placeId:     f.id,
+        };
+      })
+      .filter((s: PlacesSuggestion) => s.lat != null && s.lng != null);
     cache.set(key, results);
     return results;
   } catch {

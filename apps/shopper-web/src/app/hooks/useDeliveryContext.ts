@@ -1,5 +1,6 @@
 import { useMemo } from "react";
-import { useDeliveryQuote, useLocationState } from "@pharmacy/domain-location";
+import { useLocationState } from "@pharmacy/domain-location";
+import { useDeliveryQuote } from "./useDeliveryQuote";
 import { useCart } from "../../contexts/CartContext";
 import { useLanguage } from "../../contexts/LanguageContext";
 import { getLocalizedProductName } from "../localization";

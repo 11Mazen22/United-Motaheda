@@ -45,6 +45,7 @@ import {
   type AdminOrderItem,
 } from "../../services/adminOrdersApi";
 import { cn } from "../components/UI";
+import { useRealtimeSync } from "../../hooks/useRealtimeSync";
 import {
   AdminEmptyState,
   AdminErrorBanner,
@@ -754,6 +755,17 @@ export default function OrdersManager() {
       loadControllerRef.current?.abort();
     };
   }, [loadOrders]);
+
+  // Live sync: this was the page the "فشل تحديث الطلب" WebSocket/back-
+  // forward-cache report came from -- an order edited from the native app,
+  // another admin tab, or a driver accepting/declining an assignment
+  // previously only showed up here after a manual refresh. Both tables feed
+  // this view (delivery_assignments drives assignedDriver/assignmentStatus
+  // above), so either changing re-runs the same loadOrders() the mount
+  // effect and the manual refresh button already use.
+  const refreshOrders = useCallback(() => void loadOrders(true), [loadOrders]);
+  useRealtimeSync("orders", refreshOrders);
+  useRealtimeSync("delivery_assignments", refreshOrders);
 
   const setRowPending = useCallback((orderId: string, value: boolean) => {
     setPendingById((current) => {

@@ -4,7 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { LeafletMap } from "@/shared/leafletMap/LeafletMap";
 import { headingMarkerHtml, pinMarkerHtml } from "@/shared/leafletMap/html";
-import type { MapMarkerSpec } from "@/shared/leafletMap/types";
+import type { MapMarkerSpec, MapPolyline } from "@/shared/leafletMap/types";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, { FadeIn, FadeInDown, useSharedValue, withRepeat, withTiming, useAnimatedStyle } from "react-native-reanimated";
@@ -195,6 +195,13 @@ export default function TrackOrderScreen() {
     return list;
   }, [destination, driverPos, navyColor, brandColor]);
 
+  // Straight-line connector, not a real route — same rationale as
+  // DriverMap's polyline (no routing/directions API available).
+  const trackPolyline: MapPolyline | null = useMemo(() => {
+    if (!destination || !driverPos) return null;
+    return { coordinates: [driverPos, destination], color: brandColor, width: 3, dashed: true };
+  }, [destination, driverPos, brandColor]);
+
   if (isLoading) return <TrackSkeleton topInset={insets.top} />;
   if (isError || !track) return <TrackErrorState onRetry={() => void refetch()} onBack={() => router.back()} />;
 
@@ -243,7 +250,9 @@ export default function TrackOrderScreen() {
                  <LeafletMap
                    initialRegion={{ latitude: mapCenter.latitude, longitude: mapCenter.longitude, zoom: 15 }}
                    markers={trackMarkers}
+                   polyline={trackPolyline}
                    zoomControl={false}
+                   interactive={false}
                  />
                </View>
              ) : (
@@ -256,7 +265,7 @@ export default function TrackOrderScreen() {
              {track.location && (
                <Pressable
                  style={[styles.mapBtn, { backgroundColor: theme.colors.canvas.background }]}
-                 onPress={() => Linking.openURL(`https://maps.google.com/?q=${track.location!.lat},${track.location!.lng}`)}
+                 onPress={() => Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${track.location!.lat},${track.location!.lng}`)}
                >
                  <Ionicons name="navigate-outline" size={14} color={theme.colors.brand.primary} />
                  <UIText style={[styles.mapBtnText, { color: theme.colors.brand.primary }]}>{t("order.openMaps", { defaultValue: "Open in Maps" })}</UIText>

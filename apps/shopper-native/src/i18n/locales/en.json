@@ -985,6 +985,7 @@
     "reordering": "Adding to cart...",
     "statusUnknown": "Unknown Status",
     "cancelOrder": "Cancel Order",
+    "cancelOrderHint": "Available until the pharmacy starts preparing it",
     "cancelSheetTitle": "Cancel Order",
     "cancelSheetSubtitle": "Tell us why to help us improve our service",
     "cancelReasonsLabel": "Reason for cancellation",
@@ -997,6 +998,8 @@
     "cancelSuccessBody": "Your order has been cancelled. Any payment made will be refunded within 3–5 business days.",
     "cancelErrorTitle": "Couldn't Cancel Order",
     "cancelDone": "Done",
+    "cancelItemCount": "{{count}} items",
+    "cancelRefundNote": "Any amount already paid will be refunded within 3–5 business days, if applicable.",
     "cancelReasons": {
       "CHANGED_MIND": "Changed my mind",
       "ORDERED_BY_MISTAKE": "Ordered by mistake",

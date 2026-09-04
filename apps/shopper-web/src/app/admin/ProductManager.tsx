@@ -32,6 +32,7 @@ import { useCatalog } from "../../contexts/CatalogContext";
 import {
   fetchAdminProducts,
   createAdminProduct,
+  createAdminProductsBulk,
   deleteAdminProduct,
   handleApiError,
   showSuccessToast,
@@ -39,6 +40,7 @@ import {
   type AdminProduct,
 } from "../../services/adminSupabaseApi";
 import { cn } from "../components/UI";
+import { useRealtimeSync } from "../../hooks/useRealtimeSync";
 import {
   AdminBulkActionBar,
   AdminConfirmDialog,
@@ -101,6 +103,7 @@ export default function ProductManager() {
 
   // CSV import
   const [csvImporting, setCsvImporting] = useState(false);
+  const [csvProgress, setCsvProgress] = useState<{ done: number; total: number } | null>(null);
   const [error, setError] = useState("");
   const csvRef = useRef<HTMLInputElement>(null);
 
@@ -156,6 +159,11 @@ export default function ProductManager() {
     void loadProducts();
     return () => loadControllerRef.current?.abort();
   }, [loadProducts]);
+
+  // Live sync -- a stock change from the native app or another admin tab
+  // (or this page's own CSV import, which is exactly the kind of burst the
+  // hook's 500ms debounce is for) shows up without a manual refresh.
+  useRealtimeSync("products", loadProducts);
 
   const filteredProducts = useMemo(() => {
     const q = debouncedSearch.trim().toLowerCase();
@@ -250,10 +258,15 @@ export default function ProductManager() {
   const handleCsvImport = useCallback(async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!file.name.toLowerCase().endsWith(".csv") || file.size > 5 * 1024 * 1024) {
+    // Raised from 5 MB (was blocking real imports outright — the catalog
+    // this admin manages runs to 50,000+ products, and a CSV of that size
+    // routinely exceeds 5 MB even without embedded images/formatting). 25 MB
+    // comfortably covers that with headroom while still catching a genuinely
+    // wrong file attached by mistake.
+    if (!file.name.toLowerCase().endsWith(".csv") || file.size > 25 * 1024 * 1024) {
       const message = lang === "ar"
-        ? "اختر ملف CSV صالحًا بحجم لا يتجاوز 5 ميغابايت."
-        : "Choose a valid CSV file no larger than 5 MB.";
+        ? "اختر ملف CSV صالحًا بحجم لا يتجاوز 25 ميغابايت."
+        : "Choose a valid CSV file no larger than 25 MB.";
       setError(message);
       toast.error(message);
       if (csvRef.current) csvRef.current.value = "";
@@ -278,17 +291,40 @@ export default function ProductManager() {
       const imported: AdminProduct[] = [];
       const failures: CsvRowError[] = [...errors];
 
-      for (const { row, payload } of rows) {
+      // Batched instead of one row per network round-trip — a 50,000-row
+      // catalog at one request per row would take hours with the browser
+      // tab pinned open. 500 rows/batch keeps each request's payload modest
+      // and, since a Postgres multi-row INSERT is atomic, keeps the blast
+      // radius of one bad row (most likely a Code/Barcode that collides
+      // with something already in the table, since parseProductCsv already
+      // rules out collisions within the file itself) to a few hundred rows
+      // instead of the whole import.
+      const BATCH_SIZE = 500;
+      setCsvProgress({ done: 0, total: rows.length });
+      for (let start = 0; start < rows.length; start += BATCH_SIZE) {
+        const batch = rows.slice(start, start + BATCH_SIZE);
         try {
-          const created = await createAdminProduct(payload);
-          imported.push(created);
-        } catch (err: unknown) {
-          const detail = handleApiError(err, "Insert failed");
-          failures.push({
-            row,
-            message: lang === "ar" ? `الصف ${row}: ${detail}` : `Row ${row}: ${detail}`,
-          });
+          const created = await createAdminProductsBulk(batch.map((r) => r.payload));
+          imported.push(...created);
+        } catch {
+          // Whole batch rejected (constraint violation somewhere inside
+          // it) -- fall back to inserting this batch's rows one at a time
+          // so the rows that ARE valid still land, and only the actual
+          // offender(s) get reported as failures.
+          for (const { row, payload } of batch) {
+            try {
+              const created = await createAdminProduct(payload);
+              imported.push(created);
+            } catch (err: unknown) {
+              const detail = handleApiError(err, "Insert failed");
+              failures.push({
+                row,
+                message: lang === "ar" ? `الصف ${row}: ${detail}` : `Row ${row}: ${detail}`,
+              });
+            }
+          }
         }
+        setCsvProgress({ done: Math.min(start + BATCH_SIZE, rows.length), total: rows.length });
       }
 
       if (imported.length > 0) {
@@ -318,6 +354,7 @@ export default function ProductManager() {
       toast.error(msg);
     } finally {
       setCsvImporting(false);
+      setCsvProgress(null);
       if (csvRef.current) csvRef.current.value = "";
     }
   }, [categories, lang]);
@@ -389,7 +426,11 @@ export default function ProductManager() {
                   ) : (
                     <ArrowUpTrayIcon className="h-4 w-4 text-teal-600" />
                   )}
-                  {lang === "ar" ? "استيراد CSV" : "Import CSV"}
+                  {csvImporting && csvProgress
+                    ? lang === "ar"
+                      ? `جارٍ الاستيراد ${csvProgress.done}/${csvProgress.total}`
+                      : `Importing ${csvProgress.done}/${csvProgress.total}`
+                    : lang === "ar" ? "استيراد CSV" : "Import CSV"}
                 </label>
                 <button
                   type="button"

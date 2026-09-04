@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { useLanguage } from "../../contexts/LanguageContext";
 import { useAuth } from "../../contexts/AuthContext";
+import { useRealtimeSync } from "../../hooks/useRealtimeSync";
 import {
   getCachedCustomerOrders,
   getCustomerOrdersWithMeta,
@@ -469,6 +470,17 @@ export default function Orders() {
       window.removeEventListener("online", handleOnline);
     };
   }, [load, orders.length]);
+
+  // Live sync -- a status change (pharmacist accepting/preparing, driver
+  // picking up) shows up here the moment it happens instead of waiting on
+  // this page's own manual refresh. Scoped to the signed-in customer's own
+  // rows via `filter`, matching orders' RLS (auth.uid() = user_id) exactly,
+  // so the subscription only ever receives what a direct SELECT already
+  // would.
+  useRealtimeSync("orders", () => void load(true), {
+    enabled: Boolean(user?.id),
+    filter: user?.id ? `user_id=eq.${user.id}` : undefined,
+  });
 
   const liveOrders = orders.filter((o) => isLiveStatus(o.status));
   const pastOrders = orders.filter((o) => !isLiveStatus(o.status));

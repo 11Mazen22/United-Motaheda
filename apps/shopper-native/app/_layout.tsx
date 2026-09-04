@@ -52,6 +52,8 @@ import {
 
 import { useCustomerOrdersRealtimeSync } from "@/features/orders";
 
+import { useProductsRealtimeSync } from "@/features/products";
+
 import { ErrorBoundary, PharmacyBootstrap, SplashOverlay } from "@/shared/components";
 import { AppLogo } from "@/shared/components/AppLogo";
 
@@ -129,6 +131,16 @@ function CustomerOrdersSync() {
   const { user } = useAuth();
 
   useCustomerOrdersRealtimeSync(user?.id);
+
+  return null;
+
+}
+
+
+
+function ProductsSync() {
+
+  useProductsRealtimeSync();
 
   return null;
 
@@ -216,6 +228,8 @@ function ThemedApp() {
         <NotificationSync />
 
         <CustomerOrdersSync />
+
+        <ProductsSync />
 
         <PushBootstrap />
 

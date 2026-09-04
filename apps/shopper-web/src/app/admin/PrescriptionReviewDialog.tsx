@@ -15,10 +15,23 @@ export interface ReviewDialogDetailRow {
   value: string;
 }
 
+export interface ReviewDialogEditableField {
+  key: string;
+  label: string;
+  value: string;
+  placeholder?: string;
+  onChange: (value: string) => void;
+}
+
 export interface ReviewDialogTarget {
   title: string;
   subtitle: string;
   detailRows: ReviewDialogDetailRow[];
+  /** Editable in-dialog inputs, shown above the read-only detail rows —
+   *  used for scanned prescriptions, which have no OCR: the reviewer reads
+   *  the image and types in what they see rather than just confirming
+   *  data that was never extracted in the first place. */
+  editableFields?: ReviewDialogEditableField[];
   /** Extra warning shown for controlled substances / WhatsApp-source rows. */
   warning?: string;
   /** Full URL to the prescription image bucket */
@@ -127,6 +140,27 @@ export default function PrescriptionReviewDialog({
                 alt="Prescription" 
                 className="max-h-[400px] object-contain w-full"
               />
+            </div>
+          )}
+
+          {/* Editable fields — read the image, record what it actually says */}
+          {target.editableFields && target.editableFields.length > 0 && (
+            <div className="grid gap-3 rounded-xl border border-teal-200 bg-teal-50/40 p-4">
+              {target.editableFields.map((field) => (
+                <div key={field.key}>
+                  <label className="mb-1 block text-xs font-bold text-slate-600">
+                    {field.label}
+                  </label>
+                  <input
+                    type="text"
+                    value={field.value}
+                    onChange={(e) => field.onChange(e.target.value)}
+                    placeholder={field.placeholder}
+                    dir="auto"
+                    className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 outline-none placeholder:font-normal placeholder:text-slate-400 focus:border-teal-400 focus:ring-2 focus:ring-teal-100"
+                  />
+                </div>
+              ))}
             </div>
           )}
 
