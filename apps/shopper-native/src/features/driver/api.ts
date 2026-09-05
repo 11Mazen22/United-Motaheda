@@ -32,7 +32,7 @@ export type { Order, OrderItem };
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-export type AssignmentResponseStatus = "offered" | "accepted" | "declined" | "superseded" | "completed";
+export type AssignmentResponseStatus = "offered" | "accepted" | "declined" | "superseded" | "completed" | "expired";
 
 export interface DeliveryAssignment {
   id:             string;
@@ -48,6 +48,10 @@ export interface DeliveryAssignment {
   deliveredAt:    string | null;
   arrivedAtPharmacy: string | null;
   arrivedAtCustomer: string | null;
+  /** Auto-dispatch offers only (25s waterfall window, server-enforced by
+   *  driver_accept_assignment and swept by auto_dispatch_tick) -- null for
+   *  manual assignments, which never expire on their own. */
+  expiresAt:      string | null;
 }
 
 export type IssueReasonCode =
@@ -133,6 +137,7 @@ interface RawAssignmentRow {
   delivered_at:     string | null;
   arrived_at_pharmacy: string | null;
   arrived_at_customer: string | null;
+  expires_at:       string | null;
 }
 
 interface RawIssueRow {
@@ -168,7 +173,7 @@ interface ManifestAssignmentInfo {
 }
 
 const ASSIGNMENT_COLUMNS =
-  "id, order_id, driver_id, assigned_by, assignment_kind, response_status, decline_reason, offered_at, responded_at, picked_up_at, delivered_at, arrived_at_pharmacy, arrived_at_customer";
+  "id, order_id, driver_id, assigned_by, assignment_kind, response_status, decline_reason, offered_at, responded_at, picked_up_at, delivered_at, arrived_at_pharmacy, arrived_at_customer, expires_at";
 const ISSUE_COLUMNS =
   "id, order_id, driver_id, reason_code, note, photo_url, status, resolved_by, resolved_at, resolution_note, created_at";
 
@@ -193,6 +198,7 @@ function mapAssignmentRow(row: RawAssignmentRow): DeliveryAssignment {
     deliveredAt: row.delivered_at,
     arrivedAtPharmacy: row.arrived_at_pharmacy,
     arrivedAtCustomer: row.arrived_at_customer,
+    expiresAt: row.expires_at,
   };
 }
 

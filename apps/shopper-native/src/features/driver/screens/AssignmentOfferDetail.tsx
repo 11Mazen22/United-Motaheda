@@ -3,9 +3,10 @@
  * Decline requires a short reason (kept as free text, not a chip picker —
  * this is an internal staff-visible note, not a customer-facing form).
  */
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Linking, StyleSheet, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { useQueryClient } from "@tanstack/react-query";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { Screen, Text as UIText, Card, Input, Badge, useTheme } from "@pharmacy/ui-native";
@@ -21,7 +22,7 @@ import { formatPrice } from "@/utils/format";
 import { findBranchById } from "@/features/delivery/branches/data";
 import { useAppLanguage } from "@/i18n/LanguageProvider";
 import { showErrorSheet, showSuccessSheet } from "@/shared/store/appSheetStore";
-import { useDriverOffer, useDriverOrderDetail } from "../hooks/useDriverManifest";
+import { useDriverOffer, useDriverOrderDetail, driverQueryKeys } from "../hooks/useDriverManifest";
 import { useDriverMutations } from "../hooks/useDriverMutations";
 import { DriverScreenHeader } from "../components/DriverScreenHeader";
 import { getDriverActionErrorMessage } from "../lib/errorMessage";
@@ -30,6 +31,10 @@ const OFFER_URGENT_AFTER_MIN = 10;
 
 function minutesSince(iso: string): number {
   return Math.max(0, Math.floor((Date.now() - Date.parse(iso)) / 60_000));
+}
+
+function secondsUntil(iso: string): number {
+  return Math.max(0, Math.round((Date.parse(iso) - Date.now()) / 1000));
 }
 
 const IS_RTL = isRtl();
@@ -46,6 +51,8 @@ export function AssignmentOfferDetail(): React.ReactElement {
   const [declining, setDeclining] = useState(false);
   const [reason, setReason] = useState("");
   const [, forceTick] = useState(0);
+  const queryClient = useQueryClient();
+  const expiredRef = useRef(false);
 
   const offerQuery = useDriverOffer(assignmentId, user?.id);
   const offer = offerQuery.data;
@@ -53,19 +60,32 @@ export function AssignmentOfferDetail(): React.ReactElement {
   const order = orderQuery.data;
   const mutations = useDriverMutations(user?.id);
 
-  // Keeps the "waiting Xm" indicator honest without requiring any other
-  // part of the screen to re-render — this is the one piece of UI here
-  // that goes stale purely with the passage of time.
+  // Keeps the "waiting Xm" indicator / real expiresAt countdown honest
+  // without requiring any other part of the screen to re-render. This is
+  // also the deep-link target of the auto-dispatch push notification
+  // itself (auto_dispatch_tick sets it as the notification's action_url),
+  // so a driver landing here from that notification is exactly who has a
+  // real, ticking 25s deadline -- once it passes, invalidate once so the
+  // screen picks up the server's own expired/reassigned state instead of
+  // sitting on a stale "0s" badge until the driver backs out and back in.
   useEffect(() => {
-    const id = setInterval(() => forceTick((n) => n + 1), 30_000);
+    const id = setInterval(() => {
+      forceTick((n) => n + 1);
+      if (offer?.expiresAt && !expiredRef.current && Date.parse(offer.expiresAt) <= Date.now()) {
+        expiredRef.current = true;
+        void queryClient.invalidateQueries({ queryKey: driverQueryKeys.offer(offer.id) });
+      }
+    }, 1_000);
     return () => clearInterval(id);
-  }, []);
+  }, [offer?.expiresAt, offer?.id, queryClient]);
 
   const branch = order?.branchId ? findBranchById(order.branchId) : null;
   const branchName = branch ? (language === "ar" ? branch.nameAr : branch.nameEn) : null;
   const branchPhone = branch?.phones?.[0] ?? null;
   const waitedMin = offer ? minutesSince(offer.offeredAt) : 0;
-  const isUrgent = waitedMin >= OFFER_URGENT_AFTER_MIN;
+  const hasDeadline = Boolean(offer?.expiresAt);
+  const secondsLeft = offer?.expiresAt ? secondsUntil(offer.expiresAt) : null;
+  const isUrgent = hasDeadline ? (secondsLeft ?? 0) <= 5 : waitedMin >= OFFER_URGENT_AFTER_MIN;
 
   const s = useMemo(() => StyleSheet.create({
     content: { paddingBottom: 40, gap: 12 },
@@ -125,7 +145,11 @@ export function AssignmentOfferDetail(): React.ReactElement {
                   <Badge
                     style={{ marginTop: 6, alignSelf: "flex-start" }}
                     variant={isUrgent ? "warning" : "neutral"}
-                    label={waitedMin < 1 ? t("driver.elapsedJustNow") : t("driver.elapsedMinutes", { count: waitedMin })}
+                    label={
+                      hasDeadline
+                        ? (secondsLeft && secondsLeft > 0 ? t("driver.expiresInSeconds", { count: secondsLeft }) : t("driver.expiringNow"))
+                        : (waitedMin < 1 ? t("driver.elapsedJustNow") : t("driver.elapsedMinutes", { count: waitedMin }))
+                    }
                   />
                 </View>
                 <View style={{ width: 120, marginStart: 12 }}>

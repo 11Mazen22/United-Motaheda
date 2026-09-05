@@ -40,6 +40,8 @@ export type AdminOrder = {
   externalRef?:    string;
   createdAt:       string;
   status:          AdminOrderStatus;
+  /** Auto-dispatch waterfall state, layered on top of `status` -- see orders.dispatch_status. */
+  dispatchStatus:  string;
   paymentMethod:   string | null;
   paymentStatus:   AdminPaymentStatus;
   paymentProofUrl: string | null;
@@ -76,6 +78,7 @@ interface OrderRow {
   external_ref:     string | null;
   created_at:       string;
   status:           string;
+  dispatch_status:  string;
   payment_method:   string | null;
   payment_status:   string;
   payment_proof_url: string | null;
@@ -125,6 +128,7 @@ function mapRow(row: OrderRow): AdminOrder {
     externalRef:     row.external_ref ?? undefined,
     createdAt:       row.created_at,
     status:          row.status as AdminOrderStatus,
+    dispatchStatus:  row.dispatch_status,
     paymentMethod:   row.payment_method,
     paymentStatus:   (row.payment_status ?? "pending") as AdminPaymentStatus,
     paymentProofUrl: row.payment_proof_url,
@@ -147,6 +151,7 @@ const ORDERS_BASE_COLUMNS = [
   "external_ref",
   "created_at",
   "status",
+  "dispatch_status",
   "payment_method",
   "payment_status",
   "payment_proof_url",

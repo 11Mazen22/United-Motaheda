@@ -18,7 +18,7 @@
  * used to fire the mutation on the first tap and show a reason field
  * afterward. Reason first, submit only on explicit confirm.
  */
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FlatList, Linking, Pressable, RefreshControl, StyleSheet, View } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -44,13 +44,20 @@ import type { AssignmentOffer } from "../api";
 const IS_RTL = isRtl();
 const TEXT_START = textAlignStart(IS_RTL);
 
-/** An offer is expected to be actioned within this window; the countdown
- *  bar depletes across it and crosses into "urgent" styling at zero. Not a
- *  hard server-enforced expiry (there isn't one) -- purely a decision aid. */
+/** Manual assignments (expiresAt is null -- see DeliveryAssignment.expiresAt)
+ *  have no server-side deadline at all; this window is purely a decision aid
+ *  so the depletion bar still means something for them. Auto-dispatch offers
+ *  carry a REAL expiresAt now (driver_accept_assignment rejects a late
+ *  accept, auto_dispatch_tick sweeps and re-offers) -- those count down to
+ *  that exact timestamp instead of this soft window. */
 const OFFER_ATTENTION_WINDOW_MIN = 10;
 
 function minutesSince(iso: string): number {
   return Math.max(0, Math.floor((Date.now() - Date.parse(iso)) / 60_000));
+}
+
+function secondsUntil(iso: string): number {
+  return Math.max(0, Math.round((Date.parse(iso) - Date.now()) / 1000));
 }
 
 function haversineKm(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
@@ -81,13 +88,33 @@ export function AssignmentOffersList(): React.ReactElement {
   const [reason, setReason] = useState("");
   const [refreshing, setRefreshing] = useState(false);
 
-  // Re-render once a minute so "waited Nm" / the countdown bar actually
-  // advance without requiring a pull-to-refresh.
+  // Re-render every second so the real expiresAt countdown (auto-dispatch
+  // offers) and the "waited Nm" indicator (manual ones) both stay live
+  // without a pull-to-refresh. Once an offer's real deadline passes, its
+  // server-side row is about to be swept to 'expired' and re-offered to the
+  // next driver by auto_dispatch_tick (within ~7s) -- invalidate once per
+  // offer so it drops off this list on its own instead of sitting there
+  // looking stuck at "0s" until the driver happens to pull-to-refresh.
   const [, forceTick] = useState(0);
+  const expiredRef = useRef<Set<string>>(new Set());
   useEffect(() => {
-    const id = setInterval(() => forceTick((n) => n + 1), 30_000);
+    const id = setInterval(() => {
+      forceTick((n) => n + 1);
+      if (!user?.id) return;
+      const now = Date.now();
+      let justExpired = false;
+      for (const offer of offers) {
+        if (offer.expiresAt && Date.parse(offer.expiresAt) <= now && !expiredRef.current.has(offer.id)) {
+          expiredRef.current.add(offer.id);
+          justExpired = true;
+        }
+      }
+      if (justExpired) {
+        void queryClient.invalidateQueries({ queryKey: driverQueryKeys.offers(user.id) });
+      }
+    }, 1_000);
     return () => clearInterval(id);
-  }, []);
+  }, [offers, queryClient, user?.id]);
 
   const s = useMemo(() => getStyles(theme, pagePad), [theme, pagePad]);
 
@@ -199,8 +226,16 @@ function OfferCard({
   onAccept, onStartDecline, onCancelDecline, onConfirmDecline, onView,
 }: OfferCardProps) {
   const waitedMin = minutesSince(item.offeredAt);
-  const urgencyFrac = Math.min(1, waitedMin / OFFER_ATTENTION_WINDOW_MIN);
-  const isUrgent = urgencyFrac >= 1;
+  const hasDeadline = Boolean(item.expiresAt);
+  const secondsLeft = item.expiresAt ? secondsUntil(item.expiresAt) : null;
+  const urgencyFrac = hasDeadline && item.expiresAt
+    ? (() => {
+        const totalMs = Date.parse(item.expiresAt) - Date.parse(item.offeredAt);
+        const remainingMs = Date.parse(item.expiresAt) - Date.now();
+        return totalMs > 0 ? 1 - Math.max(0, Math.min(1, remainingMs / totalMs)) : 1;
+      })()
+    : Math.min(1, waitedMin / OFFER_ATTENTION_WINDOW_MIN);
+  const isUrgent = hasDeadline ? (secondsLeft ?? 0) <= 5 : urgencyFrac >= 1;
   const branch = item.branchId ? findBranchById(item.branchId) : null;
   const branchName = branch ? (language === "ar" ? branch.nameAr : branch.nameEn) : null;
   const branchPhone = branch?.phones?.[0] ?? null;
@@ -246,7 +281,9 @@ function OfferCard({
             <View style={[s.waitPill, { backgroundColor: urgencySoft.bg }]}>
               <Ionicons name={isUrgent ? "alert-circle" : "time-outline"} size={13} color={urgencySoft.text} />
               <UIText weight="bold" style={[s.waitPillText, { color: urgencySoft.text }]}>
-                {waitedMin < 1 ? t("driver.elapsedJustNow") : t("driver.elapsedMinutes", { count: waitedMin })}
+                {hasDeadline
+                  ? (secondsLeft && secondsLeft > 0 ? t("driver.expiresInSeconds", { count: secondsLeft }) : t("driver.expiringNow"))
+                  : (waitedMin < 1 ? t("driver.elapsedJustNow") : t("driver.elapsedMinutes", { count: waitedMin }))}
               </UIText>
             </View>
           </View>

@@ -362,77 +362,55 @@ export async function listIntegrationEvents() {
   return data ?? [];
 }
 
-export async function assignDriver(orderId: string, driverId: string | null, staffId?: string) {
+// staffId is no longer used directly -- manual_assign_driver derives the
+// acting staff member from auth.uid() itself (the RPC is the authorization
+// boundary, so it doesn't trust a client-supplied id) -- kept as a
+// parameter so existing call sites don't need to change.
+export async function assignDriver(orderId: string, driverId: string | null, _staffId?: string) {
   const supabase = getSupabaseClient();
-
-  // Previously this called the `assign-driver` Edge Function, which often
-  // isn't deployed on this Supabase project. The UI then optimistically
-  // displays "Driver assigned" and immediately receives back garbage from
-  // the missing function, leaving the assignment in an inconsistent state.
-  //
-  // Direct UPDATE with `.select()` is more reliable: PostgREST returns the
-  // rows it actually mutated, so we can detect RLS denials (empty array) and
-  // raise a real error instead of pretending the assignment succeeded.
-  const { data, error } = await supabase
-    .from("orders")
-    .update({
-      assigned_driver_id: driverId,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", orderId)
-    .select(
-      "id, external_ref, customer_name, customer_phone, customer_address, customer_lat, customer_lng, status, assigned_driver_id, updated_at, created_at, note, total, qr_token",
-    );
-
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  if (!data || data.length === 0) {
-    throw new Error(
-      "Driver assignment was not applied. Check that your role can update orders (RLS).",
-    );
-  }
-
-  let updatedRow = data[0] as RawOpsOrderRow;
-  if ((updatedRow.assigned_driver_id ?? null) !== (driverId ?? null)) {
-    throw new Error("Driver did not persist; the database returned the previous value.");
-  }
-
-  // Assigning a ready order also advances its lifecycle. Earlier phases may
-  // nominate a driver while preparation is still in progress, so only the
-  // canonical ready state is eligible for this transition.
-  if (driverId && normalizeOrderStatus(updatedRow.status) === "ready") {
-    const { data: transitioned, error: transitionError } = await supabase.rpc("transition_order", {
-      p_order_id: orderId,
-      p_next_status: "driver_assigned",
-    });
-    if (transitionError) throw new Error(transitionError.message);
-    updatedRow = transitioned as RawOpsOrderRow;
-  }
+  let updatedRow: RawOpsOrderRow;
 
   if (driverId) {
-    // First-time assignment: create the offered assignment-ledger row so
-    // the driver sees this as a real accept/decline offer (not just an
-    // order that silently appeared in their manifest) and staff gets an
-    // elapsed-time badge. reassignDriver() does the equivalent insert for
-    // every LATER reassignment — this covers the first one, which used to
-    // create no ledger row at all.
-    const { data: assignmentRow, error: assignmentError } = await supabase
+    // Routes through manual_assign_driver -- one atomic transaction that
+    // supersedes any currently-open auto-dispatch offer, inserts the new
+    // assignment row, sets assigned_driver_id/dispatch_status, and (for a
+    // first-time assignment from 'ready') advances the lifecycle status via
+    // transition_order -- all under a single order-row lock. Previously
+    // this was three separate client round-trips (update, transition_order,
+    // insert), which is exactly the gap that let an in-flight automatic
+    // offer and a manual override corrupt each other's state.
+    const { data, error } = await supabase.rpc("manual_assign_driver", {
+      p_order_id: orderId,
+      p_driver_id: driverId,
+    });
+    if (error) throw new Error(error.message);
+    updatedRow = data as RawOpsOrderRow;
+
+    const { data: assignmentRow } = await supabase
       .from("delivery_assignments")
-      .insert({
-        order_id: orderId,
-        driver_id: driverId,
-        assigned_by: staffId ?? null,
-        assignment_kind: "assigned",
-        response_status: "offered",
-      })
       .select("id")
-      .single();
-    if (assignmentError) {
-      console.error("[logisticsApi] assignDriver: delivery_assignments insert failed:", assignmentError.message);
-    }
+      .eq("order_id", orderId)
+      .eq("driver_id", driverId)
+      .eq("response_status", "offered")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
     notifyDriverAssigned(orderId, driverId, (assignmentRow as { id: string } | null)?.id);
+  } else {
+    // Unassigning entirely -- manual_assign_driver requires a real driver
+    // id, so this one case stays a direct update, same as before.
+    const { data, error } = await supabase
+      .from("orders")
+      .update({ assigned_driver_id: null, dispatch_status: "idle", updated_at: new Date().toISOString() })
+      .eq("id", orderId)
+      .select(
+        "id, external_ref, customer_name, customer_phone, customer_address, customer_lat, customer_lng, status, assigned_driver_id, updated_at, created_at, note, total, qr_token",
+      );
+    if (error) throw new Error(error.message);
+    if (!data || data.length === 0) {
+      throw new Error("Driver assignment was not applied. Check that your role can update orders (RLS).");
+    }
+    updatedRow = data[0] as RawOpsOrderRow;
   }
 
   // Fetch line items and the driver list so the caller can build a
@@ -665,7 +643,7 @@ export async function fetchTrackingSnapshot(orderId: string, token: string): Pro
 // driver_id stays the fast "current driver" pointer (unchanged); these tables
 // are the audit trail + driver-reported-problem layer behind it.
 
-export type AssignmentResponseStatus = "offered" | "accepted" | "declined" | "superseded" | "completed";
+export type AssignmentResponseStatus = "offered" | "accepted" | "declined" | "superseded" | "completed" | "expired";
 export type AssignmentKind = "assigned" | "reassigned";
 
 export type DeliveryAssignment = {
@@ -682,6 +660,8 @@ export type DeliveryAssignment = {
   deliveredAt: string | null;
   arrivedAtPharmacy: string | null;
   arrivedAtCustomer: string | null;
+  /** Auto-dispatch offers only (25s waterfall window) -- null for manual assignments, which never expire on their own. */
+  expiresAt: string | null;
 };
 
 export type DeliveryIssueStatus = "open" | "acknowledged" | "resolved";
@@ -713,6 +693,7 @@ interface RawAssignmentRow {
   delivered_at: string | null;
   arrived_at_pharmacy: string | null;
   arrived_at_customer: string | null;
+  expires_at: string | null;
 }
 
 interface RawIssueRow {
@@ -743,6 +724,7 @@ function mapAssignmentRow(row: RawAssignmentRow): DeliveryAssignment {
     deliveredAt: row.delivered_at,
     arrivedAtPharmacy: row.arrived_at_pharmacy,
     arrivedAtCustomer: row.arrived_at_customer,
+    expiresAt: row.expires_at,
   };
 }
 
@@ -762,21 +744,23 @@ function mapIssueRow(row: RawIssueRow): DeliveryIssue {
 }
 
 const ASSIGNMENT_COLUMNS =
-  "id, order_id, driver_id, assigned_by, assignment_kind, response_status, decline_reason, offered_at, responded_at, picked_up_at, delivered_at, arrived_at_pharmacy, arrived_at_customer";
+  "id, order_id, driver_id, assigned_by, assignment_kind, response_status, decline_reason, offered_at, responded_at, picked_up_at, delivered_at, arrived_at_pharmacy, arrived_at_customer, expires_at";
 const ISSUE_COLUMNS =
   "id, order_id, driver_id, reason_code, note, status, resolved_by, resolved_at, resolution_note, created_at";
 
 /**
- * Reassign an order to a different driver — supersedes the current open
- * assignment row (if any), inserts a new 'reassigned' row, and updates
- * orders.assigned_driver_id via the same direct-write-with-.select()
- * verification idiom as assignDriver(), for the same reason: an Edge
- * Function or RPC could silently no-op under RLS, this can't.
+ * Reassign an order to a different driver — now a thin wrapper around
+ * manual_assign_driver, the same atomic RPC assignDriver() uses. Previously
+ * this superseded the old assignment, inserted the new one, and updated
+ * assigned_driver_id as three separate client round-trips; the RPC does all
+ * three under one order-row lock, which is what actually makes the "an old
+ * offer can never mutate an order after something else has taken its
+ * place" invariant hold against a concurrent automatic-dispatch offer.
  */
 export async function reassignDriver(
   orderId: string,
   newDriverId: string,
-  staffId: string,
+  _staffId: string,
 ): Promise<ManagedOrder> {
   const supabase = getSupabaseClient();
 
@@ -787,47 +771,22 @@ export async function reassignDriver(
     .maybeSingle();
   const previousDriverId = (previousOrder.data as { assigned_driver_id: string | null } | null)?.assigned_driver_id ?? null;
 
-  // Supersede the currently-open assignment row, if one exists.
-  await supabase
-    .from("delivery_assignments")
-    .update({ response_status: "superseded", superseded_at: new Date().toISOString() })
-    .eq("order_id", orderId)
-    .in("response_status", ["offered", "accepted"]);
+  const { data: rpcData, error: rpcError } = await supabase.rpc("manual_assign_driver", {
+    p_order_id: orderId,
+    p_driver_id: newDriverId,
+  });
+  if (rpcError) throw new Error(rpcError.message);
+  const updatedRow = rpcData as RawOpsOrderRow;
 
-  const { data: assignmentRow, error: insertError } = await supabase
+  const { data: assignmentRow } = await supabase
     .from("delivery_assignments")
-    .insert({
-      order_id: orderId,
-      driver_id: newDriverId,
-      assigned_by: staffId,
-      assignment_kind: "reassigned",
-      response_status: "offered",
-    })
     .select("id")
-    .single();
-  if (insertError) {
-    throw new Error(insertError.message);
-  }
-
-  const { data, error } = await supabase
-    .from("orders")
-    .update({ assigned_driver_id: newDriverId, updated_at: new Date().toISOString() })
-    .eq("id", orderId)
-    .select(
-      "id, external_ref, customer_name, customer_phone, customer_address, customer_lat, customer_lng, status, assigned_driver_id, updated_at, created_at, note, total, qr_token",
-    );
-
-  if (error) {
-    throw new Error(error.message);
-  }
-  if (!data || data.length === 0) {
-    throw new Error("Reassignment was not applied. Check that your role can update orders (RLS).");
-  }
-
-  const updatedRow = data[0] as RawOpsOrderRow;
-  if ((updatedRow.assigned_driver_id ?? null) !== newDriverId) {
-    throw new Error("Driver did not persist; the database returned the previous value.");
-  }
+    .eq("order_id", orderId)
+    .eq("driver_id", newDriverId)
+    .eq("response_status", "offered")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
 
   notifyDriverAssigned(orderId, newDriverId, (assignmentRow as { id: string } | null)?.id);
   if (previousDriverId && previousDriverId !== newDriverId) {

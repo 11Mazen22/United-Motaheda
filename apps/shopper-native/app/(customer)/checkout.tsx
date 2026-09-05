@@ -329,6 +329,8 @@ export default function CheckoutScreen() {
     setSelectedAddressId,
     paymentMethod,
     setPaymentMethod,
+    requestPosMachine,
+    setRequestPosMachine,
     transferNumber,
     setTransferNumber,
     receiptUri,
@@ -716,6 +718,22 @@ export default function CheckoutScreen() {
                </Pressable>
              ))}
 
+             {paymentMethod === "cod" && (
+               <Pressable
+                 onPress={() => { Haptics.selectionAsync(); setRequestPosMachine(!requestPosMachine); }}
+                 accessibilityRole="checkbox"
+                 accessibilityState={{ checked: requestPosMachine }}
+                 style={[styles.posCheckboxRow, { flexDirection: flexRow(IS_RTL) }]}
+               >
+                 <View style={[styles.posCheckbox, requestPosMachine && { backgroundColor: theme.colors.brand.primary, borderColor: theme.colors.brand.primary }]}>
+                   {requestPosMachine && <Ionicons name="checkmark" size={13} color="#fff" />}
+                 </View>
+                 <Text variant="body-sm" weight="bold" style={{ color: theme.colors.text.primary, textAlign: TEXT_START }}>
+                   {t("checkout.requestPosMachine", "Request POS machine with courier")}
+                 </Text>
+               </Pressable>
+             )}
+
              {isManualWalletPayment(paymentMethod) && (
                <View style={{ marginTop: 4, marginBottom: 8 }}>
                  <ManualPaymentPanel
@@ -893,6 +911,8 @@ const styles = StyleSheet.create({
 
   methodCard: { borderRadius: 12, borderWidth: 1, padding: 16, alignItems: "center", marginBottom: 12 },
   methodIconWell: { width: 44, height: 44, borderRadius: 14, alignItems: "center", justifyContent: "center" },
+  posCheckboxRow: { alignItems: "center", gap: 10, paddingVertical: 10, paddingHorizontal: 4, marginBottom: 8 },
+  posCheckbox: { width: 20, height: 20, borderRadius: 6, borderWidth: 1.5, borderColor: "#94A3B8", alignItems: "center", justifyContent: "center" },
 
   promoCard: { borderRadius: 12, borderWidth: 1.5, padding: 14, marginBottom: 16 },
   promoRow: { alignItems: "center", gap: 10 },

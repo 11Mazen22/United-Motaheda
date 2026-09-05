@@ -33,6 +33,7 @@ import {
   listOpenAssignments,
   reassignDriver,
   rankAvailableDrivers,
+  type AssignmentKind,
   type LogisticsProfile,
   type RankedDriverCandidate,
 } from "../../services/logisticsApi";
@@ -83,6 +84,7 @@ type AdminOrder = {
   note: string;
   orderDate: string;
   status: OrderStatus;
+  dispatchStatus: string;
   paymentMethod: string;
   paymentLabel: string;
   requestPosMachine: boolean;
@@ -147,6 +149,7 @@ function supabaseToAdminOrder(o: SupabaseAdminOrder): WorkflowOrder {
     note:            o.note,
     orderDate:       o.createdAt,
     status:          statusMap[normalizeCanonicalStatus(o.status)] ?? "Pending",
+    dispatchStatus:  o.dispatchStatus,
     paymentMethod:   o.paymentMethod ?? "cod",
     paymentLabel:    getPaymentLabel(o.paymentMethod),
     requestPosMachine: false,
@@ -191,6 +194,8 @@ type WorkflowStage = "all" | "new" | "verification" | "payment" | "preparation" 
 type WorkflowOrder = AdminOrder & {
   canonicalStatus: string;
   assignmentStatus?: "offered" | "accepted";
+  assignmentKind?: AssignmentKind;
+  offerExpiresAt?: string | null;
 };
 
 const ORDER_STATUSES: OrderStatus[] = [
@@ -288,19 +293,96 @@ const StatusSelect = memo(function StatusSelect({
   );
 });
 
+// Bucket by canonicalStatus, NOT the collapsed 5-value `status` label or
+// assignmentStatus -- both are unreliable here. `status` maps ready through
+// out_for_delivery all onto the single "Out for Delivery" string (see the
+// statusMap above), so checking it first (as this used to) made "ready",
+// "assignment" and "accepted" permanently unreachable -- every dispatch-in-
+// progress order silently fell into "out" no matter its real stage.
+// assignmentStatus has its own trap: response_status stays 'accepted'
+// forever once set (no writer ever moves it to 'completed'), so it can't
+// distinguish "driver just accepted" from "order delivered three days ago".
+// canonicalStatus doesn't have either problem -- it's exactly what
+// transition_order's state graph produces, one value at a time.
 function getWorkflowStage(order: WorkflowOrder): WorkflowStage {
   if (order.status === "Cancelled") return "cancelled";
   if (order.status === "Delivered") return "delivered";
   if (order.canonicalStatus === "archived") return "archived";
-  if (order.status === "Out for Delivery") return "out";
-  if (order.assignmentStatus === "accepted") return "accepted";
-  if (order.assignmentStatus === "offered" || order.assignedDriverId) return "assignment";
+  if (order.canonicalStatus === "driver_accepted") return "accepted";
+  if (order.canonicalStatus === "driver_assigned") return "assignment";
   if (order.canonicalStatus === "ready") return "ready";
+  if (order.status === "Out for Delivery") return "out";
   if (order.status === "Processing") return "preparation";
   if (order.paymentStatus === "pending_verification") return "payment";
   if (order.canonicalStatus === "confirmed" || order.canonicalStatus === "pending_payment") return "verification";
   return "new";
 }
+
+// Finer-grained dispatch state, shown alongside the 5-value status badge --
+// the ready/driver_assigned/driver_accepted canonical statuses each cover
+// more than one real situation (idle vs. escalated; auto-offer vs. manual,
+// unaccepted), and an operator needs to tell them apart at a glance.
+const DispatchBadge = memo(function DispatchBadge({ order, lang }: { order: WorkflowOrder; lang: Language }) {
+  const [now, setNow] = useState(() => Date.now());
+  const isCountingDown =
+    order.canonicalStatus === "driver_assigned" &&
+    order.dispatchStatus === "searching" &&
+    Boolean(order.offerExpiresAt);
+
+  useEffect(() => {
+    if (!isCountingDown) return;
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [isCountingDown]);
+
+  if (order.canonicalStatus === "ready" && order.dispatchStatus === "escalated") {
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-full border border-rose-200 bg-rose-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-rose-700">
+        <span className="h-1.5 w-1.5 rounded-full bg-rose-500" />
+        {lang === "ar" ? "تعذر إيجاد سائق — عيّن يدوياً" : "No driver found — assign manually"}
+      </span>
+    );
+  }
+
+  if (isCountingDown) {
+    const secondsLeft = Math.max(0, Math.round((new Date(order.offerExpiresAt!).getTime() - now) / 1000));
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-sky-700">
+        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-sky-500" />
+        {lang === "ar" ? "عرض على" : "Offered to"} {order.assignedDriver ?? "—"} · {secondsLeft}s
+      </span>
+    );
+  }
+
+  if (order.canonicalStatus === "driver_assigned" && order.dispatchStatus === "assigned") {
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-violet-700">
+        <span className="h-1.5 w-1.5 rounded-full bg-violet-500" />
+        {lang === "ar" ? "بانتظار رد" : "Awaiting response"} · {order.assignedDriver ?? "—"}
+      </span>
+    );
+  }
+
+  if (order.canonicalStatus === "driver_accepted") {
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-emerald-700">
+        <CheckCircleIcon className="h-3 w-3 text-emerald-500" />
+        {order.assignedDriver ?? (lang === "ar" ? "سائق" : "Driver")}
+      </span>
+    );
+  }
+
+  if (order.assignedDriver && ["out_for_delivery", "shipped", "picked_up"].includes(order.canonicalStatus)) {
+    return (
+      <span className="inline-flex items-center gap-1 text-xs font-semibold text-slate-500">
+        <TruckIcon className="h-3 w-3 text-sky-500" />
+        {order.assignedDriver}
+      </span>
+    );
+  }
+
+  return null;
+});
 
 function getStatusAccentColor(status: OrderStatus): string {
   if (status === "Delivered") return "#10b981";
@@ -354,12 +436,9 @@ const OrderCard = memo(function OrderCard({
           <div>
             <p className="text-lg font-black text-slate-950">{formatCurrency(order.totalPrice, lang)}</p>
             <p className="mt-0.5 text-xs font-semibold text-slate-500">{formatDate(order.orderDate, lang)}</p>
-            {order.assignedDriver && (
-              <p className="mt-1 flex items-center gap-1 text-xs font-semibold text-slate-500">
-                <TruckIcon className="h-3 w-3 text-sky-500" />
-                {order.assignedDriver}
-              </p>
-            )}
+            <div className="mt-1.5">
+              <DispatchBadge order={order} lang={lang} />
+            </div>
           </div>
           <div className="flex items-center gap-2">
             {updating && <ArrowPathIcon className="h-4 w-4 animate-spin text-teal-600" />}
@@ -486,10 +565,13 @@ const OrderTableRow = memo(function OrderTableRow({
 
         {/* Status */}
         <td className="px-5 py-4">
-          <span className={cn("admin-badge", getStatusClasses(order.status))}>
-            <span className={cn("h-1.5 w-1.5 rounded-full", getStatusDot(order.status))} />
-            {getStatusLabel(order.status, lang)}
-          </span>
+          <div className="flex flex-col items-start gap-1.5">
+            <span className={cn("admin-badge", getStatusClasses(order.status))}>
+              <span className={cn("h-1.5 w-1.5 rounded-full", getStatusDot(order.status))} />
+              {getStatusLabel(order.status, lang)}
+            </span>
+            <DispatchBadge order={order} lang={lang} />
+          </div>
         </td>
 
         {/* Payment */}
@@ -696,9 +778,17 @@ export default function OrdersManager() {
   // start a fresh one; a non-forced call (e.g. the initial mount effect)
   // skips itself if a load is already running rather than firing a duplicate.
   const loadOrders = useCallback(async (force = false) => {
-    if (loadControllerRef.current) {
+    const inFlight = loadControllerRef.current;
+    // An aborted-but-not-yet-settled controller (e.g. StrictMode's dev-only
+    // mount→cleanup→remount) must NOT count as "still running" -- otherwise
+    // this non-forced call silently no-ops while the call it deferred to
+    // is the one about to bail out in its own aborted-catch branch, and
+    // nothing is ever left to actually finish the load (loading stays true
+    // forever). Only a genuinely unsettled controller should suppress a
+    // non-forced call.
+    if (inFlight && !inFlight.signal.aborted) {
       if (!force) return;
-      loadControllerRef.current.abort();
+      inFlight.abort();
     }
     const controller = new AbortController();
     loadControllerRef.current = controller;
@@ -727,6 +817,8 @@ export default function OrdersManager() {
           assignedDriverId: assignment?.driverId,
           assignedDriver: driver?.full_name,
           assignmentStatus: assignment?.responseStatus === "accepted" ? "accepted" : assignment ? "offered" : undefined,
+          assignmentKind: assignment?.assignmentKind,
+          offerExpiresAt: assignment?.expiresAt ?? null,
         };
       });
       if (controller.signal.aborted || requestId !== latestRequestIdRef.current) return;

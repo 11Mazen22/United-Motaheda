@@ -54,6 +54,7 @@ export function usePremiumCheckout() {
   const [status, setStatus] = useState<CheckoutStatus>("LOADING");
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<CheckoutPaymentMethod>("cod");
+  const [requestPosMachine, setRequestPosMachine] = useState(false);
   const promoCode = useCartStore(s => s.promoCode);
   const setPromoCode = useCartStore(s => s.setPromoCode);
   const [note, setNote] = useState<string>("");
@@ -246,7 +247,7 @@ export function usePremiumCheckout() {
          note,
          paymentLabel: paymentLabel(paymentMethod),
          paymentMethod,
-         requestPosMachine: false,
+         requestPosMachine,
          lang: "en",
        });
 
@@ -262,7 +263,7 @@ export function usePremiumCheckout() {
          payment: {
            method: paymentMethod,
            label: paymentLabel(paymentMethod),
-           requestPosMachine: false,
+           requestPosMachine,
            transferNumber: manual ? transferNumber.trim() : undefined,
            paymentProofUrl: manual ? paymentProofUrl : undefined,
          },
@@ -320,7 +321,7 @@ export function usePremiumCheckout() {
         setStatus("FAILED");
         setErrorMsg(e instanceof CheckoutRequestError ? e.message : t("checkout.submitError"));
       }
-  }, [canSubmit, user, selectedAddress, paymentMethod, items, pricing, note, promoCode, clearCart, needsPrescription, selectedPrescriptionIds, transferNumber, receiptUri, t, lang]);
+  }, [canSubmit, user, selectedAddress, paymentMethod, requestPosMachine, items, pricing, note, promoCode, clearCart, needsPrescription, selectedPrescriptionIds, transferNumber, receiptUri, t, lang]);
 
   return {
     status,
@@ -331,6 +332,8 @@ export function usePremiumCheckout() {
     isAddressValid,
     paymentMethod,
     setPaymentMethod,
+    requestPosMachine,
+    setRequestPosMachine,
     transferNumber,
     setTransferNumber,
     receiptUri,
