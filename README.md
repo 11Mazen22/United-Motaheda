@@ -1,25 +1,36 @@
-# Pharmacy Motahheda Monorepo
+# United Pharmacy Monorepo
 
-This repository now uses an `npm workspaces` monorepo layout for the pharmacy commerce ecosystem.
+**See [PROJECT_HANDBOOK.md](./PROJECT_HANDBOOK.md) for the full, verified architecture, navigation maps, and known issues.** The summary below is intentionally short — the handbook is the source of truth.
 
-## Workspace layout
+This is an `npm workspaces` monorepo for a pharmacy delivery platform, backed by a self-hosted Supabase stack on Railway.
 
-- `apps/shopper-web`: active Vite/React customer web application
-- `apps/ops-dashboard`: operations dashboard shell
-- `apps/customer-mobile`: customer mobile shell
-- `apps/cashier-mobile`: cashier/POS shell
-- `packages/api-client`: the shared backend access layer
-- `packages/domain-*`: shared domain logic, state, and contracts
-- `packages/types`: shared cross-app interfaces
-- `packages/ui-web`, `packages/ui-native`, `packages/design-tokens`: shared presentation primitives
+## What's actually here
 
-## Architecture rules implemented here
+- `apps/shopper-native`: the primary product — Expo/React Native app serving customers, drivers, and pharmacists as role-based personas in one app.
+- `apps/shopper-web`: Vite/React web app — public storefront plus the real staff admin panel (embedded under `/admin`).
+- `apps/api`: a small NestJS service for the handful of things Supabase's direct REST/RPC access can't do alone (delivery-fee quoting, AI-assisted promotion drafting) plus admin-only operations.
+- `packages/*`: 18 workspace packages. Only 8 are real and actually imported (`contracts`, `api-client`, `domain-catalog`, `domain-core`, `domain-location`, `fuzzy-search`, `types` on the web side; `design-tokens` and `ui-native` on the native side) — and **none are shared between the two apps**. The rest are unused stubs. Don't assume a package here is load-bearing without checking the handbook's usage table first.
+- `apps/admin`, `apps/cashier-mobile`, `apps/customer-mobile`, `apps/ops-dashboard`, `apps/courier-mobile` are not real (removed or stub scaffolds) — see the handbook.
 
-- Shared backend access is centralized behind `packages/api-client`.
-- Shared workflow events and query conventions live in `packages/domain-core`.
-- Search state is centralized in `packages/domain-search` with Zustand + TanStack Query.
-- Geo-aware assignment and checkout quote logic live in `packages/domain-location`.
-- Medical-first product helpers live in `packages/domain-catalog`.
+## Running the shopper web app
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+Start the active web app:
+
+```bash
+npm run dev
+```
+
+Typecheck the active workspace:
+
+```bash
+npm run typecheck
+```
 
 ## Running the shopper web app
 

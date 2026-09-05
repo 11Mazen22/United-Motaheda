@@ -5,6 +5,8 @@
 **Last revised:** 2026-05-11
 **Scope:** post-stabilization roadmap for `apps/shopper-web` and supporting packages.
 
+> **Stale as of 2026-09-05**: written before `apps/shopper-native` existed (its own "M12 — not started" line is long out of date; the native app is now the primary product). The specific shopper-web milestones below may still be valid — verify each against current code before acting on it. See [PROJECT_HANDBOOK.md](./PROJECT_HANDBOOK.md) for the current, verified state of the whole codebase.
+
 ---
 
 ## 0. Executive summary

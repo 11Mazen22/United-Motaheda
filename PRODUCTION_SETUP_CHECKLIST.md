@@ -1,5 +1,7 @@
 # Production Setup Checklist: Promotion Copilot + Ollama on Railway
 
+> **Stale as of 2026-09-05**: written before the project migrated off Supabase Cloud — the `SUPABASE_URL`/project references below (`gntpxffonjvnvadjclpl.supabase.co`) point at the old Cloud project. Substitute the current self-hosted gateway (see [PROJECT_HANDBOOK.md](./PROJECT_HANDBOOK.md) §5.1) before following any step literally. The Ollama/Promotion-Copilot feature itself is real and still in use.
+
 ## 🎯 GOAL
 Get AI Promotion Copilot working on production with Railway-hosted Ollama.
 
