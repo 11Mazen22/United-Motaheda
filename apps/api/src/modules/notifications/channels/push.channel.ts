@@ -16,7 +16,10 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { createClient } from '@supabase/supabase-js';
-import * as admin from 'firebase-admin';
+
+// Use require for Firebase Admin SDK (CommonJS compatibility)
+// @ts-ignore
+const admin = require('firebase-admin');
 
 export interface PushPayload {
   userId: string;
@@ -42,7 +45,8 @@ export interface PushResult {
 export class PushChannelService {
   private readonly logger = new Logger(PushChannelService.name);
   private supabase: SupabaseClient;
-  private firebaseApp: admin.app.App;
+  private firebaseApp: any;
+  private isFirebaseInitialized = false;
 
   constructor(private configService: ConfigService) {
     const supabaseUrl = this.configService.get<string>('SUPABASE_URL');
@@ -63,6 +67,14 @@ export class PushChannelService {
    */
   private initializeFirebase(): void {
     try {
+      // Check if Firebase is already initialized
+      if (admin.apps && admin.apps.length > 0) {
+        this.firebaseApp = admin.apps[0];
+        this.isFirebaseInitialized = true;
+        this.logger.log('Firebase already initialized');
+        return;
+      }
+
       const firebaseConfig = this.configService.get('firebase');
       
       if (!firebaseConfig) {
@@ -70,20 +82,27 @@ export class PushChannelService {
         return;
       }
 
-      if (admin.apps.length === 0) {
-        admin.initializeApp({
-          credential: admin.credential.cert({
-            projectId: firebaseConfig.projectId,
-            clientEmail: firebaseConfig.clientEmail,
-            privateKey: firebaseConfig.privateKey.replace(/\\n/g, '\n'),
-          }),
-        });
-        this.logger.log('Firebase initialized successfully');
+      // Check if we have the required credentials
+      if (!firebaseConfig.projectId || !firebaseConfig.clientEmail || !firebaseConfig.privateKey) {
+        this.logger.warn('Firebase credentials incomplete, push notifications disabled');
+        return;
       }
 
-      this.firebaseApp = admin.apps[0];
+      // Initialize Firebase Admin
+      this.firebaseApp = admin.initializeApp({
+        credential: admin.credential.cert({
+          projectId: firebaseConfig.projectId,
+          clientEmail: firebaseConfig.clientEmail,
+          privateKey: firebaseConfig.privateKey.replace(/\\n/g, '\n'),
+        }),
+      });
+
+      this.isFirebaseInitialized = true;
+      this.logger.log('Firebase initialized successfully');
+
     } catch (error) {
       this.logger.error(`Failed to initialize Firebase: ${error.message}`);
+      this.isFirebaseInitialized = false;
     }
   }
 
@@ -93,6 +112,14 @@ export class PushChannelService {
   async send(payload: PushPayload): Promise<PushResult> {
     try {
       this.logger.debug(`Sending push to user: ${payload.userId}`);
+
+      // Check if Firebase is initialized
+      if (!this.isFirebaseInitialized) {
+        return {
+          status: 'failed',
+          error: 'Firebase not initialized',
+        };
+      }
 
       // Get user's active devices
       const devices = await this.getUserDevices(payload.userId);
@@ -146,7 +173,7 @@ export class PushChannelService {
     successfulTokens: string[];
     failedTokens: string[];
   }> {
-    if (!this.firebaseApp) {
+    if (!this.isFirebaseInitialized || !this.firebaseApp) {
       return {
         successfulTokens: [],
         failedTokens: tokens,
@@ -154,7 +181,9 @@ export class PushChannelService {
     }
 
     try {
-      const message: admin.messaging.MulticastMessage = {
+      const messaging = this.firebaseApp.messaging();
+
+      const message: any = {
         tokens,
         notification: {
           title: payload.title,
@@ -188,12 +217,12 @@ export class PushChannelService {
         },
       };
 
-      const response = await this.firebaseApp.messaging().sendEachForMulticast(message);
+      const response = await messaging.sendEachForMulticast(message);
 
       const successfulTokens: string[] = [];
       const failedTokens: string[] = [];
 
-      response.responses.forEach((resp, index) => {
+      response.responses.forEach((resp: any, index: number) => {
         if (resp.success) {
           successfulTokens.push(tokens[index]);
         } else {
@@ -214,52 +243,6 @@ export class PushChannelService {
         successfulTokens: [],
         failedTokens: tokens,
       };
-    }
-  }
-
-  /**
-   * Send to a single device
-   */
-  async sendToDevice(
-    token: string,
-    payload: Omit<PushPayload, 'userId'>
-  ): Promise<boolean> {
-    try {
-      if (!this.firebaseApp) {
-        return false;
-      }
-
-      const message: admin.messaging.Message = {
-        token,
-        notification: {
-          title: payload.title,
-          body: payload.body,
-        },
-        data: {
-          type: payload.type,
-          ...(payload.data && { ...Object.fromEntries(
-            Object.entries(payload.data).map(([k, v]) => [k, String(v)])
-          ) }),
-        },
-        android: {
-          priority: payload.priority === 'high' ? 'high' : 'normal',
-        },
-        apns: {
-          payload: {
-            aps: {
-              sound: payload.sound || 'default',
-              badge: payload.badge || 0,
-            },
-          },
-        },
-      };
-
-      await this.firebaseApp.messaging().send(message);
-      return true;
-
-    } catch (error) {
-      this.logger.error(`Send to device failed: ${error.message}`);
-      return false;
     }
   }
 
@@ -413,37 +396,9 @@ export class PushChannelService {
   }
 
   /**
-   * Send bulk push to multiple users
+   * Check if push notifications are available
    */
-  async sendBulk(
-    users: { userId: string; data?: Record<string, any> }[],
-    payload: Omit<PushPayload, 'userId' | 'data'>
-  ): Promise<{
-    total: number;
-    successful: number;
-    failed: number;
-  }> {
-    let successful = 0;
-    let failed = 0;
-
-    for (const user of users) {
-      const result = await this.send({
-        ...payload,
-        userId: user.userId,
-        data: { ...payload.data, ...user.data },
-      });
-
-      if (result.status === 'sent' || result.status === 'delivered') {
-        successful++;
-      } else {
-        failed++;
-      }
-    }
-
-    return {
-      total: users.length,
-      successful,
-      failed,
-    };
+  isAvailable(): boolean {
+    return this.isFirebaseInitialized;
   }
 }

@@ -146,6 +146,7 @@ export class NotificationsService {
       data,
       priority: targetPriority,
       channel: targetChannels[0], // Primary channel
+      idempotencyKey,
     });
 
     // 7. Send through each channel
@@ -289,6 +290,7 @@ export class NotificationsService {
     data: Record<string, any>;
     priority: NotificationPriority;
     channel: NotificationChannel;
+    idempotencyKey?: string;
   }): Promise<void> {
     try {
       const { error } = await this.supabase
@@ -302,6 +304,7 @@ export class NotificationsService {
           body: params.body,
           data: params.data || {},
           priority: params.priority,
+          idempotency_key: params.idempotencyKey,
           created_at: new Date().toISOString(),
         });
 
@@ -495,6 +498,7 @@ export class NotificationsService {
         .from('notifications')
         .update({
           read_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
         })
         .eq('id', notificationId)
         .eq('user_id', userId)
@@ -580,5 +584,242 @@ export class NotificationsService {
         unreadCount: 0,
       };
     }
+  }
+
+  // ============================================================
+  // 🆕 NEW METHODS ADDED FOR CONTROLLER COMPATIBILITY
+  // ============================================================
+
+  /**
+   * Register a device for push notifications
+   */
+  async registerDevice(params: {
+    userId: string;
+    deviceToken: string;
+    platform: 'ios' | 'android' | 'web';
+    appVersion?: string;
+    deviceModel?: string;
+    osVersion?: string;
+  }): Promise<boolean> {
+    try {
+      // Check if device already exists
+      const { data: existing } = await this.supabase
+        .from('user_devices')
+        .select('id')
+        .eq('device_token', params.deviceToken)
+        .single();
+
+      if (existing) {
+        // Update existing device
+        const { error } = await this.supabase
+          .from('user_devices')
+          .update({
+            user_id: params.userId,
+            platform: params.platform,
+            app_version: params.appVersion,
+            device_model: params.deviceModel,
+            os_version: params.osVersion,
+            is_active: true,
+            last_seen_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq('device_token', params.deviceToken);
+
+        if (error) throw error;
+        this.logger.log(`Updated device token for user ${params.userId}`);
+        return true;
+      }
+
+      // Create new device
+      const { error } = await this.supabase
+        .from('user_devices')
+        .insert({
+          user_id: params.userId,
+          device_token: params.deviceToken,
+          platform: params.platform,
+          app_version: params.appVersion,
+          device_model: params.deviceModel,
+          os_version: params.osVersion,
+          is_active: true,
+          last_seen_at: new Date().toISOString(),
+          created_at: new Date().toISOString(),
+        });
+
+      if (error) throw error;
+      this.logger.log(`Registered new device token for user ${params.userId}`);
+      return true;
+
+    } catch (error) {
+      this.logger.error(`Failed to register device: ${error.message}`);
+      return false;
+    }
+  }
+
+  /**
+   * Unregister a device (logout)
+   */
+  async unregisterDevice(deviceToken: string): Promise<boolean> {
+    try {
+      const { error } = await this.supabase
+        .from('user_devices')
+        .update({
+          is_active: false,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('device_token', deviceToken);
+
+      if (error) throw error;
+      this.logger.log(`Unregistered device token`);
+      return true;
+
+    } catch (error) {
+      this.logger.error(`Failed to unregister device: ${error.message}`);
+      return false;
+    }
+  }
+
+  /**
+   * Mark all notifications as read for a user
+   */
+  async markAllAsRead(userId: string): Promise<number> {
+    try {
+      const { data, error } = await this.supabase
+        .from('notifications')
+        .update({
+          read_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('user_id', userId)
+        .is('read_at', null)
+        .select('id');
+
+      if (error) throw error;
+
+      const count = data?.length || 0;
+      this.logger.log(`Marked ${count} notifications as read for user ${userId}`);
+      return count;
+
+    } catch (error) {
+      this.logger.error(`Failed to mark all as read: ${error.message}`);
+      return 0;
+    }
+  }
+
+  /**
+   * Delete a notification
+   */
+  async deleteNotification(notificationId: string, userId: string): Promise<boolean> {
+    try {
+      const { error } = await this.supabase
+        .from('notifications')
+        .delete()
+        .eq('id', notificationId)
+        .eq('user_id', userId);
+
+      if (error) throw error;
+      this.logger.log(`Deleted notification ${notificationId} for user ${userId}`);
+      return true;
+
+    } catch (error) {
+      this.logger.error(`Failed to delete notification: ${error.message}`);
+      return false;
+    }
+  }
+
+  /**
+   * Delete all notifications for a user
+   */
+  async deleteAllNotifications(userId: string): Promise<number> {
+    try {
+      const { data, error } = await this.supabase
+        .from('notifications')
+        .delete()
+        .eq('user_id', userId)
+        .select('id');
+
+      if (error) throw error;
+
+      const count = data?.length || 0;
+      this.logger.log(`Deleted ${count} notifications for user ${userId}`);
+      return count;
+
+    } catch (error) {
+      this.logger.error(`Failed to delete all notifications: ${error.message}`);
+      return 0;
+    }
+  }
+
+  /**
+   * Get notification stats for a user
+   */
+  async getNotificationStats(userId: string): Promise<{
+    total: number;
+    unread: number;
+    read: number;
+    byType: Record<string, number>;
+  }> {
+    try {
+      // Get total and unread
+      const total = await this.getTotalCount(userId);
+      const unread = await this.getUnreadCount(userId);
+
+      // Get counts by type
+      const { data, error } = await this.supabase
+        .from('notifications')
+        .select('type')
+        .eq('user_id', userId);
+
+      if (error) throw error;
+
+      const byType: Record<string, number> = {};
+      for (const item of data || []) {
+        byType[item.type] = (byType[item.type] || 0) + 1;
+      }
+
+      return {
+        total,
+        unread,
+        read: total - unread,
+        byType,
+      };
+
+    } catch (error) {
+      this.logger.error(`Failed to get notification stats: ${error.message}`);
+      return {
+        total: 0,
+        unread: 0,
+        read: 0,
+        byType: {},
+      };
+    }
+  }
+
+  /**
+   * Get total notification count for a user
+   */
+  private async getTotalCount(userId: string): Promise<number> {
+    try {
+      const { data, error } = await this.supabase
+        .from('notifications')
+        .select('id', { count: 'exact' })
+        .eq('user_id', userId);
+
+      if (error) throw error;
+      return data?.length || 0;
+
+    } catch (error) {
+      this.logger.error(`Failed to get total count: ${error.message}`);
+      return 0;
+    }
+  }
+
+  /**
+   * Add job to queue (for BullMQ integration)
+   * This is a placeholder - actual implementation uses @nestjs/bull
+   */
+  async addJob(queueName: string, data: any): Promise<void> {
+    // This will be implemented with @nestjs/bull
+    // For now, just log
+    this.logger.debug(`Adding job to queue ${queueName}:`, data);
   }
 }

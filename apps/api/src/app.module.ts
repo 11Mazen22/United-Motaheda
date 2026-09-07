@@ -1,8 +1,9 @@
 /**
- * App Module - Updated with BullMQ Queue Support
+ * App Module - Updated with BullMQ Queue Support & Event Emitter
  * 
  * Adds:
  * - BullModule for Redis queue
+ * - EventEmitterModule for event-driven architecture
  * - Notification Processor
  * - Batch Processor
  */
@@ -12,15 +13,24 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { BullModule } from '@nestjs/bull';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 
-// ... existing imports
+// ============================================================
+// Import your existing modules
+// ============================================================
+// import { AuthModule } from './modules/auth/auth.module';
+// import { OrdersModule } from './modules/orders/orders.module';
+// import { ProductsModule } from './modules/products/products.module';
+// ... etc
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+      envFilePath: ['.env.local', '.env'],
     }),
     
-    // 🆕 BullMQ Queue Setup
+    // ============================================================
+    // 🆕 BullMQ Queue Setup for Notifications
+    // ============================================================
     BullModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
@@ -43,7 +53,9 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
       inject: [ConfigService],
     }),
 
-    // 🆕 Register Queues
+    // ============================================================
+    // 🆕 Register Queues for Notifications
+    // ============================================================
     BullModule.registerQueue({
       name: 'notifications',
     }),
@@ -51,6 +63,9 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
       name: 'batches',
     }),
 
+    // ============================================================
+    // 🆕 Event Emitter for Event-Driven Architecture
+    // ============================================================
     EventEmitterModule.forRoot({
       wildcard: false,
       delimiter: '.',
@@ -61,7 +76,15 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
       ignoreErrors: false,
     }),
 
-    // ... existing modules
+    // ============================================================
+    // Your existing modules
+    // ============================================================
+    // AuthModule,
+    // OrdersModule,
+    // ProductsModule,
+    // UsersModule,
+    // NotificationsModule,
+    // ... etc
   ],
   providers: [
     // ... existing providers

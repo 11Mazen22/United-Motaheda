@@ -1,59 +1,147 @@
-import { Controller, Post, Get, Body, Query, Request, UseGuards } from '@nestjs/common';
+/**
+ * Notifications Controller
+ * 
+ * Updated to work with the new Notification Hub Service.
+ * All methods now use the centralized NotificationsService.
+ */
+
+import {
+  Controller,
+  Post,
+  Get,
+  Put,
+  Delete,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+  Request,
+} from '@nestjs/common';
 import { NotificationsService } from './notifications.service';
-import { BroadcastNotificationDto, BroadcastTarget, RegisterTokenDto } from './dto/broadcast.dto';
-import { DriverAuthGuard } from '../driver/guards/driver-auth.guard';
-import { AdminAuthGuard } from '../../auth/admin-auth.guard';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
+import { AuthGuard } from '@/common/guards/auth.guard';
 
+// ============================================================
+// DTOs
+// ============================================================
+
+export class RegisterDeviceDto {
+  deviceToken: string;
+  platform: 'ios' | 'android' | 'web';
+  appVersion?: string;
+  deviceModel?: string;
+  osVersion?: string;
+}
+
+export class MarkReadDto {
+  notificationId: string;
+}
+
+export class GetNotificationsQueryDto {
+  limit?: number;
+  offset?: number;
+  unreadOnly?: boolean;
+  type?: string;
+}
+
+// ============================================================
+// Controller
+// ============================================================
+
+@ApiTags('Notifications')
+@ApiBearerAuth()
 @Controller('notifications')
+@UseGuards(AuthGuard)
 export class NotificationsController {
-  constructor(private readonly svc: NotificationsService) {}
+  constructor(private notificationsService: NotificationsService) {}
 
-  // ─── Driver: register device token ────────────────────────────────────────
+  /**
+   * Get all notifications for the current user
+   */
+  @Get()
+  async getMyNotifications(
+    @Request() req,
+    @Query() query: GetNotificationsQueryDto,
+  ) {
+    const userId = req.user.id;
+    const { limit = 20, offset = 0, unreadOnly = false, type } = query;
 
-  @Post('token')
-  @UseGuards(DriverAuthGuard)
-  async registerToken(@Request() req: any, @Body() dto: RegisterTokenDto) {
-    return this.svc.registerToken(req.user.userId, dto.token, dto.platform, dto.deviceId, dto.deviceName);
+    return this.notificationsService.getUserNotifications(userId, {
+      limit,
+      offset,
+      unreadOnly,
+      type,
+    });
   }
 
-  // ─── Driver: notification history ─────────────────────────────────────────
-
-  @Get('history')
-  @UseGuards(DriverAuthGuard)
-  async getHistory(@Request() req: any, @Query('limit') limit?: string) {
-    return this.svc.getNotificationHistory(req.user.userId, limit ? parseInt(limit, 10) : 50);
+  /**
+   * Get unread notification count
+   */
+  @Get('unread/count')
+  async getUnreadCount(@Request() req) {
+    const userId = req.user.id;
+    const count = await this.notificationsService.getUnreadCount(userId);
+    return { count };
   }
 
-  // ─── Admin: broadcast ─────────────────────────────────────────────────────
-
-  @Post('broadcast')
-  @UseGuards(AdminAuthGuard)
-  async broadcast(@Body() dto: BroadcastNotificationDto) {
-    const payload = { title: dto.title, body: dto.body, imageUrl: dto.imageUrl, data: dto.data };
-
-    switch (dto.target) {
-      case BroadcastTarget.ALL_DRIVERS:
-        return this.svc.broadcastToDriversByStatus('APPROVED', payload)
-          .then(r1 => this.svc.broadcastToDriversByStatus('ACTIVE', payload)
-            .then(r2 => ({ sent: r1.sent + r2.sent, failed: r1.failed + r2.failed })));
-
-      case BroadcastTarget.ONLINE_DRIVERS:
-        return this.svc.broadcastToOnlineDrivers(payload);
-
-      case BroadcastTarget.SPECIFIC_USERS:
-        if (!dto.userIds?.length) return { sent: 0, failed: 0, results: [] };
-        return this.svc.broadcastToMultipleUsers(dto.userIds, payload);
-
-      default:
-        return { sent: 0, failed: 0, error: 'Invalid target' };
-    }
+  /**
+   * Mark a notification as read
+   */
+  @Put('read')
+  async markAsRead(@Request() req, @Body() dto: MarkReadDto) {
+    const userId = req.user.id;
+    const success = await this.notificationsService.markAsRead(
+      dto.notificationId,
+      userId,
+    );
+    return { success };
   }
 
-  // ─── Admin: notification log ──────────────────────────────────────────────
+  /**
+   * Mark all notifications as read
+   */
+  @Put('read/all')
+  async markAllAsRead(@Request() req) {
+    const userId = req.user.id;
+    const count = await this.notificationsService.markAllAsRead(userId);
+    return { count };
+  }
 
-  @Get('admin/history')
-  @UseGuards(AdminAuthGuard)
-  async getAdminHistory(@Query('limit') limit?: string) {
-    return this.svc.getNotificationHistory(undefined, limit ? parseInt(limit, 10) : 100);
+  /**
+   * Delete a notification
+   */
+  @Delete(':id')
+  async deleteNotification(@Request() req, @Param('id') id: string) {
+    const userId = req.user.id;
+    const success = await this.notificationsService.deleteNotification(id, userId);
+    return { success };
+  }
+
+  /**
+   * Register a device for push notifications
+   */
+  @Post('register')
+  async registerDevice(@Request() req, @Body() dto: RegisterDeviceDto) {
+    const userId = req.user.id;
+    const success = await this.notificationsService.registerDevice({
+      userId,
+      deviceToken: dto.deviceToken,
+      platform: dto.platform,
+      appVersion: dto.appVersion,
+      deviceModel: dto.deviceModel,
+      osVersion: dto.osVersion,
+    });
+    return { success };
+  }
+
+  /**
+   * Unregister a device (logout)
+   */
+  @Post('unregister')
+  async unregisterDevice(@Body() body: { deviceToken: string }) {
+    const success = await this.notificationsService.unregisterDevice(
+      body.deviceToken,
+    );
+    return { success };
   }
 }
