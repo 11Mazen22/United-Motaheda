@@ -12,7 +12,7 @@
  * - Badge count management
  */
 
-import { Platform, Alert } from 'react-native';
+import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
 import { router } from 'expo-router';
@@ -46,6 +46,8 @@ class PushNotificationService {
           shouldShowAlert: true,
           shouldPlaySound: true,
           shouldSetBadge: true,
+          shouldShowBanner: true,
+          shouldShowList: true,
         }),
       });
 
@@ -179,7 +181,9 @@ class PushNotificationService {
    */
   private async getAndroidModel(): Promise<string> {
     try {
-      const { manufacturer, model } = await import('react-native-device-info');
+      const DeviceInfo = await import('react-native-device-info');
+      const manufacturer = await DeviceInfo.getManufacturer();
+      const model = DeviceInfo.getModel();
       return `${manufacturer} ${model}`;
     } catch {
       return 'Android';
@@ -222,12 +226,14 @@ class PushNotificationService {
     
     console.log('[PushNotificationService] Notification tapped:', data);
 
+    if (!data) return;
+
     // Navigate based on notification type
-    this.navigateToTarget(data as PushNotificationData);
+    this.navigateToTarget(data as unknown as PushNotificationData);
 
     // Mark notification as read if notificationId is present
     if (data.notificationId) {
-      useNotificationsStore.getState().markAsRead(data.notificationId);
+      useNotificationsStore.getState().markAsRead(data.notificationId as string);
     }
 
     // Update badge count
@@ -262,45 +268,45 @@ class PushNotificationService {
       case 'order.delivered':
       case 'order.cancelled':
         if (orderId) {
-          router.push(`/(customer)/order-tracking/${orderId}`);
+          router.push(`/(customer)/order-tracking/${orderId}` as import('expo-router').Href);
         } else {
-          router.push('/(customer)/orders');
+          router.push('/(customer)/orders' as import('expo-router').Href);
         }
         break;
 
       case 'payment.success':
       case 'payment.failed':
         if (orderId) {
-          router.push(`/(customer)/orders/${orderId}`);
+          router.push(`/(customer)/orders/${orderId}` as import('expo-router').Href);
         } else {
-          router.push('/(customer)/orders');
+          router.push('/(customer)/orders' as import('expo-router').Href);
         }
         break;
 
       case 'system.announcement':
-        router.push('/(customer)/announcements');
+        router.push('/(customer)/announcements' as import('expo-router').Href);
         break;
 
       case 'promo.offer':
         if (data.link) {
-          router.push(data.link);
+          router.push(data.link as import('expo-router').Href);
         } else {
-          router.push('/(customer)/offers');
+          router.push('/(customer)/offers' as import('expo-router').Href);
         }
         break;
 
       case 'driver.assigned':
       case 'driver.arrived':
         if (orderId) {
-          router.push(`/(customer)/order-tracking/${orderId}`);
+          router.push(`/(customer)/order-tracking/${orderId}` as import('expo-router').Href);
         } else {
-          router.push('/(customer)');
+          router.push('/(customer)' as import('expo-router').Href);
         }
         break;
 
       default:
         // Default to notification center
-        router.push('/(customer)/notifications');
+        router.push('/(customer)/notifications' as import('expo-router').Href);
     }
   }
 

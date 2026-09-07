@@ -6,14 +6,12 @@
  * Tapping the banner navigates to the order tracking screen.
  */
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
-  ActivityIndicator,
-  Dimensions,
 } from 'react-native';
 import { router } from 'expo-router';
 import Animated, {
@@ -25,13 +23,9 @@ import Animated, {
   withDelay,
   withRepeat,
   Easing,
-  interpolate,
-  Extrapolate,
 } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { useOrderStore } from '@/stores/orders';
-
-const { width } = Dimensions.get('window');
 
 interface ActiveOrderBannerProps {
   /** Optional custom styles */
@@ -39,7 +33,7 @@ interface ActiveOrderBannerProps {
 }
 
 export const ActiveOrderBanner: React.FC<ActiveOrderBannerProps> = ({ style }) => {
-  const { activeOrder, driverLocation, isTracking } = useOrderStore();
+  const { activeOrder, isTracking } = useOrderStore();
   
   // Animation values
   const translateY = useSharedValue(-100);
@@ -69,11 +63,6 @@ export const ActiveOrderBanner: React.FC<ActiveOrderBannerProps> = ({ style }) =
     shadowOpacity: glowOpacity.value * 0.3,
     shadowRadius: glowOpacity.value * 12,
     borderWidth: glowOpacity.value > 0.5 ? 2 : 1,
-  }));
-
-  // 🆕 Shimmer animation for loading state
-  const shimmerStyle = useAnimatedStyle(() => ({
-    opacity: progress.value,
   }));
 
   // Show/hide banner based on active order
@@ -137,7 +126,7 @@ export const ActiveOrderBanner: React.FC<ActiveOrderBannerProps> = ({ style }) =
         withSpring(0, { damping: 15, stiffness: 100 })
       );
       
-      router.push(`/(customer)/order-tracking/${activeOrder.id}`);
+      router.push(`/(customer)/order-tracking/${activeOrder.id}` as import('expo-router').Href);
     }
   };
 

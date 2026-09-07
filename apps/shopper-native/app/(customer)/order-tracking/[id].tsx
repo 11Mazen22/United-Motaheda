@@ -13,7 +13,7 @@
  * - Offline/Reconnecting states
  */
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -39,8 +39,12 @@ import Animated, {
 import { useOrderStore } from '@/stores/orders';
 import { orderTrackingService } from '@/services/orderTrackingService';
 import { supabase } from '@/lib/supabase';
-import LeafletMap from '@/shared/leafletMap/LeafletMap';
-import { MapMarkerSpec, MapPolylineSpec } from '@/shared/leafletMap/types';
+
+// Correct imports for the project's LeafletMap architecture
+import { LeafletMap } from '@/shared/leafletMap/LeafletMap';
+import { pinMarkerHtml } from '@/shared/leafletMap/html';
+import type { LeafletMapRef, MapMarkerSpec, MapPolyline } from '@/shared/leafletMap/types';
+
 import DriverDetailsSheet from '@/components/order/DriverDetailsSheet';
 import TrackingFABs from '@/components/order/TrackingFABs';
 
@@ -49,16 +53,30 @@ const { width, height } = Dimensions.get('window');
 // Connection states
 type ConnectionState = 'connected' | 'reconnecting' | 'offline' | 'stale';
 
+// Custom Advanced Driver HTML Marker (utilizes MapLibre CSS transitions natively)
+const driverMarkerHtml = (photoUrl?: string | null) => {
+  const bgImage = photoUrl 
+    ? `background-image:url(${photoUrl});background-size:cover;background-position:center;` 
+    : `background-color:#8B5CF6;`;
+  const fallbackIcon = photoUrl ? '' : '<span style="color:#fff;font-size:20px;">🛵</span>';
+
+  return `
+    <div style="display:flex;flex-direction:column;align-items:center;">
+      <div style="width:48px;height:48px;border-radius:24px;border:3px solid #8B5CF6;box-shadow:0 4px 12px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;${bgImage}">
+        ${fallbackIcon}
+      </div>
+    </div>`;
+};
+
 export default function OrderTrackingScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const mapRef = useRef<any>(null);
+  const mapRef = useRef<LeafletMapRef>(null);
   
   const { 
     activeOrder, 
     driverLocation, 
     isTracking,
     setActiveOrder,
-    clearActiveOrder 
   } = useOrderStore();
 
   const [loading, setLoading] = useState(true);
@@ -71,11 +89,6 @@ export default function OrderTrackingScreen() {
   const [lastUpdateTime, setLastUpdateTime] = useState<Date | null>(null);
   const [retryCount, setRetryCount] = useState(0);
   const [offlineData, setOfflineData] = useState<typeof activeOrder>(null);
-
-  // Map markers and polylines
-  const [markers, setMarkers] = useState<MapMarkerSpec[]>([]);
-  const [polylines, setPolylines] = useState<MapPolylineSpec[]>([]);
-  const [mapCenter, setMapCenter] = useState<[number, number]>([30.0444, 31.2357]);
 
   // Animation values for reconnecting
   const pulseAnim = useSharedValue(1);
@@ -106,7 +119,7 @@ export default function OrderTrackingScreen() {
       pulseAnim.value = withSpring(1);
       rotationAnim.value = withTiming(0);
     }
-  }, [connectionState]);
+  }, [connectionState, pulseAnim, rotationAnim]);
 
   // Monitor app state for connection changes
   useEffect(() => {
@@ -130,7 +143,7 @@ export default function OrderTrackingScreen() {
         setRetryCount(0);
       }
     }
-  }, [driverLocation]);
+  }, [driverLocation, connectionState]);
 
   // Check for stale data (no update for 30 seconds)
   useEffect(() => {
@@ -146,21 +159,12 @@ export default function OrderTrackingScreen() {
     return () => clearInterval(interval);
   }, [lastUpdateTime, connectionState]);
 
-  // Update map markers when order or driver location changes
-  useEffect(() => {
-    if (activeOrder) {
-      updateMapMarkers();
-      updateMapPolylines();
-      updateMapCenter();
-    }
-  }, [activeOrder, driverLocation, showRoute, connectionState]);
-
   // Check connection and retry
   const checkConnectionAndRetry = async () => {
     if (!id) return;
 
     try {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('orders')
         .select('id')
         .eq('id', id)
@@ -179,7 +183,6 @@ export default function OrderTrackingScreen() {
         setRetryCount(0);
       }
     } catch (err) {
-      console.error('Connection check failed:', err);
       if (retryCount < 3) {
         setRetryCount(prev => prev + 1);
         setTimeout(() => checkConnectionAndRetry(), 5000 * (retryCount + 1));
@@ -207,7 +210,6 @@ export default function OrderTrackingScreen() {
     if (id) {
       fetchOrderDetails(id);
     }
-
     return () => {
       orderTrackingService.stopTracking();
     };
@@ -218,89 +220,29 @@ export default function OrderTrackingScreen() {
     if (activeOrder && !isTracking) {
       orderTrackingService.initialize(supabase);
       orderTrackingService.startTracking(activeOrder);
+      
+      if (mapRef.current) {
+        mapRef.current.fitToCoordinates([
+          { latitude: activeOrder.origin.lat, longitude: activeOrder.origin.lng },
+          { latitude: activeOrder.destination.lat, longitude: activeOrder.destination.lng },
+        ]);
+      }
+      
       setConnectionState('connected');
       setLastUpdateTime(new Date());
     }
-  }, [activeOrder]);
+  }, [activeOrder, isTracking]);
 
-  // ============================================================
-  // Map Update Functions
-  // ============================================================
-
-  const updateMapMarkers = () => {
-    if (!activeOrder) return;
-
-    const newMarkers: MapMarkerSpec[] = [];
-
-    // Origin marker (pickup)
-    newMarkers.push({
-      id: 'origin',
-      position: [activeOrder.origin.lat, activeOrder.origin.lng],
-      icon: '📍',
-      size: [32, 32],
-      popup: 'نقطة البداية',
-      color: '#10B981',
-    });
-
-    // Destination marker (dropoff)
-    newMarkers.push({
-      id: 'destination',
-      position: [activeOrder.destination.lat, activeOrder.destination.lng],
-      icon: '🏁',
-      size: [32, 32],
-      popup: 'نقطة الوصول',
-      color: '#EF4444',
-    });
-
-    // Driver marker (animated)
-    if (driverLocation && connectionState !== 'offline') {
-      newMarkers.push({
-        id: 'driver',
-        position: [driverLocation.lat, driverLocation.lng],
-        icon: '🚗',
-        size: [40, 40],
-        popup: activeOrder.driverName || 'السائق',
-        color: '#8B5CF6',
-        className: 'driver-marker animated-pulse',
+  // Handle smooth camera movement when driver updates
+  useEffect(() => {
+    if (driverLocation && mapRef.current && connectionState === 'connected') {
+      mapRef.current.animateToRegion({
+        latitude: driverLocation.lat,
+        longitude: driverLocation.lng,
+        zoom: 15.5,
       });
     }
-
-    setMarkers(newMarkers);
-  };
-
-  const updateMapPolylines = () => {
-    if (!activeOrder || !showRoute) {
-      setPolylines([]);
-      return;
-    }
-
-    const isStale = connectionState === 'stale';
-    
-    setPolylines([
-      {
-        id: 'route',
-        positions: [
-          [activeOrder.origin.lat, activeOrder.origin.lng],
-          [activeOrder.destination.lat, activeOrder.destination.lng],
-        ],
-        color: isStale ? '#F59E0B' : '#8B5CF6',
-        weight: 4,
-        opacity: 0.8,
-        dashArray: isStale ? '10, 10' : '5, 10',
-      },
-    ]);
-  };
-
-  const updateMapCenter = () => {
-    if (driverLocation && connectionState !== 'offline') {
-      setMapCenter([driverLocation.lat, driverLocation.lng]);
-    } else if (activeOrder) {
-      // Center between origin and destination
-      const centerLat = (activeOrder.origin.lat + activeOrder.destination.lat) / 2;
-      const centerLng = (activeOrder.origin.lng + activeOrder.destination.lng) / 2;
-      setMapCenter([centerLat, centerLng]);
-    }
-  };
+  }, [driverLocation, connectionState]);
 
   const fetchOrderDetails = async (orderId: string) => {
     try {
@@ -371,6 +313,63 @@ export default function OrderTrackingScreen() {
   };
 
   // ============================================================
+  // Advanced Map Memoization (Markers & Polyline)
+  // ============================================================
+
+  const mapMarkers = useMemo(() => {
+    if (!activeOrder) return [];
+    
+    const markers: MapMarkerSpec[] = [
+      {
+        id: 'origin',
+        coordinate: { latitude: activeOrder.origin.lat, longitude: activeOrder.origin.lng },
+        html: pinMarkerHtml('#10B981', '•'), // Green dot
+        width: 40,
+        height: 48,
+        anchorX: 0.5,
+        anchorY: 1,
+      },
+      {
+        id: 'destination',
+        coordinate: { latitude: activeOrder.destination.lat, longitude: activeOrder.destination.lng },
+        html: pinMarkerHtml('#EF4444', '★'), // Red star
+        width: 40,
+        height: 48,
+        anchorX: 0.5,
+        anchorY: 1,
+      },
+    ];
+
+    if (driverLocation && connectionState !== 'offline') {
+      markers.push({
+        id: 'driver',
+        coordinate: { latitude: driverLocation.lat, longitude: driverLocation.lng },
+        html: driverMarkerHtml(activeOrder.driverPhoto),
+        width: 48,
+        height: 48,
+        anchorX: 0.5,
+        anchorY: 0.5,
+        zIndexOffset: 100, // Make sure driver is always on top
+      });
+    }
+
+    return markers;
+  }, [activeOrder, driverLocation, connectionState]);
+
+  const routePolyline = useMemo<MapPolyline | null>(() => {
+    if (!activeOrder || !showRoute) return null;
+    return {
+      coordinates: [
+        { latitude: activeOrder.origin.lat, longitude: activeOrder.origin.lng },
+        { latitude: activeOrder.destination.lat, longitude: activeOrder.destination.lng },
+      ],
+      color: connectionState === 'stale' ? '#F59E0B' : '#8B5CF6',
+      width: 4,
+      dashed: connectionState === 'stale',
+    };
+  }, [activeOrder, showRoute, connectionState]);
+
+  // ============================================================
   // Render Connection Status
   // ============================================================
 
@@ -416,7 +415,7 @@ export default function OrderTrackingScreen() {
         <Text style={[styles.connectionText, { color: config.color }]}>
           {config.text}
         </Text>
-        {config.action && (
+        {'action' in config && config.action && (
           <TouchableOpacity style={styles.retryButtonSmall} onPress={handleRetry}>
             <Text style={styles.retryButtonSmallText}>{config.action}</Text>
           </TouchableOpacity>
@@ -468,21 +467,21 @@ export default function OrderTrackingScreen() {
       <LeafletMap
         ref={mapRef}
         style={styles.map}
-        center={mapCenter}
-        zoom={15}
-        markers={markers}
-        polylines={polylines}
-        tileLayer={{
-          url: `https://api.maptiler.com/maps/streets/{z}/{x}/{y}.png?key=${process.env.EXPO_PUBLIC_MAPTILER_KEY}`,
-          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        initialRegion={{
+          latitude: activeOrder.origin.lat,
+          longitude: activeOrder.origin.lng,
+          zoom: 14,
         }}
-        onMapClick={(e) => {
-          // Optional: handle map click
-        }}
-        onMarkerClick={(markerId) => {
+        interactive={true}
+        markers={mapMarkers}
+        polyline={routePolyline}
+        onMarkerPress={(markerId) => {
           if (markerId === 'driver' && driverLocation) {
-            // Center on driver
-            setMapCenter([driverLocation.lat, driverLocation.lng]);
+            mapRef.current?.animateToRegion({
+              latitude: driverLocation.lat,
+              longitude: driverLocation.lng,
+              zoom: 16,
+            });
           }
         }}
       />

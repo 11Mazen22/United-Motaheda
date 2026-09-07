@@ -26,7 +26,6 @@ import {
   ActivityIndicator,
   Alert,
   StatusBar,
-  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -60,7 +59,6 @@ export default function NotificationCenterScreen() {
 
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState<'all' | 'unread'>('all');
-  const [selectedType, setSelectedType] = useState<string | null>(null);
 
   useEffect(() => {
     fetchNotifications({ unreadOnly: filter === 'unread' });
@@ -98,30 +96,30 @@ export default function NotificationCenterScreen() {
       case 'order.delivered':
       case 'order.cancelled':
         if (data?.orderId) {
-          router.push(`/(customer)/order-tracking/${data.orderId}`);
+          router.push(`/(customer)/order-tracking/${data.orderId}` as import('expo-router').Href);
         }
         break;
 
       case 'payment.success':
       case 'payment.failed':
         if (data?.orderId) {
-          router.push(`/(customer)/orders/${data.orderId}`);
+          router.push(`/(customer)/orders/${data.orderId}` as import('expo-router').Href);
         }
         break;
 
       case 'system.announcement':
-        router.push('/(customer)/announcements');
+        router.push('/(customer)/announcements' as import('expo-router').Href);
         break;
 
       case 'promo.offer':
         if (data?.link) {
-          router.push(data.link);
+          router.push(data.link as import('expo-router').Href);
         }
         break;
 
       default:
         // Default to home
-        router.push('/(customer)');
+        router.push('/(customer)' as import('expo-router').Href);
     }
   };
 
@@ -304,7 +302,7 @@ export default function NotificationCenterScreen() {
 }
 
 // Helper: Get notification icon based on type
-function getNotificationIcon(type: string): JSX.Element {
+function getNotificationIcon(type: string): React.ReactElement {
   const iconMap: Record<string, { name: string; color: string }> = {
     'order.ready': { name: 'bag-check-outline', color: '#10B981' },
     'order.accepted': { name: 'checkmark-circle-outline', color: '#3B82F6' },

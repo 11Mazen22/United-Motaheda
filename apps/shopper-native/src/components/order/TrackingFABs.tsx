@@ -22,8 +22,6 @@ import Animated, {
   withSpring,
   withTiming,
   withSequence,
-  interpolate,
-  Extrapolate,
 } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 

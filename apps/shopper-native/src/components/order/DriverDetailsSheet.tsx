@@ -17,7 +17,6 @@ import {
   TouchableOpacity,
   Linking,
   Platform,
-  Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import BottomSheet, {
@@ -25,8 +24,6 @@ import BottomSheet, {
   BottomSheetBackdrop,
   BottomSheetBackdropProps,
 } from '@gorhom/bottom-sheet';
-
-const { width } = Dimensions.get('window');
 
 interface DriverDetailsSheetProps {
   /** Whether the sheet is visible */
