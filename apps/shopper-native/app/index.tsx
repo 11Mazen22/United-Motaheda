@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 import { ActivityIndicator, View } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ONBOARDING_KEY } from "@/lib/onboardingKey";
@@ -42,6 +42,14 @@ export default function Entry() {
   // the only way to guarantee it fires at most once regardless of how many
   // times this component re-renders afterward.
   const hasNavigatedRef = useRef(false);
+
+  // Reset routing state when returning to this screen (e.g., from a sign-out redirect)
+  useFocusEffect(
+    React.useCallback(() => {
+      decidedTarget.current = null;
+      hasNavigatedRef.current = false;
+    }, [])
+  );
   const [showSpinner, setShowSpinner] = useState(false);
 
   useEffect(() => {

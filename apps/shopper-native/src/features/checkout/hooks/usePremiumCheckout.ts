@@ -175,9 +175,6 @@ export function usePremiumCheckout() {
   const approvedPrescriptions = allPrescriptions.filter((p) => p.reviewStatus === "approved");
   const hasPrescriptionSelected = selectedPrescriptionIds.length > 0;
 
-  const canSubmit = status === "READY" && selectedAddress && isAddressValid && paymentMethod && items.length > 0
-    && (!needsPrescription || hasPrescriptionSelected);
-
   const handlePickReceipt = useCallback(async () => {
     const picked = await pickPaymentReceiptImage();
     if (picked.ok) {
@@ -187,8 +184,29 @@ export function usePremiumCheckout() {
   }, []);
 
   const submit = useCallback(async () => {
-     if (!canSubmit) return;
      if (!user) return;
+     if (status === "SUBMITTING") return;
+     
+     if (!selectedAddress) {
+       setErrorMsg(t("checkout.missingAddress", "Please select a delivery address"));
+       return;
+     }
+     if (!isAddressValid) {
+       setErrorMsg(t("checkout.zoneIneligible", "Address is outside delivery zone"));
+       return;
+     }
+     if (!paymentMethod) {
+       setErrorMsg(t("checkout.missingPayment", "Please select a payment method"));
+       return;
+     }
+     if (items.length === 0) {
+       setErrorMsg(t("checkout.emptyCart", "Your cart is empty"));
+       return;
+     }
+     if (needsPrescription && !hasPrescriptionSelected) {
+       setErrorMsg(t("checkout.missingPrescription", "A prescription is required for your items"));
+       return;
+     }
 
      const manual = isManualWalletPayment(paymentMethod);
      let paymentProofUrl: string | undefined;
@@ -321,7 +339,7 @@ export function usePremiumCheckout() {
         setStatus("FAILED");
         setErrorMsg(e instanceof CheckoutRequestError ? e.message : t("checkout.submitError"));
       }
-  }, [canSubmit, user, selectedAddress, paymentMethod, requestPosMachine, items, pricing, note, promoCode, clearCart, needsPrescription, selectedPrescriptionIds, transferNumber, receiptUri, t, lang]);
+  }, [status, isAddressValid, user, selectedAddress, paymentMethod, requestPosMachine, items, pricing, note, promoCode, clearCart, needsPrescription, selectedPrescriptionIds, transferNumber, receiptUri, t, lang]);
 
   return {
     status,

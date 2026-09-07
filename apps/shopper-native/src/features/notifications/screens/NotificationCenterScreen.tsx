@@ -33,6 +33,9 @@ import { router } from 'expo-router';
 import { useNotificationsStore } from '@/stores/notificationsStore';
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
+import { useAuth } from '@/features/auth';
+import { handleNotificationRoute } from '@/features/notifications/routing';
+import { useTranslation } from 'react-i18next';
 
 interface NotificationItem {
   id: string;
@@ -46,6 +49,8 @@ interface NotificationItem {
 }
 
 export default function NotificationCenterScreen() {
+  const { user } = useAuth();
+  const { t } = useTranslation();
   const {
     notifications,
     unreadCount,
@@ -82,46 +87,22 @@ export default function NotificationCenterScreen() {
       await markAsRead(item.id);
     }
 
-    // Deep link to target screen based on type
-    navigateToTarget(item);
-  }, []);
+    // Convert NotificationItem to AppNotification layout for routing
+    const appNotif = {
+      id: item.id,
+      userId: "",
+      type: item.type as any,
+      category: null,
+      title: item.title,
+      body: item.body,
+      data: item.data as any,
+      actionUrl: (item as any).action_url || null,
+      isRead: !!item.read_at,
+      createdAt: item.created_at
+    };
 
-  const navigateToTarget = (item: NotificationItem) => {
-    const { type, data } = item;
-
-    switch (type) {
-      case 'order.ready':
-      case 'order.accepted':
-      case 'order.out_for_delivery':
-      case 'order.delivered':
-      case 'order.cancelled':
-        if (data?.orderId) {
-          router.push(`/(customer)/order-tracking/${data.orderId}` as import('expo-router').Href);
-        }
-        break;
-
-      case 'payment.success':
-      case 'payment.failed':
-        if (data?.orderId) {
-          router.push(`/(customer)/orders/${data.orderId}` as import('expo-router').Href);
-        }
-        break;
-
-      case 'system.announcement':
-        router.push('/(customer)/announcements' as import('expo-router').Href);
-        break;
-
-      case 'promo.offer':
-        if (data?.link) {
-          router.push(data.link as import('expo-router').Href);
-        }
-        break;
-
-      default:
-        // Default to home
-        router.push('/(customer)' as import('expo-router').Href);
-    }
-  };
+    handleNotificationRoute(appNotif, router, user, t);
+  }, [markAsRead, router, user, t]);
 
   const handleLongPress = useCallback((item: NotificationItem) => {
     Alert.alert(

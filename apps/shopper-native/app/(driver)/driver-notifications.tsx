@@ -29,6 +29,7 @@ import {
   useNotifications,
   type AppNotification,
 } from "@/features/notifications";
+import { handleNotificationRoute } from "@/features/notifications/routing";
 import { DriverScreenHeader }      from "@/features/driver/components/DriverScreenHeader";
 
 const IS_RTL     = isRtl();
@@ -62,12 +63,13 @@ export default function DriverNotificationsScreen() {
     markAllRead,
   } = useNotifications(user?.id);
 
+
   const handlePress = useCallback(
     (n: AppNotification) => {
       if (!n.isRead) markRead(n.id);
-      if (n.actionUrl) router.push(n.actionUrl as never);
+      handleNotificationRoute(n, router, user, t);
     },
-    [markRead, router],
+    [markRead, router, user, t],
   );
 
   const sections = useMemo(() => {
