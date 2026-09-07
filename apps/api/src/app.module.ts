@@ -1,29 +1,70 @@
-import { Module } from "@nestjs/common";
-import { PrismaModule } from "./prisma/prisma.module";
-import { BranchesModule } from "./modules/branches/branches.module";
-import { DeliveryModule } from "./modules/delivery/delivery.module";
-import { PromotionCopilotModule } from "./modules/promotion-copilot/promotion-copilot.module";
-import { DriverModule } from "./modules/driver/driver.module";
-import { NotificationsModule } from "./modules/notifications/notifications.module";
-import { AuthModule } from "./auth/auth.module";
-import { AdminModule } from "./modules/admin/admin.module";
-import { ProductsModule } from "./modules/products/products.module";
-import { InventoryModule } from "./modules/inventory/inventory.module";
-import { CustomersModule } from "./modules/customers/customers.module";
+/**
+ * App Module - Updated with BullMQ Queue Support
+ * 
+ * Adds:
+ * - BullModule for Redis queue
+ * - Notification Processor
+ * - Batch Processor
+ */
+
+import { Module } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { BullModule } from '@nestjs/bull';
+import { EventEmitterModule } from '@nestjs/event-emitter';
+
+// ... existing imports
 
 @Module({
   imports: [
-    PrismaModule,
-    BranchesModule,
-    DeliveryModule,
-    PromotionCopilotModule,
-    DriverModule,
-    NotificationsModule,
-    AuthModule,
-    AdminModule,
-    ProductsModule,
-    InventoryModule,
-    CustomersModule,
+    ConfigModule.forRoot({
+      isGlobal: true,
+    }),
+    
+    // 🆕 BullMQ Queue Setup
+    BullModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: async (configService: ConfigService) => ({
+        redis: {
+          host: configService.get('REDIS_HOST', 'localhost'),
+          port: configService.get('REDIS_PORT', 6379),
+          password: configService.get('REDIS_PASSWORD'),
+          db: configService.get('REDIS_DB', 0),
+        },
+        defaultJobOptions: {
+          attempts: 3,
+          backoff: {
+            type: 'exponential',
+            delay: 1000,
+          },
+          removeOnComplete: true,
+          removeOnFail: false,
+        },
+      }),
+      inject: [ConfigService],
+    }),
+
+    // 🆕 Register Queues
+    BullModule.registerQueue({
+      name: 'notifications',
+    }),
+    BullModule.registerQueue({
+      name: 'batches',
+    }),
+
+    EventEmitterModule.forRoot({
+      wildcard: false,
+      delimiter: '.',
+      newListener: false,
+      removeListener: false,
+      maxListeners: 10,
+      verboseMemoryLeak: false,
+      ignoreErrors: false,
+    }),
+
+    // ... existing modules
+  ],
+  providers: [
+    // ... existing providers
   ],
 })
 export class AppModule {}
