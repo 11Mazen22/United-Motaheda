@@ -23,12 +23,12 @@ import {
   HttpCode,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
-import { NotificationsService } from '@/modules/notifications/notifications.service';
-import { TemplateCompilerService } from '@/modules/notifications/templates/template.compiler';
-import { BatchProcessor } from '@/modules/notifications/batch.processor';
-import { AdminAuthGuard } from '@/common/guards/admin-auth.guard';
-import { RbacGuard } from '@/common/guards/rbac.guard';
-import { Roles } from '@/common/decorators/roles.decorator';
+import { NotificationsService } from '../../notifications/notifications.service';
+import { TemplateCompilerService } from '../../notifications/templates/template.compiler';
+import { BatchProcessor } from '../../notifications/batch.processor';
+import { AdminAuthGuard } from '../../../auth/admin-auth.guard';
+import { RbacGuard } from '../../../common/guards/rbac.guard';
+import { Roles } from '../../../common/decorators/roles.decorator';
 import { Logger } from '@nestjs/common';
 
 // ============================================================

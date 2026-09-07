@@ -12,10 +12,15 @@
     "start:prod": "node dist/main.js"
   },
   "dependencies": {
+    "@nestjs/bull": "^12.0.0",
+    "@nestjs/bullmq": "^12.0.0",
     "@nestjs/common": "^11.0.0",
+    "@nestjs/config": "^12.0.0",
     "@nestjs/core": "^11.0.0",
+    "@nestjs/event-emitter": "^12.0.0",
     "@nestjs/platform-express": "^11.1.28",
     "@nestjs/platform-socket.io": "^11.1.28",
+    "@nestjs/swagger": "^12.0.1",
     "@nestjs/websockets": "^11.1.28",
     "@pharmacy/contracts": "file:../../packages/contracts",
     "@prisma/client": "^6.0.0",
@@ -24,6 +29,7 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/multer": "^2.2.0",
     "bcrypt": "^6.0.0",
+    "bullmq": "^6.3.4",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
     "firebase-admin": "^14.2.0",
@@ -37,6 +43,8 @@
   },
   "devDependencies": {
     "@nestjs/cli": "^11.0.0",
+    "@nestjs/testing": "^12.0.1",
+    "@types/jest": "^30.0.0",
     "@types/node": "^25.6.0",
     "prisma": "^6.0.0",
     "ts-loader": "^9.5.0",

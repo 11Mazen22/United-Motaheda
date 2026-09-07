@@ -223,7 +223,7 @@ export class NotificationsService {
               body: params.body,
               data: params.data,
               type: params.type,
-              priority: params.priority,
+              priority: params.priority === 'high' ? 'high' : 'normal',
             });
             break;
 
@@ -432,7 +432,7 @@ export class NotificationsService {
   async sendBatch(
     type: string,
     recipients: { userId: string; data: Record<string, any> }[],
-    options: Omit<SendNotificationOptions, 'userId' | 'data'> = {}
+    options: Omit<SendNotificationOptions, 'userId' | 'data' | 'type'> = {}
   ): Promise<{
     total: number;
     successful: number;
