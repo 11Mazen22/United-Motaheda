@@ -337,7 +337,10 @@ async function requestSupabase(url, options = {}) {
   }
 
   if (!response.ok) {
-    const body = await response.text();
+    let body = await response.text();
+    if (body.includes("<html") || body.length > 200) {
+      body = body.substring(0, 150).replace(/\n/g, " ") + "... (truncated)";
+    }
     throw new Error(`Supabase request failed (${response.status}): ${body}`);
   }
 
