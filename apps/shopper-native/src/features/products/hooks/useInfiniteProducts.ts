@@ -114,7 +114,7 @@ export function useInfiniteProducts(args: UseInfiniteProductsArgs = {}): UseInfi
         signal,
       }),
     getNextPageParam: (last, allPages) => {
-      if (allPages.length >= maxPages) return undefined;
+      // if (allPages.length >= maxPages) return undefined; // User requested to view all 8000+ products
       return last.hasNextPage ? last.currentPage + 1 : undefined;
     },
     placeholderData:  keepPreviousData,
