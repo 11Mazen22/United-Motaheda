@@ -33,10 +33,6 @@ const SEARCH_DEBOUNCE_MS = 300;
 // At 15 items/page this is 150 items max — enough for comfortable browsing
 // without choking the UI thread with thousands of mounted Reanimated nodes.
 // Each ProductCard holds 3 useSharedValue instances; 150 cards = 450 nodes.
-// The old cap of 100 pages (2 000 cards = 6 000 nodes) was the primary
-// cause of JS-thread lag during extended scroll sessions.
-const DEFAULT_MAX_PAGES  = 10;
-
 // Separate stale windows: browsing a category is low-churn and should survive
 // back-navigation without re-fetching; live search results need to feel fresh.
 const BROWSE_STALE_MS = 90_000;  // 90 s
@@ -50,8 +46,6 @@ export interface UseInfiniteProductsArgs {
   maxPrice?:   number;
   sortBy?:     ProductFilters["sortBy"];
   pageSize?:   number;
-  /** Maximum pages to keep in memory. Defaults to 10 (≈150 items at 15/page). */
-  maxPages?:   number;
   /** If false, the query is disabled. Defaults to true. */
   enabled?:    boolean;
   /** Restrict results to products with an active canonical promotion. */
@@ -81,7 +75,6 @@ export function useInfiniteProducts(args: UseInfiniteProductsArgs = {}): UseInfi
     maxPrice,
     sortBy   = "newest",
     pageSize = DEFAULT_PAGE_SIZE,
-    maxPages = DEFAULT_MAX_PAGES,
     enabled  = true,
     isSale   = false,
   } = args;
@@ -113,10 +106,7 @@ export function useInfiniteProducts(args: UseInfiniteProductsArgs = {}): UseInfi
         pageSize,
         signal,
       }),
-    getNextPageParam: (last, allPages) => {
-      // if (allPages.length >= maxPages) return undefined; // User requested to view all 8000+ products
-      return last.hasNextPage ? last.currentPage + 1 : undefined;
-    },
+    getNextPageParam: (last) => (last.hasNextPage ? last.currentPage + 1 : undefined),
     placeholderData:  keepPreviousData,
     enabled,
     staleTime: isSearchMode ? SEARCH_STALE_MS : BROWSE_STALE_MS,

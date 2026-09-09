@@ -186,14 +186,10 @@ class PushNotificationService {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      await fetch(`${process.env.EXPO_PUBLIC_API_URL}/notifications/unregister`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${await supabase.auth.getSession().then(s => s.data.session?.access_token)}`,
-        },
-        body: JSON.stringify({ deviceToken: token }),
-      });
+      await supabase.from('user_devices')
+        .update({ is_active: false })
+        .eq('user_id', user.id)
+        .eq('push_token', token);
 
       this.isRegistered = false;
       console.log('[PushNotificationService] Token deactivated');

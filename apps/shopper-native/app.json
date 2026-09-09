@@ -47,12 +47,12 @@
           "data": [
             {
               "scheme": "https",
-              "host": "united-motaheda-production.up.railway.app",
+              "host": "www.unitedpharmacy.net",
               "pathPrefix": "/reset-password"
             },
             {
               "scheme": "https",
-              "host": "united-motaheda-production.up.railway.app",
+              "host": "www.unitedpharmacy.net",
               "pathPrefix": "/auth-callback"
             }
           ],
