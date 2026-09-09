@@ -77,7 +77,7 @@ export default function HomeScreen() {
     return (
       <View style={[styles.container, { backgroundColor: theme.colors.canvas.background }]}>
         <StatusBar style="light" />
-        <View style={{ paddingTop: insets.top }} />
+        <View style={{ paddingTop: 0 }} />
         <HomeSkeleton />
       </View>
     );
@@ -85,7 +85,7 @@ export default function HomeScreen() {
 
   if (catsError && categories.length === 0) {
     return (
-      <View style={[styles.container, styles.center, { backgroundColor: theme.colors.canvas.background, paddingTop: insets.top }]}>
+      <View style={[styles.container, styles.center, { backgroundColor: theme.colors.canvas.background, paddingTop: 0 }]}>
         <StatusBar style="auto" />
         <ErrorState message={t("errors.generic", "Something went wrong")} retry={retryCategories} />
       </View>
@@ -96,7 +96,7 @@ export default function HomeScreen() {
     <View style={[styles.container, { backgroundColor: theme.colors.canvas.background }]}>
       <StatusBar style="light" />
 
-      <View style={{ paddingTop: insets.top + 8, backgroundColor: theme.colors.canvas.surface }}>
+      <View style={{ paddingTop: 8, backgroundColor: theme.colors.canvas.surface }}>
         <DeliveryHeader />
       </View>
 

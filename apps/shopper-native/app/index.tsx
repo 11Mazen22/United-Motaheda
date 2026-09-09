@@ -14,7 +14,7 @@ import { useAuth } from "@/features/auth";
 // driver" for exactly this reason.
 const SPINNER_DELAY_MS = 700;
 
-type Target = "/(tabs)" | "/(driver)" | "/(pharmacist)" | "/onboarding";
+type Target = "/(customer)/(tabs)" | "/(driver)" | "/(pharmacist)" | "/onboarding";
 
 export default function Entry() {
   const router = useRouter();
@@ -82,7 +82,7 @@ export default function Entry() {
         ? "/(driver)"
         : user?.role === "pharmacist"
           ? "/(pharmacist)"
-          : "/(tabs)";
+          : "/(customer)/(tabs)";
   }
 
   // No dependency array: this must re-check on every render (decidedTarget
