@@ -9,9 +9,10 @@ import { DriverRoutingService } from './driver-routing.service';
 import { FileUploadService } from './file-upload.service';
 import { LocationBroadcastGateway } from './location-broadcast.gateway';
 import { AuthModule } from '../../auth/auth.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
-  imports: [AuthModule],
+  imports: [AuthModule, NotificationsModule],
   controllers: [DriverController, AdminDriverController],
   providers: [
     DriverAuthService,

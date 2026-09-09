@@ -7,10 +7,9 @@ import { TemplateCompilerService } from './templates/template.compiler';
 import { BatchProcessor } from './batch.processor';
 import { ExpoProvider } from '../../providers/expo.provider';
 import { AuthModule } from '../../auth/auth.module';
-import { DriverModule } from '../driver/driver.module';
 
 @Module({
-  imports: [AuthModule, DriverModule],
+  imports: [AuthModule],
   controllers: [NotificationsController],
   providers: [
     NotificationsService,
