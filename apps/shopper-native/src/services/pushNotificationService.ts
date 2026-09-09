@@ -173,19 +173,7 @@ class PushNotificationService {
     }
   }
 
-  /**
-   * Get Android device model
-   */
-  private async getAndroidModel(): Promise<string> {
-    try {
-      const DeviceInfo = await import('react-native-device-info');
-      const manufacturer = await DeviceInfo.getManufacturer();
-      const model = DeviceInfo.getModel();
-      return `${manufacturer} ${model}`;
-    } catch {
-      return 'Android';
-    }
-  }
+  
 
   /**
    * Deactivate device token on logout
