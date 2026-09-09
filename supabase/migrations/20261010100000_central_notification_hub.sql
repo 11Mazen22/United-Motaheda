@@ -39,7 +39,15 @@ CREATE TABLE IF NOT EXISTS public.notification_templates (
 CREATE TABLE IF NOT EXISTS public.inbox_notifications (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     recipient_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-    type text NOT NULL REFERENCES public.notification_templates(type) ON DELETE CASCADE,
+    -- ON DELETE RESTRICT, not CASCADE: this FK points at a *template*
+    -- (configuration), while this table holds each recipient's historical
+    -- record of what they were actually sent. A template getting cleaned up
+    -- or renamed must never silently wipe out real delivery history for
+    -- every user who received that type -- RESTRICT forces whoever deletes
+    -- a template to deal with its history on purpose (retype it, archive
+    -- these rows, or leave the template in place) instead of losing it by
+    -- accident.
+    type text NOT NULL REFERENCES public.notification_templates(type) ON DELETE RESTRICT,
     title text NOT NULL,
     body text NOT NULL,
     data jsonb NOT NULL DEFAULT '{}'::jsonb,
@@ -106,3 +114,17 @@ CREATE POLICY inbox_notifications_update ON public.inbox_notifications FOR UPDAT
 
 -- Everyone can read templates
 CREATE POLICY notification_templates_select ON public.notification_templates FOR SELECT USING (true);
+
+-- Nothing above grants staff visibility into any of these tables -- every
+-- one of them was enabled for RLS with either no policy at all
+-- (notification_deliveries, notification_batches) or a recipient-only
+-- policy (inbox_notifications), which silently returns zero rows to an
+-- admin/manager client query rather than an error (the same failure class
+-- documented elsewhere in this project's history: a query that "just
+-- shows nothing" instead of visibly failing). Nothing in the app queries
+-- these three from a client yet, so this isn't live-broken today, but
+-- there is no reason to leave the landmine for whoever builds the admin
+-- monitoring UI this schema is clearly meant to support.
+CREATE POLICY inbox_notifications_manager_select ON public.inbox_notifications FOR SELECT USING (public.is_manager());
+CREATE POLICY notification_deliveries_manager_select ON public.notification_deliveries FOR SELECT USING (public.is_manager());
+CREATE POLICY notification_batches_manager_all ON public.notification_batches FOR ALL USING (public.is_manager()) WITH CHECK (public.is_manager());
