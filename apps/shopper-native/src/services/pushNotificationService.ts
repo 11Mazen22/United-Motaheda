@@ -147,25 +147,23 @@ class PushNotificationService {
       // Get app version
       const appVersion = Constants.expoConfig?.version || '1.0.0';
 
-      // Call backend API to register device
-      const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/notifications/register`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${await supabase.auth.getSession().then(s => s.data.session?.access_token)}`,
-        },
-        body: JSON.stringify({
-          deviceToken: token,
-          platform: Platform.OS,
-          appVersion,
-          deviceId,
-          deviceModel: Platform.OS === 'ios' ? 'iOS' : await this.getAndroidModel(),
-          osVersion: Platform.Version,
-        }),
-      });
+      // Call Supabase directly to register device
+      const { data: userResponse } = await supabase.auth.getUser();
+      if (!userResponse.user) return;
 
-      if (!response.ok) {
-        throw new Error(`Failed to sync token: ${response.status}`);
+      const { error } = await supabase.from('user_devices').upsert({
+        user_id: userResponse.user.id,
+        device_id: deviceId,
+        push_token: token,
+        platform: Platform.OS === 'ios' ? 'ios' : 'android',
+        app_version: appVersion,
+        is_active: true,
+        last_seen_at: new Date().toISOString(),
+      }, { onConflict: 'user_id,device_id' });
+
+      if (error) {
+        throw new Error(`Failed to sync token via Supabase: ${error.message}`);
+      }`);
       }
 
       this.isRegistered = true;
@@ -201,14 +199,10 @@ class PushNotificationService {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      await fetch(`${process.env.EXPO_PUBLIC_API_URL}/notifications/unregister`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${await supabase.auth.getSession().then(s => s.data.session?.access_token)}`,
-        },
-        body: JSON.stringify({ deviceToken: token }),
-      });
+      await supabase.from('user_devices')
+        .update({ is_active: false })
+        .eq('user_id', user.id)
+        .eq('push_token', token);
 
       this.isRegistered = false;
       console.log('[PushNotificationService] Token deactivated');
