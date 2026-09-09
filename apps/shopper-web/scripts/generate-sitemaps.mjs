@@ -310,7 +310,7 @@ async function getLatestFileTimestamp(relativePaths) {
   return timestamps.sort().at(-1) || buildTimestamp;
 }
 
-const SUPABASE_REQUEST_TIMEOUT_MS = 15_000;
+const SUPABASE_REQUEST_TIMEOUT_MS = 60_000;
 
 async function requestSupabase(url, options = {}) {
   const controller = new AbortController();
@@ -344,54 +344,35 @@ async function requestSupabase(url, options = {}) {
   return response;
 }
 
-async function fetchProductCount() {
-  const countUrl = new URL("/rest/v1/products", supabaseUrl);
-  countUrl.searchParams.set("select", "id");
-  countUrl.searchParams.set("limit", "1");
-
-  const response = await requestSupabase(countUrl, {
-    headers: { Prefer: "count=exact" },
-  });
-  const contentRange = response.headers.get("content-range") || "";
-  const total = Number(contentRange.split("/").at(-1));
-
-  if (!Number.isFinite(total)) {
-    throw new Error("Failed to read the total product count from Supabase.");
-  }
-
-  return total;
-}
-
-async function fetchProductPage(offset) {
-  const url = new URL("/rest/v1/products", supabaseUrl);
-  url.searchParams.set(
-    "select",
-    "id,Code,Name,Name_Ar,Name_En,Category_Name,Category_Name_En,image_url,is_active,created_at,updated_at",
-  );
-  url.searchParams.set("limit", String(PAGE_SIZE));
-  url.searchParams.set("offset", String(offset));
-
-  const response = await requestSupabase(url);
-  return response.json();
-}
-
 async function fetchAllProducts() {
-  const totalCount = await fetchProductCount();
-  if (totalCount === 0) {
-    return [];
-  }
-
-  const offsets = [];
-  for (let offset = 0; offset < totalCount; offset += PAGE_SIZE) {
-    offsets.push(offset);
-  }
-
   const rows = [];
-  for (let index = 0; index < offsets.length; index += FETCH_CONCURRENCY) {
-    const wave = offsets.slice(index, index + FETCH_CONCURRENCY);
-    const pages = await Promise.all(wave.map((offset) => fetchProductPage(offset)));
-    for (const pageRows of pages) {
-      rows.push(...pageRows);
+  let lastId = null;
+
+  while (true) {
+    const url = new URL("/rest/v1/products", supabaseUrl);
+    url.searchParams.set(
+      "select",
+      "id,Code,Name,Name_Ar,Name_En,Category_Name,Category_Name_En,image_url,is_active,created_at,updated_at",
+    );
+    url.searchParams.set("limit", String(PAGE_SIZE));
+    url.searchParams.set("order", "id.asc");
+    
+    if (lastId) {
+      url.searchParams.set("id", `gt.${lastId}`);
+    }
+
+    const response = await requestSupabase(url);
+    const pageRows = await response.json();
+    
+    if (pageRows.length === 0) {
+      break;
+    }
+    
+    rows.push(...pageRows);
+    lastId = pageRows[pageRows.length - 1].id;
+    
+    if (pageRows.length < PAGE_SIZE) {
+      break;
     }
   }
 
