@@ -23,7 +23,7 @@ SELECT cron.schedule(
   '15 seconds',
   $$
   SELECT net.http_post(
-    url := 'https://gntpxffonjvnvadjclpl.supabase.co/functions/v1/generate-embeddings',
+    url := 'https://envoy-production-1cbe.up.railway.app/functions/v1/generate-embeddings',
     headers := jsonb_build_object(
       'Authorization', 'Bearer ' || (SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name = 'cron_secret'),
       'Content-Type', 'application/json'
