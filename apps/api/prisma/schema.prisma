@@ -504,6 +504,7 @@ model users {
   special_order_requests                                       special_order_requests[]
   stock_movements                                              stock_movements[]
   user_deletion_log                                            user_deletion_log[]
+  user_devices                                                 user_devices[]
   user_suspensions_user_suspensions_suspended_byTousers        user_suspensions[]        @relation("user_suspensions_suspended_byTousers")
   user_suspensions_user_suspensions_unsuspended_byTousers      user_suspensions[]        @relation("user_suspensions_unsuspended_byTousers")
   user_suspensions_user_suspensions_user_idTousers             user_suspensions[]        @relation("user_suspensions_user_idTousers")
