@@ -35,8 +35,8 @@ serve(async (req: Request) => {
     );
   }
 
-  // Envoy's gateway already enforces the apikey/RBAC layer in front of this
-  // service (see Envoy's /functions/v1/ route — "Bypass": the edge runtime
+  // Supabase's gateway already enforces the apikey/RBAC layer in front of this
+  // service (see the /functions/v1/ route — "Bypass": the edge runtime
   // is expected to do its own JWT check). Individual functions can still
   // read the Authorization header themselves (create-order does, to resolve
   // the calling user) — this is only a coarse "is there a real bearer JWT

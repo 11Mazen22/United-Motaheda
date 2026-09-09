@@ -187,11 +187,11 @@ Also note: **`.qoder/repowiki/`** contains an auto-generated architecture wiki (
 
 ## 5. Database & backend architecture
 
-### 5.1 Self-hosted Supabase on Railway
+### 5.1 Supabase project
 
-Two **separate** Railway projects — easy to conflate:
-- **"efficient-communication"** — the Supabase stack itself (Postgres, PostgREST, GoTrue, Realtime, Storage, Edge Functions, Supavisor, Studio, Imgproxy). Public gateway (Envoy): `https://envoy-production-1cbe.up.railway.app` — this is the value every app's `SUPABASE_URL` should point at.
-- **"charismatic-perception"** — hosts the actual app deployments: `shopper-native`'s Expo web export, `shopper-web`, `apps/api`, and the `ollama` service.
+The application uses the Supabase project at `https://gntpxffonjvnvadjclpl.supabase.co` for
+Postgres, PostgREST, GoTrue, Realtime, Storage, and Edge Functions. Application clients
+must use this project URL and the publishable anon key; privileged keys remain server-only.
 
 Supabase Studio on this deployment has **no authentication wall** (no `DASHBOARD_USERNAME`/`DASHBOARD_PASSWORD`, no private networking) — anyone with the URL can retrieve the `service_role` key. This was known and flagged in `SESSION_HANDOFF.md` as of this document's writing and had not yet been acted on — verify current status before assuming it's still open.
 

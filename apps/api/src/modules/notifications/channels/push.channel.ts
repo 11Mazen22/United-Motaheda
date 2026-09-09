@@ -123,7 +123,7 @@ export class PushChannelService {
 
       // Get user's active devices
       const devices = await this.getUserDevices(payload.userId);
-      
+
       if (devices.length === 0) {
         return {
           status: 'failed',
@@ -131,8 +131,8 @@ export class PushChannelService {
         };
       }
 
-      const tokens = devices.map(d => d.device_token);
-      
+      const tokens = devices.map(d => d.token);
+
       // Send to all devices
       const result = await this.sendToDevices(tokens, payload);
 
@@ -166,85 +166,7 @@ export class PushChannelService {
   /**
    * Send push to multiple devices
    */
-  private async sendToDevices(
-    tokens: string[],
-    payload: PushPayload
-  ): Promise<{
-    successfulTokens: string[];
-    failedTokens: string[];
-  }> {
-    if (!this.isFirebaseInitialized || !this.firebaseApp) {
-      return {
-        successfulTokens: [],
-        failedTokens: tokens,
-      };
-    }
 
-    try {
-      const messaging = this.firebaseApp.messaging();
-
-      const message: any = {
-        tokens,
-        notification: {
-          title: payload.title,
-          body: payload.body,
-          ...(payload.image && { imageUrl: payload.image }),
-        },
-        data: {
-          type: payload.type,
-          ...(payload.data && { ...Object.fromEntries(
-            Object.entries(payload.data).map(([k, v]) => [k, String(v)])
-          ) }),
-        },
-        android: {
-          priority: payload.priority === 'high' ? 'high' : 'normal',
-          notification: {
-            sound: payload.sound || 'default',
-            ...(payload.badge && { badgeCount: payload.badge }),
-            priority: payload.priority === 'high' ? 'high' : 'normal',
-            channelId: 'order_tracking',
-          },
-        },
-        apns: {
-          payload: {
-            aps: {
-              sound: payload.sound || 'default',
-              badge: payload.badge || 0,
-              'content-available': payload.priority === 'high' ? 1 : 0,
-              'mutable-content': 1,
-            },
-          },
-        },
-      };
-
-      const response = await messaging.sendEachForMulticast(message);
-
-      const successfulTokens: string[] = [];
-      const failedTokens: string[] = [];
-
-      response.responses.forEach((resp: any, index: number) => {
-        if (resp.success) {
-          successfulTokens.push(tokens[index]);
-        } else {
-          failedTokens.push(tokens[index]);
-          this.logger.debug(`Failed token ${tokens[index]}: ${resp.error?.message}`);
-        }
-      });
-
-      this.logger.log(
-        `Push sent: ${successfulTokens.length} succeeded, ${failedTokens.length} failed`
-      );
-
-      return { successfulTokens, failedTokens };
-
-    } catch (error) {
-      this.logger.error(`Multicast send failed: ${error.message}`);
-      return {
-        successfulTokens: [],
-        failedTokens: tokens,
-      };
-    }
-  }
 
   /**
    * Get all active devices for a user
@@ -279,7 +201,7 @@ export class PushChannelService {
           is_active: false,
           updated_at: new Date().toISOString(),
         })
-        .in('device_token', tokens);
+        .in('token', tokens);
 
       if (error) throw error;
       this.logger.log(`Invalidated ${tokens.length} tokens`);
@@ -300,11 +222,46 @@ export class PushChannelService {
         .update({
           last_seen_at: new Date().toISOString(),
         })
-        .in('device_token', tokens);
+        .in('token', tokens);
 
       if (error) throw error;
     } catch (error) {
       this.logger.error(`Failed to update device activity: ${error.message}`);
+    }
+  }
+
+  /**
+   * Send push notification to multiple device tokens using Firebase Admin SDK.
+   * Returns successful and failed token arrays.
+   */
+  private async sendToDevices(tokens: string[], payload: PushPayload): Promise<{ successfulTokens: string[]; failedTokens: string[] }> {
+    if (!this.isFirebaseInitialized) {
+      this.logger.warn('Attempted to send push without Firebase initialized');
+      return { successfulTokens: [], failedTokens: tokens };
+    }
+    const message = {
+      data: payload.data,
+      notification: {
+        title: payload.title,
+        body: payload.body,
+      },
+      tokens,
+    };
+    try {
+      const response = await admin.messaging().sendEachForMulticast(message);
+      const successfulTokens: string[] = [];
+      const failedTokens: string[] = [];
+      response.responses.forEach((resp, idx) => {
+        if (resp.success) {
+          successfulTokens.push(tokens[idx]);
+        } else {
+          failedTokens.push(tokens[idx]);
+        }
+      });
+      return { successfulTokens, failedTokens };
+    } catch (err) {
+      this.logger.error(`FCM multicast send error: ${err.message}`);
+      return { successfulTokens: [], failedTokens: tokens };
     }
   }
 
@@ -324,7 +281,7 @@ export class PushChannelService {
       const { data: existing } = await this.supabase
         .from('user_devices')
         .select('id')
-        .eq('device_token', params.deviceToken)
+        .eq('token', params.deviceToken)
         .single();
 
       if (existing) {
@@ -341,7 +298,7 @@ export class PushChannelService {
             last_seen_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           })
-          .eq('device_token', params.deviceToken);
+          .eq('token', params.deviceToken)
 
         if (error) throw error;
         this.logger.log(`Updated device token for user ${params.userId}`);
@@ -353,7 +310,7 @@ export class PushChannelService {
         .from('user_devices')
         .insert({
           user_id: params.userId,
-          device_token: params.deviceToken,
+          token: params.deviceToken,
           platform: params.platform,
           app_version: params.appVersion,
           device_model: params.deviceModel,
@@ -384,7 +341,7 @@ export class PushChannelService {
           is_active: false,
           updated_at: new Date().toISOString(),
         })
-        .eq('device_token', deviceToken);
+        .eq('token', deviceToken);
 
       if (error) throw error;
       this.logger.log(`Unregistered device token`);

@@ -1,4 +1,4 @@
-function readStringEnv(key: string): string {
+﻿function readStringEnv(key: string): string {
   // Cast to a plain index type so TypeScript allows dynamic bracket access.
   const value = (import.meta.env as Record<string, string | undefined>)[key];
   return typeof value === "string" ? value.trim() : "";
@@ -15,15 +15,15 @@ function readNumberEnv(key: string, fallback: number): number {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
-// ── Catalog CSV URL ──────────────────────────────────────────────────────────
-// Retained for legacy reference only – the shopper catalog now fetches directly
+// â”€â”€ Catalog CSV URL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Retained for legacy reference only â€“ the shopper catalog now fetches directly
 // from Supabase. This URL is no longer used in the active data pipeline.
 const catalogCsvUrl =
   readStringEnv("VITE_CATALOG_CSV_URL") ||
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vRioq-Q9nxt-iM02Q-YM97_JHey29jt6C6go4FLJoSZbFQ2CY2hVrwmdC__tF7Cul91auH8L0ARutCQ/pub?gid=25643091&single=true&output=csv";
 
 // Changed: googleSheetsApiUrl is retained for backward compat but is no longer
-// required – the catalog now reads directly from the Supabase `products` table.
+// required â€“ the catalog now reads directly from the Supabase `products` table.
 const googleSheetsApiUrl = readStringEnv("VITE_GOOGLE_SHEETS_API_URL");
 const defaultSearchApi =
   typeof window !== "undefined" ? window.location.origin : "";
@@ -31,16 +31,16 @@ const defaultSearchApi =
 export const publicEnv = {
   catalogCsvUrl,
   googleSheetsApiUrl,
-  apiBase: readStringEnv("VITE_API_BASE") || "https://pharmacyapi-production-e30d.up.railway.app",
+  apiBase: readStringEnv("VITE_API_BASE"),
   deliveryMinMinutes: readNumberEnv("VITE_DELIVERY_MIN_MINUTES", 15),
   deliveryMaxMinutes: readNumberEnv("VITE_DELIVERY_MAX_MINUTES", 30),
   shippingMatrixJson: readStringEnv("VITE_SHIPPING_MATRIX_JSON"),
   supabaseAnonKey:
     readStringEnv("VITE_SUPABASE_ANON_KEY") ||
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlIiwiaWF0IjoxNzg4MDA2ODUzLCJleHAiOjIxMDMzNjY4NTN9.cGHr99POxNCCxKSXmYK1ySwsTiRsNMvnrDUV0UBrnoI",
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdudHB4ZmZvbmp2bnZhZGpjbHBsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4MzA4NzEsImV4cCI6MjA5MDQwNjg3MX0.hLDucOsGEci6iWq7eHS6RsQIZEpipBxjuqlep5f9Pcs",
   supabaseUrl:
     readStringEnv("VITE_SUPABASE_URL") ||
-    "https://envoy-production-1cbe.up.railway.app",
+    "https://gntpxffonjvnvadjclpl.supabase.co",
   /** Base URL for search suggestions (falls back to current origin). */
   searchApiBase: readStringEnv("VITE_SEARCH_API_BASE") || defaultSearchApi,
   web3formsAccessKey: readStringEnv("VITE_WEB3FORMS_ACCESS_KEY"),

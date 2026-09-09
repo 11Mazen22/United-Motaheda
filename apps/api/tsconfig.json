@@ -11,7 +11,7 @@
     "sourceMap": false,
     "outDir": "../../dist",
     "rootDir": "../../",
-    "types": ["node"],
+    "types": ["node", "jest"],
     "paths": {
       "@pharmacy/contracts": ["../../packages/contracts/src/index.ts"],
       "@pharmacy/contracts/*": ["../../packages/contracts/src/*"]
@@ -20,7 +20,8 @@
     "skipLibCheck": true,
     "strict": false,
     "noImplicitAny": false,
-    "noEmitOnError": false
+    "noEmitOnError": false,
+    "allowJs": true
   },
   "include": [
     "src/**/*.ts",

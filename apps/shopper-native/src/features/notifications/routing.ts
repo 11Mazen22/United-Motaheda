@@ -1,12 +1,12 @@
 import { Alert } from "react-native";
 import { type Router } from "expo-router";
 import type { AppNotification } from "./types";
-import type { User } from "@supabase/supabase-js";
+import type { AuthUser } from "@/features/auth";
 
 export function handleNotificationRoute(
   n: AppNotification,
   router: Router,
-  user: User | null | undefined,
+  user: AuthUser | null | undefined,
   t?: (key: string, defaultText: string) => string
 ) {
   const fallbackError = t ? t("notifications.webOnlyAction", "This notification cannot be opened here.") : "This notification cannot be opened here.";
@@ -34,7 +34,7 @@ export function handleNotificationRoute(
   }
 
   const { type, data } = n;
-  switch (type) {
+  switch (type as string) {
     case "order.ready":
     case "order.accepted":
     case "order.out_for_delivery":

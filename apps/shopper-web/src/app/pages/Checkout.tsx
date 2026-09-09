@@ -666,7 +666,7 @@ export default function Checkout() {
     if (!deliveryQuote.data) {
       // Only block if location permission was never granted.
       // When permission IS granted but the quote API is unreachable (CORS error,
-      // network failure, Railway down), the order still goes through — the team
+      // network failure), the order still goes through — the team
       // confirms deliverability manually and the flat DEFAULT_DELIVERY_FEE applies.
       if (locationPermission !== "granted") {
         setSubmitError(

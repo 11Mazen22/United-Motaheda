@@ -8,6 +8,7 @@
   },
   "scripts": {
     "start:dev": "nest start --watch",
+    "test": "jest --detectOpenHandles --forceExit",
     "build": "nest build",
     "start:prod": "node dist/main.js"
   },
@@ -20,6 +21,7 @@
     "@nestjs/event-emitter": "^12.0.0",
     "@nestjs/platform-express": "^11.1.28",
     "@nestjs/platform-socket.io": "^11.1.28",
+    "@nestjs/schedule": "^5.0.0",
     "@nestjs/swagger": "^12.0.1",
     "@nestjs/websockets": "^11.1.28",
     "@pharmacy/contracts": "file:../../packages/contracts",
@@ -33,6 +35,7 @@
     "bullmq": "^6.3.4",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
+    "dayjs": "^1.11.10",
     "firebase-admin": "^14.2.0",
     "jsonwebtoken": "^9.0.3",
     "multer": "^2.2.0",
@@ -47,7 +50,9 @@
     "@nestjs/testing": "^12.0.1",
     "@types/jest": "^30.0.0",
     "@types/node": "^25.6.0",
+    "jest": "^30.0.0",
     "prisma": "^6.0.0",
+    "ts-jest": "^29.4.0",
     "ts-loader": "^9.5.0",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",

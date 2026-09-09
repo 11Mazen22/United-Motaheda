@@ -30,7 +30,7 @@ The monorepo uses a **per-application environment variable** strategy. Each app 
 - Vite exposes variables prefixed `VITE_` at build time via `import.meta.env`. A small helper in `apps/shopper-web/src/app/env.ts` wraps access with `readStringEnv` / `readNumberEnv`, trims values, and provides typed defaults.
 - The module exports a `publicEnv` object (`apiBase`, `supabaseUrl`, `supabaseAnonKey`, `deliveryMinMinutes`, `deliveryMaxMinutes`, `shippingMatrixJson`, `searchApiBase`, `web3formsAccessKey`) consumed by services and SEO helpers.
 - Validation: `getPublicEnvValidationErrors()` checks URL validity, delivery-window ordering, JSON parsing of `VITE_SHIPPING_MATRIX_JSON`, and requires `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` to be set together. Errors are surfaced as an array rather than throwing at startup.
-- Defaults: when env vars are missing the web app falls back to production URLs (`https://pharmacyapi-production-e30d.up.railway.app`, Supabase project `gntpxffonjvnvadjclpl`).
+- Defaults: when env vars are missing the web app falls back to the Supabase project URL (`https://gntpxffonjvnvadjclpl.supabase.co`).
 - `.env.example` documents required keys: `VITE_API_BASE`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_SITE_URL`.
 
 ### Admin App (Vite / React)

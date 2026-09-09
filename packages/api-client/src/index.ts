@@ -9,8 +9,8 @@ import type {
   SearchSuggestion,
 } from "@pharmacy/types";
 import { fuzzyMatch, type FuzzySearchableFields } from "@pharmacy/fuzzy-search";
+import { z } from "zod";
 import {
-  apiResponseSchema,
   BranchSchema,
   DeliveryStatusSchema,
   type Branch,
@@ -39,6 +39,8 @@ type QuoteCheckoutInput = {
 
 type ApiClientConfig = {
   baseUrl?: string;
+  supabaseUrl?: string;
+  supabaseAnonKey?: string;
   searchApiBase?: string;
   defaultDeliveryFee?: number;
   branches?: PharmacyBranch[];
@@ -77,48 +79,51 @@ export class ApiClientError extends Error {
   }
 }
 
-function buildUrl(path: string) {
-  const baseUrl = apiClientConfig.baseUrl?.replace(/\/+$/, "");
-  if (!baseUrl) return null;
+function buildSupabaseRestUrl(path: string) {
+  const baseUrl = apiClientConfig.supabaseUrl?.replace(/\/+$/, "");
+  if (!baseUrl || !apiClientConfig.supabaseAnonKey) return null;
   const normalizedPath = path.startsWith("/") ? path : `/${path}`;
-  return `${baseUrl}${normalizedPath}`;
+  return `${baseUrl}/rest/v1${normalizedPath}`;
 }
 
-async function fetchWrapped<T>(
+async function fetchSupabase<T>(
   path: string,
   init: RequestInit,
   dataSchema: import("zod").ZodType<T>,
 ): Promise<T> {
-  const url = buildUrl(path);
-  if (!url) {
+  const anonKey = apiClientConfig.supabaseAnonKey;
+  const url = buildSupabaseRestUrl(path);
+  if (!url || !anonKey) {
     throw new ApiClientError(
-      "NO_BASE_URL",
-      "API baseUrl is not configured for @pharmacy/api-client.",
+      "NO_SUPABASE_CONFIG",
+      "Supabase configuration is not available for @pharmacy/api-client.",
     );
   }
 
   const response = await fetch(url, {
     ...init,
     headers: {
+      Accept: "application/json",
+      apikey: anonKey,
+      Authorization: `Bearer ${anonKey}`,
       "content-type": "application/json",
       ...(init.headers ?? {}),
     },
   });
-
   const json = (await response.json()) as unknown;
-  const parsed = apiResponseSchema(dataSchema).safeParse(json);
 
+  if (!response.ok) {
+    throw new ApiClientError("SUPABASE_REQUEST_FAILED", "Supabase request failed.", json);
+  }
+
+  const parsed = dataSchema.safeParse(json);
   if (!parsed.success) {
-    throw new ApiClientError("INVALID_RESPONSE", "Invalid API response shape.", {
+    throw new ApiClientError("INVALID_RESPONSE", "Invalid Supabase response shape.", {
       issues: parsed.error.issues,
     });
   }
 
-  if (!parsed.data.success) {
-    throw new ApiClientError(parsed.data.error.code, parsed.data.error.message, parsed.data.error.details);
-  }
-
-  return parsed.data.data;
+  return parsed.data;
 }
 
 function normalize(value: string | undefined | null) {
@@ -245,9 +250,12 @@ const client: ApiClient = {
   },
 
   async listBranches() {
-    // Prefer backend source of truth when configured.
-    if (apiClientConfig.baseUrl) {
-      return fetchWrapped("/branches", { method: "GET" }, BranchSchema.array());
+    if (apiClientConfig.supabaseUrl && apiClientConfig.supabaseAnonKey) {
+      return fetchSupabase(
+        "/Branch?select=id,nameAr,nameEn,governorate,area,lat,lng,isActive",
+        { method: "GET" },
+        BranchSchema.array(),
+      );
     }
 
     // Fallback to locally configured branches (legacy).
@@ -294,20 +302,77 @@ const client: ApiClient = {
   },
 
   async quoteCheckout(input) {
-    // Prefer backend quote engine when configured.
-    if (apiClientConfig.baseUrl) {
-      return fetchWrapped(
-        "/delivery/quote",
+    if (apiClientConfig.supabaseUrl && apiClientConfig.supabaseAnonKey) {
+      const rows = await fetchSupabase(
+        "/rpc/resolve_delivery_zone",
         {
           method: "POST",
           body: JSON.stringify({
-            coordinates: input.coordinates,
-            cart: input.cart,
-            requestedBranchId: input.requestedBranchId,
+            p_lat: input.coordinates.lat,
+            p_lng: input.coordinates.lng,
+            p_subtotal: input.cart.subtotal,
           }),
         },
-        DeliveryStatusSchema,
+        z.array(
+          z.object({
+            branch_id: z.string(),
+            branch_name_ar: z.string(),
+            branch_name_en: z.string(),
+            zone_id: z.string(),
+            base_fee: z.number(),
+            effective_fee: z.number(),
+            distance_km: z.number(),
+          }),
+        ),
       );
+
+      const row = rows[0];
+      if (!row) {
+        return {
+          isDeliverable: false,
+          cost: null,
+          currency: "EGP",
+          eta: null,
+          branch: null,
+          distanceKm: null,
+          assignmentToken: null,
+          quoteToken: null,
+          zoneId: null,
+          reasonCode: "OUT_OF_ZONE",
+          updatedAt: new Date().toISOString(),
+        };
+      }
+
+      const branch = {
+        id: row.branch_id,
+        nameAr: row.branch_name_ar,
+        nameEn: row.branch_name_en,
+        governorate: "Cairo" as const,
+        area: "Cairo",
+        lat: input.coordinates.lat,
+        lng: input.coordinates.lng,
+        isActive: true,
+      };
+      const etaMinutes = Math.max(15, Math.round(row.distance_km * 7));
+
+      return DeliveryStatusSchema.parse({
+        isDeliverable: true,
+        cost: row.effective_fee,
+        currency: "EGP",
+        eta: { minMinutes: etaMinutes, maxMinutes: etaMinutes + 15 },
+        branch,
+        distanceKm: row.distance_km,
+        assignmentToken: createToken("assign"),
+        quoteToken: createToken("quote"),
+        zoneId: row.zone_id,
+        reasonCode: "OK",
+        breakdown: {
+          baseFee: row.base_fee,
+          surgeMultiplier: row.base_fee > 0 ? row.effective_fee / row.base_fee : 1,
+          freeDeliveryApplied: row.effective_fee === 0,
+        },
+        updatedAt: new Date().toISOString(),
+      });
     }
 
     // Fallback: legacy (local) estimate to keep the UI functioning in dev.

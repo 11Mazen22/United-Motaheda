@@ -6,6 +6,7 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { Prisma } from '@prisma/client';
 import {
   AcceptOrderDto,
   RejectOrderDto,
@@ -15,6 +16,7 @@ import {
   CompleteDeliveryDto,
 } from './dto';
 import { LocationBroadcastGateway } from './location-broadcast.gateway';
+import { NotificationsService } from '../notifications/notifications.service';
 
 // Arrival geofence radius in metres — configurable per deployment.
 const ARRIVAL_RADIUS_METERS = Number(process.env.DRIVER_ARRIVAL_RADIUS_METERS ?? 200);
@@ -40,6 +42,7 @@ export class DriverOrdersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly gateway: LocationBroadcastGateway,
+    private readonly notifications: NotificationsService,
   ) {}
 
   // ─── Helpers ──────────────────────────────────────────────────────────────
@@ -236,7 +239,7 @@ export class DriverOrdersService {
     const branch = await this.getOrderBranch(orderId);
     const baseFee = await this.getOrderZoneBaseFee(orderId);
 
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       const order = await tx.orders.findUnique({
         where: { id: orderId },
         include: { order_items: true },

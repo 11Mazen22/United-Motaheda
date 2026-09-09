@@ -43,6 +43,8 @@
       "favicon": "./assets/brand-mark.png"
     },
     "plugins": [
+    "@react-native-firebase/app",
+    "@react-native-firebase/messaging",
       "expo-font",
       [
         "expo-splash-screen",

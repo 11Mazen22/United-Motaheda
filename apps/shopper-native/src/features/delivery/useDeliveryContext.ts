@@ -1,7 +1,7 @@
 /**
  * useDeliveryContext — unified delivery pricing source.
  *
- * Always calls the Railway /delivery/quote endpoint so the fee is real
+ * Always calls the Supabase delivery-zone RPC so the fee is real
  * (zone-polygon engine, per-zone cost, live deliverability).
  *
  * Coordinate resolution order:
@@ -10,7 +10,7 @@
  *   3. Selected branch lat/lng (user picked a branch explicitly)
  *   4. Primary branch lat/lng (absolute fallback — gives the base zone fee)
  *
- * The static Haversine + flat-fee hook is only used while the Railway
+ * The static Haversine + flat-fee hook is only used while the Supabase
  * query is loading or if it fails, so the UI never blocks.
  */
 
@@ -18,7 +18,7 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useCartStore } from "@/stores/cart";
 import { useAddressStore } from "@/features/addresses";
-import { railwayApi } from "@/lib/railwayApi";
+import { supabaseApi } from "@/lib/supabaseApi";
 import { useDeliveryQuote } from "./useDeliveryQuote";
 import { useLocationState } from "./locationStore";
 import { FREE_DELIVERY_THRESHOLD } from "./constants";
@@ -69,7 +69,7 @@ export function useDeliveryContext(): DeliveryContext {
   // Whether we have a real customer location (affects isResolvedFromContext)
   const hasRealLocation = !!(coordinates || defaultAddress?.lat || selectedBranchId);
 
-  // ── Cart items for Railway API ──────────────────────────────────────────
+  // ── Cart items for Supabase ─────────────────────────────────────────────
   const cartItems = useMemo(
     () =>
       items.map((i) => ({
@@ -81,8 +81,8 @@ export function useDeliveryContext(): DeliveryContext {
     [items],
   );
 
-  // ── Railway real quote (only when we have real customer coordinates) ────────
-  const { data: railwayQuote, isLoading: railwayLoading } = useQuery({
+  // ── Supabase real quote (only when we have real customer coordinates) ───────
+  const { data: supabaseQuote, isLoading: supabaseLoading } = useQuery({
     queryKey: [
       "delivery/quote",
       queryCoords?.lat,
@@ -92,7 +92,7 @@ export function useDeliveryContext(): DeliveryContext {
     ],
     enabled: queryCoords !== null,
     queryFn: () =>
-      railwayApi.getDeliveryQuote({
+      supabaseApi.getDeliveryQuote({
         coordinates:       queryCoords!,
         cart:              { items: cartItems, itemCount: items.reduce((s, i) => s + i.quantity, 0), subtotal },
         requestedBranchId: selectedBranchId ?? undefined,
@@ -102,7 +102,7 @@ export function useDeliveryContext(): DeliveryContext {
     refetchOnWindowFocus: false,
   });
 
-  // ── Static fallback (used while Railway loads or on failure) ────────────
+  // ── Static fallback (used while Supabase loads or on failure) ───────────
   const staticQuote = useDeliveryQuote({
     subtotal,
     branchId:       selectedBranchId,
@@ -112,39 +112,39 @@ export function useDeliveryContext(): DeliveryContext {
 
   // ── Merge ───────────────────────────────────────────────────────────────
   return useMemo<DeliveryContext>(() => {
-    if (railwayQuote) {
+    if (supabaseQuote) {
       const outOfServiceMessage =
-        railwayQuote.reasonCode === "OUT_OF_CAIRO" ? "نخدم القاهرة فقط حالياً" :
-        railwayQuote.reasonCode === "OUT_OF_ZONE"  ? "العنوان خارج نطاق التوصيل" :
-        railwayQuote.reasonCode === "NO_BRANCH"    ? "لا يوجد فرع متاح في منطقتك" :
+        supabaseQuote.reasonCode === "OUT_OF_CAIRO" ? "نخدم القاهرة فقط حالياً" :
+        supabaseQuote.reasonCode === "OUT_OF_ZONE"  ? "العنوان خارج نطاق التوصيل" :
+        supabaseQuote.reasonCode === "NO_BRANCH"    ? "لا يوجد فرع متاح في منطقتك" :
         null;
 
       return {
-        cost:                 railwayQuote.cost ?? 0,
-        eta:                  railwayQuote.eta
-                                ? { min: railwayQuote.eta.minMinutes, max: railwayQuote.eta.maxMinutes }
+        cost:                 supabaseQuote.cost ?? 0,
+        eta:                  supabaseQuote.eta
+                                ? { min: supabaseQuote.eta.minMinutes, max: supabaseQuote.eta.maxMinutes }
                                 : { min: 30, max: 60 },
-        isDeliverable:        railwayQuote.isDeliverable,
-        isFree:               railwayQuote.breakdown?.freeDeliveryApplied ?? false,
+        isDeliverable:        supabaseQuote.isDeliverable,
+        isFree:               supabaseQuote.breakdown?.freeDeliveryApplied ?? false,
         amountToFreeDelivery: Math.max(0, FREE_DELIVERY_THRESHOLD - subtotal),
-        isLoading:            railwayLoading,
+        isLoading:            supabaseLoading,
         branch:               staticQuote.branch,
-        distanceKm:           railwayQuote.distanceKm,
+        distanceKm:           supabaseQuote.distanceKm,
         outOfServiceMessage,
         subtotal,
         isResolvedFromContext: hasRealLocation,
       };
     }
 
-    // Railway still loading or failed — use static
+    // Supabase still loading or failed — use static
     return {
       ...staticQuote,
       subtotal,
       isResolvedFromContext: hasRealLocation,
     };
   }, [
-    railwayQuote,
-    railwayLoading,
+    supabaseQuote,
+    supabaseLoading,
     staticQuote,
     subtotal,
     hasRealLocation,

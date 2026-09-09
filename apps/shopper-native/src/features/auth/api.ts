@@ -17,7 +17,8 @@ import type { Role } from "./role";
  *  gets a chance to mishandle it. Falls back to `shopper://` in dev, where
  *  the app isn't installed with a build carrying the verified intent filter
  *  anyway (Expo Go / a plain dev client uses the exp:// tunnel instead). */
-const APP_LINK_BASE = "https://united-motaheda-production.up.railway.app";
+const APP_LINK_BASE =
+  process.env["EXPO_PUBLIC_APP_LINK_BASE"] ?? "https://www.unitedpharmacy.net";
 
 /** Deep link Supabase should send the user back to after they tap the
  *  email-confirmation link. In dev this resolves to an Expo Go / dev-client
@@ -128,7 +129,7 @@ export async function signUp(
     signUpData = result.data;
     signUpError = result.error;
   } catch (rawErr) {
-    // GoTrue on Railway sometimes returns a 504 timeout even though the
+    // GoTrue can return a 504 timeout even though the
     // account was successfully created (the SMTP send blocks the response).
     // In that case, a sign-in immediately after will succeed — we try that
     // as a recovery path before surfacing the timeout to the user.

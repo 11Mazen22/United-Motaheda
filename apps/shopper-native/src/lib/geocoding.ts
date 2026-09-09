@@ -4,7 +4,7 @@ import { MAPTILER_KEY } from "@/lib/maptilerConfig";
 /**
  *
  * Used when saving a delivery address so coordinates are stored
- * and fed into the Railway /delivery/quote zone-polygon engine.
+ * and fed into Supabase's delivery-zone RPC.
  *
  * Docs: https://docs.maptiler.com/cloud/api/geocoding/
  */

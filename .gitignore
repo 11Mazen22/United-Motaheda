@@ -24,6 +24,15 @@ apps/shopper-web/dist/
 # repo is public.
 SESSION_HANDOFF.md
 
+# Local backup of retired Railway/Supabase credentials
+railway-credentials-backup.txt
+
 # Temp diagnostic output files
 temp-tsc-output.txt
+tmp-npm-cache/
 
+eas_build_log.txt.gz
+
+
+tmp-npm-cache/
+eas_build_log.txt.gz

@@ -1642,6 +1642,32 @@ model notification_tokens {
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// user_devices stores FCM device tokens for native push notifications.
+/// Expo push tokens are stored separately in notification_tokens.
+model user_devices {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id      String    @db.Uuid
+  token        String    @unique
+  platform     String    @default("android")  // ios | android | web
+  provider     String    @default("fcm")       // fcm (native FCM/APNs via Firebase)
+  is_active    Boolean   @default(true)
+  device_id    String?
+  device_model String?
+  app_version  String?
+  os_version   String?
+  last_seen_at DateTime  @default(now()) @db.Timestamptz(6)
+  created_at   DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at   DateTime  @updatedAt @db.Timestamptz(6)
+
+  users        users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([user_id], map: "user_devices_user_idx")
+  @@index([user_id, is_active], map: "user_devices_user_active_idx")
+  @@schema("public")
+}
+
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model notifications {
   id                  String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   user_id             String                @db.Uuid

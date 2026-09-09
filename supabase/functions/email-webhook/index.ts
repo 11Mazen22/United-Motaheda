@@ -53,8 +53,8 @@ serve(async (req: Request) => {
   const tokenHash = email_data.token_hash;
   const redirectTo = email_data.redirect_to;
 
-  // Use SUPABASE_URL if set, otherwise fallback to the public Envoy gateway URL
-  const siteUrl = Deno.env.get("SUPABASE_URL") || email_data.site_url || "https://envoy-production-1cbe.up.railway.app";
+  // Use SUPABASE_URL if set, otherwise use the public Supabase project URL.
+  const siteUrl = Deno.env.get("SUPABASE_URL") || email_data.site_url || "https://gntpxffonjvnvadjclpl.supabase.co";
 
   // 3. Construct the exact GoTrue verify URL
   // In GoTrue v2.195.0, the GET /verify endpoint checks the 'token' query parameter and maps it to TokenHash.

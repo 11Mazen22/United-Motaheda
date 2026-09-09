@@ -10,13 +10,12 @@ import {
   ChevronDown,
   ChevronRight,
   ClipboardList,
-  Facebook,
   Globe,
   HelpCircle,
   Heart,
   Home,
   Info,
-  Instagram,
+  Camera,
   LayoutGrid,
   LogOut,
   Mail,
@@ -36,7 +35,7 @@ import {
   Truck,
   User,
   X,
-  Youtube,
+  Video,
   LayoutDashboard,
 } from "lucide-react";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
@@ -582,9 +581,9 @@ export default function Layout() {
         href: social.href,
         label: social.label,
         Icon:
-          social.id === "facebook"  ? Facebook  :
-          social.id === "instagram" ? Instagram :
-          social.id === "youtube"   ? Youtube   : Music2,
+          social.id === "facebook"  ? Globe  :
+          social.id === "instagram" ? Camera :
+          social.id === "youtube"   ? Video   : Music2,
       })),
     [],
   );

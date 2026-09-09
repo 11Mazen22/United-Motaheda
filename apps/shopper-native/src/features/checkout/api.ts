@@ -4,10 +4,8 @@
  * authenticated via the caller's Supabase session, so `orders.user_id`
  * is always set correctly and idempotency-key replay is handled server-side.
  *
- * Delivery quotes / branch lookups still go through the Railway backend
- * (see @/lib/railwayApi) — only order creation was moved off it, since the
- * Railway /orders route requires quoteToken/assignmentToken/branchId fields
- * this app never populated and has no auth guard.
+ * Delivery quotes and branch lookups use Supabase directly through the
+ * delivery-zone RPC and public branch query.
  */
 
 import {

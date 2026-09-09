@@ -146,9 +146,18 @@ function PushBootstrap() {
       const notificationId = typeof data.notification_id === "string" ? data.notification_id : undefined;
       if (notificationId && user?.id) markNotificationRead(notificationId, user.id).catch(() => {});
       
-      // Use pushNotificationService for navigation
+      // Centralized deep-link resolver with allowlist
       if (actionUrl) {
-        router.push(actionUrl as unknown as never);
+        const url = actionUrl.startsWith('/') ? actionUrl : `/${actionUrl}`;
+        const isAllowlisted = url === '/(app)/notifications' || 
+                              url === '/(app)/orders' || 
+                              url.startsWith('/(app)/orders/');
+        
+        if (isAllowlisted) {
+          router.push(url as unknown as never);
+        } else {
+          console.warn('[PushBootstrap] Blocked unknown or unauthorized deep link:', actionUrl);
+        }
       }
     },
   });

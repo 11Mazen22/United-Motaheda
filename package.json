@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "packageManager": "npm@11.6.0",
   "engines": {
-    "node": ">=22.22.2 <23"
+    "node": ">=20 <25"
   },
   "workspaces": [
     "apps/shopper-web",
@@ -60,6 +60,7 @@
     "@radix-ui/react-toggle-group": "1.1.2",
     "@radix-ui/react-tooltip": "1.1.8",
     "@supabase/supabase-js": "^2.103.0",
+    "@tanstack/query-core": "^5.76.2",
     "@tanstack/react-query": "^5.76.2",
     "@zxing/browser": "^0.1.5",
     "axios": "^1.15.0",
@@ -75,7 +76,7 @@
     "i18next": "^26.0.5",
     "i18next-browser-languagedetector": "^8.2.1",
     "input-otp": "1.4.2",
-    "lucide-react": "^0.487.0",
+    "lucide-react": "^1.43.0",
     "motion": "12.23.24",
     "next-themes": "0.4.6",
     "react": "18.3.1",

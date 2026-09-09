@@ -2,13 +2,13 @@
  * Branch seed data — authoritative source for all United Pharmacies branches.
  *
  * This file is the single source of truth for phones, hours, addresses,
- * names, and capability flags. The Railway API is queried at runtime only
+ * names, and capability flags. Supabase is queried at runtime only
  * to patch coordinates or isActive status — everything else comes from here.
  *
  * When a new branch opens:
  *   1. Add an entry here with full capability flags.
  *   2. Deploy the app update.
- *   3. Optionally add the branch to the Railway DB so it appears in the
+ *   3. Optionally add the branch to Supabase so it appears in the
  *      real-time quote engine.
  */
 

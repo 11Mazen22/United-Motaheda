@@ -1,8 +1,8 @@
-const { createClient } = require('@supabase/supabase-js');
+﻿const { createClient } = require('@supabase/supabase-js');
 const { Client } = require('pg');
 
 const supabase = createClient(
-  'https://envoy-production-1cbe.up.railway.app',
+  'https://gntpxffonjvnvadjclpl.supabase.co',
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIiwiaXNzIjoic3VwYWJhc2UiLCJpYXQiOjE3ODgwMDY4NTMsImV4cCI6MjEwMzM2Njg1M30.LWsgSb-zSn8Z5GOLCwfFHjsBUXSwXFrz4enKYJGMxbM',
 );
 

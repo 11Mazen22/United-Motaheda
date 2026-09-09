@@ -10,8 +10,8 @@ FROM supabase/edge-runtime:v1.67.4
 COPY . /home/deno/functions
 
 # Watch for the exact bug PostgREST hit tonight: an app defaulting to an
-# IPv4-only bind while Railway's private networking resolves and connects
-# via an IPv6 address, leaving Envoy unable to reach it at all (fails
-# silently -- looks like a dead service, not a bind-address problem). If
-# functions are unreachable through Envoy after deploy, check this first.
+# IPv4-only bind while private networking resolves and connects via an IPv6
+# address, leaving the gateway unable to reach it at all (fails silently --
+# looks like a dead service, not a bind-address problem). If functions are
+# unreachable after deploy, check this first.
 CMD ["start", "--main-service", "/home/deno/functions/main"]

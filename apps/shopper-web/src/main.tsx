@@ -18,6 +18,8 @@ import { reportWebVitals } from "./app/vitals";
 
 configureApiClient({
   baseUrl: publicEnv.apiBase,
+  supabaseUrl: publicEnv.supabaseUrl,
+  supabaseAnonKey: publicEnv.supabaseAnonKey,
   searchApiBase: publicEnv.searchApiBase,
 });
 

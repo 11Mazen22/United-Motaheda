@@ -10,7 +10,7 @@
 -- engineer actually needs access to.
 --
 -- Confirmed via a direct curl call (before writing this migration) that the
--- self-hosted Envoy gateway's own generate-embeddings deployment already
+-- Supabase project's own generate-embeddings deployment already
 -- has a matching CRON_SECRET configured and responds 200 with the same
 -- vault cron_secret value used below -- this is a pure repoint, not a new
 -- deployment.
@@ -23,7 +23,7 @@ SELECT cron.schedule(
   '15 seconds',
   $$
   SELECT net.http_post(
-    url := 'https://envoy-production-1cbe.up.railway.app/functions/v1/generate-embeddings',
+    url := 'https://gntpxffonjvnvadjclpl.supabase.co/functions/v1/generate-embeddings',
     headers := jsonb_build_object(
       'Authorization', 'Bearer ' || (SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name = 'cron_secret'),
       'Content-Type', 'application/json'

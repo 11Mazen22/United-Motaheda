@@ -3,7 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const DEFAULT_SITE_URL = "https://www.unitedpharmacy.net";
-const DEFAULT_SUPABASE_URL = "https://envoy-production-1cbe.up.railway.app";
+const DEFAULT_SUPABASE_URL = "https://gntpxffonjvnvadjclpl.supabase.co";
 const DEFAULT_SUPABASE_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlIiwiaWF0IjoxNzg4MDA2ODUzLCJleHAiOjIxMDMzNjY4NTN9.cGHr99POxNCCxKSXmYK1ySwsTiRsNMvnrDUV0UBrnoI";
 const PAGE_SIZE = 1000;

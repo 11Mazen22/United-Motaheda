@@ -1,3 +1,5 @@
+import { PrismaService } from '../../prisma/prisma.service';
+import { Prisma } from '@prisma/client';
 /**
  * Notification Hub Service
  * 
@@ -72,6 +74,8 @@ export class NotificationsService {
     private pushChannel: PushChannelService,
     private inAppChannel: InAppChannelService,
     private eventEmitter: EventEmitter2,
+    @Inject(forwardRef(() => PrismaService))
+    private prisma: PrismaService,
   ) {
     const supabaseUrl = this.configService.get<string>('SUPABASE_URL');
     const supabaseKey = this.configService.get<string>('SUPABASE_SERVICE_ROLE_KEY');
@@ -132,7 +136,12 @@ export class NotificationsService {
     }
 
     // 5. Determine channels to use
-    const targetChannels = channels || definition.supportedChannels;
+    const targetChannels = await this.filterByPreferences(userId, type, channels || definition.supportedChannels);
+    // If no channels are allowed after preferences filtering, abort without recording or sending
+    if (targetChannels.length === 0) {
+      this.logger.warn(`All channels filtered out by user preferences for notification type ${type}`);
+      return { notificationId: uuidv4(), success: false, channels: [] };
+    }
     const targetPriority = priority || definition.defaultPriority;
 
     // 6. Create notification record
@@ -188,7 +197,101 @@ export class NotificationsService {
   /**
    * Send notification through multiple channels
    */
-  private async sendThroughChannels(params: {
+
+  private async filterByPreferences(
+    userId: string,
+    type: string,
+    channels: NotificationChannel[],
+  ): Promise<NotificationChannel[]> {
+    try {
+      const { data, error } = await this.supabase
+        .from('users')
+        .select('notification_preferences')
+        .eq('id', userId)
+        .single();
+
+      if (error || !data?.notification_preferences) return channels;
+
+      const prefs = data.notification_preferences as {
+        channels?: Record<string, boolean>;
+        categories?: Record<string, boolean>;
+      };
+
+      // Extract the category key from the notification type (e.g. "order.created"   "order_updates")
+      const categoryMap: Record<string, string> = {
+        'order.': 'order_updates',
+        'promotion.': 'promotions',
+        'security.': 'security_alerts',
+        'health.': 'health_reminders',
+        'product.': 'new_arrivals',
+        'account.': 'account_updates',
+      };
+      let categoryKey: string | undefined;
+      for (const [prefix, cat] of Object.entries(categoryMap)) {
+        if (type.startsWith(prefix)) { categoryKey = cat; break; }
+      }
+
+      // If the category is disabled globally, suppress all channels.
+      if (categoryKey && prefs.categories?.[categoryKey] === false) {
+        return [];
+      }
+
+      // Filter channels by per-channel toggle.
+      return channels.filter((ch) => {
+        const channelKey = ch === 'in_app' ? 'push' : ch; // in_app uses push toggle
+        return prefs.channels?.[channelKey] !== false;
+      });
+    } catch {
+      // If preference fetch fails, allow delivery (fail-open).
+      return channels;
+    }
+  }
+
+
+  private async enqueueOutbox(params: {
+    notificationId: string;
+    recipientId: string;
+    type: string;
+    title: string;
+    body: string;
+    payload: Record<string, any>;
+    priority: NotificationPriority;
+    idempotencyKey?: string;
+  }, tx?: Prisma.TransactionClient): Promise<boolean> {
+    try {
+      const payload = {
+        notification_id: params.notificationId,
+        recipient_id: params.recipientId,
+        event_type: params.type,
+        title: params.title,
+        body: params.body,
+        payload: params.payload || {},
+        idempotency_key: params.idempotencyKey ?? `${params.notificationId}-push`,
+        status: 'queued',
+        attempts: 0,
+        next_attempt_at: new Date(),
+        created_at: new Date(),
+        updated_at: new Date(),
+      };
+      
+      if (tx) {
+        await tx.notification_outbox.create({ data: payload });
+      } else if (this.prisma) {
+        await this.prisma.notification_outbox.create({ data: payload });
+      } else {
+        const { error } = await this.supabase.from('notification_outbox').insert({ ...payload, next_attempt_at: new Date().toISOString(), created_at: new Date().toISOString(), updated_at: new Date().toISOString() });
+        if (error) throw error;
+      }
+      return true;
+    } catch (err: any) {
+      this.logger.error(`enqueueOutbox error: ${err.message}`);
+      if (tx) throw err;
+      return false;
+    }
+  }
+
+  private async sendThroughChannels(
+params: {
     notificationId: string;
     userId: string;
     type: string;
@@ -198,7 +301,7 @@ export class NotificationsService {
     channels: NotificationChannel[];
     priority: NotificationPriority;
     idempotencyKey?: string;
-  }): Promise<{ channel: NotificationChannel; status: NotificationStatus; error?: string }[]> {
+  }, tx?: Prisma.TransactionClient): Promise<{ channel: NotificationChannel; status: NotificationStatus; error?: string }[]> {
     const results = [];
 
     for (const channel of params.channels) {
@@ -217,14 +320,20 @@ export class NotificationsService {
             break;
 
           case 'push':
-            result = await this.pushChannel.send({
-              userId: params.userId,
+            const enqueued = await this.enqueueOutbox({
+              notificationId: params.notificationId,
+              recipientId: params.userId,
+              type: params.type,
               title: params.title,
               body: params.body,
-              data: params.data,
-              type: params.type,
-              priority: params.priority === 'high' ? 'high' : 'normal',
-            });
+              payload: params.data,
+              priority: params.priority,
+              idempotencyKey: params.idempotencyKey,
+            }, tx);
+            result = {
+              status: enqueued ? 'sent' : 'failed',
+              error: enqueued ? undefined : 'Failed to enqueue push notification',
+            };
             break;
 
           case 'email':
