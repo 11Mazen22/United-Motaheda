@@ -1,16 +1,14 @@
 /**
  * App Module
  *
- * Bootstraps the United Pharmacy API with:
- * - ConfigModule (global)
- * - ScheduleModule (for the outbox worker cron)
- * - EventEmitterModule (event-driven notification dispatch)
- * - NotificationsModule (push channel + expo provider + notification service)
- * - NotificationWorker (background outbox processor)
- *
- * NOTE: BullMQ queue infrastructure is wired here for future use.
- * The current notification pipeline uses the Supabase outbox table with
- * a cron-based worker — no Redis queue is required for the outbox path.
+ * The Centralized Notification Hub commit (87aa5f6e) replaced this file
+ * wholesale with a notifications-only version instead of adding to the
+ * existing one, silently dropping every other domain module (Branches,
+ * Delivery, PromotionCopilot, Driver, Auth, Admin, Products, Inventory,
+ * Customers) from the running app — confirmed by diffing against the
+ * pre-regression version at 8cdbe565. Restored here alongside the
+ * notification-hub additions (ConfigModule/ScheduleModule/EventEmitterModule/
+ * NotificationWorker), which are legitimate and kept as-is.
  */
 
 import { Module } from '@nestjs/common';
@@ -18,13 +16,18 @@ import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 
+import { PrismaModule } from './prisma/prisma.module';
+import { BranchesModule } from './modules/branches/branches.module';
+import { DeliveryModule } from './modules/delivery/delivery.module';
+import { PromotionCopilotModule } from './modules/promotion-copilot/promotion-copilot.module';
+import { DriverModule } from './modules/driver/driver.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
+import { AuthModule } from './auth/auth.module';
+import { AdminModule } from './modules/admin/admin.module';
+import { ProductsModule } from './modules/products/products.module';
+import { InventoryModule } from './modules/inventory/inventory.module';
+import { CustomersModule } from './modules/customers/customers.module';
 import { NotificationWorker } from './worker/notification.worker';
-
-// Import other domain modules as they are added, e.g.:
-// import { AuthModule } from './modules/auth/auth.module';
-// import { OrdersModule } from './modules/orders/orders.module';
-// import { DriverModule } from './modules/driver/driver.module';
 
 @Module({
   imports: [
@@ -46,13 +49,18 @@ import { NotificationWorker } from './worker/notification.worker';
       ignoreErrors: false,
     }),
 
-    // ── Notification feature module ────────────────────────────────────────
+    // ── Domain modules ──────────────────────────────────────────────────────
+    PrismaModule,
+    BranchesModule,
+    DeliveryModule,
+    PromotionCopilotModule,
+    DriverModule,
     NotificationsModule,
-
-    // ── Domain modules (uncomment as they are introduced) ─────────────────
-    // AuthModule,
-    // OrdersModule,
-    // DriverModule,
+    AuthModule,
+    AdminModule,
+    ProductsModule,
+    InventoryModule,
+    CustomersModule,
   ],
   providers: [
     // Background outbox processor – runs inside the main NestJS process.
