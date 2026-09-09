@@ -17,7 +17,6 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.unitedpharmacy.app",
       "buildNumber": "1",
-      "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSLocationWhenInUseUsageDescription": "نستخدم موقعك الحالي لتحديد عنوان التوصيل بدقة ومساعدة السائق في الوصول الصحيح."
@@ -48,19 +47,16 @@
           "data": [
             {
               "scheme": "https",
-              "host": "www.unitedpharmacy.net",
+              "host": "united-motaheda-production.up.railway.app",
               "pathPrefix": "/reset-password"
             },
             {
               "scheme": "https",
-              "host": "www.unitedpharmacy.net",
+              "host": "united-motaheda-production.up.railway.app",
               "pathPrefix": "/auth-callback"
             }
           ],
-          "category": [
-            "BROWSABLE",
-            "DEFAULT"
-          ]
+          "category": ["BROWSABLE", "DEFAULT"]
         }
       ]
     },
@@ -122,7 +118,8 @@
       ],
       "@react-native-firebase/app",
       "@react-native-firebase/messaging",
-      "./plugins/withHermescPatch.cjs"
+      "./plugins/withHermescPatch.cjs",
+      "./plugins/withFirebaseManifest.cjs"
     ],
     "experiments": {
       "typedRoutes": true
