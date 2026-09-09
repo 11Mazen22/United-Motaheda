@@ -406,7 +406,10 @@ export class AdminOperationsService {
         created_at: order.created_at,
         updated_at: order.updated_at,
         last_status_at: order.last_status_at,
-        order_items: order.order_items,
+        order_items: order.order_items.map((item) => ({
+          ...item,
+          id: item.id.toString(),
+        })),
       })),
     };
   }
