@@ -347,6 +347,29 @@ export class NotificationWorker implements OnModuleInit {
 
   // ── Expo delivery ───────────────────────────────────────────────────────────
 
+  /**
+   * One Expo API request per token rather than one batched request per
+   * recipient. Root-caused a live "Unexpected Expo response format" error
+   * that was failing every notification for any recipient whose
+   * accumulated tokens span more than one Expo project (confirmed live:
+   * this app was rebuilt/republished under a renamed Expo account at some
+   * point, leaving old and new tokens registered side by side for the same
+   * user) -- Expo's push API rejects the ENTIRE batch with HTTP 400
+   * PUSH_TOO_MANY_EXPERIENCE_IDS when a single request mixes tokens from
+   * different projects, and that error response is shaped
+   * {errors: [...]}, not {data: [...]}, which is exactly what
+   * `!Array.isArray(json?.data)` was catching -- correctly detecting the
+   * malformed-for-us response, but failing ALL of that recipient's tokens
+   * together instead of isolating the actually-bad one(s). Reproduced and
+   * confirmed directly against the real Expo API with this project's real
+   * token data before this fix; a single-token request for the same
+   * recipient already delivered successfully (status: "ok").
+   * Per-token requests trade a little batching efficiency (Expo's own docs
+   * recommend batching for that reason) for correctness: one stale/wrong-
+   * project token can no longer block delivery to the same recipient's
+   * other, healthy tokens, which matters more for a background worker than
+   * the extra round trips.
+   */
   private async sendExpo(
     tokens: string[],
     title: string,
@@ -354,47 +377,52 @@ export class NotificationWorker implements OnModuleInit {
     data: Record<string, any>,
     tokenRows: ExpoTokenRow[],
   ): Promise<{ successful: string[]; failed: string[] }> {
-    try {
-      const messages = tokens.map((token) => ({
-        to: token,
-        title,
-        body,
-        data,
-        sound: 'default',
-      }));
+    const results = await Promise.all(
+      tokens.map((token) => this.sendExpoSingle(token, title, body, data)),
+    );
 
-      const payload = JSON.stringify(messages);
+    const successful: string[] = [];
+    const failed: string[] = [];
+    const invalidTokens: string[] = [];
+
+    results.forEach((result, idx) => {
+      const token = tokens[idx];
+      if (result.ok) {
+        successful.push(token);
+      } else {
+        failed.push(token);
+        if (result.invalid) invalidTokens.push(token);
+      }
+    });
+
+    if (invalidTokens.length > 0) {
+      await this.invalidateExpoTokens(invalidTokens);
+    }
+
+    return { successful, failed };
+  }
+
+  private async sendExpoSingle(
+    token: string,
+    title: string,
+    body: string,
+    data: Record<string, any>,
+  ): Promise<{ ok: boolean; invalid: boolean }> {
+    try {
+      const payload = JSON.stringify([{ to: token, title, body, data, sound: 'default' }]);
       const json = await this.expoPost(payload);
 
-      if (!Array.isArray(json?.data)) {
-        this.logger.error('Unexpected Expo response format');
-        return { successful: [], failed: tokens };
+      if (!Array.isArray(json?.data) || json.data.length !== 1) {
+        this.logger.error(`Unexpected Expo response format: ${JSON.stringify(json)}`);
+        return { ok: false, invalid: false };
       }
 
-      const successful: string[] = [];
-      const failed: string[] = [];
-      const invalidTokens: string[] = [];
-
-      json.data.forEach((item: any, idx: number) => {
-        const token = tokens[idx];
-        if (item.status === 'ok') {
-          successful.push(token);
-        } else {
-          failed.push(token);
-          if (EXPO_INVALID_TOKEN_ERRORS.has(item.details?.error)) {
-            invalidTokens.push(token);
-          }
-        }
-      });
-
-      if (invalidTokens.length > 0) {
-        await this.invalidateExpoTokens(invalidTokens);
-      }
-
-      return { successful, failed };
+      const item = json.data[0];
+      if (item.status === 'ok') return { ok: true, invalid: false };
+      return { ok: false, invalid: EXPO_INVALID_TOKEN_ERRORS.has(item.details?.error) };
     } catch (err: any) {
       this.logger.error(`Expo send error: ${err.message}`);
-      return { successful: [], failed: tokens };
+      return { ok: false, invalid: false };
     }
   }
 
