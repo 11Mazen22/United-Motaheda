@@ -5,7 +5,11 @@
 
 import { getSupabaseClient } from "../lib/supabaseClient";
 
-const BUCKET = "payment-receipts";
+// Reuses the same bucket apps/shopper-native uploads manual-payment receipts
+// to (confirmed live: it exists, with working owner-scoped upload/read +
+// staff-read policies). "payment-receipts" was never actually created as a
+// bucket on either database -- every web upload attempt failed outright.
+const BUCKET = "receipts";
 const MAX_FILE_BYTES = 10 * 1024 * 1024; // 10 MB
 
 export type ManualPaymentMethod = "instapay" | "vodafone";
@@ -49,6 +53,14 @@ export async function uploadWebPaymentReceipt(
 /**
  * Patches an existing order with payment proof details after it's been created.
  * Used as a fallback if the Edge Function didn't persist them.
+ *
+ * Goes through submit_manual_payment_proof (a SECURITY DEFINER RPC) rather
+ * than a raw `.from("orders").update(...)` — the same fix already applied to
+ * apps/shopper-native's equivalent path. orders never had an UPDATE policy
+ * for the order's own customer at all (every such write was silently
+ * rejected by RLS); the RPC is also what actually keeps this write to
+ * exactly these five columns — RLS's WITH CHECK can restrict column
+ * VALUES but not which columns a raw update touches in the same statement.
  */
 export async function patchWebOrderManualPayment(
   orderId: string,
@@ -58,16 +70,12 @@ export async function patchWebOrderManualPayment(
 ): Promise<void> {
   const supabase = getSupabaseClient();
 
-  const { error } = await supabase
-    .from("orders")
-    .update({
-      transfer_number: transferNumber.trim(),
-      payment_proof_url: paymentProofUrl,
-      payment_method: paymentMethod,
-      payment_status: "pending_verification",
-      status: "pending_payment",
-    })
-    .eq("id", orderId);
+  const { error } = await supabase.rpc("submit_manual_payment_proof", {
+    p_order_id: orderId,
+    p_transfer_number: transferNumber.trim(),
+    p_payment_proof_url: paymentProofUrl,
+    p_payment_method: paymentMethod,
+  });
 
   if (error) {
     throw new Error(`تعذّر حفظ بيانات التحويل: ${error.message}`);
