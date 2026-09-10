@@ -592,6 +592,14 @@ export async function completeDelivery(orderId: string, assignmentId: string, dr
     .eq("id", assignmentId)
     .eq("driver_id", driverId);
 
+  // Best-effort — a failure here must not undo the delivery completion
+  // above. record_driver_earning is idempotent (safe if completeDelivery
+  // is ever retried) and requires delivered_at to already be set, which
+  // the update just above guarantees.
+  supabase.rpc("record_driver_earning", { p_assignment_id: assignmentId }).then(({ error }) => {
+    if (error) console.error("[driver/api] record_driver_earning failed:", error.message);
+  });
+
   notifyCustomerOrderUpdate(orderId, "delivered");
 }
 
