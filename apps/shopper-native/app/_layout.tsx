@@ -28,15 +28,11 @@ import {
 
 import * as Font from "expo-font";
 
-import { useRouter } from "expo-router";
-
 import { AuthProvider, useAuth } from "@/features/auth";
 
 import {
-  markNotificationRead,
   NotificationBanner,
   useNotificationSync,
-  usePushNotificationRegistration,
 } from "@/features/notifications";
 
 import { useCustomerOrdersRealtimeSync } from "@/features/orders";
@@ -113,15 +109,20 @@ function ProductsSync() {
   return null;
 }
 
-// ============================================================
-// 🆕 UPDATED: PushBootstrap with pushNotificationService integration
-// ============================================================
 function PushBootstrap() {
   const { user } = useAuth();
-  const router = useRouter();
   const { fetchNotifications } = useNotificationsStore();
 
-  // Initialize push notification service
+  // pushNotificationService is the only push-registration path -- it writes
+  // to user_devices' current schema (device_id/push_token/platform) and its
+  // own tap handler already navigates to the real (customer)/... routes.
+  // A second, older registration hook used to run alongside this one; it
+  // targeted user_devices columns (token/provider) that predate the
+  // central-notification-hub migration and no longer exist, so every write
+  // through it was silently failing, and its notification-tap deep-link
+  // allowlist referenced a (app)/... route group that doesn't exist in this
+  // router. Removed rather than fixed in place -- nothing depended on it
+  // working, since it never did against the live schema.
   useEffect(() => {
     const initPush = async () => {
       try {
@@ -137,30 +138,6 @@ function PushBootstrap() {
       initPush();
     }
   }, [user?.id]);
-
-  // Existing push notification registration
-  usePushNotificationRegistration({
-    userId: user?.id,
-    enabled: !!user?.id,
-    onNotificationTap: (actionUrl, data) => {
-      const notificationId = typeof data.notification_id === "string" ? data.notification_id : undefined;
-      if (notificationId && user?.id) markNotificationRead(notificationId, user.id).catch(() => {});
-      
-      // Centralized deep-link resolver with allowlist
-      if (actionUrl) {
-        const url = actionUrl.startsWith('/') ? actionUrl : `/${actionUrl}`;
-        const isAllowlisted = url === '/(app)/notifications' || 
-                              url === '/(app)/orders' || 
-                              url.startsWith('/(app)/orders/');
-        
-        if (isAllowlisted) {
-          router.push(url as unknown as never);
-        } else {
-          console.warn('[PushBootstrap] Blocked unknown or unauthorized deep link:', actionUrl);
-        }
-      }
-    },
-  });
 
   return null;
 }

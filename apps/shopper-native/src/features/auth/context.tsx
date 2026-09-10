@@ -7,7 +7,7 @@ import type { RealtimeChannel } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import { identify, resetAnalytics, track } from "@/lib/analytics";
 import { setCrashUser } from "@/lib/crashReporter";
-import { unregisterAllPushTokensForUser } from "@/features/notifications";
+import { pushNotificationService } from "@/services/pushNotificationService";
 import { wipeUserData } from "./userDataWipe";
 import type { AuthUser } from "./api";
 import { normalizeRole } from "./role";
@@ -436,13 +436,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch {
       // network failure — clear local state regardless
     }
-    // Detach this device's push token(s) from the account before anything
-    // else — see unregisterAllPushTokensForUser's own comment for why: without
-    // this, a signed-out account can keep receiving push notifications on a
-    // device it no longer controls. Best-effort; a failure here shouldn't
-    // block sign-out itself.
+    // Deactivate this device's own push-token row -- without this, a
+    // signed-out account can keep receiving push notifications on a device
+    // it no longer controls. Scoped to this one device's token (not every
+    // device on the account: an earlier version called
+    // unregisterAllPushTokensForUser, which deleted ALL of this user's
+    // device rows on any single sign-out, silently killing push on their
+    // other, still-signed-in devices too). Pass the userId captured above
+    // rather than letting deactivateToken() read it from the session itself
+    // -- signOut() just cleared that session, so the internal lookup would
+    // find no user and silently no-op. Best-effort; a failure here
+    // shouldn't block sign-out itself.
     if (signedOutUserId) {
-      unregisterAllPushTokensForUser(signedOutUserId).catch(() => {});
+      pushNotificationService.deactivateToken(signedOutUserId).catch(() => {});
     }
     // Wipe all account-scoped data BEFORE clearing the user, so any UI still
     // mounted during the transition sees empty stores (not stale data from

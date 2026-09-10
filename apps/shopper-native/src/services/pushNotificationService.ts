@@ -176,19 +176,26 @@ class PushNotificationService {
   
 
   /**
-   * Deactivate device token on logout
+   * Deactivate device token on logout. Pass userId when the caller already
+   * knows it (e.g. sign-out, after the session -- and so
+   * supabase.auth.getUser() -- has already been cleared); otherwise it's
+   * read from the current session.
    */
-  async deactivateToken(): Promise<void> {
+  async deactivateToken(userId?: string): Promise<void> {
     try {
       const token = await AsyncStorage.getItem(PUSH_TOKEN_KEY);
       if (!token) return;
 
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      let targetUserId = userId;
+      if (!targetUserId) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        targetUserId = user.id;
+      }
 
       await supabase.from('user_devices')
         .update({ is_active: false })
-        .eq('user_id', user.id)
+        .eq('user_id', targetUserId)
         .eq('push_token', token);
 
       this.isRegistered = false;
