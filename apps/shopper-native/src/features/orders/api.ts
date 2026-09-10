@@ -59,6 +59,8 @@ interface OrderRow extends OrderLocationRow {
   payment_proof_url: string | null;
   transfer_number:  string | null;
   qr_token:         string | null;
+  assigned_driver_id: string | null;
+  delivery_distance_km: number | string | null;
   order_items:      OrderItemRow[];
 }
 
@@ -121,6 +123,8 @@ function rowToOrder(row: OrderRow): Order {
     paymentProofUrl: row.payment_proof_url ?? null,
     transferNumber:  row.transfer_number  ?? null,
     qrToken:         row.qr_token         ?? null,
+    assignedDriverId:   row.assigned_driver_id ?? null,
+    deliveryDistanceKm: row.delivery_distance_km != null ? num(row.delivery_distance_km) : null,
   };
 }
 
@@ -146,6 +150,8 @@ const ORDERS_SELECT = [
   "payment_proof_url",
   "transfer_number",
   "qr_token",
+  "assigned_driver_id",
+  "delivery_distance_km",
   "order_items(id,product_id,quantity,unit_price,line_total,product_snapshot)",
 ].join(",");
 

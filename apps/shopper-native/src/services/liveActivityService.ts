@@ -6,15 +6,17 @@
  */
 
 import { Platform } from 'react-native';
-import { useOrderStore } from '@/stores/orders';
+import { useOrderStore, type CanonicalOrderStatus } from '@/stores/orders';
 
 // iOS Live Activities
 interface LiveActivityOptions {
   orderId: string;
   driverName: string;
   driverLocation: string;
-  estimatedArrival: number;
-  status: 'pending' | 'accepted' | 'picked_up' | 'delivered' | 'cancelled';
+  /** Minutes, when a real estimate is available. This app has no stored/
+   *  computed ETA source today — omit rather than fabricate one. */
+  estimatedArrival?: number;
+  status: CanonicalOrderStatus;
   progress: number; // 0.0 - 1.0
   originAddress: string;
   destinationAddress: string;
@@ -270,16 +272,15 @@ class LiveActivityService {
         return;
       }
 
-      // Check if live activity should be active
-      const shouldBeActive = ['pending', 'accepted', 'picked_up'].includes(activeOrder.status);
-      
+      // Check if live activity should be active — anything not yet terminal.
+      const shouldBeActive = !['delivered', 'cancelled', 'archived'].includes(activeOrder.status);
+
       if (shouldBeActive && !this.isActive()) {
         // Start live activity
         this.startLiveActivity({
           orderId: activeOrder.id,
           driverName: activeOrder.driverName || 'السائق',
           driverLocation: driverLocation ? 'في الطريق' : 'جاري التحديث...',
-          estimatedArrival: activeOrder.estimatedArrival || 10,
           status: activeOrder.status,
           progress: 0.5, // You can calculate this based on route progress
           originAddress: 'نقطة البداية',
@@ -291,7 +292,6 @@ class LiveActivityService {
         this.updateLiveActivity({
           driverName: activeOrder.driverName || 'السائق',
           driverLocation: driverLocation ? 'في الطريق' : 'جاري التحديث...',
-          estimatedArrival: activeOrder.estimatedArrival || 10,
           status: activeOrder.status,
           progress: 0.5,
           driverPhoto: activeOrder.driverPhoto,

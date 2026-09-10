@@ -1,404 +1,198 @@
 /**
- * Unit tests for OrderTrackingService
- * 
- * Tests:
- * - Service initialization
- * - Start/stop tracking
- * - Location updates
- * - Status updates
- * - Error handling
- * - Cleanup
+ * Unit tests for OrderTrackingService.
+ *
+ * Rewritten alongside the service fix: the previous version of these tests
+ * asserted the OLD, broken behavior as correct (payload.new.latitude/
+ * longitude, an UPDATE listener on driver_locations, driver name/phone read
+ * directly off the orders row) — none of which match the real schema or the
+ * driver-location Edge Function's actual INSERT-only write pattern. These
+ * tests now exercise the real column names and event types the fixed
+ * service (and the tables it subscribes to) actually use.
  */
 
 import { orderTrackingService } from '@/services/orderTrackingService';
-import { useOrderStore, ActiveOrder, Coordinate } from '@/stores/orders';
+import { useOrderStore, ActiveOrder } from '@/stores/orders';
+import { supabase } from '@/lib/supabase';
 
-// Mock Supabase
-jest.mock('@supabase/supabase-js', () => ({
-  RealtimeChannel: jest.fn(),
-  SupabaseClient: jest.fn().mockImplementation(() => ({
-    channel: jest.fn().mockReturnThis(),
-    on: jest.fn().mockReturnThis(),
-    subscribe: jest.fn().mockReturnThis(),
-    removeChannel: jest.fn().mockResolvedValue(true),
-  })),
+type ChangeHandler = (payload: { new: Record<string, unknown> | null }) => void;
+
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  getItem: jest.fn(async () => null),
+  setItem: jest.fn(async () => {}),
+  removeItem: jest.fn(async () => {}),
 }));
 
-// Mock the store
-jest.mock('@/stores/orders', () => ({
-  useOrderStore: {
-    getState: jest.fn().mockReturnValue({
-      setActiveOrder: jest.fn(),
-      updateDriverLocation: jest.fn(),
-      updateOrderStatus: jest.fn(),
-      clearActiveOrder: jest.fn(),
+jest.mock('@/lib/supabase', () => ({
+  supabase: {
+    channel: jest.fn(() => {
+      const fake: any = {
+        _handlers: [] as Array<{ config: any; handler: ChangeHandler }>,
+      };
+      fake.on = jest.fn((_event: string, config: any, handler: ChangeHandler) => {
+        fake._handlers.push({ config, handler });
+        return fake;
+      });
+      fake.subscribe = jest.fn(() => fake);
+      return fake;
     }),
+    removeChannel: jest.fn(),
+    from: jest.fn(),
   },
 }));
 
+const mockedSupabase = supabase as unknown as {
+  channel: jest.Mock;
+  removeChannel: jest.Mock;
+  from: jest.Mock;
+};
+
+function fireChange(channel: any, table: string, newRow: Record<string, unknown> | null) {
+  const entry = (channel._handlers as Array<{ config: any; handler: ChangeHandler }>).find(
+    (h) => h.config.table === table,
+  );
+  entry?.handler({ new: newRow });
+}
+
 describe('OrderTrackingService', () => {
   let mockOrder: ActiveOrder;
-  let mockSupabase: any;
 
   beforeEach(() => {
     jest.clearAllMocks();
+    useOrderStore.setState({
+      activeOrder: null,
+      driverLocation: null,
+      isTracking: false,
+    });
 
     mockOrder = {
       id: 'order-123',
-      status: 'pending',
+      status: 'driver_accepted',
       origin: { lat: 30.0444, lng: 31.2357 },
       destination: { lat: 30.0123, lng: 31.4567 },
-      driverId: 'driver-456',
-      driverName: 'أحمد محمد',
-      driverPhone: '+20123456789',
-      estimatedArrival: 15,
+      driverId: null,
+      driverName: null,
+      driverPhone: null,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
 
-    mockSupabase = {
-      channel: jest.fn().mockReturnThis(),
-      on: jest.fn().mockReturnThis(),
-      subscribe: jest.fn().mockReturnThis(),
-      removeChannel: jest.fn().mockResolvedValue(true),
-    };
+    orderTrackingService.initialize(supabase as any);
   });
 
-  // ============================================================
-  // Test 1: Service Initialization
-  // ============================================================
-  describe('initialize', () => {
-    it('should initialize with Supabase client', () => {
-      orderTrackingService.initialize(mockSupabase);
-      expect(orderTrackingService['supabase']).toBe(mockSupabase);
-    });
-
-    it('should not fail if initialized multiple times', () => {
-      orderTrackingService.initialize(mockSupabase);
-      orderTrackingService.initialize(mockSupabase);
-      expect(orderTrackingService['supabase']).toBe(mockSupabase);
-    });
+  afterEach(() => {
+    orderTrackingService.cleanup();
   });
 
-  // ============================================================
-  // Test 2: Start Tracking
-  // ============================================================
-  describe('startTracking', () => {
-    it('should start tracking an order', () => {
-      orderTrackingService.initialize(mockSupabase);
-      orderTrackingService.startTracking(mockOrder);
+  it('sets the active order and subscribes to both tables on startTracking', () => {
+    orderTrackingService.startTracking(mockOrder);
 
-      expect(useOrderStore.getState().setActiveOrder).toHaveBeenCalledWith(mockOrder);
-      expect(orderTrackingService['activeOrderId']).toBe(mockOrder.id);
-      expect(orderTrackingService['isSubscribed']).toBe(true);
-    });
-
-    it('should stop existing tracking before starting new one', () => {
-      orderTrackingService.initialize(mockSupabase);
-      orderTrackingService.startTracking(mockOrder);
-      
-      const newOrder = { ...mockOrder, id: 'order-456' };
-      orderTrackingService.startTracking(newOrder);
-
-      expect(orderTrackingService['activeOrderId']).toBe(newOrder.id);
-    });
-
-    it('should not start tracking if Supabase is not initialized', () => {
-      // Don't initialize
-      orderTrackingService.startTracking(mockOrder);
-
-      expect(useOrderStore.getState().setActiveOrder).not.toHaveBeenCalled();
-      expect(orderTrackingService['isSubscribed']).toBe(false);
-    });
+    expect(useOrderStore.getState().activeOrder?.id).toBe('order-123');
+    expect(useOrderStore.getState().isTracking).toBe(true);
+    expect(mockedSupabase.channel).toHaveBeenCalledTimes(2);
   });
 
-  // ============================================================
-  // Test 3: Stop Tracking
-  // ============================================================
-  describe('stopTracking', () => {
-    it('should stop tracking and clear store', () => {
-      orderTrackingService.initialize(mockSupabase);
-      orderTrackingService.startTracking(mockOrder);
-      orderTrackingService.stopTracking();
+  it('driver_locations INSERT uses lat/lng (not latitude/longitude)', () => {
+    orderTrackingService.startTracking(mockOrder);
+    const locationChannel = mockedSupabase.channel.mock.results[0].value;
 
-      expect(useOrderStore.getState().clearActiveOrder).toHaveBeenCalled();
-      expect(orderTrackingService['activeOrderId']).toBeNull();
-      expect(orderTrackingService['isSubscribed']).toBe(false);
+    fireChange(locationChannel, 'driver_locations', {
+      order_id: 'order-123',
+      driver_id: 'driver-456',
+      lat: 30.0555,
+      lng: 31.2457,
+      captured_at: new Date().toISOString(),
     });
 
-    it('should remove the Supabase channel', () => {
-      orderTrackingService.initialize(mockSupabase);
-      orderTrackingService.startTracking(mockOrder);
-      
-      // Create a mock channel
-      const mockChannel = { 
-        on: jest.fn().mockReturnThis(), 
-        subscribe: jest.fn().mockReturnThis() 
-      };
-      orderTrackingService['channel'] = mockChannel as any;
-
-      orderTrackingService.stopTracking();
-
-      expect(mockSupabase.removeChannel).toHaveBeenCalledWith(mockChannel);
-    });
-
-    it('should handle stop when not tracking gracefully', () => {
-      // Not tracking
-      orderTrackingService.stopTracking();
-      
-      expect(useOrderStore.getState().clearActiveOrder).toHaveBeenCalled();
-    });
+    expect(useOrderStore.getState().driverLocation).toEqual({ lat: 30.0555, lng: 31.2457 });
   });
 
-  // ============================================================
-  // Test 4: isTracking
-  // ============================================================
-  describe('isTracking', () => {
-    it('should return true when tracking', () => {
-      orderTrackingService.initialize(mockSupabase);
-      orderTrackingService.startTracking(mockOrder);
-      
-      expect(orderTrackingService.isTracking()).toBe(true);
-    });
+  it('ignores a driver_locations payload missing lat/lng instead of writing NaN/undefined', () => {
+    orderTrackingService.startTracking(mockOrder);
+    const locationChannel = mockedSupabase.channel.mock.results[0].value;
+    const before = useOrderStore.getState().driverLocation;
 
-    it('should return false when not tracking', () => {
-      expect(orderTrackingService.isTracking()).toBe(false);
-    });
+    fireChange(locationChannel, 'driver_locations', { order_id: 'order-123' });
 
-    it('should return false after stopTracking', () => {
-      orderTrackingService.initialize(mockSupabase);
-      orderTrackingService.startTracking(mockOrder);
-      orderTrackingService.stopTracking();
-      
-      expect(orderTrackingService.isTracking()).toBe(false);
-    });
+    expect(useOrderStore.getState().driverLocation).toBe(before);
   });
 
-  // ============================================================
-  // Test 5: getActiveOrderId
-  // ============================================================
-  describe('getActiveOrderId', () => {
-    it('should return active order ID when tracking', () => {
-      orderTrackingService.initialize(mockSupabase);
-      orderTrackingService.startTracking(mockOrder);
-      
-      expect(orderTrackingService.getActiveOrderId()).toBe(mockOrder.id);
-    });
+  it('normalizes the real order_status enum on an orders UPDATE, not the old 5-value subset', () => {
+    orderTrackingService.startTracking(mockOrder);
+    const statusChannel = mockedSupabase.channel.mock.results[1].value;
 
-    it('should return null when not tracking', () => {
-      expect(orderTrackingService.getActiveOrderId()).toBeNull();
-    });
+    fireChange(statusChannel, 'orders', { id: 'order-123', status: 'out_for_delivery', assigned_driver_id: null });
+
+    expect(useOrderStore.getState().activeOrder?.status).toBe('out_for_delivery');
   });
 
-  // ============================================================
-  // Test 6: Driver Location Updates
-  // ============================================================
-  describe('driver location updates', () => {
-    it('should update driver location in store when new data arrives', () => {
-      orderTrackingService.initialize(mockSupabase);
-      orderTrackingService.startTracking(mockOrder);
-
-      const newLocation: Coordinate = { lat: 30.0555, lng: 31.2457 };
-      
-      // Simulate location update
-      orderTrackingService['channel']?.on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'driver_locations',
-          filter: `order_id=eq.${mockOrder.id}`,
-        },
-        (payload: any) => {
-          const newLocationData = {
-            order_id: mockOrder.id,
-            driver_id: 'driver-456',
-            latitude: newLocation.lat,
-            longitude: newLocation.lng,
-            updated_at: new Date().toISOString(),
-          };
-          
-          useOrderStore.getState().updateDriverLocation({
-            lat: newLocationData.latitude,
-            lng: newLocationData.longitude,
-          });
-        }
-      );
-
-      // Trigger the callback
-      const mockPayload = {
-        new: {
-          order_id: mockOrder.id,
-          driver_id: 'driver-456',
-          latitude: newLocation.lat,
-          longitude: newLocation.lng,
-          updated_at: new Date().toISOString(),
-        },
-      };
-
-      // This would normally be called by Supabase
-      // We're testing the handler logic
-      expect(useOrderStore.getState().updateDriverLocation).toHaveBeenCalledWith(newLocation);
-    });
-  });
-
-  // ============================================================
-  // Test 7: Order Status Updates
-  // ============================================================
-  describe('order status updates', () => {
-    it('should update order status in store when status changes', () => {
-      orderTrackingService.initialize(mockSupabase);
-      orderTrackingService.startTracking(mockOrder);
-
-      const newStatus: ActiveOrder['status'] = 'accepted';
-      
-      // Simulate status update
-      orderTrackingService['channel']?.on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'orders',
-          filter: `id=eq.${mockOrder.id}`,
-        },
-        (payload: any) => {
-          useOrderStore.getState().updateOrderStatus(newStatus);
-        }
-      );
-
-      expect(useOrderStore.getState().updateOrderStatus).toHaveBeenCalledWith(newStatus);
-    });
-
-    it('should map statuses correctly', () => {
-      const statusMap: Record<string, ActiveOrder['status']> = {
-        'pending': 'pending',
-        'accepted': 'accepted',
-        'driver_accepted': 'accepted',
-        'out_for_delivery': 'picked_up',
-        'picked_up': 'picked_up',
-        'delivered': 'delivered',
-        'cancelled': 'cancelled',
-      };
-
-      expect(statusMap['pending']).toBe('pending');
-      expect(statusMap['driver_accepted']).toBe('accepted');
-      expect(statusMap['out_for_delivery']).toBe('picked_up');
-      expect(statusMap['delivered']).toBe('delivered');
-    });
-  });
-
-  // ============================================================
-  // Test 8: Cleanup
-  // ============================================================
-  describe('cleanup', () => {
-    it('should clean up all resources', () => {
-      orderTrackingService.initialize(mockSupabase);
-      orderTrackingService.startTracking(mockOrder);
-      
-      // Add a channel
-      orderTrackingService['channel'] = { 
-        on: jest.fn().mockReturnThis(), 
-        subscribe: jest.fn().mockReturnThis() 
-      } as any;
-
-      orderTrackingService.cleanup();
-
-      expect(orderTrackingService['supabase']).toBeNull();
-      expect(orderTrackingService['activeOrderId']).toBeNull();
-      expect(orderTrackingService['isSubscribed']).toBe(false);
-      expect(useOrderStore.getState().clearActiveOrder).toHaveBeenCalled();
-    });
-
-    it('should stop simulation if running', () => {
-      orderTrackingService.initialize(mockSupabase);
-      orderTrackingService.startTracking(mockOrder);
-      
-      const mockRoute: Coordinate[] = [
-        { lat: 30.0444, lng: 31.2357 },
-        { lat: 30.0555, lng: 31.2457 },
-      ];
-      
-      orderTrackingService.simulateDriverMovement(mockRoute, 100);
-      orderTrackingService.cleanup();
-      
-      // Simulation should be stopped
-      expect((orderTrackingService as any).simulationInterval).toBeNull();
-    });
-  });
-
-  // ============================================================
-  // Test 9: Simulation
-  // ============================================================
-  describe('simulateDriverMovement', () => {
-    it('should simulate driver movement', (done) => {
-      orderTrackingService.initialize(mockSupabase);
-      orderTrackingService.startTracking(mockOrder);
-
-      const mockRoute: Coordinate[] = [
-        { lat: 30.0444, lng: 31.2357 },
-        { lat: 30.0555, lng: 31.2457 },
-        { lat: 30.0666, lng: 31.2557 },
-      ];
-
-      orderTrackingService.simulateDriverMovement(mockRoute, 100);
-
-      // Wait for first update
-      setTimeout(() => {
-        expect(useOrderStore.getState().updateDriverLocation).toHaveBeenCalledWith(mockRoute[0]);
-        done();
-      }, 150);
-    });
-
-    it('should not simulate if no active order', () => {
-      // Not tracking
-      const mockRoute: Coordinate[] = [
-        { lat: 30.0444, lng: 31.2357 },
-      ];
-
-      orderTrackingService.simulateDriverMovement(mockRoute);
-
-      expect(useOrderStore.getState().updateDriverLocation).not.toHaveBeenCalled();
-    });
-  });
-
-  // ============================================================
-  // Test 10: Error Handling
-  // ============================================================
-  describe('error handling', () => {
-    it('should handle Supabase errors gracefully', () => {
-      const errorSupabase = {
-        channel: jest.fn().mockImplementation(() => {
-          throw new Error('Supabase error');
+  it('resolves driver name/phone from profiles when assigned_driver_id first appears', async () => {
+    mockedSupabase.from.mockReturnValue({
+      select: jest.fn().mockReturnValue({
+        eq: jest.fn().mockReturnValue({
+          maybeSingle: jest.fn().mockResolvedValue({
+            data: { full_name: 'أحمد محمد', phone: '+20123456789' },
+            error: null,
+          }),
         }),
-      };
-
-      orderTrackingService.initialize(errorSupabase as any);
-      
-      // Should not throw
-      expect(() => {
-        orderTrackingService.startTracking(mockOrder);
-      }).not.toThrow();
-      
-      // Should not be tracking
-      expect(orderTrackingService.isTracking()).toBe(false);
+      }),
     });
 
-    it('should handle missing driver location gracefully', () => {
-      orderTrackingService.initialize(mockSupabase);
-      orderTrackingService.startTracking(mockOrder);
+    orderTrackingService.startTracking(mockOrder);
+    const statusChannel = mockedSupabase.channel.mock.results[1].value;
 
-      // Missing location data
-      const payload = {
-        new: null,
-      };
-
-      // Should not crash
-      expect(() => {
-        // This would be handled by the subscription
-        if (!payload.new) {
-          // No update
-        }
-      }).not.toThrow();
+    fireChange(statusChannel, 'orders', {
+      id: 'order-123',
+      status: 'driver_accepted',
+      assigned_driver_id: 'driver-456',
     });
+
+    // Driver resolution is async (a real query) — flush microtasks.
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(mockedSupabase.from).toHaveBeenCalledWith('profiles');
+    expect(useOrderStore.getState().activeOrder?.driverName).toBe('أحمد محمد');
+    expect(useOrderStore.getState().activeOrder?.driverPhone).toBe('+20123456789');
+  });
+
+  it('does not re-fetch driver info on subsequent updates for the same driver', async () => {
+    mockedSupabase.from.mockReturnValue({
+      select: jest.fn().mockReturnValue({
+        eq: jest.fn().mockReturnValue({
+          maybeSingle: jest.fn().mockResolvedValue({ data: { full_name: 'X', phone: 'Y' }, error: null }),
+        }),
+      }),
+    });
+
+    orderTrackingService.startTracking(mockOrder);
+    const statusChannel = mockedSupabase.channel.mock.results[1].value;
+
+    fireChange(statusChannel, 'orders', { id: 'order-123', status: 'driver_accepted', assigned_driver_id: 'driver-456' });
+    await Promise.resolve();
+    await Promise.resolve();
+    fireChange(statusChannel, 'orders', { id: 'order-123', status: 'out_for_delivery', assigned_driver_id: 'driver-456' });
+    await Promise.resolve();
+
+    expect(mockedSupabase.from).toHaveBeenCalledTimes(1);
+  });
+
+  it('stopTracking removes both channels and clears the store', () => {
+    orderTrackingService.startTracking(mockOrder);
+    orderTrackingService.stopTracking();
+
+    expect(mockedSupabase.removeChannel).toHaveBeenCalledTimes(2);
+    expect(useOrderStore.getState().activeOrder).toBeNull();
+    expect(orderTrackingService.isTracking()).toBe(false);
+    expect(orderTrackingService.getActiveOrderId()).toBeNull();
+  });
+
+  it('stops previous tracking before starting a new order', () => {
+    orderTrackingService.startTracking(mockOrder);
+    const newOrder = { ...mockOrder, id: 'order-456' };
+    orderTrackingService.startTracking(newOrder);
+
+    expect(orderTrackingService.getActiveOrderId()).toBe('order-456');
+    // 2 channels for the first order removed, 2 more created for the second.
+    expect(mockedSupabase.removeChannel).toHaveBeenCalledTimes(2);
   });
 });

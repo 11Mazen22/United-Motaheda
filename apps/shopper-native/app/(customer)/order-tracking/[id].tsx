@@ -36,9 +36,13 @@ import Animated, {
   withRepeat,
   Easing,
 } from 'react-native-reanimated';
-import { useOrderStore } from '@/stores/orders';
+import { useOrderStore, normalizeOrderStatus, type ActiveOrder } from '@/stores/orders';
 import { orderTrackingService } from '@/services/orderTrackingService';
 import { supabase } from '@/lib/supabase';
+import { fetchOrderById } from '@/features/orders/api';
+import { fetchBranches } from '@/features/delivery';
+import { mapOrderStatus } from '@/features/orders/lib/statusMap';
+import { useTranslation } from 'react-i18next';
 
 // Correct imports for the project's LeafletMap architecture
 import { LeafletMap } from '@/shared/leafletMap/LeafletMap';
@@ -71,6 +75,7 @@ const driverMarkerHtml = (photoUrl?: string | null) => {
 export default function OrderTrackingScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const mapRef = useRef<LeafletMapRef>(null);
+  const { t } = useTranslation();
   
   const { 
     activeOrder, 
@@ -221,11 +226,11 @@ export default function OrderTrackingScreen() {
       orderTrackingService.initialize(supabase);
       orderTrackingService.startTracking(activeOrder);
       
-      if (mapRef.current) {
-        mapRef.current.fitToCoordinates([
-          { latitude: activeOrder.origin.lat, longitude: activeOrder.origin.lng },
-          { latitude: activeOrder.destination.lat, longitude: activeOrder.destination.lng },
-        ]);
+      const fitPoints = [activeOrder.origin, activeOrder.destination]
+        .filter((p): p is { lat: number; lng: number } => !!p)
+        .map((p) => ({ latitude: p.lat, longitude: p.lng }));
+      if (mapRef.current && fitPoints.length > 0) {
+        mapRef.current.fitToCoordinates(fitPoints);
       }
       
       setConnectionState('connected');
@@ -244,52 +249,73 @@ export default function OrderTrackingScreen() {
     }
   }, [driverLocation, connectionState]);
 
+  /** Best-effort — a driver name/phone is nice-to-have; the tracking screen
+   *  still works without it (matches orderTrackingService's own realtime
+   *  resolution, used here for the initial synchronous load). */
+  const fetchDriverContact = async (driverId: string) => {
+    try {
+      const { data } = await supabase
+        .from('profiles')
+        .select('full_name, phone')
+        .eq('id', driverId)
+        .maybeSingle();
+      return data
+        ? { name: (data as any).full_name ?? null, phone: (data as any).phone ?? null }
+        : null;
+    } catch {
+      return null;
+    }
+  };
+
   const fetchOrderDetails = async (orderId: string) => {
     try {
       setLoading(true);
-      
+
       if (connectionState === 'offline' && offlineData) {
         setActiveOrder(offlineData);
         setLoading(false);
         return;
       }
 
-      const { data, error } = await supabase
-        .from('orders')
-        .select('*')
-        .eq('id', orderId)
-        .single();
+      const order = await fetchOrderById(orderId);
+      if (!order) throw new Error('Order not found');
 
-      if (error) throw error;
+      // Origin = the fulfilling branch's real location (fetchBranches is
+      // fail-open: Supabase-unreachable falls back to the curated static
+      // seed, so this never blocks the screen). Destination = the
+      // customer's own stored coordinates. Neither falls back to a
+      // hardcoded, unrelated point — if either is genuinely unresolvable,
+      // origin/destination stay null and the map simply doesn't render
+      // that marker/polyline, rather than showing a fabricated location.
+      const branches = order.branchId ? await fetchBranches() : [];
+      const branch = branches.find((b) => b.id === order.branchId) ?? null;
 
-      if (data) {
-        const activeOrderData = {
-          id: data.id,
-          status: data.status || 'pending',
-          origin: {
-            lat: data.origin_lat || data.customerLat || 30.0444,
-            lng: data.origin_lng || data.customerLng || 31.2357,
-          },
-          destination: {
-            lat: data.destination_lat || data.customerLat || 30.0444,
-            lng: data.destination_lng || data.customerLng || 31.2357,
-          },
-          driverId: data.driver_id,
-          driverName: data.driver_name,
-          driverPhone: data.driver_phone,
-          driverPhoto: data.driver_photo,
-          estimatedArrival: data.estimated_arrival,
-          createdAt: data.created_at,
-          updatedAt: data.updated_at,
-        };
-
-        setActiveOrder(activeOrderData);
-        setOfflineData(activeOrderData);
+      let driverContact: { name: string | null; phone: string | null } | null = null;
+      if (order.assignedDriverId) {
+        driverContact = await fetchDriverContact(order.assignedDriverId);
       }
+
+      const activeOrderData: ActiveOrder = {
+        id: order.id,
+        status: normalizeOrderStatus(order.status),
+        origin: branch ? { lat: branch.lat, lng: branch.lng } : null,
+        destination:
+          typeof order.customerLat === 'number' && typeof order.customerLng === 'number'
+            ? { lat: order.customerLat, lng: order.customerLng }
+            : null,
+        driverId: order.assignedDriverId ?? null,
+        driverName: driverContact?.name ?? null,
+        driverPhone: driverContact?.phone ?? null,
+        createdAt: order.createdAt,
+        updatedAt: order.createdAt,
+      };
+
+      setActiveOrder(activeOrderData);
+      setOfflineData(activeOrderData);
     } catch (err) {
       console.error('Error fetching order:', err);
       setError('Failed to load order details');
-      
+
       if (offlineData) {
         setActiveOrder(offlineData);
         setError(null);
@@ -318,9 +344,10 @@ export default function OrderTrackingScreen() {
 
   const mapMarkers = useMemo(() => {
     if (!activeOrder) return [];
-    
-    const markers: MapMarkerSpec[] = [
-      {
+
+    const markers: MapMarkerSpec[] = [];
+    if (activeOrder.origin) {
+      markers.push({
         id: 'origin',
         coordinate: { latitude: activeOrder.origin.lat, longitude: activeOrder.origin.lng },
         html: pinMarkerHtml('#10B981', '•'), // Green dot
@@ -328,8 +355,10 @@ export default function OrderTrackingScreen() {
         height: 48,
         anchorX: 0.5,
         anchorY: 1,
-      },
-      {
+      });
+    }
+    if (activeOrder.destination) {
+      markers.push({
         id: 'destination',
         coordinate: { latitude: activeOrder.destination.lat, longitude: activeOrder.destination.lng },
         html: pinMarkerHtml('#EF4444', '★'), // Red star
@@ -337,8 +366,8 @@ export default function OrderTrackingScreen() {
         height: 48,
         anchorX: 0.5,
         anchorY: 1,
-      },
-    ];
+      });
+    }
 
     if (driverLocation && connectionState !== 'offline') {
       markers.push({
@@ -357,7 +386,7 @@ export default function OrderTrackingScreen() {
   }, [activeOrder, driverLocation, connectionState]);
 
   const routePolyline = useMemo<MapPolyline | null>(() => {
-    if (!activeOrder || !showRoute) return null;
+    if (!activeOrder || !showRoute || !activeOrder.origin || !activeOrder.destination) return null;
     return {
       coordinates: [
         { latitude: activeOrder.origin.lat, longitude: activeOrder.origin.lng },
@@ -468,8 +497,8 @@ export default function OrderTrackingScreen() {
         ref={mapRef}
         style={styles.map}
         initialRegion={{
-          latitude: activeOrder.origin.lat,
-          longitude: activeOrder.origin.lng,
+          latitude: (activeOrder.origin ?? activeOrder.destination)?.lat ?? 30.0444,
+          longitude: (activeOrder.origin ?? activeOrder.destination)?.lng ?? 31.2357,
           zoom: 14,
         }}
         interactive={true}
@@ -490,10 +519,9 @@ export default function OrderTrackingScreen() {
       <DriverDetailsSheet
         isVisible={isSheetVisible}
         onClose={() => setIsSheetVisible(false)}
-        driverName={activeOrder.driverName}
-        driverPhone={activeOrder.driverPhone}
+        driverName={activeOrder.driverName ?? undefined}
+        driverPhone={activeOrder.driverPhone ?? undefined}
         driverPhoto={activeOrder.driverPhoto}
-        estimatedArrival={activeOrder.estimatedArrival}
         orderStatus={activeOrder.status}
       />
 
@@ -525,15 +553,7 @@ export default function OrderTrackingScreen() {
           {connectionState === 'offline' && '📡 غير متصل'}
           {connectionState === 'stale' && '⏳ تحديث البيانات...'}
           {connectionState === 'reconnecting' && '🔄 جاري الاتصال...'}
-          {connectionState === 'connected' && (
-            <>
-              {activeOrder.status === 'pending' && '⏳ في انتظار السائق'}
-              {activeOrder.status === 'accepted' && '✅ تم قبول الطلب'}
-              {activeOrder.status === 'picked_up' && '🚚 في الطريق إليك'}
-              {activeOrder.status === 'delivered' && '🎉 تم التوصيل'}
-              {activeOrder.status === 'cancelled' && '❌ تم الإلغاء'}
-            </>
-          )}
+          {connectionState === 'connected' && mapOrderStatus(activeOrder.status, t).label}
         </Text>
       </View>
     </View>

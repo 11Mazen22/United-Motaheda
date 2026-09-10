@@ -37,11 +37,16 @@ interface DriverDetailsSheetProps {
   /** Driver photo URL */
   driverPhoto?: string;
   /** Driver rating (out of 5) */
+  /** Only rendered when a real value is provided — no fabricated default. */
   driverRating?: number;
-  /** Estimated arrival in minutes */
+  /** Estimated arrival in minutes. Only rendered when a real value is
+   *  provided — no fabricated default; this app has no stored/computed ETA
+   *  source today. */
   estimatedArrival?: number;
-  /** Current order status */
-  orderStatus?: 'pending' | 'accepted' | 'picked_up' | 'delivered' | 'cancelled';
+  /** Current order status. Accepts the real canonical status set (any
+   *  value not in this component's own small display map degrades to its
+   *  "pending"-styled badge below). */
+  orderStatus?: string;
   /** Driver license plate (optional) */
   licensePlate?: string;
   /** Driver vehicle model (optional) */
@@ -54,8 +59,8 @@ export const DriverDetailsSheet: React.FC<DriverDetailsSheetProps> = ({
   driverName = 'السائق',
   driverPhone,
   driverPhoto,
-  driverRating = 4.5,
-  estimatedArrival = 10,
+  driverRating,
+  estimatedArrival,
   orderStatus = 'pending',
   licensePlate,
   vehicleModel = 'سيارة',
@@ -137,16 +142,16 @@ export const DriverDetailsSheet: React.FC<DriverDetailsSheetProps> = ({
         emoji: '❌'
       },
     };
-    return statusMap[orderStatus] || statusMap.pending;
+    return statusMap[orderStatus as keyof typeof statusMap] ?? statusMap.pending;
   };
 
   const statusInfo = getStatusInfo();
 
-  // Render stars for rating
-  const renderRating = () => {
+  // Render stars for rating. Caller must guard on driverRating being defined.
+  const renderRating = (rating: number) => {
     const stars = [];
-    const fullStars = Math.floor(driverRating);
-    const hasHalfStar = driverRating % 1 >= 0.5;
+    const fullStars = Math.floor(rating);
+    const hasHalfStar = rating % 1 >= 0.5;
 
     for (let i = 0; i < 5; i++) {
       if (i < fullStars) {
@@ -203,10 +208,12 @@ export const DriverDetailsSheet: React.FC<DriverDetailsSheetProps> = ({
 
           <View style={styles.driverDetails}>
             <Text style={styles.driverName}>{driverName}</Text>
-            <View style={styles.ratingContainer}>
-              {renderRating()}
-              <Text style={styles.ratingText}>{driverRating.toFixed(1)}</Text>
-            </View>
+            {typeof driverRating === 'number' && (
+              <View style={styles.ratingContainer}>
+                {renderRating(driverRating)}
+                <Text style={styles.ratingText}>{driverRating.toFixed(1)}</Text>
+              </View>
+            )}
             <View style={styles.statusContainer}>
               <Ionicons name={statusInfo.icon as any} size={14} color={statusInfo.color} />
               <Text style={[styles.statusText, { color: statusInfo.color }]}>
@@ -229,8 +236,8 @@ export const DriverDetailsSheet: React.FC<DriverDetailsSheetProps> = ({
           </View>
         )}
 
-        {/* ETA */}
-        {orderStatus !== 'delivered' && orderStatus !== 'cancelled' && (
+        {/* ETA — only when a real estimate was provided; no fabricated default */}
+        {typeof estimatedArrival === 'number' && orderStatus !== 'delivered' && orderStatus !== 'cancelled' && (
           <View style={styles.etaContainer}>
             <View style={styles.etaIconContainer}>
               <Ionicons name="time-outline" size={28} color="#8B5CF6" />

@@ -110,6 +110,8 @@ export interface Order {
   branchId?:       string | null;
   zoneId?:         string | null;
   zoneName?:       string | null;
+  assignedDriverId?:   string | null;
+  deliveryDistanceKm?: number | null;
   status:          OrderStatus;
   paymentMethod:   string | null;
   paymentStatus:   string;
@@ -129,14 +131,18 @@ export interface Coordinate {
 
 export interface ActiveOrder {
   id: string;
-  status: 'pending' | 'accepted' | 'picked_up' | 'delivered' | 'cancelled';
-  origin: Coordinate;
-  destination: Coordinate;
-  driverId?: string;
-  driverName?: string;
-  driverPhone?: string;
+  status: CanonicalOrderStatus;
+  /** Pharmacy branch location. Null when the order's branch couldn't be resolved. */
+  origin: Coordinate | null;
+  /** Customer delivery address. Null when the order has no stored coordinates. */
+  destination: Coordinate | null;
+  driverId?: string | null;
+  driverName?: string | null;
+  driverPhone?: string | null;
+  /** No real photo source exists for a driver today (no avatar column on
+   *  profiles) — always undefined. Left in the shape so the UI's existing
+   *  fallback-icon rendering keeps working if one is ever added. */
   driverPhoto?: string;
-  estimatedArrival?: number; // minutes
   createdAt: string;
   updatedAt: string;
 }
@@ -165,6 +171,7 @@ interface OrdersState {
   setActiveOrder: (order: ActiveOrder | null) => void;
   updateDriverLocation: (coords: Coordinate) => void;
   updateOrderStatus: (status: ActiveOrder['status']) => void;
+  setDriverInfo: (info: { driverId: string | null; driverName?: string | null; driverPhone?: string | null }) => void;
   setIsTracking: (tracking: boolean) => void;
   clearActiveOrder: () => void;
   // ============================================================
@@ -232,6 +239,19 @@ export const useOrderStore = create<OrdersState>((set) => ({
           ...state.activeOrder,
           status,
           updatedAt: new Date().toISOString(),
+        },
+      };
+    }),
+
+  setDriverInfo: (info) =>
+    set((state) => {
+      if (!state.activeOrder) return state;
+      return {
+        activeOrder: {
+          ...state.activeOrder,
+          driverId: info.driverId,
+          driverName: info.driverName ?? state.activeOrder.driverName,
+          driverPhone: info.driverPhone ?? state.activeOrder.driverPhone,
         },
       };
     }),

@@ -1,264 +1,162 @@
 /**
  * Order Tracking Service
- * 
- * Manages Supabase Realtime subscriptions for live driver location updates.
- * Emits coordinate changes to the Zustand store.
+ *
+ * Manages realtime subscriptions for live driver-location + order-status
+ * updates during customer order tracking, via the app's one canonical
+ * realtime helper (subscribeToTable) rather than a second, hand-rolled
+ * channel implementation.
+ *
+ * Rewritten from a version that never actually worked: it listened for
+ * driver_locations UPDATE (the driver-location Edge Function only ever
+ * INSERTs — a new row per ping, confirmed in supabase/functions/
+ * driver-location/index.ts — so that listener received zero events, ever),
+ * read payload.new.latitude/longitude (the real columns are lat/lng), and
+ * tried to read driver name/phone/photo directly off the orders row (no
+ * such columns exist there — driver identity only exists as
+ * assigned_driver_id, a uuid needing a join to profiles).
  */
 
-import { RealtimeChannel, SupabaseClient } from '@supabase/supabase-js';
+import { SupabaseClient } from '@supabase/supabase-js';
 import { useOrderStore, Coordinate, ActiveOrder } from '@/stores/orders';
+import { subscribeToTable, type TableSubscription } from '@/shared/lib/subscribeToTable';
+import { normalizeOrderStatus } from '@/stores/orders';
 
-export interface DriverLocationUpdate {
-  orderId: string;
-  driverId: string;
-  latitude: number;
-  longitude: number;
-  timestamp: string;
-  speed?: number;
-  heading?: number;
+interface DriverLocationRow {
+  [key: string]: unknown;
+  order_id: string;
+  driver_id: string;
+  lat: number;
+  lng: number;
+  captured_at: string;
+  speed_kmh?: number | null;
+  heading?: number | null;
 }
 
-export interface OrderStatusUpdate {
-  orderId: string;
-  status: 'pending' | 'accepted' | 'picked_up' | 'delivered' | 'cancelled';
-  timestamp: string;
-  driverId?: string;
-  driverName?: string;
-  driverPhone?: string;
-  driverPhoto?: string;
-  estimatedArrival?: number;
+interface OrderStatusRow {
+  [key: string]: unknown;
+  id: string;
+  status: string;
+  assigned_driver_id: string | null;
 }
 
 class OrderTrackingService {
   private supabase: SupabaseClient | null = null;
-  private channel: RealtimeChannel | null = null;
+  private locationSub: TableSubscription | null = null;
+  private statusSub: TableSubscription | null = null;
   private activeOrderId: string | null = null;
   private isSubscribed: boolean = false;
+  /** Avoid re-fetching the same driver's info on every subsequent status row. */
+  private lastResolvedDriverId: string | null = null;
 
-  /**
-   * Initialize the service with Supabase client
-   */
   initialize(supabaseClient: SupabaseClient) {
     this.supabase = supabaseClient;
   }
 
-  /**
-   * Start tracking a specific order
-   */
   startTracking(order: ActiveOrder): void {
-    if (!this.supabase) {
-      console.error('[OrderTrackingService] Supabase client not initialized');
-      return;
-    }
-
-    // Stop any existing tracking
     this.stopTracking();
 
     this.activeOrderId = order.id;
     this.isSubscribed = true;
+    this.lastResolvedDriverId = null;
 
-    // Set the active order in the store
     useOrderStore.getState().setActiveOrder(order);
 
-    // Subscribe to driver location updates
     this.subscribeToDriverLocation(order.id);
-
-    // Subscribe to order status updates
     this.subscribeToOrderStatus(order.id);
 
-    console.log(`[OrderTrackingService] Started tracking order: ${order.id}`);
+    if (order.driverId) {
+      this.lastResolvedDriverId = order.driverId;
+    }
   }
 
-  /**
-   * Stop tracking the current order
-   */
   stopTracking(): void {
-    if (this.channel) {
-      this.supabase?.removeChannel(this.channel);
-      this.channel = null;
-    }
+    this.locationSub?.unsubscribe();
+    this.locationSub = null;
+    this.statusSub?.unsubscribe();
+    this.statusSub = null;
 
     this.activeOrderId = null;
     this.isSubscribed = false;
+    this.lastResolvedDriverId = null;
 
-    // Clear the active order from store
     useOrderStore.getState().clearActiveOrder();
-
-    console.log('[OrderTrackingService] Stopped tracking');
   }
 
-  /**
-   * Subscribe to real-time driver location updates
-   */
   private subscribeToDriverLocation(orderId: string): void {
-    if (!this.supabase) return;
-
-    // Listen for changes on the driver_locations table
-    this.channel = this.supabase
-      .channel(`order-tracking-${orderId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'driver_locations',
-          filter: `order_id=eq.${orderId}`,
-        },
-        (payload) => {
-          const newLocation = payload.new as {
-            order_id: string;
-            driver_id: string;
-            latitude: number;
-            longitude: number;
-            updated_at: string;
-            speed?: number;
-            heading?: number;
-          };
-
-          if (newLocation) {
-            const coords: Coordinate = {
-              lat: newLocation.latitude,
-              lng: newLocation.longitude,
-            };
-
-            // Update the store with new driver location
-            useOrderStore.getState().updateDriverLocation(coords);
-            
-            console.log(
-              `[OrderTrackingService] Driver location updated: lat=${coords.lat}, lng=${coords.lng}`
-            );
-          }
-        }
-      )
-      .subscribe((status) => {
-        console.log(`[OrderTrackingService] Driver location subscription status: ${status}`);
-      });
-  }
-
-  /**
-   * Subscribe to real-time order status updates
-   */
-  private subscribeToOrderStatus(orderId: string): void {
-    if (!this.supabase) return;
-
-    // We reuse the same channel but add another listener
-    this.channel?.on(
-      'postgres_changes',
+    this.locationSub = subscribeToTable<DriverLocationRow>(
       {
-        event: 'UPDATE',
-        schema: 'public',
-        table: 'orders',
-        filter: `id=eq.${orderId}`,
+        channelName: 'order-tracking-location',
+        table: 'driver_locations',
+        event: 'INSERT',
+        filter: `order_id=eq.${orderId}`,
       },
       (payload) => {
-        const newOrder = payload.new as {
-          id: string;
-          status: string;
-          driver_id?: string;
-          driver_name?: string;
-          driver_phone?: string;
-          driver_photo?: string;
-          estimated_arrival?: number;
-        };
-
-        if (newOrder) {
-          const statusMap: Record<string, ActiveOrder['status']> = {
-            'pending': 'pending',
-            'accepted': 'accepted',
-            'driver_accepted': 'accepted',
-            'out_for_delivery': 'picked_up',
-            'picked_up': 'picked_up',
-            'delivered': 'delivered',
-            'cancelled': 'cancelled',
-          };
-
-          const newStatus = statusMap[newOrder.status] || 'pending';
-
-          // Update order status in store
-          useOrderStore.getState().updateOrderStatus(newStatus);
-
-          // Also update driver info if available
-          const currentOrder = useOrderStore.getState().activeOrder;
-          if (currentOrder && (newOrder.driver_id || newOrder.driver_name)) {
-            useOrderStore.getState().setActiveOrder({
-              ...currentOrder,
-              driverId: newOrder.driver_id || currentOrder.driverId,
-              driverName: newOrder.driver_name || currentOrder.driverName,
-              driverPhone: newOrder.driver_phone || currentOrder.driverPhone,
-              driverPhoto: newOrder.driver_photo || currentOrder.driverPhoto,
-              estimatedArrival: newOrder.estimated_arrival || currentOrder.estimatedArrival,
-            });
-          }
-
-          console.log(`[OrderTrackingService] Order status updated: ${newStatus}`);
-        }
-      }
+        const row = payload.new as Partial<DriverLocationRow> | null | undefined;
+        if (!row || typeof row.lat !== 'number' || typeof row.lng !== 'number') return;
+        const coords: Coordinate = { lat: row.lat, lng: row.lng };
+        useOrderStore.getState().updateDriverLocation(coords);
+      },
     );
   }
 
-  /**
-   * Check if currently tracking an order
-   */
+  private subscribeToOrderStatus(orderId: string): void {
+    this.statusSub = subscribeToTable<OrderStatusRow>(
+      {
+        channelName: 'order-tracking-status',
+        table: 'orders',
+        event: 'UPDATE',
+        filter: `id=eq.${orderId}`,
+      },
+      (payload) => {
+        const row = payload.new as Partial<OrderStatusRow> | null | undefined;
+        if (!row || typeof row.status !== 'string') return;
+
+        useOrderStore.getState().updateOrderStatus(normalizeOrderStatus(row.status));
+
+        const driverId = row.assigned_driver_id ?? null;
+        if (driverId && driverId !== this.lastResolvedDriverId) {
+          this.lastResolvedDriverId = driverId;
+          void this.resolveAndSetDriverInfo(driverId);
+        } else if (!driverId) {
+          this.lastResolvedDriverId = null;
+        }
+      },
+    );
+  }
+
+  /** Best-effort — a failed lookup leaves the driver name/phone blank
+   *  rather than blocking status/location updates. */
+  private async resolveAndSetDriverInfo(driverId: string): Promise<void> {
+    if (!this.supabase) return;
+    try {
+      const { data, error } = await this.supabase
+        .from('profiles')
+        .select('full_name, phone')
+        .eq('id', driverId)
+        .maybeSingle();
+      if (error || !data) return;
+      useOrderStore.getState().setDriverInfo({
+        driverId,
+        driverName: (data as { full_name?: string | null }).full_name ?? null,
+        driverPhone: (data as { phone?: string | null }).phone ?? null,
+      });
+    } catch {
+      // Non-fatal — tracking continues without driver contact details.
+    }
+  }
+
   isTracking(): boolean {
     return this.isSubscribed && !!this.activeOrderId;
   }
 
-  /**
-   * Get the current active order ID
-   */
   getActiveOrderId(): string | null {
     return this.activeOrderId;
   }
 
-  /**
-   * Simulate driver location updates (for testing)
-   */
-  simulateDriverMovement(route: Coordinate[], interval: number = 2000): void {
-    if (!this.activeOrderId) {
-      console.error('[OrderTrackingService] No active order to simulate');
-      return;
-    }
-
-    let index = 0;
-    const intervalId = setInterval(() => {
-      if (index >= route.length) {
-        clearInterval(intervalId);
-        return;
-      }
-
-      const point = route[index];
-      useOrderStore.getState().updateDriverLocation(point);
-      console.log(`[OrderTrackingService] Simulated location: lat=${point.lat}, lng=${point.lng}`);
-
-      index++;
-    }, interval);
-
-    // Store interval ID for cleanup
-    (this as any).simulationInterval = intervalId;
-  }
-
-  /**
-   * Stop simulation (if running)
-   */
-  stopSimulation(): void {
-    if ((this as any).simulationInterval) {
-      clearInterval((this as any).simulationInterval);
-      (this as any).simulationInterval = null;
-    }
-  }
-
-  /**
-   * Clean up all resources
-   */
   cleanup(): void {
     this.stopTracking();
-    this.stopSimulation();
     this.supabase = null;
-    this.activeOrderId = null;
-    this.isSubscribed = false;
-    console.log('[OrderTrackingService] Cleaned up');
   }
 }
 
-// Export a singleton instance
 export const orderTrackingService = new OrderTrackingService();

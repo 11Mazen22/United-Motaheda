@@ -25,7 +25,20 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { useOrderStore } from '@/stores/orders';
+import { mapOrderStatus, type OrderTone } from '@/features/orders/lib/statusMap';
+
+/** Hex values for the semantic tones mapOrderStatus returns — this banner's
+ *  own presentation layer, not a second status model. */
+const TONE_COLORS: Record<OrderTone, { color: string; bgColor: string }> = {
+  neutral: { color: '#6B7280', bgColor: '#F3F4F6' },
+  info:    { color: '#3B82F6', bgColor: '#DBEAFE' },
+  brand:   { color: '#8B5CF6', bgColor: '#EDE9FE' },
+  success: { color: '#10B981', bgColor: '#D1FAE5' },
+  warning: { color: '#F59E0B', bgColor: '#FEF3C7' },
+  error:   { color: '#EF4444', bgColor: '#FEE2E2' },
+};
 
 interface ActiveOrderBannerProps {
   /** Optional custom styles */
@@ -34,6 +47,7 @@ interface ActiveOrderBannerProps {
 
 export const ActiveOrderBanner: React.FC<ActiveOrderBannerProps> = ({ style }) => {
   const { activeOrder, isTracking } = useOrderStore();
+  const { t } = useTranslation();
   
   // Animation values
   const translateY = useSharedValue(-100);
@@ -135,33 +149,21 @@ export const ActiveOrderBanner: React.FC<ActiveOrderBannerProps> = ({ style }) =
     return null;
   }
 
-  // Determine status text and color
-  const getStatusInfo = () => {
-    const statusMap = {
-      pending: { text: '⏳ انتظار', color: '#F59E0B', icon: 'time-outline', bgColor: '#FEF3C7' },
-      accepted: { text: '✅ تم القبول', color: '#3B82F6', icon: 'checkmark-circle-outline', bgColor: '#DBEAFE' },
-      picked_up: { text: '🚚 في الطريق', color: '#8B5CF6', icon: 'car-outline', bgColor: '#EDE9FE' },
-      delivered: { text: '🎉 تم التوصيل', color: '#10B981', icon: 'checkmark-done-circle-outline', bgColor: '#D1FAE5' },
-      cancelled: { text: '❌ ملغي', color: '#EF4444', icon: 'close-circle-outline', bgColor: '#FEE2E2' },
-    };
-    return statusMap[activeOrder.status] || statusMap.pending;
-  };
+  // Real status label/tone/icon — shared with the tracking screen and the
+  // orders list, not a third independent copy of the status→display map.
+  const statusView = mapOrderStatus(activeOrder.status, t);
+  const statusInfo = { text: statusView.label, icon: statusView.icon, ...TONE_COLORS[statusView.tone] };
 
-  const statusInfo = getStatusInfo();
-
-  // Format estimated arrival
-  const getEtaText = () => {
-    if (!activeOrder.estimatedArrival) return 'جاري الحساب...';
-    if (activeOrder.status === 'delivered') return 'تم التوصيل ✅';
-    if (activeOrder.status === 'cancelled') return 'تم الإلغاء ❌';
-    return `⏱ ${activeOrder.estimatedArrival} دقيقة`;
-  };
+  // No real ETA source exists for this app today (no stored/computed
+  // arrival estimate) — show the order's live status instead of a
+  // fabricated or perpetually-pending number.
+  const getEtaText = () => statusView.label;
 
   // Get driver name or fallback
   const driverDisplayName = activeOrder.driverName || 'السائق';
 
-  // 🆕 Check if order is in progress
-  const isInProgress = ['pending', 'accepted', 'picked_up'].includes(activeOrder.status);
+  // In progress = anything not yet in a terminal state.
+  const isInProgress = !['delivered', 'cancelled', 'archived'].includes(activeOrder.status);
 
   return (
     <Animated.View style={[styles.container, animatedStyle, style]}>
