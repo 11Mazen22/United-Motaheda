@@ -151,15 +151,26 @@ class PushNotificationService {
       const { data: userResponse } = await supabase.auth.getUser();
       if (!userResponse.user) return;
 
-      const { error } = await supabase.from('user_devices').upsert({
-        user_id: userResponse.user.id,
-        device_id: deviceId,
-        push_token: token,
-        platform: Platform.OS === 'ios' ? 'ios' : 'android',
-        app_version: appVersion,
-        is_active: true,
-        last_seen_at: new Date().toISOString(),
-      }, { onConflict: 'user_id,device_id' });
+      // notification_tokens (not user_devices) is the canonical store for
+      // Expo push tokens -- both delivery workers read from here. Goes
+      // through the register_push_token RPC rather than a raw upsert: a
+      // physical device re-registering under a different account needs to
+      // reassign this row (not leave the previous account still attached
+      // to it -- confirmed live: that's how 3 tokens ended up with rows
+      // under two different accounts each), but a raw client upsert's
+      // conflict path is an UPDATE under the hood, and the owner-scoped
+      // RLS policy correctly blocks "user B updating user A's row" even
+      // though this is really a legitimate reassignment. The RPC derives
+      // the owner from auth.uid() itself instead of trusting a client-
+      // supplied user_id, so it can safely do what a broadened RLS policy
+      // couldn't without also letting any user hijack any other user's
+      // token row.
+      const { error } = await supabase.rpc('register_push_token', {
+        p_expo_push_token: token,
+        p_platform: Platform.OS === 'ios' ? 'ios' : 'android',
+        p_device_id: deviceId,
+        p_app_version: appVersion,
+      });
 
       if (error) {
         throw new Error(`Failed to sync token via Supabase: ${error.message}`);
@@ -193,10 +204,14 @@ class PushNotificationService {
         targetUserId = user.id;
       }
 
-      await supabase.from('user_devices')
-        .update({ is_active: false })
+      // Soft-invalidate rather than delete, matching how this table already
+      // treats a dead Expo token (see the notification workers) -- a fresh
+      // registration (sign-in, same or different account, same device)
+      // clears invalidated_at again via the upsert above.
+      await supabase.from('notification_tokens')
+        .update({ invalidated_at: new Date().toISOString(), invalid_reason: 'signed_out' })
         .eq('user_id', targetUserId)
-        .eq('push_token', token);
+        .eq('expo_push_token', token);
 
       this.isRegistered = false;
       console.log('[PushNotificationService] Token deactivated');

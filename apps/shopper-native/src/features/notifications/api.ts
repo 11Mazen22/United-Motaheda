@@ -316,9 +316,16 @@ export async function updateNotificationPreferences(
 
 // ─── Push tokens ────────────────────────────────────────────────────────────
 
+// notification_tokens (not user_devices) is canonical for Expo push tokens
+// -- both delivery workers (the Supabase Edge Function and apps/api's
+// NotificationWorker) read from here. See pushNotificationService.ts,
+// which is the actual registration path this app uses; these are kept as
+// the public unregister surface for a future "sign out everywhere"-style
+// feature.
+
 export async function unregisterAllPushTokensForUser(userId: string): Promise<void> {
   const { error } = await supabase
-    .from("user_devices")
+    .from("notification_tokens")
     .delete()
     .eq("user_id", userId);
   if (error) console.error("[notifications] unregisterAllPushTokensForUser failed:", error.message);
@@ -331,21 +338,28 @@ export async function registerPushToken(input: {
   deviceId?: string;
   appVersion?: string;
 }): Promise<void> {
-  // Map legacy expo token to user_devices if needed, or ignore
-  await registerDevice({
-    userId: input.userId,
-    deviceToken: input.expoPushToken,
-    platform: input.platform,
-    appVersion: input.appVersion,
+  // Goes through register_push_token rather than a raw upsert -- a token
+  // re-registering under a different account needs to reassign the
+  // existing row, and a raw client update on a row owned by someone else
+  // is correctly blocked by RLS. The RPC derives the owner from auth.uid()
+  // itself; input.userId is not sent (there is no way to make the RPC
+  // trust a client-supplied user_id without reopening the same hijack risk
+  // this exists to close).
+  const { error } = await supabase.rpc("register_push_token", {
+    p_expo_push_token: input.expoPushToken,
+    p_platform: input.platform,
+    p_device_id: input.deviceId ?? null,
+    p_app_version: input.appVersion,
   });
+  if (error) throw error;
 }
 
 export async function unregisterPushToken(userId: string, token: string): Promise<void> {
   const { error } = await supabase
-    .from("user_devices")
+    .from("notification_tokens")
     .delete()
     .eq("user_id", userId)
-    .eq("token", token);
+    .eq("expo_push_token", token);
   if (error) console.error("[notifications] unregisterPushToken failed:", error.message);
 }
 
