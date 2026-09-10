@@ -195,4 +195,78 @@ describe('OrderTrackingService', () => {
     // 2 channels for the first order removed, 2 more created for the second.
     expect(mockedSupabase.removeChannel).toHaveBeenCalledTimes(2);
   });
+
+  // simulateDriverMovement/stopSimulation are dev/QA-only utilities for
+  // manually driving the map without a live driver GPS feed — never called
+  // from startTracking or either subscription handler above. These tests
+  // exist to prove that isolation, not to exercise production tracking.
+  describe('simulateDriverMovement / stopSimulation (dev/QA utility)', () => {
+    const route = [
+      { lat: 30.01, lng: 31.01 },
+      { lat: 30.02, lng: 31.02 },
+      { lat: 30.03, lng: 31.03 },
+    ];
+
+    beforeEach(() => {
+      (globalThis as any).__DEV__ = true;
+      jest.useFakeTimers();
+    });
+
+    afterEach(() => {
+      orderTrackingService.stopSimulation();
+      jest.useRealTimers();
+    });
+
+    it('does nothing without an active order', () => {
+      orderTrackingService.simulateDriverMovement(route, 1000);
+      jest.advanceTimersByTime(5000);
+
+      expect(useOrderStore.getState().driverLocation).toBeNull();
+    });
+
+    it('walks the store through the route one point per tick', () => {
+      orderTrackingService.startTracking(mockOrder);
+
+      orderTrackingService.simulateDriverMovement(route, 1000);
+      jest.advanceTimersByTime(1000);
+      expect(useOrderStore.getState().driverLocation).toEqual(route[0]);
+
+      jest.advanceTimersByTime(1000);
+      expect(useOrderStore.getState().driverLocation).toEqual(route[1]);
+    });
+
+    it('stopSimulation halts further ticks', () => {
+      orderTrackingService.startTracking(mockOrder);
+      orderTrackingService.simulateDriverMovement(route, 1000);
+      jest.advanceTimersByTime(1000);
+
+      orderTrackingService.stopSimulation();
+      jest.advanceTimersByTime(5000);
+
+      expect(useOrderStore.getState().driverLocation).toEqual(route[0]);
+    });
+
+    it('stopTracking also halts an in-progress simulation, so it cannot bleed into the next order', () => {
+      orderTrackingService.startTracking(mockOrder);
+      orderTrackingService.simulateDriverMovement(route, 1000);
+      jest.advanceTimersByTime(1000);
+      expect(useOrderStore.getState().driverLocation).toEqual(route[0]);
+
+      orderTrackingService.stopTracking();
+      jest.advanceTimersByTime(5000);
+
+      expect(useOrderStore.getState().driverLocation).toBeNull();
+    });
+
+    it('never runs outside __DEV__, even with an active order', () => {
+      (globalThis as any).__DEV__ = false;
+      orderTrackingService.startTracking(mockOrder);
+      const before = useOrderStore.getState().driverLocation;
+
+      orderTrackingService.simulateDriverMovement(route, 1000);
+      jest.advanceTimersByTime(5000);
+
+      expect(useOrderStore.getState().driverLocation).toBe(before);
+    });
+  });
 });
