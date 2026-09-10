@@ -300,7 +300,7 @@ export function usePremiumCheckout() {
        const result = await createCheckoutOrder(command, lang);
 
        if (manual && paymentProofUrl && (paymentMethod === "vodafone" || paymentMethod === "instapay")) {
-         const needsPatch = result.status !== "payment_pending" || result.paymentStatus !== "pending_verification";
+         const needsPatch = result.status !== "pending_payment" || result.paymentStatus !== "pending_verification";
          if (needsPatch) {
            await patchOrderManualPayment(
              result.orderId,

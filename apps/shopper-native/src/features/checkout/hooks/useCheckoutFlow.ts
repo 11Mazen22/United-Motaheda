@@ -1147,7 +1147,7 @@ export function useCheckoutFlow(): CheckoutFlowState {
 
           const needsPatch =
 
-            result.status !== "payment_pending" ||
+            result.status !== "pending_payment" ||
 
             result.paymentStatus !== "pending_verification";
 
