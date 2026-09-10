@@ -1,0 +1,27 @@
+-- apps/api's TemplateCompilerService queries notification_templates with
+-- .eq('is_active', true) (and .eq('locale', ...), and expects generic
+-- title/body columns) -- a materially different shape than what
+-- central_notification_hub.sql actually created (no locale/is_active/
+-- title/body columns; per-language columns instead: title_ar/body_ar/
+-- title_en/body_en). Confirmed live: notification_templates has 0 rows on
+-- both databases, and the four event types this was erroring on at boot
+-- (order.ready, order.out_for_delivery, order.delivered, payment.success)
+-- are each already delivered through a completely separate, working path
+-- with hardcoded copy in the pharmacist/driver apps
+-- (notify_pharmacist_customer_order_update / enqueue_notification RPCs) --
+-- confirmed by tracing every real call site. TemplateCompilerService's own
+-- consumers (the OrderReadyEvent/OrderOutForDeliveryEvent/... event classes
+-- in common/events/order.events.ts) are never actually emitted anywhere in
+-- the reachable order-lifecycle code, so this whole path is dead code today.
+--
+-- This does not make TemplateCompilerService functionally correct (the
+-- locale/title/body shape mismatch remains, and there are zero rows to
+-- serve regardless) -- that would mean either rewriting the compiler to
+-- match the real per-language-column shape or seeding real template rows
+-- with a real locale model, a design decision out of scope for a schema
+-- hygiene fix. This just adds the specific missing column so the query
+-- itself stops erroring at boot, consistent with the column the code has
+-- always expected. Defaulting new rows to active matches how the column is
+-- used everywhere it's read (a filter for "only serve enabled templates").
+ALTER TABLE public.notification_templates
+  ADD COLUMN IF NOT EXISTS is_active boolean NOT NULL DEFAULT true;
