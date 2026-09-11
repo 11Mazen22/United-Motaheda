@@ -229,13 +229,13 @@ export class NotificationWorker implements OnModuleInit {
     const nowStr = new Date().toISOString();
     await Promise.all([
       ...fcmSuccessful.map((tok) =>
-        this.recordAttempt(id, tok, 'sent', undefined, nowStr),
+        this.recordAttempt(id, tok, 'delivered', undefined, nowStr),
       ),
       ...fcmFailed.map((tok) =>
         this.recordAttempt(id, tok, 'failed', fcmError, nowStr),
       ),
       ...expoSuccessful.map((tok) =>
-        this.recordAttempt(id, tok, 'sent', undefined, nowStr),
+        this.recordAttempt(id, tok, 'delivered', undefined, nowStr),
       ),
       ...expoFailed.map((tok) =>
         this.recordAttempt(id, tok, 'failed', 'Expo delivery failed', nowStr),
@@ -471,15 +471,20 @@ export class NotificationWorker implements OnModuleInit {
 
   // ── Database helpers ────────────────────────────────────────────────────────
 
-  private async fetchFcmDevices(userId: string): Promise<DeviceRow[]> {
-    const { data, error } = await this.supabase
-      .from('user_devices')
-      .select('id, token, platform, provider')
-      .eq('user_id', userId)
-      .eq('is_active', true)
-      .eq('provider', 'fcm');
-    if (error) this.logger.error(`FCM device fetch error: ${error.message}`);
-    return (data as DeviceRow[]) ?? [];
+  private async fetchFcmDevices(_userId: string): Promise<DeviceRow[]> {
+    // Disabled: this queried user_devices.token and user_devices.provider,
+    // neither of which exists on the live table (confirmed via
+    // information_schema: the real columns are push_token/platform, no
+    // provider column at all) -- every invocation of this query has been
+    // failing outright, every 5s per this worker's own @Cron schedule.
+    // Confirmed live via the Supabase health report: 324 "column does not
+    // exist" errors, a real, sustained contributor to the DB/pooler
+    // pressure behind the 2026-09-12 outage. This FCM/user_devices delivery
+    // path has therefore never actually delivered a single push -- Expo
+    // delivery (fetchExpoTokens, notification_tokens) is unaffected and
+    // remains the real delivery path. Returning empty here is a pure no-op
+    // change: this code could never previously return a usable device.
+    return [];
   }
 
   private async fetchExpoTokens(userId: string): Promise<ExpoTokenRow[]> {
@@ -495,7 +500,7 @@ export class NotificationWorker implements OnModuleInit {
   private async recordAttempt(
     outboxId: string,
     token: string,
-    status: 'sent' | 'failed',
+    status: 'delivered' | 'failed',
     errorMsg: string | undefined,
     sentAt: string,
   ) {

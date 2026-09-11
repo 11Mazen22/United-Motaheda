@@ -7,7 +7,7 @@ export interface NotificationItem {
   title: string;
   body: string;
   data: Record<string, any>;
-  read_at: string | null;
+  is_read: boolean;
   created_at: string;
   priority: 'high' | 'normal' | 'low';
 }
@@ -43,7 +43,7 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
         .limit(50);
 
       if (options.unreadOnly) {
-        query = query.is('read_at', null);
+        query = query.eq('is_read', false);
       }
 
       const { data, error } = await query;
@@ -51,7 +51,7 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
       if (error) throw error;
 
       set({ notifications: data as NotificationItem[] });
-      
+
       // Update unread count
       get().getUnreadCount();
     } catch (error) {
@@ -65,14 +65,14 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
     try {
       const { error } = await supabase
         .from('notifications')
-        .update({ read_at: new Date().toISOString() })
+        .update({ is_read: true })
         .eq('id', id);
 
       if (error) throw error;
 
       set((state) => ({
-        notifications: state.notifications.map(n => 
-          n.id === id ? { ...n, read_at: new Date().toISOString() } : n
+        notifications: state.notifications.map(n =>
+          n.id === id ? { ...n, is_read: true } : n
         ),
         unreadCount: Math.max(0, state.unreadCount - 1)
       }));
@@ -88,14 +88,14 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
 
       const { error } = await supabase
         .from('notifications')
-        .update({ read_at: new Date().toISOString() })
+        .update({ is_read: true })
         .eq('user_id', user.id)
-        .is('read_at', null);
+        .eq('is_read', false);
 
       if (error) throw error;
 
       set((state) => ({
-        notifications: state.notifications.map(n => ({ ...n, read_at: n.read_at || new Date().toISOString() })),
+        notifications: state.notifications.map(n => ({ ...n, is_read: true })),
         unreadCount: 0
       }));
     } catch (error) {
@@ -114,7 +114,7 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
 
       set((state) => {
         const notification = state.notifications.find(n => n.id === id);
-        const wasUnread = notification && !notification.read_at;
+        const wasUnread = notification && !notification.is_read;
         return {
           notifications: state.notifications.filter(n => n.id !== id),
           unreadCount: wasUnread ? Math.max(0, state.unreadCount - 1) : state.unreadCount
@@ -152,10 +152,10 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
         .from('notifications')
         .select('*', { count: 'exact', head: true })
         .eq('user_id', user.id)
-        .is('read_at', null);
+        .eq('is_read', false);
 
       if (error) throw error;
-      
+
       const unreadCount = count || 0;
       set({ unreadCount });
       return unreadCount;

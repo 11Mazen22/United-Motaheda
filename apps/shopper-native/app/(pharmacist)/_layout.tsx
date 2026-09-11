@@ -16,7 +16,7 @@
  *   returns            — ReturnsQueueScreen (reached from Orders' header)
  *   return/[id]        — ReturnInspectionScreen (stack-pushed from Orders' return banner)
  *   scanner            — BarcodeScannerScreen (full-screen, no tab bar)
- *   notifications      — NotificationCenterScreen (pharmacist-scoped, full-screen)
+ *   pharmacist-notifications — PharmacistNotificationsScreen (pharmacist-scoped, full-screen)
  *
  * Not every route above appears in the Stack.Screen list below -- Expo
  * Router auto-discovers file-based routes regardless; an explicit entry is
