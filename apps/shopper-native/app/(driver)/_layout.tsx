@@ -191,7 +191,11 @@ export default function DriverLayout() {
   // correctly and exactly once per mount; routing through it instead of
   // duplicating the same logic here closes the loop instead of chaining it.
   if (decidedAccessRef.current !== null && !user && !loading) {
-    return <View style={{ flex: 1, backgroundColor: "#FFFFFF" }} />;
+    return (
+      <View style={{ flex: 1, backgroundColor: "#FFFFFF", alignItems: "center", justifyContent: "center" }}>
+        <ActivityIndicator size="large" color="#0E7E74" />
+      </View>
+    );
   }
 
   if (decidedAccessRef.current === null) {
@@ -223,7 +227,11 @@ export default function DriverLayout() {
   }
 
   if (decidedAccessRef.current === false) {
-    return <View style={{ flex: 1, backgroundColor: "#FFFFFF" }} />;
+    return (
+      <View style={{ flex: 1, backgroundColor: "#FFFFFF", alignItems: "center", justifyContent: "center" }}>
+        <ActivityIndicator size="large" color="#0E7E74" />
+      </View>
+    );
   }
 
   return (
