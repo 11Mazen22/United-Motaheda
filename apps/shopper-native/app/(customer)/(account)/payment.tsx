@@ -102,7 +102,7 @@ export default function PaymentScreen() {
 
       {/* ── VIP Header ── */}
 
-      <Animated.View entering={FadeIn.duration(240)} style={[s.header, { paddingTop: insets.top + 10 }]}>
+      <Animated.View entering={FadeIn.duration(240)} style={[s.header, { paddingTop: insets.top + 8 }]}>
 
         <Pressable
 

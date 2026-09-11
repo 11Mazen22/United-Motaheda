@@ -279,7 +279,7 @@ export default function AddressesScreen() {
 
     <View style={styles.screen}>
 
-      <Animated.View entering={FadeIn.duration(240)} style={[styles.header, { paddingTop: insets.top + 10 }]}>
+      <Animated.View entering={FadeIn.duration(240)} style={[styles.header, { paddingTop: insets.top + 8 }]}>
 
         <View style={[styles.hRow, { flexDirection: flexRow(RTL) }]}> 
 

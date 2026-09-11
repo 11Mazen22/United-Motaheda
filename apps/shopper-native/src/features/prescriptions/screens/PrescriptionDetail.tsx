@@ -513,7 +513,7 @@ function Header({
   const { t } = useTranslation();
   const showActions = !!(onEdit && onDelete && onSave && onCancel);
   return (
-    <View style={[s.header, { paddingTop: insets.top + 12 }]}>
+    <View style={[s.header, { paddingTop: insets.top + 8 }]}>
       <View style={s.headerRow}>
         <Pressable
           onPress={onBack}

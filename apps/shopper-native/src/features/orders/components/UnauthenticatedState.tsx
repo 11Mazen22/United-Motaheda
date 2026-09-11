@@ -65,7 +65,7 @@ export function UnauthenticatedState({ showBack }: { showBack: boolean }): React
         bounces>
 
         {/* ── Light hero ── */}
-        <View style={[s.hero, { paddingTop: insets.top + 16 }]}>
+        <View style={[s.hero, { paddingTop: insets.top + 8 }]}>
           {/* Top bar — back button + eyebrow label */}
           <View style={s.topBar}>
             {showBack ? (

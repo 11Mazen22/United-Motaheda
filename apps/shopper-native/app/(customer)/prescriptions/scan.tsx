@@ -242,7 +242,7 @@ export default function ScanScreen(): React.ReactElement {
         </Text>
       </View>
 
-      <View style={[s.topBar, { paddingTop: insets.top + 12 }]}>
+      <View style={[s.topBar, { paddingTop: insets.top + 8 }]}>
         <Pressable
           onPress={() => router.back()}
           hitSlop={10}

@@ -170,7 +170,7 @@ export function PrescriptionsList(): React.ReactElement {
 
   // ── Header ──────────────────────────────────────────────────────────────────
   const header = (
-    <View style={[s.header, { paddingTop: insets.top + 12 }]}>
+    <View style={[s.header, { paddingTop: insets.top + 8 }]}>
       <View style={s.navRow}>
         {canGoBack ? (
           <Pressable

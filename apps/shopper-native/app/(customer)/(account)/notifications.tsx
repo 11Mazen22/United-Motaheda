@@ -251,7 +251,7 @@ export default function NotificationsScreen() {
 
   return <View style={n.screen}>
 
-    <Animated.View entering={FadeIn.duration(240)} style={[n.header, { paddingTop: insets.top + 10 }]}> 
+    <Animated.View entering={FadeIn.duration(240)} style={[n.header, { paddingTop: insets.top + 8 }]}> 
 
       <View style={[n.hTop, { flexDirection: flexRow(RTL) }]}> 
 

@@ -616,7 +616,7 @@ export default function SearchScreen() {
       {/* ╔══════════════════════════════════════════════════════════════╗
           ║  STICKY HEADER                                               ║
           ╚══════════════════════════════════════════════════════════════╝ */}
-      <View style={[s.header, { paddingTop: insets.top + 12 }]}>
+      <View style={[s.header, { paddingTop: insets.top + 8 }]}>
 
         {/* Back */}
         <Pressable

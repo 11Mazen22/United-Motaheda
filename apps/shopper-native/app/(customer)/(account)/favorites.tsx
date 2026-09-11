@@ -193,7 +193,7 @@ export default function FavoritesScreen() {
 
     <View style={s.screen}>
 
-      <Animated.View entering={FadeInDown.duration(280)} style={[s.header, { paddingTop: insets.top + 10 }]}>
+      <Animated.View entering={FadeInDown.duration(280)} style={[s.header, { paddingTop: insets.top + 8 }]}>
 
         <View style={[s.hRow, { flexDirection: flexRow(RTL) }]}>
 

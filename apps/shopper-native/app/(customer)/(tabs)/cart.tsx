@@ -137,7 +137,7 @@ export default function CartScreen() {
           colors={gradients.brandPrimary as unknown as [string, string]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={[styles.header, { paddingTop: insets.top + 16 }]}
+          style={[styles.header, { paddingTop: insets.top + 8 }]}
         >
            <Text variant="h3" style={{ color: "#fff" }}>{t("cart.title", "My Basket")}</Text>
         </LinearGradient>
@@ -222,7 +222,7 @@ export default function CartScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { flexDirection: flexRow(IS_RTL), justifyContent: "space-between", alignItems: "center", paddingHorizontal: 20, paddingBottom: 16 },
+  header: { flexDirection: flexRow(IS_RTL), justifyContent: "space-between", alignItems: "center", paddingHorizontal: 20, paddingBottom: 12 },
   clearChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 9999, backgroundColor: "rgba(255,255,255,0.16)" },
 
   deliveryProgressCard: { borderRadius: 16, padding: 16, marginBottom: 16, borderWidth: 1 },

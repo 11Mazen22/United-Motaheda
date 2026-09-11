@@ -103,7 +103,7 @@ export default function ProductsScreen() {
         colors={gradients.brandPrimary as unknown as [string, string]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        style={[s.header, { paddingTop: insets.top + 14, paddingHorizontal: pagePad }]}
+        style={[s.header, { paddingTop: insets.top + 8, paddingHorizontal: pagePad }]}
       >
         <View style={[s.headerRow, { flexDirection: flexRow(IS_RTL) }]}>
           <View style={[s.headerLeft, { flexDirection: flexRow(IS_RTL) }]}>

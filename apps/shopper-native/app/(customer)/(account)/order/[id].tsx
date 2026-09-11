@@ -102,7 +102,7 @@ export default function OrderDetailScreen(): React.ReactElement {
   if (isLoading) {
     return (
       <View style={[styles.centerScreen, { paddingTop: insets.top }]}>
-        <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
+        <View style={styles.header}>
           <HeaderBackButton onPress={() => router.back()} />
         </View>
         <ActivityIndicator size="large" color={theme.colors.brand.primary} style={{ marginTop: 80 }} />
@@ -113,7 +113,7 @@ export default function OrderDetailScreen(): React.ReactElement {
   if (isError || !order) {
     return (
       <View style={[styles.centerScreen, { paddingTop: insets.top }]}>
-        <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
+        <View style={styles.header}>
           <HeaderBackButton onPress={() => router.back()} />
         </View>
         <View style={styles.errorState}>
