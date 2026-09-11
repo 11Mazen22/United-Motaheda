@@ -3,6 +3,19 @@ import { type Router } from "expo-router";
 import type { AppNotification } from "./types";
 import type { AuthUser } from "@/features/auth";
 
+/**
+ * Every real notification carries its destination as actionUrl -- a
+ * role-correct path already computed server-side by whichever RPC/trigger
+ * enqueued it (see enqueue_notification's callers across the SQL
+ * migrations, e.g. "/(pharmacist)/order/<id>", "/(driver)/offer/<id>",
+ * "/order/<id>"). The `type` column only ever holds one of the four
+ * generic buckets ("order" | "offer" | "health" | "system" --
+ * confirmed against live data), never the granular per-event strings
+ * ("order.ready", "driver.assigned", etc.) a per-type switch here would
+ * need to branch on -- so a type-based fallback could never actually
+ * match a real row. pushNotificationService.ts's push-tap handler reads
+ * actionUrl the same way, so both surfaces agree on one source of truth.
+ */
 export function handleNotificationRoute(
   n: AppNotification,
   router: Router,
@@ -11,63 +24,28 @@ export function handleNotificationRoute(
 ) {
   const fallbackError = t ? t("notifications.webOnlyAction", "This notification cannot be opened here.") : "This notification cannot be opened here.";
 
-  if (n.actionUrl) {
-    let url = n.actionUrl;
-    if (url.startsWith("/admin/orders")) {
-      const orderMatch = url.match(/order=([a-f0-9\-]+)/);
-      const orderId = orderMatch ? orderMatch[1] : (n.data as any)?.orderId;
-      
-      if (orderId && (user?.role === "admin" || user?.role === "manager" || user?.role === "pharmacist")) {
-        router.push(`/(pharmacist)/orders/${orderId}` as never);
-        return;
-      } else {
-        Alert.alert(fallbackError);
-        return;
-      }
-    }
-    try {
-      router.push(url as never);
-    } catch (e) {
-      console.warn("Invalid route", url);
+  if (!n.actionUrl) {
+    Alert.alert(fallbackError);
+    return;
+  }
+
+  const url = n.actionUrl;
+  if (url.startsWith("/admin/orders")) {
+    const orderMatch = url.match(/order=([a-f0-9\-]+)/);
+    const orderId = orderMatch ? orderMatch[1] : (n.data as any)?.orderId;
+
+    if (orderId && (user?.role === "admin" || user?.role === "manager" || user?.role === "pharmacist")) {
+      router.push(`/(pharmacist)/order/${orderId}` as never);
+    } else {
+      Alert.alert(fallbackError);
     }
     return;
   }
 
-  const { type, data } = n;
-  switch (type as string) {
-    case "order.ready":
-    case "order.accepted":
-    case "order.out_for_delivery":
-    case "order.delivered":
-    case "order.cancelled":
-      if (data?.orderId) {
-        router.push(`/(customer)/order-tracking/${data.orderId}` as never);
-        return;
-      }
-      break;
-    case "payment.success":
-    case "payment.failed":
-      if (data?.orderId) {
-        router.push(`/(customer)/orders/${data.orderId}` as never);
-        return;
-      }
-      break;
-    case "system.announcement":
-      router.push("/(customer)/announcements" as never);
-      return;
-    case "promo.offer":
-      if (typeof data?.link === "string") {
-        router.push(data.link as never);
-        return;
-      }
-      break;
-    case "order.no_driver":
-    case "order.new":
-      if (data?.orderId && (user?.role === "admin" || user?.role === "manager" || user?.role === "pharmacist")) {
-        router.push(`/(pharmacist)/orders/${data.orderId}` as never);
-        return;
-      }
-      break;
+  try {
+    router.push(url as never);
+  } catch (e) {
+    console.warn("Invalid route", url);
+    Alert.alert(fallbackError);
   }
-  Alert.alert(fallbackError);
 }

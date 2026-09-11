@@ -257,59 +257,41 @@ class PushNotificationService {
   }
 
   /**
-   * Navigate to target screen based on notification type
+   * Navigate to the notification's target screen.
+   *
+   * Every real notification (see enqueue_notification's callers across the
+   * SQL migrations) carries its destination as action_url on the payload --
+   * a role-correct path already computed server-side (e.g.
+   * "/(pharmacist)/order/<id>" or "/(driver)/offer/<id>"). This used to
+   * switch on data.type instead, but no real payload has ever had a "type"
+   * field shaped like "order.ready"/"driver.assigned" -- the actual keys are
+   * "kind" (e.g. "driver_assignment") plus action_url, set by the edge
+   * function/RPCs that enqueue notifications. That switch could therefore
+   * never match a real notification, for any role, and every push tap fell
+   * through to the customer notifications screen regardless of what the
+   * notification was actually about. Reading action_url directly is also
+   * how the in-app notification list already resolves taps (see
+   * features/notifications/routing.ts's handleNotificationRoute) -- this
+   * makes push-tap and in-app-tap agree on the same source of truth instead
+   * of keeping two separate, diverging routing implementations.
    */
   private navigateToTarget(data: PushNotificationData): void {
-    const { type, orderId } = data;
+    const actionUrl = typeof data.action_url === 'string' ? data.action_url : undefined;
 
-    console.log('[PushNotificationService] Navigating to:', type, orderId);
+    console.log('[PushNotificationService] Navigating to:', actionUrl ?? '(no action_url)');
 
-    switch (type) {
-      case 'order.ready':
-      case 'order.accepted':
-      case 'order.out_for_delivery':
-      case 'order.delivered':
-      case 'order.cancelled':
-        if (orderId) {
-          router.push(`/(customer)/order-tracking/${orderId}` as import('expo-router').Href);
-        } else {
-          router.push('/(customer)/orders' as import('expo-router').Href);
-        }
-        break;
+    if (!actionUrl) {
+      // No safe, role-correct fallback exists without knowing which role's
+      // notification this is -- guessing one (as the old type-switch did)
+      // is worse than doing nothing here; the notification is still visible
+      // in the in-app list either way.
+      return;
+    }
 
-      case 'payment.success':
-      case 'payment.failed':
-        if (orderId) {
-          router.push(`/(customer)/orders/${orderId}` as import('expo-router').Href);
-        } else {
-          router.push('/(customer)/orders' as import('expo-router').Href);
-        }
-        break;
-
-      case 'system.announcement':
-        router.push('/(customer)/announcements' as import('expo-router').Href);
-        break;
-
-      case 'promo.offer':
-        if (data.link) {
-          router.push(data.link as import('expo-router').Href);
-        } else {
-          router.push('/(customer)/offers' as import('expo-router').Href);
-        }
-        break;
-
-      case 'driver.assigned':
-      case 'driver.arrived':
-        if (orderId) {
-          router.push(`/(customer)/order-tracking/${orderId}` as import('expo-router').Href);
-        } else {
-          router.push('/(customer)' as import('expo-router').Href);
-        }
-        break;
-
-      default:
-        // Default to notification center
-        router.push('/(customer)/notifications' as import('expo-router').Href);
+    try {
+      router.push(actionUrl as import('expo-router').Href);
+    } catch (error) {
+      console.error('[PushNotificationService] Failed to navigate to action_url:', actionUrl, error);
     }
   }
 
