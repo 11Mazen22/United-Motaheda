@@ -245,25 +245,64 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { ...u, role: lastKnownRoleRef.current };
       }
 
-      try {
-        const timeout = new Promise<"timeout">((resolve) =>
-          setTimeout(() => {
-            if (__DEV__) console.warn("[auth] attachRole timed out — reusing last known role, will retry on next auth event.");
-            resolve("timeout");
-          }, 5000),
-        );
-        const query = supabase.from("profiles").select("role").eq("id", u.id).maybeSingle();
-        const result = await Promise.race([query, timeout]);
-        if (result === "timeout") {
-          return { ...u, role: lastKnownRoleRef.current ?? "customer" };
+      // Reproduced live on a real device (not just in theory): this query can
+      // genuinely time out at app startup even on a healthy, low-latency
+      // connection (many features -- push registration, notification sync,
+      // analytics, realtime channels -- all fire their own requests in the
+      // same startup window). A single slow/dropped request used to fall
+      // straight through to the hardcoded "customer" default below, which
+      // index.tsx's redirect decision then locks in for the rest of the
+      // session -- silently and permanently misrouting a driver/pharmacist
+      // into the customer app with no way to recover short of a fresh
+      // sign-in. One immediate retry costs nothing on the (common) fast path
+      // and fixes the (confirmed real) slow one.
+      const queryRole = async (): Promise<AuthUser["role"] | "timeout" | "error"> => {
+        try {
+          const timeout = new Promise<"timeout">((resolve) =>
+            setTimeout(() => {
+              if (__DEV__) console.warn("[auth] attachRole query timed out.");
+              resolve("timeout");
+            }, 5000),
+          );
+          const query = supabase.from("profiles").select("role").eq("id", u.id).maybeSingle();
+          const result = await Promise.race([query, timeout]);
+          if (result === "timeout") return "timeout";
+          return normalizeRole(result?.data?.role as string | undefined);
+        } catch {
+          return "error";
         }
-        const role = normalizeRole(result?.data?.role as string | undefined);
-        lastKnownRoleRef.current = role;
-        lastKnownRoleUserIdRef.current = u.id;
-        return { ...u, role };
-      } catch {
-        return { ...u, role: lastKnownRoleRef.current ?? "customer" };
+      };
+
+      let role = await queryRole();
+      if (role === "timeout" || role === "error") {
+        role = await queryRole();
       }
+
+      if (role === "timeout" || role === "error") {
+        const fallbackRole = lastKnownRoleRef.current ?? "customer";
+        // Still unresolved after a retry. Don't block sign-in on it -- but
+        // don't let this uncertain fallback stand unchallenged forever
+        // either. Re-check once more in the background; if the real role
+        // turns out to differ from the fallback we just used, correct the
+        // session the same way a genuine live role change already does
+        // (see the profile-realtime subscription below, which this mirrors).
+        setTimeout(() => {
+          void (async () => {
+            const retryRole = await queryRole();
+            if (retryRole !== "timeout" && retryRole !== "error" && retryRole !== fallbackRole) {
+              lastKnownRoleRef.current = retryRole;
+              lastKnownRoleUserIdRef.current = u.id;
+              setUserIfChanged({ ...u, role: retryRole });
+              router.replace("/");
+            }
+          })();
+        }, 4000);
+        return { ...u, role: fallbackRole };
+      }
+
+      lastKnownRoleRef.current = role;
+      lastKnownRoleUserIdRef.current = u.id;
+      return { ...u, role };
     };
 
     // getSession() reads from local storage but falls back to a network
