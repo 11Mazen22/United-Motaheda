@@ -130,12 +130,29 @@ export class NotificationWorker implements OnModuleInit {
 
   // ── Main polling loop ───────────────────────────────────────────────────────
 
+  /**
+   * Re-entrancy guard: @Cron fires on schedule regardless of whether the
+   * previous tick finished. Without this, a single slow/hung DB response
+   * lets ticks pile up as unbounded concurrent Supabase requests, each
+   * holding a pooler connection until it times out -- exactly the pattern
+   * confirmed in the 2026-09-19 outage (edge_logs showed this poller
+   * failing every 5-10s in a continuous loop while the DB was degraded).
+   */
+  private isProcessing = false;
+
   @Cron('*/5 * * * * *') // every 5 seconds
   async processLoop() {
+    if (this.isProcessing) {
+      this.logger.warn('Previous outbox tick still running -- skipping this tick');
+      return;
+    }
+    this.isProcessing = true;
     try {
       await this.processBatch();
     } catch (err: any) {
       this.logger.error(`Worker loop error: ${err.message}`);
+    } finally {
+      this.isProcessing = false;
     }
   }
 
