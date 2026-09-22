@@ -31,6 +31,10 @@ railway-credentials-backup.txt
 temp-tsc-output.txt
 tmp-npm-cache/
 
+# Supabase CLI local cache (regenerated per-machine, not project config)
+supabase/.temp/
+**/supabase/.temp/
+
 eas_build_log.txt.gz
 
 

@@ -2,12 +2,12 @@
 const { Client } = require('pg');
 
 const supabase = createClient(
-  'https://gntpxffonjvnvadjclpl.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIiwiaXNzIjoic3VwYWJhc2UiLCJpYXQiOjE3ODgwMDY4NTMsImV4cCI6MjEwMzM2Njg1M30.LWsgSb-zSn8Z5GOLCwfFHjsBUXSwXFrz4enKYJGMxbM',
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY,
 );
 
 const pg = new Client({
-  connectionString: 'postgresql://supabase_admin:g8xgx4euzlkcr26er1y0t3bh2ka6v8lx2x98oww4n9h97d6aaa3ym7j4vxcn2vr2@altaria.proxy.rlwy.net:40973/postgres',
+  connectionString: process.env.DATABASE_URL,
   ssl: false,
 });
 

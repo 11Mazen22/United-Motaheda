@@ -18,7 +18,7 @@ This supersedes the architecture described in root `README.md` (which describes 
 - **`apps/shopper-web`** — a Vite/React web app that is both the public storefront (for customers without the native app) *and* the actual staff back-office (order management, inventory, prescriptions review, staff/user administration), embedded under `/admin`.
 - **`apps/api`** — a NestJS backend that is a small admin/ops service, not a general-purpose API. Most of the system talks directly to Supabase (PostgREST/Auth/Realtime/Storage); this service only exists for the handful of things that need it (see §3.3).
 
-The backend is a **self-hosted Supabase stack running on Railway** — Postgres, PostgREST, GoTrue (Auth), Realtime, Storage, and Supabase Edge Functions, each as its own Railway service — not Supabase Cloud. It was migrated off Supabase Cloud around 2026-08-29. There is also a self-hosted **Ollama** LLM service (also on Railway) powering one admin feature (AI-assisted promotion drafting — see §3.3).
+**Correction (2026-09-23): the paragraph below, as originally written, had this backwards.** Production runs on **Supabase Cloud** — project `gntpxffonjvnvadjclpl.supabase.co` (§5.1) — for Postgres, PostgREST, GoTrue (Auth), Realtime, Storage, and Edge Functions. A parallel **self-hosted Supabase stack does exist on Railway** (project `efficient-communication`: Postgres, PostgREST, GoTrue, Realtime, Storage, Supavisor, Envoy, Postgres Meta, Imgproxy, each its own service) from an attempted migration around 2026-08-29, but it is **legacy/reference infrastructure only** — it is not what `apps/api`, `apps/shopper-web`, or `apps/shopper-native` talk to in production. Do not point any app at it, and do not treat its schema/data as authoritative. There is also a self-hosted **Ollama** LLM service (on Railway, project `charismatic-perception`) powering one admin feature (AI-assisted promotion drafting — see §3.3) — that one *is* real and in active use, unrelated to the database question above.
 
 ---
 
@@ -189,9 +189,10 @@ Also note: **`.qoder/repowiki/`** contains an auto-generated architecture wiki (
 
 ### 5.1 Supabase project
 
-The application uses the Supabase project at `https://gntpxffonjvnvadjclpl.supabase.co` for
-Postgres, PostgREST, GoTrue, Realtime, Storage, and Edge Functions. Application clients
-must use this project URL and the publishable anon key; privileged keys remain server-only.
+The application uses the Supabase **Cloud** project at `https://gntpxffonjvnvadjclpl.supabase.co` for
+Postgres, PostgREST, GoTrue, Realtime, Storage, and Edge Functions. **This is production** — see the
+correction in §1. Application clients must use this project URL and the publishable anon key;
+privileged keys remain server-only.
 
 Supabase Studio on this deployment has **no authentication wall** (no `DASHBOARD_USERNAME`/`DASHBOARD_PASSWORD`, no private networking) — anyone with the URL can retrieve the `service_role` key. This was known and flagged in `SESSION_HANDOFF.md` as of this document's writing and had not yet been acted on — verify current status before assuming it's still open.
 
@@ -326,7 +327,7 @@ All 6 physical branch locations (names, addresses, coordinates, phone numbers) w
 
 - **`SESSION_HANDOFF.md`** — chronological, incident-by-incident debugging log from previous sessions. Has the *why* behind specific fixes, exact Railway service IDs/credentials (it's gitignored on purpose — never un-gitignore it, the GitHub repo is public), and the on-device ADB verification workflow in detail.
 - **`ENGINEERING_ROADMAP.md`** — dated 2026-05-11, written before the native app existed. Its milestones (M0–M12) may still describe real unaddressed shopper-web performance work, but its "snapshot of where things stand" table is stale — verify each item against current code before trusting it.
-- **`PRODUCTION_SETUP_CHECKLIST.md`, `GET_SUPABASE_KEY.md`, `OLLAMA_RAILWAY_SETUP.md`** — Ollama/Promotion-Copilot infrastructure setup. Useful for the deployment mechanics, but reference the **old, pre-migration Supabase Cloud project** in places (`gntpxffonjvnvadjclpl.supabase.co`) — substitute the current self-hosted gateway URL (§5.1) before following any step literally.
+- **`PRODUCTION_SETUP_CHECKLIST.md`, `GET_SUPABASE_KEY.md`, `OLLAMA_RAILWAY_SETUP.md`** — Ollama/Promotion-Copilot infrastructure setup. Their references to `gntpxffonjvnvadjclpl.supabase.co` are correct as written — that **is** the current production Supabase Cloud project (§1, §5.1), not a stale one. No substitution needed.
 - **`apps/shopper-web/LOADING_STATE_GUIDE.md`** and **`OPTIMIZATION_SETUP.md`** — app-local docs on loading-state/CLS architecture and the 52K-product catalog performance setup.
 - **`guidelines/Guidelines.md`** — mostly template boilerplate, but its last two sections (mobile shopper shell tab rules, auth route conventions) are real and current.
 - **`.qoder/repowiki/`** — an auto-generated wiki from a previous AI tool. Treat it the same way as `README.md`'s old architecture claims: more detailed than reality, not more accurate. This handbook is the corrected version.

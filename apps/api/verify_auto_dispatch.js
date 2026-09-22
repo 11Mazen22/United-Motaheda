@@ -1,5 +1,5 @@
 const { Client } = require('pg');
-const CONNECTION_STRING = 'postgresql://supabase_admin:g8xgx4euzlkcr26er1y0t3bh2ka6v8lx2x98oww4n9h97d6aaa3ym7j4vxcn2vr2@altaria.proxy.rlwy.net:40973/postgres';
+const CONNECTION_STRING = process.env.DATABASE_URL;
 const client = new Client({ connectionString: CONNECTION_STRING, ssl: false });
 
 const ADMIN_ID = 'df4c117e-38af-44a3-a227-77c883b74c10';
