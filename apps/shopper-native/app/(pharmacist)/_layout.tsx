@@ -28,6 +28,7 @@ import { ActivityIndicator, View } from "react-native";
 import { Stack, useRouter } from "expo-router";
 import { useAuth } from "@/features/auth";
 import { claimPostSignOutNavigation } from "@/features/auth/postSignOutNav";
+import { AUTH_ROUTING_ENTRY, shouldLeavePharmacistExperience } from "@/features/auth/roleNavigation";
 import { usePharmacistRealtimeSync } from "@/features/pharmacist";
 
 export default function PharmacistLayout() {
@@ -95,9 +96,14 @@ export default function PharmacistLayout() {
   // all. Deferring by one tick lets React fully settle the current commit
   // before the heavy nested-unmount transition begins, without changing
   // what navigates or how many times (still guarded to exactly once).
+  const lostLiveAccess =
+    decidedAccessRef.current === true && Boolean(user) && !loading && shouldLeavePharmacistExperience(user?.role);
   const shouldLeave =
     decidedAccessRef.current === false ||
-    (decidedAccessRef.current === true && !user && !loading);
+    (decidedAccessRef.current === true && !user && !loading) ||
+    lostLiveAccess;
+  const signedOut = decidedAccessRef.current === true && !user && !loading;
+  const leaveTarget = AUTH_ROUTING_ENTRY;
 
   // ROOT CAUSE FOUND (2026-09-04), after two prior attempts (permanent latch
   // -> 1s cooldown -> unconditional watchdog) all failed to fix a hang
@@ -121,20 +127,20 @@ export default function PharmacistLayout() {
   // effect-cleanup order above, not just retried and hoped. Mirrors the
   // identical fix in (driver)/_layout.tsx.
   useEffect(() => {
-    if (shouldLeave && claimPostSignOutNavigation()) {
-      setTimeout(() => router.replace("/" as never), 0);
-    }
-  }, [shouldLeave]);
+    if (!shouldLeave) return;
+    if (signedOut && !claimPostSignOutNavigation()) return;
+    setTimeout(() => router.replace(leaveTarget as never), 0);
+  }, [leaveTarget, shouldLeave, signedOut, router]);
 
   const watchdogFiredRef = useRef(false);
   useEffect(() => {
     if (!shouldLeave || watchdogFiredRef.current) return;
     const id = setTimeout(() => {
       watchdogFiredRef.current = true;
-      router.replace("/" as never);
+      router.replace(leaveTarget as never);
     }, 2500);
     return () => clearTimeout(id);
-  }, [shouldLeave]);
+  }, [leaveTarget, shouldLeave]);
 
   // If the user actively signs out, user becomes null. Kick them back to the
   // customer app (guest mode) immediately. Gated on decidedAccessRef already
@@ -155,6 +161,18 @@ export default function PharmacistLayout() {
   // mount; routing through it instead of duplicating the logic here closes
   // the loop instead of chaining it.
   if (decidedAccessRef.current !== null && !user && !loading) {
+    return (
+      <View style={{ flex: 1, backgroundColor: "#FFFFFF", alignItems: "center", justifyContent: "center" }}>
+        <ActivityIndicator size="large" color="#0E7E74" />
+      </View>
+    );
+  }
+
+  // Same "leaving" treatment as the signed-out branch above -- a role change
+  // (or losing the pharmacist/admin/manager role) mid-session hits the same
+  // debounced router.replace() window (0dd2bd94's fix), so it needs the same
+  // spinner instead of a bare blank view.
+  if (lostLiveAccess && user && !loading) {
     return (
       <View style={{ flex: 1, backgroundColor: "#FFFFFF", alignItems: "center", justifyContent: "center" }}>
         <ActivityIndicator size="large" color="#0E7E74" />
