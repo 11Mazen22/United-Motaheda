@@ -492,11 +492,19 @@ export async function declineAssignment(
 
 // ─── Delivery execution (pickup / in-transit / delivered) ────────────────────
 
-/** Confirm pickup through the canonical order-state machine. */
+/** Confirm pickup through the canonical order-state machine.
+ *
+ * Goes through the driver_confirm_pickup RPC, which transitions the order
+ * AND stamps delivery_assignments.picked_up_at in one transaction — see
+ * 20260923121500_driver_pickup_complete_atomic.sql. Previously this was two
+ * separate client calls (transition_order, then a plain UPDATE), so a crash
+ * in between left the order advanced with no picked_up_at ever recorded and
+ * no way to retry (transition_order's state graph rejects a second attempt
+ * once the order has already moved past driver_accepted).
+ */
 export async function confirmPickup(orderId: string, assignmentId: string, driverId: string): Promise<void> {
-  const { data, error } = await supabase.rpc("transition_order", {
-    p_order_id: orderId,
-    p_next_status: "out_for_delivery",
+  const { data, error } = await supabase.rpc("driver_confirm_pickup", {
+    p_assignment_id: assignmentId,
   });
 
   if (error) throw error;
@@ -504,12 +512,6 @@ export async function confirmPickup(orderId: string, assignmentId: string, drive
   if (!updated || updated.assigned_driver_id !== driverId || updated.status !== "out_for_delivery") {
     throw new Error("Could not confirm pickup — check that this order is still assigned to you.");
   }
-
-  await supabase
-    .from("delivery_assignments")
-    .update({ picked_up_at: new Date().toISOString() })
-    .eq("id", assignmentId)
-    .eq("driver_id", driverId);
 
   notifyCustomerOrderUpdate(orderId, "picked_up");
 }
@@ -574,10 +576,12 @@ export async function completeDelivery(orderId: string, assignmentId: string, dr
     return;
   }
 
-  // Normal delivery
-  const { data, error } = await supabase.rpc("transition_order", {
-    p_order_id: orderId,
-    p_next_status: "delivered",
+  // Normal delivery — driver_complete_delivery transitions the order AND
+  // stamps delivery_assignments.delivered_at/response_status in one
+  // transaction (20260923121500_driver_pickup_complete_atomic.sql), same
+  // fix as confirmPickup above.
+  const { data, error } = await supabase.rpc("driver_complete_delivery", {
+    p_assignment_id: assignmentId,
   });
 
   if (error) throw error;
@@ -585,12 +589,6 @@ export async function completeDelivery(orderId: string, assignmentId: string, dr
   if (!updated || updated.assigned_driver_id !== driverId || updated.status !== "delivered") {
     throw new Error("Could not mark this order delivered — check that it's still assigned to you.");
   }
-
-  await supabase
-    .from("delivery_assignments")
-    .update({ delivered_at: new Date().toISOString(), response_status: "completed" })
-    .eq("id", assignmentId)
-    .eq("driver_id", driverId);
 
   // Best-effort — a failure here must not undo the delivery completion
   // above. record_driver_earning is idempotent (safe if completeDelivery
