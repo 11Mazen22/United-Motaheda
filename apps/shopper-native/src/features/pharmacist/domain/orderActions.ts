@@ -15,6 +15,13 @@ export function getPharmacistActionTargets(status: PharmacistOrder["status"]): P
     case "payment_pending":  return ["payment_approved", "cancelled"];
     case "payment_approved": return ["preparing", "cancelled"];
     case "preparing":        return ["ready", "cancelled"];
+    // "ready" has no pharmacist-initiated forward transition (driver
+    // assignment happens via auto_dispatch_tick/manual_assign_driver, not
+    // transition_order) but get_order_actions() on the backend still allows
+    // cancelling a ready-but-not-yet-picked-up order — omitting it here left
+    // pharmacists with no way to cancel from this screen once an order hit
+    // "ready", even though the backend was always willing to accept it.
+    case "ready":             return ["cancelled"];
     default:                 return [];
   }
 }
