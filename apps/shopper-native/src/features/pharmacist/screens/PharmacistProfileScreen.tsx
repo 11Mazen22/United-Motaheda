@@ -87,8 +87,9 @@ export function PharmacistProfileScreen(): React.ReactElement {
 
   // profiles.branch_id was added so a pharmacist's order queue can be scoped
   // to their own branch (see supabase/migrations/20260827090000_pharmacist_backend_fixes.sql).
-  // No admin UI assigns it yet, so this reads whatever's there — null until
-  // an admin calls set_pharmacist_branch(), which is the honest state to show.
+  // Assigned via apps/shopper-web's StaffManager.tsx (branch-assignment
+  // dialog -> setPharmacistBranch() -> set_pharmacist_branch() RPC) — this
+  // just reads whatever's there, null until an admin has set it.
   const branchQ = useQuery({
     queryKey: ["pharmacist", "profile", "branch", user?.id],
     queryFn: async () => {
