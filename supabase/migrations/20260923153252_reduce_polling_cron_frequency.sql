@@ -1,0 +1,24 @@
+-- Root cause of daily "unhealthy" project status despite low real traffic:
+-- pg_stat_statements shows two fixed-interval pg_cron jobs running 24/7
+-- regardless of actual order/catalog activity, together accounting for a
+-- large, disproportionate share of total DB execution time on a small
+-- compute instance:
+--   - jobid 7 auto_dispatch_tick(): every 7s, unconditionally scans
+--     delivery_assignments + orders every tick even when there is nothing
+--     to dispatch (confirmed via function source -- no early-exit fast
+--     path). 8469 calls / 166.8s total exec time in the sampled window
+--     (13.2% of all DB time). The function's own driver-offer expiry
+--     window is 25s, so a 7s tick was checking ~3-4x more often than that
+--     window requires.
+--   - jobid 8 generate-embeddings net.http_post trigger: every 15s,
+--     unconditionally fires an HTTP call via pg_net with no "is there
+--     pending work" gate. 3975 calls / 63.8s total exec time (5.0%),
+--     plus the downstream pg_net queue/response bookkeeping this
+--     generates (a further ~3.7% combined).
+-- Together these self-inflicted polling loops are a double-digit-percent
+-- share of database load that has nothing to do with real customer
+-- traffic -- exactly why the project can look "unhealthy" on very low
+-- real usage. Reducing frequency (not disabling) preserves the same
+-- behavior with a proportionate cadence for a low-order-volume app.
+SELECT cron.alter_job(job_id := 7, schedule := '20 seconds');
+SELECT cron.alter_job(job_id := 8, schedule := '*/2 * * * *');
