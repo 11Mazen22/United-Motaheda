@@ -318,7 +318,7 @@ export async function updateNotificationPreferences(
 
 // notification_tokens (not user_devices) is canonical for Expo push tokens
 // -- both delivery workers (the Supabase Edge Function and apps/api's
-// NotificationWorker) read from here. See pushNotificationService.ts,
+// NotificationWorker) read from here. See services/pushNotificationManager.ts,
 // which is the actual registration path this app uses; these are kept as
 // the public unregister surface for a future "sign out everywhere"-style
 // feature.
@@ -376,19 +376,15 @@ export async function registerDevice(params: {
   deviceModel?: string;
   osVersion?: string;
 }): Promise<void> {
-  const { userId, deviceToken, platform, appVersion, deviceModel, osVersion } = params;
-  const { error } = await supabase
-    .from('user_devices')
-    .upsert({
-      user_id: userId,
-      token: deviceToken,
-      provider: platform,
-      app_version: appVersion,
-      device_model: deviceModel,
-      os_version: osVersion,
-    }, {
-      // Conflict on token (unique) ensures idempotent upsert.
-      onConflict: 'token',
-    });
+  const { deviceToken, platform, appVersion } = params;
+  const deviceId = params.deviceModel
+    ? `${platform}:${params.deviceModel}:${params.osVersion ?? "unknown"}`
+    : `${platform}:${deviceToken}`;
+  const { error } = await supabase.rpc("register_device_push_token", {
+    p_device_id: deviceId,
+    p_push_token: deviceToken,
+    p_platform: platform,
+    p_app_version: appVersion ?? null,
+  });
   if (error) throw error;
 }

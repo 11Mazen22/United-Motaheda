@@ -13,8 +13,8 @@ import type { AuthUser } from "@/features/auth";
  * confirmed against live data), never the granular per-event strings
  * ("order.ready", "driver.assigned", etc.) a per-type switch here would
  * need to branch on -- so a type-based fallback could never actually
- * match a real row. pushNotificationService.ts's push-tap handler reads
- * actionUrl the same way, so both surfaces agree on one source of truth.
+ * match a real row. services/pushNotificationManager.ts's push-tap handler
+ * reads actionUrl the same way, so both surfaces agree on one source of truth.
  */
 export function handleNotificationRoute(
   n: AppNotification,

@@ -23,7 +23,6 @@ export {
 // ─── Hooks (component-facing) ──────────────────────────────────────────────
 export { useNotifications } from "./hooks/useNotifications";
 export { useNotificationPreferences } from "./hooks/useNotificationPreferences";
-export { usePushNotificationRegistration } from "./hooks/usePushNotificationRegistration";
 export { useUnreadCount } from "./hooks/useUnreadCount";
 export { useNotificationSync } from "./hooks/useNotificationSync";
 
