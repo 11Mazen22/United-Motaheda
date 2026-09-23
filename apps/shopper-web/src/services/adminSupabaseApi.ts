@@ -488,15 +488,28 @@ export async function deleteAdminProduct(code: string): Promise<void> {
       throw new Error(`Product not found with code ${code}`);
     }
 
-    // Delete the product
-    const { error } = await supabase
+    // Delete the product. .select() + a row check (same pattern as
+    // updateAdminProduct/createAdminProduct above) turns an RLS-filtered
+    // no-op into a real error instead of a silent "succeeded" with the row
+    // still live -- a bare .delete() with no .select() returns no error and
+    // no data when RLS's products_write_staff policy (is_manager() only)
+    // filters the row out, which previously would have shown a success
+    // toast while nothing was actually deleted.
+    const { data: deletedRows, error } = await supabase
       .from('products')
       .delete()
-      .eq('id', existingProduct.id);
+      .eq('id', existingProduct.id)
+      .select('id');
 
     if (error) {
       logOperation(operation, { code }, error);
       throw new Error(`Failed to delete product: ${error.message}`);
+    }
+
+    if (!deletedRows || deletedRows.length === 0) {
+      const notPermitted = new Error(`Delete was not applied — you may not have permission to delete this product.`);
+      logOperation(operation, { code }, notPermitted);
+      throw notPermitted;
     }
 
     logOperation(operation, { code });
