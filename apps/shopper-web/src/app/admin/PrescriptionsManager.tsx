@@ -1,4 +1,3 @@
-import { getSupabaseClient } from "../../lib/supabaseClient";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   CheckBadgeIcon,
@@ -34,6 +33,7 @@ import {
   fetchPrescriptionCounts,
   fetchPrescriptions,
   fetchRefillRequests,
+  getPrescriptionImageSignedUrl,
   reviewPrescription,
   reviewRefillRequest,
   type AdminPrescription,
@@ -165,6 +165,10 @@ export default function PrescriptionsManager() {
   // record's current values. useEffect avoids that: it runs after the
   // state commits, so the render it triggers has the real values.
   const [rxDraft, setRxDraft] = useState({ name: "", dose: "", doctor: "", rxNumber: "" });
+  const [reviewImageUrl, setReviewImageUrl] = useState<string | null>(null);
+  const [reviewImageLoading, setReviewImageLoading] = useState(false);
+  const [reviewImageError, setReviewImageError] = useState("");
+  const [reviewImageAttempt, setReviewImageAttempt] = useState(0);
   useEffect(() => {
     if (reviewTarget?.kind === "prescription") {
       setRxDraft({
@@ -175,6 +179,33 @@ export default function PrescriptionsManager() {
       });
     }
   }, [reviewTarget]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setReviewImageUrl(null);
+    setReviewImageError("");
+
+    if (reviewTarget?.kind !== "prescription" || !reviewTarget.item.imagePath) {
+      setReviewImageLoading(false);
+      return () => { cancelled = true; };
+    }
+
+    setReviewImageLoading(true);
+    void getPrescriptionImageSignedUrl(reviewTarget.item.imagePath)
+      .then((url) => {
+        if (!cancelled) setReviewImageUrl(url);
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setReviewImageError(err instanceof Error ? err.message : "Failed to load prescription image");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setReviewImageLoading(false);
+      });
+
+    return () => { cancelled = true; };
+  }, [reviewTarget, reviewImageAttempt]);
 
   // ── Loaders ───────────────────────────────────────────────────────────────
   const loadCounts = useCallback(async () => {
@@ -279,16 +310,18 @@ export default function PrescriptionsManager() {
     if (!reviewTarget) return null;
     if (reviewTarget.kind === "prescription") {
       const rx = reviewTarget.item;
-        
-      let imageUrl = null;
-      if (rx.imagePath) {
-        imageUrl = getSupabaseClient().storage.from("prescriptions").getPublicUrl(rx.imagePath).data.publicUrl;
-      }
 
       return {
         title: rx.name,
         subtitle: `${rx.customerName} | ${rx.customerPhone}`,
-        imageUrl,
+        imageUrl: reviewImageUrl,
+        imageLoading: reviewImageLoading,
+        imageError: reviewImageError,
+        onImageError: () => {
+          setReviewImageUrl(null);
+          setReviewImageError(isArabic ? "تعذر تحميل صورة الوصفة أو أن الملف غير موجود." : "The prescription image could not be loaded or is missing.");
+        },
+        onImageRetry: () => setReviewImageAttempt((attempt) => attempt + 1),
         warning: rx.submissionSource === "whatsapp"
           ? (isArabic
             ? "هذه إشارة أن العميل سيرسل صورة عبر واتساب — لم يتم استلام أي صورة أو رقم بعد."

@@ -1,3 +1,4 @@
+import { normalizePrescriptionStoragePath, PRESCRIPTION_IMAGE_BUCKET } from "@pharmacy/domain-prescriptions";
 import { getSupabaseClient } from "../lib/supabaseClient";
 import { logAdminAction } from "./adminUsersApi";
 
@@ -166,6 +167,28 @@ function notifyCustomer(params: {
   }).then(({ error }) => {
     if (error) console.error("[adminPrescriptionsApi] notification enqueue failed:", error.message);
   });
+}
+
+/** Short-lived signed URL for a private prescription image. */
+export async function getPrescriptionImageSignedUrl(imagePath: string): Promise<string> {
+  const path = normalizePrescriptionStoragePath(imagePath);
+  if (!path) throw new Error("Invalid prescription image path");
+
+  const supabase = getSupabaseClient();
+  const attempt = () => supabase.storage
+    .from(PRESCRIPTION_IMAGE_BUCKET)
+    .createSignedUrl(path, 300);
+
+  let { data, error } = await attempt();
+  if (error) {
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    ({ data, error } = await attempt());
+  }
+
+  if (error) throw new Error(`[adminPrescriptionsApi.getPrescriptionImageSignedUrl] ${error.message}`);
+  if (!data?.signedUrl) throw new Error("[adminPrescriptionsApi.getPrescriptionImageSignedUrl] Missing signed URL");
+
+  return data.signedUrl;
 }
 
 // ─── Prescriptions ────────────────────────────────────────────────────────────
