@@ -1,0 +1,133 @@
+{
+  "archive_metadata": {
+    "created_at": "2026-09-23",
+    "source": "self-hosted Supabase stack, Railway project efficient-communication, service Postgres, public proxy altaria.proxy.rlwy.net:40973, Postgres 17.6",
+    "method": "read-only SELECT-only extraction (SET default_transaction_read_only = on); compared against Supabase Cloud project gntpxffonjvnvadjclpl by UUID, then by email/user_id/amount/timestamp for unmatched rows",
+    "purpose": "Preserve full metadata for the small set of self-hosted-only records before the legacy stack is retired. Not imported into Cloud automatically -- re-creating any of these records on Cloud is a deliberate product decision for the project owner.",
+    "note": "PII (names, emails, phone numbers) is present in this file as-extracted from the source database. Treat with the same handling as any other file containing customer data."
+  },
+  "orders": {
+    "total_self_hosted": 17,
+    "matched_on_cloud_same_uuid": 14,
+    "self_hosted_only": [
+      {
+        "id": "71a3634e-6f3b-430b-9bfc-4cf83cb79be9",
+        "user_id": "742ea034-3051-451e-a156-a871e56c357c",
+        "email": "shazlymazen802@gmail.com",
+        "customer_name": "Mazen Shazly",
+        "customer_phone": "",
+        "status": "driver_accepted",
+        "total": "510.00",
+        "payment_status": "pending",
+        "source": "supabase",
+        "created_at": "2026-09-04T11:51:03.484Z",
+        "updated_at": "2026-09-04T11:53:44.494Z",
+        "assessment": "no matching Cloud order for this user_id at this amount/time; real-looking"
+      },
+      {
+        "id": "e0d7c2de-5e90-4884-8345-580f3d6e1a2a",
+        "user_id": "742ea034-3051-451e-a156-a871e56c357c",
+        "email": "shazlymazen802@gmail.com",
+        "customer_name": "Test Customer",
+        "customer_phone": "01012345678",
+        "status": "out_for_delivery",
+        "total": "76.00",
+        "payment_status": "pending",
+        "source": "supabase",
+        "created_at": "2026-09-04T19:18:43.952Z",
+        "updated_at": "2026-09-09T15:34:54.431Z",
+        "assessment": "generic customer_name/phone strongly suggests synthetic test data"
+      },
+      {
+        "id": "cc121a50-ff7a-4cfb-b0bb-966c7a3b7aab",
+        "user_id": "a107569a-9493-4d58-b0f8-b50cf55f7a05",
+        "email": "m.youssuf.1995@gmail.com",
+        "customer_name": "mohammed youssuf",
+        "customer_phone": "",
+        "status": "pending",
+        "total": "295.00",
+        "payment_status": "pending",
+        "source": "supabase",
+        "created_at": "2026-09-14T11:19:21.580Z",
+        "updated_at": "2026-09-14T11:19:21.591Z",
+        "assessment": "last order ever written to self-hosted; real account; zero Cloud orders for this user_id; flagged for manual review before retirement"
+      }
+    ],
+    "all_rows_raw": [
+      {"id":"66b0df68-d8d3-4e17-a1de-ab49f59749a0","user_id":null,"email":null,"customer_name":"Mazen Mohamed","customer_phone":"01003118111","status":"ready","total":"31.31","payment_status":"pending","created_at":"2026-07-14T13:40:24.309Z","updated_at":"2026-08-03T09:22:06.545Z","cloud_match":"same_uuid"},
+      {"id":"e934b309-f863-4d8c-9c4b-3b6fffc7cfcb","user_id":"d0ee96bf-55c5-4cdf-8734-9c25b8a23208","email":"alidowidar1991@gmail.com","customer_name":"ali dowidar","customer_phone":"01006781309","status":"driver_assigned","total":"300.00","payment_status":"pending","created_at":"2026-07-30T22:46:40.565Z","updated_at":"2026-09-05T14:56:20.526Z","cloud_match":"same_uuid"},
+      {"id":"acc0da07-271b-4b4f-91e8-49c7f1c03a33","user_id":null,"email":null,"customer_name":"Mazen Mohamed","customer_phone":"","status":"driver_assigned","total":"150.00","payment_status":"pending","created_at":"2026-08-27T18:44:44.345Z","updated_at":"2026-09-05T12:23:57.698Z","cloud_match":"same_uuid"},
+      {"id":"ee2625be-b261-4a22-a075-bde1209eb619","user_id":null,"email":null,"customer_name":"Mazen Moham","customer_phone":"","status":"out_for_delivery","total":"218.75","payment_status":"pending","created_at":"2026-08-30T02:08:56.585Z","updated_at":"2026-09-04T09:09:21.437Z","cloud_match":"same_uuid"},
+      {"id":"afbfde67-c00f-4cc2-ba7c-694d032718b5","user_id":null,"email":null,"customer_name":"Mazen Moham","customer_phone":"","status":"driver_assigned","total":"218.75","payment_status":"pending","created_at":"2026-08-30T02:09:35.950Z","updated_at":"2026-09-05T12:23:57.698Z","cloud_match":"same_uuid"},
+      {"id":"a6409082-7aaa-442a-a430-81afc6409a13","user_id":null,"email":null,"customer_name":"Mazen Moham","customer_phone":"","status":"preparing","total":"215.00","payment_status":"pending","created_at":"2026-08-30T06:22:12.637Z","updated_at":"2026-09-04T14:20:18.370Z","cloud_match":"same_uuid"},
+      {"id":"955b9eca-8a4b-4e59-b72e-ab65b6570955","user_id":"742ea034-3051-451e-a156-a871e56c357c","email":"shazlymazen802@gmail.com","customer_name":"Mazen Shazly","customer_phone":"","status":"delivered","total":"68.50","payment_status":"pending","created_at":"2026-09-04T08:38:46.902Z","updated_at":"2026-09-04T08:47:12.251Z","cloud_match":"same_uuid"},
+      {"id":"71a3634e-6f3b-430b-9bfc-4cf83cb79be9","user_id":"742ea034-3051-451e-a156-a871e56c357c","email":"shazlymazen802@gmail.com","customer_name":"Mazen Shazly","customer_phone":"","status":"driver_accepted","total":"510.00","payment_status":"pending","created_at":"2026-09-04T11:51:03.484Z","updated_at":"2026-09-04T11:53:44.494Z","cloud_match":"self_hosted_only"},
+      {"id":"0e13877d-396e-4679-a149-3598b3f77543","user_id":"c9ca0ba9-f4c8-41a4-98ce-64b0394ccac2","email":"abdelbakey.ibrahem15@gmail.com","customer_name":"Abdelbakey Ibrahem","customer_phone":"","status":"driver_assigned","total":"257.50","payment_status":"pending","created_at":"2026-09-04T13:30:32.399Z","updated_at":"2026-09-05T12:23:57.698Z","cloud_match":"same_uuid"},
+      {"id":"442b2fc6-b3a1-4301-929c-bc344b40d3be","user_id":"c9ca0ba9-f4c8-41a4-98ce-64b0394ccac2","email":"abdelbakey.ibrahem15@gmail.com","customer_name":"Abdelbakey Ibrahem","customer_phone":"","status":"delivered","total":"257.50","payment_status":"pending","created_at":"2026-09-04T13:31:22.913Z","updated_at":"2026-09-04T14:19:26.983Z","cloud_match":"same_uuid"},
+      {"id":"f9848a62-b634-4304-90c3-4ab12f520088","user_id":"d7062667-2427-47de-aa4a-5e884d3fac4b","email":"nourhanyouns439@gmail.com","customer_name":"Nourhan Youns","customer_phone":"","status":"driver_assigned","total":"262.35","payment_status":"pending","created_at":"2026-09-04T14:50:11.385Z","updated_at":"2026-09-05T12:23:57.698Z","cloud_match":"same_uuid"},
+      {"id":"ac367250-42c9-48a4-b1d5-731e1d0d8918","user_id":"742ea034-3051-451e-a156-a871e56c357c","email":"shazlymazen802@gmail.com","customer_name":"Mazen Shazly","customer_phone":"","status":"preparing","total":"68.50","payment_status":"pending","created_at":"2026-09-04T15:23:04.101Z","updated_at":"2026-09-04T18:43:23.795Z","cloud_match":"same_uuid"},
+      {"id":"e0d7c2de-5e90-4884-8345-580f3d6e1a2a","user_id":"742ea034-3051-451e-a156-a871e56c357c","email":"shazlymazen802@gmail.com","customer_name":"Test Customer","customer_phone":"01012345678","status":"out_for_delivery","total":"76.00","payment_status":"pending","created_at":"2026-09-04T19:18:43.952Z","updated_at":"2026-09-09T15:34:54.431Z","cloud_match":"self_hosted_only"},
+      {"id":"80fb2095-eabf-4059-813d-5c17605b90a0","user_id":"742ea034-3051-451e-a156-a871e56c357c","email":"shazlymazen802@gmail.com","customer_name":"Mazen Shazly","customer_phone":"","status":"payment_pending","total":"69.75","payment_status":"pending","created_at":"2026-09-05T01:50:37.609Z","updated_at":"2026-09-08T19:51:41.670Z","cloud_match":"same_uuid"},
+      {"id":"377367f6-8e75-4fff-8fff-c7444203b798","user_id":"df4c117e-38af-44a3-a227-77c883b74c10","email":"youssefengineer1300@gmail.com","customer_name":"Youssef Youssry","customer_phone":"","status":"preparing","total":"175.00","payment_status":"pending","created_at":"2026-09-08T20:06:09.273Z","updated_at":"2026-09-08T21:30:10.596Z","cloud_match":"same_uuid"},
+      {"id":"967a61e6-658b-42f9-9834-c86414cadcec","user_id":"df4c117e-38af-44a3-a227-77c883b74c10","email":"youssefengineer1300@gmail.com","customer_name":"Youssef Youssry","customer_phone":"","status":"pending","total":"175.00","payment_status":"pending","created_at":"2026-09-09T16:04:18.129Z","updated_at":"2026-09-09T16:04:18.146Z","cloud_match":"same_uuid"},
+      {"id":"cc121a50-ff7a-4cfb-b0bb-966c7a3b7aab","user_id":"a107569a-9493-4d58-b0f8-b50cf55f7a05","email":"m.youssuf.1995@gmail.com","customer_name":"mohammed youssuf","customer_phone":"","status":"pending","total":"295.00","payment_status":"pending","created_at":"2026-09-14T11:19:21.580Z","updated_at":"2026-09-14T11:19:21.591Z","cloud_match":"self_hosted_only"}
+    ]
+  },
+  "auth_users": {
+    "total_self_hosted": 25,
+    "matched_on_cloud_same_uuid": 23,
+    "self_hosted_only_identity": [
+      {
+        "email": "mazenshazly011@gmail.com",
+        "self_hosted_id": "17affa00-ee20-4f2e-bde9-5fa3ac76ecec",
+        "self_hosted_created_at": "2026-09-03T11:40:29.693Z",
+        "self_hosted_role": "driver",
+        "cloud_id_same_email": "5042aa1c-390b-40e3-a56b-edac1a5e76f6",
+        "cloud_created_at": "2026-09-09T15:30:08.763018Z",
+        "cloud_role": "pharmacist",
+        "orders_tied_to_self_hosted_id": 0
+      },
+      {
+        "email": "mazenshazly890@gmail.com",
+        "self_hosted_id": "117cd269-1658-4de6-8b9a-aca137567da6",
+        "self_hosted_created_at": "2026-08-31T07:09:31.600Z",
+        "self_hosted_role": "pharmacist",
+        "cloud_id_same_email": "ac0aa357-9568-4fd1-b00d-479e9f900e72",
+        "cloud_created_at": "2026-05-22T10:47:18.861893Z",
+        "cloud_role": "customer",
+        "orders_tied_to_self_hosted_id": 0
+      }
+    ],
+    "all_rows_raw": [
+      {"id":"df4c117e-38af-44a3-a227-77c883b74c10","email":"youssefengineer1300@gmail.com","created_at":"2026-05-20T04:24:19.740Z","last_sign_in_at":"2026-09-08T20:01:22.261Z","cloud_match":"same_uuid"},
+      {"id":"dd608c92-1638-4814-9d0c-59e8407f1f56","email":"samiryasser20007@gmail.com","created_at":"2026-05-25T16:20:56.000Z","last_sign_in_at":null,"cloud_match":"same_uuid"},
+      {"id":"600b2a79-e716-40b0-b36a-949ff766e7bd","email":"salamabaraa34@gmail.com","created_at":"2026-06-23T23:19:59.406Z","last_sign_in_at":"2026-09-08T15:36:02.571Z","cloud_match":"same_uuid"},
+      {"id":"c9e11ac6-f8d4-47e9-b789-249ff1f0f15d","email":"edrakyshazly@gmail.com","created_at":"2026-07-02T09:58:39.162Z","last_sign_in_at":"2026-08-26T22:19:10.382Z","cloud_match":"same_uuid"},
+      {"id":"c9ca0ba9-f4c8-41a4-98ce-64b0394ccac2","email":"abdelbakey.ibrahem15@gmail.com","created_at":"2026-07-05T11:36:50.149Z","last_sign_in_at":"2026-09-03T17:17:48.518Z","cloud_match":"same_uuid"},
+      {"id":"8d0e7632-80c1-4cf8-9729-f82923c14f59","email":"mazenshazly678@gmail.com","created_at":"2026-07-07T15:41:52.222Z","last_sign_in_at":"2026-09-04T08:52:36.823Z","cloud_match":"same_uuid"},
+      {"id":"a54f3d4b-d0cb-470a-9a1e-991a4e774c18","email":"eelshimy86@gmail.com","created_at":"2026-07-12T10:21:28.407Z","last_sign_in_at":null,"cloud_match":"same_uuid"},
+      {"id":"419c27cc-ec19-4769-93bf-75fa7eb5f690","email":"phtarek3@gmail.com","created_at":"2026-07-12T10:28:10.263Z","last_sign_in_at":"2026-07-12T10:28:32.218Z","cloud_match":"same_uuid"},
+      {"id":"07c90a31-fd17-4650-aaba-59bef01513a8","email":"abdelbakey.ibrahem@gmail.com","created_at":"2026-07-14T13:57:26.220Z","last_sign_in_at":"2026-07-14T13:57:26.983Z","cloud_match":"same_uuid"},
+      {"id":"01d15641-49d0-4654-a314-b392bbf24f58","email":"edraky.help@gmail.com","created_at":"2026-07-15T13:53:38.690Z","last_sign_in_at":null,"cloud_match":"same_uuid"},
+      {"id":"0433aa0d-7390-43b2-8386-f6c95c103204","email":"engsameha4@gmail.com","created_at":"2026-07-19T15:12:03.048Z","last_sign_in_at":"2026-07-19T15:15:17.792Z","cloud_match":"same_uuid"},
+      {"id":"d0ee96bf-55c5-4cdf-8734-9c25b8a23208","email":"alidowidar1991@gmail.com","created_at":"2026-07-30T22:27:14.582Z","last_sign_in_at":"2026-07-30T22:27:15.984Z","cloud_match":"same_uuid"},
+      {"id":"b7e86437-b93b-4004-85bb-a08c28d3d272","email":"edrakmaze@gmail.com","created_at":"2026-08-26T22:21:20.795Z","last_sign_in_at":"2026-09-04T09:04:45.434Z","cloud_match":"same_uuid"},
+      {"id":"90708a2c-e031-4123-9ffb-443baf4ee359","email":"drghadasharkawy@gmail.com","created_at":"2026-08-27T15:00:57.243Z","last_sign_in_at":"2026-08-27T15:00:58.283Z","cloud_match":"same_uuid"},
+      {"id":"60eb937e-7564-4987-bead-bc64c887c1f6","email":"yossra900@gmail.com","created_at":"2026-08-29T12:44:27.283Z","last_sign_in_at":"2026-08-29T12:44:50.729Z","cloud_match":"same_uuid"},
+      {"id":"da94fd4b-7457-4f8e-a6ab-9c0f4293b050","email":"abdelbakey.ibrahem15@gmail.coma","created_at":"2026-08-29T13:33:26.257Z","last_sign_in_at":null,"cloud_match":"same_uuid"},
+      {"id":"117cd269-1658-4de6-8b9a-aca137567da6","email":"mazenshazly890@gmail.com","created_at":"2026-08-31T07:09:31.600Z","last_sign_in_at":"2026-09-04T13:47:28.244Z","cloud_match":"self_hosted_only_identity"},
+      {"id":"17affa00-ee20-4f2e-bde9-5fa3ac76ecec","email":"mazenshazly011@gmail.com","created_at":"2026-09-03T11:40:29.693Z","last_sign_in_at":"2026-09-10T23:11:49.782Z","cloud_match":"self_hosted_only_identity"},
+      {"id":"742ea034-3051-451e-a156-a871e56c357c","email":"shazlymazen802@gmail.com","created_at":"2026-09-03T16:56:02.057Z","last_sign_in_at":"2026-09-05T01:44:40.196Z","cloud_match":"same_uuid"},
+      {"id":"576e1f60-1391-45c6-bfca-793de9f0b1aa","email":"elmotahedapharmacy@gmail.com","created_at":"2026-09-04T14:30:55.613Z","last_sign_in_at":null,"cloud_match":"same_uuid"},
+      {"id":"d7062667-2427-47de-aa4a-5e884d3fac4b","email":"nourhanyouns439@gmail.com","created_at":"2026-09-04T14:36:10.509Z","last_sign_in_at":"2026-09-04T14:47:20.978Z","cloud_match":"same_uuid"},
+      {"id":"a3e5b9f2-9ff8-4723-af1f-127a1dee70c2","email":"elmotaeda470@gmail.com","created_at":"2026-09-04T14:41:15.238Z","last_sign_in_at":"2026-09-04T14:42:33.388Z","cloud_match":"same_uuid"},
+      {"id":"3b5f578e-7418-42a6-8695-b81ee789adb9","email":"mohammedahmedmadian1@gmail.com","created_at":"2026-09-04T19:29:22.384Z","last_sign_in_at":"2026-09-04T19:29:23.286Z","cloud_match":"same_uuid"},
+      {"id":"a107569a-9493-4d58-b0f8-b50cf55f7a05","email":"m.youssuf.1995@gmail.com","created_at":"2026-09-05T15:54:19.760Z","last_sign_in_at":"2026-09-07T12:45:33.167Z","cloud_match":"same_uuid"},
+      {"id":"0c054834-0de6-4966-8177-e2f4df76b4c5","email":"m.youssuf.1990@gmail.com","created_at":"2026-09-08T13:20:34.415Z","last_sign_in_at":"2026-09-08T13:20:34.444Z","cloud_match":"same_uuid"}
+    ]
+  },
+  "profiles": {
+    "total_self_hosted": 22,
+    "note": "profile rows correspond 1:1 to auth.users rows above except the 3 users with no profile row on self-hosted (dd608c92, a54f3d4b, 01d15641)"
+  }
+}
