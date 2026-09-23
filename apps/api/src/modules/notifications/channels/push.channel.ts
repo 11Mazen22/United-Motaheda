@@ -16,10 +16,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { createClient } from '@supabase/supabase-js';
-
-// Use require for Firebase Admin SDK (CommonJS compatibility)
-// @ts-ignore
-const admin = require('firebase-admin');
+import { App, cert, getApps, initializeApp } from 'firebase-admin/app';
+import { getMessaging, MulticastMessage } from 'firebase-admin/messaging';
 
 export interface PushPayload {
   userId: string;
@@ -45,7 +43,7 @@ export interface PushResult {
 export class PushChannelService {
   private readonly logger = new Logger(PushChannelService.name);
   private supabase: SupabaseClient;
-  private firebaseApp: any;
+  private firebaseApp?: App;
   private isFirebaseInitialized = false;
 
   constructor(private configService: ConfigService) {
@@ -68,14 +66,19 @@ export class PushChannelService {
   private initializeFirebase(): void {
     try {
       // Check if Firebase is already initialized
-      if (admin.apps && admin.apps.length > 0) {
-        this.firebaseApp = admin.apps[0];
+      if (getApps().length > 0) {
+        this.firebaseApp = getApps()[0];
         this.isFirebaseInitialized = true;
         this.logger.log('Firebase already initialized');
         return;
       }
 
-      const firebaseConfig = this.configService.get('firebase');
+      const nested = this.configService.get<any>('firebase');
+      const firebaseConfig = {
+        projectId: nested?.projectId ?? this.configService.get<string>('FIREBASE_PROJECT_ID'),
+        clientEmail: nested?.clientEmail ?? this.configService.get<string>('FIREBASE_CLIENT_EMAIL'),
+        privateKey: nested?.privateKey ?? this.configService.get<string>('FIREBASE_PRIVATE_KEY'),
+      };
       
       if (!firebaseConfig) {
         this.logger.warn('Firebase config not found, push notifications disabled');
@@ -89,8 +92,8 @@ export class PushChannelService {
       }
 
       // Initialize Firebase Admin
-      this.firebaseApp = admin.initializeApp({
-        credential: admin.credential.cert({
+      this.firebaseApp = initializeApp({
+        credential: cert({
           projectId: firebaseConfig.projectId,
           clientEmail: firebaseConfig.clientEmail,
           privateKey: firebaseConfig.privateKey.replace(/\\n/g, '\n'),
@@ -131,7 +134,7 @@ export class PushChannelService {
         };
       }
 
-      const tokens = devices.map(d => d.token);
+      const tokens = devices.map(d => d.push_token);
 
       // Send to all devices
       const result = await this.sendToDevices(tokens, payload);
@@ -201,7 +204,7 @@ export class PushChannelService {
           is_active: false,
           updated_at: new Date().toISOString(),
         })
-        .in('token', tokens);
+        .in('push_token', tokens);
 
       if (error) throw error;
       this.logger.log(`Invalidated ${tokens.length} tokens`);
@@ -222,7 +225,7 @@ export class PushChannelService {
         .update({
           last_seen_at: new Date().toISOString(),
         })
-        .in('token', tokens);
+        .in('push_token', tokens);
 
       if (error) throw error;
     } catch (error) {
@@ -239,16 +242,26 @@ export class PushChannelService {
       this.logger.warn('Attempted to send push without Firebase initialized');
       return { successfulTokens: [], failedTokens: tokens };
     }
-    const message = {
-      data: payload.data,
+    const message: MulticastMessage = {
+      data: Object.fromEntries(
+        Object.entries(payload.data ?? {}).map(([key, value]) => [
+          key,
+          typeof value === 'string' ? value : JSON.stringify(value),
+        ]),
+      ),
       notification: {
         title: payload.title,
         body: payload.body,
       },
+      android: {
+        priority: payload.priority === 'normal' ? 'normal' : 'high',
+        notification: { channelId: 'orders', sound: payload.sound ?? 'default' },
+      },
+      apns: { payload: { aps: { sound: payload.sound ?? 'default' } } },
       tokens,
     };
     try {
-      const response = await admin.messaging().sendEachForMulticast(message);
+      const response = await getMessaging(this.firebaseApp).sendEachForMulticast(message);
       const successfulTokens: string[] = [];
       const failedTokens: string[] = [];
       response.responses.forEach((resp, idx) => {
@@ -281,7 +294,7 @@ export class PushChannelService {
       const { data: existing } = await this.supabase
         .from('user_devices')
         .select('id')
-        .eq('token', params.deviceToken)
+        .eq('push_token', params.deviceToken)
         .single();
 
       if (existing) {
@@ -292,13 +305,11 @@ export class PushChannelService {
             user_id: params.userId,
             platform: params.platform,
             app_version: params.appVersion,
-            device_model: params.deviceModel,
-            os_version: params.osVersion,
             is_active: true,
             last_seen_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           })
-          .eq('token', params.deviceToken)
+          .eq('push_token', params.deviceToken)
 
         if (error) throw error;
         this.logger.log(`Updated device token for user ${params.userId}`);
@@ -310,11 +321,10 @@ export class PushChannelService {
         .from('user_devices')
         .insert({
           user_id: params.userId,
-          token: params.deviceToken,
+          push_token: params.deviceToken,
+          device_id: params.deviceToken,
           platform: params.platform,
           app_version: params.appVersion,
-          device_model: params.deviceModel,
-          os_version: params.osVersion,
           is_active: true,
           last_seen_at: new Date().toISOString(),
           created_at: new Date().toISOString(),
@@ -341,7 +351,7 @@ export class PushChannelService {
           is_active: false,
           updated_at: new Date().toISOString(),
         })
-        .eq('token', deviceToken);
+        .eq('push_token', deviceToken);
 
       if (error) throw error;
       this.logger.log(`Unregistered device token`);

@@ -4,11 +4,13 @@ import { ConfigService } from '@nestjs/config';
 jest.mock('@nestjs/config', () => ({ ConfigService: class {} }), { virtual: true });
 
 const mockFCM = jest.fn();
-jest.mock('firebase-admin', () => ({
-  apps: [],
+jest.mock('firebase-admin/app', () => ({
+  getApps: jest.fn(() => []),
   initializeApp: jest.fn(),
-  credential: { cert: jest.fn() },
-  messaging: jest.fn(() => ({
+  cert: jest.fn(),
+}));
+jest.mock('firebase-admin/messaging', () => ({
+  getMessaging: jest.fn(() => ({
     sendEachForMulticast: mockFCM,
   })),
 }));
@@ -27,6 +29,7 @@ const createQueryChain = (data: any = []) => {
   q.insert = jest.fn(() => q);
   q.single = jest.fn(() => q);
   q.is = jest.fn(() => q);
+  q.abortSignal = jest.fn(() => q);
   q.then = (cb: any) => cb({ data, error: null });
   return q;
 };
@@ -39,6 +42,7 @@ const attemptsInsertSpy = jest.fn();
 
 const mockSupabase = {
   from: jest.fn(),
+  rpc: jest.fn(),
 };
 
 jest.mock('@supabase/supabase-js', () => ({
@@ -64,7 +68,9 @@ describe('NotificationWorker', () => {
       get: jest.fn((key) => {
         if (key === 'SUPABASE_URL') return 'http://mock';
         if (key === 'SUPABASE_SERVICE_ROLE_KEY') return 'mock-key';
-        if (key === 'firebase') return { projectId: 'p', clientEmail: 'c', privateKey: 'k' };
+        if (key === 'FIREBASE_PROJECT_ID') return 'p';
+        if (key === 'FIREBASE_CLIENT_EMAIL') return 'c';
+        if (key === 'FIREBASE_PRIVATE_KEY') return 'k';
         return null;
       }),
     } as unknown as ConfigService;
@@ -74,10 +80,11 @@ describe('NotificationWorker', () => {
   });
 
   describe('Outbox claiming and concurrency (lease/claim)', () => {
-    it('claims queued rows atomically using the locked_until condition', async () => {
+    it('claims due rows through the atomic database function', async () => {
       const q = createQueryChain([
-        { id: 'row-1', recipient_id: 'user-1', title: 'T', body: 'B', attempts: 0, status: 'queued' },
+        { id: 'row-1', recipient_id: 'user-1', title: 'T', body: 'B', attempts: 1, status: 'processing' },
       ]);
+      mockSupabase.rpc.mockReturnValue(q);
       const originalUpdate = q.update;
       q.update = jest.fn((...args) => {
         outboxUpdateSpy(...args);
@@ -86,16 +93,14 @@ describe('NotificationWorker', () => {
       mockSupabase.from.mockImplementation((table: string) => {
         if (table === 'notification_outbox') return q;
         if (table === 'user_devices') return createQueryChain([
-          { token: 't1', platform: 'ios', provider: 'fcm', device_id: 'd1' },
+          { push_token: 't1', platform: 'ios', device_id: 'd1' },
         ]);
         if (table === 'notification_tokens') return createQueryChain([]);
         return createQueryChain();
       });
 
       await worker.processLoop();
-      expect(outboxUpdateSpy).toHaveBeenCalledWith(
-        expect.objectContaining({ locked_until: expect.any(String) })
-      );
+      expect(mockSupabase.rpc).toHaveBeenCalledWith('claim_notification_outbox', { p_limit: 50 });
     });
   });
 
@@ -111,8 +116,9 @@ describe('NotificationWorker', () => {
       });
 
       const q = createQueryChain([
-        { id: 'row-1', recipient_id: 'user-1', title: 'T', body: 'B', attempts: 0, status: 'queued' },
+        { id: 'row-1', recipient_id: 'user-1', title: 'T', body: 'B', attempts: 1, status: 'processing' },
       ]);
+      mockSupabase.rpc.mockReturnValue(q);
       const originalUpdate = q.update;
       q.update = jest.fn((...args) => {
         outboxUpdateSpy(...args);
@@ -123,8 +129,8 @@ describe('NotificationWorker', () => {
         if (table === 'notification_outbox') return q;
         if (table === 'user_devices') {
           const devQ = createQueryChain([
-            { token: 'valid-fcm', platform: 'ios', provider: 'fcm', device_id: 'd1' },
-            { token: 'invalid-fcm', platform: 'android', provider: 'fcm', device_id: 'd2' },
+            { push_token: 'valid-fcm', platform: 'ios', device_id: 'd1' },
+            { push_token: 'invalid-fcm', platform: 'android', device_id: 'd2' },
           ]);
           const devUpdate = devQ.update;
           devQ.update = jest.fn((...args) => {
@@ -166,8 +172,9 @@ describe('NotificationWorker', () => {
       });
 
       const q = createQueryChain([
-        { id: 'row-2', recipient_id: 'user-2', title: 'T', body: 'B', attempts: 4, status: 'queued' },
+        { id: 'row-2', recipient_id: 'user-2', title: 'T', body: 'B', attempts: 5, status: 'processing' },
       ]);
+      mockSupabase.rpc.mockReturnValue(q);
       const originalUpdate = q.update;
       q.update = jest.fn((...args) => {
         outboxUpdateSpy(...args);
@@ -177,7 +184,7 @@ describe('NotificationWorker', () => {
       mockSupabase.from.mockImplementation((table: string) => {
         if (table === 'notification_outbox') return q;
         if (table === 'user_devices') return createQueryChain([
-          { token: 'fcm1', platform: 'ios', provider: 'fcm', device_id: 'd1' },
+          { push_token: 'fcm1', platform: 'ios', device_id: 'd1' },
         ]);
         if (table === 'notification_tokens') return createQueryChain([]);
         return createQueryChain();
@@ -198,8 +205,9 @@ describe('NotificationWorker', () => {
       });
 
       const q = createQueryChain([
-        { id: 'row-3', recipient_id: 'user-3', title: 'T', body: 'B', attempts: 1, status: 'queued' },
+        { id: 'row-3', recipient_id: 'user-3', title: 'T', body: 'B', attempts: 2, status: 'processing' },
       ]);
+      mockSupabase.rpc.mockReturnValue(q);
       const originalUpdate = q.update;
       q.update = jest.fn((...args) => {
         outboxUpdateSpy(...args);
@@ -209,7 +217,7 @@ describe('NotificationWorker', () => {
       mockSupabase.from.mockImplementation((table: string) => {
         if (table === 'notification_outbox') return q;
         if (table === 'user_devices') return createQueryChain([
-          { token: 'invalid-fcm', platform: 'android', provider: 'fcm', device_id: 'd2' },
+          { push_token: 'invalid-fcm', platform: 'android', device_id: 'd2' },
         ]);
         if (table === 'notification_tokens') return createQueryChain([]);
         return createQueryChain();

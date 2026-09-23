@@ -41,6 +41,7 @@ export class TemplateCompilerService implements OnModuleInit {
   private readonly DEFAULT_LOCALE = 'ar';
   private readonly FALLBACK_LOCALE = 'en';
   private readonly CACHE_TTL = 300; // 5 minutes default
+  private readonly DB_TIMEOUT_MS = 8_000;
 
   constructor(private configService: ConfigService) {
     const supabaseUrl = this.configService.get<string>('SUPABASE_URL');
@@ -53,10 +54,13 @@ export class TemplateCompilerService implements OnModuleInit {
     this.supabase = createClient(supabaseUrl, supabaseKey);
   }
 
-  async onModuleInit() {
+  onModuleInit() {
     this.logger.log('Template Compiler Service initialized');
-    // Preload common templates on startup
-    await this.preloadTemplates();
+    // Warm the cache without holding application bootstrap hostage when the
+    // database gateway is degraded. Individual requests still load on demand.
+    void this.preloadTemplates().catch((error) => {
+      this.logger.warn(`Template preload failed: ${error.message}`);
+    });
   }
 
   /**
@@ -105,7 +109,9 @@ export class TemplateCompilerService implements OnModuleInit {
         query.eq('locale', locale);
       }
 
-      const { data, error } = await query;
+      const { data, error } = await query.abortSignal(
+        AbortSignal.timeout(this.DB_TIMEOUT_MS),
+      );
 
       if (error) {
         throw error;
