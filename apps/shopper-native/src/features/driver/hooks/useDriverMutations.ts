@@ -16,7 +16,9 @@ import {
   reportIssue,
   uploadIssuePhoto,
   setDriverAvailability,
+  cancelOrder,
   type IssueReasonCode,
+  type DriverCancelReasonCode,
 } from "../api";
 import { driverQueryKeys, invalidateDriverLists } from "./useDriverManifest";
 import { driverProfileQueryKeys } from "./useDriverProfile";
@@ -94,6 +96,16 @@ export function useDriverMutations(driverId: string | undefined) {
     },
   });
 
+  const cancel = useMutation({
+    mutationFn: (args: { orderId: string; reason: DriverCancelReasonCode }) =>
+      cancelOrder(args.orderId, args.reason),
+    onSuccess: (_data, args) => {
+      invalidateAll();
+      void queryClient.invalidateQueries({ queryKey: driverQueryKeys.order(args.orderId) });
+      void queryClient.invalidateQueries({ queryKey: driverQueryKeys.assignmentForOrder(args.orderId) });
+    },
+  });
+
   const report = useMutation({
     mutationFn: async (args: { orderId: string; reasonCode: IssueReasonCode; note?: string; photoUri?: string }) => {
       const driverIdValue = requireDriverId();
@@ -111,6 +123,7 @@ export function useDriverMutations(driverId: string | undefined) {
     pickup:  { mutateAsync: pickup.mutateAsync,  isPending: pickup.isPending },
     deliver: { mutateAsync: deliver.mutateAsync,  isPending: deliver.isPending },
     arrival: { mutateAsync: arrival.mutateAsync, isPending: arrival.isPending },
+    cancel:  { mutateAsync: cancel.mutateAsync,  isPending: cancel.isPending },
     report:  { mutateAsync: report.mutateAsync,  isPending: report.isPending },
     setAvailability: { mutateAsync: setAvailability.mutateAsync, isPending: setAvailability.isPending },
   };

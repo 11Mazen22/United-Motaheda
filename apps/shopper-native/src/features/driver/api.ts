@@ -64,6 +64,18 @@ export type IssueReasonCode =
   | "vehicle_breakdown"
   | "other";
 
+/** Matches get_order_actions()'s v_role = 'driver' reason list exactly
+ *  (supabase/migrations/20260830130000_cancellation_system_hardened.sql and
+ *  later) -- keep in sync by hand, same convention as CANONICAL_ORDER_STATUSES
+ *  in stores/orders.ts. */
+export type DriverCancelReasonCode =
+  | "CUSTOMER_UNREACHABLE"
+  | "ADDRESS_UNREACHABLE"
+  | "VEHICLE_ISSUE"
+  | "SAFETY_ISSUE"
+  | "DELIVERY_PROBLEM"
+  | "OTHER";
+
 export interface DeliveryIssue {
   id:             string;
   orderId:        string;
@@ -488,6 +500,31 @@ export async function declineAssignment(
 
   if (error) throw error;
   return mapAssignmentRow(data as RawAssignmentRow);
+}
+
+/** Cancel an order this driver is assigned to, before pickup.
+ *
+ * get_order_actions() has always allowed a driver to cancel (own reason
+ * list: CUSTOMER_UNREACHABLE, ADDRESS_UNREACHABLE, VEHICLE_ISSUE,
+ * SAFETY_ISSUE, DELIVERY_PROBLEM, OTHER) up through driver_accepted -- it's
+ * blocked from picked_up/out_for_delivery/delivered onward, same as every
+ * other actor (see execute_order_cancellation's physical-transit check).
+ * Nothing in this app ever called it: the driver UI only ever offered
+ * "Report an issue" (delivery_issues -- an admin/pharmacist-visible flag
+ * that does NOT change order status), with no path to actually cancel a
+ * pre-pickup order the driver already knows can't be completed (customer
+ * unreachable before ever leaving the pharmacy, wrong vehicle for a bulky
+ * order, etc.). Routes through the same cancel-order Edge Function ->
+ * execute_order_cancellation() every other actor uses, so cleanup
+ * (assignment supersession, inventory release, refund, notification) is
+ * identical regardless of who cancelled.
+ */
+export async function cancelOrder(orderId: string, reason: DriverCancelReasonCode): Promise<void> {
+  const { data, error } = await supabase.functions.invoke("cancel-order", {
+    body: { orderId, reason },
+  });
+  if (error) throw error;
+  if (data?.error) throw new Error(data.error);
 }
 
 // ─── Delivery execution (pickup / in-transit / delivered) ────────────────────

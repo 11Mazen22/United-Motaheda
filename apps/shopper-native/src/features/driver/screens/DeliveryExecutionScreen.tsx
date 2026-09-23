@@ -407,6 +407,23 @@ export function DeliveryExecutionScreen(): React.ReactElement {
                 onPress={() => router.push(`/(driver)/issue/${orderId}` as never)}
                 full
               />
+              {/* get_order_actions() only allows a driver to cancel up
+                  through driver_accepted (blocked once picked_up/
+                  out_for_delivery/delivered, same as every other actor) --
+                  gate this on stage rather than order.status directly so it
+                  tracks the exact same pre-pickup window
+                  DeliveryLocationCard/ProgressTracker already derive from
+                  getDeliveryStage. Returns are a different flow with no
+                  cancellation path here. */}
+              {(stage === "to_pharmacy" || stage === "at_pharmacy") && assignment?.assignmentKind !== "return_pickup" ? (
+                <Button
+                  label={t("driver.cancelOrder")}
+                  icon="close-circle-outline"
+                  variant="ghost"
+                  onPress={() => router.push(`/(driver)/cancel/${orderId}` as never)}
+                  full
+                />
+              ) : null}
             </View>
           </ActionDock>
         </>
