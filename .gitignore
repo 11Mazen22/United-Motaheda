@@ -11,6 +11,7 @@ dist/
 # Build outputs
 apps/api/dist/
 apps/shopper-web/dist/
+apps/shopper-native/dist-verify/
 
 # Expo cache & generated files
 # These are build-time artifacts with paths that exceed the Windows 260-char limit
