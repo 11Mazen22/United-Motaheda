@@ -17,8 +17,6 @@
     "typecheck:tests": "tsc --noEmit --project tsconfig.test.json"
   },
   "dependencies": {
-    "@react-native-firebase/app": "^26.4.0",
-    "@react-native-firebase/messaging": "^26.4.0",
     "@expo-google-fonts/cairo": "^0.4.2",
     "@expo/metro-runtime": "~55.0.11",
     "@expo/vector-icons": "^15.0.2",
@@ -29,6 +27,8 @@
     "@pharmacy/ui-native": "*",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-community/netinfo": "11.5.2",
+    "@react-native-firebase/app": "^26.4.0",
+    "@react-native-firebase/messaging": "^26.4.0",
     "@shopify/flash-list": "2.0.2",
     "@supabase/supabase-js": "^2.103.0",
     "@tanstack/query-sync-storage-persister": "^5.76.0",
@@ -57,7 +57,7 @@
     "expo-splash-screen": "~55.0.21",
     "expo-status-bar": "~55.0.6",
     "expo-system-ui": "~55.0.18",
-    "expo-updates": "~55.0.23",
+    "expo-updates": "~55.0.31",
     "expo-video": "~55.0.17",
     "expo-web-browser": "~55.0.16",
     "i18next": "^26.2.0",

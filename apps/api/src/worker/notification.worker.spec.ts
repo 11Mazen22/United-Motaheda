@@ -161,6 +161,55 @@ describe('NotificationWorker', () => {
         expect.objectContaining({ is_active: false })
       );
     });
+
+    it('keeps Expo fallback active for a legacy device when another device has FCM', async () => {
+      const q = createQueryChain([
+        { id: 'row-legacy', recipient_id: 'user-1', title: 'T', body: 'B', payload: {}, attempts: 1, status: 'processing' },
+      ]);
+      mockSupabase.rpc.mockReturnValue(q);
+      mockSupabase.from.mockImplementation((table: string) => {
+        if (table === 'notification_outbox') return q;
+        if (table === 'user_devices') return createQueryChain([
+          { push_token: 'new-fcm', platform: 'android', device_id: 'new-device' },
+        ]);
+        if (table === 'notification_tokens') return createQueryChain([
+          { expo_push_token: 'ExponentPushToken[legacy]', device_id: 'legacy-device', invalidated_at: null },
+        ]);
+        return createQueryChain();
+      });
+
+      const sendExpo = jest.spyOn(worker as any, 'sendExpo').mockResolvedValue({
+        successful: ['ExponentPushToken[legacy]'], failed: [],
+      });
+      await worker.processLoop();
+
+      expect(mockFCM).toHaveBeenCalled();
+      expect(sendExpo).toHaveBeenCalledWith(
+        ['ExponentPushToken[legacy]'], 'T', 'B', {},
+        [expect.objectContaining({ device_id: 'legacy-device' })],
+      );
+    });
+
+    it('does not duplicate Expo push for a device already receiving FCM', async () => {
+      const q = createQueryChain([
+        { id: 'row-dedupe', recipient_id: 'user-1', title: 'T', body: 'B', payload: {}, attempts: 1, status: 'processing' },
+      ]);
+      mockSupabase.rpc.mockReturnValue(q);
+      mockSupabase.from.mockImplementation((table: string) => {
+        if (table === 'notification_outbox') return q;
+        if (table === 'user_devices') return createQueryChain([
+          { push_token: 'new-fcm', platform: 'android', device_id: 'same-device' },
+        ]);
+        if (table === 'notification_tokens') return createQueryChain([
+          { expo_push_token: 'ExponentPushToken[same]', device_id: 'same-device', invalidated_at: null },
+        ]);
+        return createQueryChain();
+      });
+
+      const sendExpo = jest.spyOn(worker as any, 'sendExpo');
+      await worker.processLoop();
+      expect(sendExpo).not.toHaveBeenCalled();
+    });
   });
 
   describe('Retry, backoff, and max attempts', () => {

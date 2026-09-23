@@ -9,6 +9,7 @@ import { useNotificationsStore } from "@/stores/notificationsStore";
 
 const EXPO_TOKEN_KEY = "@push_token";
 const DEVICE_ID_KEY = "@device_id";
+const NATIVE_PUSH_CAPABILITY = "native-push-v2";
 const CHANNELS = [
   { id: "orders", name: "Order and delivery updates" },
   { id: "offers", name: "Driver offers" },
@@ -60,7 +61,11 @@ class PushNotificationManager {
     // provider per device, so registering both never creates duplicate alerts.
     await Promise.allSettled([
       this.registerExpoToken(generation),
-      this.registerNativeFcm(userId, generation),
+      // iOS delivery is intentionally Expo/APNs. Loading RN Firebase on iOS
+      // without a GoogleService-Info.plist would break a valid APNs setup.
+      Platform.OS === "android"
+        ? this.registerNativeFcm(userId, generation)
+        : Promise.resolve(),
     ]);
     if (generation !== this.generation) return;
     await this.consumeColdStartResponse();
@@ -107,6 +112,12 @@ class PushNotificationManager {
     return created;
   }
 
+  private appCapabilityVersion(): string {
+    const version = Constants.expoConfig?.version ?? "unknown";
+    const build = Constants.nativeBuildVersion ?? "unknown";
+    return `${version}+${build};${NATIVE_PUSH_CAPABILITY}`;
+  }
+
   private async registerExpoToken(generation: number): Promise<void> {
     const projectId = Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
     if (!projectId) throw new Error("Expo projectId is missing.");
@@ -116,7 +127,7 @@ class PushNotificationManager {
       p_expo_push_token: token,
       p_platform: Platform.OS,
       p_device_id: await this.getDeviceId(),
-      p_app_version: Constants.expoConfig?.version ?? null,
+      p_app_version: this.appCapabilityVersion(),
     });
     if (error) throw error;
     this.expoToken = token;
@@ -134,7 +145,7 @@ class PushNotificationManager {
         p_device_id: deviceId,
         p_push_token: token,
         p_platform: Platform.OS,
-        p_app_version: Constants.expoConfig?.version ?? null,
+        p_app_version: this.appCapabilityVersion(),
       });
       if (error) throw error;
     };

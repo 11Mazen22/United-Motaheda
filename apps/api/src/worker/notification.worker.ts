@@ -60,12 +60,14 @@ interface OutboxRow {
 
 interface DeviceRow {
   id: string;
+  device_id: string;
   push_token: string;
   platform: string;
 }
 
 interface ExpoTokenRow {
   id: string;
+  device_id: string | null;
   expo_push_token: string;
   invalidated_at: string | null;
 }
@@ -198,7 +200,14 @@ export class NotificationWorker implements OnModuleInit {
     ]);
 
     const fcmTokens = fcmDevices.map((d) => d.push_token);
-    const expoTokenList = expoTokens.map((t) => t.expo_push_token);
+    // Route per physical installation. A new Android binary registers both
+    // FCM and Expo with one stable device_id; legacy/iOS installations that
+    // lack a healthy FCM row must continue through Expo.
+    const nativeDeviceIds = new Set(fcmDevices.map((d) => d.device_id).filter(Boolean));
+    const expoFallbackTokens = expoTokens.filter(
+      (token) => !token.device_id || !nativeDeviceIds.has(token.device_id),
+    );
+    const expoTokenList = expoFallbackTokens.map((t) => t.expo_push_token);
 
     // Send to FCM devices
     let fcmSuccessful: string[] = [];
@@ -220,8 +229,8 @@ export class NotificationWorker implements OnModuleInit {
     // Expo is a fallback for installations without a healthy native FCM
     // registration. Never send through both providers for the same outbox
     // row, otherwise a dual-registered phone receives duplicate alerts.
-    if (!useNativeFcm && expoTokenList.length > 0) {
-      const expoResult = await this.sendExpo(expoTokenList, title, body, payload, expoTokens);
+    if (expoTokenList.length > 0) {
+      const expoResult = await this.sendExpo(expoTokenList, title, body, payload, expoFallbackTokens);
       expoSuccessful = expoResult.successful;
       expoFailed = expoResult.failed;
     }
@@ -533,7 +542,7 @@ export class NotificationWorker implements OnModuleInit {
   private async fetchFcmDevices(userId: string): Promise<DeviceRow[]> {
     const { data, error } = await this.supabase
       .from('user_devices')
-      .select('id, push_token, platform')
+      .select('id, device_id, push_token, platform')
       .eq('user_id', userId)
       .eq('is_active', true)
       .order('last_seen_at', { ascending: false })
@@ -545,7 +554,7 @@ export class NotificationWorker implements OnModuleInit {
   private async fetchExpoTokens(userId: string): Promise<ExpoTokenRow[]> {
     const { data, error } = await this.supabase
       .from('notification_tokens')
-      .select('id, expo_push_token, invalidated_at')
+      .select('id, device_id, expo_push_token, invalidated_at')
       .eq('user_id', userId)
       .is('invalidated_at', null)
       .abortSignal(AbortSignal.timeout(this.DB_TIMEOUT_MS)); // only valid tokens
