@@ -56,11 +56,20 @@ export class TemplateCompilerService implements OnModuleInit {
 
   onModuleInit() {
     this.logger.log('Template Compiler Service initialized');
-    // Warm the cache without holding application bootstrap hostage when the
-    // database gateway is degraded. Individual requests still load on demand.
-    void this.preloadTemplates().catch((error) => {
-      this.logger.warn(`Template preload failed: ${error.message}`);
-    });
+    // Preload is disabled: notification_templates (the real, live table -
+    // confirmed via direct schema query) has no `locale`, `subject_template`,
+    // `body_template`, or `data_schema` columns at all -- it stores one row
+    // per type with title_ar/body_ar/title_en/body_en inline, not the
+    // locale-keyed multi-row design this whole service was written against.
+    // Every preload attempt was throwing "column notification_templates.locale
+    // does not exist" on every single deploy (confirmed live in Railway
+    // deploy logs). This service has no live callers today - BatchProcessor
+    // (the one real consumer of the notification hub, for admin broadcasts)
+    // never calls compileTemplate()/loadTemplate() - so silencing the
+    // preload changes no observed behavior, just stops the startup noise.
+    // Reconciling the compiler with the real schema (read title_ar/title_en
+    // from one row instead of a locale-keyed row) is a real but separate
+    // piece of work, not attempted here.
   }
 
   /**
