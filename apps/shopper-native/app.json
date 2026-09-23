@@ -30,6 +30,7 @@
       "package": "com.unitedpharmacy.app",
       "googleServicesFile": "./google-services.json",
       "permissions": [
+        "android.permission.POST_NOTIFICATIONS",
         "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO",
         "android.permission.ACCESS_COARSE_LOCATION",
@@ -113,7 +114,8 @@
       [
         "expo-notifications",
         {
-          "color": "#0E7E74"
+          "color": "#0E7E74",
+          "defaultChannel": "orders"
         }
       ],
       "@react-native-firebase/app",

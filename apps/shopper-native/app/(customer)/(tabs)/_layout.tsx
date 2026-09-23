@@ -1,17 +1,16 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef } from "react";
 import { View } from "react-native";
 import { Tabs, useRouter } from "expo-router";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { Ionicons } from "@expo/vector-icons";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { useTranslation } from "react-i18next";
 import { useUnreadCount } from "@/features/notifications";
 import { useAuth } from "@/features/auth";
+import type { Role } from "@/features/auth/role";
+import { AUTH_ROUTING_ENTRY, getAppExperience, getRoleHomeRoute, shouldLeaveCustomerExperience } from "@/features/auth/roleNavigation";
 import { AnimatedTabBar, type TabBarItemConfig } from "@pharmacy/ui-native";
-import { ArrivalOverlay } from "@/features/home/components/ArrivalOverlay";
 import { useCartStore } from "@/stores/cart";
 
-let arrivalComplete = false;
 type IoniconsName = React.ComponentProps<typeof Ionicons>["name"];
 
 const TAB_ICONS: Record<string, { active: IoniconsName; inactive: IoniconsName }> = {
@@ -49,13 +48,6 @@ function CustomerTabBar(props: BottomTabBarProps) {
 export default function TabLayout() {
   const router = useRouter();
   const { user, loading } = useAuth();
-  const insets = useSafeAreaInsets();
-  const [showArrival, setShowArrival] = useState(!arrivalComplete);
-
-  const handleArrivalComplete = useCallback(() => {
-    arrivalComplete = true;
-    setShowArrival(false);
-  }, []);
 
   // Locks the redirect decision the first time this layout mounts. Without
   // this, the target is recomputed live from `user?.role` on every render —
@@ -79,17 +71,27 @@ export default function TabLayout() {
   // home and could never reach their own tabs.
   //
   // So: only lock once auth has actually settled and a role is available.
-  // Until then render nothing rather than the customer tabs, which also
-  // avoids mounting the whole customer tree just to unmount it one render
-  // later (that mount/unmount churn is what stranded the splash-exit event
-  // and left ArrivalOverlay covering the app -- see ArrivalOverlay's
-  // watchdog).
+  // Until then render nothing rather than mounting the customer tree only
+  // to unmount it one render later. That keeps the splash handoff stable and
+  // prevents an incorrect customer-home frame for staff accounts.
   const redirectRef = useRef<"driver" | "pharmacist" | "none" | null>(null);
+  const lastSyncedRoleRef = useRef<Role | undefined>(undefined);
+  const hasLeftRef = useRef(false);
   if (redirectRef.current === null && !loading && (!user || user.role !== undefined)) {
-    redirectRef.current =
-      user?.role === "driver" ? "driver" :
-      user?.role === "pharmacist" ? "pharmacist" :
-      "none";
+    const experience = getAppExperience(user?.role);
+    redirectRef.current = experience === "customer" ? "none" : experience;
+    lastSyncedRoleRef.current = user?.role;
+  } else if (
+    redirectRef.current !== null &&
+    !loading &&
+    user?.role !== undefined &&
+    lastSyncedRoleRef.current !== user.role
+  ) {
+    // Admin role changes mid-session must not stay latched to the old experience.
+    const experience = getAppExperience(user.role);
+    redirectRef.current = experience === "customer" ? "none" : experience;
+    lastSyncedRoleRef.current = user.role;
+    hasLeftRef.current = false;
   }
 
   // Guards the imperative redirect below. expo-router's <Redirect> fires
@@ -103,7 +105,6 @@ export default function TabLayout() {
   // further, feeding the same loop (see (driver)/_layout.tsx's matching
   // hasLeftRef for the full incident). Calling router.replace() ourselves,
   // gated by this ref, is the only way to guarantee it fires at most once.
-  const hasLeftRef = useRef(false);
   // The replace() call is deferred one macrotask via setTimeout rather than
   // called synchronously. Reproduced live on (driver)/_layout.tsx's matching
   // guard: this layout's Tabs contains several screens -- calling replace()
@@ -120,14 +121,17 @@ export default function TabLayout() {
   // begins, without changing what navigates or how many times (still
   // guarded to exactly once).
   useEffect(() => {
-    if (redirectRef.current === "driver" || redirectRef.current === "pharmacist") {
-      if (!hasLeftRef.current) {
-        hasLeftRef.current = true;
-        const target = redirectRef.current === "driver" ? "/(driver)" : "/(pharmacist)";
-        setTimeout(() => router.replace(target as never), 0);
-      }
-    }
-  });
+    if (loading) return;
+    const mustLeave = redirectRef.current === "driver"
+      || redirectRef.current === "pharmacist"
+      || (redirectRef.current === "none" && shouldLeaveCustomerExperience(user?.role));
+    if (!mustLeave || hasLeftRef.current) return;
+    hasLeftRef.current = true;
+    const target = redirectRef.current === "none"
+      ? AUTH_ROUTING_ENTRY
+      : getRoleHomeRoute(user?.role);
+    setTimeout(() => router.replace(target as never), 0);
+  }, [loading, router, user?.role]);
 
   if (redirectRef.current === null) return <View style={{ flex: 1 }} />;
   if (redirectRef.current === "driver" || redirectRef.current === "pharmacist") {
@@ -147,7 +151,6 @@ export default function TabLayout() {
         <Tabs.Screen name="meds" options={{ href: null }} />
         <Tabs.Screen name="search" options={{ href: null }} />
       </Tabs>
-      {showArrival && <ArrivalOverlay topInset={insets.top} onComplete={handleArrivalComplete} />}
     </View>
   );
 }

@@ -22,6 +22,9 @@
       "@app/*": [
         "./app/*"
       ],
+      "@pharmacy/domain-prescriptions": [
+        "../../packages/domain-prescriptions/src/index.ts"
+      ],
       "react-native": ["./node_modules/react-native"],
       "react-native-reanimated": ["./node_modules/react-native-reanimated"],
       "react-native-safe-area-context": ["./node_modules/react-native-safe-area-context"],

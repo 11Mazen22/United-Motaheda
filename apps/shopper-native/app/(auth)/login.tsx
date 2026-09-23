@@ -25,6 +25,8 @@ import * as Haptics from "expo-haptics";
 
 import { signIn, getAuthError } from "@/features/auth";
 import { supabase } from "@/lib/supabase";
+import { getRoleHomeRoute } from "@/features/auth/roleNavigation";
+import { normalizeRole } from "@/features/auth/role";
 import { signInWithProvider } from "@/features/auth/socialAuth";
 import { LangSwitcher } from "@/features/auth/components/LangSwitcher";
 import { SocialButtons } from "@/features/auth/components/SocialButtons";
@@ -99,19 +101,9 @@ export default function LoginScreen() {
             .eq("id", signedInUser.id)
             .abortSignal(abortTimeout(4_000))
             .maybeSingle();
-          const role = (data as { role?: string } | null)?.role;
-          if (role === "driver") {
-            router.replace("/(driver)" as never);
-            return;
-          }
-          // Same bug, same fix, just never ported to this branch: a
-          // pharmacist re-authenticating through this screen fell straight
-          // through to the customer shopping app with no indication
-          // anything was wrong.
-          if (role === "pharmacist" || role === "admin" || role === "manager") {
-            router.replace("/(pharmacist)" as never);
-            return;
-          }
+          const role = normalizeRole((data as { role?: string } | null)?.role);
+          router.replace(getRoleHomeRoute(role) as never);
+          return;
         } catch {
           // Fall through to the default destination below.
         }

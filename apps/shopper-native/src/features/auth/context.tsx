@@ -1,16 +1,17 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from "react";
-import { Alert } from "react-native";
+import { Alert, AppState, type AppStateStatus } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Linking from "expo-linking";
 import { router } from "expo-router";
 import type { RealtimeChannel } from "@supabase/supabase-js";
-import { supabase } from "@/lib/supabase";
+import { supabase, SUPABASE_AUTH_STORAGE_KEY } from "@/lib/supabase";
 import { identify, resetAnalytics, track } from "@/lib/analytics";
 import { setCrashUser } from "@/lib/crashReporter";
-import { pushNotificationService } from "@/services/pushNotificationService";
+import { pushNotificationService } from "@/services/pushNotificationManager";
 import { wipeUserData } from "./userDataWipe";
 import type { AuthUser } from "./api";
 import { normalizeRole } from "./role";
+import { AUTH_ROUTING_ENTRY } from "./roleNavigation";
 import { rearmPostSignOutNavigation } from "./postSignOutNav";
 
 /** When the OS hands us a deep link shaped like
@@ -157,6 +158,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // driver section as the two kept disagreeing about the current role.
   const lastKnownRoleRef = useRef<AuthUser["role"] | null>(null);
   const lastKnownRoleUserIdRef = useRef<string | null>(null);
+  // Realtime role changes are applied to context first, then navigated in a
+  // post-commit effect below. Navigating from the socket callback itself can
+  // mount the destination layout before React commits the new role, causing
+  // that layout's guard to reject the user and strand them on customer home.
+  const pendingRoleNavigationRef = useRef<{
+    userId: string;
+    role: NonNullable<AuthUser["role"]>;
+  } | null>(null);
+  const userRef = useRef<AuthUser | null>(user);
+  const authRevisionRef = useRef(0);
+  useEffect(() => { userRef.current = user; }, [user]);
 
   // Supabase fires onAuthStateChange for its own INITIAL_SESSION event *in
   // addition to* the explicit getSession() call above, and again for every
@@ -232,19 +244,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const attachRole = async (u: AuthUser | null): Promise<AuthUser | null> => {
       if (!u) return null;
 
-      // Same user we already resolved a role for this session — skip the
-      // network round-trip entirely. onAuthStateChange fires again for
-      // every TOKEN_REFRESHED/reconnect, not just real sign-ins, and on a
-      // flaky connection those can arrive several times a minute; re-running
-      // a 5s-bounded query on every single one is what was stacking up into
-      // the multi-second (sometimes 20s+) blank-screen delays reported for
-      // driver accounts. The role can't have silently changed mid-session
-      // without a fresh sign-in producing a new auth event with it already
-      // reflected server-side, so this is safe, not just fast.
-      if (lastKnownRoleUserIdRef.current === u.id && lastKnownRoleRef.current) {
-        return { ...u, role: lastKnownRoleRef.current };
-      }
-
       // Reproduced live on a real device (not just in theory): this query can
       // genuinely time out at app startup even on a healthy, low-latency
       // connection (many features -- push registration, notification sync,
@@ -289,7 +288,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setTimeout(() => {
           void (async () => {
             const retryRole = await queryRole();
-            if (retryRole !== "timeout" && retryRole !== "error" && retryRole !== fallbackRole) {
+            if (
+              userRef.current?.id === u.id &&
+              retryRole !== "timeout" &&
+              retryRole !== "error" &&
+              retryRole !== fallbackRole
+            ) {
               lastKnownRoleRef.current = retryRole;
               lastKnownRoleUserIdRef.current = u.id;
               setUserIfChanged({ ...u, role: retryRole });
@@ -320,38 +324,66 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }, 8000),
     );
 
+    const initialRevision = authRevisionRef.current;
+
     Promise.race([supabase.auth.getSession(), sessionTimeout])
       .then(async ({ data }) => {
         const u = data.session?.user;
         const base = applyAuthUser(u);
         await reconcile(base?.id ?? null);
         const next = await attachRole(base);
+        if (initialRevision !== authRevisionRef.current) return;
+        userRef.current = next;
         setUserIfChanged(next);
         if (next) { identify(next.id); setCrashUser(next.id); rearmPostSignOutNavigation(); }
         else      { resetAnalytics(); setCrashUser(null); }
         track("app_opened", { authed: next !== null });
       })
       .catch(() => {})
-      .finally(() => setLoading(false));
+      .finally(() => {
+        if (initialRevision === authRevisionRef.current) setLoading(false);
+      });
 
-    const { data: sub } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      // Wrapped in try/finally so setLoading(false) is guaranteed even if
-      // reconcile() or wipeUserData() throws (e.g. AsyncStorage failure on
-      // a device with full storage). Without this, an async throw here would
-      // leave loading=true and freeze the app on the auth-gate forever.
-      try {
-        const u = session?.user;
-        const base = applyAuthUser(u);
-        await reconcile(base?.id ?? null);
-        const next = await attachRole(base);
-        setUserIfChanged(next);
-        if (next) { identify(next.id); setCrashUser(next.id); rearmPostSignOutNavigation(); }
-        else      { resetAnalytics(); setCrashUser(null); }
-      } catch (e) {
-        if (__DEV__) console.error("[auth] onAuthStateChange handler threw:", e);
-      } finally {
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      const revision = ++authRevisionRef.current;
+
+      // Commit SIGNED_OUT synchronously. Supabase warns that awaiting async
+      // work inside this callback can deadlock subsequent client calls.
+      if (!session?.user) {
+        pendingRoleNavigationRef.current = null;
+        lastKnownRoleRef.current = null;
+        lastKnownRoleUserIdRef.current = null;
+        userRef.current = null;
+        setUserIfChanged(null);
         setLoading(false);
+        resetAnalytics();
+        setCrashUser(null);
+        setTimeout(() => { void reconcile(null).catch(() => {}); }, 0);
+        return;
       }
+
+      // Run profile/database work only after GoTrue releases its auth lock.
+      setTimeout(() => {
+        void (async () => {
+          try {
+            const base = applyAuthUser(session.user);
+            await reconcile(base?.id ?? null);
+            const next = await attachRole(base);
+            if (revision !== authRevisionRef.current) return;
+            userRef.current = next;
+            setUserIfChanged(next);
+            if (next) {
+              identify(next.id);
+              setCrashUser(next.id);
+              rearmPostSignOutNavigation();
+            }
+          } catch (e) {
+            if (__DEV__) console.error("[auth] deferred auth-state handler threw:", e);
+          } finally {
+            if (revision === authRevisionRef.current) setLoading(false);
+          }
+        })();
+      }, 0);
     });
 
     // Deep-link handler: catches the URL when the user taps the email
@@ -379,8 +411,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // change mid-session"), so feeding a live update into `user` here is enough
   // to make both route-guard directions actually work, with no changes needed
   // to either layout.
-  const userRef = useRef<AuthUser | null>(user);
-  useEffect(() => { userRef.current = user; }, [user]);
+  useEffect(() => {
+    const pending = pendingRoleNavigationRef.current;
+    if (!pending || pending.userId !== user?.id || pending.role !== user.role) return;
+
+    pendingRoleNavigationRef.current = null;
+    // Route through index.tsx so one place owns the decision and nested role
+    // stacks (driver/pharmacist) are torn down before the new home mounts.
+    const timer = setTimeout(() => router.replace(AUTH_ROUTING_ENTRY as never), 0);
+    return () => clearTimeout(timer);
+  }, [user?.id, user?.role]);
 
   useEffect(() => {
     const userId = user?.id;
@@ -432,18 +472,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
             const nextRole = normalizeRole(next.role);
             if (userRef.current && nextRole !== userRef.current.role) {
-              setUser((cur) => (cur ? { ...cur, role: nextRole } : cur));
-              // (customer)/(tabs), (driver), and (pharmacist) layouts each lock
-              // their redirect/access decision once per mount (see their own
-              // decidedAccessRef/redirectRef comments) and never re-check
-              // user.role afterward -- a deliberate fix for a prior "Maximum
-              // update depth exceeded" crash from role flicker during auth
-              // churn. That means updating `user` alone is not enough for a
-              // *confirmed* role change (this branch only) to actually move
-              // someone to their new section; send them back through
-              // app/index.tsx so it mounts fresh and re-locks on the now-
-              // current role, exactly like a real sign-in already does.
-              router.replace("/");
+              const nextUser = { ...userRef.current, role: nextRole };
+
+              // Keep every role cache coherent. Without this, the next auth
+              // token refresh re-applies the pre-change cached role and can
+              // bounce the user back to the old interface.
+              lastKnownRoleRef.current = nextRole;
+              lastKnownRoleUserIdRef.current = userId;
+              userRef.current = nextUser;
+              pendingRoleNavigationRef.current = { userId, role: nextRole };
+              setUserIfChanged(nextUser);
             }
           },
         )
@@ -468,10 +506,74 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
+  // Revalidate role when the app returns to foreground. Realtime covers the
+  // online case, but backgrounded sessions can miss an admin role change if
+  // the profile channel was torn down or the device was offline.
+  useEffect(() => {
+    const revalidateRoleFromServer = async () => {
+      const current = userRef.current;
+      if (!current?.id) return;
+
+      try {
+        const timeout = new Promise<"timeout">((resolve) =>
+          setTimeout(() => resolve("timeout"), 5000),
+        );
+        const query = supabase.from("profiles").select("role").eq("id", current.id).maybeSingle();
+        const result = await Promise.race([query, timeout]);
+        if (result === "timeout") return;
+
+        const serverRole = normalizeRole(result?.data?.role as string | undefined);
+        if (userRef.current?.id !== current.id || serverRole === userRef.current.role) return;
+
+        lastKnownRoleRef.current = serverRole;
+        lastKnownRoleUserIdRef.current = current.id;
+        const nextUser = { ...current, role: serverRole };
+        userRef.current = nextUser;
+        pendingRoleNavigationRef.current = { userId: current.id, role: serverRole };
+        setUserIfChanged(nextUser);
+      } catch (e) {
+        if (__DEV__) console.warn("[auth] foreground role revalidation failed:", e);
+      }
+    };
+
+    const onAppState = (status: AppStateStatus) => {
+      if (status === "active") void revalidateRoleFromServer();
+    };
+
+    const sub = AppState.addEventListener("change", onAppState);
+    return () => sub.remove();
+  }, []);
+
   const signOut = async () => {
-    const signedOutUserId = user?.id;
+    const signedOutUserId = userRef.current?.id ?? user?.id;
+
+    // Leave protected navigation immediately. Remote cleanup must never
+    // strand the user on a driver/pharmacist route guard.
+    pendingRoleNavigationRef.current = null;
+    authRevisionRef.current += 1;
+    lastKnownRoleRef.current = null;
+    lastKnownRoleUserIdRef.current = null;
+    userRef.current = null;
+    setLoading(false);
+    setUserIfChanged(null);
+    resetAnalytics();
+    setCrashUser(null);
+    router.replace(AUTH_ROUTING_ENTRY as never);
+    if (signedOutUserId) {
+      // Owner-scoped token deactivation must run before auth.signOut clears
+      // auth.uid(); doing it afterward silently fails under correct RLS.
+      await pushNotificationService.deactivateToken(signedOutUserId).catch(() => {});
+    }
     try {
-      await supabase.auth.signOut();
+      const outcome = await Promise.race([
+        supabase.auth.signOut({ scope: "local" }).then(() => "completed" as const),
+        new Promise<"timed_out">((resolve) => setTimeout(() => resolve("timed_out"), 5_000)),
+      ]);
+      if (outcome === "timed_out") {
+        // Ensure an offline/slow logout cannot resurrect the old session on
+        // the next cold start. The in-flight request may still finish later.
+        await AsyncStorage.removeItem(SUPABASE_AUTH_STORAGE_KEY);
+      }
     } catch {
       // network failure — clear local state regardless
     }
@@ -486,14 +588,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // -- signOut() just cleared that session, so the internal lookup would
     // find no user and silently no-op. Best-effort; a failure here
     // shouldn't block sign-out itself.
-    if (signedOutUserId) {
-      pushNotificationService.deactivateToken(signedOutUserId).catch(() => {});
-    }
     // Wipe all account-scoped data BEFORE clearing the user, so any UI still
     // mounted during the transition sees empty stores (not stale data from
     // the previous account).
-    await wipeUserData();
-    setUser(null);
+    await wipeUserData().catch(() => {});
     // Without this, a role resolved for THIS account survives in the ref
     // (refs aren't reset by unmounting AuthProvider — it never unmounts) and
     // becomes the *fallback* role attachRole hands the next signed-in user on
@@ -503,8 +601,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     lastKnownRoleRef.current = null;
     lastKnownRoleUserIdRef.current = null;
     track("logout");
-    resetAnalytics();
-    setCrashUser(null);
   };
 
   return (

@@ -26,7 +26,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-export type SplashPhase = "brand" | "video" | "exiting" | "done";
+export type SplashPhase = "brand" | "video" | "outro" | "exiting" | "done";
 
 export interface UseSplashSequenceOptions {
   /** Minimum time the branded hold is shown before the video may start. */
@@ -37,6 +37,8 @@ export interface UseSplashSequenceOptions {
   videoDurationMs: number;
   /** Buffer added past the clip length before force-exit. */
   safetyExtraMs:   number;
+  /** Brief logo-on-white beat after the clip before the overlay exits. */
+  outroMs:         number;
   /** Overlay fade-out duration; the machine reaches "done" after this. */
   exitMs:          number;
   /** Called once when the sequence reaches "done" (caller unmounts the overlay). */
@@ -61,7 +63,7 @@ export interface SplashSequence {
 }
 
 export function useSplashSequence(opts: UseSplashSequenceOptions): SplashSequence {
-  const { minBrandMs, loadTimeoutMs, videoDurationMs, safetyExtraMs, exitMs, onExited } = opts;
+  const { minBrandMs, loadTimeoutMs, videoDurationMs, safetyExtraMs, outroMs, exitMs, onExited } = opts;
 
   const [phase, setPhase]                     = useState<SplashPhase>("brand");
   const [videoShouldPlay, setVideoShouldPlay] = useState(false);
@@ -111,9 +113,17 @@ export function useSplashSequence(opts: UseSplashSequenceOptions): SplashSequenc
     enterVideo();
   }, [enterVideo]);
 
-  const notifyVideoFinished = useCallback(() => beginExit(), [beginExit]);
-  const notifyVideoError    = useCallback(() => beginExit(), [beginExit]);
-  const skip                = useCallback(() => beginExit(), [beginExit]);
+  const beginOutro = useCallback(() => {
+    if (phaseRef.current === "exiting" || phaseRef.current === "done") return;
+    clearAll();
+    setVideoShouldPlay(false);
+    setPhase("outro");
+    schedule(beginExit, outroMs);
+  }, [clearAll, schedule, beginExit, outroMs]);
+
+  const notifyVideoFinished = useCallback(() => beginOutro(), [beginOutro]);
+  const notifyVideoError    = useCallback(() => beginOutro(), [beginOutro]);
+  const skip                = useCallback(() => beginOutro(), [beginOutro]);
 
   // Arm the two entry gates exactly once, when the caller signals the brand is
   // actually on screen (native splash handed off).

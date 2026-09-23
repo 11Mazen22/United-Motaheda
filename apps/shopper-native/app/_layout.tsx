@@ -72,7 +72,7 @@ import { BottomSheetModalProvider, ThemeProvider } from "@pharmacy/ui-native";
 // ============================================================
 // 🆕 NEW IMPORTS FOR PUSH NOTIFICATIONS & ACTIVE ORDER BANNER
 // ============================================================
-import { pushNotificationService } from "@/services/pushNotificationService";
+import { pushNotificationService } from "@/services/pushNotificationManager";
 import { useNotificationsStore } from "@/stores/notificationsStore";
 import { ActiveOrderBanner } from "@/components/ui/ActiveOrderBanner";
 
@@ -126,7 +126,7 @@ function PushBootstrap() {
   useEffect(() => {
     const initPush = async () => {
       try {
-        await pushNotificationService.initialize();
+        await pushNotificationService.initialize(user!.id);
         await fetchNotifications({ refresh: true });
         await pushNotificationService.updateBadgeCount();
       } catch (error) {
@@ -135,8 +135,11 @@ function PushBootstrap() {
     };
 
     if (user?.id) {
-      initPush();
+      void initPush();
+    } else {
+      pushNotificationService.shutdown();
     }
+    return () => pushNotificationService.shutdown();
   }, [user?.id]);
 
   return null;

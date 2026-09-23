@@ -41,7 +41,8 @@ const MIN_BRAND_MS = 900;
 const LOAD_TIMEOUT_MS = 3_000;
 const VIDEO_DURATION_MS = 3_300;
 const SAFETY_EXTRA_MS = 700;
-const EXIT_MS = 380;
+const EXIT_FADE_MS = 340;
+const EXIT_MS = 430;
 
 const IS_RTL = isRtl();
 
@@ -57,6 +58,7 @@ export function SplashOverlay(): React.ReactElement | null {
     loadTimeoutMs: LOAD_TIMEOUT_MS,
     videoDurationMs: VIDEO_DURATION_MS,
     safetyExtraMs: SAFETY_EXTRA_MS,
+    outroMs: 0,
     exitMs: EXIT_MS,
     onExited: notifySplashExited,
   });
@@ -116,7 +118,7 @@ export function SplashOverlay(): React.ReactElement | null {
       skipOpacity.value = withTiming(1, { duration: 280 });
     }
     if (seq.phase === "exiting") {
-      overlayOpacity.value = withTiming(0, { duration: EXIT_MS, easing: Easing.inOut(Easing.cubic) });
+      overlayOpacity.value = withTiming(0, { duration: EXIT_FADE_MS, easing: Easing.inOut(Easing.cubic) });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [seq.phase]);

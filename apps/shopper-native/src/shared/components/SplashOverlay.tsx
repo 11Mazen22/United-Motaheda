@@ -120,7 +120,12 @@ const VIDEO_DURATION_MS = 3_300;
 
 const SAFETY_EXTRA_MS   = 700;
 
-const EXIT_MS           = 380;
+// The visual fade finishes before the state machine unmounts the overlay.
+// Previously both used the same duration, so the JS timer could remove the
+// view one frame before Reanimated committed its final frame, producing a
+// visible snap at the home-page handoff on slower devices.
+const EXIT_FADE_MS      = 380;
+const EXIT_MS           = 480;
 
 const HOLD_FADE_MS      = 300;
 
@@ -152,12 +157,9 @@ export function SplashOverlay(): React.ReactElement | null {
 
     if (visible) { alreadyShown = true; return; }
 
-    // We are not rendering the splash at all on this mount (it already played
-    // once in this JS session). That means nothing will ever call onExited,
-    // so anything waiting on the splash-exit event waits forever -- notably
-    // ArrivalOverlay, whose full-screen iris only opens when it hears this.
-    // Stranding it leaves a blank overlay permanently covering Home, with the
-    // real screen alive but invisible underneath. Fire the event instead.
+    // We are not rendering the splash on this mount because it already played
+    // in this JS session. Keep the launch bridge coherent for any lightweight
+    // listeners without mounting another full-screen transition layer.
 
     notifySplashExited();
 
@@ -194,6 +196,11 @@ function SplashSequenceView({ onExited }: { onExited: () => void }): React.React
     videoDurationMs: VIDEO_DURATION_MS,
 
     safetyExtraMs:   SAFETY_EXTRA_MS,
+
+    // Fade directly from the final video frame into the ready app. Keeping a
+    // second logo-only beat here made the handoff look like the splash had
+    // restarted and delayed interaction for no useful reason.
+    outroMs:         0,
 
     exitMs:          EXIT_MS,
 
@@ -378,6 +385,24 @@ function SplashSequenceView({ onExited }: { onExited: () => void }): React.React
 
       skipOpacity.value = withTiming(1, { duration: SKIP_FADE_IN_MS, easing: Easing.out(Easing.ease) });
 
+    } else if (seq.phase === "outro") {
+
+      cancelAnimation(pulseScale);
+
+      cancelAnimation(pulseOpacity);
+
+      skipOpacity.value = withTiming(0, { duration: 160, easing: Easing.out(Easing.cubic) });
+
+      holdOpacity.value = withTiming(1, { duration: 280, easing: Easing.out(Easing.cubic) });
+
+      logoOpacity.value = withTiming(1, { duration: 240, easing: Easing.out(Easing.cubic) });
+
+      logoScale.value = withSpring(1, { damping: 22, stiffness: 140, mass: 0.85 });
+
+      ringsOpacity.value = withTiming(0, { duration: 180, easing: Easing.in(Easing.cubic) });
+
+      wordOpacity.value = withTiming(0, { duration: 160, easing: Easing.in(Easing.cubic) });
+
     } else if (seq.phase === "exiting") {
 
       cancelAnimation(pulseScale);
@@ -386,12 +411,12 @@ function SplashSequenceView({ onExited }: { onExited: () => void }): React.React
 
       skipOpacity.value    = withTiming(0, { duration: 160 });
 
-      overlayOpacity.value = withTiming(0, { duration: EXIT_MS, easing: Easing.out(Easing.cubic) });
+      overlayOpacity.value = withTiming(0, { duration: EXIT_FADE_MS, easing: Easing.out(Easing.cubic) });
 
     }
 
 
-  }, [seq.phase, holdOpacity, overlayOpacity, skipOpacity, pulseScale, pulseOpacity]);
+  }, [seq.phase, holdOpacity, overlayOpacity, skipOpacity, pulseScale, pulseOpacity, logoOpacity, logoScale, ringsOpacity, wordOpacity]);
 
 
 
@@ -512,17 +537,17 @@ function SplashSequenceView({ onExited }: { onExited: () => void }): React.React
 
           {/* Four concentric rings — outermost first so inner rings render on top */}
 
-          <Animated.View style={[styles.ring4,     ringsAnim]} />
+          {seq.phase !== "outro" ? <Animated.View style={[styles.ring4, ringsAnim]} /> : null}
 
           {/* Radar pulse — radiates outward from the ring band on a loop, a
               "still alive" cue while the video decodes. Purely decorative. */}
-          <Animated.View style={[styles.ringPulse, pulseAnim]} pointerEvents="none" />
+          {seq.phase !== "outro" ? <Animated.View style={[styles.ringPulse, pulseAnim]} pointerEvents="none" /> : null}
 
-          <Animated.View style={[styles.ringOuter, ringsAnim]} />
+          {seq.phase !== "outro" ? <Animated.View style={[styles.ringOuter, ringsAnim]} /> : null}
 
-          <Animated.View style={[styles.ringInner, ringsAnim]} />
+          {seq.phase !== "outro" ? <Animated.View style={[styles.ringInner, ringsAnim]} /> : null}
 
-          <Animated.View style={[styles.ringCore,  ringsAnim]} />
+          {seq.phase !== "outro" ? <Animated.View style={[styles.ringCore,  ringsAnim]} /> : null}
 
 
 
@@ -538,7 +563,7 @@ function SplashSequenceView({ onExited }: { onExited: () => void }): React.React
 
           {/* Wordmark */}
 
-          <Animated.View style={[styles.wordmark, wordAnim]}>
+          {seq.phase !== "outro" ? <Animated.View style={[styles.wordmark, wordAnim]}>
 
             <UIText weight="black" style={styles.brandName}>
 
@@ -568,7 +593,7 @@ function SplashSequenceView({ onExited }: { onExited: () => void }): React.React
 
             </UIText>
 
-          </Animated.View>
+          </Animated.View> : null}
 
 
 
@@ -1001,4 +1026,3 @@ const styles = StyleSheet.create({
   },
 
 });
-

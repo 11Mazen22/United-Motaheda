@@ -29,9 +29,16 @@ const SUPABASE_ANON =
   extra["supabaseAnonKey"] ??
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdudHB4ZmZvbmp2bnZhZGpjbHBsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4MzA4NzEsImV4cCI6MjA5MDQwNjg3MX0.hLDucOsGEci6iWq7eHS6RsQIZEpipBxjuqlep5f9Pcs";
 
+// This is Supabase JS's documented/default namespace, made explicit so an
+// offline sign-out can remove the persisted session if the logout request
+// itself exceeds our bounded wait.
+export const SUPABASE_AUTH_STORAGE_KEY =
+  `sb-${new URL(SUPABASE_URL).hostname.split(".")[0]}-auth-token`;
+
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON, {
   auth: {
     storage:          AsyncStorage,
+    storageKey:       SUPABASE_AUTH_STORAGE_KEY,
     autoRefreshToken: true,
     persistSession:   true,
     // RN has no window.location for supabase-js to inspect; we handle the

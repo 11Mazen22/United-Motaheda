@@ -4,6 +4,7 @@ import { ActivityIndicator, View } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ONBOARDING_KEY } from "@/lib/onboardingKey";
 import { useAuth } from "@/features/auth";
+import { getRoleHomeRoute } from "@/features/auth/roleNavigation";
 
 // Below this, stay blank to match SplashOverlay's handoff without a flash on
 // the common fast path. Past it, this hand-off is no longer "brief" (session
@@ -27,6 +28,7 @@ export default function Entry() {
   // never lands, leaving the app looking permanently stuck on this blank
   // view even though the state underneath is fine.
   const decidedTarget = useRef<Target | null>(null);
+  const lastRoutedRoleRef = useRef<string | undefined>(undefined);
   // Guards the actual navigation call itself, separately from decidedTarget.
   // expo-router's <Redirect> fires router.replace() from a useFocusEffect
   // whose dependency is a fresh inline callback on every render of
@@ -48,6 +50,7 @@ export default function Entry() {
     React.useCallback(() => {
       decidedTarget.current = null;
       hasNavigatedRef.current = false;
+      lastRoutedRoleRef.current = undefined;
     }, [])
   );
   const [showSpinner, setShowSpinner] = useState(false);
@@ -78,11 +81,19 @@ export default function Entry() {
   if (decidedTarget.current === null && !(onboardingSeen === null || authLoading)) {
     decidedTarget.current = !onboardingSeen
       ? "/onboarding"
-      : user?.role === "driver"
-        ? "/(driver)"
-        : user?.role === "pharmacist"
-          ? "/(pharmacist)"
-          : "/(customer)/(tabs)";
+      : getRoleHomeRoute(user?.role);
+    lastRoutedRoleRef.current = user?.role;
+  } else if (
+    decidedTarget.current !== null &&
+    !(onboardingSeen === null || authLoading) &&
+    lastRoutedRoleRef.current !== user?.role
+  ) {
+    // Remote admin role change while this entry screen is active — re-route once.
+    decidedTarget.current = !onboardingSeen
+      ? "/onboarding"
+      : getRoleHomeRoute(user?.role);
+    lastRoutedRoleRef.current = user?.role;
+    hasNavigatedRef.current = false;
   }
 
   // No dependency array: this must re-check on every render (decidedTarget
