@@ -12,6 +12,8 @@ import {
   useRef,
   useState,
 } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { getWebReceiptSignedUrl } from "../../services/webPaymentApi";
 import {
   ArrowPathIcon,
   CalendarDaysIcon,
@@ -511,6 +513,17 @@ const OrderTableRow = memo(function OrderTableRow({
   const [expanded, setExpanded] = useState(false);
   const [proofOpen, setProofOpen] = useState(false);
   const hasProof    = Boolean(order.paymentProofUrl);
+  // receipts is a private bucket -- order.paymentProofUrl is a bare object
+  // path now, resolved to a real signed URL here rather than used directly
+  // as an <img src>. Only fetched once the row is actually expanded/opened,
+  // not for every row in the table.
+  const receiptSignedUrlQuery = useQuery({
+    queryKey: ["admin", "order", order.id, "receipt-signed-url", order.paymentProofUrl],
+    queryFn: () => getWebReceiptSignedUrl(order.paymentProofUrl as string),
+    enabled: hasProof && (expanded || proofOpen),
+    staleTime: 240_000,
+    retry: 1,
+  });
   const isManual    = order.paymentMethod !== "cod" && order.paymentMethod !== "";
   const needsReview = isManual && order.paymentStatus === "pending_verification";
 
@@ -668,12 +681,27 @@ const OrderTableRow = memo(function OrderTableRow({
                     <button
                       type="button"
                       onClick={() => setProofOpen(true)}
-                      className="w-full overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm hover:shadow-md transition-shadow">
-                      <img
-                        src={order.paymentProofUrl!}
-                        alt="payment proof"
-                        className="h-36 w-full object-cover"
-                      />
+                      disabled={receiptSignedUrlQuery.isLoading}
+                      className="w-full overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm hover:shadow-md transition-shadow disabled:opacity-60">
+                      {receiptSignedUrlQuery.isLoading ? (
+                        <div className="flex h-36 w-full items-center justify-center bg-slate-50">
+                          <span className="text-xs font-semibold text-slate-400">
+                            {lang === "ar" ? "جاري التحميل…" : "Loading…"}
+                          </span>
+                        </div>
+                      ) : receiptSignedUrlQuery.data ? (
+                        <img
+                          src={receiptSignedUrlQuery.data}
+                          alt="payment proof"
+                          className="h-36 w-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-36 w-full items-center justify-center bg-slate-50">
+                          <span className="text-xs font-semibold text-rose-500">
+                            {lang === "ar" ? "تعذّر تحميل الصورة" : "Image unavailable"}
+                          </span>
+                        </div>
+                      )}
                       <p className="py-2 text-center text-xs font-bold text-slate-600">
                         {lang === "ar" ? "انقر لتكبير الإيصال" : "Click to enlarge"}
                       </p>
@@ -723,11 +751,17 @@ const OrderTableRow = memo(function OrderTableRow({
               className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
               onClick={() => setProofOpen(false)}>
               <div className="relative max-h-[90vh] max-w-[90vw] rounded-2xl overflow-hidden shadow-2xl" onClick={(e) => e.stopPropagation()}>
-                <img
-                  src={order.paymentProofUrl}
-                  alt="payment proof"
-                  className="max-h-[85vh] max-w-[88vw] object-contain"
-                />
+                {receiptSignedUrlQuery.data ? (
+                  <img
+                    src={receiptSignedUrlQuery.data}
+                    alt="payment proof"
+                    className="max-h-[85vh] max-w-[88vw] object-contain"
+                  />
+                ) : (
+                  <div className="flex h-64 w-64 items-center justify-center bg-slate-900 text-sm font-semibold text-white/70">
+                    {lang === "ar" ? "تعذّر تحميل الصورة" : "Image unavailable"}
+                  </div>
+                )}
                 <button
                   type="button"
                   onClick={() => setProofOpen(false)}

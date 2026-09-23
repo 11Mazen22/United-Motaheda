@@ -26,6 +26,8 @@ import {
   StyleSheet,
 } from "react-native";
 import { useTranslation } from "react-i18next";
+import { useQuery } from "@tanstack/react-query";
+import { getReceiptSignedUrl } from "@/features/payment";
 import { Image as ExpoImage } from "expo-image";
 import { Image as RNImage } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -88,6 +90,17 @@ export default function OrderDetailScreen(): React.ReactElement {
 
   const { data: order, isLoading, isRefetching, refetch, isError } = useOrderDetail(id);
   const handleRefresh = useCallback(() => { void refetch(); }, [refetch]);
+
+  // receipts is a private bucket (see receiptUpload.ts) -- order.paymentProofUrl
+  // is a bare object path now, resolved to a real signed URL here rather than
+  // used directly as an <Image> source.
+  const receiptQuery = useQuery({
+    queryKey: ["order", id, "receipt-signed-url", order?.paymentProofUrl],
+    queryFn: () => getReceiptSignedUrl(order!.paymentProofUrl as string),
+    enabled: Boolean(order?.paymentProofUrl),
+    staleTime: 240_000,
+    retry: 1,
+  });
 
   const [actions, setActions] = React.useState<any>(null);
   React.useEffect(() => {
@@ -355,7 +368,17 @@ export default function OrderDetailScreen(): React.ReactElement {
                 style={{ marginBottom: 4, textAlign: TEXT_START }}>
                 {t("orders.paymentProof")}
               </UIText>
-              <SafeImage source={{ uri: order.paymentProofUrl }} style={styles.proofImage} contentFit="cover" />
+              {receiptQuery.isLoading ? (
+                <View style={[styles.proofImage, { alignItems: "center", justifyContent: "center" }]}>
+                  <ActivityIndicator size="small" color={theme.colors.brand.primary} />
+                </View>
+              ) : receiptQuery.data ? (
+                <SafeImage source={{ uri: receiptQuery.data }} style={styles.proofImage} contentFit="cover" />
+              ) : (
+                <View style={[styles.proofImage, { alignItems: "center", justifyContent: "center" }]}>
+                  <UIText variant="caption" color="tertiary">{t("orders.paymentProofUnavailable", "Image unavailable")}</UIText>
+                </View>
+              )}
             </View>
           )}
         </DetailSection>

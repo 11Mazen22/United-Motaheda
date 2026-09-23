@@ -6,6 +6,7 @@ export { ManualPaymentPanel } from "./components/ManualPaymentPanel";
 export {
   pickPaymentReceiptImage,
   uploadPaymentReceipt,
+  getReceiptSignedUrl,
   ReceiptUploadError,
   type ReceiptErrorCode,
 } from "./receiptUpload";

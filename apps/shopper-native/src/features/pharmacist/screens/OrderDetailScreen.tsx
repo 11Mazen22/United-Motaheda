@@ -14,6 +14,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useQuery } from "@tanstack/react-query";
+import { getReceiptSignedUrl } from "@/features/payment";
 
 import { Screen, Text as UIText, Input, Button, kit, useTheme, PressableScale } from "@pharmacy/ui-native";
 
@@ -261,6 +263,15 @@ export function PharmacistOrderDetailScreen(): React.ReactElement {
   const mutations = usePharmacistMutations();
 
   const order = orderQuery.data;
+  // receipts is a private bucket -- order.paymentProofUrl is now a bare
+  // object path, resolved to a real signed URL here (see receiptUpload.ts).
+  const receiptQuery = useQuery({
+    queryKey: ["pharmacist", "order", id, "receipt-signed-url", order?.paymentProofUrl],
+    queryFn: () => getReceiptSignedUrl(order!.paymentProofUrl as string),
+    enabled: Boolean(order?.paymentProofUrl),
+    staleTime: 240_000,
+    retry: 1,
+  });
   const attentionReason = order ? getOrderAttentionReason(order) : null;
   const showDriverSection = Boolean(order && ["ready", "driver_assigned", "driver_accepted", "out_for_delivery", "delivered"].includes(order.status));
   const assignmentQuery = useOrderDeliveryAssignment(id, showDriverSection);
@@ -612,22 +623,33 @@ export function PharmacistOrderDetailScreen(): React.ReactElement {
             </View>
           ) : null}
           {order.paymentProofUrl ? (
-            <Pressable
-              onPress={() => Linking.openURL(order.paymentProofUrl as string)}
-              style={{ marginTop: 12 }}
-              accessibilityRole="button"
-              accessibilityLabel={t("pharmacist.viewProof")}
-            >
-              <ExpoImage
-                source={{ uri: order.paymentProofUrl }}
-                style={[s.proofImage, { backgroundColor: theme.colors.canvas.surfaceMuted, borderColor: theme.colors.border.default }]}
-                contentFit="cover"
-              />
-              <View style={[s.row, { marginTop: 6, gap: 4 }]}>
-                <Ionicons name="expand-outline" size={13} color={theme.colors.brand.primary} />
-                <UIText variant="caption" style={{ color: theme.colors.brand.primary }}>{t("pharmacist.viewProof")}</UIText>
+            receiptQuery.isLoading ? (
+              <View style={[s.proofImage, { marginTop: 12, alignItems: "center", justifyContent: "center", backgroundColor: theme.colors.canvas.surfaceMuted }]}>
+                <ActivityIndicator size="small" color={theme.colors.brand.primary} />
               </View>
-            </Pressable>
+            ) : receiptQuery.data ? (
+              <Pressable
+                onPress={() => Linking.openURL(receiptQuery.data)}
+                style={{ marginTop: 12 }}
+                accessibilityRole="button"
+                accessibilityLabel={t("pharmacist.viewProof")}
+              >
+                <ExpoImage
+                  source={{ uri: receiptQuery.data }}
+                  style={[s.proofImage, { backgroundColor: theme.colors.canvas.surfaceMuted, borderColor: theme.colors.border.default }]}
+                  contentFit="cover"
+                />
+                <View style={[s.row, { marginTop: 6, gap: 4 }]}>
+                  <Ionicons name="expand-outline" size={13} color={theme.colors.brand.primary} />
+                  <UIText variant="caption" style={{ color: theme.colors.brand.primary }}>{t("pharmacist.viewProof")}</UIText>
+                </View>
+              </Pressable>
+            ) : (
+              <View style={[s.row, { marginTop: 12, gap: 4 }]}>
+                <Ionicons name="alert-circle-outline" size={13} color={theme.colors.text.muted} />
+                <UIText variant="caption" color="secondary">{t("pharmacist.proofUnavailable", "Payment proof image unavailable")}</UIText>
+              </View>
+            )
           ) : null}
 
           <View style={[s.divider, { backgroundColor: theme.colors.border.default }]} />

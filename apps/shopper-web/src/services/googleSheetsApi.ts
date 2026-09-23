@@ -368,28 +368,6 @@ function pickFirstNumber(record: ApiRecord, keys: string[]) {
   return 0;
 }
 
-function pickFirstNullableNumber(record: ApiRecord, keys: string[]) {
-  for (const key of keys) {
-    const value = record[key];
-
-    if (value === undefined || value === null) {
-      continue;
-    }
-
-    if (typeof value === "string" && !normalizeText(value)) {
-      continue;
-    }
-
-    const parsed = normalizeNumber(value);
-
-    if (Number.isFinite(parsed)) {
-      return parsed;
-    }
-  }
-
-  return null;
-}
-
 function pickFirstArray(record: ApiRecord, keys: string[]) {
   for (const key of keys) {
     const value = record[key];

@@ -1,15 +1,23 @@
 /**
  * webPaymentApi.ts — Handles payment proof upload and order payment patching
  * for the web checkout flow (Vodafone Cash / InstaPay manual transfers).
+ *
+ * The receipts bucket was public (getPublicUrl(), no access control) until
+ * this fix -- payment-proof screenshots can contain a phone number,
+ * transaction ID, and amount. The bucket is now private; upload stores a
+ * bare object path and any consumer resolves a signed URL at view time via
+ * getWebReceiptSignedUrl() below (see supabase/migrations/
+ * 20260923150000_receipts_bucket_privacy.sql).
  */
 
 import { getSupabaseClient } from "../lib/supabaseClient";
+import { RECEIPTS_BUCKET, normalizeReceiptStoragePath } from "@pharmacy/domain-checkout";
 
 // Reuses the same bucket apps/shopper-native uploads manual-payment receipts
 // to (confirmed live: it exists, with working owner-scoped upload/read +
 // staff-read policies). "payment-receipts" was never actually created as a
 // bucket on either database -- every web upload attempt failed outright.
-const BUCKET = "receipts";
+const BUCKET = RECEIPTS_BUCKET;
 const MAX_FILE_BYTES = 10 * 1024 * 1024; // 10 MB
 
 export type ManualPaymentMethod = "instapay" | "vodafone";
@@ -20,7 +28,9 @@ export function isManualPaymentMethod(method: string): method is ManualPaymentMe
 
 /**
  * Uploads a payment receipt image to Supabase Storage.
- * Returns the public URL of the uploaded file.
+ * Returns the bare object path (NOT a URL — the bucket is private). Store
+ * this as-is; resolve a real signed URL at view time via
+ * getWebReceiptSignedUrl().
  */
 export async function uploadWebPaymentReceipt(
   userId: string,
@@ -46,8 +56,28 @@ export async function uploadWebPaymentReceipt(
     throw new Error(`تعذّر رفع الإيصال: ${error.message}`);
   }
 
-  const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
-  return data.publicUrl;
+  return path;
+}
+
+/** Short-lived signed URL for a private receipt object (retry-once, same
+ *  pattern as prescriptions'/driver-documents' equivalents). */
+export async function getWebReceiptSignedUrl(rawPath: string): Promise<string> {
+  const path = normalizeReceiptStoragePath(rawPath);
+  if (!path) throw new Error("لا توجد صورة إيصال متاحة لهذا الطلب.");
+
+  const supabase = getSupabaseClient();
+  const attempt = () => supabase.storage.from(BUCKET).createSignedUrl(path, 300);
+
+  let { data, error } = await attempt();
+  if (error) {
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    ({ data, error } = await attempt());
+  }
+
+  if (error || !data?.signedUrl) {
+    throw new Error(error?.message || "تعذّر تحميل صورة الإيصال.");
+  }
+  return data.signedUrl;
 }
 
 /**

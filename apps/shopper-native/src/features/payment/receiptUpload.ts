@@ -1,11 +1,20 @@
 /**
  * Upload payment receipt screenshots to Supabase Storage (receipts bucket).
+ *
+ * The receipts bucket was public (Storage's getPublicUrl(), no access
+ * control) until this fix -- payment-proof screenshots can contain a phone
+ * number, transaction ID, and amount, so a leaked URL exposed that with no
+ * authentication check at all. The bucket is now private, matching
+ * prescriptions/driver-documents: upload stores a bare object path, and any
+ * consumer resolves a real, time-limited signed URL at view time via
+ * getReceiptSignedUrl() below (see supabase/migrations/
+ * 20260923150000_receipts_bucket_privacy.sql for the RLS/bucket change).
  */
 
 import * as ImagePicker from "expo-image-picker";
 import { supabase } from "@/lib/supabase";
 import { readLocalFileAsBlob } from "@/lib/readLocalFileAsBlob";
-import { RECEIPTS_BUCKET } from "./constants";
+import { RECEIPTS_BUCKET, normalizeReceiptStoragePath } from "@pharmacy/domain-checkout";
 
 export type ReceiptErrorCode =
   | "permission_denied"
@@ -64,7 +73,11 @@ function extForMime(mime: string): string {
 }
 
 /**
- * Upload a local image URI to `{userId}/{timestamp}.{ext}` and return the public URL.
+ * Upload a local image URI to `{userId}/{timestamp}.{ext}` and return the
+ * bare object path (NOT a URL — the bucket is private). Store this path
+ * as-is in orders.payment_proof_url; resolve a real, time-limited signed
+ * URL at view time via getReceiptSignedUrl() instead of ever treating the
+ * stored value as a directly-fetchable URL.
  */
 export async function uploadPaymentReceipt(
   userId: string,
@@ -93,9 +106,29 @@ export async function uploadPaymentReceipt(
     throw new ReceiptUploadError("upload_failed", error.message);
   }
 
-  const { data } = supabase.storage.from(RECEIPTS_BUCKET).getPublicUrl(path);
-  if (!data.publicUrl) {
-    throw new ReceiptUploadError("url_failed");
+  return path;
+}
+
+/**
+ * Short-lived signed URL for a private receipt object. Retries once on
+ * failure (same pattern as prescriptions'/driver-documents' equivalents) —
+ * a signed-URL request can transiently fail right after upload before the
+ * object is fully visible to Storage's read path.
+ */
+export async function getReceiptSignedUrl(rawPath: string): Promise<string> {
+  const path = normalizeReceiptStoragePath(rawPath);
+  if (!path) throw new ReceiptUploadError("url_failed", "No receipt image is available for this order.");
+
+  const attempt = () => supabase.storage.from(RECEIPTS_BUCKET).createSignedUrl(path, 300);
+
+  let { data, error } = await attempt();
+  if (error) {
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    ({ data, error } = await attempt());
   }
-  return data.publicUrl;
+
+  if (error || !data?.signedUrl) {
+    throw new ReceiptUploadError("url_failed", error?.message);
+  }
+  return data.signedUrl;
 }
