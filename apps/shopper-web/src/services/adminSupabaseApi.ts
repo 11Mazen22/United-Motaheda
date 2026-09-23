@@ -20,6 +20,10 @@ export type ProductMutationPayload = {
   Category: string;
   Category_Name: string;
   Category_Name_En: string;
+  /** Public URL in the product-images bucket. Omitted (not null) means
+   *  "leave the existing image alone" on update; only set it when there's
+   *  a real new image to persist. */
+  image_url?: string;
 };
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -186,6 +190,33 @@ export async function fetchAdminProducts(opts?: { signal?: AbortSignal }): Promi
   }
 }
 
+/** Uploads a captured/selected product photo (data: URL, e.g. from a
+ *  <canvas>.toDataURL()) to the public product-images bucket and returns
+ *  its public URL, ready to pass as ProductMutationPayload.image_url.
+ *  Path is keyed on the barcode/code so re-uploading for the same product
+ *  overwrites rather than accumulating orphaned objects. */
+export async function uploadProductImage(dataUrl: string, code: string): Promise<string> {
+  const operation = 'uploadProductImage';
+  try {
+    const supabase = getSupabaseClient();
+    const blob = await fetch(dataUrl).then((res) => res.blob());
+    const ext = blob.type === 'image/png' ? 'png' : 'jpg';
+    const safeCode = code.replace(/[^a-zA-Z0-9_-]/g, '_') || 'untitled';
+    const path = `${safeCode}/${Date.now()}.${ext}`;
+
+    const { error } = await supabase.storage
+      .from('product-images')
+      .upload(path, blob, { contentType: blob.type || 'image/jpeg', upsert: true });
+    if (error) throw error;
+
+    const { data } = supabase.storage.from('product-images').getPublicUrl(path);
+    return data.publicUrl;
+  } catch (error) {
+    logOperation(operation, { code }, error);
+    throw error instanceof Error ? error : new Error('Failed to upload product image');
+  }
+}
+
 export async function updateAdminProduct(payload: ProductMutationPayload): Promise<AdminProduct> {
   const operation = 'updateAdminProduct';
   
@@ -266,6 +297,7 @@ export async function updateAdminProduct(payload: ProductMutationPayload): Promi
       Category: payload.Category,
       Category_Name: payload.Category_Name,
       Category_Name_En: payload.Category_Name_En,
+      ...(payload.image_url ? { image_url: payload.image_url } : {}),
       // is_active intentionally omitted — it previously silently derived
       // from Stock > 0 on every single save, delisting a product from the
       // whole catalog (product_effective_prices/search_effective_products
@@ -341,6 +373,7 @@ export async function createAdminProduct(payload: ProductMutationPayload): Promi
       Category: payload.Category,
       Category_Name: payload.Category_Name,
       Category_Name_En: payload.Category_Name_En,
+      ...(payload.image_url ? { image_url: payload.image_url } : {}),
       // is_active omitted — see updateAdminProduct's comment. products.is_active
       // defaults to true at the database level, which is the right default
       // for a newly created product regardless of its starting stock count.

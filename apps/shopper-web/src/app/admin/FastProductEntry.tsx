@@ -24,8 +24,9 @@ import {
 } from "react";
 import { toast } from "sonner";
 import { useAuth } from "../../contexts/AuthContext";
+import { useCatalog } from "../../contexts/CatalogContext";
 import { useLanguage } from "../../contexts/LanguageContext";
-import { submitFastEntryProduct } from "../../services/googleSheetsApi";
+import { createAdminProduct, uploadProductImage } from "../../services/adminSupabaseApi";
 import { Button } from "../components/ui/button";
 import {
   Card,
@@ -62,6 +63,7 @@ type EntryFormState = {
   barcodeInput: string;
   lockedBarcode: string;
   productName: string;
+  categoryId: string;
   costPrice: string;
   sellingPrice: string;
   discountPercent: string;
@@ -86,6 +88,7 @@ const EMPTY_FORM: EntryFormState = {
   barcodeInput: "",
   lockedBarcode: "",
   productName: "",
+  categoryId: "",
   costPrice: "",
   sellingPrice: "",
   discountPercent: "",
@@ -220,6 +223,9 @@ function buildCopy(lang: "ar" | "en") {
         productNamePlaceholder: "مثال: Panadol Extra - بنادول إكسترا",
         productNameHint:
           "إذا اكتملت الصورة والباركود، يمكن الضغط Enter من هذا الحقل للحفظ مباشرة.",
+        categoryLabel: "القسم",
+        categoryPlaceholder: "اختر القسم",
+        categoryHint: "القسم مطلوب حتى يظهر المنتج في المكان الصحيح بالمتجر.",
         costPriceLabel: "سعر التكلفة",
         costPricePlaceholder: "مثال: 48.50",
         sellingPriceLabel: "سعر البيع",
@@ -233,7 +239,7 @@ function buildCopy(lang: "ar" | "en") {
       },
       hints: {
         optional: "اختياري",
-        pricing: "يمكن ترك حقول التسعير فارغة إذا كانت المسودة للمراجعة فقط.",
+        pricing: "سعر التكلفة اختياري. سعر البيع مطلوب لأن المنتج يُنشر مباشرة في المتجر.",
         inventory: "أدخل أرقامًا صحيحة فقط للكمية وحد التنبيه.",
         compression: "يتم ضغط الصورة تلقائيًا إلى JPEG خفيف لتسريع الإرسال.",
         keyboard:
@@ -284,8 +290,9 @@ function buildCopy(lang: "ar" | "en") {
         imageFailed: "تعذر تجهيز الصورة المختارة. جرّب التقاط صورة أوضح.",
         imageMissing: "التقط صورة للمنتج قبل حفظ المسودة.",
         productNameRequired: "أدخل اسم المنتج قبل الحفظ.",
+        categoryRequired: "اختر قسم المنتج قبل الحفظ.",
         costPriceInvalid: "أدخل سعر تكلفة صالحًا أو اترك الحقل فارغًا.",
-        sellingPriceInvalid: "أدخل سعر بيع صالحًا أو اترك الحقل فارغًا.",
+        sellingPriceInvalid: "أدخل سعر بيع صالحًا أكبر من صفر — هذا الحقل مطلوب لأن المنتج سيظهر مباشرة في المتجر.",
         discountInvalid: "أدخل نسبة خصم من 0 إلى 100 أو اترك الحقل فارغًا.",
         quantityInvalid: "أدخل كمية صحيحة بدون كسور أو اترك الحقل فارغًا.",
         stockAlertInvalid: "أدخل حد تنبيه صحيح بدون كسور أو اترك الحقل فارغًا.",
@@ -339,6 +346,9 @@ function buildCopy(lang: "ar" | "en") {
       productNamePlaceholder: "Example: Panadol Extra",
       productNameHint:
         "If the image is ready and the barcode is locked, pressing Enter here can save immediately.",
+      categoryLabel: "Category",
+      categoryPlaceholder: "Select a category",
+      categoryHint: "Required so the product shows up in the right place in the store.",
       costPriceLabel: "Cost price",
       costPricePlaceholder: "Example: 48.50",
       sellingPriceLabel: "Selling price",
@@ -352,7 +362,7 @@ function buildCopy(lang: "ar" | "en") {
     },
     hints: {
       optional: "Optional",
-      pricing: "Pricing fields can stay empty when the draft is only for review.",
+      pricing: "Cost price is optional. Selling price is required — the product publishes to the store immediately.",
       inventory: "Use whole numbers only for quantity and stock alert.",
       compression: "The image is compressed automatically to a lightweight JPEG.",
       keyboard:
@@ -402,8 +412,9 @@ function buildCopy(lang: "ar" | "en") {
       imageFailed: "The selected image could not be prepared. Try taking a clearer photo.",
       imageMissing: "Capture a product image before saving the draft.",
       productNameRequired: "Enter the product name before saving.",
+      categoryRequired: "Select a category before saving.",
       costPriceInvalid: "Enter a valid cost price or leave the field empty.",
-      sellingPriceInvalid: "Enter a valid selling price or leave the field empty.",
+      sellingPriceInvalid: "Enter a valid selling price greater than zero — required because this product goes live in the store immediately.",
       discountInvalid: "Enter a discount between 0 and 100 or leave the field empty.",
       quantityInvalid: "Enter a whole quantity value or leave the field empty.",
       stockAlertInvalid: "Enter a whole stock-alert value or leave the field empty.",
@@ -528,6 +539,7 @@ function ReadinessRow({
 export default function FastProductEntry() {
   const { user } = useAuth();
   const { lang } = useLanguage();
+  const { categories } = useCatalog();
   const copy = useMemo(() => buildCopy(lang), [lang]);
   const formRef = useRef<HTMLFormElement | null>(null);
   const barcodeInputRef = useRef<HTMLInputElement | null>(null);
@@ -653,7 +665,19 @@ export default function FastProductEntry() {
   const hasSnapshot = Boolean(snapshotBase64);
   const hasPricingValues = Boolean(formValues.costPrice.trim() || formValues.sellingPrice.trim() || formValues.discountPercent.trim());
   const hasInventoryValues = Boolean(formValues.quantity.trim() || formValues.stockAlert.trim());
-  const readyToSubmit = Boolean(formValues.lockedBarcode && formValues.productName.trim() && snapshotBase64 && !isPreparingImage && !isSubmitting);
+  const hasValidSellingPrice = (() => {
+    const parsed = parseOptionalNumber(formValues.sellingPrice);
+    return parsed !== null && !Number.isNaN(parsed) && parsed > 0;
+  })();
+  const readyToSubmit = Boolean(
+    formValues.lockedBarcode
+    && formValues.productName.trim()
+    && formValues.categoryId
+    && hasValidSellingPrice
+    && snapshotBase64
+    && !isPreparingImage
+    && !isSubmitting,
+  );
 
   const handleBarcodeEnter = useCallback(
     (event: KeyboardEvent<HTMLInputElement>) => {
@@ -714,10 +738,11 @@ export default function FastProductEntry() {
       if (!snapshotBase64) { setFeedback({ tone: "danger", text: copy.feedback.imageMissing }); return; }
       const nextProductName = formValues.productName.trim();
       if (!nextProductName) { setFeedback({ tone: "danger", text: copy.feedback.productNameRequired }); focusField("productName"); return; }
+      if (!formValues.categoryId) { setFeedback({ tone: "danger", text: copy.feedback.categoryRequired }); return; }
       const costPrice = parseOptionalNumber(formValues.costPrice);
       if (Number.isNaN(costPrice) || (costPrice !== null && costPrice < 0)) { setFeedback({ tone: "danger", text: copy.feedback.costPriceInvalid }); focusField("costPrice"); return; }
       const sellingPrice = parseOptionalNumber(formValues.sellingPrice);
-      if (Number.isNaN(sellingPrice) || (sellingPrice !== null && sellingPrice < 0)) { setFeedback({ tone: "danger", text: copy.feedback.sellingPriceInvalid }); focusField("sellingPrice"); return; }
+      if (Number.isNaN(sellingPrice) || sellingPrice === null || sellingPrice <= 0) { setFeedback({ tone: "danger", text: copy.feedback.sellingPriceInvalid }); focusField("sellingPrice"); return; }
       const discountPercent = parseOptionalNumber(formValues.discountPercent);
       if (Number.isNaN(discountPercent) || (discountPercent !== null && (discountPercent < 0 || discountPercent > 100))) { setFeedback({ tone: "danger", text: copy.feedback.discountInvalid }); focusField("discountPercent"); return; }
       const quantity = parseOptionalInteger(formValues.quantity);
@@ -725,19 +750,29 @@ export default function FastProductEntry() {
       const stockAlert = parseOptionalInteger(formValues.stockAlert);
       if (Number.isNaN(stockAlert) || (stockAlert !== null && stockAlert < 0)) { setFeedback({ tone: "danger", text: copy.feedback.stockAlertInvalid }); focusField("stockAlert"); return; }
 
+      // This now creates a real, immediately-live row in the products table
+      // (is_active defaults true — see createAdminProduct) rather than a
+      // spreadsheet draft awaiting human review, so pricing can no longer be
+      // optional the way the "draft" copy above still describes: a live,
+      // purchasable product with no real price is a genuine storefront bug,
+      // not a harmless placeholder. sellingPrice is validated > 0 above.
+      const category = categories.find((c) => c.id === formValues.categoryId);
+
       setIsSubmitting(true);
       try {
-        await submitFastEntryProduct({
-          barcode: formValues.lockedBarcode,
-          productName: nextProductName,
-          imageBase64: snapshotBase64,
-          capturedAt: capturedAt || new Date().toISOString(),
-          capturedBy: operatorLabel,
-          costPrice,
-          sellingPrice,
-          discountPercent,
-          quantity,
-          stockAlert,
+        const imageUrl = await uploadProductImage(snapshotBase64, formValues.lockedBarcode);
+        await createAdminProduct({
+          Code: formValues.lockedBarcode,
+          Barcode: formValues.lockedBarcode,
+          Name: nextProductName,
+          Name_Ar: nextProductName,
+          Name_En: nextProductName,
+          Price: sellingPrice,
+          Stock: quantity ?? 0,
+          Category: formValues.categoryId,
+          Category_Name: category?.name || "",
+          Category_Name_En: category?.nameEn || category?.name || "",
+          image_url: imageUrl,
         });
         toast.success(copy.feedback.saveToast);
         resetForm({ tone: "success", text: copy.feedback.saveSuccess });
@@ -747,7 +782,7 @@ export default function FastProductEntry() {
         toast.error(message);
       } finally { setIsSubmitting(false); }
     },
-    [capturedAt, copy.feedback, focusBarcodeInput, focusField, formValues, isSubmitting, operatorLabel, resetForm, snapshotBase64],
+    [categories, copy.feedback, focusBarcodeInput, focusField, formValues, isSubmitting, resetForm, snapshotBase64],
   );
 
   const capturedAtLabel = capturedAt
@@ -877,6 +912,21 @@ export default function FastProductEntry() {
                     className="admin-input h-14 rounded-[1.25rem] border-slate-200 bg-slate-50 px-4 text-base font-semibold text-slate-900 shadow-sm transition focus-visible:border-teal-400 focus-visible:ring-teal-500/15"
                   />
                 </FieldShell>
+                <FieldShell label={copy.fields.categoryLabel} hint={copy.fields.categoryHint}>
+                  <select
+                    id="fast-entry-category"
+                    value={formValues.categoryId}
+                    onChange={(event) => updateField("categoryId", event.target.value)}
+                    className="admin-input h-14 w-full rounded-[1.25rem] border border-slate-200 bg-slate-50 px-4 text-base font-semibold text-slate-900 shadow-sm transition focus-visible:border-teal-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500/15"
+                  >
+                    <option value="">{copy.fields.categoryPlaceholder}</option>
+                    {categories.map((category) => (
+                      <option key={category.id} value={category.id}>
+                        {lang === "ar" ? category.name : category.nameEn || category.name}
+                      </option>
+                    ))}
+                  </select>
+                </FieldShell>
               </SectionShell>
 
               <SectionShell icon={BanknotesIcon} title={copy.sections.pricing.title} description={copy.sections.pricing.description}>
@@ -894,7 +944,7 @@ export default function FastProductEntry() {
                       className="admin-input h-13 rounded-[1.2rem] border-slate-200 bg-slate-50 px-4 text-sm font-semibold text-slate-900 shadow-sm transition focus-visible:border-teal-400 focus-visible:ring-teal-500/15"
                     />
                   </FieldShell>
-                  <FieldShell label={copy.fields.sellingPriceLabel} optional={copy.hints.optional}>
+                  <FieldShell label={copy.fields.sellingPriceLabel}>
                     <Input
                       ref={sellingPriceInputRef}
                       value={formValues.sellingPrice}
@@ -1049,8 +1099,8 @@ export default function FastProductEntry() {
               </div>
             </CardHeader>
             <CardContent className="space-y-4 pb-6 pt-6">
-              <ReadinessRow label={copy.sections.identification.title} readyLabel={copy.status.identificationReady} pendingLabel={copy.status.identificationPending} ready={Boolean(formValues.lockedBarcode && formValues.productName.trim() && snapshotBase64)} />
-              <ReadinessRow label={copy.sections.pricing.title} readyLabel={copy.status.pricingReady} pendingLabel={copy.status.pricingPending} ready={hasPricingValues} />
+              <ReadinessRow label={copy.sections.identification.title} readyLabel={copy.status.identificationReady} pendingLabel={copy.status.identificationPending} ready={Boolean(formValues.lockedBarcode && formValues.productName.trim() && formValues.categoryId && snapshotBase64)} />
+              <ReadinessRow label={copy.sections.pricing.title} readyLabel={copy.status.pricingReady} pendingLabel={copy.status.pricingPending} ready={hasValidSellingPrice} />
               <ReadinessRow label={copy.sections.inventory.title} readyLabel={copy.status.inventoryReady} pendingLabel={copy.status.inventoryPending} ready={hasInventoryValues} />
               <div className="rounded-[1.4rem] border border-teal-100 bg-teal-50/70 p-4 text-sm font-semibold leading-7 text-teal-900">
                 <div className="mb-2 inline-flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.18em] text-teal-700">

@@ -180,36 +180,6 @@ export type ProductMutationPayload = {
   original_price?: number | null;
 };
 
-export type FastEntryProductPayload = {
-  barcode: string;
-  productName: string;
-  imageBase64: string;
-  capturedAt?: string;
-  capturedBy?: string;
-  costPrice?: number | null;
-  sellingPrice?: number | null;
-  discountPercent?: number | null;
-  quantity?: number | null;
-  stockAlert?: number | null;
-};
-
-export type FastEntryProductDraft = {
-  id: string;
-  barcode: string;
-  productName: string;
-  imageFileId: string;
-  imageUrl: string;
-  capturedAt: string;
-  capturedBy: string;
-  status: "Pending Review";
-  created_at: string;
-  costPrice: number | null;
-  sellingPrice: number | null;
-  discountPercent: number | null;
-  quantity: number | null;
-  stockAlert: number | null;
-};
-
 export type AdminProduct = {
   id: string;
   code: string;
@@ -817,69 +787,6 @@ function normalizeStaff(record: ApiRecord, fallback?: Partial<StaffMember>) {
   } satisfies StaffMember;
 }
 
-function normalizeFastEntryProductDraft(
-  record: ApiRecord,
-  fallback?: Partial<FastEntryProductDraft>,
-) {
-  const capturedAt =
-    pickFirstString(record, ["capturedAt", "Captured_At", "createdAt", "Created_At"]) ||
-    fallback?.capturedAt ||
-    new Date().toISOString();
-
-  return {
-    id:
-      pickFirstString(record, ["id", "entryId", "Entry_ID"]) ||
-      fallback?.id ||
-      createFallbackId("intake"),
-    barcode:
-      pickFirstString(record, ["barcode", "Barcode"]) ||
-      fallback?.barcode ||
-      "",
-    productName:
-      pickFirstString(record, ["productName", "Product_Name", "name", "Name"]) ||
-      fallback?.productName ||
-      "",
-    imageFileId:
-      pickFirstString(record, ["imageFileId", "Image_File_ID", "fileId"]) ||
-      fallback?.imageFileId ||
-      "",
-    imageUrl:
-      pickFirstString(record, ["imageUrl", "Image_Url", "fileUrl", "url"]) ||
-      fallback?.imageUrl ||
-      "",
-    capturedAt,
-    capturedBy:
-      pickFirstString(record, ["capturedBy", "Captured_By", "operator", "Operator"]) ||
-      fallback?.capturedBy ||
-      "",
-    status: "Pending Review",
-    created_at:
-      pickFirstString(record, ["created_at", "Created_At", "createdAt"]) ||
-      fallback?.created_at ||
-      capturedAt,
-    costPrice:
-      pickFirstNullableNumber(record, ["costPrice", "Cost_Price"]) ??
-      fallback?.costPrice ??
-      null,
-    sellingPrice:
-      pickFirstNullableNumber(record, ["sellingPrice", "Selling_Price"]) ??
-      fallback?.sellingPrice ??
-      null,
-    discountPercent:
-      pickFirstNullableNumber(record, ["discountPercent", "Discount_Percent"]) ??
-      fallback?.discountPercent ??
-      null,
-    quantity:
-      pickFirstNullableNumber(record, ["quantity", "Quantity"]) ??
-      fallback?.quantity ??
-      null,
-    stockAlert:
-      pickFirstNullableNumber(record, ["stockAlert", "Stock_Alert"]) ??
-      fallback?.stockAlert ??
-      null,
-  } satisfies FastEntryProductDraft;
-}
-
 function normalizeBarcodeLookupMatch(
   record: ApiRecord,
   fallback?: Partial<BarcodeLookupMatch>,
@@ -1246,44 +1153,6 @@ export async function addProduct(payload: ProductMutationPayload) {
     categoryName: fallbackCategory,
     categoryNameEn: fallbackCategoryEn,
     inStock: Number(parsedPayload.Stock) > 0,
-  });
-}
-
-export async function submitFastEntryProduct(payload: FastEntryProductPayload) {
-  const barcode = payload.barcode.trim();
-  const productName = payload.productName.trim();
-  const imageBase64 = payload.imageBase64.trim();
-  const capturedAt = payload.capturedAt?.trim() || new Date().toISOString();
-  const capturedBy = payload.capturedBy?.trim() || "";
-  const costPrice = payload.costPrice ?? null;
-  const sellingPrice = payload.sellingPrice ?? null;
-  const discountPercent = payload.discountPercent ?? null;
-  const quantity = payload.quantity ?? null;
-  const stockAlert = payload.stockAlert ?? null;
-
-  const envelope = await postRequest("submit_fast_entry_product", {
-    Barcode: barcode,
-    Product_Name: productName,
-    Image_Base64: imageBase64,
-    Captured_At: capturedAt,
-    Captured_By: capturedBy,
-    Cost_Price: costPrice,
-    Selling_Price: sellingPrice,
-    Discount_Percent: discountPercent,
-    Quantity: quantity,
-    Stock_Alert: stockAlert,
-  });
-
-  return normalizeFastEntryProductDraft(unwrapRecord(envelope), {
-    barcode,
-    productName,
-    capturedAt,
-    capturedBy,
-    costPrice,
-    sellingPrice,
-    discountPercent,
-    quantity,
-    stockAlert,
   });
 }
 
