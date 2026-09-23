@@ -23,10 +23,8 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { SupabaseClient, createClient } from '@supabase/supabase-js';
 import { Cron, CronExpression } from '@nestjs/schedule';
-
-// Use require() for Firebase Admin (CommonJS project)
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const admin = require('firebase-admin');
+import { cert, getApps, initializeApp } from 'firebase-admin/app';
+import { getMessaging } from 'firebase-admin/messaging';
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 function addMinutes(date: Date, minutes: number): string {
@@ -62,9 +60,8 @@ interface OutboxRow {
 
 interface DeviceRow {
   id: string;
-  token: string;
+  push_token: string;
   platform: string;
-  provider: string;
 }
 
 interface ExpoTokenRow {
@@ -85,6 +82,9 @@ export class NotificationWorker implements OnModuleInit {
   private readonly MAX_ATTEMPTS = 5;
   /** How many outbox rows to claim per tick */
   private readonly BATCH_SIZE = 50;
+  /** Bound external calls so one degraded provider cannot freeze the cron loop. */
+  private readonly DB_TIMEOUT_MS = 12_000;
+  private readonly PROVIDER_TIMEOUT_MS = 15_000;
   /** Expo push API endpoint */
   private readonly EXPO_PUSH_URL = 'https://exp.host/--/api/v2/push/send';
 
@@ -105,17 +105,22 @@ export class NotificationWorker implements OnModuleInit {
 
   private initFirebase() {
     try {
-      if (admin.apps?.length > 0) {
+      if (getApps().length > 0) {
         this.firebaseInitialized = true;
         return;
       }
-      const cfg = this.configService.get('firebase');
+      const nested = this.configService.get<any>('firebase');
+      const cfg = {
+        projectId: nested?.projectId ?? this.configService.get<string>('FIREBASE_PROJECT_ID'),
+        clientEmail: nested?.clientEmail ?? this.configService.get<string>('FIREBASE_CLIENT_EMAIL'),
+        privateKey: nested?.privateKey ?? this.configService.get<string>('FIREBASE_PRIVATE_KEY'),
+      };
       if (!cfg?.projectId || !cfg?.clientEmail || !cfg?.privateKey) {
         this.logger.warn('Firebase config missing — FCM push disabled');
         return;
       }
-      admin.initializeApp({
-        credential: admin.credential.cert({
+      initializeApp({
+        credential: cert({
           projectId: cfg.projectId,
           clientEmail: cfg.clientEmail,
           privateKey: (cfg.privateKey as string).replace(/\\n/g, '\n'),
@@ -157,37 +162,12 @@ export class NotificationWorker implements OnModuleInit {
   }
 
   private async processBatch() {
-    const nowStr = new Date().toISOString();
-
-    // 1. SELECT rows that are queued AND either not locked or lock has expired.
-    const { data: rows, error: selectErr } = await this.supabase
-      .from('notification_outbox')
-      .select('*')
-      .eq('status', 'queued')
-      .lte('next_attempt_at', nowStr)
-      .or(`locked_until.is.null,locked_until.lte.${nowStr}`)
-      .order('next_attempt_at', { ascending: true })
-      .limit(this.BATCH_SIZE);
-
-    if (selectErr) {
-      this.logger.error(`Outbox select failed: ${selectErr.message}`);
-      return;
-    }
-
-    if (!rows || rows.length === 0) return;
-
-    // 2. Claim rows atomically by setting locked_until and returning the actually claimed rows.
-    //    We repeat the exact lock condition in the UPDATE WHERE clause.
-    const claimIds = (rows as OutboxRow[]).map((r) => r.id);
-    const lockUntil = addMinutes(new Date(), this.LOCK_MINUTES);
-
+    // Claim due queued/retrying jobs, plus stale processing jobs, in one
+    // database transaction using FOR UPDATE SKIP LOCKED. The RPC also moves
+    // rows to `processing`, sets the lease, and increments `attempts`.
     const { data: claimedRows, error: claimErr } = await this.supabase
-      .from('notification_outbox')
-      .update({ locked_until: lockUntil, updated_at: new Date().toISOString() })
-      .in('id', claimIds)
-      .eq('status', 'queued') // guard: only claim still-queued rows
-      .or(`locked_until.is.null,locked_until.lte.${nowStr}`) // ATOMIC LOCK GUARD
-      .select();
+      .rpc('claim_notification_outbox', { p_limit: this.BATCH_SIZE })
+      .abortSignal(AbortSignal.timeout(this.DB_TIMEOUT_MS));
 
     if (claimErr) {
       this.logger.error(`Outbox claim failed: ${claimErr.message}`);
@@ -217,7 +197,7 @@ export class NotificationWorker implements OnModuleInit {
       this.fetchExpoTokens(recipient_id),
     ]);
 
-    const fcmTokens = fcmDevices.map((d) => d.token);
+    const fcmTokens = fcmDevices.map((d) => d.push_token);
     const expoTokenList = expoTokens.map((t) => t.expo_push_token);
 
     // Send to FCM devices
@@ -225,7 +205,8 @@ export class NotificationWorker implements OnModuleInit {
     let fcmFailed: string[] = [];
     let fcmError: string | undefined;
 
-    if (fcmTokens.length > 0 && this.firebaseInitialized) {
+    const useNativeFcm = fcmTokens.length > 0 && this.firebaseInitialized;
+    if (useNativeFcm) {
       const fcmResult = await this.sendFcm(fcmTokens, title, body, payload, fcmDevices);
       fcmSuccessful = fcmResult.successful;
       fcmFailed = fcmResult.failed;
@@ -236,7 +217,10 @@ export class NotificationWorker implements OnModuleInit {
     let expoSuccessful: string[] = [];
     let expoFailed: string[] = [];
 
-    if (expoTokenList.length > 0) {
+    // Expo is a fallback for installations without a healthy native FCM
+    // registration. Never send through both providers for the same outbox
+    // row, otherwise a dual-registered phone receives duplicate alerts.
+    if (!useNativeFcm && expoTokenList.length > 0) {
       const expoResult = await this.sendExpo(expoTokenList, title, body, payload, expoTokens);
       expoSuccessful = expoResult.successful;
       expoFailed = expoResult.failed;
@@ -261,7 +245,8 @@ export class NotificationWorker implements OnModuleInit {
 
     // Determine outbox outcome
     const totalSuccess = fcmSuccessful.length + expoSuccessful.length;
-    const newAttempts = attempts + 1;
+    // claim_notification_outbox increments attempts atomically.
+    const newAttempts = attempts;
 
     let newStatus: string;
     const updatePayload: Record<string, any> = {
@@ -289,7 +274,8 @@ export class NotificationWorker implements OnModuleInit {
     const { error: updateErr } = await this.supabase
       .from('notification_outbox')
       .update(updatePayload)
-      .eq('id', id);
+      .eq('id', id)
+      .abortSignal(AbortSignal.timeout(this.DB_TIMEOUT_MS));
 
     if (updateErr) {
       this.logger.error(`Failed to update outbox ${id}: ${updateErr.message}`);
@@ -312,14 +298,48 @@ export class NotificationWorker implements OnModuleInit {
         stringifiedData[k] = typeof v === 'string' ? v : JSON.stringify(v);
       }
 
+      // enqueue_notification()/execute_order_cancellation() always shape the
+      // outbox payload as { data: {...caller data...}, action_url,
+      // notification_id } — order-lifecycle callers put orderId inside that
+      // inner `data`. Reusing that id as the Android notification tag / APNs
+      // collapse-id means every push about the SAME order replaces the tray
+      // entry in place ("Order #1248: Preparing" -> "...Ready" -> "...
+      // Delivered", one evolving notification) instead of stacking a new
+      // alert per lifecycle event. No id => no tag => default stacking
+      // behavior, which is what we want for non-order notifications (promo
+      // blasts, etc.) that have nothing to collapse into.
+      const innerData =
+        data && typeof data === 'object' && data.data && typeof data.data === 'object'
+          ? data.data
+          : data;
+      const orderId = typeof innerData?.orderId === 'string' ? innerData.orderId : undefined;
+      const tag = orderId ? `active-order:${orderId}` : undefined;
+
       const message = {
         notification: { title, body },
         data: stringifiedData,
+        android: {
+          priority: 'high' as const,
+          notification: { channelId: 'orders', sound: 'default', ...(tag ? { tag } : {}) },
+        },
+        apns: {
+          payload: { aps: { sound: 'default', contentAvailable: true } },
+          ...(tag ? { headers: { 'apns-collapse-id': tag } } : {}),
+        },
         tokens,
       };
 
       // sendEachForMulticast is the current API in firebase-admin ≥ 12
-      const response = await admin.messaging().sendEachForMulticast(message);
+      const response = await Promise.race([
+        getMessaging().sendEachForMulticast(message),
+        new Promise<never>((_, reject) => {
+          const timer = setTimeout(
+            () => reject(new Error('FCM request timed out')),
+            this.PROVIDER_TIMEOUT_MS,
+          );
+          timer.unref?.();
+        }),
+      ]);
 
       const successful: string[] = [];
       const failed: string[] = [];
@@ -354,7 +374,8 @@ export class NotificationWorker implements OnModuleInit {
     const { error } = await this.supabase
       .from('user_devices')
       .update({ is_active: false, updated_at: new Date().toISOString() })
-      .in('token', tokens);
+      .in('push_token', tokens)
+      .abortSignal(AbortSignal.timeout(this.DB_TIMEOUT_MS));
     if (error) {
       this.logger.error(`Token deactivation failed: ${error.message}`);
     } else {
@@ -465,6 +486,9 @@ export class NotificationWorker implements OnModuleInit {
           catch (e) { reject(new Error(`Expo parse error: ${data}`)); }
         });
       });
+      req.setTimeout(this.PROVIDER_TIMEOUT_MS, () => {
+        req.destroy(new Error('Expo push request timed out'));
+      });
       req.on('error', reject);
       req.write(payload);
       req.end();
@@ -478,7 +502,8 @@ export class NotificationWorker implements OnModuleInit {
         invalidated_at: new Date().toISOString(),
         invalid_reason: 'DeviceNotRegistered',
       })
-      .in('expo_push_token', tokens);
+      .in('expo_push_token', tokens)
+      .abortSignal(AbortSignal.timeout(this.DB_TIMEOUT_MS));
     if (error) {
       this.logger.error(`Expo token invalidation failed: ${error.message}`);
     } else {
@@ -488,20 +513,16 @@ export class NotificationWorker implements OnModuleInit {
 
   // ── Database helpers ────────────────────────────────────────────────────────
 
-  private async fetchFcmDevices(_userId: string): Promise<DeviceRow[]> {
-    // Disabled: this queried user_devices.token and user_devices.provider,
-    // neither of which exists on the live table (confirmed via
-    // information_schema: the real columns are push_token/platform, no
-    // provider column at all) -- every invocation of this query has been
-    // failing outright, every 5s per this worker's own @Cron schedule.
-    // Confirmed live via the Supabase health report: 324 "column does not
-    // exist" errors, a real, sustained contributor to the DB/pooler
-    // pressure behind the 2026-09-12 outage. This FCM/user_devices delivery
-    // path has therefore never actually delivered a single push -- Expo
-    // delivery (fetchExpoTokens, notification_tokens) is unaffected and
-    // remains the real delivery path. Returning empty here is a pure no-op
-    // change: this code could never previously return a usable device.
-    return [];
+  private async fetchFcmDevices(userId: string): Promise<DeviceRow[]> {
+    const { data, error } = await this.supabase
+      .from('user_devices')
+      .select('id, push_token, platform')
+      .eq('user_id', userId)
+      .eq('is_active', true)
+      .order('last_seen_at', { ascending: false })
+      .abortSignal(AbortSignal.timeout(this.DB_TIMEOUT_MS));
+    if (error) this.logger.error(`FCM device fetch error: ${error.message}`);
+    return (data as DeviceRow[]) ?? [];
   }
 
   private async fetchExpoTokens(userId: string): Promise<ExpoTokenRow[]> {
@@ -509,7 +530,8 @@ export class NotificationWorker implements OnModuleInit {
       .from('notification_tokens')
       .select('id, expo_push_token, invalidated_at')
       .eq('user_id', userId)
-      .is('invalidated_at', null); // only valid tokens
+      .is('invalidated_at', null)
+      .abortSignal(AbortSignal.timeout(this.DB_TIMEOUT_MS)); // only valid tokens
     if (error) this.logger.error(`Expo token fetch error: ${error.message}`);
     return (data as ExpoTokenRow[]) ?? [];
   }
@@ -531,7 +553,8 @@ export class NotificationWorker implements OnModuleInit {
         error_message: errorMsg ?? null,
         created_at: sentAt,
         updated_at: sentAt,
-      });
+      })
+      .abortSignal(AbortSignal.timeout(this.DB_TIMEOUT_MS));
     if (error) {
       this.logger.error(`Attempt record failed: ${error.message}`);
     }
