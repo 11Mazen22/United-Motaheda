@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator, ScrollView, StyleSheet, View, Dimensions,
 } from "react-native";
@@ -30,7 +30,7 @@ const MAX_SCALE = 4;
 
 // ─── ZoomableImage — pinch/pan document viewer for verifying prescriptions ────
 
-function ZoomableImage({ uri }: { uri: string }) {
+function ZoomableImage({ uri, onError }: { uri: string; onError: () => void }) {
   const scale = useSharedValue(1);
   const savedScale = useSharedValue(1);
   const translateX = useSharedValue(0);
@@ -96,6 +96,7 @@ function ZoomableImage({ uri }: { uri: string }) {
           source={{ uri }}
           style={[StyleSheet.absoluteFill, animatedStyle]}
           resizeMode="contain"
+          onError={onError}
         />
       </Animated.View>
     </GestureDetector>
@@ -124,12 +125,17 @@ export function PrescriptionDetailScreen(): React.ReactElement {
   const [showRejectForm, setShowRejectForm] = useState(false);
   const [adminNotesInput, setAdminNotesInput] = useState("");
   const [rejectionTouched, setRejectionTouched] = useState(false);
+  const [imageRenderFailed, setImageRenderFailed] = useState(false);
 
   const rejectionReasonInvalid = rejectionTouched && rejectionReason.trim().length === 0;
 
   const rx = rxQuery.data;
   const isPending = rx?.reviewStatus === "pending_review";
   const imageQuery = usePrescriptionImage(rx?.imagePath);
+
+  useEffect(() => {
+    setImageRenderFailed(false);
+  }, [imageQuery.data, rx?.imagePath]);
 
   const handleApprove = async () => {
     if (!id) return;
@@ -199,12 +205,24 @@ export function PrescriptionDetailScreen(): React.ReactElement {
       <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
         {/* Document Viewer — pinch/pan/double-tap to inspect handwriting closely */}
         <View style={[s.imageBoxer, { backgroundColor: theme.colors.pharmacy.navy }]}>
-          {imageQuery.isLoading ? (
+          {imageQuery.isLoading || imageQuery.isFetching ? (
             <ActivityIndicator size="large" color={theme.colors.brand.primary} />
-          ) : imageQuery.error ? (
-            <UIText variant="caption" color="danger">{t("pharmacist.rxDocumentError", "Failed to load document")}</UIText>
+          ) : imageQuery.error || imageRenderFailed ? (
+            <View style={s.imageError}>
+              <UIText variant="caption" color="danger">
+                {t("pharmacist.rxDocumentError", "Failed to load document")}
+              </UIText>
+              <Button
+                label={t("common.retry", "Retry")}
+                variant="outline"
+                onPress={() => {
+                  setImageRenderFailed(false);
+                  void imageQuery.refetch();
+                }}
+              />
+            </View>
           ) : imageQuery.data ? (
-            <ZoomableImage uri={imageQuery.data} />
+            <ZoomableImage uri={imageQuery.data} onError={() => setImageRenderFailed(true)} />
           ) : (
             <UIText variant="caption" color="secondary">{t("pharmacist.noDocument", "No document available")}</UIText>
           )}
@@ -319,6 +337,7 @@ const s = StyleSheet.create({
     justifyContent: "center",
     overflow: "hidden",
   },
+  imageError: { alignItems: "center", gap: 12, paddingHorizontal: 24 },
   zoomHint: {
     position: "absolute",
     bottom: 12,

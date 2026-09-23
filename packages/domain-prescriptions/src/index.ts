@@ -4,3 +4,8 @@ export type PrescriptionWorkflowStep =
   | "approved"
   | "rejected"
   | "processed";
+
+export {
+  PRESCRIPTION_IMAGE_BUCKET,
+  normalizePrescriptionStoragePath,
+} from "./storagePath";

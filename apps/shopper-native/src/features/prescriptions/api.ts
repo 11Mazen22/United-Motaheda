@@ -5,7 +5,9 @@
  * so a bad id can never touch another user's row even if RLS were misconfigured.
  */
 
+import { normalizePrescriptionStoragePath, PRESCRIPTION_IMAGE_BUCKET } from "@pharmacy/domain-prescriptions";
 import { supabase } from "@/lib/supabase";
+import { readLocalFileAsArrayBuffer } from "@/lib/readLocalFileAsBlob";
 
 import type { Prescription } from "@/stores/prescriptionsStore";
 import { rowToPrescription, type PrescriptionRow } from "./lib/rowMappers";
@@ -22,10 +24,11 @@ export interface PrescriptionInput {
 }
 
 function mimeForUri(uri: string): string {
-  const lower = uri.toLowerCase();
+  const lower = uri.split(/[?#]/, 1)[0]?.toLowerCase() ?? uri.toLowerCase();
   if (lower.endsWith(".png")) return "image/png";
   if (lower.endsWith(".webp")) return "image/webp";
   if (lower.endsWith(".heic")) return "image/heic";
+  if (lower.endsWith(".heif")) return "image/heif";
   return "image/jpeg";
 }
 
@@ -33,6 +36,7 @@ function extForMime(mime: string): string {
   if (mime === "image/png") return "png";
   if (mime === "image/webp") return "webp";
   if (mime === "image/heic") return "heic";
+  if (mime === "image/heif") return "heif";
   return "jpg";
 }
 
@@ -52,16 +56,12 @@ export async function uploadPrescriptionImage(
   const ext  = extForMime(mime);
   const path = `${userId}/${prescriptionId}/image.${ext}`;
 
-  const formData = new FormData();
-  formData.append("file", {
-    uri: localUri,
-    name: `image.${ext}`,
-    type: mime,
-  } as any);
+  const bytes = await readLocalFileAsArrayBuffer(localUri);
+  if (bytes.byteLength === 0) throw new Error("Upload failed: prescription image is empty");
 
   const attempt = () => supabase.storage
-    .from("prescriptions")
-    .upload(path, formData, { upsert: true });
+    .from(PRESCRIPTION_IMAGE_BUCKET)
+    .upload(path, bytes, { contentType: mime, cacheControl: "3600", upsert: true });
 
   let { error } = await attempt();
   if (error) {
@@ -109,14 +109,18 @@ export async function createPrescription(
 
   if (error) throw error;
   const prescription = rowToPrescription(data as PrescriptionRow);
+  await notifyStaffPrescriptionSubmitted(prescription.id);
+  return prescription;
+}
+
+async function notifyStaffPrescriptionSubmitted(prescriptionId: string): Promise<void> {
   try {
     await supabase.rpc("notify_staff_prescription_submitted", {
-      p_prescription_id: prescription.id,
+      p_prescription_id: prescriptionId,
     });
   } catch (notificationError) {
     if (__DEV__) console.warn("[prescriptions] staff notification failed:", notificationError);
   }
-  return prescription;
 }
 
 /**
@@ -176,20 +180,39 @@ export async function submitPrescriptionWithImage(
   localImageUri: string,
   source: SubmissionSource = "manual"
 ): Promise<Prescription> {
-  // 1. Create the record
-  const prescription = await createPrescription(userId, input, source);
+  const { data, error: insertError } = await supabase
+    .from("prescriptions")
+    .insert({
+      user_id:           userId,
+      name:              input.name,
+      dose:              input.dose ?? "",
+      doctor:            input.doctor ?? "",
+      refills:           input.refills ?? 0,
+      next_refill:       null,
+      status:            "active",
+      is_controlled:     false,
+      rx_number:         input.rxNumber ?? null,
+      review_status:     "pending_review",
+      submission_source: source,
+      image_path:        null,
+    })
+    .select()
+    .single();
+
+  if (insertError) throw insertError;
+  const prescription = rowToPrescription(data as PrescriptionRow);
+  let uploadedPath: string | null = null;
 
   try {
-    // 2. Upload the image
-    const imagePath = await uploadPrescriptionImage(userId, prescription.id, localImageUri);
-
-    // 3. Link the image path to the record
-    return await updatePrescription(prescription.id, userId, { imagePath });
+    uploadedPath = await uploadPrescriptionImage(userId, prescription.id, localImageUri);
+    const completed = await updatePrescription(prescription.id, userId, { imagePath: uploadedPath });
+    await notifyStaffPrescriptionSubmitted(completed.id);
+    return completed;
   } catch (error) {
-    await deletePrescription(prescription.id, userId).catch(() => {
-      // Best-effort cleanup — surfacing the original upload error matters
-      // more than a cleanup failure the user can't act on anyway.
-    });
+    if (uploadedPath) {
+      await supabase.storage.from(PRESCRIPTION_IMAGE_BUCKET).remove([uploadedPath]).catch(() => undefined);
+    }
+    await supabase.from("prescriptions").delete().eq("id", prescription.id).eq("user_id", userId);
     throw Object.assign(new Error(`Prescription record created, but image upload failed.`), {
       prescriptionId: prescription.id,
       originalError: error,
@@ -198,11 +221,23 @@ export async function submitPrescriptionWithImage(
 }
 
 export async function deletePrescription(id: string, userId: string): Promise<void> {
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("prescriptions")
     .delete()
     .eq("id", id)
-    .eq("user_id", userId);
+    .eq("user_id", userId)
+    .select("image_path")
+    .maybeSingle();
 
   if (error) throw error;
+
+  const imagePath = normalizePrescriptionStoragePath(data?.image_path ?? "");
+  if (imagePath) {
+    const { error: storageError } = await supabase.storage
+      .from(PRESCRIPTION_IMAGE_BUCKET)
+      .remove([imagePath]);
+    if (storageError && __DEV__) {
+      console.warn("[prescriptions] orphaned image cleanup failed:", storageError.message);
+    }
+  }
 }

@@ -34,8 +34,12 @@ export interface ReviewDialogTarget {
   editableFields?: ReviewDialogEditableField[];
   /** Extra warning shown for controlled substances / WhatsApp-source rows. */
   warning?: string;
-  /** Full URL to the prescription image bucket */
+  /** Signed URL for the private prescription image bucket */
   imageUrl?: string | null;
+  imageLoading?: boolean;
+  imageError?: string;
+  onImageError?: () => void;
+  onImageRetry?: () => void;
 }
 
 interface PrescriptionReviewDialogProps {
@@ -133,13 +137,34 @@ export default function PrescriptionReviewDialog({
           )}
 
           {/* Prescription Image */}
-          {target.imageUrl && (
-            <div className="overflow-hidden rounded-xl border border-slate-200 bg-slate-100 flex justify-center">
-              <img 
-                src={target.imageUrl} 
-                alt="Prescription" 
-                className="max-h-[400px] object-contain w-full"
-              />
+          {(target.imageUrl || target.imageLoading || target.imageError) && (
+            <div className="overflow-hidden rounded-xl border border-slate-200 bg-slate-100 flex min-h-[220px] items-center justify-center">
+              {target.imageLoading ? (
+                <div className="flex flex-col items-center gap-2 py-10 text-slate-500">
+                  <Loader2 className="h-6 w-6 animate-spin" />
+                  <p className="text-sm font-medium">{isArabic ? "جاري تحميل صورة الوصفة…" : "Loading prescription image…"}</p>
+                </div>
+              ) : target.imageError ? (
+                <div className="flex flex-col items-center gap-3 px-4 py-8 text-center">
+                  <p className="text-sm font-semibold text-rose-600">{target.imageError}</p>
+                  {target.onImageRetry && (
+                    <button
+                      type="button"
+                      onClick={target.onImageRetry}
+                      className="rounded-lg border border-rose-200 bg-white px-3 py-2 text-xs font-bold text-rose-700 hover:bg-rose-50"
+                    >
+                      {isArabic ? "إعادة المحاولة" : "Retry image"}
+                    </button>
+                  )}
+                </div>
+              ) : target.imageUrl ? (
+                <img
+                  src={target.imageUrl}
+                  alt="Prescription"
+                  className="max-h-[400px] w-full object-contain"
+                  onError={target.onImageError}
+                />
+              ) : null}
             </div>
           )}
 

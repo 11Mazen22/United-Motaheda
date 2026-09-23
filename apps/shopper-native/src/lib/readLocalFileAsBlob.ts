@@ -32,3 +32,22 @@ export async function readLocalFileAsBlob(localUri: string): Promise<Blob> {
   if (!file.exists) throw new Error("read_failed");
   return file as unknown as Blob;
 }
+
+/**
+ * Reads a picked/captured local file into the binary shape supported by
+ * supabase-js in React Native. Blob/File/FormData uploads are unreliable in
+ * React Native; Supabase's supported input is an ArrayBuffer.
+ */
+export async function readLocalFileAsArrayBuffer(localUri: string): Promise<ArrayBuffer> {
+  if (Platform.OS === "web") {
+    const response = await fetch(localUri);
+    if (!response.ok) throw new Error("read_failed");
+    return response.arrayBuffer();
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-require-imports -- native-only import, must not be evaluated on web
+  const { File } = require("expo-file-system") as typeof import("expo-file-system");
+  const file = new File(localUri);
+  if (!file.exists) throw new Error("read_failed");
+  return file.arrayBuffer();
+}

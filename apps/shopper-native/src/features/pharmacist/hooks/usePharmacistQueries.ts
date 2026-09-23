@@ -182,7 +182,9 @@ export function usePrescriptionImage(imagePath: string | null | undefined) {
     queryKey: [...pharmacistQueryKeys.prescriptions(undefined), "image", imagePath],
     queryFn:  () => getPrescriptionImageSignedUrl(imagePath!),
     enabled:  Boolean(imagePath),
-    staleTime: 50_000, // Valid for 60s, refetch slightly before
+    staleTime: 240_000, // Signed URLs expire at 300s — refresh one minute before expiry
+    retry: 2,
+    refetchOnWindowFocus: true,
   });
 }
 
