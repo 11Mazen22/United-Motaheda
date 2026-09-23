@@ -284,6 +284,27 @@ export class NotificationWorker implements OnModuleInit {
 
   // ── FCM delivery ────────────────────────────────────────────────────────────
 
+  // enqueue_notification()/execute_order_cancellation() always shape the
+  // outbox payload as { data: {...caller data...}, action_url,
+  // notification_id } — order-lifecycle callers put orderId inside that
+  // inner `data`. Reusing that id as a stable tag/collapse-id means every
+  // push about the SAME order replaces the tray entry in place ("Order
+  // #1248: Preparing" -> "...Ready" -> "...Delivered", one evolving
+  // notification) instead of stacking a new alert per lifecycle event. No
+  // id => no tag => default stacking behavior, which is what we want for
+  // non-order notifications (promo blasts, etc.) that have nothing to
+  // collapse into. Shared by both providers: FCM's Android `tag`/APNs
+  // `apns-collapse-id` (sendFcm) and Expo's own `tag`/`collapseId` fields
+  // (sendExpoSingle), which map to the exact same native mechanisms.
+  private deriveActiveOrderTag(data: Record<string, any>): string | undefined {
+    const innerData =
+      data && typeof data === 'object' && data.data && typeof data.data === 'object'
+        ? data.data
+        : data;
+    const orderId = typeof innerData?.orderId === 'string' ? innerData.orderId : undefined;
+    return orderId ? `active-order:${orderId}` : undefined;
+  }
+
   private async sendFcm(
     tokens: string[],
     title: string,
@@ -298,22 +319,7 @@ export class NotificationWorker implements OnModuleInit {
         stringifiedData[k] = typeof v === 'string' ? v : JSON.stringify(v);
       }
 
-      // enqueue_notification()/execute_order_cancellation() always shape the
-      // outbox payload as { data: {...caller data...}, action_url,
-      // notification_id } — order-lifecycle callers put orderId inside that
-      // inner `data`. Reusing that id as the Android notification tag / APNs
-      // collapse-id means every push about the SAME order replaces the tray
-      // entry in place ("Order #1248: Preparing" -> "...Ready" -> "...
-      // Delivered", one evolving notification) instead of stacking a new
-      // alert per lifecycle event. No id => no tag => default stacking
-      // behavior, which is what we want for non-order notifications (promo
-      // blasts, etc.) that have nothing to collapse into.
-      const innerData =
-        data && typeof data === 'object' && data.data && typeof data.data === 'object'
-          ? data.data
-          : data;
-      const orderId = typeof innerData?.orderId === 'string' ? innerData.orderId : undefined;
-      const tag = orderId ? `active-order:${orderId}` : undefined;
+      const tag = this.deriveActiveOrderTag(data);
 
       const message = {
         notification: { title, body },
@@ -447,7 +453,18 @@ export class NotificationWorker implements OnModuleInit {
     data: Record<string, any>,
   ): Promise<{ ok: boolean; invalid: boolean }> {
     try {
-      const payload = JSON.stringify([{ to: token, title, body, data, sound: 'default' }]);
+      const tag = this.deriveActiveOrderTag(data);
+      const message: Record<string, any> = { to: token, title, body, data, sound: 'default' };
+      if (tag) {
+        // Android: replaces an already-displayed notification with the same
+        // tag. iOS: coalesces in transit AND replaces an already-displayed
+        // notification via apns-collapse-id (Expo docs, confirmed 2026-09) —
+        // collapseId is the one field of the two that actually needs setting
+        // for iOS; tag is Android-only but harmless to include unconditionally.
+        message.tag = tag;
+        message.collapseId = tag;
+      }
+      const payload = JSON.stringify([message]);
       const json = await this.expoPost(payload);
 
       if (!Array.isArray(json?.data) || json.data.length !== 1) {
