@@ -25,6 +25,7 @@ import { SupabaseClient, createClient } from '@supabase/supabase-js';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { cert, getApps, initializeApp } from 'firebase-admin/app';
 import { getMessaging } from 'firebase-admin/messaging';
+import { PrismaService } from '../prisma/prisma.service';
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 function addMinutes(date: Date, minutes: number): string {
@@ -90,7 +91,10 @@ export class NotificationWorker implements OnModuleInit {
   /** Expo push API endpoint */
   private readonly EXPO_PUSH_URL = 'https://exp.host/--/api/v2/push/send';
 
-  constructor(private readonly configService: ConfigService) {
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly prisma: PrismaService,
+  ) {
     const supabaseUrl = this.configService.get<string>('SUPABASE_URL');
     const supabaseKey = this.configService.get<string>('SUPABASE_SERVICE_ROLE_KEY');
     if (!supabaseUrl || !supabaseKey) {
@@ -165,14 +169,38 @@ export class NotificationWorker implements OnModuleInit {
 
   private async processBatch() {
     // Claim due queued/retrying jobs, plus stale processing jobs, in one
-    // database transaction using FOR UPDATE SKIP LOCKED. The RPC also moves
-    // rows to `processing`, sets the lease, and increments `attempts`.
-    const { data: claimedRows, error: claimErr } = await this.supabase
-      .rpc('claim_notification_outbox', { p_limit: this.BATCH_SIZE })
-      .abortSignal(AbortSignal.timeout(this.DB_TIMEOUT_MS));
-
-    if (claimErr) {
-      this.logger.error(`Outbox claim failed: ${claimErr.message}`);
+    // database transaction using FOR UPDATE SKIP LOCKED. This query also moves
+    // rows to `processing`, sets the lease, and increments `attempts` — the
+    // exact same semantics as the retired claim_notification_outbox() RPC,
+    // executed directly over the Prisma connection instead of Supabase REST.
+    let claimedRows: OutboxRow[];
+    try {
+      claimedRows = await Promise.race([
+        this.prisma.$queryRaw<OutboxRow[]>`
+          WITH claimed AS (
+            SELECT id FROM public.notification_outbox
+            WHERE (status IN ('queued','retrying') AND next_attempt_at <= now())
+               OR (status='processing' AND locked_until < now())
+            ORDER BY next_attempt_at, created_at
+            FOR UPDATE SKIP LOCKED
+            LIMIT LEAST(GREATEST(COALESCE(${this.BATCH_SIZE}, 100), 1), 500)
+          )
+          UPDATE public.notification_outbox o
+          SET status='processing', locked_until=now()+interval '5 minutes', attempts=attempts+1, updated_at=now()
+          FROM claimed
+          WHERE o.id=claimed.id
+          RETURNING o.*
+        `,
+        new Promise<never>((_, reject) => {
+          const timer = setTimeout(
+            () => reject(new Error('Outbox claim query timed out')),
+            this.DB_TIMEOUT_MS,
+          );
+          timer.unref?.();
+        }),
+      ]);
+    } catch (err: any) {
+      this.logger.error(`Outbox claim failed: ${err.message}`);
       return;
     }
 
@@ -180,7 +208,7 @@ export class NotificationWorker implements OnModuleInit {
 
     // 3. Process each atomically claimed row independently.
     await Promise.all(
-      (claimedRows as OutboxRow[]).map((row) =>
+      claimedRows.map((row) =>
         this.processRow(row).catch((err: any) => {
           this.logger.error(`Row ${row.id} processing threw: ${err.message}`);
         }),
