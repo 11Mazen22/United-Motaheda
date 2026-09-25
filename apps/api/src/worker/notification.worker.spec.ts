@@ -49,6 +49,14 @@ jest.mock('@supabase/supabase-js', () => ({
   createClient: jest.fn(() => mockSupabase),
 }));
 
+// Mock PrismaService — $queryRaw stands in for the retired
+// claim_notification_outbox() RPC. Tests configure its resolved value the
+// same way they previously configured mockSupabase.rpc().
+const mockQueryRaw = jest.fn();
+const mockPrisma = {
+  $queryRaw: (...args: any[]) => mockQueryRaw(...args),
+};
+
 describe('NotificationWorker', () => {
   let worker: NotificationWorker;
 
@@ -75,16 +83,17 @@ describe('NotificationWorker', () => {
       }),
     } as unknown as ConfigService;
 
-    worker = new NotificationWorker(configService);
+    worker = new NotificationWorker(configService, mockPrisma as any);
     worker.onModuleInit(); // Initialise firebase mock
   });
 
   describe('Outbox claiming and concurrency (lease/claim)', () => {
-    it('claims due rows through the atomic database function', async () => {
-      const q = createQueryChain([
+    it('claims due rows through the atomic database transaction', async () => {
+      const claimedRows = [
         { id: 'row-1', recipient_id: 'user-1', title: 'T', body: 'B', attempts: 1, status: 'processing' },
-      ]);
-      mockSupabase.rpc.mockReturnValue(q);
+      ];
+      mockQueryRaw.mockResolvedValue(claimedRows);
+      const q = createQueryChain();
       const originalUpdate = q.update;
       q.update = jest.fn((...args) => {
         outboxUpdateSpy(...args);
@@ -100,7 +109,8 @@ describe('NotificationWorker', () => {
       });
 
       await worker.processLoop();
-      expect(mockSupabase.rpc).toHaveBeenCalledWith('claim_notification_outbox', { p_limit: 50 });
+      expect(mockQueryRaw).toHaveBeenCalled();
+      expect(outboxUpdateSpy).toHaveBeenCalled();
     });
   });
 
@@ -115,10 +125,10 @@ describe('NotificationWorker', () => {
         ],
       });
 
-      const q = createQueryChain([
+      const q = createQueryChain();
+      mockQueryRaw.mockResolvedValue([
         { id: 'row-1', recipient_id: 'user-1', title: 'T', body: 'B', attempts: 1, status: 'processing' },
       ]);
-      mockSupabase.rpc.mockReturnValue(q);
       const originalUpdate = q.update;
       q.update = jest.fn((...args) => {
         outboxUpdateSpy(...args);
@@ -163,10 +173,10 @@ describe('NotificationWorker', () => {
     });
 
     it('keeps Expo fallback active for a legacy device when another device has FCM', async () => {
-      const q = createQueryChain([
+      const q = createQueryChain();
+      mockQueryRaw.mockResolvedValue([
         { id: 'row-legacy', recipient_id: 'user-1', title: 'T', body: 'B', payload: {}, attempts: 1, status: 'processing' },
       ]);
-      mockSupabase.rpc.mockReturnValue(q);
       mockSupabase.from.mockImplementation((table: string) => {
         if (table === 'notification_outbox') return q;
         if (table === 'user_devices') return createQueryChain([
@@ -191,10 +201,10 @@ describe('NotificationWorker', () => {
     });
 
     it('does not duplicate Expo push for a device already receiving FCM', async () => {
-      const q = createQueryChain([
+      const q = createQueryChain();
+      mockQueryRaw.mockResolvedValue([
         { id: 'row-dedupe', recipient_id: 'user-1', title: 'T', body: 'B', payload: {}, attempts: 1, status: 'processing' },
       ]);
-      mockSupabase.rpc.mockReturnValue(q);
       mockSupabase.from.mockImplementation((table: string) => {
         if (table === 'notification_outbox') return q;
         if (table === 'user_devices') return createQueryChain([
@@ -220,10 +230,10 @@ describe('NotificationWorker', () => {
         responses: [{ success: false, error: { code: 'some-error' } as any }],
       });
 
-      const q = createQueryChain([
+      const q = createQueryChain();
+      mockQueryRaw.mockResolvedValue([
         { id: 'row-2', recipient_id: 'user-2', title: 'T', body: 'B', attempts: 5, status: 'processing' },
       ]);
-      mockSupabase.rpc.mockReturnValue(q);
       const originalUpdate = q.update;
       q.update = jest.fn((...args) => {
         outboxUpdateSpy(...args);
@@ -253,10 +263,10 @@ describe('NotificationWorker', () => {
         responses: [{ success: false, error: { code: 'messaging/invalid' } as any }],
       });
 
-      const q = createQueryChain([
+      const q = createQueryChain();
+      mockQueryRaw.mockResolvedValue([
         { id: 'row-3', recipient_id: 'user-3', title: 'T', body: 'B', attempts: 2, status: 'processing' },
       ]);
-      mockSupabase.rpc.mockReturnValue(q);
       const originalUpdate = q.update;
       q.update = jest.fn((...args) => {
         outboxUpdateSpy(...args);
